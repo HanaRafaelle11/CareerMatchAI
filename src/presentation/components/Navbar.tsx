@@ -1,4 +1,4 @@
-import { LayoutDashboard, User, LogOut, Compass, FileText, Briefcase, Award, X } from 'lucide-react';
+import { LayoutDashboard, User, LogOut, Compass, FileText, Briefcase, Award, X, Upload } from 'lucide-react';
 import { ThemeToggle } from './ThemeToggle';
 import type { Profile } from '../../domain/models/types';
 
@@ -14,6 +14,7 @@ interface NavbarProps {
 export function Navbar({ activeTab, setActiveTab, profile, onLogout, isOpen, onClose }: NavbarProps) {
   const menuItems = [
     { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
+    { id: 'resume-upload', label: 'Enviar Currículo', icon: Upload },
     { id: 'profile', label: 'Meu Currículo', icon: FileText },
     { id: 'career-profile', label: 'Meu Perfil', icon: User },
     { id: 'strategy', label: 'Minha Estratégia', icon: Briefcase },

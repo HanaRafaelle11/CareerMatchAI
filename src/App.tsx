@@ -13,6 +13,7 @@ import { JobMatchHub } from './presentation/pages/JobMatchHub';
 import { CareerProfilePage } from './presentation/pages/CareerProfilePage';
 import { StrategyPage } from './presentation/pages/StrategyPage';
 import { CoachDashboard } from './presentation/pages/CoachDashboard';
+import { ResumeUpload } from './presentation/pages/ResumeUpload';
 import { Menu } from 'lucide-react';
 
 function App() {
@@ -138,6 +139,12 @@ function App() {
             setActiveTab={setActiveTab}
             applications={applications}
             careerGoals={careerGoals}
+          />
+        )}
+
+        {activeTab === 'resume-upload' && (
+          <ResumeUpload
+            profile={profile}
           />
         )}
 

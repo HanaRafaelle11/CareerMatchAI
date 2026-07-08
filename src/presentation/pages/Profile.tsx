@@ -1,7 +1,7 @@
 import { useState, useRef } from 'react';
 import { CardGlass } from '../components/CardGlass';
-import type { Resume, Profile as UserProfile, Application } from '../../domain/models/types';
-import { Upload, FileText, Calendar, Trash2, Check, AlertCircle, Briefcase, Award, Clock } from 'lucide-react';
+import type { Resume, Profile as UserProfile, Application, PipelineStep } from '../../domain/models/types';
+import { Upload, FileText, Calendar, Trash2, Check, AlertCircle, Briefcase, Award, Clock, Activity } from 'lucide-react';
 import { ResumeOptimizationService } from '../../application/services/ResumeOptimizationService';
 import { isSupabaseConfigured } from '../../infrastructure/api/supabaseClient';
 
@@ -12,12 +12,22 @@ interface ProfileProps {
   onDeleteResume: (id: string) => Promise<void>;
   isUploading: boolean;
   applications: Application[];
+  pipelineSteps?: PipelineStep[];
 }
 
-export function Profile({ profile, resumes, onUploadResume, onDeleteResume, isUploading, applications = [] }: ProfileProps) {
+export function Profile({ 
+  profile, 
+  resumes, 
+  onUploadResume, 
+  onDeleteResume, 
+  isUploading, 
+  applications = [],
+  pipelineSteps = []
+}: ProfileProps) {
   const [dragActive, setDragActive] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
   const [uploadSuccess, setUploadSuccess] = useState(false);
+  const [isDebugExpanded, setIsDebugExpanded] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const primaryResume = resumes.find(r => r.isPrimary) || resumes[0];
@@ -127,24 +137,75 @@ export function Profile({ profile, resumes, onUploadResume, onDeleteResume, isUp
                 accept=".pdf,.docx,.txt"
                 onChange={handleFileChange}
               />
-              
-              <div className="flex flex-col items-center gap-3">
-                <div className="p-3 rounded-xl bg-slate-900 border border-slate-800 text-slate-400">
-                  {isUploading ? (
-                    <div className="h-6 w-6 border-2 border-brand-500 border-t-transparent rounded-full animate-spin" />
-                  ) : (
-                    <Upload size={22} />
-                  )}
+              {pipelineSteps && pipelineSteps.length > 0 ? (
+                <div className="text-left w-full mx-auto space-y-3 p-1 select-none" onClick={(e) => e.stopPropagation()}>
+                  <div className="flex items-center justify-between pb-2 border-b border-slate-800 dark:border-slate-800 light:border-slate-200">
+                    <span className="text-[10px] font-bold text-slate-500 dark:text-slate-500 light:text-slate-400 uppercase tracking-wider">Etapas de Processamento</span>
+                    {isUploading ? (
+                      <span className="h-3.5 w-3.5 border-2 border-brand-500 border-t-transparent rounded-full animate-spin" />
+                    ) : pipelineSteps.some(s => s.status === 'error') ? (
+                      <button 
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          fileInputRef.current?.click();
+                        }}
+                        className="text-[10px] text-red-500 dark:text-red-400 font-bold hover:underline cursor-pointer"
+                      >
+                        Tentar novamente
+                      </button>
+                    ) : (
+                      <button 
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          fileInputRef.current?.click();
+                        }}
+                        className="text-[10px] text-brand-500 dark:text-brand-400 font-bold hover:underline cursor-pointer"
+                      >
+                        Enviar outro
+                      </button>
+                    )}
+                  </div>
+                  
+                  <div className="space-y-2.5 max-h-60 overflow-y-auto pr-1">
+                    {pipelineSteps.map((step) => (
+                      <div key={step.id} className="flex items-start gap-2 text-xs transition-all duration-300">
+                        {step.status === 'success' && <span className="text-emerald-500 dark:text-emerald-400 font-bold shrink-0">✔</span>}
+                        {step.status === 'error' && <span className="text-red-500 dark:text-red-400 font-bold shrink-0">✖</span>}
+                        {step.status === 'running' && (
+                          <div className="h-3 w-3 mt-0.5 border-2 border-brand-500 border-t-transparent rounded-full animate-spin shrink-0" />
+                        )}
+                        {step.status === 'pending' && <div className="h-2 w-2 mt-1.5 mx-0.5 rounded-full bg-slate-800 dark:bg-slate-800 light:bg-slate-300 shrink-0" />}
+                        <span className={`leading-tight
+                          ${step.status === 'success' ? 'text-emerald-400 dark:text-emerald-400 light:text-emerald-600 font-medium' : ''}
+                          ${step.status === 'error' ? 'text-red-400 dark:text-red-400 light:text-red-600 font-semibold' : ''}
+                          ${step.status === 'running' ? 'text-brand-400 dark:text-brand-400 light:text-brand-600 font-semibold' : ''}
+                          ${step.status === 'pending' ? 'text-slate-600 dark:text-slate-600 light:text-slate-400' : ''}
+                        `}>
+                          {step.label}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
                 </div>
-                <div>
-                  <p className="text-sm font-semibold text-slate-300 dark:text-slate-300 light:text-slate-700">
-                    {isUploading ? 'Analisando Currículo...' : 'Arraste seu arquivo aqui'}
-                  </p>
-                  <p className="text-xs text-slate-500 mt-1">
-                    Suporta PDF, DOCX ou TXT (Max. 10MB)
-                  </p>
+              ) : (
+                <div className="flex flex-col items-center gap-3">
+                  <div className="p-3 rounded-xl bg-slate-900 border border-slate-800 text-slate-400">
+                    {isUploading ? (
+                      <div className="h-6 w-6 border-2 border-brand-500 border-t-transparent rounded-full animate-spin" />
+                    ) : (
+                      <Upload size={22} />
+                    )}
+                  </div>
+                  <div>
+                    <p className="text-sm font-semibold text-slate-300 dark:text-slate-300 light:text-slate-700">
+                      {isUploading ? 'Analisando Currículo...' : 'Arraste seu arquivo aqui'}
+                    </p>
+                    <p className="text-xs text-slate-500 mt-1">
+                      Suporta PDF, DOCX ou TXT (Max. 10MB)
+                    </p>
+                  </div>
                 </div>
-              </div>
+              )}
             </div>
 
             {errorMsg && (
@@ -228,6 +289,46 @@ export function Profile({ profile, resumes, onUploadResume, onDeleteResume, isUp
                     </div>
                   </div>
                 ))}
+              </div>
+            </CardGlass>
+          )}
+
+          {/* Seção de Auditoria do Parser */}
+          {primaryResume && (
+            <CardGlass className="space-y-4 border border-slate-900">
+              <h3 className="font-display font-bold text-sm text-slate-200 flex items-center gap-2">
+                <Activity size={16} className="text-brand-500" />
+                Auditoria de Processamento
+              </h3>
+              <div className="space-y-2.5 text-xs text-slate-300">
+                <div className="flex items-center gap-2">
+                  <span className="text-emerald-500 font-bold">✓</span>
+                  <span>Texto extraído: <strong className="text-slate-100">{primaryResume.rawText?.length || 0}</strong> caracteres</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="text-emerald-500 font-bold">✓</span>
+                  <span>Páginas detectadas: <strong className="text-slate-100">{primaryResume.structured_data?._debug?.pageCount || 1}</strong></span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="text-emerald-500 font-bold">✓</span>
+                  <span>Empresas identificadas: <strong className="text-slate-100">{new Set(primaryResume.experiences?.map(e => e.companyName)).size}</strong></span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="text-emerald-500 font-bold">✓</span>
+                  <span>Experiências mapeadas: <strong className="text-slate-100">{primaryResume.experiences?.length || 0}</strong></span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="text-emerald-500 font-bold">✓</span>
+                  <span>Competências: <strong className="text-slate-100">{primaryResume.skills?.filter(s => s.category === 'hard_skill').length || 0}</strong> Hard / <strong className="text-slate-100">{primaryResume.skills?.filter(s => s.category === 'soft_skill').length || 0}</strong> Soft</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="text-emerald-500 font-bold">✓</span>
+                  <span>Processado por IA (OpenAI gpt-4o)</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="text-emerald-500 font-bold">✓</span>
+                  <span>Perfil gerado {primaryResume.structured_data?._debug?.executionTimeMs ? `(${primaryResume.structured_data._debug.executionTimeMs}ms)` : ''}</span>
+                </div>
               </div>
             </CardGlass>
           )}
@@ -388,6 +489,81 @@ export function Profile({ profile, resumes, onUploadResume, onDeleteResume, isUp
           )}
         </div>
       </div>
+
+      {/* Painel de Debug (Auditoria do Parser) */}
+      {primaryResume && (
+        <div className="mt-6">
+          <CardGlass className="border border-slate-900 bg-slate-950/90 overflow-hidden">
+            <button
+              onClick={() => setIsDebugExpanded(!isDebugExpanded)}
+              className="w-full flex justify-between items-center py-2 text-left"
+            >
+              <div className="flex items-center gap-2">
+                <div className="h-2 w-2 rounded-full bg-red-500 animate-pulse" />
+                <span className="font-display font-bold text-sm text-slate-200 uppercase tracking-wider">Painel de Debug (Auditoria do Parser)</span>
+              </div>
+              <span className="text-xs text-brand-500 font-semibold hover:text-brand-400 cursor-pointer">
+                {isDebugExpanded ? 'Ocultar Detalhes ▲' : 'Exibir Detalhes ▼'}
+              </span>
+            </button>
+            
+            {isDebugExpanded && (
+              <div className="pt-4 border-t border-slate-900 space-y-6 animate-fade-in text-xs">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <span className="font-bold text-slate-400 block mb-1">Informações do Arquivo:</span>
+                    <ul className="space-y-1 text-slate-300">
+                      <li><strong>Nome:</strong> {primaryResume.fileName}</li>
+                      <li><strong>Storage Path:</strong> {primaryResume.structured_data?._debug?.storagePath || primaryResume.storage_path || 'N/A'}</li>
+                      <li><strong>Tamanho do Texto:</strong> {primaryResume.rawText?.length || 0} caracteres</li>
+                      <li><strong>Páginas:</strong> {primaryResume.structured_data?._debug?.pageCount || 1}</li>
+                      <li><strong>Tempo de Execução (IA):</strong> {primaryResume.structured_data?._debug?.executionTimeMs ? `${primaryResume.structured_data._debug.executionTimeMs}ms` : 'N/A'}</li>
+                    </ul>
+                  </div>
+                  <div>
+                    <span className="font-bold text-slate-400 block mb-1">Metadados Extraídos pela IA:</span>
+                    <ul className="space-y-1 text-slate-300">
+                      <li><strong>Modelo Utilizado:</strong> gpt-4o</li>
+                      <li><strong>ATS Score Estimado:</strong> {primaryResume.structured_data?.atsScore || 'N/A'}</li>
+                      <li><strong>Área Principal:</strong> {primaryResume.structured_data?.area || 'N/A'}</li>
+                      <li><strong>Senioridade Extraída:</strong> {primaryResume.structured_data?.seniority || 'N/A'}</li>
+                      <li><strong>Indústria:</strong> {primaryResume.structured_data?.industry || 'N/A'}</li>
+                    </ul>
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <span className="font-bold text-slate-400 block">Texto Extraído (Primeiras 2000 letras):</span>
+                  <pre className="p-3 rounded-xl bg-slate-950 border border-slate-900 overflow-x-auto text-[10px] text-slate-300 whitespace-pre-wrap max-h-48 overflow-y-auto font-mono">
+                    {primaryResume.rawText || 'Sem texto extraído'}
+                  </pre>
+                </div>
+
+                <div className="space-y-2">
+                  <span className="font-bold text-slate-400 block">Prompt Enviado à OpenAI:</span>
+                  <pre className="p-3 rounded-xl bg-slate-950 border border-slate-900 overflow-x-auto text-[10px] text-slate-300 whitespace-pre-wrap max-h-48 overflow-y-auto font-mono">
+                    {primaryResume.structured_data?._debug?.promptSent || 'Prompt não disponível para currículos legados'}
+                  </pre>
+                </div>
+
+                <div className="space-y-2">
+                  <span className="font-bold text-slate-400 block">Resposta Bruta da OpenAI:</span>
+                  <pre className="p-3 rounded-xl bg-slate-950 border border-slate-900 overflow-x-auto text-[10px] text-slate-300 whitespace-pre-wrap max-h-48 overflow-y-auto font-mono">
+                    {primaryResume.structured_data?._debug?.rawOpenAIResponse || 'Resposta bruta não disponível'}
+                  </pre>
+                </div>
+
+                <div className="space-y-2">
+                  <span className="font-bold text-slate-400 block">JSON Estruturado Gravado no Banco:</span>
+                  <pre className="p-3 rounded-xl bg-slate-950 border border-slate-900 overflow-x-auto text-[10px] text-slate-300 whitespace-pre-wrap max-h-64 overflow-y-auto font-mono">
+                    {JSON.stringify(primaryResume.structured_data || primaryResume, null, 2)}
+                  </pre>
+                </div>
+              </div>
+            )}
+          </CardGlass>
+        </div>
+      )}
     </div>
   );
 }

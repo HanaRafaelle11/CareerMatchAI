@@ -20,7 +20,7 @@ function App() {
   const [activeTab, setActiveTab] = useState('dashboard');
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
-  const { resumes, uploadResume, deleteResume, isUploading } = useResumes(profile?.id);
+  const { resumes, uploadResume, deleteResume, isUploading, pipelineSteps } = useResumes(profile?.id);
   const { jobs, createJob, isCreating } = useJobs(profile?.id);
   const { matches, calculateMatch, isCalculating, getMatchDetails } = useMatches(profile?.id);
   const { careerProfile, updateCareerProfile, isUpdating: isSavingProfile } = useCareerProfile(profile?.id);
@@ -149,6 +149,7 @@ function App() {
             onDeleteResume={deleteResume}
             isUploading={isUploading}
             applications={applications}
+            pipelineSteps={pipelineSteps}
           />
         )}
 

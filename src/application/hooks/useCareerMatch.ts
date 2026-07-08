@@ -1,14 +1,16 @@
+import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { isSupabaseConfigured, supabase } from '../../infrastructure/api/supabaseClient';
 import { localDB } from '../../infrastructure/storage/localDatabase';
 import { MatchingEngine } from '../services/matchingEngine';
-import type { Resume, Job, Match } from '../../domain/models/types';
+import type { Resume, Job, Match, PipelineStep } from '../../domain/models/types';
 
 // ==========================================
 // 1. HOOK PARA GERENCIAR CURRÍCULOS
 // ==========================================
 export function useResumes(userId: string | undefined) {
   const queryClient = useQueryClient();
+  const [pipelineSteps, setPipelineSteps] = useState<PipelineStep[]>([]);
 
   const resumesQuery = useQuery<Resume[]>({
     queryKey: ['resumes', userId],
@@ -50,175 +52,254 @@ export function useResumes(userId: string | undefined) {
     mutationFn: async ({ file, rawText }: { file: File, rawText: string }) => {
       if (!userId) throw new Error('Usuário não autenticado.');
 
-      console.log(`[UPLOAD] Iniciando fluxo de upload para o usuário: ${userId}`);
-      console.log(`[UPLOAD] Arquivo: ${file.name}, Tamanho: ${file.size} bytes, Tipo: ${file.type}`);
+      const pipelineStartTime = Date.now();
+      console.log(`[PIPELINE] 1. Upload iniciado para o arquivo: ${file.name} (Tamanho: ${file.size} bytes)`);
 
-      if (isSupabaseConfigured && supabase) {
-        const filePath = `${userId}/${Date.now()}_${file.name}`;
-        
-        // 1. Upload para o Supabase Storage bucket 'resumes'
-        console.log(`[STORAGE] Fazendo upload para bucket 'resumes', caminho: ${filePath}`);
-        const { data: uploadData, error: uploadError } = await supabase.storage
-          .from('resumes')
-          .upload(filePath, file, {
-            contentType: file.type,
-            cacheControl: '3600',
-            upsert: false
-          });
+      try {
+        setPipelineSteps([
+          { id: 'upload', label: 'Upload do arquivo...', status: 'running' },
+          { id: 'db_init', label: 'Registrando referência do arquivo...', status: 'pending' },
+          { id: 'extraction', label: 'Extraindo conteúdo (PDF/DOCX/TXT)...', status: 'pending' },
+          { id: 'ia_parsing', label: 'Processando IA (OpenAI gpt-4o)...', status: 'pending' },
+          { id: 'db_save', label: 'Salvando perfil estruturado...', status: 'pending' },
+        ]);
 
-        if (uploadError) {
-          console.error(`[STORAGE] Erro ao fazer upload do arquivo:`, uploadError);
-          throw uploadError;
-        }
-        console.log(`[STORAGE] Upload concluído com sucesso:`, uploadData);
+        if (isSupabaseConfigured && supabase) {
+          const filePath = `${userId}/${Date.now()}_${file.name}`;
+          
+          // 1. Upload para o Supabase Storage bucket 'resumes'
+          console.log(`[STORAGE] Fazendo upload para bucket 'resumes', caminho: ${filePath}`);
+          const { error: uploadError } = await supabase.storage
+            .from('resumes')
+            .upload(filePath, file, {
+              contentType: file.type,
+              cacheControl: '3600',
+              upsert: false
+            });
 
-        // 2. Criar registro inicial na tabela public.resumes
-        console.log(`[DATABASE] Inserindo registro inicial na tabela public.resumes`);
-        const { data: resumeData, error: dbError } = await supabase
-          .from('resumes')
-          .insert({
-            user_id: userId,
-            file_path: filePath, // retrocompatibilidade
-            storage_path: filePath,
-            file_name: file.name,
-            raw_text: rawText || null,
-            is_primary: true
-          })
-          .select()
-          .maybeSingle();
-
-        if (dbError) {
-          console.error(`[DATABASE] Erro ao salvar referência do currículo:`, dbError);
-          throw dbError;
-        }
-        if (!resumeData) {
-          throw new Error('Falha ao retornar o registro salvo de resumes.');
-        }
-        console.log(`[DATABASE] Registro inicial salvo, ID: ${resumeData.id}`);
-
-        // 3. Invocar a Edge Function 'analyze-resume' para processar o currículo
-        console.log(`[EDGE FUNCTION] Invocando analyze-resume com storagePath: ${filePath}`);
-        const { data: parsedResume, error: functionError } = await supabase.functions.invoke('analyze-resume', {
-          body: { 
-            storagePath: filePath, 
-            fileName: file.name,
-            userId: userId,
-            rawText: file.type.includes('text/plain') || file.name.endsWith('.txt') ? rawText : undefined
+          if (uploadError) {
+            console.error(`[STORAGE] Erro crítico ao fazer upload do arquivo para o bucket resumes:`, uploadError);
+            throw new Error(`Falha no upload para o Storage: ${uploadError.message}`);
           }
-        });
+          console.log(`[PIPELINE] 2. Upload concluído para o Storage. Caminho: ${filePath}`);
+          setPipelineSteps(prev => prev.map(s => 
+            s.id === 'upload' ? { ...s, label: '✔ Upload concluído', status: 'success' } :
+            s.id === 'db_init' ? { ...s, status: 'running' } : s
+          ));
 
-        if (functionError) {
-          console.error(`[EDGE FUNCTION] Erro ao invocar analyze-resume:`, functionError);
-          throw functionError;
-        }
-        console.log(`[EDGE FUNCTION] Análise concluída com sucesso. Resposta estruturada recebida:`, parsedResume);
+          // Obter URL pública do arquivo
+          const { data: { publicUrl } } = supabase.storage
+            .from('resumes')
+            .getPublicUrl(filePath);
 
-        // Extrair o perfil de carreira a partir do currículo processado
-        const parsedProfile = MatchingEngine.extractProfile(parsedResume);
+          // 2. Criar registro inicial na tabela public.resumes
+          console.log(`[DATABASE] Inserindo registro inicial na tabela public.resumes...`);
+          const { data: resumeData, error: dbError } = await supabase
+            .from('resumes')
+            .insert({
+              user_id: userId,
+              file_path: filePath, 
+              storage_path: filePath,
+              file_name: file.name,
+              file_url: publicUrl,
+              raw_text: rawText || null,
+              is_primary: true
+            })
+            .select()
+            .maybeSingle();
 
-        // 4. Atualizar o registro do currículo com os dados estruturados obtidos
-        console.log(`[DATABASE] Atualizando registro do currículo com os dados estruturados da IA`);
-        const { error: updateError } = await supabase
-          .from('resumes')
-          .update({
-            structured_data: parsedResume,
-            raw_text: parsedResume.structuredSummary
-          })
-          .eq('id', resumeData.id);
+          if (dbError) {
+            console.error(`[DATABASE] Erro crítico ao salvar referência do currículo:`, dbError);
+            throw new Error(`Falha ao gravar referência do currículo no Banco: ${dbError.message}`);
+          }
+          if (!resumeData) {
+            throw new Error('Falha ao retornar o registro salvo de resumes no Banco.');
+          }
+          console.log(`[PIPELINE] 3. Registro inicial de 'resumes' criado no Banco. ID: ${resumeData.id}`);
+          setPipelineSteps(prev => prev.map(s => 
+            s.id === 'db_init' ? { ...s, label: '✔ Referência registrada', status: 'success' } :
+            s.id === 'extraction' ? { ...s, status: 'running' } : s
+          ));
 
-        if (updateError) {
-          console.error(`[DATABASE] Erro ao atualizar o currículo com dados da IA:`, updateError);
-          throw updateError;
-        }
+          // 3. Invocar a Edge Function 'analyze-resume' para processar o currículo
+          console.log(`[PIPELINE] 4. Invocando Edge Function 'analyze-resume'...`);
+          setPipelineSteps(prev => prev.map(s => 
+            s.id === 'extraction' ? { ...s, label: 'Extraindo conteúdo (PDF/DOCX/TXT)...', status: 'running' } :
+            s.id === 'ia_parsing' ? { ...s, status: 'running' } : s
+          ));
 
-        // 5. Salvar ou atualizar o perfil de carreira associado
-        console.log(`[DATABASE] Salvando perfil de carreira associado na tabela public.career_profiles`);
-        const { data: existingProfile } = await supabase
-          .from('career_profiles')
-          .select('id')
-          .eq('user_id', userId)
-          .maybeSingle();
+          const apiStartTime = Date.now();
+          const { data: parsedResume, error: functionError } = await supabase.functions.invoke('analyze-resume', {
+            body: { 
+              storagePath: filePath, 
+              fileName: file.name,
+              userId: userId,
+              resumeId: resumeData.id,
+              rawText: file.type.includes('text/plain') || file.name.endsWith('.txt') ? rawText : undefined
+            }
+          });
+          const apiDuration = Date.now() - apiStartTime;
 
-        const profilePayload = {
-          user_id: userId,
-          resume_id: resumeData.id,
-          target_roles: parsedProfile.targetRoles,
-          seniority: parsedProfile.seniority,
-          industries: parsedProfile.industries,
-          skills: parsedProfile.skills,
-          tools: parsedProfile.tools,
-          languages: parsedProfile.languages,
-          preferred_locations: parsedProfile.preferredLocations,
-          preferred_work_modes: parsedProfile.preferredWorkModes,
-          target_companies: parsedProfile.targetCompanies,
-          salary_expectation_min: parsedProfile.salaryExpectationMin,
-          search_keywords: parsedProfile.searchKeywords,
-          is_approved_by_user: parsedProfile.isApprovedByUser
-        };
+          if (functionError) {
+            console.error(`[EDGE FUNCTION] Erro ao invocar analyze-resume:`, functionError);
+            throw functionError;
+          }
+          if (parsedResume?.error) {
+            console.error(`[EDGE FUNCTION] Erro retornado no processamento da IA:`, parsedResume.error);
+            throw new Error(parsedResume.error);
+          }
+          console.log(`[PIPELINE] 5. Resposta da Edge Function recebida com sucesso. Duração da API: ${apiDuration}ms`);
 
-        let profileError;
-        if (existingProfile) {
-          const { error } = await supabase
+          const debug = parsedResume._debug || {};
+          const charCount = debug.charCount || parsedResume.rawText?.length || 0;
+          const pageCount = debug.pageCount || 1;
+          const expCount = parsedResume.experiences?.length || 0;
+          const hardCount = parsedResume.skills?.filter((s: any) => s.category === 'hard_skill').length || 0;
+          const softCount = parsedResume.skills?.filter((s: any) => s.category === 'soft_skill').length || 0;
+          const compCount = new Set(parsedResume.experiences?.map((e: any) => e.companyName)).size;
+          const ats = parsedResume.atsScore || 85;
+
+          setPipelineSteps([
+            { id: 'upload', label: '✔ Upload concluído', status: 'success' },
+            { id: 'pdf_found', label: `✔ ${file.name.split('.').pop()?.toUpperCase() || 'PDF'} encontrado`, status: 'success' },
+            { id: 'pages', label: `✔ ${pageCount} páginas`, status: 'success' },
+            { id: 'chars', label: `✔ ${charCount.toLocaleString('pt-BR')} caracteres extraídos`, status: 'success' },
+            { id: 'experiences', label: `✔ ${expCount} experiências identificadas`, status: 'success' },
+            { id: 'hard_skills', label: `✔ ${hardCount} hard skills`, status: 'success' },
+            { id: 'soft_skills', label: `✔ ${softCount} soft skills`, status: 'success' },
+            { id: 'companies', label: `✔ ${compCount} empresas`, status: 'success' },
+            { id: 'ia_sent', label: '✔ Enviado para GPT-4o', status: 'success' },
+            { id: 'profile_struct', label: '✔ Perfil estruturado', status: 'success' },
+            { id: 'ats_score', label: `✔ ATS Score calculado: ${ats}%`, status: 'success' },
+            { id: 'db_save', label: 'Gravando no banco de dados...', status: 'running' }
+          ]);
+
+          // Extrair o perfil de carreira a partir do currículo processado
+          const parsedProfile = MatchingEngine.extractProfile(parsedResume);
+
+          // 4. Atualizar o registro do currículo com os dados estruturados obtidos
+          console.log(`[DATABASE] Atualizando registro do currículo com os dados estruturados da IA...`);
+          const { error: updateError } = await supabase
+            .from('resumes')
+            .update({
+              structured_data: parsedResume,
+              raw_text: parsedResume.structuredSummary
+            })
+            .eq('id', resumeData.id);
+
+          if (updateError) {
+            console.error(`[DATABASE] Erro ao atualizar o currículo com dados da IA:`, updateError);
+            throw new Error(`Falha ao salvar dados estruturados no Banco: ${updateError.message}`);
+          }
+          console.log(`[PIPELINE] 6. Registro do currículo atualizado com dados estruturados da IA.`);
+
+          // 5. Salvar ou atualizar o perfil de carreira associado
+          console.log(`[DATABASE] Salvando perfil de carreira associado na tabela public.career_profiles...`);
+          const { data: existingProfile } = await supabase
             .from('career_profiles')
-            .update(profilePayload)
-            .eq('id', existingProfile.id);
-          profileError = error;
+            .select('id')
+            .eq('user_id', userId)
+            .maybeSingle();
+
+          const profilePayload = {
+            user_id: userId,
+            resume_id: resumeData.id,
+            target_roles: parsedProfile.targetRoles,
+            seniority: parsedProfile.seniority,
+            industries: parsedProfile.industries,
+            skills: parsedProfile.skills,
+            tools: parsedProfile.tools,
+            languages: parsedProfile.languages,
+            preferred_locations: parsedProfile.preferredLocations,
+            preferred_work_modes: parsedProfile.preferredWorkModes,
+            target_companies: parsedProfile.targetCompanies,
+            salary_expectation_min: parsedProfile.salaryExpectationMin,
+            search_keywords: parsedProfile.searchKeywords,
+            is_approved_by_user: parsedProfile.isApprovedByUser
+          };
+
+          let profileError;
+          if (existingProfile) {
+            console.log(`[DATABASE] Atualizando perfil de carreira existente ID: ${existingProfile.id}`);
+            const { error } = await supabase
+              .from('career_profiles')
+              .update(profilePayload)
+              .eq('id', existingProfile.id);
+            profileError = error;
+          } else {
+            console.log(`[DATABASE] Criando novo perfil de carreira...`);
+            const { error } = await supabase
+              .from('career_profiles')
+              .insert(profilePayload);
+            profileError = error;
+          }
+
+          if (profileError) {
+            console.error('[DATABASE] Erro ao salvar perfil de carreira no Supabase:', profileError);
+            throw new Error(`Falha ao persistir perfil de carreira no Banco: ${profileError.message}`);
+          }
+          console.log(`[PIPELINE] 7. Perfil de carreira atualizado com sucesso.`);
+          
+          setPipelineSteps(prev => prev.map(s => 
+            s.id === 'db_save' ? { ...s, label: '✔ Banco atualizado', status: 'success' } : s
+          ));
+
+          const totalPipelineTime = Date.now() - pipelineStartTime;
+          console.log(`[PIPELINE] 8. Pipeline concluído com sucesso. Tempo total do processo: ${totalPipelineTime}ms`);
+
+          return resumeData;
         } else {
-          const { error } = await supabase
-            .from('career_profiles')
-            .insert(profilePayload);
-          profileError = error;
+          throw new Error('Supabase não está configurado. O parser de currículos requer conexão ativa com Supabase e OpenAI.');
         }
+      } catch (error: any) {
+        const errorMsg = error.message || String(error);
+        setPipelineSteps(prev => {
+          let marked = false;
+          const isEarlyFailure = prev.length <= 5;
+          if (isEarlyFailure) {
+            let errorSteps: PipelineStep[] = [];
+            
+            const hasUploadFailed = errorMsg.includes('upload') || errorMsg.includes('Storage');
+            const hasExtractionFailed = errorMsg.includes('Nenhum texto') || errorMsg.includes('extraído') || errorMsg.includes('Auditoria') || errorMsg.includes('PDF');
+            const hasOpenAIFailed = errorMsg.includes('OpenAI') || errorMsg.includes('IA') || errorMsg.includes('chave');
+            const hasDbFailed = errorMsg.includes('Banco') || errorMsg.includes('database') || errorMsg.includes('referencia') || errorMsg.includes('persistir');
+            
+            errorSteps.push({
+              id: 'err_pdf',
+              label: hasUploadFailed || hasExtractionFailed ? '✖ PDF corrompido ou formato inválido' : '✔ PDF carregado com sucesso',
+              status: hasUploadFailed || hasExtractionFailed ? 'error' : 'success'
+            });
 
-        if (profileError) {
-          console.error('[DATABASE] Erro ao salvar perfil de carreira no Supabase:', profileError);
-        } else {
-          console.log(`[DATABASE] Perfil de carreira salvo com sucesso.`);
-        }
+            errorSteps.push({
+              id: 'err_text',
+              label: hasExtractionFailed ? '✖ Nenhum texto encontrado' : hasUploadFailed ? '✖ Extração bloqueada (upload falhou)' : '✔ Texto extraído com sucesso',
+              status: hasExtractionFailed ? 'error' : hasUploadFailed ? 'pending' : 'success'
+            });
 
-        return resumeData;
-      } else {
-        // Fallback local - Apenas se Supabase NÃO estiver configurado!
-        console.log(`[LOCAL] Rodando em modo Local Fallback (LocalStorage)`);
-        const { resume: parsedResume, careerProfile: parsedProfile } = await MatchingEngine.parseResumeText(rawText, file.name);
+            errorSteps.push({
+              id: 'err_openai',
+              label: hasOpenAIFailed ? '✖ OpenAI indisponível ou chave inválida' : (hasUploadFailed || hasExtractionFailed) ? '✖ Processamento cancelado' : '✔ Processado por IA',
+              status: hasOpenAIFailed ? 'error' : (hasUploadFailed || hasExtractionFailed) ? 'pending' : 'success'
+            });
 
-        const newResume: Resume = {
-          id: `res-${Date.now()}`,
-          userId,
-          fileName: file.name,
-          rawText,
-          structuredSummary: parsedResume.structuredSummary,
-          yearsOfExperience: parsedResume.yearsOfExperience,
-          isPrimary: true,
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString(),
-          experiences: parsedResume.experiences,
-          skills: parsedResume.skills,
-          education: parsedResume.education
-        };
-        const savedResume = localDB.saveResume(newResume);
+            errorSteps.push({
+              id: 'err_db',
+              label: hasDbFailed ? '✖ Resume não salvo no banco' : '✖ Erro no banco de dados',
+              status: hasDbFailed ? 'error' : 'pending'
+            });
 
-        localDB.saveCareerProfile({
-          id: `cp-${Date.now()}`,
-          userId,
-          resumeId: savedResume.id,
-          targetRoles: parsedProfile.targetRoles,
-          seniority: parsedProfile.seniority,
-          industries: parsedProfile.industries,
-          skills: parsedProfile.skills,
-          tools: parsedProfile.tools,
-          languages: parsedProfile.languages,
-          preferredLocations: parsedProfile.preferredLocations,
-          preferredWorkModes: parsedProfile.preferredWorkModes as any,
-          targetCompanies: parsedProfile.targetCompanies,
-          salaryExpectationMin: parsedProfile.salaryExpectationMin,
-          searchKeywords: parsedProfile.searchKeywords,
-          isApprovedByUser: parsedProfile.isApprovedByUser,
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString()
+            return errorSteps;
+          }
+
+          return prev.map(s => {
+            if (!marked && (s.status === 'running' || s.status === 'pending')) {
+              marked = true;
+              return { ...s, label: `✖ Resume não salvo no banco: ${errorMsg}`, status: 'error' };
+            }
+            return s;
+          });
         });
-
-        return savedResume;
+        throw error;
       }
     },
     onSuccess: () => {
@@ -249,7 +330,8 @@ export function useResumes(userId: string | undefined) {
     isLoading: resumesQuery.isLoading,
     uploadResume: uploadResumeMutation.mutateAsync,
     isUploading: uploadResumeMutation.isPending,
-    deleteResume: deleteResumeMutation.mutateAsync
+    deleteResume: deleteResumeMutation.mutateAsync,
+    pipelineSteps
   };
 }
 

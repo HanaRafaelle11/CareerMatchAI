@@ -46,6 +46,8 @@ export interface Resume {
   userId: string;
   filePath?: string;
   fileName?: string;
+  file_url?: string;
+  storage_path?: string;
   rawText?: string;
   structuredSummary?: string;
   yearsOfExperience: number;
@@ -57,6 +59,7 @@ export interface Resume {
   education: Education[];
   versionNumber?: number;
   versionLabel?: string;
+  structured_data?: any;
 }
 
 export interface Experience {
@@ -326,4 +329,11 @@ export interface CareerGoal {
   isActive: boolean;
   createdAt: string;
   updatedAt: string;
+}
+
+export interface PipelineStep {
+  id: string;
+  label: string;
+  status: 'pending' | 'running' | 'success' | 'error';
+  value?: string | number;
 }

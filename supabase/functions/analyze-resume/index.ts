@@ -5,7 +5,7 @@ import mammoth from "npm:mammoth"
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-mock-gemini',
   'Access-Control-Allow-Methods': 'POST, GET, OPTIONS',
 }
 
@@ -15,6 +15,72 @@ function cleanString(input: string): string {
     .replace(/\0/g, '') // Remove actual null bytes
     .replace(/\\u0000/g, '') // Remove string representations of null bytes
     .replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F-\x9F]/g, ''); // Remove non-printable control characters
+}
+
+async function fetchWithRetry(url: string, options: any, maxRetries = 3, initialDelay = 1000): Promise<Response> {
+  let delay = initialDelay;
+  for (let attempt = 1; attempt <= maxRetries; attempt++) {
+    try {
+      const response = await fetch(url, options);
+      if (response.ok) return response;
+      
+      // Se for rate limit (429) ou erro temporário de servidor (5xx), aplicar backoff
+      if (response.status === 429 || response.status >= 500) {
+        console.warn(`[GEMINI RETRY] Tentativa ${attempt} falhou com status ${response.status}. Aguardando ${delay}ms...`);
+        await new Promise(resolve => setTimeout(resolve, delay));
+        delay *= 2;
+        continue;
+      }
+      return response;
+    } catch (err) {
+      if (attempt === maxRetries) throw err;
+      console.warn(`[GEMINI RETRY] Tentativa ${attempt} falhou com erro de rede: ${err.message}. Aguardando ${delay}ms...`);
+      await new Promise(resolve => setTimeout(resolve, delay));
+      delay *= 2;
+    }
+  }
+  throw new Error(`Falha no processamento com Gemini após ${maxRetries} tentativas.`);
+}
+
+async function checkRateLimit(supabaseClient: any, userId: string, feature: string) {
+  if (!userId) return;
+  const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000).toISOString();
+  
+  const { count, error } = await supabaseClient
+    .from('ai_usage_logs')
+    .select('*', { count: 'exact', head: true })
+    .eq('user_id', userId)
+    .eq('feature', feature)
+    .gte('created_at', oneHourAgo);
+
+  if (error) {
+    console.error(`[RATE LIMIT] Erro ao verificar limite:`, error);
+    return; // Não bloqueia caso o banco falhe
+  }
+
+  // Limite de 10 chamadas de IA por hora por usuário
+  if (count && count >= 10) {
+    throw new Error(`Limite de requisições excedido. Você pode fazer no máximo 10 chamadas para '${feature}' por hora.`);
+  }
+}
+
+async function logAiUsage(supabaseClient: any, userId: string, feature: string, model: string, inputTokens: number, outputTokens: number) {
+  // Custo estimado para o Gemini 2.5 Flash: $0.075/1M input, $0.30/1M output
+  const estimatedCost = (inputTokens * 0.000000075) + (outputTokens * 0.0000003);
+  const { error } = await supabaseClient
+    .from('ai_usage_logs')
+    .insert({
+      user_id: userId || null,
+      feature,
+      model,
+      input_tokens: inputTokens,
+      output_tokens: outputTokens,
+      estimated_cost: estimatedCost
+    });
+
+  if (error) {
+    console.error(`[AI LOG] Erro ao salvar log de uso:`, error);
+  }
 }
 
 class ResumeParserService {
@@ -41,7 +107,82 @@ class ResumeParserService {
     return { text: cleanString(textToAnalyze), pageCount: numPages };
   }
 
-  static async parseWithGemini(text: string): Promise<any> {
+  static async parseWithGemini(text: string, supabaseClient: any, userId: string, mockEnabled = false): Promise<any> {
+    // Verificar Rate Limit antes de chamar a IA
+    await checkRateLimit(supabaseClient, userId, 'resume-parsing');
+
+    if (mockEnabled) {
+      console.log("[GEMINI] Simulação ativa para testes.");
+      const isAmanda = text.includes("Amanda");
+      
+      // Registrar log de IA mockado
+      await logAiUsage(supabaseClient, userId, 'resume-parsing', 'gemini-2.5-flash-mock', 100, 200);
+
+      return {
+        career_profile: {
+          personal: {
+            fullName: isAmanda ? "Amanda Teste da Silva" : "Hana Oliveira de Souza",
+            headline: isAmanda ? "Desenvolvedora" : "Gerente de Customer Success",
+            email: isAmanda ? "amanda.teste@email.com" : "hana.oliveira@email.com",
+            phone: null,
+            linkedin: null,
+            website: null,
+            location: null
+          },
+          summary: "Resumo mockado de teste.",
+          experience: isAmanda ? [] : [
+            {
+              companyName: "Omie",
+              role: "Supervisora de CS",
+              startDate: "2021-01-01",
+              endDate: null,
+              isCurrent: true,
+              description: "Retenção de clientes B2B",
+              highlights: []
+            }
+          ],
+          education: [],
+          skills: [],
+          soft_skills: [],
+          languages: [],
+          certifications: [],
+          ats_keywords: []
+        },
+        career_insights: {
+          seniority_prediction: {
+            value: isAmanda ? "junior" : "senior",
+            confidence: 0.9,
+            reason: "Simulação de teste"
+          },
+          industry_prediction: {
+            value: "SaaS",
+            confidence: 0.9,
+            reason: "Simulação de teste"
+          },
+          methodologies: {
+            value: [],
+            confidence: 0.9,
+            reason: "Simulação de teste"
+          },
+          recommended_keywords: {
+            value: [],
+            confidence: 0.9,
+            reason: "Simulação de teste"
+          },
+          missing_skills: {
+            value: [],
+            confidence: 0.9,
+            reason: "Simulação de teste"
+          },
+          confidence_scores: {
+            value: { personal: 0.9 },
+            confidence: 0.9,
+            reason: "Simulação de teste"
+          }
+        }
+      };
+    }
+
     const geminiApiKey = Deno.env.get('GEMINI_API_KEY');
     if (!geminiApiKey) {
       throw new Error("Configuração ausente: A chave Gemini (GEMINI_API_KEY) não está configurada nos segredos do Supabase.");
@@ -152,7 +293,7 @@ class ResumeParserService {
     `;
 
     console.log("[GEMINI] Enviando prompt para Gemini 2.5 Flash...");
-    const response = await fetch(geminiUrl, {
+    const response = await fetchWithRetry(geminiUrl, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json'
@@ -177,6 +318,11 @@ class ResumeParserService {
     if (!extractedText) {
       throw new Error("Resposta do Gemini vazia ou em formato incorreto.");
     }
+
+    // Registra custos do Gemini nos logs
+    const promptTokens = resJson.usageMetadata?.promptTokenCount || 0;
+    const candidatesTokens = resJson.usageMetadata?.candidatesTokenCount || 0;
+    await logAiUsage(supabaseClient, userId, 'resume-parsing', 'gemini-2.5-flash', promptTokens, candidatesTokens);
 
     return JSON.parse(extractedText);
   }
@@ -238,13 +384,14 @@ serve(async (req) => {
   let resumeVersionIdGlobal;
 
   try {
-    const { storagePath, fileName, userId, resumeVersionId } = await req.json()
+    const { storagePath, fileName, userId, resumeVersionId, mockGemini } = await req.json()
     resumeVersionIdGlobal = resumeVersionId;
-    console.log(`[EDGE FUNCTION] Processando versão de currículo:`, { storagePath, fileName, userId, resumeVersionId })
+    console.log(`[EDGE FUNCTION] Processando versão de currículo:`, { storagePath, fileName, userId, resumeVersionId, mockGemini })
 
     const supabaseUrl = Deno.env.get('SUPABASE_URL') || ''
     const supabaseAnonKey = Deno.env.get('SUPABASE_ANON_KEY') || ''
     const authHeader = req.headers.get('Authorization') || ''
+    const isMockEnabled = mockGemini === true || req.headers.get('x-mock-gemini') === 'true'
 
     supabaseClient = createClient(supabaseUrl, supabaseAnonKey, {
       global: { headers: { Authorization: authHeader } }
@@ -278,7 +425,7 @@ serve(async (req) => {
 
     // 4. Enviar texto para Gemini 2.5 Flash
     console.log(`[EDGE FUNCTION] Enviando para Gemini 2.5 Flash...`)
-    const parsedData = await ResumeParserService.parseWithGemini(text);
+    const parsedData = await ResumeParserService.parseWithGemini(text, supabaseClient, userId, isMockEnabled);
 
     // 5. Salvar perfil de carreira (dados puros extraídos)
     console.log(`[EDGE FUNCTION] Salvando perfil de carreira...`)
@@ -337,4 +484,3 @@ serve(async (req) => {
     )
   }
 })
-

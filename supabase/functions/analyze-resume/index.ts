@@ -75,6 +75,8 @@ serve(async (req) => {
       }
     }
 
+    textToAnalyze = cleanString(textToAnalyze)
+
     if (!textToAnalyze || !textToAnalyze.trim()) {
       return new Response(
         JSON.stringify({ error: 'Nenhum texto pôde ser extraído do currículo fornecido.' }),
@@ -143,7 +145,8 @@ serve(async (req) => {
       response_format: { type: 'json_object' }
     })
 
-    const parsedResult = JSON.parse(response.choices[0].message.content || '{}')
+    const rawContent = response.choices[0].message.content || '{}'
+    const parsedResult = JSON.parse(cleanString(rawContent))
     console.log(`[EDGE FUNCTION] Resposta recebida da OpenAI com sucesso.`)
 
     return new Response(
@@ -222,4 +225,12 @@ function simulateResumeParsing(rawText: string, fileName: string) {
       }
     ]
   };
+}
+
+function cleanString(input: string): string {
+  if (!input) return '';
+  return input
+    .replace(/\0/g, '') // Remove actual null bytes
+    .replace(/\\u0000/g, '') // Remove string representations of null bytes
+    .replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F-\x9F]/g, ''); // Remove non-printable control characters, keeping tabs, newlines, carriage returns
 }

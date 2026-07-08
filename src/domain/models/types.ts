@@ -62,6 +62,16 @@ export interface Resume {
   structured_data?: any;
 }
 
+export interface ResumeVersion {
+  id: string;
+  userId: string;
+  fileUrl: string;
+  fileName: string;
+  professionalGoal?: string;
+  status: 'uploaded' | 'processing' | 'completed' | 'failed';
+  createdAt: string;
+}
+
 export interface Experience {
   id: string;
   companyName: string;

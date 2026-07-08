@@ -220,10 +220,63 @@ async function runPipeline() {
       throw new Error("Esperava um registro correspondente na tabela resume_processing_errors, mas nenhum erro foi registrado.");
     }
 
-    return { details: `Transição para 'failed' e erro registrado no DB: "${errorsList[0].error_message}"` };
+    // Verificar logs de etapas de processamento (resume_processing_logs)
+    const logsCheckResponse = await fetch(`${supabaseUrl}/rest/v1/resume_processing_logs?resume_version_id=eq.${version.id}&step=eq.failed`, {
+      headers: {
+        'apikey': supabaseAnonKey,
+        'Authorization': `Bearer ${userToken}`
+      }
+    });
+    const logsList = await logsCheckResponse.json();
+    if (logsList.length === 0) {
+      throw new Error("Esperava log de etapa 'failed' registrado na tabela resume_processing_logs.");
+    }
+
+    return { details: `Erro registrado no DB. Log de processamento auditado: "${logsList[0].error_message}"` };
   })());
 
-  // Teste 2: Currículo Sem Experiência
+  // Teste 2: Currículo Vazio
+  await logTestResult("Currículo Vazio", (async () => {
+    const storagePath = await uploadMockFile("empty.txt", "    \n   \t   ", "text/plain");
+    const version = await createMockResumeVersion("Currículo Vazio Teste", `${supabaseUrl}/storage/v1/object/public/resumes/${storagePath}`);
+
+    const parseResponse = await fetch(`${supabaseUrl}/functions/v1/analyze-resume`, {
+      method: 'POST',
+      headers: {
+        'apikey': supabaseAnonKey,
+        'Authorization': `Bearer ${userToken}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        storagePath,
+        fileName: "empty.txt",
+        userId: currentUserId,
+        resumeVersionId: version.id
+      })
+    });
+
+    const body = await parseResponse.json();
+
+    if (parseResponse.ok) {
+      throw new Error(`Deveria ter falhado por falta de texto legível, mas obteve status ${parseResponse.status}`);
+    }
+
+    // Verificar se o log registrou falha
+    const logsCheckResponse = await fetch(`${supabaseUrl}/rest/v1/resume_processing_logs?resume_version_id=eq.${version.id}&step=eq.failed`, {
+      headers: {
+        'apikey': supabaseAnonKey,
+        'Authorization': `Bearer ${userToken}`
+      }
+    });
+    const logsList = await logsCheckResponse.json();
+    if (logsList.length === 0) {
+      throw new Error("Esperava log de etapa 'failed' registrado na tabela resume_processing_logs para currículo vazio.");
+    }
+
+    return { details: `Falha graciosamente controlada no DB: "${logsList[0].error_message}"` };
+  })());
+
+  // Teste 3: Currículo Sem Experiência
   let noExpVersionId = '';
   await logTestResult("Currículo Sem Experiência Profissional", (async () => {
     const mockTxt = `
@@ -250,7 +303,7 @@ async function runPipeline() {
         'apikey': supabaseAnonKey,
         'Authorization': `Bearer ${userToken}`,
         'Content-Type': 'application/json',
-        'x-mock-gemini': 'true' // Simulação ativa para passar sem chave do Gemini no Supabase
+        'x-mock-gemini': 'true'
       },
       body: JSON.stringify({
         storagePath,
@@ -274,9 +327,8 @@ async function runPipeline() {
     return { details: `Perfil de carreira criado com sucesso sem experiências.` };
   })());
 
-  // Teste 3: Currículo Complexo & Enriquecimento de Insights
-  let complexProfileId = '';
-  await logTestResult("Currículo Complexo & Camada de Insights", (async () => {
+  // Teste 4: Currículo Completo & Camada de Insights
+  await logTestResult("Currículo Completo & Camada de Insights", (async () => {
     const mockTxt = `
       NOME: Hana Oliveira de Souza
       CONTATO: hana.oliveira@email.com | (11) 98888-8888 | linkedin.com/in/hana-oliveira
@@ -309,7 +361,7 @@ async function runPipeline() {
         'apikey': supabaseAnonKey,
         'Authorization': `Bearer ${userToken}`,
         'Content-Type': 'application/json',
-        'x-mock-gemini': 'true' // Simulação ativa
+        'x-mock-gemini': 'true'
       },
       body: JSON.stringify({
         storagePath,
@@ -325,7 +377,6 @@ async function runPipeline() {
     }
 
     const body = await parseResponse.json();
-    complexProfileId = body.careerProfile.id;
 
     if (!body.careerInsights || !body.careerInsights.seniority_prediction) {
       throw new Error("Camada de insights (career_insights) não foi gerada ou está incompleta.");
@@ -342,22 +393,39 @@ async function runPipeline() {
       throw new Error(`Senioridade retornada '${seniority.value}' não pertence à taxonomia permitida.`);
     }
 
+    // Validar source_type de telemetria nos insights
+    if (seniority.source_type !== 'inferred') {
+      throw new Error(`Seniority source_type esperado 'inferred', obteve: '${seniority.source_type}'`);
+    }
+
     // Validar ATS Keywords separados
     const profile = body.careerProfile;
     if (!profile.ats_keywords || !profile.ats_keywords.existing_keywords || !profile.ats_keywords.missing_keywords) {
       throw new Error(`ATS keywords não foram divididos corretamente: ${JSON.stringify(profile.ats_keywords)}`);
     }
 
-    // Validar Metodologias estruturadas
+    // Validar Metodologias estruturadas com source_type
     const methodologies = body.careerInsights.methodologies;
-    if (!Array.isArray(methodologies) || methodologies.length === 0 || !methodologies[0].methodology_name || !methodologies[0].source) {
+    if (!Array.isArray(methodologies) || methodologies.length === 0 || !methodologies[0].methodology_name || !methodologies[0].source_type) {
       throw new Error(`Metodologias não foram estruturadas corretamente: ${JSON.stringify(methodologies)}`);
     }
 
-    return { details: `Senioridade inferida: '${seniority.value}' (Custo OK). Metodologias: [${methodologies.map(m => `${m.methodology_name} (${m.source})`).join(', ')}]` };
+    // Verificar logs de etapas de processamento (resume_processing_logs)
+    const logsCheckResponse = await fetch(`${supabaseUrl}/rest/v1/resume_processing_logs?resume_version_id=eq.${version.id}&step=eq.save_completed`, {
+      headers: {
+        'apikey': supabaseAnonKey,
+        'Authorization': `Bearer ${userToken}`
+      }
+    });
+    const logsList = await logsCheckResponse.json();
+    if (logsList.length === 0) {
+      throw new Error("Esperava log de etapa 'save_completed' registrado na tabela resume_processing_logs.");
+    }
+
+    return { details: `Senioridade: '${seniority.value}' (${seniority.source_type}). Logs de processamento 'save_completed' confirmados no DB.` };
   })());
 
-  // Teste 4: Falha no Gemini (ID Inválido de Versão)
+  // Teste 5: Falha no Gemini (ID Inválido de Versão)
   await logTestResult("Proteção & Falha Controlada do Gemini", (async () => {
     const storagePath = await uploadMockFile("fake.txt", "Fake resume content for key failure test", "text/plain");
 
@@ -388,11 +456,9 @@ async function runPipeline() {
     return { details: `Falha graciosamente capturada e explicada: "${body.error}"` };
   })());
 
-  // Teste 5: Rate Limiting por Usuário
+  // Teste 6: Rate Limiting por Usuário
   await logTestResult("Rate Limiting por Usuário", (async () => {
     const storagePath = await uploadMockFile("rate_limit_test.txt", "Lorem ipsum dolor sit amet", "text/plain");
-    
-    console.log("\n   [Rate Limit Test] Criando vaga temporária para teste de match-job...");
     
     // Inserir vaga mock
     const jobInsertUrl = `${supabaseUrl}/rest/v1/jobs`;
@@ -418,12 +484,9 @@ async function runPipeline() {
     const insertedJobs = await jobResponse.json();
     const testJobId = insertedJobs[0].id;
 
-    console.log("   [Rate Limit Test] Enviando rajada de requisições de match para estressar o limiter...");
-
     let hitLimiter = false;
     let errorMsg = '';
 
-    // Enviar 12 requisições seguidas de match-job (o limite é 10 por hora)
     for (let i = 0; i < 12; i++) {
       const response = await fetch(`${supabaseUrl}/functions/v1/match-job`, {
         method: 'POST',
@@ -431,7 +494,7 @@ async function runPipeline() {
           'apikey': supabaseAnonKey,
           'Authorization': `Bearer ${userToken}`,
           'Content-Type': 'application/json',
-          'x-mock-gemini': 'true' // Simular Gemini
+          'x-mock-gemini': 'true'
         },
         body: JSON.stringify({
           resumeVersionId: noExpVersionId,

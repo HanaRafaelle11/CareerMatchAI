@@ -24,7 +24,6 @@ async function fetchWithRetry(url: string, options: any, maxRetries = 3, initial
       const response = await fetch(url, options);
       if (response.ok) return response;
       
-      // Se for rate limit (429) ou erro temporário de servidor (5xx), aplicar backoff
       if (response.status === 429 || response.status >= 500) {
         console.warn(`[GEMINI RETRY] Tentativa ${attempt} falhou com status ${response.status}. Aguardando ${delay}ms...`);
         await new Promise(resolve => setTimeout(resolve, delay));
@@ -55,17 +54,15 @@ async function checkRateLimit(supabaseClient: any, userId: string, feature: stri
 
   if (error) {
     console.error(`[RATE LIMIT] Erro ao verificar limite:`, error);
-    return; // Não bloqueia caso o banco falhe
+    return;
   }
 
-  // Limite de 10 chamadas de IA por hora por usuário
   if (count && count >= 10) {
     throw new Error(`Limite de requisições excedido. Você pode fazer no máximo 10 chamadas para '${feature}' por hora.`);
   }
 }
 
 async function logAiUsage(supabaseClient: any, userId: string, feature: string, model: string, inputTokens: number, outputTokens: number) {
-  // Custo estimado para o Gemini 2.5 Flash: $0.075/1M input, $0.30/1M output
   const estimatedCost = (inputTokens * 0.000000075) + (outputTokens * 0.0000003);
   const { error } = await supabaseClient
     .from('ai_usage_logs')
@@ -80,6 +77,34 @@ async function logAiUsage(supabaseClient: any, userId: string, feature: string, 
 
   if (error) {
     console.error(`[AI LOG] Erro ao salvar log de uso:`, error);
+  }
+}
+
+async function logProcessingStep(supabaseClient: any, resumeVersionId: string, step: string, status: 'success' | 'error', errorMessage?: string, metadata = {}) {
+  if (status === 'success') {
+    console.log(`[PIPELINE_LOG] ${step}`);
+  } else {
+    console.error(`[PIPELINE_LOG] ${step}: ${errorMessage}`);
+  }
+
+  if (!resumeVersionId || !supabaseClient) return;
+
+  try {
+    const { error } = await supabaseClient
+      .from('resume_processing_logs')
+      .insert({
+        resume_version_id: resumeVersionId,
+        step,
+        status,
+        error_message: errorMessage || null,
+        metadata
+      });
+
+    if (error) {
+      console.error(`[LOG STEP DB] Erro ao gravar etapa no banco:`, error);
+    }
+  } catch (err) {
+    console.error(`[LOG STEP DB] Exceção ao gravar log:`, err.message);
   }
 }
 
@@ -108,14 +133,12 @@ class ResumeParserService {
   }
 
   static async parseWithGemini(text: string, supabaseClient: any, userId: string, mockEnabled = false): Promise<any> {
-    // Verificar Rate Limit antes de chamar a IA
     await checkRateLimit(supabaseClient, userId, 'resume-parsing');
 
     if (mockEnabled) {
       console.log("[GEMINI] Simulação ativa para testes.");
       const isAmanda = text.includes("Amanda");
       
-      // Registrar log de IA mockado
       await logAiUsage(supabaseClient, userId, 'resume-parsing', 'gemini-2.5-flash-mock', 100, 200);
 
       return {
@@ -156,34 +179,39 @@ class ResumeParserService {
           seniority_prediction: {
             value: isAmanda ? "Junior" : "Senior",
             confidence: 0.9,
-            reason: "Simulação de teste"
+            reason: "Simulação de teste",
+            source_type: "inferred"
           },
           industry_prediction: {
             value: "SaaS",
             confidence: 0.9,
-            reason: "Simulação de teste"
+            reason: "Simulação de teste",
+            source_type: "inferred"
           },
           methodologies: [
             {
               methodology_name: "Scrum",
               confidence: 0.9,
-              source: "extracted"
+              source_type: "extracted"
             }
           ],
           recommended_keywords: {
-            value: [],
+            value: ["Churn", "Retention Metrics"],
             confidence: 0.9,
-            reason: "Simulação de teste"
+            reason: "Simulação de teste",
+            source_type: "recommended"
           },
           missing_skills: {
-            value: [],
+            value: ["SQL"],
             confidence: 0.9,
-            reason: "Simulação de teste"
+            reason: "Simulação de teste",
+            source_type: "recommended"
           },
           confidence_scores: {
             value: { personal: 0.9 },
             confidence: 0.9,
-            reason: "Simulação de teste"
+            reason: "Simulação de teste",
+            source_type: "inferred"
           }
         }
       };
@@ -202,10 +230,14 @@ class ResumeParserService {
       1. 'career_profile': Dados puros e extraídos do currículo (fatos reais apenas, sem invenção).
       2. 'career_insights': Predições, recomendações e insights baseados em inferência inteligente.
 
-      INSTRUÇÕES CRÍTICAS DE HARDENING:
-      - Extração de Empresa: NUNCA infira o nome da empresa (companyName) baseado no cargo do candidato. Por exemplo, se o texto disser 'Head of Customer Success' sem indicar a empresa, NUNCA defina companyName como 'Head of Customer Success'. Se a empresa não existir explicitamente escrita no bloco de experiência, retorne companyName = null.
-      - Senioridade: Escolha e retorne estritamente uma única categoria da seguinte taxonomia: Intern, Junior, Mid, Senior, Lead, Manager, Head, Director, VP.
-      - Metodologias: Nunca afirme Agile, Lean, Scrum ou similares sem evidência explícita no texto. Adicione campos de confiabilidade e origem da evidência (source: 'extracted' ou 'inferred').
+      REGRAS DE CONFIANÇA E RASTREABILIDADE (MANDATÓRIO):
+      - Nunca afirme inferências como fatos absolutos. Use linguagem condicional (ex: 'sugerido', 'provável', 'recomendado') em todas as justificativas.
+      - Para cada insight (como seniority_prediction, industry_prediction, recommended_keywords, missing_skills, etc.), você deve retornar o campo 'source_type' contendo estritamente um dos seguintes valores:
+        * 'extracted': Encontrado explicitamente escrito no currículo.
+        * 'inferred': Deduzido logicamente com base nas evidências factuais presentes.
+        * 'recommended': Sugerido como melhoria baseada em padrões do setor.
+      - Extração de Empresa: NUNCA infira o nome da empresa baseado no cargo. Se a empresa não constar de forma explícita na experiência, defina companyName = null.
+      - Senioridade: Escolha estritamente uma única categoria: Intern, Junior, Mid, Senior, Lead, Manager, Head, Director, VP.
 
       JSON Schema esperado:
       {
@@ -264,34 +296,39 @@ class ResumeParserService {
           "seniority_prediction": {
             "value": "Intern/Junior/Mid/Senior/Lead/Manager/Head/Director/VP (Escolha EXATAMENTE uma categoria)",
             "confidence": 0.95,
-            "reason": "Justificativa da predição baseada nos anos e conquistas."
+            "reason": "Justificativa contendo linguagem de probabilidade (ex: 'Sugerido com base em X').",
+            "source_type": "inferred"
           },
           "industry_prediction": {
             "value": "SaaS / Tecnologia / etc",
             "confidence": 0.90,
-            "reason": "Setores deduzidos."
+            "reason": "Justificativa.",
+            "source_type": "inferred"
           },
           "methodologies": [
             {
               "methodology_name": "Nome da Metodologia (ex: Scrum, Agile, Lean)",
               "confidence": 0.90,
-              "source": "extracted ou inferred (use 'extracted' se estiver explicitamente escrito no currículo, ou 'inferred' se deduzido)"
+              "source_type": "extracted ou inferred ou recommended (escolha estritamente um)"
             }
           ],
           "recommended_keywords": {
             "value": ["Churn", "Salesforce"],
             "confidence": 0.90,
-            "reason": "Recomendações extras."
+            "reason": "Justificativa.",
+            "source_type": "recommended"
           },
           "missing_skills": {
             "value": ["SQL"],
             "confidence": 0.80,
-            "reason": "Gaps sugeridos."
+            "reason": "Justificativa.",
+            "source_type": "recommended"
           },
           "confidence_scores": {
             "value": { "personal": 0.98, "experience": 0.95, "skills": 0.88 },
             "confidence": 0.95,
-            "reason": "Métricas de confiança estrutural."
+            "reason": "Cálculo matemático de qualidade estrutural.",
+            "source_type": "inferred"
           }
         }
       }
@@ -329,7 +366,6 @@ class ResumeParserService {
       throw new Error("Resposta do Gemini vazia ou em formato incorreto.");
     }
 
-    // Registra custos do Gemini nos logs
     const promptTokens = resJson.usageMetadata?.promptTokenCount || 0;
     const candidatesTokens = resJson.usageMetadata?.candidatesTokenCount || 0;
     await logAiUsage(supabaseClient, userId, 'resume-parsing', 'gemini-2.5-flash', promptTokens, candidatesTokens);
@@ -414,7 +450,7 @@ serve(async (req) => {
       .eq('id', resumeVersionId);
 
     // LOG DE PIPELINE: extract_started
-    console.log("[PIPELINE_LOG] extract_started");
+    await logProcessingStep(supabaseClient, resumeVersionId, 'extract_started', 'success', undefined, { fileName, storagePath });
 
     // 2. Baixar PDF do Storage
     console.log(`[EDGE FUNCTION] Baixando arquivo: ${storagePath}`)
@@ -437,17 +473,17 @@ serve(async (req) => {
     }
 
     // LOG DE PIPELINE: extract_completed
-    console.log("[PIPELINE_LOG] extract_completed");
+    await logProcessingStep(supabaseClient, resumeVersionId, 'extract_completed', 'success', undefined, { pageCount, textLength: text.length });
 
     // LOG DE PIPELINE: gemini_started
-    console.log("[PIPELINE_LOG] gemini_started");
+    await logProcessingStep(supabaseClient, resumeVersionId, 'gemini_started', 'success', undefined, { isMockEnabled });
 
     // 4. Enviar texto para Gemini 2.5 Flash
     console.log(`[EDGE FUNCTION] Enviando para Gemini 2.5 Flash...`)
     const parsedData = await ResumeParserService.parseWithGemini(text, supabaseClient, userId, isMockEnabled);
 
     // LOG DE PIPELINE: gemini_completed
-    console.log("[PIPELINE_LOG] gemini_completed");
+    await logProcessingStep(supabaseClient, resumeVersionId, 'gemini_completed', 'success');
 
     // 5. Salvar perfil de carreira (dados puros extraídos)
     console.log(`[EDGE FUNCTION] Salvando perfil de carreira...`)
@@ -468,7 +504,10 @@ serve(async (req) => {
     );
 
     // LOG DE PIPELINE: save_completed
-    console.log("[PIPELINE_LOG] save_completed");
+    await logProcessingStep(supabaseClient, resumeVersionId, 'save_completed', 'success', undefined, {
+      careerProfileId: careerProfile.id,
+      careerInsightsId: careerInsights.id
+    });
 
     // 7. Atualizar status para 'completed'
     await supabaseClient
@@ -490,7 +529,7 @@ serve(async (req) => {
     )
   } catch (error) {
     // LOG DE PIPELINE: failed
-    console.error("[PIPELINE_LOG] failed:", error.message);
+    await logProcessingStep(supabaseClient, resumeVersionIdGlobal, 'failed', 'error', error.message);
     
     // Tentar registrar o erro na tabela resume_processing_errors
     if (resumeVersionIdGlobal && supabaseClient) {

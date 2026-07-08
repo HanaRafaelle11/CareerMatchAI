@@ -1,7 +1,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { OpenAI } from "https://esm.sh/openai@4.24.1"
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.8"
-import pdf from "npm:pdf-parse"
+import { extractText, getDocumentProxy } from "npm:unpdf"
 import mammoth from "npm:mammoth"
 
 const corsHeaders = {
@@ -48,10 +48,11 @@ serve(async (req) => {
         textToAnalyze = await fileData.text()
       } else if (contentType.includes('pdf') || storagePath.endsWith('.pdf')) {
         try {
-          console.log(`[EDGE FUNCTION] Extraindo texto de PDF...`)
+          console.log(`[EDGE FUNCTION] Extraindo texto de PDF com unpdf...`)
           const arrayBuffer = await fileData.arrayBuffer()
-          const pdfResult = await pdf(new Uint8Array(arrayBuffer))
-          textToAnalyze = pdfResult.text
+          const pdfProxy = await getDocumentProxy(new Uint8Array(arrayBuffer))
+          const { text } = await extractText(pdfProxy, { mergePages: true })
+          textToAnalyze = text
           console.log(`[EDGE FUNCTION] Texto do PDF extraído. Caracteres: ${textToAnalyze.length}`)
         } catch (pdfErr) {
           console.error(`[EDGE FUNCTION] Erro ao extrair PDF:`, pdfErr)

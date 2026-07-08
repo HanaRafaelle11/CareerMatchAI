@@ -1,0 +1,49 @@
+import { BaseJobConnector, type JobSearchFilters } from '../../domain/adapters/BaseJobConnector';
+import { AdzunaConnector } from '../../domain/adapters/AdzunaConnector';
+import type { Job } from '../../domain/models/types';
+
+export class JobDiscoveryService {
+  private connectors: BaseJobConnector[] = [];
+
+  constructor() {
+    // Registra os conectores ativos (Fácil escalabilidade futura)
+    this.connectors.push(new AdzunaConnector());
+  }
+
+  /**
+   * Dispara buscas concorrentes em todas as plataformas configuradas e unifica os resultados
+   */
+  async discoverJobs(filters: JobSearchFilters): Promise<Omit<Job, 'id' | 'userId' | 'createdAt' | 'updatedAt'>[]> {
+    try {
+      // Dispara a busca em paralelo em todos os conectores
+      const searchPromises = this.connectors.map(connector =>
+        connector.searchJobs(filters).catch(err => {
+          console.error(`Erro ao consultar conector ${connector.platformName}:`, err);
+          return [];
+        })
+      );
+
+      const resultsArray = await Promise.all(searchPromises);
+      const unifiedJobs = resultsArray.flat();
+
+      // Deduplicação semântica simples baseada em título + empresa
+      const seen = new Set<string>();
+      const deduplicated: Omit<Job, 'id' | 'userId' | 'createdAt' | 'updatedAt'>[] = [];
+
+      for (const job of unifiedJobs) {
+        const key = `${job.title.toLowerCase()}|${job.companyName.toLowerCase()}`;
+        if (!seen.has(key)) {
+          seen.add(key);
+          deduplicated.push(job);
+        }
+      }
+
+      return deduplicated;
+    } catch (error) {
+      console.error('Erro no JobDiscoveryService:', error);
+      return [];
+    }
+  }
+}
+
+export const jobDiscoveryService = new JobDiscoveryService();

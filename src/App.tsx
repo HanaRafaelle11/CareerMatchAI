@@ -13,10 +13,12 @@ import { JobMatchHub } from './presentation/pages/JobMatchHub';
 import { CareerProfilePage } from './presentation/pages/CareerProfilePage';
 import { StrategyPage } from './presentation/pages/StrategyPage';
 import { CoachDashboard } from './presentation/pages/CoachDashboard';
+import { Menu } from 'lucide-react';
 
 function App() {
   const { user, profile, loading, loginWithEmail, signUpWithEmail, loginWithOAuth, logout } = useAuth();
   const [activeTab, setActiveTab] = useState('dashboard');
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
   const { resumes, uploadResume, deleteResume, isUploading } = useResumes(profile?.id);
   const { jobs, createJob, isCreating } = useJobs(profile?.id);
@@ -80,16 +82,51 @@ function App() {
       <div className="fixed top-[-10%] right-[-10%] w-[60vw] h-[60vh] rounded-full bg-brand-500/5 dark:bg-brand-500/5 light:bg-brand-500/2 blur-[120px] pointer-events-none z-0" />
       <div className="fixed bottom-[-10%] left-[20%] w-[50vw] h-[50vh] rounded-full bg-indigo-500/5 dark:bg-indigo-500/5 light:bg-indigo-500/2 blur-[120px] pointer-events-none z-0" />
 
+      {/* Mobile Top Bar */}
+      <header className="fixed top-0 left-0 right-0 h-16 bg-slate-950/80 dark:bg-slate-950/80 light:bg-slate-50/90 backdrop-blur-md border-b border-slate-800 dark:border-slate-800 light:border-slate-200 flex items-center justify-between px-4 z-20 md:hidden">
+        <div className="flex items-center gap-3">
+          <button
+            onClick={() => setIsSidebarOpen(true)}
+            className="p-2 -ml-2 rounded-lg hover:bg-slate-900/50 dark:hover:bg-slate-900/50 light:hover:bg-slate-200/50 text-slate-400 hover:text-slate-200 transition-colors"
+          >
+            <Menu size={24} />
+          </button>
+          <div className="flex items-center gap-2">
+            <div className="h-7 w-7 rounded-lg bg-gradient-to-tr from-brand-600 to-indigo-500 flex items-center justify-center font-display font-bold text-white text-xs shadow-md shadow-brand-500/10">
+              CM
+            </div>
+            <span className="font-display font-bold text-sm bg-gradient-to-r from-white to-slate-400 dark:from-white dark:to-slate-400 light:from-slate-900 light:to-slate-600 bg-clip-text text-transparent">
+              CareerMatch AI
+            </span>
+          </div>
+        </div>
+        <div className="flex items-center gap-2">
+          {profile?.avatarUrl ? (
+            <img
+              src={profile.avatarUrl}
+              alt={profile.fullName}
+              className="h-8 w-8 rounded-full object-cover border border-slate-700"
+            />
+          ) : (
+            <div className="h-8 w-8 rounded-full bg-indigo-500/20 text-indigo-400 flex items-center justify-center font-display font-semibold text-xs border border-indigo-500/30">
+              {profile?.fullName?.charAt(0).toUpperCase() || 'C'}
+            </div>
+          )}
+        </div>
+      </header>
+
       {/* Navbar Lateral Fixa */}
       <Navbar
         activeTab={activeTab}
         setActiveTab={setActiveTab}
         profile={profile}
         onLogout={logout}
+        isOpen={isSidebarOpen}
+        onClose={() => setIsSidebarOpen(false)}
       />
 
       {/* Container Principal */}
-      <main className="flex-1 pl-72 pr-8 py-8 min-h-screen overflow-x-hidden relative z-10">
+      <main className="flex-1 px-4 md:pl-72 md:pr-8 py-8 pt-20 md:pt-8 min-h-screen overflow-x-hidden relative z-10">
         {activeTab === 'dashboard' && (
           <Dashboard
             profile={profile}

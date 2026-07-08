@@ -1,4 +1,4 @@
-import type { Resume, Job, Match, GapAnalysis, CoverLetter, InterviewPrep, Experience, Skill, CareerProfile } from '../../domain/models/types';
+import type { Resume, Job, Match, GapAnalysis, CoverLetter, InterviewPrep, CareerProfile } from '../../domain/models/types';
 import { isSupabaseConfigured, supabase } from '../../infrastructure/api/supabaseClient';
 
 export class MatchingEngine {
@@ -49,113 +49,22 @@ export class MatchingEngine {
     resume: Omit<Resume, 'id' | 'userId' | 'createdAt' | 'updatedAt'>;
     careerProfile: Omit<CareerProfile, 'id' | 'userId' | 'resumeId' | 'createdAt' | 'updatedAt'>;
   }> {
-    // Se o Supabase estiver configurado com a Edge Function da OpenAI, chamamos a função real.
     if (isSupabaseConfigured && supabase) {
-      try {
-        const { data, error } = await supabase.functions.invoke('analyze-resume', {
-          body: { rawText, fileName }
-        });
-        if (!error && data) {
-          return {
-            resume: data,
-            careerProfile: this.extractProfile(data)
-          };
-        }
-      } catch (err) {
-        console.error('Erro na chamada da Edge Function, aplicando fallback:', err);
+      const { data, error } = await supabase.functions.invoke('analyze-resume', {
+        body: { rawText, fileName }
+      });
+      if (error) {
+        throw new Error(error.message || 'Falha ao processar o currículo no Supabase.');
       }
-    }
-
-    // Fallback: Parser Semântico Local (Inteligência Client-side)
-    await new Promise(resolve => setTimeout(resolve, 2000)); // Simula processamento
-
-    // Procurar por anos de experiência (ex: "5 anos", "3 years", etc)
-    let inferredYears = 2;
-    const yearsMatch = rawText.match(/(\d+)\s*(ano|year)s?/i);
-    if (yearsMatch) {
-      inferredYears = parseInt(yearsMatch[1], 10);
-    }
-
-    // Dicionário de tags comuns para extração rápida
-    const techDb = [
-      { name: 'React', category: 'hard_skill' },
-      { name: 'TypeScript', category: 'hard_skill' },
-      { name: 'JavaScript', category: 'hard_skill' },
-      { name: 'Node.js', category: 'hard_skill' },
-      { name: 'Next.js', category: 'hard_skill' },
-      { name: 'Vue.js', category: 'hard_skill' },
-      { name: 'Angular', category: 'hard_skill' },
-      { name: 'Python', category: 'hard_skill' },
-      { name: 'PostgreSQL', category: 'hard_skill' },
-      { name: 'Docker', category: 'tool' },
-      { name: 'Git', category: 'tool' },
-      { name: 'Figma', category: 'tool' },
-      { name: 'Tailwind CSS', category: 'tool' },
-      { name: 'AWS', category: 'tool' },
-      { name: 'Kubernetes', category: 'tool' },
-      { name: 'Liderança', category: 'soft_skill' },
-      { name: 'Comunicação', category: 'soft_skill' },
-      { name: 'Metodologias Ágeis', category: 'soft_skill' },
-      { name: 'Inglês', category: 'language' }
-    ] as const;
-
-    const extractedSkills: Skill[] = [];
-    techDb.forEach((tech, idx) => {
-      const regex = new RegExp(`\\b${tech.name}\\b`, 'i');
-      if (regex.test(rawText)) {
-        extractedSkills.push({
-          id: `extracted-sk-${idx}`,
-          name: tech.name,
-          category: tech.category,
-          proficiencyLevel: 'avançado'
-        });
+      if (!data || data.error) {
+        throw new Error(data?.error || 'Nenhum dado retornado pela análise da IA.');
       }
-    });
-
-    // Se nenhuma skill foi encontrada, injetar algumas básicas de exemplo
-    if (extractedSkills.length === 0) {
-      extractedSkills.push(
-        { id: 'est-sk-1', name: 'React', category: 'hard_skill', proficiencyLevel: 'avançado' },
-        { id: 'est-sk-2', name: 'JavaScript', category: 'hard_skill', proficiencyLevel: 'avançado' },
-        { id: 'est-sk-3', name: 'Comunicação', category: 'soft_skill', proficiencyLevel: 'avançado' }
-      );
+      return {
+        resume: data,
+        careerProfile: this.extractProfile(data)
+      };
     }
-
-    // Tentar inferir experiências profissionais
-    const mockExtractedExperiences: Experience[] = [
-      {
-        id: 'est-exp-1',
-        companyName: 'Empresa Principal',
-        role: 'Desenvolvedor Pleno',
-        description: 'Desenvolvimento de sistemas corporativos com foco em escalabilidade e qualidade de código.',
-        startDate: '2022-01-01',
-        isCurrent: true,
-        highlights: ['Desenvolvimento ágil', 'Refatoração de código legada']
-      }
-    ];
-
-    const finalResume = {
-      fileName,
-      rawText,
-      structuredSummary: `Profissional focado em desenvolvimento de software com experiência de aproximadamente ${inferredYears} anos. Competências extraídas incluem: ${extractedSkills.map(s => s.name).join(', ')}.`,
-      yearsOfExperience: inferredYears,
-      isPrimary: true,
-      experiences: mockExtractedExperiences,
-      skills: extractedSkills,
-      education: [
-        {
-          id: 'est-edu-1',
-          institution: 'Instituição de Ensino Superior',
-          degree: 'Graduação',
-          fieldOfStudy: 'Tecnologia da Informação'
-        }
-      ]
-    };
-
-    return {
-      resume: finalResume,
-      careerProfile: this.extractProfile(finalResume)
-    };
+    throw new Error('Supabase não está configurado. O parser de currículos requer conexão ativa com Supabase e OpenAI.');
   }
 
   /**

@@ -28,6 +28,8 @@ export function Profile({
   const [errorMsg, setErrorMsg] = useState('');
   const [uploadSuccess, setUploadSuccess] = useState(false);
   const [isDebugExpanded, setIsDebugExpanded] = useState(false);
+  const [activeProfileTab, setActiveProfileTab] = useState<'profile' | 'transparency'>('profile');
+  const [selectedAuditItem, setSelectedAuditItem] = useState<any>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const primaryResume = resumes.find(r => r.isPrimary) || resumes[0];
@@ -338,148 +340,317 @@ export function Profile({
         <div className="lg:col-span-2 space-y-6">
           {primaryResume ? (
             <div className="space-y-6">
-              {/* Resumo Profissional */}
-              <CardGlass className="space-y-4">
-                <div className="flex justify-between items-start gap-4">
-                  <div>
-                    <h2 className="font-display font-bold text-xl text-slate-100 dark:text-slate-100 light:text-slate-800">
-                      {profile?.fullName}
-                    </h2>
-                    <p className="text-brand-500 font-medium text-sm mt-0.5">
-                      {primaryResume.structuredSummary?.split('.')[0]}
-                    </p>
-                  </div>
-                  <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-brand-500/10 text-brand-500 text-[10px] font-bold uppercase shrink-0">
-                    <Clock size={12} />
-                    <span>{primaryResume.yearsOfExperience} Anos Exp.</span>
-                  </div>
-                </div>
-                <p className="text-xs text-slate-400 dark:text-slate-400 light:text-slate-600 leading-relaxed pt-2 border-t border-slate-900 dark:border-slate-900 light:border-slate-200">
-                  {primaryResume.structuredSummary}
-                </p>
-              </CardGlass>
+              {/* Navegação por Abas (Fase 9) */}
+              <div className="flex gap-2 p-1 rounded-xl bg-slate-950 border border-slate-900 w-full sm:w-fit select-none">
+                <button
+                  onClick={() => setActiveProfileTab('profile')}
+                  className={`px-4 py-2 rounded-lg text-xs font-semibold tracking-wide transition-all ${
+                    activeProfileTab === 'profile'
+                      ? 'bg-brand-500 text-white shadow-md shadow-brand-500/10'
+                      : 'text-slate-400 hover:text-slate-200'
+                  }`}
+                >
+                  Perfil Estruturado
+                </button>
+                <button
+                  onClick={() => setActiveProfileTab('transparency')}
+                  className={`px-4 py-2 rounded-lg text-xs font-semibold tracking-wide transition-all flex items-center gap-1.5 ${
+                    activeProfileTab === 'transparency'
+                      ? 'bg-brand-500 text-white shadow-md shadow-brand-500/10'
+                      : 'text-slate-400 hover:text-slate-200'
+                  }`}
+                >
+                  <Activity size={12} />
+                  Como a IA Concluiu?
+                </button>
+              </div>
 
-              {/* Competências extraídas */}
-              <CardGlass className="space-y-6">
-                <div className="flex items-center gap-3">
-                  <div className="p-2 rounded-lg bg-emerald-500/10 text-emerald-400">
-                    <Award size={18} />
-                  </div>
-                  <h3 className="font-display font-bold text-base text-slate-200 dark:text-slate-200 light:text-slate-800">
-                    Competências Mapeadas
-                  </h3>
-                </div>
-
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-                  {/* Hard Skills */}
-                  <div className="space-y-2.5">
-                    <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">Hard Skills</span>
-                    <div className="flex flex-wrap gap-2">
-                      {primaryResume.skills.filter(s => s.category === 'hard_skill').map(s => (
-                        <span
-                          key={s.id}
-                          className="px-2.5 py-1 rounded-lg bg-slate-900/60 dark:bg-slate-900/60 light:bg-slate-100 border border-slate-800 dark:border-slate-800 light:border-slate-200 text-xs text-slate-300 dark:text-slate-300 light:text-slate-700 font-semibold"
-                        >
-                          {s.name}
-                        </span>
-                      ))}
-                    </div>
-                  </div>
-
-                  {/* Soft Skills */}
-                  <div className="space-y-2.5">
-                    <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">Soft Skills</span>
-                    <div className="flex flex-wrap gap-2">
-                      {primaryResume.skills.filter(s => s.category === 'soft_skill').map(s => (
-                        <span
-                          key={s.id}
-                          className="px-2.5 py-1 rounded-lg bg-indigo-500/5 dark:bg-indigo-500/5 light:bg-slate-100 border border-indigo-500/10 dark:border-indigo-500/15 light:border-slate-200 text-xs text-indigo-400 dark:text-indigo-400 light:text-slate-600 font-semibold"
-                        >
-                          {s.name}
-                        </span>
-                      ))}
-                    </div>
-                  </div>
-
-                  {/* Ferramentas / Tecnologias */}
-                  <div className="space-y-2.5">
-                    <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">Ferramentas & Ferramental</span>
-                    <div className="flex flex-wrap gap-2">
-                      {primaryResume.skills.filter(s => s.category === 'tool').map(s => (
-                        <span
-                          key={s.id}
-                          className="px-2.5 py-1 rounded-lg bg-slate-900/60 dark:bg-slate-900/60 light:bg-slate-100 border border-slate-800 dark:border-slate-800 light:border-slate-200 text-xs text-slate-300 dark:text-slate-300 light:text-slate-700 font-semibold"
-                        >
-                          {s.name}
-                        </span>
-                      ))}
-                    </div>
-                  </div>
-
-                  {/* Idiomas */}
-                  <div className="space-y-2.5">
-                    <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">Idiomas</span>
-                    <div className="flex flex-wrap gap-2">
-                      {primaryResume.skills.filter(s => s.category === 'language').map(s => (
-                        <span
-                          key={s.id}
-                          className="px-2.5 py-1 rounded-lg bg-emerald-500/5 dark:bg-emerald-500/5 light:bg-slate-100 border border-emerald-500/10 dark:border-emerald-500/15 light:border-slate-200 text-xs text-emerald-400 dark:text-emerald-400 light:text-slate-600 font-semibold"
-                        >
-                          {s.name} - {s.proficiencyLevel}
-                        </span>
-                      ))}
-                    </div>
-                  </div>
-                </div>
-              </CardGlass>
-
-              {/* Experiência profissional */}
-              <CardGlass className="space-y-6">
-                <div className="flex items-center gap-3">
-                  <div className="p-2 rounded-lg bg-indigo-500/10 text-indigo-400">
-                    <Briefcase size={18} />
-                  </div>
-                  <h3 className="font-display font-bold text-base text-slate-200 dark:text-slate-200 light:text-slate-800">
-                    Experiências Profissionais
-                  </h3>
-                </div>
-
-                <div className="space-y-8 relative before:absolute before:left-3.5 before:top-2 before:bottom-2 before:w-[1px] before:bg-slate-800 dark:before:bg-slate-800 light:before:bg-slate-200">
-                  {primaryResume.experiences.map((exp, index) => (
-                    <div key={exp.id || index} className="relative pl-10 group">
-                      {/* Timeline dot */}
-                      <span className="absolute left-1.5 top-1.5 h-4 w-4 rounded-full bg-slate-950 border-2 border-brand-500 z-10 scale-100 group-hover:scale-125 transition-transform duration-200" />
-                      
-                      <div className="space-y-2">
-                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1">
-                          <h4 className="font-bold text-sm text-slate-200 dark:text-slate-200 light:text-slate-800">
-                            {exp.role}
-                          </h4>
-                          <span className="flex items-center gap-1.5 text-[10px] font-semibold text-slate-500">
-                            <Calendar size={12} />
-                            {exp.startDate} - {exp.isCurrent ? 'Atual' : exp.endDate}
-                          </span>
-                        </div>
-                        <span className="text-xs text-brand-500/90 font-medium block">
-                          {exp.companyName}
-                        </span>
-                        <p className="text-xs text-slate-400 dark:text-slate-400 light:text-slate-600 leading-relaxed">
-                          {exp.description}
+              {activeProfileTab === 'profile' ? (
+                <>
+                  {/* Resumo Profissional */}
+                  <CardGlass className="space-y-4">
+                    <div className="flex justify-between items-start gap-4">
+                      <div>
+                        <h2 className="font-display font-bold text-xl text-slate-100 dark:text-slate-100 light:text-slate-800">
+                          {profile?.fullName}
+                        </h2>
+                        <p className="text-brand-500 font-medium text-sm mt-0.5">
+                          {primaryResume.structuredSummary?.split('.')[0]}
                         </p>
-
-                        {/* Highlights */}
-                        {exp.highlights && exp.highlights.length > 0 && (
-                          <ul className="list-disc pl-4 pt-1 space-y-1 text-slate-500 text-xs">
-                            {exp.highlights.map((high, hIdx) => (
-                              <li key={hIdx}>{high}</li>
-                            ))}
-                          </ul>
-                        )}
+                      </div>
+                      <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-brand-500/10 text-brand-500 text-[10px] font-bold uppercase shrink-0">
+                        <Clock size={12} />
+                        <span>{primaryResume.yearsOfExperience} Anos Exp.</span>
                       </div>
                     </div>
-                  ))}
-                </div>
-              </CardGlass>
+                    <p className="text-xs text-slate-400 dark:text-slate-400 light:text-slate-600 leading-relaxed pt-2 border-t border-slate-900 dark:border-slate-900 light:border-slate-200">
+                      {primaryResume.structuredSummary}
+                    </p>
+                  </CardGlass>
+
+                  {/* Competências extraídas */}
+                  <CardGlass className="space-y-6">
+                    <div className="flex items-center gap-3">
+                      <div className="p-2 rounded-lg bg-emerald-500/10 text-emerald-400">
+                        <Award size={18} />
+                      </div>
+                      <h3 className="font-display font-bold text-base text-slate-200 dark:text-slate-200 light:text-slate-800">
+                        Competências Mapeadas
+                      </h3>
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                      {/* Hard Skills */}
+                      <div className="space-y-2.5">
+                        <span className="text-xs font-bold text-slate-500 uppercase tracking-wider block">Hard Skills</span>
+                        <div className="flex flex-wrap gap-2">
+                          {primaryResume.skills.filter(s => s.category?.includes('hard_skill') || s.category?.includes('cs_skill') || s.category?.includes('ops_skill') || s.category?.includes('analytical_skill') || s.category?.includes('commercial_skill') || s.category?.includes('product_skill') || s.category?.includes('management_skill') || s.category?.includes('project_skill') || s.category?.includes('data_skill')).map(s => (
+                            <span
+                              key={s.id}
+                              className="px-2.5 py-1 rounded-lg bg-slate-900/60 dark:bg-slate-900/60 light:bg-slate-100 border border-slate-800 dark:border-slate-800 light:border-slate-200 text-xs text-slate-300 dark:text-slate-300 light:text-slate-700 font-semibold"
+                            >
+                              {s.name}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+
+                      {/* Soft Skills */}
+                      <div className="space-y-2.5">
+                        <span className="text-xs font-bold text-slate-500 uppercase tracking-wider block">Soft Skills & Liderança</span>
+                        <div className="flex flex-wrap gap-2">
+                          {primaryResume.skills.filter(s => s.category?.includes('soft_skill') || s.category?.includes('leadership_skill')).map(s => (
+                            <span
+                              key={s.id}
+                              className="px-2.5 py-1 rounded-lg bg-indigo-500/5 dark:bg-indigo-500/5 light:bg-slate-100 border border-indigo-500/10 dark:border-indigo-500/15 light:border-slate-200 text-xs text-indigo-400 dark:text-indigo-400 light:text-slate-600 font-semibold"
+                            >
+                              {s.name}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+
+                      {/* Ferramentas / Tecnologias */}
+                      <div className="space-y-2.5">
+                        <span className="text-xs font-bold text-slate-500 uppercase tracking-wider block">Ferramentas & Ferramental</span>
+                        <div className="flex flex-wrap gap-2">
+                          {primaryResume.skills.filter(s => s.category?.includes('tool')).map(s => (
+                            <span
+                              key={s.id}
+                              className="px-2.5 py-1 rounded-lg bg-slate-900/60 dark:bg-slate-900/60 light:bg-slate-100 border border-slate-800 dark:border-slate-800 light:border-slate-200 text-xs text-slate-300 dark:text-slate-300 light:text-slate-700 font-semibold"
+                            >
+                              {s.name}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+
+                      {/* Idiomas */}
+                      <div className="space-y-2.5">
+                        <span className="text-xs font-bold text-slate-500 uppercase tracking-wider block">Idiomas</span>
+                        <div className="flex flex-wrap gap-2">
+                          {primaryResume.skills.filter(s => s.category?.includes('language')).map(s => (
+                            <span
+                              key={s.id}
+                              className="px-2.5 py-1 rounded-lg bg-emerald-500/5 dark:bg-emerald-500/5 light:bg-slate-100 border border-emerald-500/10 dark:border-emerald-500/15 light:border-slate-200 text-xs text-emerald-400 dark:text-emerald-400 light:text-slate-600 font-semibold"
+                            >
+                              {s.name} - {s.proficiencyLevel}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                  </CardGlass>
+
+                  {/* Experiência profissional */}
+                  <CardGlass className="space-y-6">
+                    <div className="flex items-center gap-3">
+                      <div className="p-2 rounded-lg bg-indigo-500/10 text-indigo-400">
+                        <Briefcase size={18} />
+                      </div>
+                      <h3 className="font-display font-bold text-base text-slate-200 dark:text-slate-200 light:text-slate-800">
+                        Experiências Profissionais
+                      </h3>
+                    </div>
+
+                    <div className="space-y-8 relative before:absolute before:left-3.5 before:top-2 before:bottom-2 before:w-[1px] before:bg-slate-800 dark:before:bg-slate-800 light:before:bg-slate-200">
+                      {primaryResume.experiences.map((exp, index) => (
+                        <div key={exp.id || index} className="relative pl-10 group">
+                          {/* Timeline dot */}
+                          <span className="absolute left-1.5 top-1.5 h-4 w-4 rounded-full bg-slate-950 border-2 border-brand-500 z-10 scale-100 group-hover:scale-125 transition-transform duration-200" />
+                          
+                          <div className="space-y-2">
+                            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1">
+                              <h4 className="font-bold text-sm text-slate-200 dark:text-slate-200 light:text-slate-800">
+                                {exp.role}
+                              </h4>
+                              <span className="flex items-center gap-1.5 text-[10px] font-semibold text-slate-500">
+                                <Calendar size={12} />
+                                {exp.startDate} - {exp.isCurrent ? 'Atual' : exp.endDate}
+                              </span>
+                            </div>
+                            <span className="text-xs text-brand-500/90 font-medium block">
+                              {exp.companyName}
+                            </span>
+                            <p className="text-xs text-slate-400 dark:text-slate-400 light:text-slate-600 leading-relaxed">
+                              {exp.description}
+                            </p>
+
+                            {/* Highlights */}
+                            {exp.highlights && exp.highlights.length > 0 && (
+                              <ul className="list-disc pl-4 pt-1 space-y-1 text-slate-500 text-xs">
+                                {exp.highlights.map((high, hIdx) => (
+                                  <li key={hIdx}>{high}</li>
+                                ))}
+                              </ul>
+                            )}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </CardGlass>
+                </>
+              ) : (
+                /* FASE 9: Painel de Transparência */
+                <CardGlass className="space-y-6">
+                  <div className="flex items-center gap-3 border-b border-slate-800 dark:border-slate-800 light:border-slate-200 pb-4">
+                    <div className="p-2 rounded-lg bg-brand-500/10 text-brand-400">
+                      <Activity size={18} />
+                    </div>
+                    <div>
+                      <h3 className="font-display font-bold text-base text-slate-200 dark:text-slate-200 light:text-slate-800">
+                        Como a IA chegou nesta conclusão?
+                      </h3>
+                      <p className="text-[10px] text-slate-500">Selecione qualquer competência ou experiência profissional mapeada para auditar a evidência textual extraída pela IA.</p>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-start">
+                    {/* Lista de Itens Auditáveis */}
+                    <div className="space-y-3">
+                      <span className="text-xxs font-bold text-slate-500 uppercase tracking-wider block">Itens Auditados do Currículo</span>
+                      <div className="space-y-2 max-h-[480px] overflow-y-auto pr-1">
+                        {/* Competências */}
+                        {(primaryResume.structured_data?.skills || []).map((s: any, idx: number) => {
+                          const isSelected = selectedAuditItem?.id === `sk-${idx}`;
+                          return (
+                            <button
+                              key={`sk-${idx}`}
+                              onClick={() => setSelectedAuditItem({
+                                id: `sk-${idx}`,
+                                type: 'Competência / Skill',
+                                label: s.name,
+                                value: s.category || 'Mapeamento de Competência',
+                                confidence: Math.round((s.confidence || 0.95) * 100),
+                                evidence: s.evidence || 'Nenhuma citação textual de evidência salva.',
+                                sourceText: s.source_text || 'Recorte original do currículo não disponível.'
+                              })}
+                              className={`w-full text-left p-3 rounded-xl border transition-all text-xs flex justify-between items-center ${
+                                isSelected
+                                  ? 'bg-brand-500/10 border-brand-500 text-slate-200'
+                                  : 'bg-slate-900/40 border-slate-900 hover:border-slate-800 text-slate-300'
+                              }`}
+                            >
+                              <div className="truncate pr-2">
+                                <span className="text-[9px] uppercase px-1.5 py-0.5 rounded bg-emerald-500/10 text-emerald-400 font-bold mr-2">Skill</span>
+                                <strong>{s.name}</strong>
+                              </div>
+                              <span className="text-xxs px-1.5 py-0.5 rounded bg-slate-950 font-mono text-slate-400">
+                                {Math.round((s.confidence || 0.95) * 100)}%
+                              </span>
+                            </button>
+                          );
+                        })}
+
+                        {/* Experiências */}
+                        {(primaryResume.structured_data?.experiences || []).map((e: any, idx: number) => {
+                          const isSelected = selectedAuditItem?.id === `exp-${idx}`;
+                          return (
+                            <button
+                              key={`exp-${idx}`}
+                              onClick={() => setSelectedAuditItem({
+                                id: `exp-${idx}`,
+                                type: 'Experiência Profissional',
+                                label: `${e.role} em ${e.companyName}`,
+                                value: `${e.startDate} até ${e.isCurrent ? 'Atual' : e.endDate}`,
+                                confidence: Math.round((e.confidence || 0.99) * 100),
+                                evidence: e.evidence || 'Nenhuma citação textual de evidência salva.',
+                                sourceText: e.source_text || 'Recorte original do currículo não disponível.'
+                              })}
+                              className={`w-full text-left p-3 rounded-xl border transition-all text-xs flex justify-between items-center ${
+                                isSelected
+                                  ? 'bg-brand-500/10 border-brand-500 text-slate-200'
+                                  : 'bg-slate-900/40 border-slate-900 hover:border-slate-800 text-slate-300'
+                              }`}
+                            >
+                              <div className="truncate pr-2">
+                                <span className="text-[9px] uppercase px-1.5 py-0.5 rounded bg-indigo-500/10 text-indigo-400 font-bold mr-2">Cargo</span>
+                                <strong>{e.companyName}</strong>
+                              </div>
+                              <span className="text-xxs px-1.5 py-0.5 rounded bg-slate-950 font-mono text-slate-400">
+                                {Math.round((e.confidence || 0.99) * 100)}%
+                              </span>
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+
+                    {/* Evidências e Detalhes da Auditoria */}
+                    <div className="space-y-4">
+                      <span className="text-xxs font-bold text-slate-500 uppercase tracking-wider block">Detalhes da Auditoria</span>
+                      {selectedAuditItem ? (
+                        <div className="space-y-4 p-4 rounded-xl bg-slate-950 border border-slate-900 text-xs animate-fade-in">
+                          <div>
+                            <span className="text-[10px] text-slate-500 block uppercase font-bold tracking-wider">Origem do Mapeamento</span>
+                            <span className="font-bold text-slate-200">{selectedAuditItem.type}</span>
+                          </div>
+
+                          <div>
+                            <span className="text-[10px] text-slate-500 block uppercase font-bold tracking-wider">Nome / Valor Extraído</span>
+                            <span className="font-semibold text-brand-400">{selectedAuditItem.label}</span>
+                            <span className="text-slate-400 block text-xxs mt-0.5">{selectedAuditItem.value}</span>
+                          </div>
+
+                          <div>
+                            <span className="text-[10px] text-slate-500 block uppercase font-bold tracking-wider">Nível de Confiança</span>
+                            <div className="flex items-center gap-2 mt-1">
+                              <div className="w-full bg-slate-900 h-2 rounded-full overflow-hidden border border-slate-800">
+                                <div 
+                                  className={`h-full rounded-full transition-all duration-500 ${
+                                    selectedAuditItem.confidence >= 90 ? 'bg-emerald-500' : 'bg-brand-500'
+                                  }`}
+                                  style={{ width: `${selectedAuditItem.confidence}%` }}
+                                />
+                              </div>
+                              <span className="font-mono font-bold text-slate-200 shrink-0">{selectedAuditItem.confidence}%</span>
+                            </div>
+                          </div>
+
+                          <div className="p-3.5 rounded-lg bg-slate-900/50 border border-slate-900 space-y-1.5">
+                            <span className="text-[10px] text-slate-500 block uppercase font-bold tracking-wider">Evidência Textual (Citação Literal)</span>
+                            <blockquote className="text-xxs text-slate-300 leading-relaxed italic whitespace-pre-wrap">
+                              "{selectedAuditItem.evidence}"
+                            </blockquote>
+                          </div>
+
+                          <div className="p-3.5 rounded-lg bg-slate-900/50 border border-slate-900 space-y-1.5">
+                            <span className="text-[10px] text-slate-500 block uppercase font-bold tracking-wider">Recorte Correspondente do Currículo</span>
+                            <pre className="text-xxs text-slate-400 font-mono overflow-x-auto whitespace-pre-wrap">
+                              {selectedAuditItem.sourceText}
+                            </pre>
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="p-8 rounded-xl border border-dashed border-slate-800 text-center text-slate-500 text-xxs flex flex-col items-center justify-center min-h-[250px]">
+                          <Activity size={22} className="text-slate-600 mb-2 animate-pulse" />
+                          <span>Selecione um item mapeado para auditar a evidência textual.</span>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </CardGlass>
+              )}
             </div>
           ) : (
             <div className="h-64 rounded-2xl border border-dashed border-slate-800 dark:border-slate-800 light:border-slate-300 flex flex-col items-center justify-center text-center p-6 text-slate-500 text-xs">

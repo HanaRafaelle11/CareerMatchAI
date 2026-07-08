@@ -68,13 +68,61 @@ export class MatchingEngine {
     coverLetter: CoverLetter;
     interviewPrep: InterviewPrep;
   }> {
-    // Se o Supabase estiver online com OpenAI, invoca a Edge Function
+    // Se o Supabase estiver online com OpenAI/Gemini, invoca a Edge Function
     if (isSupabaseConfigured && supabase) {
       try {
         const { data, error } = await supabase.functions.invoke('match-job', {
           body: { resumeId: resume.id, jobId: job.id }
         });
-        if (!error && data) return data;
+        if (!error && data) {
+          return {
+            match: {
+              id: data.id,
+              userId: data.user_id,
+              resumeId: data.career_profile_id,
+              jobId: data.job_id,
+              jobTitle: job.title,
+              companyName: job.companyName || '',
+              scoreOverall: data.match_score,
+              scoreTechnical: data.match_score,
+              scoreBehavioral: data.match_score,
+              scoreSeniority: data.match_score,
+              scoreLocation: 100,
+              explanation: {
+                strengths: data.strengths || [],
+                weaknesses: data.weaknesses || [],
+                details: {
+                  technical: data.recommendation || '',
+                  behavioral: `Probabilidade de entrevista: ${data.interview_probability}%`,
+                  seniority: '',
+                  salary: '',
+                  location: ''
+                }
+              },
+              createdAt: data.created_at
+            },
+            gapAnalysis: {
+              id: data.id,
+              matchId: data.id,
+              missingSkills: data.missing_keywords || [],
+              skillsToLearn: [],
+              toIncludeInResume: [],
+              toExcludeFromResume: [],
+              repetitiveContent: [],
+              lowValueContent: []
+            },
+            coverLetter: { id: data.id, createdAt: data.created_at },
+            interviewPrep: { 
+              id: data.id, 
+              matchId: data.id, 
+              questions: [], 
+              strengths: data.strengths || [], 
+              weaknesses: data.weaknesses || [], 
+              questionsToAsk: [], 
+              createdAt: data.created_at 
+            }
+          };
+        }
       } catch (err) {
         console.error('Erro ao invocar match-job do Supabase, aplicando motor local:', err);
       }

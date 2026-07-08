@@ -1,5 +1,4 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
-import { OpenAI } from "https://esm.sh/openai@4.24.1"
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.8"
 import { extractText, getDocumentProxy } from "npm:unpdf"
 import mammoth from "npm:mammoth"
@@ -10,383 +9,6 @@ const corsHeaders = {
   'Access-Control-Allow-Methods': 'POST, GET, OPTIONS',
 }
 
-serve(async (req) => {
-  if (req.method === 'OPTIONS') {
-    return new Response('ok', { status: 200, headers: corsHeaders })
-  }
-
-  try {
-    const { rawText, fileName, storagePath, userId, resumeId } = await req.json()
-    console.log(`[EDGE FUNCTION] Recebido analyze-resume:`, { fileName, storagePath, userId, resumeId, hasRawText: !!rawText })
-
-    let textToAnalyze = rawText || ''
-    let numPages = 1
-    let fileSize = rawText ? rawText.length : 0
-    let mimeType = rawText ? 'text/plain' : ''
-
-    // Se não tiver texto bruto e tiver o caminho do storage, baixamos e extraímos o texto
-    if (!textToAnalyze && storagePath) {
-      const supabaseUrl = Deno.env.get('SUPABASE_URL') || ''
-      const supabaseAnonKey = Deno.env.get('SUPABASE_ANON_KEY') || ''
-      const authHeader = req.headers.get('Authorization') || ''
-
-      console.log(`[EDGE FUNCTION] Baixando arquivo do Storage: ${storagePath}`)
-      const supabaseClient = createClient(supabaseUrl, supabaseAnonKey, {
-        global: { headers: { Authorization: authHeader } }
-      })
-
-      const { data: fileData, error: downloadError } = await supabaseClient.storage
-        .from('resumes')
-        .download(storagePath)
-
-      if (downloadError) {
-        console.error(`[EDGE FUNCTION] Erro ao baixar arquivo do storage:`, downloadError)
-        throw new Error(`Erro ao baixar arquivo do Storage: ${downloadError.message}`)
-      }
-
-      const contentType = fileData.type || ''
-      fileSize = fileData.size
-      mimeType = contentType
-      console.log(`[EDGE FUNCTION] Arquivo baixado. Tamanho: ${fileSize} bytes. Tipo MIME: ${mimeType}`)
-
-      if (contentType.includes('text/plain') || storagePath.endsWith('.txt')) {
-        textToAnalyze = await fileData.text()
-        console.log(`[EDGE FUNCTION] Texto TXT extraído com sucesso. Caracteres: ${textToAnalyze.length}`)
-      } else if (contentType.includes('pdf') || storagePath.endsWith('.pdf')) {
-        try {
-          console.log(`[EDGE FUNCTION] Extraindo texto de PDF com unpdf...`)
-          const arrayBuffer = await fileData.arrayBuffer()
-          const pdfProxy = await getDocumentProxy(new Uint8Array(arrayBuffer))
-          numPages = pdfProxy.numPages
-          const { text } = await extractText(pdfProxy, { mergePages: true })
-          textToAnalyze = text
-          console.log(`[EDGE FUNCTION] Texto do PDF extraído. Páginas: ${numPages}, Caracteres: ${textToAnalyze.length}`)
-        } catch (pdfErr) {
-          console.error(`[EDGE FUNCTION] Erro ao extrair PDF:`, pdfErr)
-          throw new Error(`Erro ao extrair conteúdo do arquivo PDF: ${pdfErr.message}`)
-        }
-      } else if (contentType.includes('officedocument.wordprocessingml.document') || storagePath.endsWith('.docx')) {
-        try {
-          console.log(`[EDGE FUNCTION] Extraindo texto de DOCX com mammoth...`)
-          const arrayBuffer = await fileData.arrayBuffer()
-          const docxResult = await mammoth.extractRawText({ arrayBuffer: new Uint8Array(arrayBuffer) })
-          textToAnalyze = docxResult.value
-          console.log(`[EDGE FUNCTION] Texto do DOCX extraído. Caracteres: ${textToAnalyze.length}`)
-        } catch (docxErr) {
-          console.error(`[EDGE FUNCTION] Erro ao extrair DOCX:`, docxErr)
-          throw new Error(`Erro ao extrair conteúdo do arquivo DOCX: ${docxErr.message}`)
-        }
-      } else {
-        // Fallback: tentar ler como texto bruto
-        textToAnalyze = await fileData.text()
-        console.log(`[EDGE FUNCTION] Formato desconhecido, texto bruto extraído. Caracteres: ${textToAnalyze.length}`)
-      }
-    }
-
-    textToAnalyze = cleanString(textToAnalyze)
-    
-    // FASE 2: Diagnóstico e Validação do Texto Extraído
-    const charCount = textToAnalyze.length
-    const wordCount = textToAnalyze.split(/\s+/).filter(Boolean).length
-    const lineCount = textToAnalyze.split(/\r?\n/).length
-    const ptCount = (textToAnalyze.match(/\b(e|o|a|de|do|da|em|um|para|com)\b/gi) || []).length
-    const enCount = (textToAnalyze.match(/\b(and|the|of|to|in|a|for|with|is|at)\b/gi) || []).length
-    const detectedLanguage = ptCount >= enCount ? 'pt-BR' : 'en'
-    const encoding = 'UTF-8'
-    const first2000 = textToAnalyze.substring(0, 2000)
-    const last2000 = textToAnalyze.substring(Math.max(0, textToAnalyze.length - 2000))
-
-    console.log(`[EDGE FUNCTION] === FASE 2: DIAGNÓSTICOS DE TEXTO EXTRAÍDO ===`)
-    console.log(`- Tipo MIME: ${mimeType}`)
-    console.log(`- Páginas: ${numPages}`)
-    console.log(`- Caracteres: ${charCount}`)
-    console.log(`- Palavras: ${wordCount}`)
-    console.log(`- Linhas: ${lineCount}`)
-    console.log(`- Idioma Detectado: ${detectedLanguage}`)
-    console.log(`- Encoding: ${encoding}`)
-    console.log(`- Primeiros 2000 caracteres:\n${first2000}`)
-    console.log(`- Últimos 2000 caracteres:\n${last2000}`)
-    console.log(`========================================================`)
-
-    if (!textToAnalyze || !textToAnalyze.trim()) {
-      console.error(`[EDGE FUNCTION] Erro de Validação: Nenhum texto legível extraído do currículo.`)
-      return new Response(
-        JSON.stringify({ error: 'Erro de Validação: Nenhum texto legível pôde ser extraído do currículo fornecido. O arquivo pode estar vazio ou corrompido.' }),
-        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      )
-    }
-
-    const apiKey = Deno.env.get('OPENAI_API_KEY')
-    if (!apiKey) {
-      console.error("[EDGE FUNCTION] Erro: OPENAI_API_KEY não está configurada nos segredos do Supabase.")
-      return new Response(
-        JSON.stringify({ error: 'Configuração ausente: A chave OpenAI (OPENAI_API_KEY) não está configurada no Supabase. Por favor, configure-a executando "supabase secrets set OPENAI_API_KEY=sua_chave" ou pelo painel do Supabase.' }),
-        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      )
-    }
-
-    const openai = new OpenAI({ apiKey })
-
-    // FASE 6: Novo Prompt de Engenharia (Consultor Sênior de Carreira)
-    const prompt = `
-      Você é um consultor sênior de carreira e especialista de parsing para o CareerMatch AI.
-      Sua tarefa é ler o texto bruto de um currículo e estruturá-lo estritamente no formato JSON abaixo.
-
-      INSTRUÇÕES CRÍTICAS DE AUDITORIA E TRANSPARÊNCIA:
-      - Extraia APENAS dados REAIS que estejam explicitamente declarados ou diretamente inferidos sem especulação no texto.
-      - Se um campo ou competência não puder ser atestada no texto, preencha com null.
-      - Para cada skill, experiência profissional e certificação mapeada, você DEVE retornar a confiança (confidence de 0.00 a 1.00), a evidência textual literal correspondente (evidence) e o trecho recortado que originou a conclusão (source_text).
-      - NUNCA invente siglas, empresas, cargos, ou ferramentas de templates como "Desenvolvedor React", "Vite" ou "TypeScript" se o currículo pertencer a um profissional de Customer Success / Liderança.
-
-      Formato do JSON esperado:
-      {
-        "fullName": "Nome Completo",
-        "headline": "Título Profissional sugerido baseado no perfil real",
-        "structuredSummary": "Resumo executivo de até 4 frases do perfil real (mínimo 100 caracteres)",
-        "area": "Área de atuação principal (ex: Customer Success, Operações, Vendas, Engenharia de Software)",
-        "secondaryArea": "Área secundária (ou null)",
-        "seniority": "junior/pleno/senior/lead/director",
-        "yearsOfExperience": 10.5,
-        "industries": ["SaaS", "Fintech", "Technology"],
-        "experiences": [
-          {
-            "companyName": "Nome da Empresa",
-            "role": "Cargo",
-            "startDate": "YYYY-MM-DD",
-            "endDate": "YYYY-MM-DD ou null se for o atual",
-            "isCurrent": true/false,
-            "description": "Descrição sucinta das atividades executadas",
-            "highlights": ["Destaque 1", "Destaque 2"],
-            "achievements": ["Conquista relevante com métrica se houver no texto"],
-            "kpis": ["KPIs ou métricas atingidas (ex: Redução de 2% no churn)"],
-            "confidence": 0.99,
-            "evidence": "Citação literal da frase contendo o cargo e empresa",
-            "source_text": "Trecho exato do currículo"
-          }
-        ],
-        "skills": [
-          {
-            "name": "Nome exato da competência (ex: Customer Success)",
-            "category": "cs_skill/ops_skill/hard_skill/soft_skill/tool/language/leadership_skill/analytical_skill/commercial_skill/product_skill/management_skill/project_skill/data_skill",
-            "proficiencyLevel": "básico/intermediário/avançado/fluente",
-            "confidence": 0.98,
-            "evidence": "Citação literal da frase de evidência",
-            "source_text": "Trecho exato do currículo"
-          }
-        ],
-        "education": [
-          {
-            "institution": "Nome da Instituição",
-            "degree": "Título do curso",
-            "fieldOfStudy": "Área de Estudo",
-            "startDate": "YYYY-MM-DD",
-            "endDate": "YYYY-MM-DD ou null"
-          }
-        ],
-        "mba": "Detalhes de MBA se houver no texto, ou null",
-        "certifications": [
-          {
-            "name": "Nome da certificação",
-            "confidence": 0.95,
-            "evidence": "Frase de evidência",
-            "source_text": "Trecho exato"
-          }
-        ],
-        "courses": ["Curso 1", "Curso 2"],
-        "stack": ["Looker", "Salesforce"],
-        "methodologies": ["Agile", "Scrum"],
-        "frameworks": [],
-        "atsKeywords": ["Customer Success", "Churn", "CS Ops", "NPS", "CSAT"],
-        "strengths": ["Gestão de equipes", "Automação com IA"],
-        "weaknesses": ["Pouco histórico com engenharia de baixo nível"],
-        "gaps": ["Falta MBA em Finanças corporativas"],
-        "atsApprovalLikelihood": 85,
-        "competitiveAreas": ["Operações de CS", "Liderança de times"],
-        "nonCompetitiveAreas": ["Desenvolvimento Backend de Alta Escalabilidade"]
-      }
-
-      Texto do currículo:
-      """
-      ${textToAnalyze}
-      """
-    `
-
-    // FASE 3: Auditoria do Prompt (Imprimir prompt inteiro no console)
-    console.log(`[EDGE FUNCTION] === FASE 3: PROMPT COMPLETO ENVIADO À OPENAI ===`)
-    console.log(prompt)
-    console.log(`==============================================================`)
-
-    console.log(`[EDGE FUNCTION] Enviando prompt para a OpenAI (gpt-4o)...`)
-    const startTime = Date.now()
-    const response = await openai.chat.completions.create({
-      model: 'gpt-4o',
-      messages: [
-        { role: 'system', content: 'Você é um assistente de IA especialista em recrutamento e análise estruturada de currículos.' },
-        { role: 'user', content: prompt }
-      ],
-      response_format: { type: 'json_object' }
-    })
-    
-    const duration = Date.now() - startTime
-    const finishReason = response.choices[0].finish_reason
-    const rawContent = response.choices[0].message.content || '{}'
-    const cleanedContent = cleanString(rawContent)
-    
-    // FASE 4: Auditoria de Resposta da OpenAI
-    const promptTokens = response.usage?.prompt_tokens || 0
-    const completionTokens = response.usage?.completion_tokens || 0
-    const totalTokens = response.usage?.total_tokens || 0
-
-    console.log(`[EDGE FUNCTION] === FASE 4: AUDITORIA DA RESPOSTA DA OPENAI ===`)
-    console.log(`- Modelo Utilizado: ${response.model}`)
-    console.log(`- Duração da Chamada: ${duration}ms`)
-    console.log(`- Finish Reason: ${finishReason}`)
-    console.log(`- Tokens Usados: Prompt=${promptTokens}, Completion=${completionTokens}, Total=${totalTokens}`)
-    console.log(`- JSON Retornado:\n${cleanedContent}`)
-    console.log(`================================================================`)
-
-    let parsedResult;
-    try {
-      parsedResult = JSON.parse(cleanedContent)
-    } catch (parseErr) {
-      console.error("[EDGE FUNCTION] FASE 4 ERRO: Falha ao fazer parse do JSON retornado pela OpenAI. Resposta bruta salva nos logs:", cleanedContent)
-      return new Response(
-        JSON.stringify({ error: `Resposta inválida da IA (não é JSON). Conteúdo bruto: ${cleanedContent}` }),
-        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      )
-    }
-
-    // Executar validações estritas
-    const experiences = parsedResult.experiences || []
-    const skills = parsedResult.skills || []
-    const summary = parsedResult.structuredSummary || ""
-
-    if (experiences.length === 0) {
-      console.error("[EDGE FUNCTION] Erro de Validação: Nenhuma experiência profissional estruturada identificada.")
-      return new Response(
-        JSON.stringify({ error: 'Erro de Validação da IA: Nenhuma experiência profissional foi identificada no currículo.' }),
-        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      )
-    }
-
-    if (summary.length < 100) {
-      console.error(`[EDGE FUNCTION] Erro de Validação: Resumo profissional muito curto (${summary.length} caracteres).`)
-      return new Response(
-        JSON.stringify({ error: `Erro de Validação da IA: O resumo profissional estruturado gerado ficou muito curto (${summary.length} caracteres), necessitando de no mínimo 100 caracteres.` }),
-        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      )
-    }
-
-    if (skills.length === 0) {
-      console.error("[EDGE FUNCTION] Erro de Validação: Nenhuma competência ou skill foi mapeada.")
-      return new Response(
-        JSON.stringify({ error: 'Erro de Validação da IA: Nenhuma competência ou skill foi mapeada no currículo.' }),
-        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      )
-    }
-
-    const companyNames = experiences.map((exp: any) => exp.companyName).filter(Boolean)
-    if (companyNames.length === 0) {
-      console.error("[EDGE FUNCTION] Erro de Validação: Nenhuma empresa identificada.")
-      return new Response(
-        JSON.stringify({ error: 'Erro de Validação da IA: Nenhuma empresa válida pôde ser identificada no currículo.' }),
-        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      )
-    }
-
-    // FASE 7: Validação Cruzada (Cross-Validation) contra alucinações
-    const validationErrors = crossValidate(parsedResult, textToAnalyze)
-    if (validationErrors.length > 0) {
-      console.error(`[EDGE FUNCTION] Falha na Validação Cruzada contra alucinações:\n- ${validationErrors.join('\n- ')}`)
-      return new Response(
-        JSON.stringify({ error: `Erro de Validação Cruzada (Alucinação Detectada): ${validationErrors[0]}` }),
-        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      )
-    }
-    console.log("[EDGE FUNCTION] Validação Cruzada concluída com sucesso. Zero alucinações detectadas.")
-
-    // Gerar metadados de depuração e auditoria
-    const debugTelemetry = {
-      fileName,
-      storagePath,
-      pageCount: numPages,
-      charCount: textToAnalyze.length,
-      extractedTextPreview: textToAnalyze.substring(0, 2000),
-      promptSent: prompt,
-      rawOpenAIResponse: rawContent,
-      executionTimeMs: duration,
-      companiesCount: new Set(companyNames).size,
-      experiencesCount: experiences.length,
-      hardSkillsCount: skills.filter((s: any) => s.category?.includes('hard_skill')).length,
-      softSkillsCount: skills.filter((s: any) => s.category?.includes('soft_skill')).length,
-      toolsCount: skills.filter((s: any) => s.category?.includes('tool')).length,
-      languagesCount: skills.filter((s: any) => s.category?.includes('language')).length,
-    }
-
-    return new Response(
-      JSON.stringify({
-        ...parsedResult,
-        _debug: debugTelemetry
-      }),
-      { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-    )
-  } catch (error) {
-    console.error(`[EDGE FUNCTION] Falha no processamento:`, error)
-    return new Response(
-      JSON.stringify({ error: `Erro no processamento da IA: ${error.message}` }),
-      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-    )
-  }
-})
-
-function crossValidate(result: any, rawText: string): string[] {
-  const errors: string[] = [];
-  const textLower = rawText.toLowerCase();
-
-  // 1. Proibir Empresa do Segmento e mocks
-  const experiences = result.experiences || [];
-  for (const exp of experiences) {
-    if (exp.companyName) {
-      const coName = exp.companyName.toLowerCase();
-      if (coName.includes("empresa do segmento") || coName.includes("empresa demo") || coName.includes("empresa principal")) {
-        errors.push("A IA gerou o nome de empresa fictício/template: '" + exp.companyName + "'.");
-      }
-      if (!textLower.includes(coName)) {
-        const parts = coName.split(/\s+/).filter((w: string) => w.length > 2);
-        const hasPart = parts.some((p: string) => textLower.includes(p));
-        if (!hasPart) {
-          errors.push(`A empresa '${exp.companyName}' listada na experiência profissional não consta no currículo.`);
-        }
-      }
-    }
-    if (exp.role) {
-      const roleLower = exp.role.toLowerCase();
-      if (roleLower.includes("desenvolvedor") && !textLower.includes("desenvolvedor") && !textLower.includes("developer")) {
-        errors.push(`O cargo '${exp.role}' menciona 'Desenvolvedor' mas não há menção a desenvolvimento no currículo.`);
-      }
-    }
-  }
-
-  // 2. Proibir skills e tecnologias fictícias / inventadas
-  const skills = result.skills || [];
-  for (const s of skills) {
-    const sName = s.name.toLowerCase();
-    const forbidden = ["typescript", "react", "node", "javascript", "docker", "kubernetes", "vue"];
-    if (forbidden.includes(sName) && !textLower.includes(sName)) {
-      errors.push(`A skill/tecnologia '${s.name}' foi extraída mas não está presente no currículo.`);
-    }
-    if (!textLower.includes(sName)) {
-      const parts = sName.split(/\s+/).filter((w: string) => w.length > 3);
-      const hasPart = parts.some((p: string) => textLower.includes(p));
-      if (!hasPart && parts.length > 0) {
-        errors.push(`A competência '${s.name}' não possui evidências textuais no currículo.`);
-      }
-    }
-  }
-
-  return errors;
-}
-
 function cleanString(input: string): string {
   if (!input) return '';
   return input
@@ -394,3 +16,325 @@ function cleanString(input: string): string {
     .replace(/\\u0000/g, '') // Remove string representations of null bytes
     .replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F-\x9F]/g, ''); // Remove non-printable control characters
 }
+
+class ResumeParserService {
+  static async extractText(fileData: Blob, contentType: string, storagePath: string): Promise<{ text: string, pageCount: number }> {
+    let textToAnalyze = '';
+    let numPages = 1;
+
+    if (contentType.includes('text/plain') || storagePath.endsWith('.txt')) {
+      textToAnalyze = await fileData.text()
+    } else if (contentType.includes('pdf') || storagePath.endsWith('.pdf')) {
+      const arrayBuffer = await fileData.arrayBuffer()
+      const pdfProxy = await getDocumentProxy(new Uint8Array(arrayBuffer))
+      numPages = pdfProxy.numPages
+      const { text } = await extractText(pdfProxy, { mergePages: true })
+      textToAnalyze = text
+    } else if (contentType.includes('officedocument.wordprocessingml.document') || storagePath.endsWith('.docx')) {
+      const arrayBuffer = await fileData.arrayBuffer()
+      const docxResult = await mammoth.extractRawText({ arrayBuffer: new Uint8Array(arrayBuffer) })
+      textToAnalyze = docxResult.value
+    } else {
+      textToAnalyze = await fileData.text()
+    }
+
+    return { text: cleanString(textToAnalyze), pageCount: numPages };
+  }
+
+  static async parseWithGemini(text: string): Promise<any> {
+    const geminiApiKey = Deno.env.get('GEMINI_API_KEY');
+    if (!geminiApiKey) {
+      throw new Error("Configuração ausente: A chave Gemini (GEMINI_API_KEY) não está configurada nos segredos do Supabase.");
+    }
+
+    const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${geminiApiKey}`;
+
+    const prompt = `
+      Você é um consultor sênior de recrutamento e estrategista de IA.
+      Sua tarefa é analisar o currículo bruto fornecido e gerar duas seções principais:
+      1. 'career_profile': Dados puros e extraídos do currículo (fatos reais apenas, sem invenção).
+      2. 'career_insights': Predições, recomendações e insights baseados em inferência inteligente.
+
+      IMPORTANTE:
+      - Nunca misture dados puros e extraídos com inferências de inteligência artificial.
+      - Cada campo em 'career_insights' (como seniority_prediction, industry_prediction, methodologies, recommended_keywords, missing_skills e confidence_scores) deve ser estruturado estritamente como um objeto contendo:
+        - 'value': O valor deduzido (uma string, ou um array de strings dependendo do campo).
+        - 'confidence': O nível de certeza numérica de 0.00 a 1.00.
+        - 'reason': A justificativa descritiva resumida da sua inferência.
+
+      JSON Schema esperado:
+      {
+        "career_profile": {
+          "personal": {
+            "fullName": "Nome Completo do Candidato ou null",
+            "headline": "Título Profissional real ou null",
+            "email": "E-mail ou null",
+            "phone": "Telefone ou null",
+            "linkedin": "URL do LinkedIn ou null",
+            "website": "Portfólio/Website ou null",
+            "location": "Localização (Cidade/Estado) ou null"
+          },
+          "summary": "Resumo profissional ou objetivo profissional curto em texto corrido",
+          "experience": [
+            {
+              "companyName": "Nome da Empresa",
+              "role": "Cargo",
+              "startDate": "Data de início",
+              "endDate": "Data de término ou null se atual",
+              "isCurrent": true/false,
+              "description": "Descrição das atividades desenvolvidas",
+              "highlights": ["Destaque ou realização"]
+            }
+          ],
+          "education": [
+            {
+              "institution": "Nome da Instituição",
+              "degree": "Curso/Grau",
+              "fieldOfStudy": "Área de Estudo",
+              "startDate": "Data de início",
+              "endDate": "Data de conclusão ou null"
+            }
+          ],
+          "skills": [
+            {
+              "name": "Nome da Skill Técnica",
+              "proficiency": "básico/intermediário/avançado/fluente"
+            }
+          ],
+          "soft_skills": ["Soft Skill 1", "Soft Skill 2"],
+          "languages": [
+            {
+              "language": "Idioma",
+              "proficiency": "nível de proficiência"
+            }
+          ],
+          "certifications": ["Certificação 1"],
+          "ats_keywords": ["ATS Keyword 1"]
+        },
+        "career_insights": {
+          "seniority_prediction": {
+            "value": "junior/pleno/senior/lead/director",
+            "confidence": 0.95,
+            "reason": "Exemplo: Mais de 10 anos de experiência em cargos de gestão."
+          },
+          "industry_prediction": {
+            "value": "SaaS / Tecnologia",
+            "confidence": 0.90,
+            "reason": "Exemplo: Histórico consolidado em empresas de software e B2B."
+          },
+          "methodologies": {
+            "value": ["Agile", "Scrum", "Lean"],
+            "confidence": 0.85,
+            "reason": "Exemplo: Projetos anteriores liderados sob estruturas de time ágil."
+          },
+          "recommended_keywords": {
+            "value": ["Churn Rate", "Health Score", "CSAT", "NPS"],
+            "confidence": 0.90,
+            "reason": "Exemplo: Termos ideais para otimização ATS em vagas seniores de Customer Success."
+          },
+          "missing_skills": {
+            "value": ["PowerBI", "SQL Avançado"],
+            "confidence": 0.80,
+            "reason": "Exemplo: Habilidades técnicas comumente exigidas para vagas CS Ops que não aparecem no texto."
+          },
+          "confidence_scores": {
+            "value": { "personal": 0.98, "experience": 0.95, "skills": 0.88 },
+            "confidence": 0.95,
+            "reason": "Exemplo: Nome, e-mail e histórico profissional perfeitamente formatados."
+          }
+        }
+      }
+
+      Texto do Currículo:
+      """
+      ${text}
+      """
+    `;
+
+    console.log("[GEMINI] Enviando prompt para Gemini 2.5 Flash...");
+    const response = await fetch(geminiUrl, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        contents: [{
+          parts: [{ text: prompt }]
+        }],
+        generationConfig: {
+          responseMimeType: 'application/json'
+        }
+      })
+    });
+
+    if (!response.ok) {
+      const errText = await response.text();
+      throw new Error(`Erro na chamada da API do Gemini: ${response.statusText} - ${errText}`);
+    }
+
+    const resJson = await response.json();
+    const extractedText = resJson.candidates?.[0]?.content?.parts?.[0]?.text;
+    if (!extractedText) {
+      throw new Error("Resposta do Gemini vazia ou em formato incorreto.");
+    }
+
+    return JSON.parse(extractedText);
+  }
+
+  static async saveCareerProfile(supabaseClient: any, userId: string, resumeVersionId: string, profileData: any) {
+    const { data, error } = await supabaseClient
+      .from('career_profiles')
+      .insert({
+        user_id: userId,
+        resume_version_id: resumeVersionId,
+        personal: profileData.personal || {},
+        experience: profileData.experience || [],
+        education: profileData.education || [],
+        skills: profileData.skills || [],
+        soft_skills: profileData.soft_skills || [],
+        languages: profileData.languages || [],
+        certifications: profileData.certifications || [],
+        ats_keywords: profileData.ats_keywords || [],
+        summary: profileData.summary || ''
+      })
+      .select()
+      .single();
+
+    if (error) {
+      throw new Error(`Erro ao salvar perfil de carreira: ${error.message}`);
+    }
+    return data;
+  }
+
+  static async saveCareerInsights(supabaseClient: any, userId: string, resumeVersionId: string, insightsData: any) {
+    const { data, error } = await supabaseClient
+      .from('career_insights')
+      .insert({
+        user_id: userId,
+        resume_version_id: resumeVersionId,
+        seniority_prediction: insightsData.seniority_prediction || {},
+        industry_prediction: insightsData.industry_prediction || {},
+        methodologies: insightsData.methodologies || {},
+        recommended_keywords: insightsData.recommended_keywords || {},
+        missing_skills: insightsData.missing_skills || {},
+        confidence_scores: insightsData.confidence_scores || {}
+      })
+      .select()
+      .single();
+
+    if (error) {
+      throw new Error(`Erro ao salvar insights de carreira: ${error.message}`);
+    }
+    return data;
+  }
+}
+
+serve(async (req) => {
+  if (req.method === 'OPTIONS') {
+    return new Response('ok', { status: 200, headers: corsHeaders })
+  }
+
+  let supabaseClient;
+  let resumeVersionIdGlobal;
+
+  try {
+    const { storagePath, fileName, userId, resumeVersionId } = await req.json()
+    resumeVersionIdGlobal = resumeVersionId;
+    console.log(`[EDGE FUNCTION] Processando versão de currículo:`, { storagePath, fileName, userId, resumeVersionId })
+
+    const supabaseUrl = Deno.env.get('SUPABASE_URL') || ''
+    const supabaseAnonKey = Deno.env.get('SUPABASE_ANON_KEY') || ''
+    const authHeader = req.headers.get('Authorization') || ''
+
+    supabaseClient = createClient(supabaseUrl, supabaseAnonKey, {
+      global: { headers: { Authorization: authHeader } }
+    })
+
+    // 1. Atualizar status para 'processing'
+    await supabaseClient
+      .from('resume_versions')
+      .update({ status: 'processing' })
+      .eq('id', resumeVersionId);
+
+    // 2. Baixar PDF do Storage
+    console.log(`[EDGE FUNCTION] Baixando arquivo: ${storagePath}`)
+    const { data: fileData, error: downloadError } = await supabaseClient.storage
+      .from('resumes')
+      .download(storagePath)
+
+    if (downloadError) {
+      throw new Error(`Erro ao baixar arquivo do Storage: ${downloadError.message}`);
+    }
+
+    const contentType = fileData.type || 'application/pdf';
+
+    // 3. Extrair texto usando a biblioteca local (unpdf/mammoth)
+    console.log(`[EDGE FUNCTION] Extraindo texto...`)
+    const { text, pageCount } = await ResumeParserService.extractText(fileData, contentType, storagePath);
+
+    if (!text || !text.trim()) {
+      throw new Error("Nenhum texto legível pôde ser extraído do documento.");
+    }
+
+    // 4. Enviar texto para Gemini 2.5 Flash
+    console.log(`[EDGE FUNCTION] Enviando para Gemini 2.5 Flash...`)
+    const parsedData = await ResumeParserService.parseWithGemini(text);
+
+    // 5. Salvar perfil de carreira (dados puros extraídos)
+    console.log(`[EDGE FUNCTION] Salvando perfil de carreira...`)
+    const careerProfile = await ResumeParserService.saveCareerProfile(
+      supabaseClient, 
+      userId, 
+      resumeVersionId, 
+      parsedData.career_profile || {}
+    );
+
+    // 6. Salvar insights de carreira (predições e deduções da IA)
+    console.log(`[EDGE FUNCTION] Salvando insights de carreira...`)
+    const careerInsights = await ResumeParserService.saveCareerInsights(
+      supabaseClient,
+      userId,
+      resumeVersionId,
+      parsedData.career_insights || {}
+    );
+
+    // 7. Atualizar status para 'completed'
+    await supabaseClient
+      .from('resume_versions')
+      .update({ status: 'completed' })
+      .eq('id', resumeVersionId);
+
+    console.log(`[EDGE FUNCTION] Processamento da versão ${resumeVersionId} concluído com sucesso.`)
+
+    return new Response(
+      JSON.stringify({
+        success: true,
+        careerProfile,
+        careerInsights,
+        pageCount,
+        charCount: text.length
+      }),
+      { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+    )
+  } catch (error) {
+    console.error(`[EDGE FUNCTION] Falha no processamento:`, error)
+    
+    // Tentar atualizar o status para 'failed'
+    if (resumeVersionIdGlobal && supabaseClient) {
+      try {
+        await supabaseClient
+          .from('resume_versions')
+          .update({ status: 'failed' })
+          .eq('id', resumeVersionIdGlobal);
+      } catch (dbErr) {
+        console.error(`[EDGE FUNCTION] Erro ao marcar falha no banco:`, dbErr)
+      }
+    }
+
+    return new Response(
+      JSON.stringify({ error: `Erro no pipeline do parser: ${error.message}` }),
+      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+    )
+  }
+})
+

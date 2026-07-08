@@ -79,6 +79,22 @@ export function useResumeVersions(userId: string | undefined) {
         throw new Error(`Erro ao registrar versão de currículo: ${insertError.message}`);
       }
 
+      // 4. Invocação assíncrona da Edge Function para processar texto com Gemini
+      try {
+        supabase.functions.invoke('analyze-resume', {
+          body: {
+            storagePath: storagePath,
+            fileName: file.name,
+            userId: userId,
+            resumeVersionId: insertData.id
+          }
+        }).catch(err => {
+          console.error("Erro assíncrono na Edge Function:", err);
+        });
+      } catch (invokeErr) {
+        console.error("Falha ao iniciar Edge Function:", invokeErr);
+      }
+
       return insertData;
     },
     onSuccess: () => {

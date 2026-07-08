@@ -3,12 +3,93 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.8"
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-mock-gemini',
   'Access-Control-Allow-Methods': 'POST, GET, OPTIONS',
 }
 
+async function fetchWithRetry(url: string, options: any, maxRetries = 3, initialDelay = 1000): Promise<Response> {
+  let delay = initialDelay;
+  for (let attempt = 1; attempt <= maxRetries; attempt++) {
+    try {
+      const response = await fetch(url, options);
+      if (response.ok) return response;
+      
+      if (response.status === 429 || response.status >= 500) {
+        console.warn(`[GEMINI RETRY] Tentativa ${attempt} falhou com status ${response.status}. Aguardando ${delay}ms...`);
+        await new Promise(resolve => setTimeout(resolve, delay));
+        delay *= 2;
+        continue;
+      }
+      return response;
+    } catch (err) {
+      if (attempt === maxRetries) throw err;
+      console.warn(`[GEMINI RETRY] Tentativa ${attempt} falhou com erro de rede: ${err.message}. Aguardando ${delay}ms...`);
+      await new Promise(resolve => setTimeout(resolve, delay));
+      delay *= 2;
+    }
+  }
+  throw new Error(`Falha no processamento com Gemini após ${maxRetries} tentativas.`);
+}
+
+async function checkRateLimit(supabaseClient: any, userId: string, feature: string) {
+  if (!userId) return;
+  const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000).toISOString();
+  
+  const { count, error } = await supabaseClient
+    .from('ai_usage_logs')
+    .select('*', { count: 'exact', head: true })
+    .eq('user_id', userId)
+    .eq('feature', feature)
+    .gte('created_at', oneHourAgo);
+
+  if (error) {
+    console.error(`[RATE LIMIT] Erro ao verificar limite:`, error);
+    return;
+  }
+
+  if (count && count >= 10) {
+    throw new Error(`Limite de requisições excedido. Você pode fazer no máximo 10 chamadas para '${feature}' por hora.`);
+  }
+}
+
+async function logAiUsage(supabaseClient: any, userId: string, feature: string, model: string, inputTokens: number, outputTokens: number) {
+  const estimatedCost = (inputTokens * 0.000000075) + (outputTokens * 0.0000003);
+  const { error } = await supabaseClient
+    .from('ai_usage_logs')
+    .insert({
+      user_id: userId || null,
+      feature,
+      model,
+      input_tokens: inputTokens,
+      output_tokens: outputTokens,
+      estimated_cost: estimatedCost
+    });
+
+  if (error) {
+    console.error(`[AI LOG] Erro ao salvar log de uso:`, error);
+  }
+}
+
 class JobMatchingEngine {
-  static async matchWithGemini(careerProfile: any, jobTitle: string, jobDescription: string): Promise<any> {
+  static async matchWithGemini(careerProfile: any, jobTitle: string, jobDescription: string, supabaseClient: any, userId: string, mockEnabled = false): Promise<any> {
+    await checkRateLimit(supabaseClient, userId, 'job-matching');
+
+    if (mockEnabled) {
+      console.log("[GEMINI] Simulação ativa para testes.");
+      
+      // Registrar log de IA mockado
+      await logAiUsage(supabaseClient, userId, 'job-matching', 'gemini-2.5-flash-mock', 100, 200);
+
+      return {
+        match_score: 85,
+        strengths: ["Ponto forte técnico ou comportamental mock"],
+        weaknesses: ["Ponto fraco ou gap identificado mock"],
+        missing_keywords: ["SQL", "Data Analysis"],
+        interview_probability: 75,
+        recommendation: "Recomendação mock de preparação para entrevista."
+      };
+    }
+
     const geminiApiKey = Deno.env.get('GEMINI_API_KEY');
     if (!geminiApiKey) {
       throw new Error("GEMINI_API_KEY não configurada nos segredos do Supabase.");
@@ -46,7 +127,7 @@ class JobMatchingEngine {
     `;
 
     console.log("[GEMINI] Comparando currículo e vaga com Gemini 2.5 Flash...");
-    const response = await fetch(geminiUrl, {
+    const response = await fetchWithRetry(geminiUrl, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json'
@@ -71,6 +152,10 @@ class JobMatchingEngine {
     if (!extractedText) {
       throw new Error("Resposta do Gemini vazia ou em formato incorreto.");
     }
+
+    const promptTokens = resJson.usageMetadata?.promptTokenCount || 0;
+    const candidatesTokens = resJson.usageMetadata?.candidatesTokenCount || 0;
+    await logAiUsage(supabaseClient, userId, 'job-matching', 'gemini-2.5-flash', promptTokens, candidatesTokens);
 
     return JSON.parse(extractedText);
   }
@@ -105,8 +190,8 @@ serve(async (req) => {
   }
 
   try {
-    const { resumeId, resumeVersionId, jobId, userId: requestUserId } = await req.json()
-    console.log(`[EDGE FUNCTION] Recebido pedido de match:`, { resumeId, resumeVersionId, jobId })
+    const { resumeId, resumeVersionId, jobId, userId: requestUserId, mockGemini } = await req.json()
+    console.log(`[EDGE FUNCTION] Recebido pedido de match:`, { resumeId, resumeVersionId, jobId, mockGemini })
 
     if ((!resumeId && !resumeVersionId) || !jobId) {
       return new Response(
@@ -118,6 +203,7 @@ serve(async (req) => {
     const supabaseUrl = Deno.env.get('SUPABASE_URL') || ''
     const supabaseAnonKey = Deno.env.get('SUPABASE_ANON_KEY') || ''
     const authHeader = req.headers.get('Authorization') || ''
+    const isMockEnabled = mockGemini === true || req.headers.get('x-mock-gemini') === 'true'
 
     const supabaseClient = createClient(supabaseUrl, supabaseAnonKey, {
       global: { headers: { Authorization: authHeader } }
@@ -175,14 +261,17 @@ serve(async (req) => {
     }
 
     // 3. Executar o match semântico no Gemini 2.5 Flash
+    const userId = requestUserId || careerProfile.user_id;
     const matchResult = await JobMatchingEngine.matchWithGemini(
       careerProfile,
       jobData.title,
-      jobData.description
+      jobData.description,
+      supabaseClient,
+      userId,
+      isMockEnabled
     );
 
     // 4. Salvar o resultado na tabela job_matches
-    const userId = requestUserId || careerProfile.user_id;
     const savedMatch = await JobMatchingEngine.saveJobMatch(
       supabaseClient,
       userId,

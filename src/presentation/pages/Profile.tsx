@@ -81,7 +81,9 @@ export function Profile({ profile, resumes, onUploadResume, onDeleteResume, isUp
       setUploadSuccess(true);
       setTimeout(() => setUploadSuccess(false), 3000);
     } catch (err: any) {
-      setErrorMsg('Falha ao processar o arquivo. Certifique-se de que o arquivo não está corrompido.');
+      console.error('[UPLOAD ERROR DETECTED]', err);
+      const detailedMessage = err?.message || err?.error_description || err?.error || (typeof err === 'object' ? JSON.stringify(err) : String(err));
+      setErrorMsg(`Falha ao processar o arquivo: ${detailedMessage}`);
     }
   };
 

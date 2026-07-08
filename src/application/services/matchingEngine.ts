@@ -6,38 +6,30 @@ export class MatchingEngine {
    * Auxiliar para inferir perfil de carreira a partir do currículo parseado
    */
   public static extractProfile(parsedResume: any): Omit<CareerProfile, 'id' | 'userId' | 'resumeId' | 'createdAt' | 'updatedAt'> {
-    const skillsList = (parsedResume.skills || []).map((s: any) => s.name);
+    const tools = (parsedResume.skills || [])
+      .filter((s: any) => s.category?.includes('tool'))
+      .map((s: any) => s.name);
+    const finalSkills = (parsedResume.skills || [])
+      .filter((s: any) => s.category?.includes('skill'))
+      .map((s: any) => s.name);
+    const languages = (parsedResume.skills || [])
+      .filter((s: any) => s.category?.includes('language'))
+      .map((s: any) => s.name);
+      
     const roles = parsedResume.experiences?.map((e: any) => e.role) || [];
-    const primaryRole = roles[0] || 'Software Engineer';
     
-    let seniority = 'pleno';
-    const exp = parsedResume.yearsOfExperience || 0;
-    if (exp < 2) seniority = 'junior';
-    else if (exp >= 5 && exp < 8) seniority = 'senior';
-    else if (exp >= 8 && exp < 12) seniority = 'lead';
-    else if (exp >= 12) seniority = 'director';
-
-    const tools = skillsList.filter((s: string) => 
-      ['salesforce', 'sql', 'docker', 'kubernetes', 'figma', 'jira', 'trello', 'hubspot', 'git', 'aws'].includes(s.toLowerCase())
-    );
-    const finalSkills = skillsList.filter((s: string) => !tools.includes(s));
-
-    const searchKeywords = [primaryRole];
-    if (finalSkills[0]) searchKeywords.push(finalSkills[0]);
-    if (tools[0]) searchKeywords.push(tools[0]);
-
     return {
-      targetRoles: Array.from(new Set([primaryRole, `${primaryRole} Manager`, 'Analista'])),
-      seniority: primaryRole.toLowerCase().includes('head') || primaryRole.toLowerCase().includes('manager') ? 'Manager' : seniority,
-      industries: ['SaaS', 'Fintech', 'Technology'],
-      skills: finalSkills.length > 0 ? finalSkills : ['Customer Success', 'Liderança'],
-      tools: tools.length > 0 ? tools : ['Salesforce', 'SQL'],
-      languages: ['Inglês'],
-      preferredLocations: ['Remoto', 'São Paulo'],
+      targetRoles: parsedResume.headline ? [parsedResume.headline] : roles.slice(0, 3),
+      seniority: parsedResume.seniority || 'senior',
+      industries: parsedResume.industries || [],
+      skills: finalSkills,
+      tools: tools,
+      languages: languages,
+      preferredLocations: ['Remoto'],
       preferredWorkModes: ['remote', 'hybrid'],
-      targetCompanies: ['Pipefy', 'iFood', 'Creditas'],
-      salaryExpectationMin: 10000,
-      searchKeywords: searchKeywords.slice(0, 3),
+      targetCompanies: [],
+      salaryExpectationMin: 0,
+      searchKeywords: parsedResume.atsKeywords || [],
       isApprovedByUser: false
     };
   }

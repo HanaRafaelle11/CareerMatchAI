@@ -84,76 +84,37 @@ serve(async (req) => {
     }
 
     textToAnalyze = cleanString(textToAnalyze)
-    console.log(`[EDGE FUNCTION] Primeiras 500 letras do texto extraído:\n${textToAnalyze.substring(0, 500)}`)
+    
+    // FASE 2: Diagnóstico e Validação do Texto Extraído
+    const charCount = textToAnalyze.length
+    const wordCount = textToAnalyze.split(/\s+/).filter(Boolean).length
+    const lineCount = textToAnalyze.split(/\r?\n/).length
+    const ptCount = (textToAnalyze.match(/\b(e|o|a|de|do|da|em|um|para|com)\b/gi) || []).length
+    const enCount = (textToAnalyze.match(/\b(and|the|of|to|in|a|for|with|is|at)\b/gi) || []).length
+    const detectedLanguage = ptCount >= enCount ? 'pt-BR' : 'en'
+    const encoding = 'UTF-8'
+    const first2000 = textToAnalyze.substring(0, 2000)
+    const last2000 = textToAnalyze.substring(Math.max(0, textToAnalyze.length - 2000))
+
+    console.log(`[EDGE FUNCTION] === FASE 2: DIAGNÓSTICOS DE TEXTO EXTRAÍDO ===`)
+    console.log(`- Tipo MIME: ${mimeType}`)
+    console.log(`- Páginas: ${numPages}`)
+    console.log(`- Caracteres: ${charCount}`)
+    console.log(`- Palavras: ${wordCount}`)
+    console.log(`- Linhas: ${lineCount}`)
+    console.log(`- Idioma Detectado: ${detectedLanguage}`)
+    console.log(`- Encoding: ${encoding}`)
+    console.log(`- Primeiros 2000 caracteres:\n${first2000}`)
+    console.log(`- Últimos 2000 caracteres:\n${last2000}`)
+    console.log(`========================================================`)
 
     if (!textToAnalyze || !textToAnalyze.trim()) {
-      console.error(`[EDGE FUNCTION] Erro: Nenhum texto pôde ser extraído do currículo.`)
+      console.error(`[EDGE FUNCTION] Erro de Validação: Nenhum texto legível extraído do currículo.`)
       return new Response(
-        JSON.stringify({ error: 'Erro de Auditoria: Nenhum texto pôde ser extraído do currículo fornecido. O arquivo está vazio ou corrompido.' }),
+        JSON.stringify({ error: 'Erro de Validação: Nenhum texto legível pôde ser extraído do currículo fornecido. O arquivo pode estar vazio ou corrompido.' }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       )
     }
-
-    const apiKey = Deno.env.get('OPENAI_API_KEY')
-    if (!apiKey) {
-      console.warn("OPENAI_API_KEY não definida no Supabase Edge. Usando parser local simulado.")
-      const mockResult = simulateResumeParsing(textToAnalyze, fileName || 'curriculo.pdf')
-      return new Response(
-        JSON.stringify(mockResult),
-        { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      )
-    }
-
-    const openai = new OpenAI({ apiKey })
-
-    const prompt = `
-      Você é um motor de parsing de currículos de última geração para o CareerMatch AI.
-      Sua tarefa é ler o texto bruto de um currículo e extrair as informações estruturadas no formato JSON especificado abaixo.
-      INSTRUÇÕES CRÍTICAS DE AUDITORIA:
-      - Extraia APENAS informações reais presentes no texto fornecido.
-      - NUNCA invente, complete ou assuma dados que não existam (como colocar competências genéricas de desenvolvedor se o currículo for de CS).
-      - Se um campo ou informação não puder ser extraída do texto, preencha com null.
-      - Classifique as competências (skills) estritamente em categorias: 'hard_skill', 'soft_skill', 'tool' ou 'language'.
-      - Estime o tempo total de experiência em anos baseado no histórico profissional (ex: 10.5).
-
-      Formato do JSON esperado:
-      {
-        "fullName": "Nome Completo do Candidato",
-        "headline": "Título Profissional sugerido baseado no perfil real (ex: Supervisor de Customer Success & Operations)",
-        "structuredSummary": "Resumo executivo profissional de até 4 frases do perfil real (precisa ter pelo menos 100 caracteres).",
-        "yearsOfExperience": 10.5,
-        "experiences": [
-          {
-            "companyName": "Nome da Empresa",
-            "role": "Cargo",
-            "description": "Descrição sucinta das atividades executadas",
-            "startDate": "YYYY-MM-DD",
-            "endDate": "YYYY-MM-DD ou null se for o atual",
-            "isCurrent": true/false,
-            "highlights": ["Destaque 1 (ex: reduziu churn em 12% usando métricas)", "Destaque 2"],
-            "achievements": ["Conquista relevante com métrica se houver no texto"]
-          }
-        ],
-        "skills": [
-          { "name": "Nome da competência", "category": "hard_skill/soft_skill/tool/language", "proficiencyLevel": "básico/intermediário/avançado/fluente" }
-        ],
-        "education": [
-          { "institution": "Nome da Instituição", "degree": "Título (Bacharelado/Graduação/etc)", "fieldOfStudy": "Área de Estudo", "startDate": "YYYY-MM-DD", "endDate": "YYYY-MM-DD" }
-        ],
-        "mba": "MBA caso mencionado, ou null",
-        "certifications": ["Certificação 1", "Certificação 2"],
-        "atsKeywords": ["palavra-chave1", "palavra-chave2"],
-        "seniority": "junior/pleno/senior/lead/director",
-        "area": "Área de atuação principal (ex: Customer Success, Vendas, Engenharia de Software)",
-        "industry": "Indústria principal (ex: SaaS, Fintech, E-commerce)",
-        "atsScore": 85
-      }
-
-      Texto do currículo:
-      """
-      ${textToAnalyze}
-      """
-    `
 
     const apiKey = Deno.env.get('OPENAI_API_KEY')
     if (!apiKey) {
@@ -165,6 +126,95 @@ serve(async (req) => {
     }
 
     const openai = new OpenAI({ apiKey })
+
+    // FASE 6: Novo Prompt de Engenharia (Consultor Sênior de Carreira)
+    const prompt = `
+      Você é um consultor sênior de carreira e especialista de parsing para o CareerMatch AI.
+      Sua tarefa é ler o texto bruto de um currículo e estruturá-lo estritamente no formato JSON abaixo.
+
+      INSTRUÇÕES CRÍTICAS DE AUDITORIA E TRANSPARÊNCIA:
+      - Extraia APENAS dados REAIS que estejam explicitamente declarados ou diretamente inferidos sem especulação no texto.
+      - Se um campo ou competência não puder ser atestada no texto, preencha com null.
+      - Para cada skill, experiência profissional e certificação mapeada, você DEVE retornar a confiança (confidence de 0.00 a 1.00), a evidência textual literal correspondente (evidence) e o trecho recortado que originou a conclusão (source_text).
+      - NUNCA invente siglas, empresas, cargos, ou ferramentas de templates como "Desenvolvedor React", "Vite" ou "TypeScript" se o currículo pertencer a um profissional de Customer Success / Liderança.
+
+      Formato do JSON esperado:
+      {
+        "fullName": "Nome Completo",
+        "headline": "Título Profissional sugerido baseado no perfil real",
+        "structuredSummary": "Resumo executivo de até 4 frases do perfil real (mínimo 100 caracteres)",
+        "area": "Área de atuação principal (ex: Customer Success, Operações, Vendas, Engenharia de Software)",
+        "secondaryArea": "Área secundária (ou null)",
+        "seniority": "junior/pleno/senior/lead/director",
+        "yearsOfExperience": 10.5,
+        "industries": ["SaaS", "Fintech", "Technology"],
+        "experiences": [
+          {
+            "companyName": "Nome da Empresa",
+            "role": "Cargo",
+            "startDate": "YYYY-MM-DD",
+            "endDate": "YYYY-MM-DD ou null se for o atual",
+            "isCurrent": true/false,
+            "description": "Descrição sucinta das atividades executadas",
+            "highlights": ["Destaque 1", "Destaque 2"],
+            "achievements": ["Conquista relevante com métrica se houver no texto"],
+            "kpis": ["KPIs ou métricas atingidas (ex: Redução de 2% no churn)"],
+            "confidence": 0.99,
+            "evidence": "Citação literal da frase contendo o cargo e empresa",
+            "source_text": "Trecho exato do currículo"
+          }
+        ],
+        "skills": [
+          {
+            "name": "Nome exato da competência (ex: Customer Success)",
+            "category": "cs_skill/ops_skill/hard_skill/soft_skill/tool/language/leadership_skill/analytical_skill/commercial_skill/product_skill/management_skill/project_skill/data_skill",
+            "proficiencyLevel": "básico/intermediário/avançado/fluente",
+            "confidence": 0.98,
+            "evidence": "Citação literal da frase de evidência",
+            "source_text": "Trecho exato do currículo"
+          }
+        ],
+        "education": [
+          {
+            "institution": "Nome da Instituição",
+            "degree": "Título do curso",
+            "fieldOfStudy": "Área de Estudo",
+            "startDate": "YYYY-MM-DD",
+            "endDate": "YYYY-MM-DD ou null"
+          }
+        ],
+        "mba": "Detalhes de MBA se houver no texto, ou null",
+        "certifications": [
+          {
+            "name": "Nome da certificação",
+            "confidence": 0.95,
+            "evidence": "Frase de evidência",
+            "source_text": "Trecho exato"
+          }
+        ],
+        "courses": ["Curso 1", "Curso 2"],
+        "stack": ["Looker", "Salesforce"],
+        "methodologies": ["Agile", "Scrum"],
+        "frameworks": [],
+        "atsKeywords": ["Customer Success", "Churn", "CS Ops", "NPS", "CSAT"],
+        "strengths": ["Gestão de equipes", "Automação com IA"],
+        "weaknesses": ["Pouco histórico com engenharia de baixo nível"],
+        "gaps": ["Falta MBA em Finanças corporativas"],
+        "atsApprovalLikelihood": 85,
+        "competitiveAreas": ["Operações de CS", "Liderança de times"],
+        "nonCompetitiveAreas": ["Desenvolvimento Backend de Alta Escalabilidade"]
+      }
+
+      Texto do currículo:
+      """
+      ${textToAnalyze}
+      """
+    `
+
+    // FASE 3: Auditoria do Prompt (Imprimir prompt inteiro no console)
+    console.log(`[EDGE FUNCTION] === FASE 3: PROMPT COMPLETO ENVIADO À OPENAI ===`)
+    console.log(prompt)
+    console.log(`==============================================================`)
 
     console.log(`[EDGE FUNCTION] Enviando prompt para a OpenAI (gpt-4o)...`)
     const startTime = Date.now()
@@ -178,29 +228,49 @@ serve(async (req) => {
     })
     
     const duration = Date.now() - startTime
+    const finishReason = response.choices[0].finish_reason
     const rawContent = response.choices[0].message.content || '{}'
     const cleanedContent = cleanString(rawContent)
-    const parsedResult = JSON.parse(cleanedContent)
-
+    
+    // FASE 4: Auditoria de Resposta da OpenAI
     const promptTokens = response.usage?.prompt_tokens || 0
     const completionTokens = response.usage?.completion_tokens || 0
     const totalTokens = response.usage?.total_tokens || 0
-    
-    console.log(`[EDGE FUNCTION] Chamada à OpenAI concluída com sucesso em ${duration}ms. Tokens: Prompt=${promptTokens}, Completion=${completionTokens}, Total=${totalTokens}`)
 
-    // Executar validações estritas (Etapa 7)
+    console.log(`[EDGE FUNCTION] === FASE 4: AUDITORIA DA RESPOSTA DA OPENAI ===`)
+    console.log(`- Modelo Utilizado: ${response.model}`)
+    console.log(`- Duração da Chamada: ${duration}ms`)
+    console.log(`- Finish Reason: ${finishReason}`)
+    console.log(`- Tokens Usados: Prompt=${promptTokens}, Completion=${completionTokens}, Total=${totalTokens}`)
+    console.log(`- JSON Retornado:\n${cleanedContent}`)
+    console.log(`================================================================`)
+
+    let parsedResult;
+    try {
+      parsedResult = JSON.parse(cleanedContent)
+    } catch (parseErr) {
+      console.error("[EDGE FUNCTION] FASE 4 ERRO: Falha ao fazer parse do JSON retornado pela OpenAI. Resposta bruta salva nos logs:", cleanedContent)
+      return new Response(
+        JSON.stringify({ error: `Resposta inválida da IA (não é JSON). Conteúdo bruto: ${cleanedContent}` }),
+        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      )
+    }
+
+    // Executar validações estritas
     const experiences = parsedResult.experiences || []
     const skills = parsedResult.skills || []
     const summary = parsedResult.structuredSummary || ""
 
     if (experiences.length === 0) {
+      console.error("[EDGE FUNCTION] Erro de Validação: Nenhuma experiência profissional estruturada identificada.")
       return new Response(
-        JSON.stringify({ error: 'Erro de Validação da IA: Nenhuma experiência profissional foi identificada no currículo. O pipeline foi interrompido.' }),
+        JSON.stringify({ error: 'Erro de Validação da IA: Nenhuma experiência profissional foi identificada no currículo.' }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       )
     }
 
     if (summary.length < 100) {
+      console.error(`[EDGE FUNCTION] Erro de Validação: Resumo profissional muito curto (${summary.length} caracteres).`)
       return new Response(
         JSON.stringify({ error: `Erro de Validação da IA: O resumo profissional estruturado gerado ficou muito curto (${summary.length} caracteres), necessitando de no mínimo 100 caracteres.` }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -208,19 +278,32 @@ serve(async (req) => {
     }
 
     if (skills.length === 0) {
+      console.error("[EDGE FUNCTION] Erro de Validação: Nenhuma competência ou skill foi mapeada.")
       return new Response(
-        JSON.stringify({ error: 'Erro de Validação da IA: Nenhuma competência ou skill foi mapeada no currículo. O pipeline foi interrompido.' }),
+        JSON.stringify({ error: 'Erro de Validação da IA: Nenhuma competência ou skill foi mapeada no currículo.' }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       )
     }
 
     const companyNames = experiences.map((exp: any) => exp.companyName).filter(Boolean)
     if (companyNames.length === 0) {
+      console.error("[EDGE FUNCTION] Erro de Validação: Nenhuma empresa identificada.")
       return new Response(
         JSON.stringify({ error: 'Erro de Validação da IA: Nenhuma empresa válida pôde ser identificada no currículo.' }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       )
     }
+
+    // FASE 7: Validação Cruzada (Cross-Validation) contra alucinações
+    const validationErrors = crossValidate(parsedResult, textToAnalyze)
+    if (validationErrors.length > 0) {
+      console.error(`[EDGE FUNCTION] Falha na Validação Cruzada contra alucinações:\n- ${validationErrors.join('\n- ')}`)
+      return new Response(
+        JSON.stringify({ error: `Erro de Validação Cruzada (Alucinação Detectada): ${validationErrors[0]}` }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      )
+    }
+    console.log("[EDGE FUNCTION] Validação Cruzada concluída com sucesso. Zero alucinações detectadas.")
 
     // Gerar metadados de depuração e auditoria
     const debugTelemetry = {
@@ -234,10 +317,10 @@ serve(async (req) => {
       executionTimeMs: duration,
       companiesCount: new Set(companyNames).size,
       experiencesCount: experiences.length,
-      hardSkillsCount: skills.filter((s: any) => s.category === 'hard_skill').length,
-      softSkillsCount: skills.filter((s: any) => s.category === 'soft_skill').length,
-      toolsCount: skills.filter((s: any) => s.category === 'tool').length,
-      languagesCount: skills.filter((s: any) => s.category === 'language').length,
+      hardSkillsCount: skills.filter((s: any) => s.category?.includes('hard_skill')).length,
+      softSkillsCount: skills.filter((s: any) => s.category?.includes('soft_skill')).length,
+      toolsCount: skills.filter((s: any) => s.category?.includes('tool')).length,
+      languagesCount: skills.filter((s: any) => s.category?.includes('language')).length,
     }
 
     return new Response(
@@ -255,6 +338,54 @@ serve(async (req) => {
     )
   }
 })
+
+function crossValidate(result: any, rawText: string): string[] {
+  const errors: string[] = [];
+  const textLower = rawText.toLowerCase();
+
+  // 1. Proibir Empresa do Segmento e mocks
+  const experiences = result.experiences || [];
+  for (const exp of experiences) {
+    if (exp.companyName) {
+      const coName = exp.companyName.toLowerCase();
+      if (coName.includes("empresa do segmento") || coName.includes("empresa demo") || coName.includes("empresa principal")) {
+        errors.push("A IA gerou o nome de empresa fictício/template: '" + exp.companyName + "'.");
+      }
+      if (!textLower.includes(coName)) {
+        const parts = coName.split(/\s+/).filter((w: string) => w.length > 2);
+        const hasPart = parts.some((p: string) => textLower.includes(p));
+        if (!hasPart) {
+          errors.push(`A empresa '${exp.companyName}' listada na experiência profissional não consta no currículo.`);
+        }
+      }
+    }
+    if (exp.role) {
+      const roleLower = exp.role.toLowerCase();
+      if (roleLower.includes("desenvolvedor") && !textLower.includes("desenvolvedor") && !textLower.includes("developer")) {
+        errors.push(`O cargo '${exp.role}' menciona 'Desenvolvedor' mas não há menção a desenvolvimento no currículo.`);
+      }
+    }
+  }
+
+  // 2. Proibir skills e tecnologias fictícias / inventadas
+  const skills = result.skills || [];
+  for (const s of skills) {
+    const sName = s.name.toLowerCase();
+    const forbidden = ["typescript", "react", "node", "javascript", "docker", "kubernetes", "vue"];
+    if (forbidden.includes(sName) && !textLower.includes(sName)) {
+      errors.push(`A skill/tecnologia '${s.name}' foi extraída mas não está presente no currículo.`);
+    }
+    if (!textLower.includes(sName)) {
+      const parts = sName.split(/\s+/).filter((w: string) => w.length > 3);
+      const hasPart = parts.some((p: string) => textLower.includes(p));
+      if (!hasPart && parts.length > 0) {
+        errors.push(`A competência '${s.name}' não possui evidências textuais no currículo.`);
+      }
+    }
+  }
+
+  return errors;
+}
 
 function cleanString(input: string): string {
   if (!input) return '';

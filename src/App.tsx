@@ -11,6 +11,7 @@ import { Dashboard } from './presentation/pages/Dashboard';
 import { Profile } from './presentation/pages/Profile';
 import { JobMatchHub } from './presentation/pages/JobMatchHub';
 import { CareerProfilePage } from './presentation/pages/CareerProfilePage';
+import { MyProfileAi } from './presentation/pages/MyProfileAi';
 import { StrategyPage } from './presentation/pages/StrategyPage';
 import { CoachDashboard } from './presentation/pages/CoachDashboard';
 import { ResumeUpload } from './presentation/pages/ResumeUpload';
@@ -157,6 +158,13 @@ function App() {
             isUploading={isUploading}
             applications={applications}
             pipelineSteps={pipelineSteps}
+          />
+        )}
+
+        {activeTab === 'my-profile-ai' && (
+          <MyProfileAi
+            userId={profile?.id}
+            setActiveTab={setActiveTab}
           />
         )}
 

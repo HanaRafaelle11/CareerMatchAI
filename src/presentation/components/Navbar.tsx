@@ -1,4 +1,4 @@
-import { LayoutDashboard, User, LogOut, Compass, FileText, Briefcase, Award, X, Upload } from 'lucide-react';
+import { LayoutDashboard, User, LogOut, Compass, FileText, Briefcase, Award, X, Upload, Sparkles } from 'lucide-react';
 import { ThemeToggle } from './ThemeToggle';
 import type { Profile } from '../../domain/models/types';
 
@@ -16,7 +16,8 @@ export function Navbar({ activeTab, setActiveTab, profile, onLogout, isOpen, onC
     { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
     { id: 'resume-upload', label: 'Enviar Currículo', icon: Upload },
     { id: 'profile', label: 'Meu Currículo', icon: FileText },
-    { id: 'career-profile', label: 'Meu Perfil', icon: User },
+    { id: 'my-profile-ai', label: 'Meu Perfil IA', icon: Sparkles },
+    { id: 'career-profile', label: 'Objetivo de Vagas', icon: User },
     { id: 'strategy', label: 'Minha Estratégia', icon: Briefcase },
     { id: 'match', label: 'Match Manual', icon: Compass },
     { id: 'coach', label: 'AI Coach', icon: Award }

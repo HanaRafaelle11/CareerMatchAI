@@ -146,11 +146,15 @@ class ResumeParserService {
           soft_skills: [],
           languages: [],
           certifications: [],
-          ats_keywords: []
+          ats_keywords: {
+            existing_keywords: ["Customer Success", "Retention"],
+            missing_keywords: ["SQL"],
+            recommended_keywords: ["SaaS Metrics"]
+          }
         },
         career_insights: {
           seniority_prediction: {
-            value: isAmanda ? "junior" : "senior",
+            value: isAmanda ? "Junior" : "Senior",
             confidence: 0.9,
             reason: "Simulação de teste"
           },
@@ -159,11 +163,13 @@ class ResumeParserService {
             confidence: 0.9,
             reason: "Simulação de teste"
           },
-          methodologies: {
-            value: [],
-            confidence: 0.9,
-            reason: "Simulação de teste"
-          },
+          methodologies: [
+            {
+              methodology_name: "Scrum",
+              confidence: 0.9,
+              source: "extracted"
+            }
+          ],
           recommended_keywords: {
             value: [],
             confidence: 0.9,
@@ -196,12 +202,10 @@ class ResumeParserService {
       1. 'career_profile': Dados puros e extraídos do currículo (fatos reais apenas, sem invenção).
       2. 'career_insights': Predições, recomendações e insights baseados em inferência inteligente.
 
-      IMPORTANTE:
-      - Nunca misture dados puros e extraídos com inferências de inteligência artificial.
-      - Cada campo em 'career_insights' (como seniority_prediction, industry_prediction, methodologies, recommended_keywords, missing_skills e confidence_scores) deve ser estruturado estritamente como um objeto contendo:
-        - 'value': O valor deduzido (uma string, ou um array de strings dependendo do campo).
-        - 'confidence': O nível de certeza numérica de 0.00 a 1.00.
-        - 'reason': A justificativa descritiva resumida da sua inferência.
+      INSTRUÇÕES CRÍTICAS DE HARDENING:
+      - Extração de Empresa: NUNCA infira o nome da empresa (companyName) baseado no cargo do candidato. Por exemplo, se o texto disser 'Head of Customer Success' sem indicar a empresa, NUNCA defina companyName como 'Head of Customer Success'. Se a empresa não existir explicitamente escrita no bloco de experiência, retorne companyName = null.
+      - Senioridade: Escolha e retorne estritamente uma única categoria da seguinte taxonomia: Intern, Junior, Mid, Senior, Lead, Manager, Head, Director, VP.
+      - Metodologias: Nunca afirme Agile, Lean, Scrum ou similares sem evidência explícita no texto. Adicione campos de confiabilidade e origem da evidência (source: 'extracted' ou 'inferred').
 
       JSON Schema esperado:
       {
@@ -218,7 +222,7 @@ class ResumeParserService {
           "summary": "Resumo profissional ou objetivo profissional curto em texto corrido",
           "experience": [
             {
-              "companyName": "Nome da Empresa",
+              "companyName": "Nome da Empresa real e explícita no texto (NUNCA infira do cargo. Se não constar, use null)",
               "role": "Cargo",
               "startDate": "Data de início",
               "endDate": "Data de término ou null se atual",
@@ -250,38 +254,44 @@ class ResumeParserService {
             }
           ],
           "certifications": ["Certificação 1"],
-          "ats_keywords": ["ATS Keyword 1"]
+          "ats_keywords": {
+            "existing_keywords": ["competência real mapeada 1"],
+            "missing_keywords": ["competência ausente importante baseada no objetivo/perfil"],
+            "recommended_keywords": ["palavras-chave recomendadas para otimizar o ATS"]
+          }
         },
         "career_insights": {
           "seniority_prediction": {
-            "value": "junior/pleno/senior/lead/director",
+            "value": "Intern/Junior/Mid/Senior/Lead/Manager/Head/Director/VP (Escolha EXATAMENTE uma categoria)",
             "confidence": 0.95,
-            "reason": "Exemplo: Mais de 10 anos de experiência em cargos de gestão."
+            "reason": "Justificativa da predição baseada nos anos e conquistas."
           },
           "industry_prediction": {
-            "value": "SaaS / Tecnologia",
+            "value": "SaaS / Tecnologia / etc",
             "confidence": 0.90,
-            "reason": "Exemplo: Histórico consolidado em empresas de software e B2B."
+            "reason": "Setores deduzidos."
           },
-          "methodologies": {
-            "value": ["Agile", "Scrum", "Lean"],
-            "confidence": 0.85,
-            "reason": "Exemplo: Projetos anteriores liderados sob estruturas de time ágil."
-          },
+          "methodologies": [
+            {
+              "methodology_name": "Nome da Metodologia (ex: Scrum, Agile, Lean)",
+              "confidence": 0.90,
+              "source": "extracted ou inferred (use 'extracted' se estiver explicitamente escrito no currículo, ou 'inferred' se deduzido)"
+            }
+          ],
           "recommended_keywords": {
-            "value": ["Churn Rate", "Health Score", "CSAT", "NPS"],
+            "value": ["Churn", "Salesforce"],
             "confidence": 0.90,
-            "reason": "Exemplo: Termos ideais para otimização ATS em vagas seniores de Customer Success."
+            "reason": "Recomendações extras."
           },
           "missing_skills": {
-            "value": ["PowerBI", "SQL Avançado"],
+            "value": ["SQL"],
             "confidence": 0.80,
-            "reason": "Exemplo: Habilidades técnicas comumente exigidas para vagas CS Ops que não aparecem no texto."
+            "reason": "Gaps sugeridos."
           },
           "confidence_scores": {
             "value": { "personal": 0.98, "experience": 0.95, "skills": 0.88 },
             "confidence": 0.95,
-            "reason": "Exemplo: Nome, e-mail e histórico profissional perfeitamente formatados."
+            "reason": "Métricas de confiança estrutural."
           }
         }
       }
@@ -340,7 +350,7 @@ class ResumeParserService {
         soft_skills: profileData.soft_skills || [],
         languages: profileData.languages || [],
         certifications: profileData.certifications || [],
-        ats_keywords: profileData.ats_keywords || [],
+        ats_keywords: profileData.ats_keywords || {},
         summary: profileData.summary || ''
       })
       .select()
@@ -360,7 +370,7 @@ class ResumeParserService {
         resume_version_id: resumeVersionId,
         seniority_prediction: insightsData.seniority_prediction || {},
         industry_prediction: insightsData.industry_prediction || {},
-        methodologies: insightsData.methodologies || {},
+        methodologies: insightsData.methodologies || [],
         recommended_keywords: insightsData.recommended_keywords || {},
         missing_skills: insightsData.missing_skills || {},
         confidence_scores: insightsData.confidence_scores || {}
@@ -403,6 +413,9 @@ serve(async (req) => {
       .update({ status: 'processing' })
       .eq('id', resumeVersionId);
 
+    // LOG DE PIPELINE: extract_started
+    console.log("[PIPELINE_LOG] extract_started");
+
     // 2. Baixar PDF do Storage
     console.log(`[EDGE FUNCTION] Baixando arquivo: ${storagePath}`)
     const { data: fileData, error: downloadError } = await supabaseClient.storage
@@ -423,9 +436,18 @@ serve(async (req) => {
       throw new Error("Nenhum texto legível pôde ser extraído do documento.");
     }
 
+    // LOG DE PIPELINE: extract_completed
+    console.log("[PIPELINE_LOG] extract_completed");
+
+    // LOG DE PIPELINE: gemini_started
+    console.log("[PIPELINE_LOG] gemini_started");
+
     // 4. Enviar texto para Gemini 2.5 Flash
     console.log(`[EDGE FUNCTION] Enviando para Gemini 2.5 Flash...`)
     const parsedData = await ResumeParserService.parseWithGemini(text, supabaseClient, userId, isMockEnabled);
+
+    // LOG DE PIPELINE: gemini_completed
+    console.log("[PIPELINE_LOG] gemini_completed");
 
     // 5. Salvar perfil de carreira (dados puros extraídos)
     console.log(`[EDGE FUNCTION] Salvando perfil de carreira...`)
@@ -444,6 +466,9 @@ serve(async (req) => {
       resumeVersionId,
       parsedData.career_insights || {}
     );
+
+    // LOG DE PIPELINE: save_completed
+    console.log("[PIPELINE_LOG] save_completed");
 
     // 7. Atualizar status para 'completed'
     await supabaseClient
@@ -464,8 +489,24 @@ serve(async (req) => {
       { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     )
   } catch (error) {
-    console.error(`[EDGE FUNCTION] Falha no processamento:`, error)
+    // LOG DE PIPELINE: failed
+    console.error("[PIPELINE_LOG] failed:", error.message);
     
+    // Tentar registrar o erro na tabela resume_processing_errors
+    if (resumeVersionIdGlobal && supabaseClient) {
+      try {
+        await supabaseClient
+          .from('resume_processing_errors')
+          .insert({
+            resume_version_id: resumeVersionIdGlobal,
+            error_type: error.name || 'ParsingError',
+            error_message: error.message || String(error)
+          });
+      } catch (dbErr) {
+        console.error(`[EDGE FUNCTION] Erro ao registrar falha de auditoria:`, dbErr)
+      }
+    }
+
     // Tentar atualizar o status para 'failed'
     if (resumeVersionIdGlobal && supabaseClient) {
       try {

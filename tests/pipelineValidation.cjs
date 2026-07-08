@@ -208,7 +208,19 @@ async function runPipeline() {
       throw new Error(`Esperava status 'failed', mas obteve: '${versions[0].status}'`);
     }
 
-    return { details: `Transição correta para status 'failed'. Resposta de erro: "${body.error}"` };
+    // Verificar se o erro foi registrado na tabela resume_processing_errors
+    const errorsCheckResponse = await fetch(`${supabaseUrl}/rest/v1/resume_processing_errors?resume_version_id=eq.${version.id}`, {
+      headers: {
+        'apikey': supabaseAnonKey,
+        'Authorization': `Bearer ${userToken}`
+      }
+    });
+    const errorsList = await errorsCheckResponse.json();
+    if (errorsList.length === 0) {
+      throw new Error("Esperava um registro correspondente na tabela resume_processing_errors, mas nenhum erro foi registrado.");
+    }
+
+    return { details: `Transição para 'failed' e erro registrado no DB: "${errorsList[0].error_message}"` };
   })());
 
   // Teste 2: Currículo Sem Experiência
@@ -324,7 +336,25 @@ async function runPipeline() {
       throw new Error(`Campos inferidos incorretos no insights: ${JSON.stringify(seniority)}`);
     }
 
-    return { details: `Senioridade inferida: '${seniority.value}' com confiança ${seniority.confidence}. Motivo: ${seniority.reason}` };
+    // Validar taxonomia de senioridade
+    const allowedSeniorities = ['Intern', 'Junior', 'Mid', 'Senior', 'Lead', 'Manager', 'Head', 'Director', 'VP'];
+    if (!allowedSeniorities.includes(seniority.value)) {
+      throw new Error(`Senioridade retornada '${seniority.value}' não pertence à taxonomia permitida.`);
+    }
+
+    // Validar ATS Keywords separados
+    const profile = body.careerProfile;
+    if (!profile.ats_keywords || !profile.ats_keywords.existing_keywords || !profile.ats_keywords.missing_keywords) {
+      throw new Error(`ATS keywords não foram divididos corretamente: ${JSON.stringify(profile.ats_keywords)}`);
+    }
+
+    // Validar Metodologias estruturadas
+    const methodologies = body.careerInsights.methodologies;
+    if (!Array.isArray(methodologies) || methodologies.length === 0 || !methodologies[0].methodology_name || !methodologies[0].source) {
+      throw new Error(`Metodologias não foram estruturadas corretamente: ${JSON.stringify(methodologies)}`);
+    }
+
+    return { details: `Senioridade inferida: '${seniority.value}' (Custo OK). Metodologias: [${methodologies.map(m => `${m.methodology_name} (${m.source})`).join(', ')}]` };
   })());
 
   // Teste 4: Falha no Gemini (ID Inválido de Versão)

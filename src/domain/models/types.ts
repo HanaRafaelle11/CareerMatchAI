@@ -72,6 +72,20 @@ export interface ResumeVersion {
   createdAt: string;
 }
 
+export interface JobMatch {
+  id: string;
+  userId: string;
+  careerProfileId: string;
+  jobId: string;
+  matchScore: number;
+  strengths: string[];
+  weaknesses: string[];
+  missingKeywords: string[];
+  interviewProbability: number;
+  recommendation: string;
+  createdAt: string;
+}
+
 export interface Experience {
   id: string;
   companyName: string;

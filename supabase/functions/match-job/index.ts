@@ -1,161 +1,207 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
-import { OpenAI } from "https://esm.sh/openai@4.24.1"
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.8"
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  'Access-Control-Allow-Methods': 'POST, GET, OPTIONS',
+}
+
+class JobMatchingEngine {
+  static async matchWithGemini(careerProfile: any, jobTitle: string, jobDescription: string): Promise<any> {
+    const geminiApiKey = Deno.env.get('GEMINI_API_KEY');
+    if (!geminiApiKey) {
+      throw new Error("GEMINI_API_KEY não configurada nos segredos do Supabase.");
+    }
+
+    const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${geminiApiKey}`;
+
+    const prompt = `
+      Você é o motor de match semântico e recrutador automatizado do CareerMatch AI.
+      Sua tarefa é analisar a compatibilidade (Match) entre o Perfil de Carreira (CareerProfile) do candidato e os requisitos da vaga (Job Description).
+      
+      INSTRUÇÕES IMPORTANTES:
+      - Realize uma análise semântica robusta de adequação técnica, comportamental e de nível de experiência.
+      - Retorne estritamente um objeto JSON válido correspondente ao JSON Schema especificado abaixo.
+
+      JSON Schema de Saída:
+      {
+        "match_score": 85,
+        "strengths": ["Ponto forte técnico ou comportamental 1", "Ponto forte 2"],
+        "weaknesses": ["Ponto fraco ou gap identificado 1", "Ponto fraco 2"],
+        "missing_keywords": ["Palavra-chave ou competência ausente 1", "Palavra-chave 2"],
+        "interview_probability": 75,
+        "recommendation": "Recomendação detalhada de como o candidato pode otimizar seu currículo ou se preparar para a entrevista."
+      }
+
+      Perfil do Candidato:
+      ${JSON.stringify(careerProfile, null, 2)}
+
+      Dados da Vaga:
+      Título: ${jobTitle}
+      Descrição/Requisitos:
+      """
+      ${jobDescription}
+      """
+    `;
+
+    console.log("[GEMINI] Comparando currículo e vaga com Gemini 2.5 Flash...");
+    const response = await fetch(geminiUrl, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        contents: [{
+          parts: [{ text: prompt }]
+        }],
+        generationConfig: {
+          responseMimeType: 'application/json'
+        }
+      })
+    });
+
+    if (!response.ok) {
+      const errText = await response.text();
+      throw new Error(`Erro na chamada da API do Gemini: ${response.statusText} - ${errText}`);
+    }
+
+    const resJson = await response.json();
+    const extractedText = resJson.candidates?.[0]?.content?.parts?.[0]?.text;
+    if (!extractedText) {
+      throw new Error("Resposta do Gemini vazia ou em formato incorreto.");
+    }
+
+    return JSON.parse(extractedText);
+  }
+
+  static async saveJobMatch(supabaseClient: any, userId: string, careerProfileId: string, jobId: string, matchResult: any) {
+    const { data, error } = await supabaseClient
+      .from('job_matches')
+      .insert({
+        user_id: userId,
+        career_profile_id: careerProfileId,
+        job_id: jobId,
+        match_score: matchResult.match_score,
+        strengths: matchResult.strengths || [],
+        weaknesses: matchResult.weaknesses || [],
+        missing_keywords: matchResult.missing_keywords || [],
+        interview_probability: matchResult.interview_probability,
+        recommendation: matchResult.recommendation
+      })
+      .select()
+      .single();
+
+    if (error) {
+      throw new Error(`Erro ao salvar match de vaga: ${error.message}`);
+    }
+    return data;
+  }
 }
 
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
-    return new Response('ok', { headers: corsHeaders })
+    return new Response('ok', { status: 200, headers: corsHeaders })
   }
 
   try {
-    const { resume, job } = await req.json()
+    const { resumeId, resumeVersionId, jobId, userId: requestUserId } = await req.json()
+    console.log(`[EDGE FUNCTION] Recebido pedido de match:`, { resumeId, resumeVersionId, jobId })
 
-    if (!resume || !job) {
+    if ((!resumeId && !resumeVersionId) || !jobId) {
       return new Response(
-        JSON.stringify({ error: 'Os dados do currículo e da vaga são obrigatórios.' }),
+        JSON.stringify({ error: 'Os parâmetros resumeId (ou resumeVersionId) e jobId são obrigatórios.' }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       )
     }
 
-    const apiKey = Deno.env.get('OPENAI_API_KEY')
-    if (!apiKey) {
-      console.warn("OPENAI_API_KEY não definida. Usando motor de match local simulado.")
-      const mockResult = simulateMatch(resume, job)
+    const supabaseUrl = Deno.env.get('SUPABASE_URL') || ''
+    const supabaseAnonKey = Deno.env.get('SUPABASE_ANON_KEY') || ''
+    const authHeader = req.headers.get('Authorization') || ''
+
+    const supabaseClient = createClient(supabaseUrl, supabaseAnonKey, {
+      global: { headers: { Authorization: authHeader } }
+    })
+
+    // 1. Obter o perfil de carreira estruturado do candidato
+    let careerProfile = null;
+    if (resumeVersionId) {
+      const { data, error } = await supabaseClient
+        .from('career_profiles')
+        .select('*')
+        .eq('resume_version_id', resumeVersionId)
+        .maybeSingle();
+      if (error) throw error;
+      careerProfile = data;
+    } else if (resumeId) {
+      const { data, error } = await supabaseClient
+        .from('career_profiles')
+        .select('*')
+        .eq('id', resumeId)
+        .maybeSingle();
+      if (error) throw error;
+      careerProfile = data;
+      
+      // Fallback: tentar buscar por resume_version_id igual ao resumeId
+      if (!careerProfile) {
+        const { data: fbData } = await supabaseClient
+          .from('career_profiles')
+          .select('*')
+          .eq('resume_version_id', resumeId)
+          .maybeSingle();
+        careerProfile = fbData;
+      }
+    }
+
+    if (!careerProfile) {
       return new Response(
-        JSON.stringify(mockResult),
-        { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        JSON.stringify({ error: 'Perfil de carreira (CareerProfile) correspondente não encontrado. Certifique-se de que o currículo foi analisado.' }),
+        { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       )
     }
 
-    const openai = new OpenAI({ apiKey })
+    // 2. Obter a descrição da vaga
+    const { data: jobData, error: jobErr } = await supabaseClient
+      .from('jobs')
+      .select('*')
+      .eq('id', jobId)
+      .single();
 
-    const prompt = `
-      Você é o motor de match semântico proprietário do CareerMatch AI.
-      Sua tarefa é comparar um currículo estruturado com a descrição e requisitos de uma vaga de emprego.
-      Analise semanticamente (não apenas por palavras chaves idênticas). Por exemplo, entenda que Next.js implica noções avançadas de React, ou que liderar squads equivale a liderança ágil.
+    if (jobErr || !jobData) {
+      return new Response(
+        JSON.stringify({ error: `Vaga não encontrada: ${jobErr?.message || 'ID inválido'}` }),
+        { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      )
+    }
 
-      Calcule quatro scores de 0 a 100:
-      1. Score Técnico (Aderência de ferramentas, linguagens e frameworks)
-      2. Score Comportamental (Alinhamento de soft skills deduzidas ou explícitas)
-      3. Score de Senioridade (Comparação do nível da vaga com os anos e conquistas do candidato)
-      4. Score Geral (Média ponderada: 50% Técnico, 25% Senioridade, 25% Comportamental)
+    // 3. Executar o match semântico no Gemini 2.5 Flash
+    const matchResult = await JobMatchingEngine.matchWithGemini(
+      careerProfile,
+      jobData.title,
+      jobData.description
+    );
 
-      Além disso, forneça uma análise detalhada dos Gaps (competências ausentes, o que adicionar ao currículo, o que remover ou enxugar) e uma explicação qualitativa dos pontos fortes e fracos.
+    // 4. Salvar o resultado na tabela job_matches
+    const userId = requestUserId || careerProfile.user_id;
+    const savedMatch = await JobMatchingEngine.saveJobMatch(
+      supabaseClient,
+      userId,
+      careerProfile.id,
+      jobId,
+      matchResult
+    );
 
-      Retorne estritamente um objeto JSON com esta estrutura:
-      {
-        "scoreOverall": 85,
-        "scoreTechnical": 90,
-        "scoreBehavioral": 80,
-        "scoreSeniority": 85,
-        "explanation": {
-          "strengths": ["Ponto forte 1", "Ponto forte 2"],
-          "weaknesses": ["Ponto fraco 1", "Ponto fraco 2"],
-          "details": {
-            "technical": "Explicação técnica detalhada...",
-            "behavioral": "Explicação comportamental...",
-            "seniority": "Explicação da senioridade..."
-          }
-        },
-        "gapAnalysis": {
-          "missingSkills": ["Docker", "Kubernetes"],
-          "skillsToLearn": ["Aprender Docker básico para microsserviços"],
-          "toIncludeInResume": ["Mencionar projetos em que utilizou APIs REST"],
-          "toExcludeFromResume": ["Remover experiências antigas não correlatas"],
-          "repetitiveContent": ["Evitar repetir a palavra 'desenvolvimento' em todas as conquistas"],
-          "lowValueContent": ["Curso de digitação rápida dos anos 2010"]
-        }
-      }
-
-      Dados do Currículo:
-      ${JSON.stringify(resume, null, 2)}
-
-      Dados da Vaga:
-      Título: ${job.title}
-      Descrição: ${job.description}
-      Requisitos: ${JSON.stringify(job.requirements)}
-    `
-
-    const response = await openai.chat.completions.create({
-      model: 'gpt-4o',
-      messages: [
-        { role: 'system', content: 'Você é um Tech Lead e Recrutador especialista em avaliar compatibilidade técnica e comportamental de candidatos a vagas de tecnologia.' },
-        { role: 'user', content: prompt }
-      ],
-      response_format: { type: 'json_object' }
-    })
-
-    const parsedResult = JSON.parse(response.choices[0].message.content || '{}')
+    console.log(`[EDGE FUNCTION] Match concluído e salvo com sucesso. Score: ${matchResult.match_score}%`);
 
     return new Response(
-      JSON.stringify(parsedResult),
+      JSON.stringify(savedMatch),
       { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     )
   } catch (error) {
+    console.error(`[EDGE FUNCTION] Erro ao calcular match:`, error)
     return new Response(
-      JSON.stringify({ error: error.message }),
+      JSON.stringify({ error: `Erro no pipeline do match: ${error.message}` }),
       { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     )
   }
 })
-
-// Função auxiliar de simulação local de match semântico
-function simulateMatch(resume: any, job: any) {
-  const resumeSkills = (resume.skills || []).map((s: any) => s.name.toLowerCase());
-  const jobRequirements = (job.requirements || []).map((r: string) => r.toLowerCase());
-
-  let matchedCount = 0;
-  const matchedList: string[] = [];
-  const missingList: string[] = [];
-
-  jobRequirements.forEach((req: string) => {
-    // Checagem semântica básica em JS
-    const hasDirect = resumeSkills.includes(req);
-    const hasPartial = resumeSkills.some((s: string) => s.includes(req) || req.includes(s));
-    
-    if (hasDirect || hasPartial) {
-      matchedCount++;
-      matchedList.push(req);
-    } else {
-      missingList.push(req);
-    }
-  });
-
-  const scoreTechnical = Math.round((matchedCount / Math.max(jobRequirements.length, 1)) * 100);
-  const scoreBehavioral = 85;
-  const scoreSeniority = resume.yearsOfExperience >= 5 ? 90 : 75;
-  const scoreOverall = Math.round((scoreTechnical * 0.5) + (scoreSeniority * 0.25) + (scoreBehavioral * 0.25));
-
-  return {
-    scoreOverall,
-    scoreTechnical,
-    scoreBehavioral,
-    scoreSeniority,
-    explanation: {
-      strengths: [
-        `Domínio de competências essenciais como: ${matchedList.slice(0, 3).join(', ') || 'React'}.`,
-        `Tempo de experiência condizente com a senioridade exigida.`
-      ],
-      weaknesses: missingList.length > 0 ? [
-        `Ausência de menção clara às seguintes competências: ${missingList.slice(0, 3).join(', ')}.`
-      ] : [`Nenhum gap crítico de tecnologia foi identificado.`],
-      details: {
-        technical: `Você domina cerca de ${matchedList.length} de um total de ${jobRequirements.length} stacks indicadas na vaga de ${job.title}.`,
-        behavioral: `As soft skills mapeadas no currículo condizem com o perfil de liderança e comunicação necessários para a vaga.`,
-        seniority: `Você possui ${resume.yearsOfExperience} anos de experiência. A vaga demanda nível intermediário/sênior, tornando seu perfil altamente competitivo.`
-      }
-    },
-    gapAnalysis: {
-      missingSkills: missingList,
-      skillsToLearn: missingList.map(s => `Aprender conceitos fundamentais e aplicar em projetos práticos de ${s}`),
-      toIncludeInResume: missingList.slice(0, 2).map(s => `Incluir menção ao estudo ou uso básico de ${s} nas descrições de projetos`),
-      toExcludeFromResume: ['Reduzir descrições redundantes em experiências profissionais de curta duração'],
-      repetitiveContent: ['Evitar repetir competências técnicas redundantes em múltiplos cargos listados'],
-      lowValueContent: ['Remover hobbies ou certificações muito antigas que não agregam valor técnico ao cargo de desenvolvedor']
-    }
-  };
-}

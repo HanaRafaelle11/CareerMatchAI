@@ -95,7 +95,30 @@ export function useResumes(userId: string | undefined) {
             .from('resumes')
             .getPublicUrl(filePath);
 
-          // 2. Criar registro inicial na tabela public.resumes
+          // 2a. Criar registro na tabela public.resume_versions
+          console.log(`[DATABASE] Inserindo registro inicial na tabela public.resume_versions...`);
+          const { data: resumeVersionData, error: rvError } = await supabase
+            .from('resume_versions')
+            .insert({
+              user_id: userId,
+              file_url: publicUrl,
+              file_name: file.name,
+              status: 'uploaded'
+            })
+            .select()
+            .single();
+
+          if (rvError) {
+            console.error(`[DATABASE] Erro crítico ao salvar versão do currículo:`, rvError);
+            throw new Error(`Falha ao gravar versão do currículo no Banco: ${rvError.message}`);
+          }
+          if (!resumeVersionData) {
+            throw new Error('Falha ao retornar o registro salvo de resume_versions no Banco.');
+          }
+          const resumeVersionId = resumeVersionData.id;
+          console.log(`[PIPELINE] Registro inicial de 'resume_versions' criado. ID: ${resumeVersionId}`);
+
+          // 2b. Criar registro inicial na tabela public.resumes
           console.log(`[DATABASE] Inserindo registro inicial na tabela public.resumes...`);
           const { data: resumeData, error: dbError } = await supabase
             .from('resumes')
@@ -138,6 +161,7 @@ export function useResumes(userId: string | undefined) {
               fileName: file.name,
               userId: userId,
               resumeId: resumeData.id,
+              resumeVersionId: resumeVersionId,
               rawText: file.type.includes('text/plain') || file.name.endsWith('.txt') ? rawText : undefined
             }
           });

@@ -374,21 +374,27 @@ class ResumeParserService {
   }
 
   static async saveCareerProfile(supabaseClient: any, userId: string, resumeVersionId: string, profileData: any) {
+    const payload = {
+      user_id: userId,
+      resume_version_id: resumeVersionId,
+      personal: profileData.personal || {},
+      experience: profileData.experience || [],
+      education: profileData.education || [],
+      skills: profileData.skills || [],
+      soft_skills: profileData.soft_skills || [],
+      languages: profileData.languages || [],
+      certifications: profileData.certifications || [],
+      ats_keywords: profileData.ats_keywords || {},
+      summary: profileData.summary || ''
+    };
+
+    console.log(`[CAREER PROFILE SAVE]
+resumeVersionId recebido: ${resumeVersionId}
+payload enviado:`, JSON.stringify(payload));
+
     const { data, error } = await supabaseClient
       .from('career_profiles')
-      .insert({
-        user_id: userId,
-        resume_version_id: resumeVersionId,
-        personal: profileData.personal || {},
-        experience: profileData.experience || [],
-        education: profileData.education || [],
-        skills: profileData.skills || [],
-        soft_skills: profileData.soft_skills || [],
-        languages: profileData.languages || [],
-        certifications: profileData.certifications || [],
-        ats_keywords: profileData.ats_keywords || {},
-        summary: profileData.summary || ''
-      })
+      .insert(payload)
       .select()
       .single();
 

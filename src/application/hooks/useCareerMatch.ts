@@ -233,6 +233,8 @@ export function useResumes(userId: string | undefined) {
             .from('career_profiles')
             .select('id')
             .eq('user_id', userId)
+            .order('created_at', { ascending: false })
+            .limit(1)
             .maybeSingle();
 
           const profilePayload = {
@@ -270,6 +272,10 @@ export function useResumes(userId: string | undefined) {
             ats_keywords: parsedResume.ats_keywords || {},
             summary: parsedResume.structuredSummary || ''
           };
+
+          console.log(`[CAREER PROFILE SAVE]
+resumeVersionId recebido: ${resumeVersion.id}
+payload enviado:`, JSON.stringify(profilePayload));
 
           let profileError;
           if (existingProfile) {

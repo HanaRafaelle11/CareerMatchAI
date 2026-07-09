@@ -111,6 +111,10 @@ export function useCareerProfile(userId: string | undefined) {
             }
           };
 
+          console.log(`[CAREER PROFILE SAVE]
+resumeVersionId recebido: ${latest.resume_version_id}
+payload enviado:`, JSON.stringify({ personal: updatedPersonal }));
+
           const { error } = await supabase
             .from('career_profiles')
             .update({
@@ -121,37 +125,48 @@ export function useCareerProfile(userId: string | undefined) {
           if (error) throw error;
         } else {
           // Se não existir perfil estruturado (caso raro), cria uma casca básica
+          if (!updated.resumeId || updated.resumeId === '00000000-0000-0000-0000-000000000000') {
+            console.error('[CAREER PROFILE SAVE] Erro: resumeId está vazio ou é inválido.');
+            throw new Error('A versão do currículo não foi identificada. Por favor, envie um currículo primeiro.');
+          }
+
+          const newProfilePayload = {
+            user_id: updated.userId,
+            resume_version_id: updated.resumeId,
+            personal: {
+              fullName: 'Profissional',
+              preferences: {
+                targetRoles: updated.targetRoles,
+                seniority: updated.seniority,
+                industries: updated.industries,
+                skills: updated.skills,
+                tools: updated.tools,
+                languages: updated.languages,
+                preferredLocations: updated.preferredLocations,
+                preferredWorkModes: updated.preferredWorkModes,
+                targetCompanies: updated.targetCompanies,
+                salaryExpectationMin: updated.salaryExpectationMin,
+                searchKeywords: updated.searchKeywords,
+                isApprovedByUser: updated.isApprovedByUser
+              }
+            },
+            skills: updated.skills.map(s => ({ name: s })),
+            languages: updated.languages.map(l => ({ language: l })),
+            experience: [],
+            education: [],
+            soft_skills: [],
+            certifications: [],
+            ats_keywords: {},
+            summary: ''
+          };
+
+          console.log(`[CAREER PROFILE SAVE]
+resumeVersionId recebido: ${updated.resumeId}
+payload enviado:`, JSON.stringify(newProfilePayload));
+
           const { error } = await supabase
             .from('career_profiles')
-            .insert({
-              user_id: updated.userId,
-              resume_version_id: updated.resumeId || '00000000-0000-0000-0000-000000000000',
-              personal: {
-                fullName: 'Profissional',
-                preferences: {
-                  targetRoles: updated.targetRoles,
-                  seniority: updated.seniority,
-                  industries: updated.industries,
-                  skills: updated.skills,
-                  tools: updated.tools,
-                  languages: updated.languages,
-                  preferredLocations: updated.preferredLocations,
-                  preferredWorkModes: updated.preferredWorkModes,
-                  targetCompanies: updated.targetCompanies,
-                  salaryExpectationMin: updated.salaryExpectationMin,
-                  searchKeywords: updated.searchKeywords,
-                  isApprovedByUser: updated.isApprovedByUser
-                }
-              },
-              skills: updated.skills.map(s => ({ name: s })),
-              languages: updated.languages.map(l => ({ language: l })),
-              experience: [],
-              education: [],
-              soft_skills: [],
-              certifications: [],
-              ats_keywords: {},
-              summary: ''
-            });
+            .insert(newProfilePayload);
 
           if (error) throw error;
         }

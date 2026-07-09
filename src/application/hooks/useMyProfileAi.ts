@@ -91,22 +91,27 @@ export interface CareerInsight {
   createdAt: string;
 }
 
-export function useMyProfileAi(userId: string | undefined) {
+export function useMyProfileAi(userId: string | undefined, resumeVersionId?: string | null) {
   const profileQuery = useQuery<{ profile: CareerProfileNew | null; insights: CareerInsight | null }>({
-    queryKey: ['my-profile-ai', userId],
+    queryKey: ['my-profile-ai', userId, resumeVersionId],
     queryFn: async () => {
       if (!userId || !isSupabaseConfigured || !supabase) {
         return { profile: null, insights: null };
       }
 
-      // 1. Buscar o perfil de carreira mais recente
-      const { data: profileData, error: profileErr } = await supabase
+      // 1. Buscar o perfil de carreira
+      let query = supabase
         .from('career_profiles')
         .select('*')
-        .eq('user_id', userId)
-        .order('created_at', { ascending: false })
-        .limit(1)
-        .maybeSingle();
+        .eq('user_id', userId);
+
+      if (resumeVersionId) {
+        query = query.eq('resume_version_id', resumeVersionId);
+      } else {
+        query = query.order('created_at', { ascending: false }).limit(1);
+      }
+
+      const { data: profileData, error: profileErr } = await query.maybeSingle();
 
       if (profileErr) throw profileErr;
       if (!profileData) return { profile: null, insights: null };
@@ -126,6 +131,11 @@ export function useMyProfileAi(userId: string | undefined) {
         ats_keywords: profileData.ats_keywords || {},
         createdAt: profileData.created_at
       };
+
+      console.log(`[CAREER PROFILE LOAD]
+user_id: ${profile.userId}
+resume_version_id: ${profile.resumeVersionId}
+profile_id: ${profile.id}`);
 
       // 2. Buscar o insights correspondente da mesma versão de currículo
       const { data: insightsData, error: insightsErr } = await supabase

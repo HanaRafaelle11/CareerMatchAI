@@ -17,6 +17,8 @@ interface ProfileProps {
   isUploading: boolean;
   applications: Application[];
   pipelineSteps?: PipelineStep[];
+  activeResumeVersionId?: string | null;
+  onSelectResumeVersion?: (versionId: string) => void;
 }
 
 export function Profile({ 
@@ -28,7 +30,9 @@ export function Profile({
   onDeleteResume, 
   isUploading, 
   applications = [],
-  pipelineSteps = []
+  pipelineSteps = [],
+  activeResumeVersionId,
+  onSelectResumeVersion
 }: ProfileProps) {
   const [dragActive, setDragActive] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
@@ -255,30 +259,43 @@ export function Profile({
             {/* Lista de Currículos */}
             {resumes.length > 0 && (
               <div className="space-y-3 pt-4 border-t border-slate-800 dark:border-slate-800 light:border-slate-200">
-                <span className="text-xs font-semibold text-slate-500">Histórico de Arquivos</span>
-                {resumes.map(res => (
-                  <div
-                    key={res.id}
-                    className="flex items-center justify-between p-3 rounded-xl bg-slate-900/40 dark:bg-slate-900/40 light:bg-slate-100 border border-slate-900 dark:border-slate-900 light:border-slate-200 text-xs"
-                  >
-                    <div className="flex items-center gap-2.5 truncate">
-                      <FileText size={16} className="text-brand-500 shrink-0" />
-                      <span className="font-semibold text-slate-300 dark:text-slate-300 light:text-slate-700 truncate" title={res.fileName}>
-                        {res.fileName}
-                      </span>
-                    </div>
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        onDeleteResume(res.id);
-                      }}
-                      className="p-1 rounded hover:bg-red-500/10 text-slate-500 hover:text-red-400 transition-colors"
-                      title="Excluir currículo"
+                <span className="text-xs font-semibold text-slate-500">Histórico de Arquivos (Clique para selecionar o ativo)</span>
+                {resumes.map(res => {
+                  const isActive = res.resumeVersionId === activeResumeVersionId;
+                  return (
+                    <div
+                      key={res.id}
+                      onClick={() => res.resumeVersionId && onSelectResumeVersion?.(res.resumeVersionId)}
+                      className={`flex items-center justify-between p-3 rounded-xl border text-xs cursor-pointer transition-all ${
+                        isActive
+                          ? 'border-brand-500 bg-brand-500/10 shadow-md shadow-brand-500/5'
+                          : 'bg-slate-900/40 border-slate-900 hover:border-slate-800'
+                      }`}
                     >
-                      <Trash2 size={14} />
-                    </button>
-                  </div>
-                ))}
+                      <div className="flex items-center gap-2.5 truncate">
+                        <FileText size={16} className={isActive ? 'text-brand-400 shrink-0' : 'text-slate-500 shrink-0'} />
+                        <span className={`font-semibold truncate ${isActive ? 'text-brand-400' : 'text-slate-300'} dark:${isActive ? 'text-brand-400' : 'text-slate-300'} light:${isActive ? 'text-brand-600' : 'text-slate-700'}`} title={res.fileName}>
+                          {res.fileName}
+                        </span>
+                        {isActive && (
+                          <span className="inline-flex items-center px-1.5 py-0.2 rounded-full text-[9px] font-bold bg-brand-500/20 text-brand-400 border border-brand-500/35 uppercase tracking-wider">
+                            Ativo
+                          </span>
+                        )}
+                      </div>
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onDeleteResume(res.id);
+                        }}
+                        className="p-1 rounded hover:bg-red-500/10 text-slate-500 hover:text-red-400 transition-colors"
+                        title="Excluir currículo"
+                      >
+                        <Trash2 size={14} />
+                      </button>
+                    </div>
+                  );
+                })}
               </div>
             )}
           </CardGlass>

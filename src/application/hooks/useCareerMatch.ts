@@ -19,30 +19,43 @@ export function useResumes(userId: string | undefined) {
     queryFn: async () => {
       if (!userId) return [];
       if (isSupabaseConfigured && supabase) {
-        const { data, error } = await supabase
+        const { data: resumesData, error: resumesError } = await supabase
           .from('resumes')
           .select('*')
           .eq('user_id', userId)
           .order('created_at', { ascending: false });
 
-        if (error) throw error;
-        
-        // Mapear dados estruturados do Supabase
-        return (data || []).map(r => ({
-          id: r.id,
-          userId: r.user_id,
-          filePath: r.file_path,
-          fileName: r.file_path.split('/').pop() || 'curriculo.pdf',
-          rawText: r.raw_text,
-          structuredSummary: r.structured_data?.structuredSummary || '',
-          yearsOfExperience: r.structured_data?.yearsOfExperience || 0,
-          isPrimary: r.is_primary,
-          createdAt: r.created_at,
-          updatedAt: r.updated_at || r.created_at,
-          experiences: r.structured_data?.experiences || [],
-          skills: r.structured_data?.skills || [],
-          education: r.structured_data?.education || []
-        }));
+        if (resumesError) throw resumesError;
+
+        const { data: versionsData, error: versionsError } = await supabase
+          .from('resume_versions')
+          .select('*')
+          .eq('user_id', userId);
+
+        if (versionsError) throw versionsError;
+
+        // Mapear dados estruturados do Supabase mesclando com resume_versions
+        return (resumesData || []).map(r => {
+          const correspondingVersion = (versionsData || []).find(
+            v => v.file_url === r.file_url || v.file_name === r.file_name
+          );
+          return {
+            id: r.id,
+            userId: r.user_id,
+            resumeVersionId: correspondingVersion?.id,
+            filePath: r.file_path,
+            fileName: r.file_path.split('/').pop() || 'curriculo.pdf',
+            rawText: r.raw_text,
+            structuredSummary: r.structured_data?.structuredSummary || '',
+            yearsOfExperience: r.structured_data?.yearsOfExperience || 0,
+            isPrimary: r.is_primary,
+            createdAt: r.created_at,
+            updatedAt: r.updated_at || r.created_at,
+            experiences: r.structured_data?.experiences || [],
+            skills: r.structured_data?.skills || [],
+            education: r.structured_data?.education || []
+          };
+        });
       } else {
         return localDB.getResumes();
       }
@@ -103,7 +116,7 @@ export function useResumes(userId: string | undefined) {
               user_id: userId,
               file_url: publicUrl,
               file_name: file.name,
-              status: 'uploaded'
+              status: 'processing'
             })
             .select()
             .single();
@@ -147,15 +160,9 @@ export function useResumes(userId: string | undefined) {
             s.id === 'extraction' ? { ...s, status: 'running' } : s
           ));
 
-          // 3. Invocar a Edge Function 'analyze-resume' para processar o currículo
-          console.log(`[PIPELINE] 4. Invocando Edge Function 'analyze-resume'...`);
-          setPipelineSteps(prev => prev.map(s => 
-            s.id === 'extraction' ? { ...s, label: 'Extraindo conteúdo (PDF/DOCX/TXT)...', status: 'running' } :
-            s.id === 'ia_parsing' ? { ...s, status: 'running' } : s
-          ));
-
-          const apiStartTime = Date.now();
-          const { data: parsedResume, error: functionError } = await supabase.functions.invoke('analyze-resume', {
+          // 3. Invocar a Edge Function 'analyze-resume' de forma ASSÍNCRONA
+          console.log(`[PIPELINE] 4. Disparando Edge Function 'analyze-resume' de forma assíncrona...`);
+          supabase.functions.invoke('analyze-resume', {
             body: { 
               storagePath: filePath, 
               fileName: file.name,
@@ -164,148 +171,91 @@ export function useResumes(userId: string | undefined) {
               resumeVersionId: resumeVersionId,
               rawText: file.type.includes('text/plain') || file.name.endsWith('.txt') ? rawText : undefined
             }
+          }).catch(err => {
+            console.error('[EDGE FUNCTION ASYNC ERROR]', err);
           });
-          const apiDuration = Date.now() - apiStartTime;
 
-          if (functionError) {
-            console.error(`[EDGE FUNCTION] Erro ao invocar analyze-resume:`, functionError);
-            throw functionError;
-          }
-          if (parsedResume?.error) {
-            console.error(`[EDGE FUNCTION] Erro retornado no processamento da IA:`, parsedResume.error);
-            throw new Error(parsedResume.error);
-          }
-          console.log(`[PIPELINE] 5. Resposta da Edge Function recebida com sucesso. Duração da API: ${apiDuration}ms`);
-
-          const debug = parsedResume._debug || {};
-          const charCount = debug.charCount || parsedResume.rawText?.length || 0;
-          const pageCount = debug.pageCount || 1;
-          const expCount = parsedResume.experiences?.length || 0;
-          const hardCount = parsedResume.skills?.filter((s: any) => s.category === 'hard_skill').length || 0;
-          const softCount = parsedResume.skills?.filter((s: any) => s.category === 'soft_skill').length || 0;
-          const compCount = new Set(parsedResume.experiences?.map((e: any) => e.companyName)).size;
-          const ats = parsedResume.atsScore || 85;
-
-          setPipelineSteps([
-            { id: 'upload', label: '✔ Upload concluído', status: 'success' },
-            { id: 'pdf_found', label: `✔ ${file.name.split('.').pop()?.toUpperCase() || 'PDF'} encontrado`, status: 'success' },
-            { id: 'pages', label: `✔ ${pageCount} páginas`, status: 'success' },
-            { id: 'chars', label: `✔ ${charCount.toLocaleString('pt-BR')} caracteres extraídos`, status: 'success' },
-            { id: 'experiences', label: `✔ ${expCount} experiências identificadas`, status: 'success' },
-            { id: 'hard_skills', label: `✔ ${hardCount} hard skills`, status: 'success' },
-            { id: 'soft_skills', label: `✔ ${softCount} soft skills`, status: 'success' },
-            { id: 'companies', label: `✔ ${compCount} empresas`, status: 'success' },
-            { id: 'ia_sent', label: '✔ Enviado para GPT-4o', status: 'success' },
-            { id: 'profile_struct', label: '✔ Perfil estruturado', status: 'success' },
-            { id: 'ats_score', label: `✔ ATS Score calculado: ${ats}%`, status: 'success' },
-            { id: 'db_save', label: 'Gravando no banco de dados...', status: 'running' }
-          ]);
-
-          // Extrair o perfil de carreira a partir do currículo processado
-          const parsedProfile = MatchingEngine.extractProfile(parsedResume);
-
-          // 4. Atualizar o registro do currículo com os dados estruturados obtidos
-          console.log(`[DATABASE] Atualizando registro do currículo com os dados estruturados da IA...`);
-          const { error: updateError } = await supabase
-            .from('resumes')
-            .update({
-              structured_data: parsedResume,
-              raw_text: parsedResume.structuredSummary
-            })
-            .eq('id', resumeData.id);
-
-          if (updateError) {
-            console.error(`[DATABASE] Erro ao atualizar o currículo com dados da IA:`, updateError);
-            throw new Error(`Falha ao salvar dados estruturados no Banco: ${updateError.message}`);
-          }
-          console.log(`[PIPELINE] 6. Registro do currículo atualizado com dados estruturados da IA.`);
-
-          // 5. Salvar ou atualizar o perfil de carreira associado
-          console.log(`[DATABASE] Salvando perfil de carreira associado na tabela public.career_profiles...`);
-          console.log("[PIPELINE] resumeVersion:", resumeVersion);
-
-          if (!resumeVersion?.id) {
-            console.error('[DATABASE] Erro: resumeVersion.id está vazio. Impedindo salvamento de career_profiles.');
-            throw new Error('A versão do currículo não foi criada. Pipeline interrompido.');
-          }
-
-          const { data: existingProfile } = await supabase
-            .from('career_profiles')
-            .select('id')
-            .eq('user_id', userId)
-            .order('created_at', { ascending: false })
-            .limit(1)
-            .maybeSingle();
-
-          const profilePayload = {
-            user_id: userId,
-            resume_version_id: resumeVersion.id,
-            personal: {
-              fullName: parsedResume.fullName || 'Profissional',
-              headline: parsedResume.headline || '',
-              email: parsedResume.email || '',
-              phone: parsedResume.phone || '',
-              linkedin: parsedResume.linkedin || '',
-              website: parsedResume.website || '',
-              location: parsedResume.location || '',
-              preferences: {
-                targetRoles: parsedProfile.targetRoles,
-                seniority: parsedProfile.seniority,
-                industries: parsedProfile.industries,
-                skills: parsedProfile.skills,
-                tools: parsedProfile.tools,
-                languages: parsedProfile.languages,
-                preferredLocations: parsedProfile.preferredLocations,
-                preferredWorkModes: parsedProfile.preferredWorkModes,
-                targetCompanies: parsedProfile.targetCompanies,
-                salaryExpectationMin: parsedProfile.salaryExpectationMin,
-                searchKeywords: parsedProfile.searchKeywords,
-                isApprovedByUser: parsedProfile.isApprovedByUser
-              }
-            },
-            experience: parsedResume.experiences || [],
-            education: parsedResume.education || [],
-            skills: parsedResume.skills || [],
-            soft_skills: parsedResume.soft_skills || [],
-            languages: parsedResume.languages || [],
-            certifications: parsedResume.certifications || [],
-            ats_keywords: parsedResume.ats_keywords || {},
-            summary: parsedResume.structuredSummary || ''
-          };
-
-          console.log(`[CAREER PROFILE SAVE]
-resumeVersionId recebido: ${resumeVersion.id}
-payload enviado:`, JSON.stringify(profilePayload));
-
-          let profileError;
-          if (existingProfile) {
-            console.log(`[DATABASE] Atualizando perfil de carreira existente ID: ${existingProfile.id}`);
-            const { error } = await supabase
-              .from('career_profiles')
-              .update(profilePayload)
-              .eq('id', existingProfile.id);
-            profileError = error;
-          } else {
-            console.log(`[DATABASE] Criando novo perfil de carreira...`);
-            const { error } = await supabase
-              .from('career_profiles')
-              .insert(profilePayload);
-            profileError = error;
-          }
-
-          if (profileError) {
-            console.error('[DATABASE] Erro ao salvar perfil de carreira no Supabase:', profileError);
-            throw new Error(`Falha ao persistir perfil de carreira no Banco: ${profileError.message}`);
-          }
-          console.log(`[PIPELINE] 7. Perfil de carreira atualizado com sucesso.`);
+          // 4. Polling loop para ler logs de processamento e status
+          let isComplete = false;
+          let attempts = 0;
+          const maxAttempts = 60;
           
-          setPipelineSteps(prev => prev.map(s => 
-            s.id === 'db_save' ? { ...s, label: '✔ Banco atualizado', status: 'success' } : s
-          ));
+          while (!isComplete && attempts < maxAttempts) {
+            await new Promise(resolve => setTimeout(resolve, 1500));
+            attempts++;
 
-          const totalPipelineTime = Date.now() - pipelineStartTime;
-          console.log(`[PIPELINE] 8. Pipeline concluído com sucesso. Tempo total do processo: ${totalPipelineTime}ms`);
+            const { data: versionStatus, error: statusError } = await supabase
+              .from('resume_versions')
+              .select('status')
+              .eq('id', resumeVersionId)
+              .single();
 
+            if (statusError) {
+              console.error('[POLLING] Erro ao obter status:', statusError);
+              continue;
+            }
+
+            const { data: logs, error: logsError } = await supabase
+              .from('resume_processing_logs')
+              .select('*')
+              .eq('resume_version_id', resumeVersionId)
+              .order('created_at', { ascending: true });
+
+            if (!logsError && logs) {
+              const hasExtractStarted = logs.some(l => l.step === 'extract_started');
+              const hasExtractCompleted = logs.some(l => l.step === 'extract_completed');
+              const hasGeminiStarted = logs.some(l => l.step === 'gemini_started');
+              const hasGeminiCompleted = logs.some(l => l.step === 'gemini_completed');
+              const hasSaveCompleted = logs.some(l => l.step === 'save_completed');
+              const hasFailed = logs.some(l => l.status === 'error');
+
+              const steps: PipelineStep[] = [
+                { id: 'upload', label: '✔ Upload concluído', status: 'success' },
+                { id: 'db_init', label: '✔ Referência registrada', status: 'success' },
+                {
+                  id: 'extraction',
+                  label: hasExtractCompleted ? '✔ Texto extraído com sucesso' : hasExtractStarted ? 'Extraindo conteúdo (PDF/DOCX/TXT)...' : 'Extraindo conteúdo...',
+                  status: hasExtractCompleted ? 'success' : hasExtractStarted ? 'running' : 'pending'
+                },
+                {
+                  id: 'ia_parsing',
+                  label: hasGeminiCompleted ? '✔ Processado por IA' : hasGeminiStarted ? 'Processando IA (OpenAI gpt-4o)...' : 'Processando IA...',
+                  status: hasGeminiCompleted ? 'success' : hasGeminiStarted ? 'running' : 'pending'
+                },
+                {
+                  id: 'db_save',
+                  label: hasSaveCompleted ? '✔ Perfil estruturado' : hasGeminiCompleted ? 'Salvando perfil estruturado...' : 'Salvando perfil estruturado...',
+                  status: hasSaveCompleted ? 'success' : hasGeminiCompleted ? 'running' : 'pending'
+                }
+              ];
+
+              setPipelineSteps(steps);
+
+              if (hasFailed) {
+                const failedLog = logs.find(l => l.status === 'error');
+                throw new Error(failedLog?.error_message || 'Erro no processamento da IA.');
+              }
+            }
+
+            if (versionStatus.status === 'completed') {
+              isComplete = true;
+            } else if (versionStatus.status === 'failed') {
+              const { data: errorLog } = await supabase
+                .from('resume_processing_errors')
+                .select('error_message')
+                .eq('resume_version_id', resumeVersionId)
+                .maybeSingle();
+
+              throw new Error(errorLog?.error_message || 'Falha no processamento da IA.');
+            }
+          }
+
+          if (!isComplete) {
+            throw new Error('Tempo limite excedido ao processar o currículo.');
+          }
+
+          const duration = Date.now() - pipelineStartTime;
+          console.log(`[PIPELINE] 8. Pipeline concluído com sucesso via polling. Tempo total: ${duration}ms`);
           return resumeData;
         } else {
           throw new Error('Supabase não está configurado. O parser de currículos requer conexão ativa com Supabase e OpenAI.');
@@ -314,46 +264,10 @@ payload enviado:`, JSON.stringify(profilePayload));
         const errorMsg = error.message || String(error);
         setPipelineSteps(prev => {
           let marked = false;
-          const isEarlyFailure = prev.length <= 5;
-          if (isEarlyFailure) {
-            let errorSteps: PipelineStep[] = [];
-            
-            const hasUploadFailed = errorMsg.includes('upload') || errorMsg.includes('Storage');
-            const hasExtractionFailed = errorMsg.includes('Nenhum texto') || errorMsg.includes('extraído') || errorMsg.includes('Auditoria') || errorMsg.includes('PDF');
-            const hasOpenAIFailed = errorMsg.includes('OpenAI') || errorMsg.includes('IA') || errorMsg.includes('chave');
-            const hasDbFailed = errorMsg.includes('Banco') || errorMsg.includes('database') || errorMsg.includes('referencia') || errorMsg.includes('persistir');
-            
-            errorSteps.push({
-              id: 'err_pdf',
-              label: hasUploadFailed || hasExtractionFailed ? '✖ PDF corrompido ou formato inválido' : '✔ PDF carregado com sucesso',
-              status: hasUploadFailed || hasExtractionFailed ? 'error' : 'success'
-            });
-
-            errorSteps.push({
-              id: 'err_text',
-              label: hasExtractionFailed ? '✖ Nenhum texto encontrado' : hasUploadFailed ? '✖ Extração bloqueada (upload falhou)' : '✔ Texto extraído com sucesso',
-              status: hasExtractionFailed ? 'error' : hasUploadFailed ? 'pending' : 'success'
-            });
-
-            errorSteps.push({
-              id: 'err_openai',
-              label: hasOpenAIFailed ? '✖ OpenAI indisponível ou chave inválida' : (hasUploadFailed || hasExtractionFailed) ? '✖ Processamento cancelado' : '✔ Processado por IA',
-              status: hasOpenAIFailed ? 'error' : (hasUploadFailed || hasExtractionFailed) ? 'pending' : 'success'
-            });
-
-            errorSteps.push({
-              id: 'err_db',
-              label: hasDbFailed ? '✖ Resume não salvo no banco' : '✖ Erro no banco de dados',
-              status: hasDbFailed ? 'error' : 'pending'
-            });
-
-            return errorSteps;
-          }
-
           return prev.map(s => {
             if (!marked && (s.status === 'running' || s.status === 'pending')) {
               marked = true;
-              return { ...s, label: `✖ Resume não salvo no banco: ${errorMsg}`, status: 'error' };
+              return { ...s, label: `✖ Falha: ${errorMsg}`, status: 'error' };
             }
             return s;
           });
@@ -364,6 +278,7 @@ payload enviado:`, JSON.stringify(profilePayload));
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['resumes', userId] });
       queryClient.invalidateQueries({ queryKey: ['career-profile', userId] });
+      queryClient.invalidateQueries({ queryKey: ['my-profile-ai', userId] });
     }
   });
 
@@ -487,18 +402,24 @@ export function useJobs(userId: string | undefined) {
 // ==========================================
 // 3. HOOK PARA GERENCIAR MATCHES & GAP ANALYSIS
 // ==========================================
-export function useMatches(userId: string | undefined) {
+export function useMatches(userId: string | undefined, resumeId?: string | null) {
   const queryClient = useQueryClient();
 
   const matchesQuery = useQuery<Match[]>({
-    queryKey: ['matches', userId],
+    queryKey: ['matches', userId, resumeId],
     queryFn: async () => {
       if (!userId) return [];
       if (isSupabaseConfigured && supabase) {
-        const { data, error } = await supabase
+        let query = supabase
           .from('matches')
           .select('*, jobs(*)')
           .order('created_at', { ascending: false });
+
+        if (resumeId) {
+          query = query.eq('resume_id', resumeId);
+        }
+
+        const { data, error } = await query;
 
         if (error) throw error;
         return (data || []).map(m => ({

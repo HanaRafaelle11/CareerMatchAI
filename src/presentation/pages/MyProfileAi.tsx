@@ -9,11 +9,12 @@ import {
 
 interface MyProfileAiProps {
   userId: string | undefined;
+  resumeVersionId?: string | null;
   setActiveTab: (tab: string) => void;
 }
 
-export function MyProfileAi({ userId, setActiveTab }: MyProfileAiProps) {
-  const { data, isLoading } = useMyProfileAi(userId);
+export function MyProfileAi({ userId, resumeVersionId, setActiveTab }: MyProfileAiProps) {
+  const { data, isLoading } = useMyProfileAi(userId, resumeVersionId);
   const { profile, insights } = data;
 
   if (isLoading) {

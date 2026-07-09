@@ -1,22 +1,15 @@
 import type { Job } from '../models/types';
 import { BaseJobConnector, type JobSearchFilters } from './BaseJobConnector';
+import { isSupabaseConfigured, supabase } from '../../infrastructure/api/supabaseClient';
 
 export class AdzunaConnector extends BaseJobConnector {
   readonly platformName = 'Adzuna';
 
-  private appId: string;
-  private appKey: string;
-
-  constructor() {
-    super();
-    this.appId = (import.meta.env.VITE_ADZUNA_APP_ID as string) || '';
-    this.appKey = (import.meta.env.VITE_ADZUNA_APP_KEY as string) || '';
-  }
-
   async searchJobs(filters: JobSearchFilters): Promise<Omit<Job, 'id' | 'userId' | 'createdAt' | 'updatedAt'>[]> {
-    // Se as chaves de API não estiverem configuradas, joga erro explícito que a UI captura
-    if (!this.appId || !this.appKey) {
-      throw new Error('API_NOT_CONFIGURED: As credenciais da API do Adzuna não estão configuradas no arquivo .env (VITE_ADZUNA_APP_ID / VITE_ADZUNA_APP_KEY).');
+    const supabaseClient = supabase;
+    if (!isSupabaseConfigured || !supabaseClient) {
+      console.warn('[AdzunaConnector] Supabase não está configurado. Retornando lista de vagas vazia.');
+      return [];
     }
 
     const keywords = filters.keywords && filters.keywords.length > 0
@@ -28,15 +21,14 @@ export class AdzunaConnector extends BaseJobConnector {
 
     try {
       const promises = keywords.map(async (keyword) => {
-        // Consultando Adzuna para o Brasil (country = br) na página correspondente
-        const url = `https://api.adzuna.com/v1/api/jobs/br/search/${pageNum}?app_id=${this.appId}&app_key=${this.appKey}&results_per_page=15&what=${encodeURIComponent(keyword)}&where=${encodeURIComponent(location)}`;
-        
-        const response = await fetch(url);
-        if (!response.ok) {
-          throw new Error(`Falha ao consultar API do Adzuna para termo: ${keyword}`);
-        }
+        // Invoca a Edge Function de forma segura para ocultar as chaves de API
+        const { data, error } = await supabaseClient.functions.invoke('search-jobs', {
+          body: { keyword, location, pageNum }
+        });
 
-        const data = await response.json();
+        if (error) {
+          throw new Error(`Erro na busca de vagas via Edge Function: ${error.message}`);
+        }
         
         return (data.results || []).map((result: any) => {
           const title = result.title.replace(/<\/?[^>]+(>|$)/g, ""); // Limpar HTML

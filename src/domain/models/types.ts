@@ -44,6 +44,7 @@ export interface Job {
 export interface Resume {
   id: string;
   userId: string;
+  resumeVersionId?: string;
   filePath?: string;
   fileName?: string;
   file_url?: string;

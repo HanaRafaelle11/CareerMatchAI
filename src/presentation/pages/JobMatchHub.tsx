@@ -7,7 +7,8 @@ import { CareerCoachService } from '../../application/services/CareerCoachServic
 import { MatchingEngine } from '../../application/services/matchingEngine';
 import type { Job, Resume, Match, CareerProfile } from '../../domain/models/types';
 import type { CareerProfileNew } from '../../application/hooks/useMyProfileAi';
-import { Play, Clipboard, Award, CheckCircle, AlertTriangle, AlertCircle, X, ChevronRight, BookOpen, Plus, Compass, Search, MapPin, Loader2, ArrowUpRight, Flame, Sparkles } from 'lucide-react';
+import { Play, Clipboard, Award, CheckCircle, AlertTriangle, AlertCircle, X, ChevronRight, BookOpen, Plus, Compass, Search, MapPin, Loader2, ArrowUpRight, Flame, Sparkles, Trash2 } from 'lucide-react';
+import { isSupabaseConfigured, supabase } from '../../infrastructure/api/supabaseClient';
 
 interface JobMatchHubProps {
   userId: string | undefined;
@@ -38,6 +39,44 @@ export function JobMatchHub({
 }: JobMatchHubProps) {
   const [subTab, setSubTab] = useState<'my-jobs' | 'discover'>('my-jobs');
   const [coachTab, setCoachTab] = useState<'coach-evaluation' | 'optimize-cv' | 'cover-letter' | 'interview-questions'>('coach-evaluation');
+  const [isDeletingAnalyses, setIsDeletingAnalyses] = useState(false);
+
+  const handleDeleteAnalyses = async () => {
+    if (!userId || !primaryResume || !isSupabaseConfigured || !supabase) return;
+    
+    const confirm = window.confirm("Você irá remover todas as análises feitas pela IA deste currículo. Deseja continuar?");
+    if (!confirm) return;
+
+    try {
+      setIsDeletingAnalyses(true);
+      
+      // 1. Apagar da tabela public.resume_versions (as restrições cascade do banco apagam career_profiles, career_insights e job_matches em cascata)
+      if (primaryResume.resumeVersionId) {
+        console.log(`[CLEANUP] Removendo versão do currículo: ${primaryResume.resumeVersionId}`);
+        const { error: rvError } = await supabase
+          .from('resume_versions')
+          .delete()
+          .eq('id', primaryResume.resumeVersionId);
+        if (rvError) throw rvError;
+      }
+
+      // 2. Apagar da tabela public.resumes (deleta matches em cascata)
+      console.log(`[CLEANUP] Removendo currículo legado: ${primaryResume.id}`);
+      const { error: rError } = await supabase
+        .from('resumes')
+        .delete()
+        .eq('id', primaryResume.id);
+      if (rError) throw rError;
+
+      alert("Análises deste currículo apagadas com sucesso!");
+      window.location.reload();
+    } catch (err: any) {
+      console.error("Erro ao apagar análises:", err);
+      alert(`Erro ao apagar análises: ${err.message || err}`);
+    } finally {
+      setIsDeletingAnalyses(false);
+    }
+  };
   
   const { 
     getResumeOptimizationQuery, 
@@ -207,6 +246,21 @@ export function JobMatchHub({
           </p>
         </div>
         <div className="flex gap-3">
+          {primaryResume && (
+            <button
+              onClick={handleDeleteAnalyses}
+              disabled={isDeletingAnalyses}
+              className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-red-950/20 border border-red-900/30 hover:border-red-900/60 text-red-400 font-semibold text-sm transition-all disabled:opacity-50"
+              title="Excluir todas as análises feitas pela IA deste currículo"
+            >
+              {isDeletingAnalyses ? (
+                <Loader2 size={16} className="animate-spin" />
+              ) : (
+                <Trash2 size={16} />
+              )}
+              Excluir minhas análises
+            </button>
+          )}
           <button
             onClick={() => setShowAddForm(true)}
             className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-slate-900 border border-slate-800 hover:border-slate-700 text-slate-200 font-semibold text-sm transition-all"

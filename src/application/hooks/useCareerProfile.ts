@@ -3,22 +3,27 @@ import { isSupabaseConfigured, supabase } from '../../infrastructure/api/supabas
 import { localDB } from '../../infrastructure/storage/localDatabase';
 import type { CareerProfile } from '../../domain/models/types';
 
-export function useCareerProfile(userId: string | undefined) {
+export function useCareerProfile(userId: string | undefined, resumeVersionId?: string | null) {
   const queryClient = useQueryClient();
 
   const profileQuery = useQuery<CareerProfile | null>({
-    queryKey: ['career-profile', userId],
+    queryKey: ['career-profile', userId, resumeVersionId],
     queryFn: async () => {
       if (!userId) return null;
       if (isSupabaseConfigured && supabase) {
-        // Buscar o perfil mais recente
-        const { data, error } = await supabase
+        // Buscar o perfil correspondente
+        let query = supabase
           .from('career_profiles')
           .select('*')
-          .eq('user_id', userId)
-          .order('created_at', { ascending: false })
-          .limit(1)
-          .maybeSingle();
+          .eq('user_id', userId);
+
+        if (resumeVersionId) {
+          query = query.eq('resume_version_id', resumeVersionId);
+        } else {
+          query = query.order('created_at', { ascending: false }).limit(1);
+        }
+
+        const { data, error } = await query.maybeSingle();
 
         if (error) throw error;
         if (!data) return null;
@@ -81,14 +86,21 @@ export function useCareerProfile(userId: string | undefined) {
   const updateProfileMutation = useMutation({
     mutationFn: async (updated: CareerProfile) => {
       if (isSupabaseConfigured && supabase) {
-        // Buscar o mais recente primeiro para mesclar metadados
-        const { data: latest, error: fetchError } = await supabase
+        // Buscar o perfil correspondente a este currículo para mesclar metadados
+        let query = supabase
           .from('career_profiles')
           .select('*')
-          .eq('user_id', updated.userId)
-          .order('created_at', { ascending: false })
-          .limit(1)
-          .maybeSingle();
+          .eq('user_id', updated.userId);
+
+        if (updated.resumeId && updated.resumeId !== '00000000-0000-0000-0000-000000000000') {
+          query = query.eq('resume_version_id', updated.resumeId);
+        } else if (resumeVersionId) {
+          query = query.eq('resume_version_id', resumeVersionId);
+        } else {
+          query = query.order('created_at', { ascending: false }).limit(1);
+        }
+
+        const { data: latest, error: fetchError } = await query.maybeSingle();
 
         if (fetchError) throw fetchError;
 

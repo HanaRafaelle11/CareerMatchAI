@@ -276,9 +276,9 @@ async function runPipeline() {
     return { details: `Falha graciosamente controlada no DB: "${logsList[0].error_message}"` };
   })());
 
-  // Teste 3: Currículo Sem Experiência
-  let noExpVersionId = '';
-  await logTestResult("Currículo Sem Experiência Profissional", (async () => {
+  // Teste 3: Currículo Sem Experiência (Deve ser rejeitado de acordo com as regras da Fase 5)
+  let successVersionId = '';
+  await logTestResult("Currículo Sem Experiência Profissional (Deve falhar)", (async () => {
     const mockTxt = `
       NOME: Amanda Teste da Silva
       CONTATO: amanda.teste@email.com | (11) 99999-9999
@@ -295,7 +295,6 @@ async function runPipeline() {
 
     const storagePath = await uploadMockFile("no_experience.txt", mockTxt, "text/plain");
     const version = await createMockResumeVersion("Currículo Sem Exp Teste", `${supabaseUrl}/storage/v1/object/public/resumes/${storagePath}`);
-    noExpVersionId = version.id;
 
     const parseResponse = await fetch(`${supabaseUrl}/functions/v1/analyze-resume`, {
       method: 'POST',
@@ -313,18 +312,35 @@ async function runPipeline() {
       })
     });
 
-    if (!parseResponse.ok) {
-      const txt = await parseResponse.text();
-      throw new Error(`Erro na chamada do parser: ${txt}`);
+    if (parseResponse.ok) {
+      throw new Error(`Deveria ter falhado por falta de experiências profissionais, mas retornou status ${parseResponse.status}`);
     }
 
-    const body = await parseResponse.json();
-    const profile = body.careerProfile;
-    if (profile && profile.experience && Array.isArray(profile.experience) && profile.experience.length > 0) {
-      throw new Error(`Esperava array de experiência vazio, obteve: ${JSON.stringify(profile.experience)}`);
+    // Verificar se o status no banco mudou para 'failed'
+    const statusCheckResponse = await fetch(`${supabaseUrl}/rest/v1/resume_versions?id=eq.${version.id}`, {
+      headers: {
+        'apikey': supabaseAnonKey,
+        'Authorization': `Bearer ${userToken}`
+      }
+    });
+    const versions = await statusCheckResponse.json();
+    if (versions[0].status !== 'failed') {
+      throw new Error(`Esperava status 'failed', mas obteve: '${versions[0].status}'`);
     }
 
-    return { details: `Perfil de carreira criado com sucesso sem experiências.` };
+    // Verificar se o log registrou falha
+    const logsCheckResponse = await fetch(`${supabaseUrl}/rest/v1/resume_processing_logs?resume_version_id=eq.${version.id}&step=eq.failed`, {
+      headers: {
+        'apikey': supabaseAnonKey,
+        'Authorization': `Bearer ${userToken}`
+      }
+    });
+    const logsList = await logsCheckResponse.json();
+    if (logsList.length === 0) {
+      throw new Error("Esperava log de etapa 'failed' registrado na tabela resume_processing_logs para currículo sem experiência.");
+    }
+
+    return { details: `Rejeitado graciosamente conforme a Fase 5: "${logsList[0].error_message}"` };
   })());
 
   // Teste 4: Currículo Completo & Camada de Insights
@@ -354,6 +370,7 @@ async function runPipeline() {
 
     const storagePath = await uploadMockFile("complex_resume.txt", mockTxt, "text/plain");
     const version = await createMockResumeVersion("Currículo Complexo Teste", `${supabaseUrl}/storage/v1/object/public/resumes/${storagePath}`);
+    successVersionId = version.id;
 
     const parseResponse = await fetch(`${supabaseUrl}/functions/v1/analyze-resume`, {
       method: 'POST',
@@ -497,7 +514,7 @@ async function runPipeline() {
           'x-mock-gemini': 'true'
         },
         body: JSON.stringify({
-          resumeVersionId: noExpVersionId,
+          resumeVersionId: successVersionId,
           jobId: testJobId,
           userId: currentUserId
         })

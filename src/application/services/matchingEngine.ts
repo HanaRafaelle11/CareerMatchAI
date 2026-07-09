@@ -256,7 +256,6 @@ export class MatchingEngine {
       try {
         const { data, error } = await supabase.functions.invoke('match-job', {
           body: { 
-            resumeId: resume.id, 
             resumeVersionId: resume.resumeVersionId,
             jobId: job.id 
           }

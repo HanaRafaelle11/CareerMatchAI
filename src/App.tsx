@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, lazy, Suspense } from 'react';
 import { useAuth } from './application/hooks/useAuth';
 import { useResumes, useJobs, useMatches } from './application/hooks/useCareerMatch';
 import { useCareerProfile } from './application/hooks/useCareerProfile';
@@ -8,14 +8,25 @@ import { useCoach } from './application/hooks/useCoach';
 import { useRoadmapServices } from './application/hooks/useRoadmapServices';
 import { Navbar } from './presentation/components/Navbar';
 import { Login } from './presentation/pages/Login';
-import { Dashboard } from './presentation/pages/Dashboard';
-import { Profile } from './presentation/pages/Profile';
-import { JobMatchHub } from './presentation/pages/JobMatchHub';
-import { CareerProfilePage } from './presentation/pages/CareerProfilePage';
-import { MyProfileAi } from './presentation/pages/MyProfileAi';
-import { StrategyPage } from './presentation/pages/StrategyPage';
-import { CoachDashboard } from './presentation/pages/CoachDashboard';
-import { Menu, FileText } from 'lucide-react';
+import { Menu, FileText, Loader2 } from 'lucide-react';
+
+// ── Code Splitting: Lazy-load das páginas pesadas ──
+const Dashboard = lazy(() => import('./presentation/pages/Dashboard').then(m => ({ default: m.Dashboard })));
+const Profile = lazy(() => import('./presentation/pages/Profile').then(m => ({ default: m.Profile })));
+const JobMatchHub = lazy(() => import('./presentation/pages/JobMatchHub').then(m => ({ default: m.JobMatchHub })));
+const CareerProfilePage = lazy(() => import('./presentation/pages/CareerProfilePage').then(m => ({ default: m.CareerProfilePage })));
+const MyProfileAi = lazy(() => import('./presentation/pages/MyProfileAi').then(m => ({ default: m.MyProfileAi })));
+const StrategyPage = lazy(() => import('./presentation/pages/StrategyPage').then(m => ({ default: m.StrategyPage })));
+const CoachDashboard = lazy(() => import('./presentation/pages/CoachDashboard').then(m => ({ default: m.CoachDashboard })));
+
+function LazyFallback() {
+  return (
+    <div className="flex flex-col items-center justify-center py-24 gap-3 text-slate-500">
+      <Loader2 className="animate-spin text-brand-500" size={28} />
+      <span className="text-xs font-semibold uppercase tracking-wider">Carregando módulo...</span>
+    </div>
+  );
+}
 
 function App() {
   const { user, profile, loading, loginWithEmail, signUpWithEmail, loginWithOAuth, logout } = useAuth();
@@ -182,109 +193,123 @@ function App() {
         )}
 
         {activeTab === 'dashboard' && (
-          <Dashboard
-            profile={profile}
-            resumes={resumes}
-            matches={matches}
-            careerProfile={careerProfile}
-            careerProfileNew={careerProfileNew}
-            notifications={notifications}
-            markNotificationAsRead={markNotificationAsRead}
-            setActiveTab={setActiveTab}
-            applications={applications}
-            careerGoals={careerGoals}
-          />
+          <Suspense fallback={<LazyFallback />}>
+            <Dashboard
+              profile={profile}
+              resumes={resumes}
+              matches={matches}
+              careerProfile={careerProfile}
+              careerProfileNew={careerProfileNew}
+              notifications={notifications}
+              markNotificationAsRead={markNotificationAsRead}
+              setActiveTab={setActiveTab}
+              applications={applications}
+              careerGoals={careerGoals}
+            />
+          </Suspense>
         )}
 
         {/* Meu Currículo — única tela de currículo (upload + visualização) */}
         {activeTab === 'profile' && (
-          <Profile
-            profile={profile}
-            resumes={resumes}
-            careerProfileNew={careerProfileNew}
-            careerInsights={careerInsights}
-            onUploadResume={(file, rawText) => uploadResume({ file, rawText })}
-            onDeleteResume={deleteResume}
-            isUploading={isUploading}
-            applications={applications}
-            pipelineSteps={pipelineSteps}
-            activeResumeVersionId={selectedResumeVersionId}
-            onSelectResumeVersion={setSelectedResumeVersionId}
-          />
+          <Suspense fallback={<LazyFallback />}>
+            <Profile
+              profile={profile}
+              resumes={resumes}
+              careerProfileNew={careerProfileNew}
+              careerInsights={careerInsights}
+              onUploadResume={(file, rawText) => uploadResume({ file, rawText })}
+              onDeleteResume={deleteResume}
+              isUploading={isUploading}
+              applications={applications}
+              pipelineSteps={pipelineSteps}
+              activeResumeVersionId={selectedResumeVersionId}
+              onSelectResumeVersion={setSelectedResumeVersionId}
+            />
+          </Suspense>
         )}
 
         {activeTab === 'my-profile-ai' && (
-          <MyProfileAi
-            userId={profile?.id}
-            resumeVersionId={selectedResumeVersionId}
-            setActiveTab={setActiveTab}
-          />
+          <Suspense fallback={<LazyFallback />}>
+            <MyProfileAi
+              userId={profile?.id}
+              resumeVersionId={selectedResumeVersionId}
+              setActiveTab={setActiveTab}
+            />
+          </Suspense>
         )}
 
         {activeTab === 'career-profile' && (
-          <CareerProfilePage
-            careerProfile={careerProfile}
-            careerProfileNew={careerProfileNew}
-            onSaveProfile={updateCareerProfile}
-            isSaving={isSavingProfile}
-            setActiveTab={setActiveTab}
-          />
+          <Suspense fallback={<LazyFallback />}>
+            <CareerProfilePage
+              careerProfile={careerProfile}
+              careerProfileNew={careerProfileNew}
+              onSaveProfile={updateCareerProfile}
+              isSaving={isSavingProfile}
+              setActiveTab={setActiveTab}
+            />
+          </Suspense>
         )}
 
         {activeTab === 'strategy' && (
-          <StrategyPage
-            userId={profile?.id}
-            careerProfile={careerProfile}
-            careerProfileNew={careerProfileNew}
-            resumes={resumes}
-            jobs={jobs}
-            applications={applications}
-            onCreateApplication={createApplication}
-            onUpdateApplication={updateApplication}
-            onDeleteApplication={deleteApplication}
-            getStagesQuery={getStagesQuery}
-            addStage={addStage}
-            deleteStage={deleteStage}
-            setActiveTab={setActiveTab}
-            companyProfiles={companyProfiles}
-            saveCompanyProfile={saveCompanyProfile}
-            deleteCompanyProfile={deleteCompanyProfile}
-            getWeeklyPlannerQuery={getWeeklyPlannerQuery}
-            saveWeeklyPlanner={saveWeeklyPlanner}
-            getWeeklyGoalQuery={getWeeklyGoalQuery}
-            saveWeeklyGoal={saveWeeklyGoal}
-            getPostLogQuery={getPostLogQuery}
-            savePostLog={savePostLog}
-          />
+          <Suspense fallback={<LazyFallback />}>
+            <StrategyPage
+              userId={profile?.id}
+              careerProfile={careerProfile}
+              careerProfileNew={careerProfileNew}
+              resumes={resumes}
+              jobs={jobs}
+              applications={applications}
+              onCreateApplication={createApplication}
+              onUpdateApplication={updateApplication}
+              onDeleteApplication={deleteApplication}
+              getStagesQuery={getStagesQuery}
+              addStage={addStage}
+              deleteStage={deleteStage}
+              setActiveTab={setActiveTab}
+              companyProfiles={companyProfiles}
+              saveCompanyProfile={saveCompanyProfile}
+              deleteCompanyProfile={deleteCompanyProfile}
+              getWeeklyPlannerQuery={getWeeklyPlannerQuery}
+              saveWeeklyPlanner={saveWeeklyPlanner}
+              getWeeklyGoalQuery={getWeeklyGoalQuery}
+              saveWeeklyGoal={saveWeeklyGoal}
+              getPostLogQuery={getPostLogQuery}
+              savePostLog={savePostLog}
+            />
+          </Suspense>
         )}
 
         {activeTab === 'match' && (
-          <JobMatchHub
-            userId={profile?.id}
-            resumes={resumes}
-            jobs={jobs}
-            matches={matches}
-            careerProfile={careerProfile}
-            careerProfileNew={careerProfileNew}
-            onCreateJob={createJob}
-            onCalculateMatch={calculateMatch}
-            getMatchDetails={getMatchDetails}
-            isCreating={isCreating}
-            isCalculating={isCalculating}
-          />
+          <Suspense fallback={<LazyFallback />}>
+            <JobMatchHub
+              userId={profile?.id}
+              resumes={resumes}
+              jobs={jobs}
+              matches={matches}
+              careerProfile={careerProfile}
+              careerProfileNew={careerProfileNew}
+              onCreateJob={createJob}
+              onCalculateMatch={calculateMatch}
+              getMatchDetails={getMatchDetails}
+              isCreating={isCreating}
+              isCalculating={isCalculating}
+            />
+          </Suspense>
         )}
 
         {activeTab === 'coach' && (
-          <CoachDashboard
-            careerProfile={careerProfile}
-            careerProfileNew={careerProfileNew}
-            applications={applications}
-            jobs={jobs}
-            startSimulation={startSimulation}
-            sendMessage={sendMessage}
-            getSimulationQuery={getSimulationQuery}
-            triggerDailyChecks={triggerDailyChecks}
-          />
+          <Suspense fallback={<LazyFallback />}>
+            <CoachDashboard
+              careerProfile={careerProfile}
+              careerProfileNew={careerProfileNew}
+              applications={applications}
+              jobs={jobs}
+              startSimulation={startSimulation}
+              sendMessage={sendMessage}
+              getSimulationQuery={getSimulationQuery}
+              triggerDailyChecks={triggerDailyChecks}
+            />
+          </Suspense>
         )}
       </main>
     </div>

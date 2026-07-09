@@ -207,7 +207,7 @@ export interface Application {
   status: '🔎 Encontrada' | '⭐ Tenho interesse' | '📝 Vou me candidatar' | '📨 Me candidatei' | '⏳ Aguardando retorno' | '👥 Entrevista com recrutador' | '🎯 Entrevista com gestor' | '🧩 Case técnico' | '🤝 Fit cultural' | '🏆 Oferta recebida' | '✅ Aceita' | '❌ Rejeitada' | '🚫 Fora do meu objetivo' | '👻 Sem resposta';
   rejectionReason?: 'Experiência insuficiente' | 'Senioridade incompatível' | 'Pretensão salarial' | 'Falta de conhecimento técnico' | 'Idioma' | 'Cultura' | 'Empresa pausou vaga' | 'Sem retorno' | 'Outro';
   sourcePlatform?: string;
-  resumeUsedId?: string;
+  resumeVersionId?: string;
   notes?: string;
   appliedAt?: string;
   createdAt: string;

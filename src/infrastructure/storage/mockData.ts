@@ -2,7 +2,7 @@ import type { Job, Resume, Match, GapAnalysis, CoverLetter, InterviewPrep } from
 
 export const mockResume: Resume = {
   id: 'resume-123',
-  userId: 'user-default',
+  userId: 'mock-user-id',
   fileName: 'Curriculo_Alexandre_Silva.pdf',
   rawText: 'Alexandre Silva - Software Engineer. Experiência de 5 anos com React, TypeScript, Node.js e Tailwind. Formado em Ciência da Computação. Certificação AWS.',
   structuredSummary: 'Desenvolvedor Full Stack com mais de 5 anos de experiência prática na criação de aplicações web escaláveis. Especialista em ecossistemas React, Node.js e computação em nuvem (AWS). Apaixonado por metodologias ágeis, Clean Code e otimização de performance.',
@@ -152,7 +152,7 @@ export const mockJobs: Job[] = [
 export const mockMatches: Match[] = [
   {
     id: 'match-job-1',
-    userId: 'user-default',
+    userId: 'mock-user-id',
     resumeId: 'resume-123',
     jobId: 'job-1',
     jobTitle: 'Desenvolvedor Full Stack Senior (React & Node)',
@@ -187,7 +187,7 @@ export const mockMatches: Match[] = [
   },
   {
     id: 'match-job-2',
-    userId: 'user-default',
+    userId: 'mock-user-id',
     resumeId: 'resume-123',
     jobId: 'job-2',
     jobTitle: 'Frontend Engineer (React / TypeScript)',

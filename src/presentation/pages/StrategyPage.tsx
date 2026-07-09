@@ -28,6 +28,7 @@ interface StrategyPageProps {
   addStage: (args: { appId: string, stage: Omit<ApplicationStage, 'id' | 'createdAt'> }) => Promise<any>;
   deleteStage: (args: { appId: string, stageId: string }) => Promise<any>;
   setActiveTab: (tab: string) => void;
+  userId?: string;
   // Roadmap services
   companyProfiles: CompanyProfile[];
   saveCompanyProfile: (profile: CompanyProfile) => Promise<any>;
@@ -53,6 +54,7 @@ export function StrategyPage({
   addStage,
   deleteStage,
   setActiveTab,
+  userId,
   companyProfiles,
   saveCompanyProfile,
   deleteCompanyProfile,
@@ -154,7 +156,7 @@ export function StrategyPage({
         sourcePlatform: manualSource,
         notes: manualNotes || undefined,
         appliedAt: manualStatus.includes('Me candidatei') ? new Date().toISOString() : undefined,
-        resumeUsedId: primaryResume?.id
+        resumeVersionId: primaryResume?.resumeVersionId
       });
       setManualCompany('');
       setManualTitle('');
@@ -302,7 +304,7 @@ export function StrategyPage({
     try {
       await saveCompanyProfile({
         id: `cp-${Date.now()}`,
-        userId: 'user-default',
+        userId: userId || '',
         companyName,
         industry: companyIndustry || undefined,
         size: companySize || undefined,

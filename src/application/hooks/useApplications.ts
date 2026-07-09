@@ -29,7 +29,7 @@ export function useApplications(userId: string | undefined) {
           status: d.status,
           rejectionReason: d.rejection_reason || undefined,
           sourcePlatform: d.source_platform || undefined,
-          resumeUsedId: d.resume_used_id || undefined,
+          resumeVersionId: d.resume_version_id || undefined,
           notes: d.notes || undefined,
           appliedAt: d.applied_at || undefined,
           createdAt: d.created_at,
@@ -58,7 +58,7 @@ export function useApplications(userId: string | undefined) {
             status: appData.status,
             rejection_reason: appData.rejectionReason || null,
             source_platform: appData.sourcePlatform || null,
-            resume_used_id: appData.resumeUsedId || null,
+            resume_version_id: appData.resumeVersionId || null,
             notes: appData.notes || null,
             applied_at: appData.appliedAt || null
           })

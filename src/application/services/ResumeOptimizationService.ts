@@ -19,7 +19,7 @@ export class ResumeOptimizationService {
       const versionNum = resume.versionNumber || 1;
       const versionLbl = resume.versionLabel || `Versão ${versionNum}`;
       
-      const resumeApps = applications.filter(app => app.resumeUsedId === resume.id);
+      const resumeApps = applications.filter(app => app.resumeVersionId === resume.resumeVersionId);
       const appsCount = resumeApps.length;
       
       const interviewStatuses = [

@@ -1,6 +1,8 @@
 import type { Resume, Job, Match, GapAnalysis, Application, Profile, CareerProfile, ApplicationStage, ResumeOptimization, CoverLetter, InterviewPreparation, InterviewSimulation, PostInterviewLog, Notification, InterviewPrep, CompanyProfile, WeeklyPlanner, WeeklyGoal, CareerGoal } from '../../domain/models/types';
 import { mockResume, mockJobs, mockMatches, mockGapAnalyses, mockCoverLetters, mockInterviewPreps } from './mockData';
 
+import { isSupabaseConfigured } from '../api/supabaseClient';
+
 // Chaves do localStorage
 const KEYS = {
   PROFILE: 'careermatch_profile',
@@ -27,6 +29,18 @@ const KEYS = {
 
 class LocalDatabase {
   private init() {
+    // Se o Supabase estiver configurado no ambiente, inicia o banco local vazio para não contaminar o usuário com dados mock
+    if (isSupabaseConfigured) {
+      if (!localStorage.getItem(KEYS.PROFILE)) localStorage.setItem(KEYS.PROFILE, 'null');
+      if (!localStorage.getItem(KEYS.RESUMES)) localStorage.setItem(KEYS.RESUMES, '[]');
+      if (!localStorage.getItem(KEYS.JOBS)) localStorage.setItem(KEYS.JOBS, '[]');
+      if (!localStorage.getItem(KEYS.MATCHES)) localStorage.setItem(KEYS.MATCHES, '[]');
+      if (!localStorage.getItem(KEYS.GAPS)) localStorage.setItem(KEYS.GAPS, '[]');
+      if (!localStorage.getItem(KEYS.APPLICATIONS)) localStorage.setItem(KEYS.APPLICATIONS, '[]');
+      if (!localStorage.getItem(KEYS.CAREER_PROFILE)) localStorage.setItem(KEYS.CAREER_PROFILE, 'null');
+      return;
+    }
+
     if (!localStorage.getItem(KEYS.PROFILE)) {
       const defaultProfile: Profile = {
         id: 'user-default',
@@ -568,6 +582,15 @@ class LocalDatabase {
     const all = JSON.parse(localStorage.getItem(KEYS.NOTIFICATIONS) || '[]') as Notification[];
     const filtered = all.filter(n => n.id !== id);
     localStorage.setItem(KEYS.NOTIFICATIONS, JSON.stringify(filtered));
+  }
+
+  markNotificationAsRead(id: string): void {
+    const all = JSON.parse(localStorage.getItem(KEYS.NOTIFICATIONS) || '[]') as Notification[];
+    const idx = all.findIndex(n => n.id === id);
+    if (idx >= 0) {
+      all[idx].isRead = true;
+      localStorage.setItem(KEYS.NOTIFICATIONS, JSON.stringify(all));
+    }
   }
 
   // Company Profiles API

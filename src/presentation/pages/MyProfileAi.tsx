@@ -1,9 +1,10 @@
 import { useMyProfileAi } from '../../application/hooks/useMyProfileAi';
 import { CardGlass } from '../components/CardGlass';
+import { Tooltip } from '../components/Tooltip';
 import { 
   Sparkles, Award, MapPin, Calendar, Briefcase, 
   CheckCircle, AlertCircle, ShieldCheck, ChevronRight,
-  Brain, Zap, FileText, Star
+  Brain, Zap, FileText, Star, HelpCircle
 } from 'lucide-react';
 
 interface MyProfileAiProps {
@@ -140,17 +141,31 @@ export function MyProfileAi({ userId, setActiveTab }: MyProfileAiProps) {
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2">
-                <div className="bg-slate-900/30 rounded-xl p-4 border border-slate-900">
-                  <span className="text-[10px] uppercase font-bold text-indigo-400 tracking-wider">Senioridade Estimada</span>
-                  <p className="text-xl font-bold text-slate-100 mt-1">
-                    {insights.seniority_prediction.value || "Não calculada"}
-                  </p>
+                <div className="bg-slate-900/30 rounded-xl p-4 border border-slate-900 flex justify-between items-start">
+                  <div>
+                    <span className="text-[10px] uppercase font-bold text-indigo-400 tracking-wider flex items-center gap-1">
+                      Senioridade Estimada
+                      <Tooltip content="Nível de experiência profissional (ex: Júnior, Pleno, Sênior, Gestor) deduzido a partir da complexidade dos cargos relatados no seu currículo.">
+                        <HelpCircle size={10} className="text-slate-500 hover:text-indigo-400 cursor-help" />
+                      </Tooltip>
+                    </span>
+                    <p className="text-xl font-bold text-slate-100 mt-1">
+                      {insights.seniority_prediction.value || "Não calculada"}
+                    </p>
+                  </div>
                 </div>
-                <div className="bg-slate-900/30 rounded-xl p-4 border border-slate-900">
-                  <span className="text-[10px] uppercase font-bold text-indigo-400 tracking-wider">Índice de Confiança</span>
-                  <p className="text-xl font-bold text-slate-100 mt-1">
-                    {Math.round((insights.seniority_prediction.confidence || 0) * 100)}%
-                  </p>
+                <div className="bg-slate-900/30 rounded-xl p-4 border border-slate-900 flex justify-between items-start">
+                  <div>
+                    <span className="text-[10px] uppercase font-bold text-indigo-400 tracking-wider flex items-center gap-1">
+                      Índice de Confiança
+                      <Tooltip content="Grau de exatidão e precisão calculado pelo algoritmo da IA sobre a análise das suas experiências profissionais.">
+                        <HelpCircle size={10} className="text-slate-500 hover:text-indigo-400 cursor-help" />
+                      </Tooltip>
+                    </span>
+                    <p className="text-xl font-bold text-slate-100 mt-1">
+                      {Math.round((insights.seniority_prediction.confidence || 0) * 100)}%
+                    </p>
+                  </div>
                 </div>
               </div>
 
@@ -323,6 +338,9 @@ export function MyProfileAi({ userId, setActiveTab }: MyProfileAiProps) {
             <h3 className="font-display font-bold text-base text-slate-200 flex items-center gap-2 border-b border-slate-900 pb-3">
               <Award size={18} className="text-slate-400" />
               Otimização de ATS
+              <Tooltip content="ATS (Applicant Tracking Systems) são sistemas usados pelas empresas para filtrar currículos automaticamente por palavras-chave. Aparecer bem nesses filtros aumenta suas chances de entrevista.">
+                <HelpCircle size={12} className="text-slate-500 hover:text-indigo-400 cursor-help" />
+              </Tooltip>
             </h3>
 
             {/* Já possui */}

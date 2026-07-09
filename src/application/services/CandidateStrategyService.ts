@@ -1,4 +1,5 @@
 import type { Job, Resume, CareerProfile } from '../../domain/models/types';
+import type { CareerProfileNew } from '../hooks/useMyProfileAi';
 import { MatchingEngine } from './matchingEngine';
 
 export interface StrategyRecommendation {
@@ -50,7 +51,8 @@ export class CandidateStrategyService {
   static calculateCPI(
     resume: Resume,
     job: Job | Omit<Job, 'id' | 'userId' | 'createdAt' | 'updatedAt'>,
-    profile: CareerProfile | null
+    profile: CareerProfile | null,
+    careerProfileNew?: CareerProfileNew | null
   ): StrategyRecommendation {
     // 1. Executa o casamento de compatibilidade síncrono da Engine
     const matchAnalysis = MatchingEngine.calculateMatchSync(resume, job);
@@ -58,10 +60,31 @@ export class CandidateStrategyService {
     // 2. Pontua os fatores individuais do CPI
     const scoreOverall = matchAnalysis.scoreOverall;
 
+    // Obter dados unificados de careerProfileNew (preferencial) ou profile (fallback)
+    const activeProfile = careerProfileNew
+      ? {
+          seniority: (careerProfileNew.personal as any)?.preferences?.seniority || 'Sênior',
+          tools: (careerProfileNew.personal as any)?.preferences?.tools || [],
+          preferredWorkModes: (careerProfileNew.personal as any)?.preferences?.preferredWorkModes || ['remote'],
+          preferredLocations: (careerProfileNew.personal as any)?.preferences?.preferredLocations || [],
+          targetCompanies: (careerProfileNew.personal as any)?.preferences?.targetCompanies || [],
+          salaryExpectationMin: Number((careerProfileNew.personal as any)?.preferences?.salaryExpectationMin || 0)
+        }
+      : profile
+        ? {
+            seniority: profile.seniority,
+            tools: profile.tools || [],
+            preferredWorkModes: profile.preferredWorkModes || [],
+            preferredLocations: profile.preferredLocations || [],
+            targetCompanies: profile.targetCompanies || [],
+            salaryExpectationMin: profile.salaryExpectationMin
+          }
+        : null;
+
     // Seniority Fit (15 pts)
     let seniorityScore = 0;
-    if (profile) {
-      const profSeniority = profile.seniority.toLowerCase();
+    if (activeProfile) {
+      const profSeniority = activeProfile.seniority.toLowerCase();
       const jobSeniority = job.seniority.toLowerCase();
       if (profSeniority === jobSeniority) {
         seniorityScore = 100;
@@ -78,9 +101,9 @@ export class CandidateStrategyService {
 
     // Gaps de Ferramentas (15 pts)
     let toolsScore = 100;
-    if (profile && profile.tools.length > 0) {
+    if (activeProfile && activeProfile.tools.length > 0) {
       const missingTools = job.requirements.filter(req => 
-        profile.tools.some(t => t.toLowerCase() === req.toLowerCase()) && 
+        activeProfile.tools.some((t: string) => t.toLowerCase() === req.toLowerCase()) && 
         matchAnalysis.missingSkills.some(m => m.toLowerCase() === req.toLowerCase())
       );
       toolsScore = Math.max(0, 100 - (missingTools.length * 30));
@@ -88,9 +111,9 @@ export class CandidateStrategyService {
 
     // Preferências de Trabalho (10 pts)
     let workModeScore = 0;
-    if (profile) {
-      const isRemoteMatch = profile.preferredWorkModes.includes(job.workMode as any);
-      const isLocationMatch = profile.preferredLocations.some(loc => 
+    if (activeProfile) {
+      const isRemoteMatch = activeProfile.preferredWorkModes.includes(job.workMode as any);
+      const isLocationMatch = activeProfile.preferredLocations.some((loc: string) => 
         job.location.toLowerCase().includes(loc.toLowerCase()) || 
         loc.toLowerCase() === 'brasil inteiro'
       );
@@ -101,7 +124,7 @@ export class CandidateStrategyService {
 
     // Empresa Alvo (5 pts bônus)
     let companyBonus = 0;
-    if (profile && profile.targetCompanies.some(c => job.companyName.toLowerCase().includes(c.toLowerCase()))) {
+    if (activeProfile && activeProfile.targetCompanies.some((c: string) => job.companyName.toLowerCase().includes(c.toLowerCase()))) {
       companyBonus = 5;
     }
 
@@ -123,7 +146,7 @@ export class CandidateStrategyService {
     const salaryNumeric = job.salaryNumeric || (job as any).salaryMax || (job as any).salaryMin || undefined;
     const stagesCount = job.stagesCount || 3;
     const caseHours = job.caseHours || 0;
-    const minSalaryExpectation = profile ? profile.salaryExpectationMin : 0;
+    const minSalaryExpectation = activeProfile ? activeProfile.salaryExpectationMin : 0;
 
     const roi = this.calculateROI(
       scoreOverall,
@@ -167,7 +190,7 @@ export class CandidateStrategyService {
       warnings.push(`${req} solicitado na vaga`);
     });
 
-    if (seniorityScore === 50) {
+    if (seniorityScore === 50 && activeProfile) {
       warnings.push(`Senioridade sugerida difere levemente da meta (${job.seniority})`);
     }
 
@@ -189,7 +212,8 @@ export class CandidateStrategyService {
   static groupJobs(
     resume: Resume | null,
     jobsList: (Job | Omit<Job, 'id' | 'userId' | 'createdAt' | 'updatedAt'>)[],
-    profile: CareerProfile | null
+    profile: CareerProfile | null,
+    careerProfileNew?: CareerProfileNew | null
   ): Record<'hot' | 'warm' | 'cold', StrategyRecommendation[]> {
     const result: Record<'hot' | 'warm' | 'cold', StrategyRecommendation[]> = {
       hot: [],
@@ -200,7 +224,7 @@ export class CandidateStrategyService {
     if (!resume) return result;
 
     jobsList.forEach(job => {
-      const rec = this.calculateCPI(resume, job, profile);
+      const rec = this.calculateCPI(resume, job, profile, careerProfileNew);
       if (rec.priority === '🔥 Aplicar hoje') {
         result.hot.push(rec);
       } else if (rec.priority === '⚡ Preparar antes de aplicar') {

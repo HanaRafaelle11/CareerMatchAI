@@ -4,6 +4,7 @@ import { isSupabaseConfigured, supabase } from '../../infrastructure/api/supabas
 import { localDB } from '../../infrastructure/storage/localDatabase';
 import { MatchingEngine } from '../services/matchingEngine';
 import type { Resume, Job, Match, PipelineStep } from '../../domain/models/types';
+import type { CareerProfileNew } from './useMyProfileAi';
 
 // ==========================================
 // 1. HOOK PARA GERENCIAR CURRÍCULOS
@@ -203,19 +204,38 @@ export function useResumes(userId: string | undefined) {
 
           const profilePayload = {
             user_id: userId,
-            resume_id: resumeData.id,
-            target_roles: parsedProfile.targetRoles,
-            seniority: parsedProfile.seniority,
-            industries: parsedProfile.industries,
-            skills: parsedProfile.skills,
-            tools: parsedProfile.tools,
-            languages: parsedProfile.languages,
-            preferred_locations: parsedProfile.preferredLocations,
-            preferred_work_modes: parsedProfile.preferredWorkModes,
-            target_companies: parsedProfile.targetCompanies,
-            salary_expectation_min: parsedProfile.salaryExpectationMin,
-            search_keywords: parsedProfile.searchKeywords,
-            is_approved_by_user: parsedProfile.isApprovedByUser
+            resume_version_id: resumeData.id,
+            personal: {
+              fullName: parsedResume.fullName || 'Profissional',
+              headline: parsedResume.headline || '',
+              email: parsedResume.email || '',
+              phone: parsedResume.phone || '',
+              linkedin: parsedResume.linkedin || '',
+              website: parsedResume.website || '',
+              location: parsedResume.location || '',
+              preferences: {
+                targetRoles: parsedProfile.targetRoles,
+                seniority: parsedProfile.seniority,
+                industries: parsedProfile.industries,
+                skills: parsedProfile.skills,
+                tools: parsedProfile.tools,
+                languages: parsedProfile.languages,
+                preferredLocations: parsedProfile.preferredLocations,
+                preferredWorkModes: parsedProfile.preferredWorkModes,
+                targetCompanies: parsedProfile.targetCompanies,
+                salaryExpectationMin: parsedProfile.salaryExpectationMin,
+                searchKeywords: parsedProfile.searchKeywords,
+                isApprovedByUser: parsedProfile.isApprovedByUser
+              }
+            },
+            experience: parsedResume.experiences || [],
+            education: parsedResume.education || [],
+            skills: parsedResume.skills || [],
+            soft_skills: parsedResume.soft_skills || [],
+            languages: parsedResume.languages || [],
+            certifications: parsedResume.certifications || [],
+            ats_keywords: parsedResume.ats_keywords || {},
+            summary: parsedResume.structuredSummary || ''
           };
 
           let profileError;
@@ -492,9 +512,13 @@ export function useMatches(userId: string | undefined) {
   };
 
   const calculateMatchMutation = useMutation({
-    mutationFn: async ({ resume, job }: { resume: Resume, job: Job }) => {
-      // 1. Calcula compatibilidade semântica
-      const result = await MatchingEngine.calculateMatch(resume, job);
+    mutationFn: async ({ resume, job, consolidatedProfile }: {
+      resume: Resume;
+      job: Job;
+      consolidatedProfile?: CareerProfileNew | null;
+    }) => {
+      // 1. Calcula compatibilidade semântica usando o perfil consolidado como fonte primária
+      const result = await MatchingEngine.calculateMatch(resume, job, consolidatedProfile);
 
       if (isSupabaseConfigured && supabase) {
         const { data, error } = await supabase

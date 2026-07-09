@@ -1,5 +1,6 @@
 import { CardGlass } from '../components/CardGlass';
 import type { Resume, Match, CareerProfile, Profile, Notification, Application, CareerGoal } from '../../domain/models/types';
+import type { CareerProfileNew } from '../../application/hooks/useMyProfileAi';
 import { 
   Plus, Award, CheckCircle, ChevronRight, Bell, 
   TrendingUp, Activity, HelpCircle, Briefcase, 
@@ -13,6 +14,7 @@ interface DashboardProps {
   resumes: Resume[];
   matches: Match[];
   careerProfile: CareerProfile | null;
+  careerProfileNew: CareerProfileNew | null;
   notifications: Notification[];
   markNotificationAsRead: (id: string) => Promise<any>;
   setActiveTab: (tab: string) => void;
@@ -24,7 +26,8 @@ export function Dashboard({
   profile, 
   resumes, 
   matches, 
-  careerProfile, 
+  careerProfile,
+  careerProfileNew,
   notifications,
   markNotificationAsRead,
   setActiveTab,
@@ -60,11 +63,14 @@ export function Dashboard({
     ['👥 Entrevista com recrutador', '🎯 Entrevista com gestor', '🧩 Case técnico', '🤝 Fit cultural'].includes(a.status)
   ).length;
 
-  // Gaps para treinamento
-  const strongSkills = primaryResume ? primaryResume.skills.slice(0, 4) : [];
-  const trainingSkills = careerProfile
-    ? careerProfile.tools.slice(0, 3)
-    : ['Salesforce', 'SQL', 'STAR Method'];
+  // Skills: usar career_profiles (novo) como fonte primária
+  const strongSkills = careerProfileNew
+    ? careerProfileNew.skills.slice(0, 4).map(s => s.name)
+    : primaryResume?.skills.slice(0, 4).map(s => s.name) ?? [];
+
+  const trainingSkills = careerProfileNew
+    ? (careerProfileNew.ats_keywords?.missing_keywords || []).slice(0, 3)
+    : careerProfile?.tools.slice(0, 3) ?? ['Salesforce', 'SQL', 'STAR Method'];
 
   // Funil de Candidaturas (Goal Tracker)
   const funnel = CareerAnalyticsService.getFunnel(applications);
@@ -75,16 +81,28 @@ export function Dashboard({
     targetDate: '2026-10-31'
   };
 
-  // Insight dinâmico da IA baseado nas candidaturas
+  // Insight dinâmico baseado em dados reais
   const getAIInsight = () => {
-    if (applications.length === 0) {
-      return "Sua jornada está começando! Encontramos 18 novas oportunidades recomendadas para você hoje. Conecte seu currículo para iniciar.";
+    const name = careerProfileNew?.personal?.fullName?.split(' ')[0] ||
+      profile?.fullName?.split(' ')[0] || 'Candidato';
+    if (applications.length === 0 && !careerProfileNew) {
+      return `Bem-vindo, ${name}! Envie seu currículo na aba "Meu Currículo" para a IA gerar seu perfil estruturado e encontrar vagas ideais automaticamente.`;
     }
-    const saasApps = applications.filter(a => a.notes?.toLowerCase().includes('saas') || a.companyName.toLowerCase().includes('stripe') || a.companyName.toLowerCase().includes('linear'));
-    if (saasApps.length > 0) {
-      return "Nas últimas candidaturas, você obteve 62% mais respostas rápidas em empresas SaaS de tecnologia. Focar nesse nicho aumentará suas conversões.";
+    if (careerProfileNew && applications.length === 0) {
+      const role = careerProfileNew.personal?.headline || 'sua área';
+      return `Perfil IA gerado com sucesso para ${role}! Acesse o Match Manual para calcular sua compatibilidade com vagas, ou explore o Discovery para encontrar oportunidades automaticamente.`;
     }
-    return "Você tem alta taxa de adesão em vagas remotas. Otimize seu currículo enfatizando sua autonomia e projetos entregues de ponta a ponta.";
+    const interviews = applications.filter(a =>
+      ['👥 Entrevista com recrutador', '🎯 Entrevista com gestor', '🧩 Case técnico', '🤝 Fit cultural'].includes(a.status)
+    ).length;
+    if (interviews > 0) {
+      return `Parabéns! Você está em ${interviews} processo(s) seletivo(s) ativo(s). Acesse o AI Coach para simular entrevistas e fortalecer sua preparação.`;
+    }
+    const applied = applications.filter(a => a.status.includes('candidatei')).length;
+    if (applied > 5) {
+      return `Você já tem ${applied} candidaturas ativas. Foque em empresas com alto score de compatibilidade e personalize sua carta de apresentação para aumentar a taxa de resposta.`;
+    }
+    return `Continue sua busca com consistência. Candidaturas regulares e personalizadas aumentam significativamente suas chances de entrevista.`;
   };
 
   return (
@@ -310,13 +328,13 @@ export function Dashboard({
 
           {strongSkills.length > 0 ? (
             <div className="flex flex-wrap gap-2.5">
-              {strongSkills.map(skill => (
+              {strongSkills.map((skill, idx) => (
                 <div
-                  key={skill.id}
+                  key={idx}
                   className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-slate-900/60 dark:bg-slate-900/60 light:bg-slate-100 border border-slate-800 dark:border-slate-800 light:border-slate-200 text-xs font-semibold text-slate-300 dark:text-slate-300 light:text-slate-700"
                 >
                   <CheckCircle size={12} className="text-brand-500" />
-                  <span>{skill.name}</span>
+                  <span>{skill}</span>
                 </div>
               ))}
             </div>

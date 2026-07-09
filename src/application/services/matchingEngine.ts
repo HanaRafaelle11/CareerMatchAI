@@ -1,9 +1,186 @@
 import type { Resume, Job, Match, GapAnalysis, CoverLetter, InterviewPrep, CareerProfile } from '../../domain/models/types';
+import type { CareerProfileNew } from '../hooks/useMyProfileAi';
 import { isSupabaseConfigured, supabase } from '../../infrastructure/api/supabaseClient';
+
+// ─────────────────────────────────────────────────────────────────
+// Helpers para o perfil consolidado (career_profiles novo)
+// ─────────────────────────────────────────────────────────────────
+
+/**
+ * Calcula anos de experiência a partir do histórico de experiências do perfil consolidado.
+ * Evita contar períodos sobrepostos de cargos simultâneos.
+ */
+export function calcYearsFromExperiences(
+  experiences: CareerProfileNew['experience']
+): number {
+  if (!experiences || experiences.length === 0) return 0;
+
+  // Coleta todos os intervalos [startMs, endMs]
+  const intervals: [number, number][] = experiences.map(exp => {
+    const start = exp.startDate ? new Date(exp.startDate).getTime() : new Date('2000-01-01').getTime();
+    const end = exp.isCurrent || !exp.endDate ? Date.now() : new Date(exp.endDate).getTime();
+    return [start, Math.max(start, end)];
+  });
+
+  // Ordena e mescla intervalos para evitar dupla contagem
+  intervals.sort((a, b) => a[0] - b[0]);
+  let merged = 0;
+  let curStart = intervals[0][0];
+  let curEnd = intervals[0][1];
+
+  for (let i = 1; i < intervals.length; i++) {
+    const [s, e] = intervals[i];
+    if (s <= curEnd) {
+      curEnd = Math.max(curEnd, e);
+    } else {
+      merged += curEnd - curStart;
+      curStart = s;
+      curEnd = e;
+    }
+  }
+  merged += curEnd - curStart;
+
+  const years = Math.round(merged / (1000 * 60 * 60 * 24 * 365));
+  return Math.max(0, years);
+}
+
+/**
+ * Extrai uma lista plana de nomes de skill a partir do perfil consolidado.
+ * Combina skills técnicas, soft skills, ats_keywords e methodologies dos insights.
+ */
+export function buildFlatSkillsFromProfile(profile: CareerProfileNew): string[] {
+  const names: string[] = [];
+
+  // Skills explícitas
+  for (const s of profile.skills || []) {
+    if (s.name) names.push(s.name.toLowerCase());
+  }
+  // Soft skills
+  for (const ss of profile.soft_skills || []) {
+    names.push(ss.toLowerCase());
+  }
+  // ATS keywords existentes
+  for (const kw of profile.ats_keywords?.existing_keywords || []) {
+    names.push(kw.toLowerCase());
+  }
+  // ATS keywords recomendadas (também ajudam no match semântico)
+  for (const kw of profile.ats_keywords?.recommended_keywords || []) {
+    names.push(kw.toLowerCase());
+  }
+  // Summary como texto extra para match por substring
+  if (profile.summary) {
+    names.push(profile.summary.toLowerCase());
+  }
+
+  return [...new Set(names)];
+}
+
+/**
+ * Verifica se uma skill aparece em qualquer texto longo (descrições de experiência).
+ */
+function skillInExperienceText(skill: string, experiences: CareerProfileNew['experience']): boolean {
+  const needle = skill.toLowerCase();
+  for (const exp of experiences || []) {
+    const haystack = [
+      exp.description || '',
+      ...(exp.highlights || []),
+      exp.role || '',
+      exp.companyName || ''
+    ].join(' ').toLowerCase();
+    if (haystack.includes(needle)) return true;
+  }
+  return false;
+}
+
+// ─────────────────────────────────────────────────────────────────
+// Mapa semântico de sinônimos expandido
+// ─────────────────────────────────────────────────────────────────
+const SYNONYM_MAP: Record<string, string[]> = {
+  // Tecnologia
+  'react': ['react.js', 'reactjs', 'next.js', 'nextjs', 'frontend', 'front-end', 'react native'],
+  'typescript': ['ts', 'javascript', 'js', 'ecmascript'],
+  'node.js': ['nodejs', 'node', 'express', 'nestjs', 'backend', 'back-end'],
+  'postgresql': ['postgres', 'sql', 'mysql', 'banco de dados', 'database', 'supabase'],
+  'aws': ['amazon web services', 'cloud', 'aws cloud', 's3', 'ec2', 'lambda'],
+  'docker': ['kubernetes', 'containers', 'devops', 'k8s'],
+  'python': ['py', 'django', 'flask', 'fastapi'],
+  // Customer Success & SaaS
+  'customer success': [
+    'cs', 'customer success management', 'customer success manager', 'csm',
+    'customer success operations', 'retenção', 'churn', 'nps', 'csat',
+    'health score', 'onboarding', 'customer journey', 'customer experience',
+    'cx', 'gestão de contas', 'account management', 'renewals', 'expansion',
+    'upsell', 'cross-sell', 'customer retention', 'client success',
+    'sucesso do cliente', 'fidelização'
+  ],
+  'saas': ['software as a service', 'b2b saas', 'enterprise saas', 'plataforma saas', 'produto saas'],
+  'nps': ['net promoter score', 'satisfação do cliente', 'pesquisa de satisfação'],
+  'churn': ['churn rate', 'taxa de cancelamento', 'retenção', 'retention'],
+  'crm': ['salesforce', 'hubspot', 'pipedrive', 'zoho crm', 'dynamics'],
+  'gainsight': ['totango', 'planhat', 'churnzero', 'cs platform'],
+  // Liderança & Gestão
+  'liderança': [
+    'gestão de times', 'people management', 'team lead', 'team leader',
+    'mentor', 'mentoria', 'lider', 'líder', 'coordenação', 'gerência',
+    'gestão de equipe', 'liderou', 'coordenou', 'gerenciou', 'squad lead'
+  ],
+  'gestão': ['management', 'gerenciamento', 'coordenação', 'administração', 'liderança'],
+  // Metodologias
+  'agile': ['ágil', 'scrum', 'kanban', 'sprint', 'metodologia ágil'],
+  'okr': ['okrs', 'objetivos e resultados-chave', 'metas', 'kpi', 'kpis'],
+  // Dados
+  'analytics': ['análise de dados', 'data analysis', 'bi', 'business intelligence', 'tableau', 'power bi', 'looker'],
+  'sql': ['postgresql', 'mysql', 'banco de dados', 'queries', 'consultas sql', 'database'],
+  // Comunicação
+  'comunicação': ['communication', 'apresentações', 'presentations', 'stakeholders', 'storytelling'],
+  // Vendas
+  'vendas': ['sales', 'comercial', 'revenue', 'receita', 'pipeline', 'prospecção'],
+  'enterprise': ['enterprise accounts', 'grandes contas', 'b2b enterprise', 'contas enterprise'],
+};
+
+/**
+ * Verifica se um requisito está coberto pelas skills do candidato,
+ * usando matching direto, por sinônimo e por substring nos textos de experiência.
+ */
+function checkRequirement(
+  req: string,
+  flatSkills: string[],
+  experiences: CareerProfileNew['experience'] | null
+): boolean {
+  const reqLower = req.toLowerCase().trim();
+
+  // 1. Match direto
+  if (flatSkills.some(s => s === reqLower || s.includes(reqLower) || reqLower.includes(s))) {
+    return true;
+  }
+
+  // 2. Match por sinônimo
+  for (const [key, synonyms] of Object.entries(SYNONYM_MAP)) {
+    const allTerms = [key, ...synonyms];
+    if (allTerms.includes(reqLower)) {
+      if (allTerms.some(t => flatSkills.some(s => s === t || s.includes(t) || t.includes(s)))) {
+        return true;
+      }
+    }
+    // Checa se o requisito é uma das chaves e algum sinônimo bate nas skills
+    if (reqLower.includes(key) || key.includes(reqLower)) {
+      if (synonyms.some(syn => flatSkills.some(s => s.includes(syn) || syn.includes(s)))) {
+        return true;
+      }
+    }
+  }
+
+  // 3. Match por texto das experiências (busca substring no histórico)
+  if (experiences && skillInExperienceText(reqLower, experiences)) {
+    return true;
+  }
+
+  return false;
+}
 
 export class MatchingEngine {
   /**
-   * Auxiliar para inferir perfil de carreira a partir do currículo parseado
+   * Auxiliar para inferir perfil de carreira a partir do currículo parseado (legado)
    */
   public static extractProfile(parsedResume: any): Omit<CareerProfile, 'id' | 'userId' | 'resumeId' | 'createdAt' | 'updatedAt'> {
     const tools = (parsedResume.skills || [])
@@ -15,9 +192,9 @@ export class MatchingEngine {
     const languages = (parsedResume.skills || [])
       .filter((s: any) => s.category?.includes('language'))
       .map((s: any) => s.name);
-      
+
     const roles = parsedResume.experiences?.map((e: any) => e.role) || [];
-    
+
     return {
       targetRoles: parsedResume.headline ? [parsedResume.headline] : roles.slice(0, 3),
       seniority: parsedResume.seniority || 'senior',
@@ -60,9 +237,15 @@ export class MatchingEngine {
   }
 
   /**
-   * Calcula a compatibilidade semântica entre um currículo e uma vaga
+   * Calcula a compatibilidade semântica entre um currículo e uma vaga.
+   * Quando `consolidatedProfile` é fornecido, ele é usado como fonte primária
+   * substituindo resume.skills e resume.yearsOfExperience.
    */
-  static async calculateMatch(resume: Resume, job: Job): Promise<{
+  static async calculateMatch(
+    resume: Resume,
+    job: Job,
+    consolidatedProfile?: CareerProfileNew | null
+  ): Promise<{
     match: Match;
     gapAnalysis: GapAnalysis;
     coverLetter: CoverLetter;
@@ -112,14 +295,14 @@ export class MatchingEngine {
               lowValueContent: []
             },
             coverLetter: { id: data.id, createdAt: data.created_at },
-            interviewPrep: { 
-              id: data.id, 
-              matchId: data.id, 
-              questions: [], 
-              strengths: data.strengths || [], 
-              weaknesses: data.weaknesses || [], 
-              questionsToAsk: [], 
-              createdAt: data.created_at 
+            interviewPrep: {
+              id: data.id,
+              matchId: data.id,
+              questions: [],
+              strengths: data.strengths || [],
+              weaknesses: data.weaknesses || [],
+              questionsToAsk: [],
+              createdAt: data.created_at
             }
           };
         }
@@ -128,42 +311,28 @@ export class MatchingEngine {
       }
     }
 
-    // Algoritmo local semântico simulado de alta precisão
-    await new Promise(resolve => setTimeout(resolve, 1500)); // Simula processamento
+    // Motor local semântico
+    await new Promise(resolve => setTimeout(resolve, 1500));
 
-    const resumeSkills = resume.skills.map(s => s.name.toLowerCase());
+    // ── Fonte de dados: consolidatedProfile > resume.skills legado ──
+    const flatSkills = consolidatedProfile
+      ? buildFlatSkillsFromProfile(consolidatedProfile)
+      : resume.skills.map(s => s.name.toLowerCase());
 
+    const experiences = consolidatedProfile?.experience ?? null;
 
-    // 1. Match Técnico (Comparação de Competências com mapeamento semântico de sinônimos)
-    const synonymMap: Record<string, string[]> = {
-      'react': ['react.js', 'reactjs', 'next.js', 'nextjs', 'frontend', 'front-end'],
-      'typescript': ['ts', 'javascript', 'js'],
-      'node.js': ['nodejs', 'node', 'express', 'nestjs', 'backend', 'back-end'],
-      'postgresql': ['postgres', 'sql', 'mysql', 'banco de dados', 'database'],
-      'aws': ['amazon web services', 'cloud', 'aws cloud', 's3', 'ec2'],
-      'docker': ['kubernetes', 'containers', 'devops']
-    };
+    // Anos de experiência: calcula a partir do histórico quando disponível
+    const yearsOfExperience = consolidatedProfile && consolidatedProfile.experience.length > 0
+      ? calcYearsFromExperiences(consolidatedProfile.experience)
+      : (resume.yearsOfExperience || 0);
 
+    // 1. Match Técnico
     let matchedCount = 0;
     const matchedSkillsList: string[] = [];
     const missingSkillsList: string[] = [];
 
     job.requirements.forEach(req => {
-      const reqLower = req.toLowerCase();
-      const hasDirect = resumeSkills.includes(reqLower);
-      
-      let hasSynonym = false;
-      if (!hasDirect) {
-        // Checa se algum sinônimo da skill requerida bate com as skills do currículo
-        for (const [key, synonyms] of Object.entries(synonymMap)) {
-          if (key === reqLower || synonyms.includes(reqLower)) {
-            hasSynonym = synonyms.some(syn => resumeSkills.includes(syn)) || resumeSkills.includes(key);
-            if (hasSynonym) break;
-          }
-        }
-      }
-
-      if (hasDirect || hasSynonym) {
+      if (checkRequirement(req, flatSkills, experiences)) {
         matchedCount++;
         matchedSkillsList.push(req);
       } else {
@@ -173,13 +342,24 @@ export class MatchingEngine {
 
     const scoreTechnical = Math.round((matchedCount / Math.max(job.requirements.length, 1)) * 100);
 
-    // 2. Match Comportamental (Análise semântica das soft skills)
-    const softSkills = resume.skills.filter(s => s.category === 'soft_skill').map(s => s.name.toLowerCase());
-    const hasLeadership = softSkills.some(s => s.includes('lider') || s.includes('mentor') || s.includes('liderança'));
-    const hasAgile = softSkills.some(s => s.includes('ágil') || s.includes('agile') || s.includes('scrum'));
-    const hasComms = softSkills.some(s => s.includes('comun') || s.includes('equipe') || s.includes('trabalho'));
+    // 2. Match Comportamental
+    const softTerms = consolidatedProfile
+      ? [...(consolidatedProfile.soft_skills || []).map(s => s.toLowerCase()), ...flatSkills]
+      : resume.skills.filter(s => s.category === 'soft_skill').map(s => s.name.toLowerCase());
 
-    let scoreBehavioral = 70; // score base
+    const hasLeadership = softTerms.some(s =>
+      s.includes('lider') || s.includes('mentor') || s.includes('liderança') ||
+      s.includes('gestão') || s.includes('team lead') || s.includes('management')
+    );
+    const hasAgile = softTerms.some(s =>
+      s.includes('ágil') || s.includes('agile') || s.includes('scrum') || s.includes('kanban')
+    );
+    const hasComms = softTerms.some(s =>
+      s.includes('comun') || s.includes('equipe') || s.includes('trabalho') ||
+      s.includes('stakeholder') || s.includes('apresent')
+    );
+
+    let scoreBehavioral = 70;
     if (hasLeadership) scoreBehavioral += 10;
     if (hasAgile) scoreBehavioral += 10;
     if (hasComms) scoreBehavioral += 10;
@@ -195,20 +375,20 @@ export class MatchingEngine {
     };
     const jobSeniority = job.seniority.toLowerCase();
     const range = seniorityMap[jobSeniority] || { min: 2, max: 5 };
-    const exp = resume.yearsOfExperience;
+    const exp = yearsOfExperience;
 
     let scoreSeniority = 100;
     if (exp < range.min) {
-      scoreSeniority = Math.max(50, 100 - (range.min - exp) * 20); // Penaliza se tiver menos exp
+      scoreSeniority = Math.max(50, 100 - (range.min - exp) * 20);
     } else if (exp > range.max) {
-      scoreSeniority = Math.max(80, 100 - (exp - range.max) * 5);  // Penaliza levemente se estiver muito acima
+      scoreSeniority = Math.max(80, 100 - (exp - range.max) * 5);
     }
     scoreSeniority = Math.round(scoreSeniority);
 
     // 4. Match de Localização
     let scoreLocation = 100;
     if (job.workMode === 'onsite' && job.location.toLowerCase() !== 'remoto') {
-      scoreLocation = 75; // Presencial em outro local ou requer locomoção
+      scoreLocation = 75;
     } else if (job.workMode === 'hybrid') {
       scoreLocation = 85;
     }
@@ -216,18 +396,17 @@ export class MatchingEngine {
     // 5. Match Salarial
     let scoreSalary = 90;
     if (job.salaryMin) {
-      // pretensão simulada do candidato de R$ 11.000,00
       const candidatePretension = 11000;
       if (candidatePretension > job.salaryMax!) {
         scoreSalary = Math.max(50, Math.round(100 - ((candidatePretension - job.salaryMax!) / job.salaryMax!) * 100));
       } else if (candidatePretension < job.salaryMin) {
-        scoreSalary = 100; // Pretensão abaixo do mínimo da vaga
+        scoreSalary = 100;
       } else {
         scoreSalary = 95;
       }
     }
 
-    // 6. Score Geral (Média ponderada)
+    // 6. Score Geral
     const scoreOverall = Math.round(
       (scoreTechnical * 0.45) +
       (scoreBehavioral * 0.20) +
@@ -238,38 +417,45 @@ export class MatchingEngine {
 
     const matchId = `match-dynamic-${job.id}`;
 
-    // Construção das explicações
+    // Construção de explicações conscientes e construtivas
     const strengths: string[] = [];
     const weaknesses: string[] = [];
 
     if (scoreTechnical > 80) {
-      strengths.push(`Excelente compatibilidade técnica, dominando tecnologias chaves como: ${matchedSkillsList.slice(0, 3).join(', ')}.`);
+      strengths.push(`Excelente compatibilidade técnica: encontramos ${matchedSkillsList.length} das ${job.requirements.length} competências solicitadas, incluindo ${matchedSkillsList.slice(0, 4).join(', ')}.`);
     } else if (scoreTechnical > 50) {
-      strengths.push(`Domina tecnologias essenciais da stack, como ${matchedSkillsList.slice(0, 2).join(', ')}.`);
-      weaknesses.push(`Falta de proficiência ou experiência descrita nas ferramentas secundárias: ${missingSkillsList.slice(0, 3).join(', ')}.`);
+      strengths.push(`Boa aderência técnica: ${matchedSkillsList.length} de ${job.requirements.length} competências mapeadas no seu perfil, como ${matchedSkillsList.slice(0, 3).join(', ')}.`);
+      if (missingSkillsList.length > 0) {
+        weaknesses.push(`Para aumentar ainda mais a aderência, vale destacar ou desenvolver: ${missingSkillsList.slice(0, 3).join(', ')}.`);
+      }
     } else {
-      weaknesses.push(`Gap técnico significativo. Vaga requer domínio de: ${missingSkillsList.slice(0, 4).join(', ')}.`);
+      if (matchedSkillsList.length > 0) {
+        strengths.push(`Identificamos ${matchedSkillsList.length} competência(s) compatível(is): ${matchedSkillsList.join(', ')}.`);
+      }
+      weaknesses.push(`A vaga requer competências adicionais: ${missingSkillsList.slice(0, 4).join(', ')}.`);
     }
 
-    if (resume.yearsOfExperience >= range.min) {
-      strengths.push(`Tempo total de experiência (${resume.yearsOfExperience} anos) é ideal para a exigência de perfil ${job.seniority}.`);
-    } else {
-      weaknesses.push(`Sua experiência prática (${resume.yearsOfExperience} anos) está ligeiramente abaixo dos requisitos de nível ${job.seniority}.`);
+    if (exp >= range.min) {
+      strengths.push(`Experiência de ${exp} anos é ideal para o nível ${job.seniority} buscado pela vaga.`);
+    } else if (exp > 0) {
+      weaknesses.push(`Sua experiência (${exp} anos) está levemente abaixo do esperado para nível ${job.seniority}. Isso raramente é bloqueador quando a aderência técnica é alta.`);
     }
 
     if (job.workMode === 'remote') {
-      strengths.push(`Vaga 100% remota garante compatibilidade perfeita com seu modelo de trabalho.`);
+      strengths.push(`Vaga 100% remota, compatível com seu modelo de trabalho preferido.`);
     }
+
+    const candidateName = consolidatedProfile?.personal?.fullName || resume.fileName?.split('_')[1] || 'Candidato';
 
     const explanation = {
       strengths,
       weaknesses,
       details: {
-        technical: `Você atende a ${matchedSkillsList.length} dos ${job.requirements.length} requisitos de stack exigidos. As principais stacks mapeadas no seu currículo são compatíveis.`,
-        behavioral: `As soft skills extraídas de suas experiências indicam perfil altamente alinhado com a cultura da empresa ${job.companyName}.`,
-        seniority: `Classificado como perfil ${exp >= 5 ? 'Sênior' : 'Pleno'}. A vaga busca profissional ${job.seniority}, representando um match de ${scoreSeniority}%.`,
-        salary: job.salaryMin ? `A faixa salarial de ${job.currency} ${job.salaryMin} - ${job.salaryMax} é totalmente condizente com suas expectativas.` : 'Vaga com salário a combinar, sem restrição inicial identificada.',
-        location: `Modelo de trabalho ${job.workMode} na localidade ${job.location}.`
+        technical: `Você atende a ${matchedSkillsList.length} dos ${job.requirements.length} requisitos técnicos da vaga.${matchedSkillsList.length > 0 ? ` Competências confirmadas: ${matchedSkillsList.slice(0, 5).join(', ')}.` : ''} ${missingSkillsList.length > 0 ? `Não identificadas no perfil: ${missingSkillsList.join(', ')}.` : 'Perfil técnico plenamente alinhado!'}`,
+        behavioral: `As soft skills e experiências extraídas do seu histórico indicam perfil altamente alinhado com a cultura de ${job.companyName}.`,
+        seniority: `Com ${exp} anos de experiência, você se enquadra como perfil ${exp >= 10 ? 'Sênior/Especialista' : exp >= 5 ? 'Sênior' : 'Pleno'}. A vaga busca ${job.seniority}, representando um match de ${scoreSeniority}%.`,
+        salary: job.salaryMin ? `A faixa salarial de ${job.currency} ${job.salaryMin?.toLocaleString('pt-BR')} - ${job.salaryMax?.toLocaleString('pt-BR')} é condizente com o mercado para este perfil.` : 'Vaga com salário a combinar.',
+        location: `Modelo de trabalho ${job.workMode} — ${job.location}.`
       }
     };
 
@@ -291,77 +477,80 @@ export class MatchingEngine {
       createdAt: new Date().toISOString()
     };
 
-    // 7. Gap Analysis customizada
     const gapAnalysis: GapAnalysis = {
       id: `gap-dynamic-${job.id}`,
       matchId,
       missingSkills: missingSkillsList,
-      skillsToLearn: missingSkillsList.map(s => `${s} - Estudo de conceitos fundamentais e projetos práticos`),
-      toIncludeInResume: missingSkillsList.slice(0, 2).map(s => `Descrever projetos em que utilizou ou estudou ${s}.`),
-      toExcludeFromResume: ['Remover menções redundantes a tecnologias muito antigas que poluem o visual.'],
-      repetitiveContent: ['Evitar repetir termos genéricos de tarefas operacionais em múltiplos cargos.'],
-      lowValueContent: ['Omitir tópicos que não tenham conexão com engenharia de software ou desenvolvimento de produtos de tecnologia.']
+      skillsToLearn: missingSkillsList.map(s => `${s} — Aprofundar com projetos práticos e certificações relevantes`),
+      toIncludeInResume: missingSkillsList.slice(0, 3).map(s =>
+        `Destacar resultados mensuráveis relacionados a ${s} nas experiências mais recentes.`
+      ),
+      toExcludeFromResume: ['Remover menções redundantes a tecnologias muito antigas sem contexto de uso recente.'],
+      repetitiveContent: ['Evitar repetir as mesmas tarefas operacionais em múltiplos cargos sem destacar resultados.'],
+      lowValueContent: ['Omitir cursos muito básicos já implícitos na senioridade e experiência atual.']
     };
 
-    // 8. Carta de Apresentação Gerada Dinamicamente
     const coverLetter: CoverLetter = {
       id: `cl-dynamic-${job.id}`,
       matchId,
       content: `Prezada equipe de Atração de Talentos da ${job.companyName},
 
-Escrevo para expressar meu forte interesse na vaga de ${job.title}. Analisando os requisitos do cargo, identifico uma aderência excelente com a minha bagagem técnica de ${resume.yearsOfExperience} anos no desenvolvimento de software.
+Escrevo para expressar meu forte interesse na vaga de ${job.title}. Com ${exp} anos de experiência e competências como ${matchedSkillsList.slice(0, 4).join(', ')}, acredito que posso contribuir de forma significativa para os desafios da posição.
 
-Minhas principais competências incluem o domínio de ${matchedSkillsList.slice(0, 4).join(', ')}. Em minhas experiências anteriores, atuei ativamente na concepção de funcionalidades focadas no usuário, otimização de performance e entrega ágil de valor em squads multidisciplinares. Admiro a reputação da ${job.companyName} no mercado e estou entusiasmado com a possibilidade de aplicar meus conhecimentos técnicos para acelerar o crescimento do negócio.
+Em minha trajetória profissional, atuei na ${consolidatedProfile?.experience?.[0]?.companyName || 'empresa anterior'} como ${consolidatedProfile?.experience?.[0]?.role || 'profissional da área'}, entregando resultados com foco em qualidade e impacto de negócio. Admiro a reputação da ${job.companyName} no mercado e estou entusiasmado com a possibilidade de contribuir com meu histórico para acelerar o crescimento da equipe.
 
-Coloco-me à disposição para um contato inicial onde poderei apresentar em detalhes minhas principais conquistas e portfólio de projetos.
+Fico à disposição para um contato inicial.
 
 Atenciosamente,
-${resume.fileName?.split('_')[1] || 'Candidato'}`,
+${candidateName}`,
       createdAt: new Date().toISOString()
     };
 
-    // 9. Preparação de Entrevista Dinâmica
     const interviewPrep: InterviewPrep = {
       id: `ip-dynamic-${job.id}`,
       matchId,
-      strengths: strengths,
-      weaknesses: weaknesses,
+      strengths,
+      weaknesses,
       questionsToAsk: [
-        `Como a equipe da ${job.companyName} organiza o ciclo de desenvolvimento de novas features?`,
-        `Qual o principal desafio técnico que a pessoa ocupando a cadeira de ${job.title} precisará resolver nos primeiros 90 dias?`
+        `Como a equipe da ${job.companyName} organiza o ciclo de desenvolvimento e evolução do produto/serviço?`,
+        `Qual o principal desafio que a pessoa ocupando a cadeira de ${job.title} precisará endereçar nos primeiros 90 dias?`
       ],
       questions: [
         {
-          question: `Como você aplicaria ${matchedSkillsList[0] || 'suas habilidades'} em um cenário real da vaga de ${job.title}?`,
-          suggestedAnswer: `Mencionando meu histórico em projetos práticos, eu iniciaria mapeando os requisitos de arquitetura. Garantiria que o design de código seguisse padrões SOLID e que a cobertura de testes unitários mitigasse erros de produção.`,
+          question: `Como você aplicaria sua experiência em ${matchedSkillsList[0] || 'suas principais competências'} em um cenário real da vaga de ${job.title}?`,
+          suggestedAnswer: `Partindo do meu histórico prático, eu iniciaria mapeando os requisitos principais, garantindo que a solução gerasse valor mensurável e alinhamento com os stakeholders.`,
           type: 'technical'
         },
         {
-          question: `A vaga exige domínio de ${missingSkillsList[0] || 'novas ferramentas'}. Como você planeja mitigar esse gap técnico rapidamente?`,
-          suggestedAnswer: `Eu tenho facilidade de aprendizado rápido e já iniciei estudos teóricos e práticos na stack. Desenho pequenos laboratórios de testes (POCs) em paralelo para absorver a sintaxe e padrões de desenvolvimento das bibliotecas.`,
+          question: missingSkillsList.length > 0
+            ? `A vaga menciona ${missingSkillsList[0]}. Como você se posiciona em relação a essa competência?`
+            : `Qual competência do seu perfil você considera mais relevante para esta vaga?`,
+          suggestedAnswer: missingSkillsList.length > 0
+            ? `Estou em processo de desenvolvimento nessa área, com estudos práticos em andamento. Minha rápida curva de aprendizado, comprovada em experiências anteriores, me permite atingir proficiência rapidamente.`
+            : `Destaco minha experiência em ${matchedSkillsList[0] || 'Customer Success'}, com resultados concretos em projetos anteriores.`,
           type: 'technical'
         },
         {
-          question: 'Conte sobre um momento em que você teve que lidar com um prazo extremamente apertado de entrega de projeto.',
-          suggestedAnswer: 'Eu analisei o escopo da entrega, identifiquei o Caminho Crítico (Critical Path) e negociei com o Product Manager quais funcionalidades acessórias poderiam ser postergadas para uma segunda release, entregando o valor principal no prazo determinado.',
+          question: 'Conte sobre um momento em que você enfrentou um desafio complexo e como o resolveu.',
+          suggestedAnswer: 'Analise o contexto (S), identifique as ações específicas que tomei (A) e compartilhe o resultado mensurável obtido (R), preferencialmente com métricas ou impacto de negócio.',
           type: 'behavioral'
         }
       ],
       createdAt: new Date().toISOString()
     };
 
-    return {
-      match,
-      gapAnalysis,
-      coverLetter,
-      interviewPrep
-    };
+    return { match, gapAnalysis, coverLetter, interviewPrep };
   }
 
   /**
-   * Cálculo síncrono e instantâneo para listagens em lote (evita gargalos de rede/delay)
+   * Cálculo síncrono para listagens em lote.
+   * Aceita consolidatedProfile como fonte primária.
    */
-  static calculateMatchSync(resume: Resume, job: Omit<Job, 'id' | 'userId' | 'createdAt' | 'updatedAt'> | Job): {
+  static calculateMatchSync(
+    resume: Resume,
+    job: Omit<Job, 'id' | 'userId' | 'createdAt' | 'updatedAt'> | Job,
+    consolidatedProfile?: CareerProfileNew | null
+  ): {
     scoreOverall: number;
     scoreTechnical: number;
     scoreBehavioral: number;
@@ -369,37 +558,27 @@ ${resume.fileName?.split('_')[1] || 'Candidato'}`,
     scoreLocation: number;
     scoreSalary?: number;
     missingSkills: string[];
+    matchedSkills: string[];
+    yearsOfExperience: number;
   } {
-    const resumeSkills = resume.skills.map(s => s.name.toLowerCase());
+    const flatSkills = consolidatedProfile
+      ? buildFlatSkillsFromProfile(consolidatedProfile)
+      : resume.skills.map(s => s.name.toLowerCase());
 
-    const synonymMap: Record<string, string[]> = {
-      'react': ['react.js', 'reactjs', 'next.js', 'nextjs', 'frontend', 'front-end'],
-      'typescript': ['ts', 'javascript', 'js'],
-      'node.js': ['nodejs', 'node', 'express', 'nestjs', 'backend', 'back-end'],
-      'postgresql': ['postgres', 'sql', 'mysql', 'banco de dados', 'database'],
-      'aws': ['amazon web services', 'cloud', 'aws cloud', 's3', 'ec2'],
-      'docker': ['kubernetes', 'containers', 'devops']
-    };
+    const experiences = consolidatedProfile?.experience ?? null;
+
+    const yearsOfExperience = consolidatedProfile && consolidatedProfile.experience.length > 0
+      ? calcYearsFromExperiences(consolidatedProfile.experience)
+      : (resume.yearsOfExperience || 0);
 
     let matchedCount = 0;
     const missingSkills: string[] = [];
+    const matchedSkills: string[] = [];
 
     job.requirements.forEach(req => {
-      const reqLower = req.toLowerCase();
-      const hasDirect = resumeSkills.includes(reqLower);
-      
-      let hasSynonym = false;
-      if (!hasDirect) {
-        for (const [key, synonyms] of Object.entries(synonymMap)) {
-          if (key === reqLower || synonyms.includes(reqLower)) {
-            hasSynonym = synonyms.some(syn => resumeSkills.includes(syn)) || resumeSkills.includes(key);
-            if (hasSynonym) break;
-          }
-        }
-      }
-
-      if (hasDirect || hasSynonym) {
+      if (checkRequirement(req, flatSkills, experiences)) {
         matchedCount++;
+        matchedSkills.push(req);
       } else {
         missingSkills.push(req);
       }
@@ -408,10 +587,20 @@ ${resume.fileName?.split('_')[1] || 'Candidato'}`,
     const scoreTechnical = Math.round((matchedCount / Math.max(job.requirements.length, 1)) * 100);
 
     // Behavioral
-    const softSkills = resume.skills.filter(s => s.category === 'soft_skill').map(s => s.name.toLowerCase());
-    const hasLeadership = softSkills.some(s => s.includes('lider') || s.includes('mentor') || s.includes('liderança'));
-    const hasAgile = softSkills.some(s => s.includes('ágil') || s.includes('agile') || s.includes('scrum'));
-    const hasComms = softSkills.some(s => s.includes('comun') || s.includes('equipe') || s.includes('trabalho'));
+    const softTerms = consolidatedProfile
+      ? [...(consolidatedProfile.soft_skills || []).map(s => s.toLowerCase()), ...flatSkills]
+      : resume.skills.filter(s => s.category === 'soft_skill').map(s => s.name.toLowerCase());
+
+    const hasLeadership = softTerms.some(s =>
+      s.includes('lider') || s.includes('mentor') || s.includes('liderança') ||
+      s.includes('gestão') || s.includes('team lead')
+    );
+    const hasAgile = softTerms.some(s =>
+      s.includes('ágil') || s.includes('agile') || s.includes('scrum')
+    );
+    const hasComms = softTerms.some(s =>
+      s.includes('comun') || s.includes('equipe') || s.includes('trabalho') || s.includes('stakeholder')
+    );
 
     let scoreBehavioral = 70;
     if (hasLeadership) scoreBehavioral += 10;
@@ -427,9 +616,9 @@ ${resume.fileName?.split('_')[1] || 'Candidato'}`,
       'lead': { min: 7, max: 15 },
       'director': { min: 10, max: 25 }
     };
-    const jobSeniority = job.seniority.toLowerCase();
+    const jobSeniority = (job as Job).seniority?.toLowerCase() || 'senior';
     const range = seniorityMap[jobSeniority] || { min: 2, max: 5 };
-    const exp = resume.yearsOfExperience;
+    const exp = yearsOfExperience;
 
     let scoreSeniority = 100;
     if (exp < range.min) {
@@ -441,16 +630,14 @@ ${resume.fileName?.split('_')[1] || 'Candidato'}`,
 
     // Location
     let scoreLocation = 100;
-    if (job.workMode === 'onsite' && job.location.toLowerCase() !== 'remoto') {
+    if ((job as Job).workMode === 'onsite' && (job as Job).location?.toLowerCase() !== 'remoto') {
       scoreLocation = 75;
-    } else if (job.workMode === 'hybrid') {
+    } else if ((job as Job).workMode === 'hybrid') {
       scoreLocation = 85;
     }
 
-    // Salary
     const scoreSalary = 95;
 
-    // Overall
     const scoreOverall = Math.round(
       (scoreTechnical * 0.45) +
       (scoreBehavioral * 0.20) +
@@ -466,7 +653,9 @@ ${resume.fileName?.split('_')[1] || 'Candidato'}`,
       scoreSeniority,
       scoreLocation,
       scoreSalary,
-      missingSkills
+      missingSkills,
+      matchedSkills,
+      yearsOfExperience
     };
   }
 }

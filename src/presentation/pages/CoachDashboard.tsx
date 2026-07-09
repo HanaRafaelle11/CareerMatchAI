@@ -2,6 +2,8 @@ import { useState, type FormEvent } from 'react';
 import { CardGlass } from '../components/CardGlass';
 import { MarketIntelligenceService } from '../../application/services/MarketIntelligenceService';
 import type { Application, CareerProfile, Job } from '../../domain/models/types';
+import type { CareerProfileNew } from '../../application/hooks/useMyProfileAi';
+import { calcYearsFromExperiences } from '../../application/services/matchingEngine';
 import { 
   Award, Play, MessageSquare, Send, 
   BarChart3, RefreshCcw, Star, UserCheck
@@ -9,6 +11,7 @@ import {
 
 interface CoachDashboardProps {
   careerProfile: CareerProfile | null;
+  careerProfileNew: CareerProfileNew | null;
   applications: Application[];
   jobs: Job[];
   startSimulation: (appId: string) => Promise<any>;
@@ -19,6 +22,7 @@ interface CoachDashboardProps {
 
 export function CoachDashboard({
   careerProfile: _careerProfile,
+  careerProfileNew,
   applications,
   jobs,
   startSimulation,
@@ -27,6 +31,13 @@ export function CoachDashboard({
   triggerDailyChecks
 }: CoachDashboardProps) {
   const [activeSubTab, setActiveSubTab] = useState<'simulator' | 'recruiter'>('simulator');
+  
+  // Dados do perfil consolidado para personalizar respostas
+  const profileName = careerProfileNew?.personal?.fullName?.split(' ')[0] || 'Profissional';
+  const profileHeadline = careerProfileNew?.personal?.headline || 'Especialista';
+  const profileYears = careerProfileNew ? calcYearsFromExperiences(careerProfileNew.experience) : 0;
+  const profileSkills = careerProfileNew?.skills.slice(0, 5).map(s => s.name).join(', ') || 'suas competências principais';
+  const profileRole = careerProfileNew?.experience?.[0]?.role || profileHeadline;
   
   // 1. Processo seletivo ativo para simular
   const activeApps = applications.filter(a => 
@@ -44,13 +55,18 @@ export function CoachDashboard({
   // Estatísticas e Heurísticas
   const marketTrends = MarketIntelligenceService.getMarketTrends(jobs);
 
-  // AI Recruiter Chat States
+  // AI Recruiter Chat States — personalizado com dados reais do perfil
+  const initialRecruiterMsg = careerProfileNew
+    ? `Olá, ${profileName}! Analisei seu perfil como ${profileRole} com ${profileYears} anos de experiência e competências como ${profileSkills}. Estou aqui para orientar sua busca de forma personalizada. Você prefere focar em vagas sênior/lead, preparação para entrevistas ou estratégia de candidatura?`
+    : 'Olá! Sou o seu AI Recruiter. Analiso todo o seu histórico de candidaturas, currículos e feedback de empresas para atuar como seu consultor de carreira pessoal. Como posso guiar sua busca hoje?';
+
   const [recruiterChat, setRecruiterChat] = useState<Array<{ role: 'recruiter' | 'candidate', text: string }>>([
     {
       role: 'recruiter',
-      text: 'Olá! Sou o seu AI Recruiter. Analiso todo o seu histórico de candidaturas, currículos e feedback de empresas para atuar como seu consultor de carreira pessoal. Como posso guiar sua busca hoje?'
+      text: initialRecruiterMsg
     }
   ]);
+
   const [recruiterInput, setRecruiterInput] = useState('');
 
   const handleStartSim = async () => {

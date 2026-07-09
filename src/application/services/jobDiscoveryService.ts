@@ -11,13 +11,16 @@ export class JobDiscoveryService {
   }
 
   /**
-   * Dispara buscas concorrentes em todas as plataformas configuradas e unifica os resultados
+   * Dispara buscas concorrentes em todas as plataformas configuradas e unifica os resultados.
+   * Se um conector lançar API_NOT_CONFIGURED, o erro é propagado para o hook do cliente tratar.
    */
   async discoverJobs(filters: JobSearchFilters): Promise<Omit<Job, 'id' | 'userId' | 'createdAt' | 'updatedAt'>[]> {
     try {
-      // Dispara a busca em paralelo em todos os conectores
       const searchPromises = this.connectors.map(connector =>
         connector.searchJobs(filters).catch(err => {
+          if (err.message && err.message.includes('API_NOT_CONFIGURED')) {
+            throw err; // Repropagar erro de configuração para a UI saber o que houve
+          }
           console.error(`Erro ao consultar conector ${connector.platformName}:`, err);
           return [];
         })
@@ -41,7 +44,7 @@ export class JobDiscoveryService {
       return deduplicated;
     } catch (error) {
       console.error('Erro no JobDiscoveryService:', error);
-      return [];
+      throw error; // Re-throw para propagar até o React Query
     }
   }
 }

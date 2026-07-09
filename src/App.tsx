@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useAuth } from './application/hooks/useAuth';
 import { useResumes, useJobs, useMatches } from './application/hooks/useCareerMatch';
 import { useCareerProfile } from './application/hooks/useCareerProfile';
+import { useMyProfileAi } from './application/hooks/useMyProfileAi';
 import { useApplications } from './application/hooks/useApplications';
 import { useCoach } from './application/hooks/useCoach';
 import { useRoadmapServices } from './application/hooks/useRoadmapServices';
@@ -14,7 +15,6 @@ import { CareerProfilePage } from './presentation/pages/CareerProfilePage';
 import { MyProfileAi } from './presentation/pages/MyProfileAi';
 import { StrategyPage } from './presentation/pages/StrategyPage';
 import { CoachDashboard } from './presentation/pages/CoachDashboard';
-import { ResumeUpload } from './presentation/pages/ResumeUpload';
 import { Menu } from 'lucide-react';
 
 function App() {
@@ -26,6 +26,12 @@ function App() {
   const { jobs, createJob, isCreating } = useJobs(profile?.id);
   const { matches, calculateMatch, isCalculating, getMatchDetails } = useMatches(profile?.id);
   const { careerProfile, updateCareerProfile, isUpdating: isSavingProfile } = useCareerProfile(profile?.id);
+
+  // ── Fonte única de verdade: career_profiles + career_insights ──
+  const { data: myProfileData } = useMyProfileAi(profile?.id);
+  const careerProfileNew = myProfileData?.profile ?? null;
+  const careerInsights = myProfileData?.insights ?? null;
+
   const { 
     applications, 
     createApplication, 
@@ -67,7 +73,6 @@ function App() {
     );
   }
 
-  // Se não estiver logado, renderizar tela de Autenticação
   if (!user) {
     return (
       <Login
@@ -129,12 +134,14 @@ function App() {
 
       {/* Container Principal */}
       <main className="flex-1 px-4 md:pl-72 md:pr-8 py-8 pt-20 md:pt-8 min-h-screen overflow-x-hidden relative z-10">
+
         {activeTab === 'dashboard' && (
           <Dashboard
             profile={profile}
             resumes={resumes}
             matches={matches}
             careerProfile={careerProfile}
+            careerProfileNew={careerProfileNew}
             notifications={notifications}
             markNotificationAsRead={markNotificationAsRead}
             setActiveTab={setActiveTab}
@@ -143,16 +150,13 @@ function App() {
           />
         )}
 
-        {activeTab === 'resume-upload' && (
-          <ResumeUpload
-            profile={profile}
-          />
-        )}
-
+        {/* Meu Currículo — única tela de currículo (upload + visualização) */}
         {activeTab === 'profile' && (
           <Profile
             profile={profile}
             resumes={resumes}
+            careerProfileNew={careerProfileNew}
+            careerInsights={careerInsights}
             onUploadResume={(file, rawText) => uploadResume({ file, rawText })}
             onDeleteResume={deleteResume}
             isUploading={isUploading}
@@ -171,6 +175,7 @@ function App() {
         {activeTab === 'career-profile' && (
           <CareerProfilePage
             careerProfile={careerProfile}
+            careerProfileNew={careerProfileNew}
             onSaveProfile={updateCareerProfile}
             isSaving={isSavingProfile}
             setActiveTab={setActiveTab}
@@ -180,6 +185,7 @@ function App() {
         {activeTab === 'strategy' && (
           <StrategyPage
             careerProfile={careerProfile}
+            careerProfileNew={careerProfileNew}
             resumes={resumes}
             jobs={jobs}
             applications={applications}
@@ -209,6 +215,7 @@ function App() {
             jobs={jobs}
             matches={matches}
             careerProfile={careerProfile}
+            careerProfileNew={careerProfileNew}
             onCreateJob={createJob}
             onCalculateMatch={calculateMatch}
             getMatchDetails={getMatchDetails}
@@ -220,6 +227,7 @@ function App() {
         {activeTab === 'coach' && (
           <CoachDashboard
             careerProfile={careerProfile}
+            careerProfileNew={careerProfileNew}
             applications={applications}
             jobs={jobs}
             startSimulation={startSimulation}

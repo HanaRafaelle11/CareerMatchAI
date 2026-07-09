@@ -7,6 +7,7 @@ import type {
   Job, Resume, CareerProfile, Application, ApplicationStage,
   CompanyProfile, WeeklyPlanner, WeeklyGoal
 } from '../../domain/models/types';
+import type { CareerProfileNew } from '../../application/hooks/useMyProfileAi';
 import { 
   Flame, Sparkles, AlertCircle, Clock, Plus, Trash2, 
   Compass, CheckCircle2, ChevronRight, 
@@ -16,6 +17,7 @@ import {
 
 interface StrategyPageProps {
   careerProfile: CareerProfile | null;
+  careerProfileNew: CareerProfileNew | null;
   resumes: Resume[];
   jobs: Job[];
   applications: Application[];
@@ -40,6 +42,7 @@ interface StrategyPageProps {
 
 export function StrategyPage({
   careerProfile,
+  careerProfileNew,
   resumes,
   jobs,
   applications,
@@ -130,7 +133,7 @@ export function StrategyPage({
     };
   });
 
-  const grouped = CandidateStrategyService.groupJobs(primaryResume, mappedJobs, careerProfile);
+  const grouped = CandidateStrategyService.groupJobs(primaryResume, mappedJobs, careerProfile, careerProfileNew);
 
   const handleUpdateJobMetrics = (jobId: string, stages: number, hours: number) => {
     setJobMetricsOverride(prev => ({
@@ -1322,16 +1325,29 @@ export function StrategyPage({
           SUB TAB 6: PIPELINE KANBAN
           ========================================== */}
       {subTab === 'pipeline' && (
-        <div className="grid grid-cols-1 md:grid-cols-3 xl:grid-cols-6 gap-4 overflow-x-auto pb-4 items-start select-none">
+        <div className="flex gap-4 overflow-x-auto pb-6 items-start scrollbar-thin select-none">
           {Object.values(pipelineColumns).map(col => (
-            <div key={col.id} className={`p-3 rounded-2xl border ${col.color} min-w-[200px] flex flex-col gap-3 min-h-[500px]`}>
+            <div 
+              key={col.id} 
+              onDragOver={(e) => e.preventDefault()}
+              onDrop={(e) => {
+                const appId = e.dataTransfer.getData('text/plain');
+                if (appId) {
+                  const appObj = applications.find(a => a.id === appId);
+                  if (appObj) {
+                    handleQuickStatusChange(appObj, col.defaultStatus);
+                  }
+                }
+              }}
+              className={`p-3 rounded-2xl border ${col.color} min-w-[220px] flex flex-col gap-3 min-h-[550px] transition-all hover:bg-slate-900/5`}
+            >
               <div className="flex justify-between items-center pb-2 border-b border-slate-900">
                 <span className="font-bold text-xs text-slate-200">{col.title}</span>
-                <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-slate-900/40 text-slate-400">{col.apps.length}</span>
+                <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-slate-900/40 text-slate-405">{col.apps.length}</span>
               </div>
 
               {col.apps.length === 0 ? (
-                <div className="py-12 border border-dashed border-slate-900 text-center text-[10px] text-slate-600">
+                <div className="py-16 border border-dashed border-slate-900/60 rounded-xl text-center text-[10px] text-slate-600">
                   Sem processos
                 </div>
               ) : (
@@ -1339,7 +1355,11 @@ export function StrategyPage({
                   <div
                     key={app.id}
                     onClick={() => setSelectedAppId(app.id)}
-                    className="p-3 rounded-xl bg-slate-950 border border-slate-900 hover:border-slate-800 transition-all cursor-pointer space-y-3 relative group"
+                    draggable
+                    onDragStart={(e) => {
+                      e.dataTransfer.setData('text/plain', app.id);
+                    }}
+                    className="p-3 rounded-xl bg-slate-950 border border-slate-900 hover:border-slate-800 transition-all cursor-grab active:cursor-grabbing space-y-3 relative group text-left"
                   >
                     <div>
                       <h4 className="font-bold text-[11px] text-slate-100 truncate pr-4">{app.jobTitle}</h4>
@@ -1355,7 +1375,7 @@ export function StrategyPage({
                       <select
                         value={app.status}
                         onChange={e => handleQuickStatusChange(app, e.target.value as any)}
-                        className="w-full bg-slate-900 border border-slate-800 text-[9px] text-slate-300 rounded p-1"
+                        className="w-full bg-slate-900 border border-slate-850 text-[9px] text-slate-350 rounded p-1 cursor-pointer focus:outline-none"
                       >
                         <option value="🔎 Encontrada">🔎 Encontrada</option>
                         <option value="⭐ Tenho interesse">⭐ Tenho interesse</option>

@@ -6,6 +6,7 @@ import { useCoach } from '../../application/hooks/useCoach';
 import { CareerCoachService } from '../../application/services/CareerCoachService';
 import { MatchingEngine } from '../../application/services/matchingEngine';
 import type { Job, Resume, Match, CareerProfile } from '../../domain/models/types';
+import type { CareerProfileNew } from '../../application/hooks/useMyProfileAi';
 import { Play, Clipboard, Award, CheckCircle, AlertTriangle, AlertCircle, X, ChevronRight, BookOpen, Plus, Compass, Search, MapPin, Loader2, ArrowUpRight, Flame, Sparkles } from 'lucide-react';
 
 interface JobMatchHubProps {
@@ -14,8 +15,9 @@ interface JobMatchHubProps {
   jobs: Job[];
   matches: Match[];
   careerProfile: CareerProfile | null;
+  careerProfileNew: CareerProfileNew | null;
   onCreateJob: (data: { title: string; description: string; requirements: string[] }) => Promise<any>;
-  onCalculateMatch: (data: { resume: Resume; job: Job }) => Promise<any>;
+  onCalculateMatch: (data: { resume: Resume; job: Job; consolidatedProfile?: CareerProfileNew | null }) => Promise<any>;
   getMatchDetails: (matchId: string) => { data: any; isLoading: boolean };
   isCreating: boolean;
   isCalculating: boolean;
@@ -27,6 +29,7 @@ export function JobMatchHub({
   jobs,
   matches,
   careerProfile,
+  careerProfileNew,
   onCreateJob,
   onCalculateMatch,
   getMatchDetails,
@@ -98,16 +101,24 @@ export function JobMatchHub({
   const mockAppId = selectedJob ? `app-mock-${selectedJob.id}` : undefined;
   const { data: coverLetter = null } = getCoverLetterQuery(mockAppId);
   const currentMatch = selectedJob ? matches.find(m => m.jobId === selectedJob.id) : null;
-
-  // Busca detalhes do match (incluindo a Gap Analysis) via hook
   const { data: matchDetails } = getMatchDetails(currentMatch?.id || '');
 
-  // Hook do módulo de Job Discovery
-  const { discoveredJobs, isLoading: isLoadingDiscovery, importJob, isImporting } = useJobDiscovery(userId, {
+  const [searchPage, setSearchPage] = useState(1);
+
+  // Hook do módulo de Job Discovery — passa searchPage e careerProfileNew
+  const { 
+    discoveredJobs, 
+    isLoading: isLoadingDiscovery, 
+    isError: isErrorDiscovery,
+    error: errorDiscovery,
+    importJob, 
+    isImporting 
+  } = useJobDiscovery(userId, {
     keyword: activeFilters.keyword,
     location: activeFilters.location,
-    remoteOnly: activeFilters.remoteOnly
-  });
+    remoteOnly: activeFilters.remoteOnly,
+    page: searchPage
+  }, careerProfileNew);
 
   const handleAddJob = async (e: FormEvent) => {
     e.preventDefault();
@@ -151,7 +162,8 @@ export function JobMatchHub({
     try {
       await onCalculateMatch({
         resume: primaryResume,
-        job: jobToMatch
+        job: jobToMatch,
+        consolidatedProfile: careerProfileNew  // injeta o perfil consolidado
       });
     } catch (err: any) {
       setErrorMsg('Falha ao processar o cálculo de compatibilidade da vaga.');
@@ -176,7 +188,7 @@ export function JobMatchHub({
       setSubTab('my-jobs');
       
       // Executa o match automaticamente
-      await handleTriggerMatch(imported);
+      await handleTriggerMatch(imported as any);
     } catch (err: any) {
       setErrorMsg('Falha ao importar e analisar a vaga.');
     }
@@ -418,37 +430,104 @@ export function JobMatchHub({
                         }}
                       />
 
-                      {/* Resumo da Pontuação */}
-                      <CardGlass className="flex flex-col justify-center space-y-4">
-                        <div>
-                          <span className="text-[10px] text-slate-500 font-bold uppercase tracking-wider">Score Geral de Compatibilidade</span>
-                          <h2 className="font-display font-extrabold text-5xl text-brand-500 mt-1">
-                            {currentMatch.scoreOverall}%
-                          </h2>
-                          <p className="text-xs text-slate-400 mt-2">
-                            Seu perfil possui alta equivalência semântica e técnica para a oportunidade.
-                          </p>
-                        </div>
+                      {/* Resumo da Pontuação + Breakdown detalhado */}
+                      <div className="space-y-4">
+                        <CardGlass className="flex flex-col justify-center space-y-4">
+                          <div>
+                            <span className="text-[10px] text-slate-500 font-bold uppercase tracking-wider">Score Geral de Compatibilidade</span>
+                            <h2 className="font-display font-extrabold text-5xl text-brand-500 mt-1">
+                              {currentMatch.scoreOverall}%
+                            </h2>
+                            <p className="text-xs text-slate-400 mt-2">
+                              Baseado no seu perfil consolidado de career_profiles.
+                            </p>
+                          </div>
 
-                        <div className="grid grid-cols-2 gap-4 pt-4 border-t border-slate-900 dark:border-slate-900 light:border-slate-200">
-                          <div>
-                            <span className="text-[10px] text-slate-500 block font-semibold">Técnico</span>
-                            <span className="text-sm font-bold text-slate-300 dark:text-slate-300 light:text-slate-700">{currentMatch.scoreTechnical}%</span>
+                          <div className="grid grid-cols-2 gap-4 pt-4 border-t border-slate-900 dark:border-slate-900 light:border-slate-200">
+                            <div>
+                              <span className="text-[10px] text-slate-500 block font-semibold">Técnico</span>
+                              <span className="text-sm font-bold text-slate-300 dark:text-slate-300 light:text-slate-700">{currentMatch.scoreTechnical}%</span>
+                            </div>
+                            <div>
+                              <span className="text-[10px] text-slate-500 block font-semibold">Comportamental</span>
+                              <span className="text-sm font-bold text-slate-300 dark:text-slate-300 light:text-slate-700">{currentMatch.scoreBehavioral}%</span>
+                            </div>
+                            <div>
+                              <span className="text-[10px] text-slate-500 block font-semibold">Senioridade</span>
+                              <span className="text-sm font-bold text-slate-300 dark:text-slate-300 light:text-slate-700">{currentMatch.scoreSeniority}%</span>
+                            </div>
+                            <div>
+                              <span className="text-[10px] text-slate-500 block font-semibold">Localização</span>
+                              <span className="text-sm font-bold text-slate-300 dark:text-slate-300 light:text-slate-700">{currentMatch.scoreLocation}%</span>
+                            </div>
                           </div>
-                          <div>
-                            <span className="text-[10px] text-slate-500 block font-semibold">Comportamental</span>
-                            <span className="text-sm font-bold text-slate-300 dark:text-slate-300 light:text-slate-700">{currentMatch.scoreBehavioral}%</span>
-                          </div>
-                          <div>
-                            <span className="text-[10px] text-slate-500 block font-semibold">Senioridade</span>
-                            <span className="text-sm font-bold text-slate-300 dark:text-slate-300 light:text-slate-700">{currentMatch.scoreSeniority}%</span>
-                          </div>
-                          <div>
-                            <span className="text-[10px] text-slate-500 block font-semibold">Localização</span>
-                            <span className="text-sm font-bold text-slate-300 dark:text-slate-300 light:text-slate-700">{currentMatch.scoreLocation}%</span>
-                          </div>
-                        </div>
-                      </CardGlass>
+                        </CardGlass>
+
+                        {/* Breakdown detalhado de competências */}
+                        {(() => {
+                          if (!primaryResume || !selectedJob) return null;
+                          const breakdown = MatchingEngine.calculateMatchSync(
+                            primaryResume,
+                            selectedJob,
+                            careerProfileNew
+                          );
+                          const found = breakdown.matchedSkills || [];
+                          const missing = breakdown.missingSkills || [];
+                          const total = found.length + missing.length;
+                          if (total === 0) return null;
+                          return (
+                            <CardGlass className="space-y-4">
+                              <div className="flex items-center justify-between">
+                                <span className="text-xs font-bold text-slate-300">
+                                  Competências: {found.length}/{total} encontradas
+                                </span>
+                                <span className={`text-[10px] font-extrabold px-2 py-0.5 rounded-full border ${
+                                  found.length === total
+                                    ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20'
+                                    : found.length >= total * 0.7
+                                    ? 'bg-amber-500/10 text-amber-400 border-amber-500/20'
+                                    : 'bg-red-500/10 text-red-400 border-red-500/20'
+                                }`}>
+                                  {Math.round((found.length / Math.max(total, 1)) * 100)}% Técnico
+                                </span>
+                              </div>
+
+                              {found.length > 0 && (
+                                <div className="space-y-1.5">
+                                  <span className="text-[10px] font-bold text-emerald-400 uppercase tracking-wider block">Encontradas no perfil</span>
+                                  <div className="flex flex-wrap gap-1.5">
+                                    {found.map((sk, i) => (
+                                      <span
+                                        key={i}
+                                        className="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-emerald-500/10 border border-emerald-500/20 text-[10px] text-emerald-400 font-semibold"
+                                      >
+                                        <CheckCircle size={9} />
+                                        {sk}
+                                      </span>
+                                    ))}
+                                  </div>
+                                </div>
+                              )}
+
+                              {missing.length > 0 && (
+                                <div className="space-y-1.5 pt-3 border-t border-slate-900">
+                                  <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Não identificadas</span>
+                                  <div className="flex flex-wrap gap-1.5">
+                                    {missing.map((sk, i) => (
+                                      <span
+                                        key={i}
+                                        className="px-2 py-0.5 rounded bg-slate-900/60 border border-slate-800 text-[10px] text-slate-500 font-semibold"
+                                      >
+                                        • {sk}
+                                      </span>
+                                    ))}
+                                  </div>
+                                </div>
+                              )}
+                            </CardGlass>
+                          );
+                        })()}
+                      </div>
                     </div>
 
                     {/* Explicações IA */}
@@ -579,9 +658,13 @@ export function JobMatchHub({
                         </div>
                       </div>
 
-                      {/* Content 1: Avaliação do Coach */}
-                      {coachTab === 'coach-evaluation' && (() => {
-                        const evalRes = CareerCoachService.evaluateCandidacy(primaryResume, selectedJob!, careerProfile);
+                              {coachTab === 'coach-evaluation' && (() => {
+                        const evalRes = CareerCoachService.evaluateCandidacy(
+                          primaryResume,
+                          selectedJob!,
+                          careerProfile,
+                          careerProfileNew  // passa o perfil consolidado
+                        );
                         return (
                           <div className="space-y-4 animate-fade-in text-xs">
                             <div className="flex justify-between items-center bg-slate-950/40 p-4 rounded-xl border border-slate-850">
@@ -628,7 +711,7 @@ export function JobMatchHub({
                           <div className="space-y-2.5">
                             <strong className="text-slate-200 block">Sugestões de reestruturação para suas experiências:</strong>
                             <div className="space-y-3">
-                              {optimization.keyExperiences.map((exp, i) => (
+                              {optimization.keyExperiences.map((exp: any, i: number) => (
                                 <div key={i} className="p-3 bg-slate-950/40 border border-slate-900 rounded-xl space-y-1">
                                   <div className="flex justify-between items-center text-[10px]">
                                     <span className="font-bold text-slate-200">{exp.role}</span>
@@ -644,7 +727,7 @@ export function JobMatchHub({
                             <div className="p-3 bg-slate-900/20 border border-slate-900 rounded-xl space-y-1">
                               <strong className="text-[10px] text-slate-500 uppercase block">Termos a destacar</strong>
                               <div className="flex flex-wrap gap-1">
-                                {optimization.missingKeywords.map(k => (
+                                {optimization.missingKeywords.map((k: string) => (
                                   <span key={k} className="text-[9px] px-1.5 py-0.5 rounded bg-emerald-500/10 text-emerald-400 font-bold">{k}</span>
                                 ))}
                               </div>
@@ -652,7 +735,7 @@ export function JobMatchHub({
                             <div className="p-3 bg-slate-900/20 border border-slate-900 rounded-xl space-y-1">
                               <strong className="text-[10px] text-slate-500 uppercase block">Termos a reduzir</strong>
                               <div className="flex flex-wrap gap-1">
-                                {optimization.redundantInfo.map(r => (
+                                {optimization.redundantInfo.map((r: string) => (
                                   <span key={r} className="text-[9px] px-1.5 py-0.5 rounded bg-slate-900 text-slate-400">{r}</span>
                                 ))}
                               </div>
@@ -745,10 +828,11 @@ export function JobMatchHub({
       {subTab === 'discover' && (() => {
         const scoredDiscoveredJobs = discoveredJobs.map(job => {
           if (!primaryResume) {
-            return { ...job, scoreOverall: 0, cpi: 0, missingSkills: [] as string[] };
+            return { ...job, scoreOverall: 0, cpi: 0, missingSkills: [] as string[], matchedSkills: [] as string[] };
           }
-          const analysis = MatchingEngine.calculateMatchSync(primaryResume, job);
-          const recencyBonus = 10; // Bônus padrão para vagas recém-buscadas
+          // Usa o perfil consolidado como fonte primária
+          const analysis = MatchingEngine.calculateMatchSync(primaryResume, job, careerProfileNew);
+          const recencyBonus = 10;
           const skillsGapBonus = Math.max(0, 10 - (analysis.missingSkills.length * 2.5));
           const cpi = Math.round(
             (analysis.scoreOverall * 0.60) +
@@ -761,7 +845,8 @@ export function JobMatchHub({
             ...job,
             scoreOverall: analysis.scoreOverall,
             cpi,
-            missingSkills: analysis.missingSkills
+            missingSkills: analysis.missingSkills,
+            matchedSkills: analysis.matchedSkills || []
           };
         }).sort((a, b) => b.cpi - a.cpi);
 
@@ -790,173 +875,243 @@ export function JobMatchHub({
           }
         };
 
+        const isValidUrl = (url: string) => {
+          try {
+            return url && (url.startsWith('http://') || url.startsWith('https://'));
+          } catch {
+            return false;
+          }
+        };
+
         return (
           <div className="space-y-6">
-            {/* Resumo do Career Profile usado como filtro */}
-            {careerProfile && (
-              <CardGlass className="p-4 bg-slate-900/30 border border-slate-800 flex items-center justify-between gap-4">
+            {/* Seção explicativa da busca automatizada com o perfil */}
+            {careerProfileNew ? (
+              <CardGlass className="p-4 bg-slate-900/30 border border-slate-800 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
                 <div>
-                  <span className="text-[10px] text-brand-500 font-bold uppercase tracking-wider">Filtro Inteligente Ativo</span>
-                  <p className="text-xs text-slate-300 mt-1">
-                    Buscando vagas para <strong className="text-slate-100">{careerProfile.targetRoles.join(', ')}</strong> em <strong className="text-slate-100">{careerProfile.preferredLocations.join(', ')}</strong>.
+                  <span className="text-[10px] text-brand-500 font-bold uppercase tracking-wider">Busca Inteligente Ativa</span>
+                  <p className="text-xs text-slate-300 mt-1 leading-relaxed">
+                    A IA gerou buscas para: <strong className="text-slate-100">{((careerProfileNew.personal as any)?.preferences?.targetRoles)?.join(', ') || careerProfileNew.personal?.headline || 'Seus cargos desejados'}</strong>.
                   </p>
                 </div>
-                <div className="flex gap-2">
-                  {careerProfile.searchKeywords.slice(0, 3).map((kw, i) => (
-                    <span key={i} className="px-2 py-0.5 rounded bg-slate-900 text-[10px] text-slate-500 font-semibold uppercase border border-slate-800">
-                      {kw}
+                <div className="flex flex-wrap gap-1.5">
+                  {((careerProfileNew.personal as any)?.preferences?.targetRoles || []).slice(0, 3).map((role: string, i: number) => (
+                    <span key={i} className="px-2.5 py-0.5 rounded-full bg-slate-950 text-[9px] text-slate-400 font-semibold border border-slate-900 uppercase">
+                      {role}
                     </span>
                   ))}
                 </div>
               </CardGlass>
+            ) : careerProfile && (
+              <CardGlass className="p-4 bg-slate-900/30 border border-slate-800 flex items-center justify-between gap-4">
+                <div>
+                  <span className="text-[10px] text-brand-500 font-bold uppercase tracking-wider">Filtro Inteligente Ativo</span>
+                  <p className="text-xs text-slate-300 mt-1">
+                    Buscando vagas para <strong className="text-slate-100">{careerProfile.targetRoles.join(', ')}</strong>.
+                  </p>
+                </div>
+              </CardGlass>
             )}
 
-            {/* Barra de Filtros */}
-            <CardGlass>
-              <form onSubmit={handleSearchDiscovery} className="grid grid-cols-1 sm:grid-cols-4 gap-4 items-end">
-                <div className="space-y-1">
-                  <label className="text-xs font-semibold text-slate-400 flex items-center gap-1.5">
-                    <Search size={12} />
-                    Palavra-chave
-                  </label>
-                  <input
-                    type="text"
-                    placeholder="Ex: React, Node.js"
-                    value={searchKeyword}
-                    onChange={e => setSearchKeyword(e.target.value)}
-                    className="w-full px-4 py-2.5 rounded-xl bg-slate-900/50 border border-slate-800 focus:border-brand-500 outline-none text-xs text-slate-200"
-                  />
-                </div>
-
-                <div className="space-y-1">
-                  <label className="text-xs font-semibold text-slate-400 flex items-center gap-1.5">
-                    <MapPin size={12} />
-                    Localidade
-                  </label>
-                  <input
-                    type="text"
-                    placeholder="Ex: Brasil, Remoto"
-                    value={searchLocation}
-                    onChange={e => setSearchLocation(e.target.value)}
-                    className="w-full px-4 py-2.5 rounded-xl bg-slate-900/50 border border-slate-800 focus:border-brand-500 outline-none text-xs text-slate-200"
-                  />
-                </div>
-
-                <div className="flex items-center gap-2 h-10 px-2 select-none">
-                  <input
-                    type="checkbox"
-                    id="remote-only"
-                    checked={searchRemoteOnly}
-                    onChange={e => setSearchRemoteOnly(e.target.checked)}
-                    className="h-4 w-4 accent-brand-500 rounded bg-slate-900 border-slate-800 cursor-pointer"
-                  />
-                  <label htmlFor="remote-only" className="text-xs font-semibold text-slate-400 cursor-pointer">
-                    Apenas Remoto
-                  </label>
-                </div>
-
-                <button
-                  type="submit"
-                  disabled={isLoadingDiscovery}
-                  className="w-full py-2.5 rounded-xl bg-brand-600 hover:bg-brand-500 text-white font-semibold text-xs flex items-center justify-center gap-2 shadow-lg shadow-brand-500/10 disabled:opacity-50"
-                >
-                  {isLoadingDiscovery ? <Loader2 size={14} className="animate-spin" /> : <Search size={14} />}
-                  Buscar Vagas
-                </button>
-              </form>
-            </CardGlass>
-
-            {/* Listagem de Resultados */}
-            {isLoadingDiscovery ? (
-              <div className="py-20 text-center flex flex-col items-center justify-center text-slate-500 text-xs">
-                <Loader2 size={32} className="animate-spin text-brand-500 mb-3" />
-                <span>Buscando vagas reais compatíveis nos conectores públicos...</span>
-              </div>
-            ) : scoredDiscoveredJobs.length > 0 ? (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                {scoredDiscoveredJobs.map((job, idx) => (
-                  <CardGlass key={idx} className="flex flex-col justify-between space-y-4 hover:border-slate-800">
-                    <div className="space-y-2">
-                      <div className="flex justify-between items-start gap-2">
-                        <div>
-                          <h4 className="font-bold text-sm text-slate-200 dark:text-slate-200 light:text-slate-800">
-                            {job.title}
-                          </h4>
-                          <span className="text-xs text-brand-500 font-semibold">{job.companyName}</span>
-                        </div>
-                        <span className="text-[10px] px-2 py-0.5 rounded-full bg-slate-900 border border-slate-800 text-slate-500 font-semibold shrink-0">
-                          {job.sourcePlatform}
-                        </span>
-                      </div>
-
-                      {/* Selo de Prioridade CPI */}
-                      <div className="pt-1 flex gap-2 items-center">
-                        {getPriorityBadge(job.cpi)}
-                        <span className="text-[10px] text-slate-500 font-semibold">
-                          Match Estimado: {job.scoreOverall}%
-                        </span>
-                      </div>
-
-                      <p className="text-xs text-slate-400 line-clamp-3 leading-relaxed">
-                        {job.description}
-                      </p>
-
-                      <div className="flex flex-wrap gap-1.5 pt-2">
-                        <span className="px-2 py-0.5 rounded bg-slate-900 text-[10px] text-slate-500 font-medium">
-                          {job.location}
-                        </span>
-                        <span className="px-2 py-0.5 rounded bg-brand-500/10 text-[10px] text-brand-500 font-bold uppercase">
-                          {job.workMode}
-                        </span>
-                        <span className="px-2 py-0.5 rounded bg-indigo-500/10 text-[10px] text-indigo-400 font-bold uppercase">
-                          {job.seniority}
-                        </span>
-                      </div>
-
-                      {/* Exibição de lacunas de competências */}
-                      <div className="pt-2 border-t border-slate-900/60 text-[10px] text-slate-400">
-                        {job.missingSkills.length > 0 ? (
-                          <div className="flex gap-1.5 items-start">
-                            <span className="text-red-400 font-semibold">Gaps:</span>
-                            <span className="text-slate-500 line-clamp-1">{job.missingSkills.join(', ')}</span>
-                          </div>
-                        ) : (
-                          <span className="text-emerald-400 font-semibold flex items-center gap-1">
-                            <CheckCircle size={10} />
-                            Perfil 100% alinhado!
-                          </span>
-                        )}
-                      </div>
-                    </div>
-
-                    <div className="pt-4 border-t border-slate-900 dark:border-slate-900 light:border-slate-200 flex justify-between items-center gap-4">
-                      <a
-                        href={job.sourceUrl}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-xs text-slate-500 hover:text-slate-300 font-semibold flex items-center gap-1"
-                      >
-                        Ver link original
-                        <ArrowUpRight size={12} />
-                      </a>
-                      
-                      <button
-                        onClick={() => handleImportAndMatch(job)}
-                        disabled={isImporting}
-                        className="px-3 py-1.5 rounded-xl bg-brand-600 hover:bg-brand-500 text-white font-bold text-xs flex items-center gap-1.5 shadow shadow-brand-500/10 disabled:opacity-50"
-                      >
-                        Importar e Analisar Match
-                        <ChevronRight size={14} />
-                      </button>
-                    </div>
-                  </CardGlass>
-                ))}
+            {/* Warning de API não configurada */}
+            {isErrorDiscovery && errorDiscovery?.message?.includes('API_NOT_CONFIGURED') ? (
+              <div className="py-12 border border-dashed border-slate-800 rounded-2xl flex flex-col items-center justify-center text-slate-400 max-w-lg mx-auto p-8 bg-slate-900/10">
+                <AlertTriangle size={48} className="mb-4 text-amber-500 animate-pulse" />
+                <h3 className="font-display font-bold text-lg text-slate-200">Adzuna API não configurada</h3>
+                <p className="text-slate-400 text-xs text-center mt-2 max-w-sm leading-relaxed">
+                  Para habilitar a descoberta de vagas públicas integradas com a IA, você deve configurar suas credenciais do Adzuna no arquivo <code>.env</code> do projeto:
+                </p>
+                <pre className="p-3.5 mt-4 rounded-xl bg-slate-950 border border-slate-900 text-[10px] text-brand-400 text-left font-mono select-all w-full overflow-x-auto">
+                  VITE_ADZUNA_APP_ID=seu_app_id{"\n"}
+                  VITE_ADZUNA_APP_KEY=sua_app_key
+                </pre>
+                <p className="text-slate-500 text-[10px] text-center mt-3 leading-relaxed">
+                  Obtenha chaves de acesso gratuitas criando uma conta de desenvolvedor no portal oficial da Adzuna.
+                </p>
               </div>
             ) : (
-              <div className="py-20 text-center border border-dashed border-slate-800 rounded-2xl flex flex-col items-center justify-center text-slate-500 text-xs">
-                <Compass size={32} className="mb-2 text-slate-600" />
-                <span>Nenhuma vaga encontrada para esses filtros. Tente ajustar o termo de pesquisa ou a localidade.</span>
-              </div>
+              <>
+                {/* Barra de Filtros */}
+                <CardGlass>
+                  <form onSubmit={handleSearchDiscovery} className="grid grid-cols-1 sm:grid-cols-4 gap-4 items-end">
+                    <div className="space-y-1">
+                      <label className="text-xs font-semibold text-slate-400 flex items-center gap-1.5">
+                        <Search size={12} />
+                        Palavra-chave adicional
+                      </label>
+                      <input
+                        type="text"
+                        placeholder="Ex: React, Node.js"
+                        value={searchKeyword}
+                        onChange={e => setSearchKeyword(e.target.value)}
+                        className="w-full px-4 py-2.5 rounded-xl bg-slate-900/50 border border-slate-800 focus:border-brand-500 outline-none text-xs text-slate-200"
+                      />
+                    </div>
+
+                    <div className="space-y-1">
+                      <label className="text-xs font-semibold text-slate-400 flex items-center gap-1.5">
+                        <MapPin size={12} />
+                        Localidade
+                      </label>
+                      <input
+                        type="text"
+                        placeholder="Ex: Brasil, Remoto"
+                        value={searchLocation}
+                        onChange={e => setSearchLocation(e.target.value)}
+                        className="w-full px-4 py-2.5 rounded-xl bg-slate-900/50 border border-slate-800 focus:border-brand-500 outline-none text-xs text-slate-200"
+                      />
+                    </div>
+
+                    <div className="flex items-center gap-2 h-10 px-2 select-none">
+                      <input
+                        type="checkbox"
+                        id="remote-only"
+                        checked={searchRemoteOnly}
+                        onChange={e => setSearchRemoteOnly(e.target.checked)}
+                        className="h-4 w-4 accent-brand-500 rounded bg-slate-900 border-slate-800 cursor-pointer"
+                      />
+                      <label htmlFor="remote-only" className="text-xs font-semibold text-slate-400 cursor-pointer">
+                        Apenas Remoto
+                      </label>
+                    </div>
+
+                    <button
+                      type="submit"
+                      disabled={isLoadingDiscovery}
+                      className="w-full py-2.5 rounded-xl bg-brand-600 hover:bg-brand-500 text-white font-semibold text-xs flex items-center justify-center gap-2 shadow-lg shadow-brand-500/10 disabled:opacity-50"
+                    >
+                      {isLoadingDiscovery ? <Loader2 size={14} className="animate-spin" /> : <Search size={14} />}
+                      Buscar Vagas
+                    </button>
+                  </form>
+                </CardGlass>
+
+                {/* Listagem de Resultados */}
+                {isLoadingDiscovery ? (
+                  <div className="py-20 text-center flex flex-col items-center justify-center text-slate-500 text-xs">
+                    <Loader2 size={32} className="animate-spin text-brand-500 mb-3" />
+                    <span>Consultando bases de dados do Adzuna e unificando vagas...</span>
+                  </div>
+                ) : scoredDiscoveredJobs.length > 0 ? (
+                  <div className="space-y-6">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                      {scoredDiscoveredJobs.map((job, idx) => (
+                        <CardGlass key={idx} className="flex flex-col justify-between space-y-4 hover:border-slate-800">
+                          <div className="space-y-2">
+                            <div className="flex justify-between items-start gap-2">
+                              <div>
+                                <h4 className="font-bold text-sm text-slate-200 dark:text-slate-200 light:text-slate-800">
+                                  {job.title}
+                                </h4>
+                                <span className="text-xs text-brand-500 font-semibold">{job.companyName}</span>
+                              </div>
+                              <span className="text-[10px] px-2 py-0.5 rounded-full bg-slate-900 border border-slate-800 text-slate-500 font-semibold shrink-0">
+                                {job.sourcePlatform}
+                              </span>
+                            </div>
+
+                            {/* Selo de Prioridade CPI */}
+                            <div className="pt-1 flex gap-2 items-center flex-wrap">
+                              {getPriorityBadge(job.cpi)}
+                              <span className="text-[10px] text-slate-500 font-semibold">
+                                Match Estimado: {job.scoreOverall}%
+                              </span>
+                            </div>
+
+                            <p className="text-xs text-slate-400 line-clamp-3 leading-relaxed pt-1">
+                              {job.description}
+                            </p>
+
+                            <div className="flex flex-wrap gap-1.5 pt-2">
+                              <span className="px-2 py-0.5 rounded bg-slate-900 text-[10px] text-slate-500 font-medium">
+                                {job.location}
+                              </span>
+                              <span className="px-2 py-0.5 rounded bg-brand-500/10 text-[10px] text-brand-500 font-bold uppercase">
+                                {job.workMode}
+                              </span>
+                              <span className="px-2 py-0.5 rounded bg-indigo-500/10 text-[10px] text-indigo-400 font-bold uppercase">
+                                {job.seniority}
+                              </span>
+                            </div>
+
+                            {/* Exibição de lacunas de competências */}
+                            <div className="pt-2 border-t border-slate-900/60 text-[10px] text-slate-400">
+                              {job.missingSkills.length > 0 ? (
+                                <div className="flex gap-1.5 items-start">
+                                  <span className="text-red-400 font-semibold">Gaps técnicos:</span>
+                                  <span className="text-slate-500 line-clamp-1">{job.missingSkills.join(', ')}</span>
+                                </div>
+                              ) : (
+                                <span className="text-emerald-400 font-semibold flex items-center gap-1">
+                                  <CheckCircle size={10} />
+                                  Perfil 100% alinhado com a vaga!
+                                </span>
+                              )}
+                            </div>
+                          </div>
+
+                          <div className="pt-4 border-t border-slate-900 dark:border-slate-900 light:border-slate-200 flex justify-between items-center gap-4">
+                            {isValidUrl(job.sourceUrl || '') ? (
+                              <a
+                                href={job.sourceUrl}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="text-xs text-brand-400 hover:text-brand-300 font-semibold flex items-center gap-1"
+                              >
+                                Ver vaga original
+                                <ArrowUpRight size={12} />
+                              </a>
+                            ) : (
+                              <span className="text-xs text-slate-650 cursor-not-allowed flex items-center gap-1" title="Link original indisponível para esta oportunidade simulada">
+                                Link indisponível
+                              </span>
+                            )}
+                            
+                            <button
+                              onClick={() => handleImportAndMatch(job)}
+                              disabled={isImporting}
+                              className="px-3 py-1.5 rounded-xl bg-brand-600 hover:bg-brand-500 text-white font-bold text-xs flex items-center gap-1.5 shadow shadow-brand-500/10 disabled:opacity-50"
+                            >
+                              Importar e Analisar Match
+                              <ChevronRight size={14} />
+                            </button>
+                          </div>
+                        </CardGlass>
+                      ))}
+                    </div>
+
+                    {/* Controles de Paginação */}
+                    <div className="flex justify-center items-center gap-4 pt-6 border-t border-slate-900/60 select-none">
+                      <button
+                        onClick={() => {
+                          setSearchPage(p => Math.max(1, p - 1));
+                          window.scrollTo({ top: 0, behavior: 'smooth' });
+                        }}
+                        disabled={searchPage === 1 || isLoadingDiscovery}
+                        className="px-4 py-2 rounded-xl bg-slate-900 border border-slate-800 hover:border-slate-700 text-slate-350 disabled:opacity-40 disabled:cursor-not-allowed text-xs font-semibold transition-all"
+                      >
+                        Anterior
+                      </button>
+                      <span className="text-xs text-slate-400">Página {searchPage}</span>
+                      <button
+                        onClick={() => {
+                          setSearchPage(p => p + 1);
+                          window.scrollTo({ top: 0, behavior: 'smooth' });
+                        }}
+                        disabled={isLoadingDiscovery || scoredDiscoveredJobs.length < 5}
+                        className="px-4 py-2 rounded-xl bg-slate-900 border border-slate-800 hover:border-slate-700 text-slate-350 disabled:opacity-40 disabled:cursor-not-allowed text-xs font-semibold transition-all"
+                      >
+                        Próxima
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="py-20 text-center border border-dashed border-slate-800 rounded-2xl flex flex-col items-center justify-center text-slate-500 text-xs">
+                    <Compass size={32} className="mb-2 text-slate-600" />
+                    <span>Nenhuma vaga encontrada para estes filtros. Tente ajustar o termo de pesquisa ou a localidade.</span>
+                  </div>
+                )}
+              </>
             )}
           </div>
         );

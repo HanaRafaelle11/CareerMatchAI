@@ -2,8 +2,10 @@ import type { Job } from '../models/types';
 
 export interface JobSearchFilters {
   keyword?: string;
+  keywords?: string[]; // Múltiplas palavras-chave de busca geradas em paralelo
   location?: string;
   remoteOnly?: boolean;
+  page?: number; // Suporte à paginação
 }
 
 export abstract class BaseJobConnector {

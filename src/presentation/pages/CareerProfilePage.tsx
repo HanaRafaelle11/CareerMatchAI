@@ -3,8 +3,11 @@ import { CardGlass } from '../components/CardGlass';
 import type { CareerProfile } from '../../domain/models/types';
 import { Save, Plus, X, Award, CheckCircle, AlertCircle, ShieldAlert, ArrowRight } from 'lucide-react';
 
+import type { CareerProfileNew } from '../../application/hooks/useMyProfileAi';
+
 interface CareerProfilePageProps {
   careerProfile: CareerProfile | null;
+  careerProfileNew: CareerProfileNew | null;
   onSaveProfile: (profile: CareerProfile) => Promise<any>;
   isSaving: boolean;
   setActiveTab: (tab: string) => void;
@@ -12,6 +15,7 @@ interface CareerProfilePageProps {
 
 export function CareerProfilePage({
   careerProfile,
+  careerProfileNew: _careerProfileNew,
   onSaveProfile,
   isSaving,
   setActiveTab
@@ -172,7 +176,7 @@ export function CareerProfilePage({
       {!careerProfile ? (
         <div className="py-20 text-center border border-dashed border-slate-800 rounded-2xl flex flex-col items-center justify-center text-slate-500 text-xs">
           <Award size={32} className="mb-2 text-slate-600" />
-          <span>Nenhum currículo ativo encontrado. Faça o upload do seu currículo na aba "Meu Perfil" para gerar sua meta profissional.</span>
+          <span>Nenhum currículo ativo encontrado. Faça o upload do seu currículo na aba "Meu Currículo" para gerar sua meta profissional.</span>
           <button
             onClick={() => setActiveTab('profile')}
             className="mt-4 px-4 py-2 rounded-xl bg-brand-600 hover:bg-brand-500 text-white font-bold text-xs"

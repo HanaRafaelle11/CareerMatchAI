@@ -11,32 +11,65 @@ export function useCareerProfile(userId: string | undefined) {
     queryFn: async () => {
       if (!userId) return null;
       if (isSupabaseConfigured && supabase) {
+        // Buscar o perfil mais recente
         const { data, error } = await supabase
           .from('career_profiles')
           .select('*')
           .eq('user_id', userId)
+          .order('created_at', { ascending: false })
+          .limit(1)
           .maybeSingle();
 
         if (error) throw error;
         if (!data) return null;
+
+        // Buscar insights para predição de senioridade e setor como fallback
+        const { data: insightsData } = await supabase
+          .from('career_insights')
+          .select('*')
+          .eq('resume_version_id', data.resume_version_id)
+          .maybeSingle();
+
+        const preferences = data.personal?.preferences || {};
+
+        // Extrair fallbacks amigáveis do perfil estruturado
+        const fallbackRoles = data.experience?.[0]?.role
+          ? [data.experience[0].role]
+          : data.personal?.headline
+            ? [data.personal.headline]
+            : ['Profissional de CS'];
+
+        const fallbackSeniority = insightsData?.seniority_prediction?.value || 'Sênior';
+        const fallbackIndustries = insightsData?.industry_prediction?.value
+          ? [insightsData.industry_prediction.value]
+          : ['SaaS', 'Tecnologia'];
+
+        const fallbackSkills = Array.isArray(data.skills)
+          ? data.skills.map((s: any) => typeof s === 'string' ? s : s.name)
+          : [];
+
+        const fallbackLanguages = Array.isArray(data.languages)
+          ? data.languages.map((l: any) => typeof l === 'string' ? l : l.language)
+          : [];
+
         return {
           id: data.id,
           userId: data.user_id,
-          resumeId: data.resume_id,
-          targetRoles: data.target_roles,
-          seniority: data.seniority,
-          industries: data.industries,
-          skills: data.skills,
-          tools: data.tools || [],
-          languages: data.languages || [],
-          preferredLocations: data.preferred_locations,
-          preferredWorkModes: data.preferred_work_modes,
-          targetCompanies: data.target_companies || [],
-          salaryExpectationMin: Number(data.salary_expectation_min || 0),
-          searchKeywords: data.search_keywords,
-          isApprovedByUser: data.is_approved_by_user,
+          resumeId: data.resume_version_id, // Usar resume_version_id como compatibilidade
+          targetRoles: preferences.targetRoles || fallbackRoles,
+          seniority: preferences.seniority || fallbackSeniority,
+          industries: preferences.industries || fallbackIndustries,
+          skills: preferences.skills || fallbackSkills,
+          tools: preferences.tools || [],
+          languages: preferences.languages || fallbackLanguages,
+          preferredLocations: preferences.preferredLocations || [data.personal?.location].filter(Boolean),
+          preferredWorkModes: preferences.preferredWorkModes || ['remote'],
+          targetCompanies: preferences.targetCompanies || [],
+          salaryExpectationMin: Number(preferences.salaryExpectationMin || 0),
+          searchKeywords: preferences.searchKeywords || preferences.targetRoles || fallbackRoles,
+          isApprovedByUser: preferences.isApprovedByUser || false,
           createdAt: data.created_at,
-          updatedAt: data.updated_at
+          updatedAt: data.created_at
         };
       } else {
         return localDB.getCareerProfile(userId);
@@ -48,28 +81,80 @@ export function useCareerProfile(userId: string | undefined) {
   const updateProfileMutation = useMutation({
     mutationFn: async (updated: CareerProfile) => {
       if (isSupabaseConfigured && supabase) {
-        const { error } = await supabase
+        // Buscar o mais recente primeiro para mesclar metadados
+        const { data: latest, error: fetchError } = await supabase
           .from('career_profiles')
-          .upsert({
-            id: updated.id,
-            user_id: updated.userId,
-            resume_id: updated.resumeId,
-            target_roles: updated.targetRoles,
-            seniority: updated.seniority,
-            industries: updated.industries,
-            skills: updated.skills,
-            tools: updated.tools,
-            languages: updated.languages,
-            preferred_locations: updated.preferredLocations,
-            preferred_work_modes: updated.preferredWorkModes,
-            target_companies: updated.targetCompanies,
-            salary_expectation_min: updated.salaryExpectationMin,
-            search_keywords: updated.searchKeywords,
-            is_approved_by_user: updated.isApprovedByUser,
-            updated_at: new Date().toISOString()
-          });
+          .select('*')
+          .eq('user_id', updated.userId)
+          .order('created_at', { ascending: false })
+          .limit(1)
+          .maybeSingle();
 
-        if (error) throw error;
+        if (fetchError) throw fetchError;
+
+        if (latest) {
+          const updatedPersonal = {
+            ...(latest.personal || {}),
+            preferences: {
+              targetRoles: updated.targetRoles,
+              seniority: updated.seniority,
+              industries: updated.industries,
+              skills: updated.skills,
+              tools: updated.tools,
+              languages: updated.languages,
+              preferredLocations: updated.preferredLocations,
+              preferredWorkModes: updated.preferredWorkModes,
+              targetCompanies: updated.targetCompanies,
+              salaryExpectationMin: updated.salaryExpectationMin,
+              searchKeywords: updated.searchKeywords,
+              isApprovedByUser: updated.isApprovedByUser
+            }
+          };
+
+          const { error } = await supabase
+            .from('career_profiles')
+            .update({
+              personal: updatedPersonal
+            })
+            .eq('id', latest.id);
+
+          if (error) throw error;
+        } else {
+          // Se não existir perfil estruturado (caso raro), cria uma casca básica
+          const { error } = await supabase
+            .from('career_profiles')
+            .insert({
+              user_id: updated.userId,
+              resume_version_id: updated.resumeId || '00000000-0000-0000-0000-000000000000',
+              personal: {
+                fullName: 'Profissional',
+                preferences: {
+                  targetRoles: updated.targetRoles,
+                  seniority: updated.seniority,
+                  industries: updated.industries,
+                  skills: updated.skills,
+                  tools: updated.tools,
+                  languages: updated.languages,
+                  preferredLocations: updated.preferredLocations,
+                  preferredWorkModes: updated.preferredWorkModes,
+                  targetCompanies: updated.targetCompanies,
+                  salaryExpectationMin: updated.salaryExpectationMin,
+                  searchKeywords: updated.searchKeywords,
+                  isApprovedByUser: updated.isApprovedByUser
+                }
+              },
+              skills: updated.skills.map(s => ({ name: s })),
+              languages: updated.languages.map(l => ({ language: l })),
+              experience: [],
+              education: [],
+              soft_skills: [],
+              certifications: [],
+              ats_keywords: {},
+              summary: ''
+            });
+
+          if (error) throw error;
+        }
         return updated;
       } else {
         return localDB.saveCareerProfile(updated);
@@ -77,6 +162,7 @@ export function useCareerProfile(userId: string | undefined) {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['career-profile', userId] });
+      queryClient.invalidateQueries({ queryKey: ['my-profile-ai', userId] });
     }
   });
 

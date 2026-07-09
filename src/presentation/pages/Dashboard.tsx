@@ -291,9 +291,9 @@ export function Dashboard({
             { label: 'Analisadas', value: matches.length, color: 'border-blue-500/20 text-blue-400' },
             { label: 'Aplicadas', value: funnel.applied, color: 'border-brand-500/20 text-brand-400' },
             { label: 'Respostas', value: funnel.interviews + funnel.cases, color: 'border-amber-500/20 text-amber-400' },
-            { label: 'Entrevista RH', value: applications.filter(a => a.status === '👥 Entrevista com recrutador').length || 2, color: 'border-orange-500/20 text-orange-400' },
-            { label: 'Gestor', value: applications.filter(a => a.status === '🎯 Entrevista com gestor').length || 1, color: 'border-pink-500/20 text-pink-400' },
-            { label: 'Finalistas', value: applications.filter(a => a.status === '🤝 Fit cultural').length || 0, color: 'border-purple-500/20 text-purple-400' },
+            { label: 'Entrevista RH', value: applications.filter(a => a.status === '👥 Entrevista com recrutador').length, color: 'border-orange-500/20 text-orange-400' },
+            { label: 'Gestor', value: applications.filter(a => a.status === '🎯 Entrevista com gestor').length, color: 'border-pink-500/20 text-pink-400' },
+            { label: 'Finalistas', value: applications.filter(a => a.status === '🤝 Fit cultural').length, color: 'border-purple-500/20 text-purple-400' },
             { label: 'Oferta', value: funnel.offers, color: 'border-emerald-500/20 text-emerald-400 bg-emerald-500/5' }
           ].map((stage, idx) => (
             <div 

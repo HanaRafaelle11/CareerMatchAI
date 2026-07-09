@@ -17,18 +17,17 @@ export interface FunnelStats {
 export class CareerAnalyticsService {
   static getFunnel(apps: Application[]): FunnelStats {
     if (apps.length === 0) {
-      // Fallback estético com dados realistas de exemplo
       return {
-        analyzed: 120,
-        interested: 80,
-        applied: 45,
-        interviews: 16,
-        cases: 6,
-        offers: 2,
+        analyzed: 0,
+        interested: 0,
+        applied: 0,
+        interviews: 0,
+        cases: 0,
+        offers: 0,
         conversions: {
-          interestToApply: 56,
-          applyToInterview: 35,
-          interviewToOffer: 12
+          interestToApply: 0,
+          applyToInterview: 0,
+          interviewToOffer: 0
         }
       };
     }
@@ -97,10 +96,10 @@ export class CareerAnalyticsService {
     // Se não houver rejeições, retorna estatística mockada realista para ilustrar o analytics
     if (total === 0) {
       return {
-        'Falta de conhecimento técnico': 40,
-        'Pretensão salarial': 25,
-        'Senioridade incompatível': 20,
-        'Sem retorno': 15,
+        'Falta de conhecimento técnico': 0,
+        'Pretensão salarial': 0,
+        'Senioridade incompatível': 0,
+        'Sem retorno': 0,
         'Experiência insuficiente': 0,
         'Idioma': 0,
         'Cultura': 0,

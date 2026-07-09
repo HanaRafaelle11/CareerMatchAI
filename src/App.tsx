@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useAuth } from './application/hooks/useAuth';
 import { useResumes, useJobs, useMatches } from './application/hooks/useCareerMatch';
 import { useCareerProfile } from './application/hooks/useCareerProfile';
@@ -15,7 +15,7 @@ import { CareerProfilePage } from './presentation/pages/CareerProfilePage';
 import { MyProfileAi } from './presentation/pages/MyProfileAi';
 import { StrategyPage } from './presentation/pages/StrategyPage';
 import { CoachDashboard } from './presentation/pages/CoachDashboard';
-import { Menu } from 'lucide-react';
+import { Menu, FileText } from 'lucide-react';
 
 function App() {
   const { user, profile, loading, loginWithEmail, signUpWithEmail, loginWithOAuth, logout } = useAuth();
@@ -23,12 +23,28 @@ function App() {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
   const { resumes, uploadResume, deleteResume, isUploading, pipelineSteps } = useResumes(profile?.id);
+  
+  // Sincronizar o currículo/versão selecionado
+  const [selectedResumeVersionId, setSelectedResumeVersionId] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (resumes && resumes.length > 0 && !selectedResumeVersionId) {
+      const primary = resumes.find(r => r.isPrimary) || resumes[0];
+      if (primary && primary.resumeVersionId) {
+        setSelectedResumeVersionId(primary.resumeVersionId);
+      }
+    }
+  }, [resumes, selectedResumeVersionId]);
+
+  const selectedResume = resumes.find(r => r.resumeVersionId === selectedResumeVersionId) || resumes[0];
+  const selectedResumeId = selectedResume?.id || null;
+
   const { jobs, createJob, isCreating } = useJobs(profile?.id);
-  const { matches, calculateMatch, isCalculating, getMatchDetails } = useMatches(profile?.id);
-  const { careerProfile, updateCareerProfile, isUpdating: isSavingProfile } = useCareerProfile(profile?.id);
+  const { matches, calculateMatch, isCalculating, getMatchDetails } = useMatches(profile?.id, selectedResumeId);
+  const { careerProfile, updateCareerProfile, isUpdating: isSavingProfile } = useCareerProfile(profile?.id, selectedResumeVersionId);
 
   // ── Fonte única de verdade: career_profiles + career_insights ──
-  const { data: myProfileData } = useMyProfileAi(profile?.id);
+  const { data: myProfileData } = useMyProfileAi(profile?.id, selectedResumeVersionId);
   const careerProfileNew = myProfileData?.profile ?? null;
   const careerInsights = myProfileData?.insights ?? null;
 
@@ -135,6 +151,36 @@ function App() {
       {/* Container Principal */}
       <main className="flex-1 px-4 md:pl-72 md:pr-8 py-8 pt-20 md:pt-8 min-h-screen overflow-x-hidden relative z-10">
 
+        {/* Seletor de Currículo Ativo Global */}
+        {resumes && resumes.length > 0 && (
+          <div className="mb-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 p-4 rounded-2xl border border-slate-900 bg-slate-950/40 backdrop-blur-md relative overflow-hidden">
+            <div className="absolute top-0 right-0 h-24 w-24 bg-brand-500/10 rounded-full blur-2xl pointer-events-none" />
+            <div className="space-y-1">
+              <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500">Currículo Selecionado</span>
+              <div className="flex items-center gap-2">
+                <FileText size={16} className="text-brand-500" />
+                <span className="font-semibold text-sm text-slate-200">
+                  {selectedResume?.fileName || "Nenhum currículo selecionado"}
+                </span>
+              </div>
+            </div>
+            <div className="flex items-center gap-3">
+              <span className="text-xs text-slate-400 font-medium">Trocar currículo:</span>
+              <select
+                value={selectedResumeVersionId || ''}
+                onChange={(e) => setSelectedResumeVersionId(e.target.value)}
+                className="px-3 py-2 rounded-xl bg-slate-900 border border-slate-800 text-xs text-slate-200 hover:border-slate-700 focus:outline-none focus:ring-1 focus:ring-brand-500 font-semibold"
+              >
+                {resumes.map((r) => (
+                  <option key={r.resumeVersionId} value={r.resumeVersionId}>
+                    {r.fileName} {r.isPrimary ? '(Padrão)' : ''}
+                  </option>
+                ))}
+              </select>
+            </div>
+          </div>
+        )}
+
         {activeTab === 'dashboard' && (
           <Dashboard
             profile={profile}
@@ -162,12 +208,15 @@ function App() {
             isUploading={isUploading}
             applications={applications}
             pipelineSteps={pipelineSteps}
+            activeResumeVersionId={selectedResumeVersionId}
+            onSelectResumeVersion={setSelectedResumeVersionId}
           />
         )}
 
         {activeTab === 'my-profile-ai' && (
           <MyProfileAi
             userId={profile?.id}
+            resumeVersionId={selectedResumeVersionId}
             setActiveTab={setActiveTab}
           />
         )}

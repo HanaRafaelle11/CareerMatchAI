@@ -521,6 +521,19 @@ serve(async (req) => {
     console.log(`[EDGE FUNCTION] Enviando para Gemini 2.5 Flash...`)
     const parsedData = await ResumeParserService.parseWithGemini(text, supabaseClient, userId, isMockEnabled);
 
+    // Validação estrita do perfil retornado pela IA para evitar perfis vazios ou corrompidos (Fase 5)
+    const profile = parsedData?.career_profile;
+    if (
+      !profile ||
+      !profile.personal ||
+      !profile.personal.fullName ||
+      profile.personal.fullName === "Profissional" ||
+      !profile.experience ||
+      profile.experience.length === 0
+    ) {
+      throw new Error("Resume extraction returned invalid profile: missing name or work experiences.");
+    }
+
     // LOG DE PIPELINE: gemini_completed
     await logProcessingStep(supabaseClient, resumeVersionId, 'gemini_completed', 'success');
 

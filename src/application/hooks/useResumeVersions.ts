@@ -1,5 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase, isSupabaseConfigured } from '../../infrastructure/api/supabaseClient';
+import { sanitizeFileName } from '../utils/fileUtils';
 import type { ResumeVersion } from '../../domain/models/types';
 
 export function useResumeVersions(userId: string | undefined) {
@@ -41,7 +42,7 @@ export function useResumeVersions(userId: string | undefined) {
       }
 
       // 1. Upload do arquivo para o storage
-      const sanitizedName = file.name.replace(/[^a-zA-Z0-9.]/g, '_');
+      const sanitizedName = sanitizeFileName(file.name);
       const storagePath = `${userId}/${Date.now()}_${sanitizedName}`;
 
       const { error: uploadError } = await supabase.storage
@@ -52,7 +53,7 @@ export function useResumeVersions(userId: string | undefined) {
         });
 
       if (uploadError) {
-        throw new Error(`Erro ao enviar arquivo para o storage: ${uploadError.message}`);
+        throw new Error('Erro ao enviar o currículo. Por favor, tente novamente.');
       }
 
       // 2. Obter a URL pública do arquivo

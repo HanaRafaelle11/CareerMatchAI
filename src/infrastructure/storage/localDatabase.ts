@@ -40,8 +40,10 @@ class LocalDatabase {
   }
 
   private init() {
-    // Se o Supabase estiver configurado no ambiente, inicia o banco local vazio para não contaminar o usuário com dados mock
-    if (isSupabaseConfigured) {
+    const isDev = import.meta.env.DEV || import.meta.env.MODE === 'development';
+    
+    // Se o Supabase estiver configurado no ambiente, ou se não for ambiente de desenvolvimento, inicia o banco local vazio para não contaminar com dados mock
+    if (isSupabaseConfigured || !isDev) {
       if (!localStorage.getItem(KEYS.PROFILE)) localStorage.setItem(KEYS.PROFILE, 'null');
       if (!localStorage.getItem(KEYS.RESUMES)) localStorage.setItem(KEYS.RESUMES, '[]');
       if (!localStorage.getItem(KEYS.JOBS)) localStorage.setItem(KEYS.JOBS, '[]');

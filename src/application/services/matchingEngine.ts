@@ -310,8 +310,28 @@ export class MatchingEngine {
             }
           };
         }
-      } catch (err) {
-        console.error('Erro ao invocar match-job do Supabase, aplicando motor local:', err);
+      } catch (err: any) {
+        console.error('Erro ao invocar match-job do Supabase:', err);
+        
+        // Registrar erro no banco se houver conexão com Supabase
+        try {
+          await supabase.from('ai_usage_logs').insert({
+            user_id: resume.userId || null,
+            feature: 'job-matching',
+            model: 'gemini-2.5-flash',
+            input_tokens: 0,
+            output_tokens: 0,
+            estimated_cost: 0,
+            error_message: err.message || String(err)
+          });
+        } catch (dbErr) {
+          console.error('Erro ao gravar log de falha no banco:', dbErr);
+        }
+
+        const isDev = import.meta.env.DEV || import.meta.env.MODE === 'development';
+        if (!isDev) {
+          throw new Error(`Falha ao calcular compatibilidade da vaga: ${err.message || err}`);
+        }
       }
     }
 

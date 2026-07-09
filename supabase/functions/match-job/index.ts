@@ -160,12 +160,12 @@ class JobMatchingEngine {
     return JSON.parse(extractedText);
   }
 
-  static async saveJobMatch(supabaseClient: any, userId: string, careerProfileId: string, jobId: string, matchResult: any) {
+  static async saveJobMatch(supabaseClient: any, userId: string, resumeVersionId: string, jobId: string, matchResult: any) {
     const { data, error } = await supabaseClient
       .from('job_matches')
       .insert({
         user_id: userId,
-        career_profile_id: careerProfileId,
+        resume_version_id: resumeVersionId,
         job_id: jobId,
         match_score: matchResult.match_score,
         strengths: matchResult.strengths || [],
@@ -191,7 +191,10 @@ serve(async (req) => {
 
   try {
     const { resumeId, resumeVersionId, jobId, userId: requestUserId, mockGemini } = await req.json()
-    console.log(`[EDGE FUNCTION] Recebido pedido de match:`, { resumeId, resumeVersionId, jobId, mockGemini })
+    console.log("[MATCH JOB REQUEST] Recebido pedido:", { resumeId, resumeVersionId, jobId, mockGemini })
+    
+    const resolvedVersionId = resumeVersionId || resumeId;
+    console.log("[MATCH JOB RESUME VERSION] Resolving for resume version ID:", resolvedVersionId);
 
     if ((!resumeId && !resumeVersionId) || !jobId) {
       return new Response(
@@ -246,6 +249,8 @@ serve(async (req) => {
       )
     }
 
+    console.log("[MATCH JOB PROFILE FOUND] Profile ID:", careerProfile.id, "Resume Version ID:", careerProfile.resume_version_id);
+
     // 2. Obter a descrição da vaga
     const { data: jobData, error: jobErr } = await supabaseClient
       .from('jobs')
@@ -271,11 +276,13 @@ serve(async (req) => {
       isMockEnabled
     );
 
+    console.log("[MATCH JOB RESULT] Match calculated:", matchResult);
+
     // 4. Salvar o resultado na tabela job_matches
     const savedMatch = await JobMatchingEngine.saveJobMatch(
       supabaseClient,
       userId,
-      careerProfile.id,
+      careerProfile.resume_version_id || resolvedVersionId,
       jobId,
       matchResult
     );

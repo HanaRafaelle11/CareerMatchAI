@@ -44,6 +44,65 @@ export function JobMatchHub({
   const [isDeletingAnalyses, setIsDeletingAnalyses] = useState(false);
   const [appError, setAppError] = useState<AppError | null>(null);
 
+  const [matchSteps, setMatchSteps] = useState<{ id: string; label: string; status: 'pending' | 'running' | 'success' | 'error' }[]>([
+    { id: 'start', label: 'Iniciando análise da vaga...', status: 'pending' },
+    { id: 'compare', label: 'Comparando sua experiência com os requisitos...', status: 'pending' },
+    { id: 'skills', label: 'Calculando compatibilidade de competências...', status: 'pending' },
+    { id: 'recommend', label: 'Gerando recomendações personalizadas...', status: 'pending' }
+  ]);
+
+  useEffect(() => {
+    if (!isCalculating) {
+      setMatchSteps([
+        { id: 'start', label: 'Iniciando análise da vaga...', status: 'pending' },
+        { id: 'compare', label: 'Comparando sua experiência com os requisitos...', status: 'pending' },
+        { id: 'skills', label: 'Calculando compatibilidade de competências...', status: 'pending' },
+        { id: 'recommend', label: 'Gerando recomendações personalizadas...', status: 'pending' }
+      ]);
+      return;
+    }
+
+    setMatchSteps([
+      { id: 'start', label: 'Iniciando análise da vaga...', status: 'running' },
+      { id: 'compare', label: 'Comparando sua experiência com os requisitos...', status: 'pending' },
+      { id: 'skills', label: 'Calculando compatibilidade de competências...', status: 'pending' },
+      { id: 'recommend', label: 'Gerando recomendações personalizadas...', status: 'pending' }
+    ]);
+
+    const timer1 = setTimeout(() => {
+      setMatchSteps([
+        { id: 'start', label: '✔ Análise iniciada', status: 'success' },
+        { id: 'compare', label: 'Comparando sua experiência com os requisitos...', status: 'running' },
+        { id: 'skills', label: 'Calculando compatibilidade de competências...', status: 'pending' },
+        { id: 'recommend', label: 'Gerando recomendações personalizadas...', status: 'pending' }
+      ]);
+    }, 2800);
+
+    const timer2 = setTimeout(() => {
+      setMatchSteps([
+        { id: 'start', label: '✔ Análise iniciada', status: 'success' },
+        { id: 'compare', label: '✔ Experiências comparadas', status: 'success' },
+        { id: 'skills', label: 'Calculando compatibilidade de competências...', status: 'running' },
+        { id: 'recommend', label: 'Gerando recomendações personalizadas...', status: 'pending' }
+      ]);
+    }, 5600);
+
+    const timer3 = setTimeout(() => {
+      setMatchSteps([
+        { id: 'start', label: '✔ Análise iniciada', status: 'success' },
+        { id: 'compare', label: '✔ Experiências comparadas', status: 'success' },
+        { id: 'skills', label: '✔ Compatibilidade calculada', status: 'success' },
+        { id: 'recommend', label: 'Gerando recomendações personalizadas...', status: 'running' }
+      ]);
+    }, 8800);
+
+    return () => {
+      clearTimeout(timer1);
+      clearTimeout(timer2);
+      clearTimeout(timer3);
+    };
+  }, [isCalculating]);
+
   const handleDeleteAnalyses = async () => {
     if (!userId || !primaryResume || !isSupabaseConfigured || !supabase) return;
     
@@ -919,6 +978,7 @@ export function JobMatchHub({
                   <ProcessingState 
                     title="🎯 Comparando seu perfil com os requisitos da vaga..." 
                     subtitle="A IA está analisando a compatibilidade técnica, de senioridade e de fit comportamental."
+                    steps={matchSteps}
                   />
                 ) : (
                   <div className="h-64 rounded-2xl border border-dashed border-slate-800 dark:border-slate-800 light:border-slate-300 flex flex-col items-center justify-center text-center p-6 text-slate-500 text-xs">
@@ -1221,6 +1281,12 @@ export function JobMatchHub({
                   <EmptyState
                     title="🔍 Ainda não encontramos vagas compatíveis"
                     message="Não localizamos vagas públicas com os filtros fornecidos. Tente ajustar os termos ou alterar a cidade na barra de pesquisa acima."
+                    suggestions={[
+                      "Remover ou simplificar termos de busca adicionais",
+                      "Alterar ou ampliar a localidade (ex: de Cidade para Estado/País)",
+                      "Alternar a opção 'Apenas Remoto'",
+                      "Cadastrar novas competências e experiências no perfil para ampliar a taxonomia"
+                    ]}
                     actionText="Restaurar Busca Padrão"
                     onAction={() => {
                       setSearchKeyword(initialKeyword);

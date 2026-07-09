@@ -2,14 +2,16 @@ import { useState, useRef } from 'react';
 import { CardGlass } from '../components/CardGlass';
 import { useResumeVersions } from '../../application/hooks/useResumeVersions';
 import type { Profile } from '../../domain/models/types';
-import { Upload, FileText, Calendar, Clock, AlertCircle, CheckCircle, ArrowRight } from 'lucide-react';
+import { Upload, FileText, Calendar, Clock, CheckCircle, ArrowRight } from 'lucide-react';
+import { ErrorState, ProcessingState } from '../components/ErrorVisuals';
+import { AppError } from '../../application/errors/AppError';
 
 interface ResumeUploadProps {
   profile: Profile | null;
 }
 
 export function ResumeUpload({ profile }: ResumeUploadProps) {
-  const { versions, uploadVersion, isUploadingVersion, uploadError } = useResumeVersions(profile?.id);
+  const { versions, uploadVersion, isUploadingVersion, uploadError, pipelineSteps } = useResumeVersions(profile?.id);
   
   const [resumeName, setResumeName] = useState('');
   const [professionalGoal, setProfessionalGoal] = useState('');
@@ -151,119 +153,127 @@ export function ResumeUpload({ profile }: ResumeUploadProps) {
               Enviar Novo Currículo
             </h2>
 
-            <form onSubmit={handleSubmit} className="space-y-4">
-              <div className="space-y-1.5">
-                <label className="text-xxs font-bold text-slate-500 uppercase tracking-wider block">
-                  Nome do Currículo
-                </label>
-                <input
-                  type="text"
-                  value={resumeName}
-                  onChange={(e) => setResumeName(e.target.value)}
-                  placeholder="Ex: Currículo CS Pleno 2026"
-                  className="w-full bg-slate-900 border border-slate-800 rounded-xl px-4 py-2.5 text-xs text-slate-200 placeholder-slate-600 focus:outline-none focus:border-brand-500 focus:ring-1 focus:ring-brand-500"
-                />
-              </div>
-
-              <div className="space-y-1.5">
-                <label className="text-xxs font-bold text-slate-500 uppercase tracking-wider block font-sans">
-                  Objetivo Profissional (Opcional)
-                </label>
-                <textarea
-                  value={professionalGoal}
-                  onChange={(e) => setProfessionalGoal(e.target.value)}
-                  placeholder="Ex: Buscar vagas de Liderança de CS em empresas de tecnologia SaaS."
-                  rows={3}
-                  className="w-full bg-slate-900 border border-slate-800 rounded-xl px-4 py-2.5 text-xs text-slate-200 placeholder-slate-600 focus:outline-none focus:border-brand-500 focus:ring-1 focus:ring-brand-500 resize-none font-sans"
-                />
-              </div>
-
-              {/* Dropzone */}
-              <div className="space-y-1.5">
-                <label className="text-xxs font-bold text-slate-500 uppercase tracking-wider block">
-                  Arquivo do Currículo (PDF)
-                </label>
-                <div
-                  onDragEnter={handleDrag}
-                  onDragOver={handleDrag}
-                  onDragLeave={handleDrag}
-                  onDrop={handleDrop}
-                  onClick={() => fileInputRef.current?.click()}
-                  className={`border-2 border-dashed rounded-xl p-6 text-center cursor-pointer transition-all ${
-                    dragActive
-                      ? 'border-brand-500 bg-brand-500/5'
-                      : 'border-slate-800 hover:border-slate-700 bg-slate-900/10'
-                  }`}
-                >
+            {isUploadingVersion ? (
+              <ProcessingState
+                title="Estamos lendo seu currículo 📄"
+                subtitle="Isso pode levar de 10 a 20 segundos dependendo do tamanho do arquivo."
+                steps={pipelineSteps}
+              />
+            ) : (
+              <form onSubmit={handleSubmit} className="space-y-4">
+                <div className="space-y-1.5">
+                  <label className="text-xxs font-bold text-slate-500 uppercase tracking-wider block">
+                    Nome do Currículo
+                  </label>
                   <input
-                    ref={fileInputRef}
-                    type="file"
-                    className="hidden"
-                    accept=".pdf"
-                    onChange={handleFileChange}
+                    type="text"
+                    value={resumeName}
+                    onChange={(e) => setResumeName(e.target.value)}
+                    placeholder="Ex: Currículo CS Pleno 2026"
+                    className="w-full bg-slate-900 border border-slate-800 rounded-xl px-4 py-2.5 text-xs text-slate-200 placeholder-slate-600 focus:outline-none focus:border-brand-500 focus:ring-1 focus:ring-brand-500"
                   />
-                  
-                  <div className="flex flex-col items-center gap-2">
-                    <div className="p-2.5 rounded-lg bg-slate-900 border border-slate-800 text-slate-400">
-                      <Upload size={18} />
-                    </div>
-                    <div>
-                      {selectedFile ? (
-                        <p className="text-xs font-semibold text-brand-400 truncate max-w-[200px] mx-auto">
-                          {selectedFile.name}
+                </div>
+
+                <div className="space-y-1.5">
+                  <label className="text-xxs font-bold text-slate-500 uppercase tracking-wider block font-sans">
+                    Objetivo Profissional (Opcional)
+                  </label>
+                  <textarea
+                    value={professionalGoal}
+                    onChange={(e) => setProfessionalGoal(e.target.value)}
+                    placeholder="Ex: Buscar vagas de Liderança de CS em empresas de tecnologia SaaS."
+                    rows={3}
+                    className="w-full bg-slate-900 border border-slate-800 rounded-xl px-4 py-2.5 text-xs text-slate-200 placeholder-slate-600 focus:outline-none focus:border-brand-500 focus:ring-1 focus:ring-brand-500 resize-none font-sans"
+                  />
+                </div>
+
+                {/* Dropzone */}
+                <div className="space-y-1.5">
+                  <label className="text-xxs font-bold text-slate-500 uppercase tracking-wider block">
+                    Arquivo do Currículo (PDF)
+                  </label>
+                  <div
+                    onDragEnter={handleDrag}
+                    onDragOver={handleDrag}
+                    onDragLeave={handleDrag}
+                    onDrop={handleDrop}
+                    onClick={() => fileInputRef.current?.click()}
+                    className={`border-2 border-dashed rounded-xl p-6 text-center cursor-pointer transition-all ${
+                      dragActive
+                        ? 'border-brand-500 bg-brand-500/5'
+                        : 'border-slate-800 hover:border-slate-700 bg-slate-900/10'
+                    }`}
+                  >
+                    <input
+                      ref={fileInputRef}
+                      type="file"
+                      className="hidden"
+                      accept=".pdf"
+                      onChange={handleFileChange}
+                    />
+                    
+                    <div className="flex flex-col items-center gap-2">
+                      <div className="p-2.5 rounded-lg bg-slate-900 border border-slate-800 text-slate-400">
+                        <Upload size={18} />
+                      </div>
+                      <div>
+                        {selectedFile ? (
+                          <p className="text-xs font-semibold text-brand-400 truncate max-w-[200px] mx-auto">
+                            {selectedFile.name}
+                          </p>
+                        ) : (
+                          <p className="text-xs font-semibold text-slate-300">
+                            Clique ou arraste o PDF aqui
+                          </p>
+                        )}
+                        <p className="text-[10px] text-slate-500 mt-0.5">
+                          Tamanho máximo: 10MB
                         </p>
-                      ) : (
-                        <p className="text-xs font-semibold text-slate-300">
-                          Clique ou arraste o PDF aqui
-                        </p>
-                      )}
-                      <p className="text-[10px] text-slate-500 mt-0.5">
-                        Tamanho máximo: 10MB
-                      </p>
+                      </div>
                     </div>
                   </div>
                 </div>
-              </div>
 
-              {errorMsg && (
-                <div className="p-3.5 rounded-xl bg-red-500/5 border border-red-500/15 text-[10px] text-red-500 leading-relaxed flex items-start gap-2">
-                  <AlertCircle size={14} className="shrink-0 mt-0.5" />
-                  <span>{errorMsg}</span>
-                </div>
-              )}
-
-              {uploadError && (
-                <div className="p-3.5 rounded-xl bg-red-500/5 border border-red-500/15 text-[10px] text-red-500 leading-relaxed flex items-start gap-2">
-                  <AlertCircle size={14} className="shrink-0 mt-0.5" />
-                  <span>{uploadError}</span>
-                </div>
-              )}
-
-              {successMsg && (
-                <div className="p-3.5 rounded-xl bg-emerald-500/5 border border-emerald-500/15 text-[10px] text-emerald-400 leading-relaxed flex items-start gap-2">
-                  <CheckCircle size={14} className="shrink-0 mt-0.5" />
-                  <span>{successMsg}</span>
-                </div>
-              )}
-
-              <button
-                type="submit"
-                disabled={isUploadingVersion}
-                className="w-full bg-brand-500 hover:bg-brand-600 disabled:opacity-50 text-white rounded-xl py-3 text-xs font-bold transition-all flex items-center justify-center gap-2 shadow-lg shadow-brand-500/10 cursor-pointer"
-              >
-                {isUploadingVersion ? (
-                  <>
-                    <span className="h-4 w-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                    <span>Enviando...</span>
-                  </>
-                ) : (
-                  <>
-                    <span>Salvar Currículo</span>
-                    <ArrowRight size={14} />
-                  </>
+                {errorMsg && (
+                  <div className="mb-2">
+                    <ErrorState 
+                      error={new AppError({ 
+                        code: 'RESUME_UPLOAD_INVALID', 
+                        title: 'Não conseguimos ler esse arquivo', 
+                        message: errorMsg, 
+                        severity: 'warning', 
+                        retryable: false 
+                      })} 
+                    />
+                  </div>
                 )}
-              </button>
-            </form>
+
+                {uploadError && (
+                  <div className="mb-2">
+                    <ErrorState 
+                      error={uploadError} 
+                      onRetry={handleSubmit as any} 
+                    />
+                  </div>
+                )}
+
+                {successMsg && (
+                  <div className="p-3.5 rounded-xl bg-emerald-500/5 border border-emerald-500/15 text-[10px] text-emerald-400 leading-relaxed flex items-start gap-2">
+                    <CheckCircle size={14} className="shrink-0 mt-0.5" />
+                    <span>{successMsg}</span>
+                  </div>
+                )}
+
+                <button
+                  type="submit"
+                  disabled={isUploadingVersion}
+                  className="w-full bg-brand-500 hover:bg-brand-600 disabled:opacity-50 text-white rounded-xl py-3 text-xs font-bold transition-all flex items-center justify-center gap-2 shadow-lg shadow-brand-500/10 cursor-pointer font-display"
+                >
+                  <span>Salvar Currículo</span>
+                  <ArrowRight size={14} />
+                </button>
+              </form>
+            )}
           </CardGlass>
         </div>
 

@@ -43,6 +43,10 @@ export function JobMatchHub({
   const [coachTab, setCoachTab] = useState<'coach-evaluation' | 'optimize-cv' | 'cover-letter' | 'interview-questions'>('coach-evaluation');
   const [isDeletingAnalyses, setIsDeletingAnalyses] = useState(false);
   const [appError, setAppError] = useState<AppError | null>(null);
+  const [selectedJobId, setSelectedJobId] = useState<string | null>(jobs[0]?.id || null);
+
+  const selectedJob = jobs.find(j => j.id === selectedJobId);
+  const primaryResume = resumes.find(r => r.isPrimary) || resumes[0];
 
   const [matchSteps, setMatchSteps] = useState<{ id: string; label: string; status: 'pending' | 'running' | 'success' | 'error' }[]>([
     { id: 'preparing', label: 'Preparando dados da vaga...', status: 'pending' },
@@ -83,8 +87,11 @@ export function JobMatchHub({
         return;
       }
 
+      const client = supabase;
+      if (!client || !selectedJob) return;
+
       try {
-        const { data: logs, error } = await supabase
+        const { data: logs, error } = await client
           .from('career_match_logs')
           .select('*')
           .eq('user_id', userId)
@@ -201,7 +208,6 @@ export function JobMatchHub({
     getInterviewPrepQuery 
   } = useCoach(userId);
 
-  const [selectedJobId, setSelectedJobId] = useState<string | null>(jobs[0]?.id || null);
   const [showAddForm, setShowAddForm] = useState(false);
   
   // States para colagem manual de vaga
@@ -211,7 +217,6 @@ export function JobMatchHub({
   const [errorMsg, setErrorMsg] = useState('');
 
   // States para a descoberta de vagas baseada no Career Profile ou fallback
-  const primaryResume = resumes.find(r => r.isPrimary) || resumes[0];
   const initialKeyword = careerProfile?.searchKeywords?.[0] || primaryResume?.skills?.[0]?.name || 'React';
   const initialLocation = careerProfile?.preferredLocations?.[0] || 'Brasil';
   const initialRemote = careerProfile ? careerProfile.preferredWorkModes.includes('remote') : true;
@@ -249,7 +254,6 @@ export function JobMatchHub({
     }
   }, [careerProfile]);
 
-  const selectedJob = jobs.find(j => j.id === selectedJobId);
   const { data: optimization = null } = getResumeOptimizationQuery(primaryResume || null, selectedJob || null);
   const { data: prep = null } = getInterviewPrepQuery(primaryResume || null, selectedJob || null);
   const mockAppId = selectedJob ? `app-mock-${selectedJob.id}` : undefined;

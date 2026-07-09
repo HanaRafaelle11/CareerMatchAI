@@ -159,7 +159,6 @@ export function useResumeVersions(userId: string | undefined) {
         if (logs) {
           const logUploaded = logs.find(l => l.step === 'uploaded');
           const logExtracting = logs.find(l => l.step === 'extracting_text');
-          const logAnalyzing = logs.find(l => l.step === 'analyzing_profile');
           const logIdentifying = logs.find(l => l.step === 'identifying_skills');
           const logCreating = logs.find(l => l.step === 'creating_profile');
           const logFailed = logs.find(l => l.step === 'failed' || l.status === 'failed' || l.status === 'error');

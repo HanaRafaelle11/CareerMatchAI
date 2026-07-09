@@ -28,6 +28,17 @@ const KEYS = {
 };
 
 class LocalDatabase {
+  private getActiveUserId(): string {
+    try {
+      const stored = localStorage.getItem('careermatch_auth_user');
+      if (stored) {
+        const u = JSON.parse(stored);
+        if (u && u.id) return u.id;
+      }
+    } catch (_) {}
+    return 'mock-user-id';
+  }
+
   private init() {
     // Se o Supabase estiver configurado no ambiente, inicia o banco local vazio para não contaminar o usuário com dados mock
     if (isSupabaseConfigured) {
@@ -43,7 +54,7 @@ class LocalDatabase {
 
     if (!localStorage.getItem(KEYS.PROFILE)) {
       const defaultProfile: Profile = {
-        id: 'user-default',
+        id: this.getActiveUserId(),
         fullName: 'Alexandre Silva',
         avatarUrl: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=100&auto=format&fit=crop&q=60&ixlib=rb-4.0.3',
         headline: 'Software Engineer | React, Node.js & AWS',
@@ -60,7 +71,7 @@ class LocalDatabase {
     if (!localStorage.getItem(KEYS.CAREER_PROFILE)) {
       const defaultCareerProfile: CareerProfile = {
         id: 'cp-default',
-        userId: 'user-default',
+        userId: this.getActiveUserId(),
         resumeId: 'resume-123',
         targetRoles: ['Head of Customer Success', 'Customer Success Manager', 'CS Operations Manager'],
         seniority: 'Manager',
@@ -104,7 +115,7 @@ class LocalDatabase {
       const defaultApps: Application[] = [
         {
           id: 'app-1',
-          userId: 'user-default',
+          userId: this.getActiveUserId(),
           matchId: 'match-job-1',
           jobId: 'job-1',
           jobTitle: 'Desenvolvedor Full Stack Senior (React & Node)',
@@ -147,7 +158,7 @@ class LocalDatabase {
       const defaultCompanies: CompanyProfile[] = [
         {
           id: 'cp-company-1',
-          userId: 'user-default',
+          userId: this.getActiveUserId(),
           companyName: 'Stripe Brasil',
           industry: 'Fintech',
           size: 'Grande',
@@ -164,7 +175,7 @@ class LocalDatabase {
         },
         {
           id: 'cp-company-2',
-          userId: 'user-default',
+          userId: this.getActiveUserId(),
           companyName: 'Linear Technologies',
           industry: 'Technology',
           size: 'Média',
@@ -186,7 +197,7 @@ class LocalDatabase {
     if (!localStorage.getItem(KEYS.WEEKLY_PLANNERS)) {
       const defaultPlanner: WeeklyPlanner = {
         id: 'wp-default',
-        userId: 'user-default',
+        userId: this.getActiveUserId(),
         weekNumber: 202628,
         plannerData: {
           'Segunda-feira': {
@@ -197,22 +208,22 @@ class LocalDatabase {
           },
           'Terça-feira': {
             tasks: [
-              { id: 'task-3', text: 'Conversa com RH (Stripe Brasil)', completed: false }
+              { id: 'task-3', text: 'Estudar arquitetura Stripe e preparar pitch', completed: true }
             ]
           },
           'Quarta-feira': {
             tasks: [
-              { id: 'task-4', text: 'Atualizar currículo para versão V2 (ênfase em Node.js)', completed: false }
+              { id: 'task-4', text: 'Entrevista técnica Stripe (React/Node)', completed: false }
             ]
           },
           'Quinta-feira': {
             tasks: [
-              { id: 'task-5', text: 'Fazer simulador de entrevista sobre SQL', completed: false }
+              { id: 'task-5', text: 'Networking no LinkedIn e follow-ups', completed: false }
             ]
           },
           'Sexta-feira': {
             tasks: [
-              { id: 'task-6', text: 'Treinar framework STAR com Coach', completed: false }
+              { id: 'task-6', text: 'Revisar metas da semana e planejar próxima', completed: false }
             ]
           },
           'Sábado': { tasks: [] },
@@ -227,7 +238,7 @@ class LocalDatabase {
     if (!localStorage.getItem(KEYS.WEEKLY_GOALS)) {
       const defaultGoal: WeeklyGoal = {
         id: 'wg-default',
-        userId: 'user-default',
+        userId: this.getActiveUserId(),
         weekNumber: 202628,
         targetApplications: 10,
         targetInterviewsRh: 3,
@@ -242,7 +253,7 @@ class LocalDatabase {
       const defaultCareerGoals: CareerGoal[] = [
         {
           id: 'cg-default',
-          userId: 'user-default',
+          userId: this.getActiveUserId(),
           title: 'Conseguir emprego em Customer Success / Dev até Outubro',
           targetDate: '2026-10-31',
           isActive: true,

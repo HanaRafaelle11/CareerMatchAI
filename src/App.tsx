@@ -233,6 +233,7 @@ function App() {
 
         {activeTab === 'strategy' && (
           <StrategyPage
+            userId={profile?.id}
             careerProfile={careerProfile}
             careerProfileNew={careerProfileNew}
             resumes={resumes}

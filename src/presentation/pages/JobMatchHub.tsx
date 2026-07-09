@@ -973,11 +973,10 @@ export function JobMatchHub({
                 <AlertTriangle size={48} className="mb-4 text-amber-500 animate-pulse" />
                 <h3 className="font-display font-bold text-lg text-slate-200">Adzuna API não configurada</h3>
                 <p className="text-slate-400 text-xs text-center mt-2 max-w-sm leading-relaxed">
-                  Para habilitar a descoberta de vagas públicas integradas com a IA, você deve configurar suas credenciais do Adzuna no arquivo <code>.env</code> do projeto:
+                  Para habilitar a descoberta de vagas públicas integradas com a IA, você deve configurar suas credenciais do Adzuna no cofre do Supabase:
                 </p>
                 <pre className="p-3.5 mt-4 rounded-xl bg-slate-950 border border-slate-900 text-[10px] text-brand-400 text-left font-mono select-all w-full overflow-x-auto">
-                  VITE_ADZUNA_APP_ID=seu_app_id{"\n"}
-                  VITE_ADZUNA_APP_KEY=sua_app_key
+                  supabase secrets set ADZUNA_APP_ID=seu_app_id ADZUNA_APP_KEY=sua_app_key
                 </pre>
                 <p className="text-slate-500 text-[10px] text-center mt-3 leading-relaxed">
                   Obtenha chaves de acesso gratuitas criando uma conta de desenvolvedor no portal oficial da Adzuna.

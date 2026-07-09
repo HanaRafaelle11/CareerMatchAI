@@ -123,7 +123,8 @@ export function useAuth() {
     } else {
       // Simulação local
       await new Promise(resolve => setTimeout(resolve, 800));
-      const mockUserObj = { id: 'user-default', email };
+      const mockUserId = btoa(email).replace(/[^a-zA-Z0-9]/g, '').slice(0, 12);
+      const mockUserObj = { id: mockUserId, email };
       localStorage.setItem('careermatch_auth_user', JSON.stringify(mockUserObj));
       setUser(mockUserObj);
       setProfile(localDB.getProfile());
@@ -160,7 +161,8 @@ export function useAuth() {
     } else {
       // Simulação local
       await new Promise(resolve => setTimeout(resolve, 1000));
-      const mockUserObj = { id: 'user-default', email };
+      const mockUserId = btoa(email).replace(/[^a-zA-Z0-9]/g, '').slice(0, 12);
+      const mockUserObj = { id: mockUserId, email };
       localStorage.setItem('careermatch_auth_user', JSON.stringify(mockUserObj));
       localDB.updateProfile({ fullName, headline: 'Novo Usuário | CareerMatch AI' });
       setUser(mockUserObj);
@@ -182,7 +184,8 @@ export function useAuth() {
       setLoading(true);
       await new Promise(resolve => setTimeout(resolve, 1200));
       const email = `${provider}_user@example.com`;
-      const mockUserObj = { id: 'user-default', email };
+      const mockUserId = btoa(email).replace(/[^a-zA-Z0-9]/g, '').slice(0, 12);
+      const mockUserObj = { id: mockUserId, email };
       localStorage.setItem('careermatch_auth_user', JSON.stringify(mockUserObj));
       localDB.updateProfile({
         fullName: provider === 'google' ? 'Google Candidate User' : 'GitHub Developer User',

@@ -5,6 +5,7 @@ import { localDB } from '../../infrastructure/storage/localDatabase';
 import type { Job } from '../../domain/models/types';
 import type { JobSearchFilters } from '../../domain/adapters/BaseJobConnector';
 import type { CareerProfileNew } from './useMyProfileAi';
+import { AppError } from '../errors/AppError';
 
 export function useJobDiscovery(
   userId: string | undefined, 
@@ -76,7 +77,13 @@ export function useJobDiscovery(
       });
     },
     enabled: !!userId, // Habilitado sempre que o usuário estiver logado
-    retry: false // Evita retrying infinito em caso de chaves de API ausentes
+    retry: false, // Evita retrying infinito em caso de chaves de API ausentes
+    staleTime: 5 * 60 * 1000, // 5 minutos — evita refetch desnecessário da Adzuna
+    meta: {
+      onError: (err: any) => {
+        AppError.logError(err, supabase, 'useJobDiscovery.discoverJobs', userId);
+      }
+    }
   });
 
   const importJobMutation = useMutation({

@@ -597,7 +597,13 @@ serve(async (req) => {
       throw new Error("Arquivo excede limite permitido.");
     }
 
+    // Validar content-type — rejeitar tipos perigosos antes da extração
     const contentType = fileData.type || 'application/pdf';
+    const dangerousTypes = ['image/svg+xml', 'text/html', 'application/javascript', 'application/x-executable', 'application/x-msdownload'];
+    if (dangerousTypes.some(t => contentType.includes(t))) {
+      await logProcessingStep(supabaseClient, resumeVersionId, 'extracting_text', 'failed', `Tipo de arquivo não permitido: ${contentType}`, {}, userId);
+      throw new Error("Tipo de arquivo não permitido. Envie apenas PDF, DOCX ou TXT.");
+    }
 
     // 3. Extrair texto usando a biblioteca local (unpdf/mammoth)
     console.log(`[EDGE FUNCTION] Extraindo texto...`)
@@ -617,6 +623,10 @@ serve(async (req) => {
       throw new Error("Não conseguimos extrair texto automaticamente.");
     }
 
+    // Truncar texto a 30.000 caracteres para prevenir prompt injection via currículo gigante
+    const MAX_TEXT_LENGTH = 30000;
+    const truncatedText = text.length > MAX_TEXT_LENGTH ? text.substring(0, MAX_TEXT_LENGTH) : text;
+
     // Etapa 2: extracting_text - Concluída
     await logProcessingStep(supabaseClient, resumeVersionId, 'extracting_text', 'completed', 'Texto extraído com sucesso', { pageCount, textLength: text.length }, userId);
 
@@ -633,7 +643,7 @@ serve(async (req) => {
     console.log(`[EDGE FUNCTION] Enviando para Gemini 2.5 Flash...`)
     let parsedData;
     try {
-      parsedData = await ResumeParserService.parseWithGemini(text, supabaseClient, userId, isMockEnabled);
+      parsedData = await ResumeParserService.parseWithGemini(truncatedText, supabaseClient, userId, isMockEnabled);
     } catch (geminiErr) {
       await logProcessingStep(supabaseClient, resumeVersionId, 'analyzing_profile', 'failed', geminiErr.message, {}, userId);
       await logApplicationEvent(supabaseClient, userId, 'gemini_request_failed', 'Gemini', 'failed', { error: geminiErr.message });

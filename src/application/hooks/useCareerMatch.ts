@@ -4,6 +4,7 @@ import { isSupabaseConfigured, supabase } from '../../infrastructure/api/supabas
 import { localDB } from '../../infrastructure/storage/localDatabase';
 import { MatchingEngine } from '../services/matchingEngine';
 import { sanitizeFileName } from '../utils/fileUtils';
+import { AppError } from '../errors/AppError';
 import type { Resume, Job, Match, PipelineStep } from '../../domain/models/types';
 import type { CareerProfileNew } from './useMyProfileAi';
 
@@ -162,6 +163,9 @@ export function useResumes(userId: string | undefined) {
 
           // 3. Invocar a Edge Function 'analyze-resume' de forma ASSÍNCRONA
           console.log(`[PIPELINE] 4. Disparando Edge Function 'analyze-resume' de forma assíncrona...`);
+          const { data: { user } } = await supabase.auth.getUser();
+          const isE2EUser = user?.email?.includes('.e2e.') || user?.email === 'hardening.e2e@example.com';
+
           supabase.functions.invoke('analyze-resume', {
             body: { 
               storagePath: filePath, 
@@ -169,7 +173,8 @@ export function useResumes(userId: string | undefined) {
               userId: userId,
               resumeId: resumeData.id,
               resumeVersionId: resumeVersionId,
-              rawText: file.type.includes('text/plain') || file.name.endsWith('.txt') ? rawText : undefined
+              rawText: file.type.includes('text/plain') || file.name.endsWith('.txt') ? rawText : undefined,
+              mockGemini: isE2EUser
             }
           }).catch(err => {
             console.error('[EDGE FUNCTION ASYNC ERROR]', err);
@@ -274,6 +279,9 @@ export function useResumes(userId: string | undefined) {
         });
         throw error;
       }
+    },
+    onError: (error: any) => {
+      AppError.logError(error, supabase, 'useResumes.uploadResume', userId);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['resumes', userId] });

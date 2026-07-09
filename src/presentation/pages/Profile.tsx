@@ -84,7 +84,40 @@ export function Profile({
     }
   };
 
+  const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10 MB
+  const DANGEROUS_EXTENSIONS = ['.svg', '.html', '.htm', '.js', '.jsx', '.ts', '.tsx', '.exe', '.bat', '.sh', '.php', '.py', '.rb', '.cmd', '.msi', '.dll', '.com', '.vbs', '.ps1'];
+
+  /** Remove tags HTML/script para prevenção de XSS stored */
+  const sanitizeText = (text: string): string => {
+    return text
+      .replace(/<script[\s\S]*?<\/script>/gi, '')
+      .replace(/<style[\s\S]*?<\/style>/gi, '')
+      .replace(/<[^>]+>/g, '')
+      .replace(/on\w+\s*=\s*["'][^"']*["']/gi, '')
+      .replace(/javascript:/gi, '');
+  };
+
   const processFile = async (file: File) => {
+    // 1. Validação de tamanho
+    if (file.size > MAX_FILE_SIZE) {
+      setErrorMsg(`Arquivo muito grande (${(file.size / 1024 / 1024).toFixed(1)} MB). O limite máximo é 10 MB.`);
+      return;
+    }
+
+    // 2. Validação de tamanho mínimo (arquivo vazio)
+    if (file.size === 0) {
+      setErrorMsg('O arquivo está vazio. Selecione um currículo válido.');
+      return;
+    }
+
+    // 3. Validação de extensão perigosa
+    const fileExtension = '.' + file.name.split('.').pop()?.toLowerCase();
+    if (DANGEROUS_EXTENSIONS.includes(fileExtension)) {
+      setErrorMsg(`Tipo de arquivo "${fileExtension}" não é permitido. Envie apenas PDF, DOCX ou TXT.`);
+      return;
+    }
+
+    // 4. Validação de tipo MIME
     const allowedTypes = ['application/pdf', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 'text/plain'];
     if (!allowedTypes.includes(file.type) && !file.name.endsWith('.pdf') && !file.name.endsWith('.docx') && !file.name.endsWith('.txt')) {
       setErrorMsg('Apenas arquivos PDF, DOCX ou TXT são suportados.');
@@ -100,6 +133,15 @@ export function Profile({
           reader.onload = () => resolve(reader.result as string);
           reader.readAsText(file);
         });
+
+        // 5. Validação de conteúdo mínimo para TXT
+        if (rawText.trim().length < 50) {
+          setErrorMsg('O conteúdo do currículo é muito curto (menos de 50 caracteres). Envie um currículo mais completo.');
+          return;
+        }
+
+        // 6. Sanitização anti-XSS do texto
+        rawText = sanitizeText(rawText);
       } else if (!isSupabaseConfigured) {
         // PDF/DOCX sem Supabase: orienta o usuário claramente
         setErrorMsg('Para analisar arquivos PDF/DOCX, conecte o Supabase nas configurações. Como alternativa, salve seu currículo como .TXT e faça o upload.');

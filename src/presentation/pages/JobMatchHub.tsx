@@ -45,63 +45,114 @@ export function JobMatchHub({
   const [appError, setAppError] = useState<AppError | null>(null);
 
   const [matchSteps, setMatchSteps] = useState<{ id: string; label: string; status: 'pending' | 'running' | 'success' | 'error' }[]>([
-    { id: 'start', label: 'Iniciando análise da vaga...', status: 'pending' },
-    { id: 'compare', label: 'Comparando sua experiência com os requisitos...', status: 'pending' },
-    { id: 'skills', label: 'Calculando compatibilidade de competências...', status: 'pending' },
-    { id: 'recommend', label: 'Gerando recomendações personalizadas...', status: 'pending' }
+    { id: 'preparing', label: 'Preparando dados da vaga...', status: 'pending' },
+    { id: 'analyzing_resume', label: 'Analisando perfil profissional...', status: 'pending' },
+    { id: 'comparing_job', label: 'Comparando currículo e requisitos...', status: 'pending' },
+    { id: 'generating_score', label: 'Calculando pontuação de compatibilidade...', status: 'pending' }
   ]);
 
   useEffect(() => {
-    if (!isCalculating) {
+    if (!isCalculating || !userId || !selectedJob?.id || !isSupabaseConfigured || !supabase) {
       setMatchSteps([
-        { id: 'start', label: 'Iniciando análise da vaga...', status: 'pending' },
-        { id: 'compare', label: 'Comparando sua experiência com os requisitos...', status: 'pending' },
-        { id: 'skills', label: 'Calculando compatibilidade de competências...', status: 'pending' },
-        { id: 'recommend', label: 'Gerando recomendações personalizadas...', status: 'pending' }
+        { id: 'preparing', label: 'Preparando dados da vaga...', status: 'pending' },
+        { id: 'analyzing_resume', label: 'Analisando perfil profissional...', status: 'pending' },
+        { id: 'comparing_job', label: 'Comparando currículo e requisitos...', status: 'pending' },
+        { id: 'generating_score', label: 'Calculando pontuação de compatibilidade...', status: 'pending' }
       ]);
       return;
     }
 
-    setMatchSteps([
-      { id: 'start', label: 'Iniciando análise da vaga...', status: 'running' },
-      { id: 'compare', label: 'Comparando sua experiência com os requisitos...', status: 'pending' },
-      { id: 'skills', label: 'Calculando compatibilidade de competências...', status: 'pending' },
-      { id: 'recommend', label: 'Gerando recomendações personalizadas...', status: 'pending' }
-    ]);
+    let isSubscribed = true;
+    let timeoutId: any = null;
+    const pollingStartTime = Date.now();
 
-    const timer1 = setTimeout(() => {
-      setMatchSteps([
-        { id: 'start', label: '✔ Análise iniciada', status: 'success' },
-        { id: 'compare', label: 'Comparando sua experiência com os requisitos...', status: 'running' },
-        { id: 'skills', label: 'Calculando compatibilidade de competências...', status: 'pending' },
-        { id: 'recommend', label: 'Gerando recomendações personalizadas...', status: 'pending' }
-      ]);
-    }, 2800);
+    const fetchMatchLogs = async () => {
+      if (!isSubscribed) return;
 
-    const timer2 = setTimeout(() => {
-      setMatchSteps([
-        { id: 'start', label: '✔ Análise iniciada', status: 'success' },
-        { id: 'compare', label: '✔ Experiências comparadas', status: 'success' },
-        { id: 'skills', label: 'Calculando compatibilidade de competências...', status: 'running' },
-        { id: 'recommend', label: 'Gerando recomendações personalizadas...', status: 'pending' }
-      ]);
-    }, 5600);
+      const elapsedSeconds = (Date.now() - pollingStartTime) / 1000;
 
-    const timer3 = setTimeout(() => {
-      setMatchSteps([
-        { id: 'start', label: '✔ Análise iniciada', status: 'success' },
-        { id: 'compare', label: '✔ Experiências comparadas', status: 'success' },
-        { id: 'skills', label: '✔ Compatibilidade calculada', status: 'success' },
-        { id: 'recommend', label: 'Gerando recomendações personalizadas...', status: 'running' }
-      ]);
-    }, 8800);
+      // Timeout de 5 minutos (300 segundos)
+      if (elapsedSeconds >= 300) {
+        setAppError(new AppError({
+          code: 'AI_TIMEOUT',
+          title: 'Tempo Excedido',
+          message: 'Seu match está demorando mais que o esperado. Continuaremos processando em segundo plano. Você pode retornar depois.',
+          severity: 'warning',
+          retryable: false
+        }));
+        return;
+      }
+
+      try {
+        const { data: logs, error } = await supabase
+          .from('career_match_logs')
+          .select('*')
+          .eq('user_id', userId)
+          .eq('job_id', selectedJob.id)
+          .order('created_at', { ascending: true });
+
+        if (error) throw error;
+
+        if (logs && isSubscribed) {
+          const logPreparing = logs.find(l => l.step === 'preparing');
+          const logAnalyzing = logs.find(l => l.step === 'analyzing_resume');
+          const logComparing = logs.find(l => l.step === 'comparing_job');
+          const logGenerating = logs.find(l => l.step === 'generating_score');
+          const logCompleted = logs.find(l => l.step === 'completed' || l.status === 'success');
+          const logFailed = logs.find(l => l.step === 'failed' || l.status === 'failed' || l.status === 'error');
+
+          const steps = [
+            { 
+              id: 'preparing', 
+              label: logPreparing?.status === 'completed' || logPreparing?.status === 'success' ? '✔ Preparando dados da vaga' : logPreparing?.status === 'running' ? 'Preparando dados da vaga...' : 'Aguardando inicialização...', 
+              status: logPreparing?.status === 'completed' || logPreparing?.status === 'success' ? 'success' : logPreparing?.status === 'running' ? 'running' : 'pending' 
+            },
+            { 
+              id: 'analyzing_resume', 
+              label: logAnalyzing?.status === 'completed' || logAnalyzing?.status === 'success' ? '✔ Analisando perfil profissional' : logAnalyzing?.status === 'running' ? 'Analisando perfil profissional...' : 'Aguardando perfil...', 
+              status: logAnalyzing?.status === 'completed' || logAnalyzing?.status === 'success' ? 'success' : logAnalyzing?.status === 'running' ? 'running' : 'pending' 
+            },
+            { 
+              id: 'comparing_job', 
+              label: logComparing?.status === 'completed' || logComparing?.status === 'success' ? '✔ Comparando currículo e requisitos' : logComparing?.status === 'running' ? 'Comparando currículo e requisitos...' : 'Aguardando comparação...', 
+              status: logComparing?.status === 'completed' || logComparing?.status === 'success' ? 'success' : logComparing?.status === 'running' ? 'running' : 'pending' 
+            },
+            { 
+              id: 'generating_score', 
+              label: logGenerating?.status === 'completed' || logGenerating?.status === 'success' ? '✔ Calculando pontuação de compatibilidade' : logGenerating?.status === 'running' ? 'Calculando pontuação de compatibilidade...' : 'Aguardando pontuação...', 
+              status: logGenerating?.status === 'completed' || logGenerating?.status === 'success' ? 'success' : logGenerating?.status === 'running' ? 'running' : 'pending' 
+            }
+          ];
+
+          setMatchSteps(steps as any);
+
+          if (logCompleted || logFailed || logs.some(l => l.step === 'completed' || l.step === 'failed')) {
+            // Parar imediatamente se concluído ou falhado
+            return;
+          }
+        }
+      } catch (err) {
+        console.error("Erro ao carregar logs do match:", err);
+      }
+
+      // Definir delay de polling adaptativo
+      let delayMs = 2000;
+      if (elapsedSeconds > 120) {
+        delayMs = 10000;
+      } else if (elapsedSeconds > 30) {
+        delayMs = 5000;
+      }
+
+      timeoutId = setTimeout(fetchMatchLogs, delayMs);
+    };
+
+    fetchMatchLogs();
 
     return () => {
-      clearTimeout(timer1);
-      clearTimeout(timer2);
-      clearTimeout(timer3);
+      isSubscribed = false;
+      if (timeoutId) clearTimeout(timeoutId);
     };
-  }, [isCalculating]);
+  }, [isCalculating, userId, selectedJob?.id]);
 
   const handleDeleteAnalyses = async () => {
     if (!userId || !primaryResume || !isSupabaseConfigured || !supabase) return;

@@ -443,6 +443,39 @@ serve(async (req) => {
       global: { headers: { Authorization: authHeader } }
     })
 
+    if (!resumeVersionId) {
+      console.error(`[ANALYZE RESUME] Erro: resumeVersionId está ausente no payload.`);
+      return new Response(
+        JSON.stringify({ 
+          error: "A versão do currículo não foi criada ou não pôde ser identificada no pipeline." 
+        }),
+        { 
+          status: 400, 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+        }
+      );
+    }
+
+    // Verificar se a versão do currículo existe no banco de dados
+    const { data: versionExists, error: versionCheckError } = await supabaseClient
+      .from('resume_versions')
+      .select('id')
+      .eq('id', resumeVersionId)
+      .maybeSingle();
+
+    if (versionCheckError || !versionExists) {
+      console.error(`[ANALYZE RESUME] Erro: Versão do currículo com ID ${resumeVersionId} não encontrada no banco.`, versionCheckError);
+      return new Response(
+        JSON.stringify({ 
+          error: "A versão do currículo não foi criada ou não pôde ser identificada no banco de dados." 
+        }),
+        { 
+          status: 400, 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+        }
+      );
+    }
+
     // 1. Atualizar status para 'processing'
     await supabaseClient
       .from('resume_versions')
@@ -486,6 +519,11 @@ serve(async (req) => {
     await logProcessingStep(supabaseClient, resumeVersionId, 'gemini_completed', 'success');
 
     // 5. Salvar perfil de carreira (dados puros extraídos)
+    console.log(`[ANALYZE RESUME]
+resumeVersionId: ${resumeVersionId}
+userId: ${userId}
+careerProfile payload:`, JSON.stringify(parsedData.career_profile || {}));
+
     console.log(`[EDGE FUNCTION] Salvando perfil de carreira...`)
     const careerProfile = await ResumeParserService.saveCareerProfile(
       supabaseClient, 

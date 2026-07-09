@@ -19,8 +19,17 @@ serve(async (req) => {
 
     if (!appId || !appKey) {
       console.error("[JOB SEARCH] Erro: ADZUNA_APP_ID ou ADZUNA_APP_KEY não configurada nos segredos do Supabase.");
+      const msg = "O provedor de busca de vagas Adzuna não está configurado. Configure as credenciais no cofre do Supabase para ativar as buscas.";
       return new Response(
-        JSON.stringify({ error: "API_NOT_CONFIGURED: As credenciais da API do Adzuna não estão configuradas no Supabase." }),
+        JSON.stringify({ 
+          success: false, 
+          error: msg, 
+          errorDetails: { 
+            code: "API_NOT_CONFIGURED", 
+            userMessage: msg, 
+            retryable: false 
+          } 
+        }),
         { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
@@ -49,8 +58,18 @@ results: ${resultsCount}`);
     );
   } catch (error) {
     console.error("[JOB SEARCH] Exceção na busca de vagas:", error);
+    const msg = "O serviço de busca de vagas está temporariamente fora de serviço. Tente novamente mais tarde.";
     return new Response(
-      JSON.stringify({ error: error.message || String(error) }),
+      JSON.stringify({ 
+        success: false, 
+        error: msg, 
+        errorDetails: { 
+          code: "JOB_SEARCH_UNAVAILABLE", 
+          userMessage: msg, 
+          retryable: true,
+          details: error.message 
+        } 
+      }),
       { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   }

@@ -7,8 +7,10 @@ import { CareerCoachService } from '../../application/services/CareerCoachServic
 import { MatchingEngine } from '../../application/services/matchingEngine';
 import type { Job, Resume, Match, CareerProfile } from '../../domain/models/types';
 import type { CareerProfileNew } from '../../application/hooks/useMyProfileAi';
-import { Play, Clipboard, Award, CheckCircle, AlertTriangle, AlertCircle, X, ChevronRight, BookOpen, Plus, Compass, Search, MapPin, Loader2, ArrowUpRight, Flame, Sparkles, Trash2 } from 'lucide-react';
+import { Play, Clipboard, Award, CheckCircle, AlertTriangle, AlertCircle, X, ChevronRight, BookOpen, Plus, Search, MapPin, Loader2, ArrowUpRight, Flame, Sparkles, Trash2 } from 'lucide-react';
 import { isSupabaseConfigured, supabase } from '../../infrastructure/api/supabaseClient';
+import { AppError } from '../../application/errors/AppError';
+import { ErrorState, EmptyState, ProcessingState } from '../components/ErrorVisuals';
 
 interface JobMatchHubProps {
   userId: string | undefined;
@@ -40,6 +42,7 @@ export function JobMatchHub({
   const [subTab, setSubTab] = useState<'my-jobs' | 'discover'>('my-jobs');
   const [coachTab, setCoachTab] = useState<'coach-evaluation' | 'optimize-cv' | 'cover-letter' | 'interview-questions'>('coach-evaluation');
   const [isDeletingAnalyses, setIsDeletingAnalyses] = useState(false);
+  const [appError, setAppError] = useState<AppError | null>(null);
 
   const handleDeleteAnalyses = async () => {
     if (!userId || !primaryResume || !isSupabaseConfigured || !supabase) return;
@@ -72,7 +75,9 @@ export function JobMatchHub({
       window.location.reload();
     } catch (err: any) {
       console.error("Erro ao apagar análises:", err);
-      alert(`Erro ao apagar análises: ${err.message || err}`);
+      const formatted = AppError.from(err);
+      setAppError(formatted);
+      AppError.logError(err, supabase, 'JobMatchHub.handleDeleteAnalyses', userId);
     } finally {
       setIsDeletingAnalyses(false);
     }
@@ -185,7 +190,9 @@ export function JobMatchHub({
       setShowAddForm(false);
       setSelectedJobId(newJob.id);
     } catch (err: any) {
-      setErrorMsg('Falha ao salvar a vaga.');
+      const formatted = AppError.from(err);
+      setAppError(formatted);
+      AppError.logError(err, supabase, 'JobMatchHub.handleAddJob', userId);
     }
   };
 
@@ -198,6 +205,7 @@ export function JobMatchHub({
     if (!jobToMatch) return;
 
     setErrorMsg('');
+    setAppError(null);
     try {
       await onCalculateMatch({
         resume: primaryResume,
@@ -205,7 +213,9 @@ export function JobMatchHub({
         consolidatedProfile: careerProfileNew  // injeta o perfil consolidado
       });
     } catch (err: any) {
-      setErrorMsg('Falha ao processar o cálculo de compatibilidade da vaga.');
+      const formatted = AppError.from(err);
+      setAppError(formatted);
+      AppError.logError(err, supabase, 'JobMatchHub.handleTriggerMatch', userId);
     }
   };
 
@@ -220,6 +230,7 @@ export function JobMatchHub({
 
   const handleImportAndMatch = async (discJob: any) => {
     setErrorMsg('');
+    setAppError(null);
     try {
       // Importa a vaga para a lista do usuário
       const imported = await importJob(discJob);
@@ -229,7 +240,9 @@ export function JobMatchHub({
       // Executa o match automaticamente
       await handleTriggerMatch(imported as any);
     } catch (err: any) {
-      setErrorMsg('Falha ao importar e analisar a vaga.');
+      const formatted = AppError.from(err);
+      setAppError(formatted);
+      AppError.logError(err, supabase, 'JobMatchHub.handleImportAndMatch', userId);
     }
   };
 
@@ -297,12 +310,34 @@ export function JobMatchHub({
         </button>
       </div>
 
-      {errorMsg && (
-        <div className="p-4 rounded-xl bg-red-500/10 border border-red-500/20 flex items-center gap-3 text-red-400 text-xs">
-          <AlertCircle size={16} className="shrink-0" />
-          <span>{errorMsg}</span>
-        </div>
-      )}
+      {appError ? (
+        <ErrorState
+          error={appError}
+          onRetry={() => {
+            setAppError(null);
+            setErrorMsg('');
+            if (subTab === 'discover') {
+              setActiveFilters(prev => ({ ...prev }));
+            } else {
+              handleTriggerMatch();
+            }
+          }}
+          onAction={() => {
+            setAppError(null);
+            setErrorMsg('');
+          }}
+        />
+      ) : errorMsg ? (
+        <ErrorState
+          error={new AppError({
+            code: 'VALIDATION_ERROR',
+            title: 'Validação de Dados',
+            message: errorMsg,
+            severity: 'warning',
+            retryable: false
+          })}
+        />
+      ) : null}
 
       {/* Modal de colagem de vaga manual */}
       {showAddForm && (
@@ -488,13 +523,32 @@ export function JobMatchHub({
                       <div className="space-y-4">
                         <CardGlass className="flex flex-col justify-center space-y-4">
                           <div>
-                            <span className="text-[10px] text-slate-500 font-bold uppercase tracking-wider">Score Geral de Compatibilidade</span>
-                            <h2 className="font-display font-extrabold text-5xl text-brand-500 mt-1">
-                              {currentMatch.scoreOverall}%
-                            </h2>
-                            <p className="text-xs text-slate-400 mt-2">
-                              Baseado no seu perfil consolidado de career_profiles.
+                            <span className="text-[10px] text-slate-500 font-bold uppercase tracking-wider">Compatibilidade Geral</span>
+                            <div className="flex items-baseline gap-2 mt-1">
+                              <h2 className="font-display font-extrabold text-5xl text-brand-500">
+                                {currentMatch.scoreOverall}%
+                              </h2>
+                              <span className="text-[10px] px-2 py-0.5 rounded-full border border-slate-800 bg-slate-900 text-slate-400 font-semibold">
+                                {currentMatch.scoreOverall >= 90 ? 'Excelente 🔥' : currentMatch.scoreOverall >= 70 ? 'Boa ⚡' : 'Regular ⚠️'}
+                              </span>
+                            </div>
+                            <p className="text-xs text-slate-400 mt-3 leading-relaxed">
+                              {currentMatch.scoreOverall >= 90
+                                ? 'Seu currículo possui um excelente alinhamento com os requisitos técnicos e comportamentais exigidos por esta oportunidade.'
+                                : currentMatch.scoreOverall >= 70
+                                ? 'Há uma boa compatibilidade com os requisitos principais. Com pequenos ajustes, suas chances podem aumentar ainda mais.'
+                                : 'Compatibilidade moderada. Recomendamos otimizar as seções e palavras-chave de seu currículo para esta oportunidade.'}
                             </p>
+                          </div>
+                          
+                          <div className="pt-2 border-t border-slate-900">
+                            <button
+                              onClick={() => setCoachTab('optimize-cv')}
+                              className="w-full py-2 rounded-xl bg-brand-500/10 hover:bg-brand-500/20 border border-brand-500/20 text-brand-400 text-[10px] font-bold tracking-wider uppercase transition font-display flex items-center justify-center gap-1"
+                            >
+                              <Sparkles size={11} />
+                              Melhorar meu currículo para essa vaga
+                            </button>
                           </div>
 
                           <div className="grid grid-cols-2 gap-4 pt-4 border-t border-slate-900 dark:border-slate-900 light:border-slate-200">
@@ -861,6 +915,11 @@ export function JobMatchHub({
                       )}
                     </CardGlass>
                   </div>
+                ) : isCalculating ? (
+                  <ProcessingState 
+                    title="🎯 Comparando seu perfil com os requisitos da vaga..." 
+                    subtitle="A IA está analisando a compatibilidade técnica, de senioridade e de fit comportamental."
+                  />
                 ) : (
                   <div className="h-64 rounded-2xl border border-dashed border-slate-800 dark:border-slate-800 light:border-slate-300 flex flex-col items-center justify-center text-center p-6 text-slate-500 text-xs">
                     <Clipboard size={28} className="mb-2 text-slate-600" />
@@ -1041,10 +1100,10 @@ export function JobMatchHub({
 
                 {/* Listagem de Resultados */}
                 {isLoadingDiscovery ? (
-                  <div className="py-20 text-center flex flex-col items-center justify-center text-slate-500 text-xs">
-                    <Loader2 size={32} className="animate-spin text-brand-500 mb-3" />
-                    <span>Consultando bases de dados do Adzuna e unificando vagas...</span>
-                  </div>
+                  <ProcessingState
+                    title="🔎 Procurando oportunidades compatíveis..."
+                    subtitle="Consultando bases de dados do Adzuna e unificando vagas com IA."
+                  />
                 ) : scoredDiscoveredJobs.length > 0 ? (
                   <div className="space-y-6">
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -1159,10 +1218,20 @@ export function JobMatchHub({
                     </div>
                   </div>
                 ) : (
-                  <div className="py-20 text-center border border-dashed border-slate-800 rounded-2xl flex flex-col items-center justify-center text-slate-500 text-xs">
-                    <Compass size={32} className="mb-2 text-slate-600" />
-                    <span>Nenhuma vaga encontrada para estes filtros. Tente ajustar o termo de pesquisa ou a localidade.</span>
-                  </div>
+                  <EmptyState
+                    title="🔍 Ainda não encontramos vagas compatíveis"
+                    message="Não localizamos vagas públicas com os filtros fornecidos. Tente ajustar os termos ou alterar a cidade na barra de pesquisa acima."
+                    actionText="Restaurar Busca Padrão"
+                    onAction={() => {
+                      setSearchKeyword(initialKeyword);
+                      setSearchLocation(initialLocation);
+                      setActiveFilters({
+                        keyword: initialKeyword,
+                        location: initialLocation,
+                        remoteOnly: initialRemote
+                      });
+                    }}
+                  />
                 )}
               </>
             )}

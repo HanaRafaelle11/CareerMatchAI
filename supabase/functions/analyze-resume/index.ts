@@ -622,8 +622,29 @@ careerProfile payload:`, JSON.stringify(parsedData.career_profile || {}));
       }
     }
 
+    let code = "PARSE_ERROR";
+    let userMessage = "Não foi possível processar ou extrair as informações do seu currículo. Por favor, verifique se o arquivo PDF está legível e tente novamente.";
+    let retryable = true;
+
+    if (error.message?.includes('Gemini') || error.message?.includes('GEMINI')) {
+      code = "AI_ERROR";
+      userMessage = "O serviço de inteligência artificial falhou durante a estruturação de dados. Tente novamente em instantes.";
+    } else if (error.message?.includes('timeout') || error.message?.includes('fetch')) {
+      code = "AI_TIMEOUT";
+      userMessage = "Nossa inteligência artificial demorou mais que o esperado para estruturar suas experiências. Tente novamente.";
+    }
+
     return new Response(
-      JSON.stringify({ error: `Erro no pipeline do parser: ${error.message}` }),
+      JSON.stringify({ 
+        success: false, 
+        error: userMessage, 
+        errorDetails: { 
+          code, 
+          userMessage, 
+          retryable, 
+          details: error.message 
+        } 
+      }),
       { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     )
   }

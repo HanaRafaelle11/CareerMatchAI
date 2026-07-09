@@ -295,8 +295,35 @@ serve(async (req) => {
     )
   } catch (error) {
     console.error(`[EDGE FUNCTION] Erro ao calcular match:`, error)
+    
+    let code = "AI_ERROR";
+    let userMessage = "Ocorreu um erro no cálculo de compatibilidade da vaga.";
+    let retryable = true;
+    
+    if (error.message?.includes('Limit') || error.message?.includes('excedido')) {
+      code = "RATE_LIMIT_EXCEEDED";
+      userMessage = "Limite de requisições excedido. Você pode fazer no máximo 10 chamadas para 'job-matching' por hora.";
+      retryable = false;
+    } else if (error.message?.includes('GEMINI_API_KEY')) {
+      code = "API_NOT_CONFIGURED";
+      userMessage = "O motor de inteligência artificial Gemini não está configurado nos segredos do Supabase.";
+      retryable = false;
+    } else if (error.message?.includes('timeout') || error.message?.includes('fetch')) {
+      code = "AI_TIMEOUT";
+      userMessage = "A requisição para o Gemini demorou mais do que o esperado. Tente novamente.";
+    }
+
     return new Response(
-      JSON.stringify({ error: `Erro no pipeline do match: ${error.message}` }),
+      JSON.stringify({ 
+        success: false, 
+        error: userMessage, 
+        errorDetails: { 
+          code, 
+          userMessage, 
+          retryable, 
+          details: error.message 
+        } 
+      }),
       { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     )
   }

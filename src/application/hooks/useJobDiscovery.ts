@@ -14,7 +14,7 @@ export function useJobDiscovery(
 ) {
   const queryClient = useQueryClient();
 
-  const discoveryQuery = useQuery<Omit<Job, 'id' | 'userId' | 'createdAt' | 'updatedAt'>[]>({
+  const discoveryQuery = useQuery<{ results: Omit<Job, 'id' | 'userId' | 'createdAt' | 'updatedAt'>[]; count: number }>({
     queryKey: [
       'job-discovery', 
       userId, 
@@ -25,7 +25,7 @@ export function useJobDiscovery(
       careerProfileNew?.id
     ],
     queryFn: async () => {
-      if (!userId) return [];
+      if (!userId) return { results: [], count: 0 };
 
       let finalKeywords: string[] = [];
       let finalLocation = filters.location;
@@ -36,9 +36,11 @@ export function useJobDiscovery(
         const preferences = (careerProfileNew.personal as any)?.preferences || {};
 
         // 1. Gerar múltiplas palavras-chave/sinônimos dos cargos-alvo
-        if (preferences.targetRoles && preferences.targetRoles.length > 0) {
-          finalKeywords = [...preferences.targetRoles];
-        } else {
+        const targetRoles = preferences.targetRoles || [];
+        const searchKeywordsPref = preferences.searchKeywords || [];
+        finalKeywords = [...searchKeywordsPref, ...targetRoles];
+
+        if (finalKeywords.length === 0) {
           const headline = careerProfileNew.personal?.headline;
           const lastRole = careerProfileNew.experience?.[0]?.role;
           finalKeywords = [headline, lastRole].filter((v): v is string => !!v);
@@ -69,12 +71,50 @@ export function useJobDiscovery(
         keywordsToSearch.push('React');
       }
 
-      return jobDiscoveryService.discoverJobs({
+      const searchResult = await jobDiscoveryService.discoverJobs({
         keywords: keywordsToSearch,
         location: finalLocation,
         remoteOnly: finalRemoteOnly,
         page: filters.page || 1
       });
+
+      // ── Filtragem Avançada no Frontend baseada nas Preferências do Usuário ──
+      if (careerProfileNew) {
+        const preferences = (careerProfileNew.personal as any)?.preferences || {};
+        const targetSeniority = preferences.seniority?.toLowerCase();
+        const minSalary = Number(preferences.salaryExpectationMin || 0);
+
+        searchResult.results = searchResult.results.filter(job => {
+          // A. Filtragem por Senioridade
+          if (targetSeniority) {
+            const jobTitleLower = job.title.toLowerCase();
+            
+            // Usuário Júnior -> descarta vagas explicitamente Sênior/Lead/Diretor
+            if (targetSeniority.includes('júnior') || targetSeniority.includes('junior')) {
+              if (jobTitleLower.includes('senior') || jobTitleLower.includes('sênior') || jobTitleLower.includes('lead') || jobTitleLower.includes('diretor') || jobTitleLower.includes('director')) {
+                return false;
+              }
+            }
+            // Usuário Sênior/Lead -> descarta vagas Júnior/Estágio
+            if (targetSeniority.includes('sênior') || targetSeniority.includes('senior') || targetSeniority.includes('lead')) {
+              if (jobTitleLower.includes('junior') || jobTitleLower.includes('júnior') || jobTitleLower.includes('estágio') || jobTitleLower.includes('estagiário')) {
+                return false;
+              }
+            }
+          }
+
+          // B. Filtragem por Pretensão Salarial (tolerância de 20% para flexibilidade)
+          if (minSalary > 0 && job.salaryMax) {
+            if (job.salaryMax < minSalary * 0.8) {
+              return false;
+            }
+          }
+
+          return true;
+        });
+      }
+
+      return searchResult;
     },
     enabled: !!userId, // Habilitado sempre que o usuário estiver logado
     retry: false, // Evita retrying infinito em caso de chaves de API ausentes
@@ -160,7 +200,8 @@ export function useJobDiscovery(
   });
 
   return {
-    discoveredJobs: discoveryQuery.data || [],
+    discoveredJobs: discoveryQuery.data?.results || [],
+    totalCount: discoveryQuery.data?.count || 0,
     isLoading: discoveryQuery.isLoading,
     isError: discoveryQuery.isError,
     error: discoveryQuery.error,

@@ -207,12 +207,12 @@ export function useResumes(userId: string | undefined) {
               .order('created_at', { ascending: true });
 
             if (!logsError && logs) {
-              const hasExtractStarted = logs.some(l => l.step === 'extract_started');
-              const hasExtractCompleted = logs.some(l => l.step === 'extract_completed');
-              const hasGeminiStarted = logs.some(l => l.step === 'gemini_started');
-              const hasGeminiCompleted = logs.some(l => l.step === 'gemini_completed');
-              const hasSaveCompleted = logs.some(l => l.step === 'save_completed');
-              const hasFailed = logs.some(l => l.status === 'error');
+              const hasExtractStarted = logs.some(l => l.step === 'extracting_text');
+              const hasExtractCompleted = logs.some(l => l.step === 'extracting_text' && l.status === 'completed');
+              const hasGeminiStarted = logs.some(l => l.step === 'analyzing_profile');
+              const hasGeminiCompleted = logs.some(l => l.step === 'analyzing_profile' && l.status === 'completed');
+              const hasSaveCompleted = logs.some(l => l.step === 'creating_profile' && l.status === 'completed');
+              const hasFailed = logs.some(l => l.status === 'failed' || l.status === 'error');
 
               const steps: PipelineStep[] = [
                 { id: 'upload', label: '✔ Upload concluído', status: 'success' },
@@ -237,7 +237,7 @@ export function useResumes(userId: string | undefined) {
               setPipelineSteps(steps);
 
               if (hasFailed) {
-                const failedLog = logs.find(l => l.status === 'error');
+                const failedLog = logs.find(l => l.status === 'failed' || l.status === 'error');
                 throw new Error(failedLog?.error_message || 'Erro no processamento da IA.');
               }
             }

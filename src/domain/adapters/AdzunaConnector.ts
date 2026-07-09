@@ -5,11 +5,11 @@ import { isSupabaseConfigured, supabase } from '../../infrastructure/api/supabas
 export class AdzunaConnector extends BaseJobConnector {
   readonly platformName = 'Adzuna';
 
-  async searchJobs(filters: JobSearchFilters): Promise<Omit<Job, 'id' | 'userId' | 'createdAt' | 'updatedAt'>[]> {
+  async searchJobs(filters: JobSearchFilters): Promise<{ results: Omit<Job, 'id' | 'userId' | 'createdAt' | 'updatedAt'>[]; count: number }> {
     const supabaseClient = supabase;
     if (!isSupabaseConfigured || !supabaseClient) {
       console.warn('[AdzunaConnector] Supabase não está configurado. Retornando lista de vagas vazia.');
-      return [];
+      return { results: [], count: 0 };
     }
 
     const keywords = filters.keywords && filters.keywords.length > 0
@@ -20,6 +20,7 @@ export class AdzunaConnector extends BaseJobConnector {
     const pageNum = filters.page || 1;
 
     try {
+      let totalCount = 0;
       const promises = keywords.map(async (keyword) => {
         // Invoca a Edge Function de forma segura para ocultar as chaves de API
         const { data, error } = await supabaseClient.functions.invoke('search-jobs', {
@@ -28,6 +29,10 @@ export class AdzunaConnector extends BaseJobConnector {
 
         if (error) {
           throw new Error(`Erro na busca de vagas via Edge Function: ${error.message}`);
+        }
+
+        if (data && typeof data.count === 'number') {
+          totalCount = Math.max(totalCount, data.count);
         }
         
         return (data.results || []).map((result: any) => {
@@ -96,11 +101,11 @@ export class AdzunaConnector extends BaseJobConnector {
       }
 
       // Filtrar apenas remotas se requisitado
-      if (filters.remoteOnly) {
-        return deduplicated.filter(j => j.workMode === 'remote');
-      }
+      const filtered = filters.remoteOnly
+        ? deduplicated.filter(j => j.workMode === 'remote')
+        : deduplicated;
 
-      return deduplicated;
+      return { results: filtered, count: totalCount };
     } catch (error) {
       console.error('Erro no conector Adzuna:', error);
       throw error;

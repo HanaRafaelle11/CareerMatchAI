@@ -14,7 +14,7 @@ export class JobDiscoveryService {
    * Dispara buscas concorrentes em todas as plataformas configuradas e unifica os resultados.
    * Se um conector lançar API_NOT_CONFIGURED, o erro é propagado para o hook do cliente tratar.
    */
-  async discoverJobs(filters: JobSearchFilters): Promise<Omit<Job, 'id' | 'userId' | 'createdAt' | 'updatedAt'>[]> {
+  async discoverJobs(filters: JobSearchFilters): Promise<{ results: Omit<Job, 'id' | 'userId' | 'createdAt' | 'updatedAt'>[]; count: number }> {
     try {
       const searchPromises = this.connectors.map(connector =>
         connector.searchJobs(filters).catch(err => {
@@ -22,12 +22,13 @@ export class JobDiscoveryService {
             throw err; // Repropagar erro de configuração para a UI saber o que houve
           }
           console.error(`Erro ao consultar conector ${connector.platformName}:`, err);
-          return [];
+          return { results: [], count: 0 };
         })
       );
 
       const resultsArray = await Promise.all(searchPromises);
-      const unifiedJobs = resultsArray.flat();
+      const unifiedJobs = resultsArray.flatMap(r => r.results);
+      const totalCount = resultsArray.reduce((acc, r) => acc + r.count, 0);
 
       // Deduplicação semântica simples baseada em título + empresa
       const seen = new Set<string>();
@@ -41,7 +42,7 @@ export class JobDiscoveryService {
         }
       }
 
-      return deduplicated;
+      return { results: deduplicated, count: totalCount };
     } catch (error) {
       console.error('Erro no JobDiscoveryService:', error);
       throw error; // Re-throw para propagar até o React Query

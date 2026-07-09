@@ -1,4 +1,4 @@
-import { useState, useEffect, lazy, Suspense } from 'react';
+import { useState, useEffect, useRef, lazy, Suspense } from 'react';
 import { useAuth } from './application/hooks/useAuth';
 import { useResumes, useJobs, useMatches } from './application/hooks/useCareerMatch';
 import { useCareerProfile } from './application/hooks/useCareerProfile';
@@ -38,14 +38,24 @@ function App() {
   // Sincronizar o currículo/versão selecionado
   const [selectedResumeVersionId, setSelectedResumeVersionId] = useState<string | null>(null);
 
+  const prevIsUploading = useRef(false);
   useEffect(() => {
-    if (resumes && resumes.length > 0 && !selectedResumeVersionId) {
+    if (resumes && resumes.length > 0) {
+      const exists = resumes.some(r => r.resumeVersionId === selectedResumeVersionId);
       const primary = resumes.find(r => r.isPrimary) || resumes[0];
-      if (primary && primary.resumeVersionId) {
-        setSelectedResumeVersionId(primary.resumeVersionId);
+      
+      const justFinishedUpload = prevIsUploading.current && !isUploading;
+      
+      if (!exists || justFinishedUpload) {
+        if (primary && primary.resumeVersionId) {
+          setSelectedResumeVersionId(primary.resumeVersionId);
+        }
       }
+    } else {
+      setSelectedResumeVersionId(null);
     }
-  }, [resumes, selectedResumeVersionId]);
+    prevIsUploading.current = isUploading;
+  }, [resumes, selectedResumeVersionId, isUploading]);
 
   const selectedResume = resumes.find(r => r.resumeVersionId === selectedResumeVersionId) || resumes[0];
   const selectedResumeId = selectedResume?.id || null;

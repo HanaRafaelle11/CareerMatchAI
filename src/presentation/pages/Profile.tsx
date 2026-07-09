@@ -379,29 +379,71 @@ export function Profile({
               </h3>
               <div className="space-y-2.5 text-xs text-slate-300">
                 <div className="flex items-center gap-2">
-                  <span className="text-emerald-500 font-bold">✓</span>
+                  {primaryResume ? (
+                    <span className="text-emerald-500 font-bold">✓</span>
+                  ) : (
+                    <span className="h-2 w-2 rounded-full bg-slate-800 animate-pulse shrink-0" />
+                  )}
                   <span>Currículo recebido com sucesso</span>
                 </div>
-                {displayExperience.length > 0 && (
-                  <div className="flex items-center gap-2">
-                    <span className="text-emerald-500 font-bold">✓</span>
-                    <span><strong className="text-slate-100">{displayExperience.length}</strong> experiências identificadas</span>
-                  </div>
-                )}
-                {displaySkills.length > 0 && (
-                  <div className="flex items-center gap-2">
-                    <span className="text-emerald-500 font-bold">✓</span>
-                    <span><strong className="text-slate-100">{displaySkills.length}</strong> competências mapeadas</span>
-                  </div>
-                )}
-                {yearsOfExperience > 0 && (
-                  <div className="flex items-center gap-2">
-                    <span className="text-emerald-500 font-bold">✓</span>
-                    <span><strong className="text-slate-100">{yearsOfExperience} anos</strong> de experiência calculados</span>
-                  </div>
-                )}
+                
                 <div className="flex items-center gap-2">
-                  <span className="text-emerald-500 font-bold">✓</span>
+                  {careerProfileNew && displayExperience.length > 0 ? (
+                    <span className="text-emerald-500 font-bold">✓</span>
+                  ) : (
+                    <span className="h-2 w-2 rounded-full bg-slate-800 animate-pulse shrink-0" />
+                  )}
+                  <span>
+                    {careerProfileNew && displayExperience.length > 0 ? (
+                      <>
+                        <strong className="text-slate-100">{displayExperience.length}</strong> experiências identificadas
+                      </>
+                    ) : (
+                      'Identificando experiências...'
+                    )}
+                  </span>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  {careerProfileNew && displaySkills.length > 0 ? (
+                    <span className="text-emerald-500 font-bold">✓</span>
+                  ) : (
+                    <span className="h-2 w-2 rounded-full bg-slate-800 animate-pulse shrink-0" />
+                  )}
+                  <span>
+                    {careerProfileNew && displaySkills.length > 0 ? (
+                      <>
+                        <strong className="text-slate-100">{displaySkills.length}</strong> competências mapeadas
+                      </>
+                    ) : (
+                      'Mapeando competências...'
+                    )}
+                  </span>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  {careerProfileNew && yearsOfExperience > 0 ? (
+                    <span className="text-emerald-500 font-bold">✓</span>
+                  ) : (
+                    <span className="h-2 w-2 rounded-full bg-slate-800 animate-pulse shrink-0" />
+                  )}
+                  <span>
+                    {careerProfileNew && yearsOfExperience > 0 ? (
+                      <>
+                        <strong className="text-slate-100">{yearsOfExperience} anos</strong> de experiência calculados
+                      </>
+                    ) : (
+                      'Calculando anos de experiência...'
+                    )}
+                  </span>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  {careerProfileNew ? (
+                    <span className="text-emerald-500 font-bold">✓</span>
+                  ) : (
+                    <span className="h-2 w-2 rounded-full bg-slate-800 animate-pulse shrink-0" />
+                  )}
                   <span>Perfil IA gerado com sucesso</span>
                 </div>
               </div>

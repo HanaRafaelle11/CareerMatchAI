@@ -3,6 +3,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { isSupabaseConfigured, supabase } from '../../infrastructure/api/supabaseClient';
 import { localDB } from '../../infrastructure/storage/localDatabase';
 import { MatchingEngine } from '../services/matchingEngine';
+import { sanitizeFileName } from '../utils/fileUtils';
 import type { Resume, Job, Match, PipelineStep } from '../../domain/models/types';
 import type { CareerProfileNew } from './useMyProfileAi';
 
@@ -66,7 +67,8 @@ export function useResumes(userId: string | undefined) {
         ]);
 
         if (isSupabaseConfigured && supabase) {
-          const filePath = `${userId}/${Date.now()}_${file.name}`;
+          const sanitizedName = sanitizeFileName(file.name);
+          const filePath = `${userId}/${Date.now()}_${sanitizedName}`;
           
           // 1. Upload para o Supabase Storage bucket 'resumes'
           console.log(`[STORAGE] Fazendo upload para bucket 'resumes', caminho: ${filePath}`);
@@ -80,7 +82,7 @@ export function useResumes(userId: string | undefined) {
 
           if (uploadError) {
             console.error(`[STORAGE] Erro crítico ao fazer upload do arquivo para o bucket resumes:`, uploadError);
-            throw new Error(`Falha no upload para o Storage: ${uploadError.message}`);
+            throw new Error('Erro ao fazer upload do currículo. Por favor, tente novamente.');
           }
           console.log(`[PIPELINE] 2. Upload concluído para o Storage. Caminho: ${filePath}`);
           setPipelineSteps(prev => prev.map(s => 

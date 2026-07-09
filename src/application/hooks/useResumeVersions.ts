@@ -64,7 +64,7 @@ export function useResumeVersions(userId: string | undefined) {
       const fileUrl = urlData.publicUrl;
 
       // 3. Inserir registro na tabela resume_versions com status 'uploaded'
-      const { data: insertData, error: insertError } = await supabase
+      const { data: resumeVersion, error: insertError } = await supabase
         .from('resume_versions')
         .insert({
           user_id: userId,
@@ -80,6 +80,10 @@ export function useResumeVersions(userId: string | undefined) {
         throw new Error(`Erro ao registrar versão de currículo: ${insertError.message}`);
       }
 
+      if (!resumeVersion?.id) {
+        throw new Error('A versão do currículo não foi criada. Pipeline interrompido.');
+      }
+
       // 4. Invocação assíncrona da Edge Function para processar texto com Gemini
       try {
         supabase.functions.invoke('analyze-resume', {
@@ -87,7 +91,7 @@ export function useResumeVersions(userId: string | undefined) {
             storagePath: storagePath,
             fileName: file.name,
             userId: userId,
-            resumeVersionId: insertData.id
+            resumeVersionId: resumeVersion.id
           }
         }).catch(err => {
           console.error("Erro assíncrono na Edge Function:", err);
@@ -96,7 +100,7 @@ export function useResumeVersions(userId: string | undefined) {
         console.error("Falha ao iniciar Edge Function:", invokeErr);
       }
 
-      return insertData;
+      return resumeVersion;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['resume-versions', userId] });

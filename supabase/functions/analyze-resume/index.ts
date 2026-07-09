@@ -457,13 +457,13 @@ serve(async (req) => {
     }
 
     // Verificar se a versão do currículo existe no banco de dados
-    const { data: versionExists, error: versionCheckError } = await supabaseClient
+    const { data: resumeVersion, error: versionCheckError } = await supabaseClient
       .from('resume_versions')
-      .select('id')
+      .select('*')
       .eq('id', resumeVersionId)
       .maybeSingle();
 
-    if (versionCheckError || !versionExists) {
+    if (versionCheckError || !resumeVersion) {
       console.error(`[ANALYZE RESUME] Erro: Versão do currículo com ID ${resumeVersionId} não encontrada no banco.`, versionCheckError);
       return new Response(
         JSON.stringify({ 
@@ -519,8 +519,15 @@ serve(async (req) => {
     await logProcessingStep(supabaseClient, resumeVersionId, 'gemini_completed', 'success');
 
     // 5. Salvar perfil de carreira (dados puros extraídos)
+    console.log("[PIPELINE] resumeVersion:", resumeVersion);
+
+    if (!resumeVersion?.id) {
+      console.error('[EDGE FUNCTION] Erro: resumeVersion.id está vazio. Impedindo salvamento de career_profiles.');
+      throw new Error('A versão do currículo não foi criada. Pipeline interrompido.');
+    }
+
     console.log(`[ANALYZE RESUME]
-resumeVersionId: ${resumeVersionId}
+resumeVersionId: ${resumeVersion.id}
 userId: ${userId}
 careerProfile payload:`, JSON.stringify(parsedData.career_profile || {}));
 
@@ -528,7 +535,7 @@ careerProfile payload:`, JSON.stringify(parsedData.career_profile || {}));
     const careerProfile = await ResumeParserService.saveCareerProfile(
       supabaseClient, 
       userId, 
-      resumeVersionId, 
+      resumeVersion.id, 
       parsedData.career_profile || {}
     );
 
@@ -537,7 +544,7 @@ careerProfile payload:`, JSON.stringify(parsedData.career_profile || {}));
     const careerInsights = await ResumeParserService.saveCareerInsights(
       supabaseClient,
       userId,
-      resumeVersionId,
+      resumeVersion.id,
       parsedData.career_insights || {}
     );
 

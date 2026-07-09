@@ -97,7 +97,7 @@ export function useResumes(userId: string | undefined) {
 
           // 2a. Criar registro na tabela public.resume_versions
           console.log(`[DATABASE] Inserindo registro inicial na tabela public.resume_versions...`);
-          const { data: resumeVersionData, error: rvError } = await supabase
+          const { data: resumeVersion, error: rvError } = await supabase
             .from('resume_versions')
             .insert({
               user_id: userId,
@@ -112,10 +112,10 @@ export function useResumes(userId: string | undefined) {
             console.error(`[DATABASE] Erro crítico ao salvar versão do currículo:`, rvError);
             throw new Error(`Falha ao gravar versão do currículo no Banco: ${rvError.message}`);
           }
-          if (!resumeVersionData) {
+          if (!resumeVersion) {
             throw new Error('Falha ao retornar o registro salvo de resume_versions no Banco.');
           }
-          const resumeVersionId = resumeVersionData.id;
+          const resumeVersionId = resumeVersion.id;
           console.log(`[PIPELINE] Registro inicial de 'resume_versions' criado. ID: ${resumeVersionId}`);
 
           // 2b. Criar registro inicial na tabela public.resumes
@@ -222,6 +222,13 @@ export function useResumes(userId: string | undefined) {
 
           // 5. Salvar ou atualizar o perfil de carreira associado
           console.log(`[DATABASE] Salvando perfil de carreira associado na tabela public.career_profiles...`);
+          console.log("[PIPELINE] resumeVersion:", resumeVersion);
+
+          if (!resumeVersion?.id) {
+            console.error('[DATABASE] Erro: resumeVersion.id está vazio. Impedindo salvamento de career_profiles.');
+            throw new Error('A versão do currículo não foi criada. Pipeline interrompido.');
+          }
+
           const { data: existingProfile } = await supabase
             .from('career_profiles')
             .select('id')
@@ -230,7 +237,7 @@ export function useResumes(userId: string | undefined) {
 
           const profilePayload = {
             user_id: userId,
-            resume_version_id: resumeData.id,
+            resume_version_id: resumeVersion.id,
             personal: {
               fullName: parsedResume.fullName || 'Profissional',
               headline: parsedResume.headline || '',

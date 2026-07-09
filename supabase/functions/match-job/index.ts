@@ -7,28 +7,68 @@ const corsHeaders = {
   'Access-Control-Allow-Methods': 'POST, GET, OPTIONS',
 }
 
-async function fetchWithRetry(url: string, options: any, maxRetries = 3, initialDelay = 1000): Promise<Response> {
-  let delay = initialDelay;
+async function fetchWithRetry(url: string, options: any, maxRetries = 3): Promise<Response> {
+  const delays = [2000, 5000, 10000];
   for (let attempt = 1; attempt <= maxRetries; attempt++) {
     try {
       const response = await fetch(url, options);
       if (response.ok) return response;
       
       if (response.status === 429 || response.status >= 500) {
-        console.warn(`[GEMINI RETRY] Tentativa ${attempt} falhou com status ${response.status}. Aguardando ${delay}ms...`);
-        await new Promise(resolve => setTimeout(resolve, delay));
-        delay *= 2;
+        console.warn(`[GEMINI RETRY] Tentativa ${attempt} falhou com status ${response.status}. Aguardando ${delays[attempt - 1] || 10000}ms...`);
+        await new Promise(resolve => setTimeout(resolve, delays[attempt - 1] || 10000));
         continue;
       }
       return response;
     } catch (err) {
       if (attempt === maxRetries) throw err;
-      console.warn(`[GEMINI RETRY] Tentativa ${attempt} falhou com erro de rede: ${err.message}. Aguardando ${delay}ms...`);
-      await new Promise(resolve => setTimeout(resolve, delay));
-      delay *= 2;
+      console.warn(`[GEMINI RETRY] Tentativa ${attempt} falhou com erro de rede: ${err.message}. Aguardando ${delays[attempt - 1] || 10000}ms...`);
+      await new Promise(resolve => setTimeout(resolve, delays[attempt - 1] || 10000));
     }
   }
   throw new Error(`Falha no processamento com Gemini após ${maxRetries} tentativas.`);
+}
+
+async function logMatchStep(supabaseClient: any, userId: string, jobId: string, step: string, status: 'running' | 'completed' | 'failed' | 'success' | 'error', durationMs: number) {
+  if (!supabaseClient || !userId) return;
+  try {
+    await supabaseClient
+      .from('career_match_logs')
+      .insert({
+        user_id: userId,
+        job_id: jobId || null,
+        step,
+        duration_ms: durationMs,
+        status
+      });
+  } catch (err) {
+    console.error(`[MATCH STEP LOG] Erro ao gravar etapa ${step}:`, err.message);
+  }
+}
+
+async function logApplicationEvent(supabaseClient: any, userId: string | null, eventName: string, service: string, status: string, metadata = {}) {
+  if (!supabaseClient) return;
+  try {
+    await supabaseClient
+      .from('application_events')
+      .insert({
+        user_id: userId || null,
+        event_name: eventName,
+        service,
+        status,
+        metadata
+      });
+  } catch (err) {
+    console.error(`[EVENT LOG] Erro ao gravar evento ${eventName}:`, err.message);
+  }
+}
+
+async function computeHash(text: string): Promise<string> {
+  const msgUint8 = new TextEncoder().encode(text);
+  const hashBuffer = await crypto.subtle.digest("SHA-256", msgUint8);
+  const hashArray = Array.from(new Uint8Array(hashBuffer));
+  const hashHex = hashArray.map((b) => b.toString(16).padStart(2, "0")).join("");
+  return hashHex;
 }
 
 async function checkRateLimit(supabaseClient: any, userId: string, feature: string) {
@@ -71,8 +111,44 @@ async function logAiUsage(supabaseClient: any, userId: string, feature: string, 
 }
 
 class JobMatchingEngine {
-  static async matchWithGemini(careerProfile: any, jobTitle: string, jobDescription: string, supabaseClient: any, userId: string, mockEnabled = false): Promise<any> {
+  static async matchWithGemini(careerProfile: any, jobTitle: string, jobDescription: string, supabaseClient: any, userId: string, jobId: string, mockEnabled = false, parentStartTime: number): Promise<any> {
+    
+    // Etapa anterior finalizada e nova iniciada: comparing_job
+    await logMatchStep(supabaseClient, userId, jobId, 'comparing_job', 'running', Date.now() - parentStartTime);
+
     await checkRateLimit(supabaseClient, userId, 'job-matching');
+
+    // 1. Calcular hashes para o Cache
+    const resumeHash = await computeHash(JSON.stringify(careerProfile));
+    const jobHash = await computeHash(jobTitle + "\n" + jobDescription);
+
+    // 2. Verificar cache se não for mock
+    if (!mockEnabled) {
+      try {
+        const nowIso = new Date().toISOString();
+        const { data: cachedResult, error: cacheError } = await supabaseClient
+          .from('ai_analysis_cache')
+          .select('*')
+          .eq('resume_hash', resumeHash)
+          .eq('job_hash', jobHash)
+          .gt('expires_at', nowIso)
+          .maybeSingle();
+
+        if (!cacheError && cachedResult) {
+          console.log("[CACHE SUCCESS] Resolvido via cache para economizar custo.");
+          
+          // Registrar log de IA do cache com 0 tokens
+          await logAiUsage(supabaseClient, userId, 'job-matching', 'gemini-2.5-flash-cache', 0, 0);
+
+          // Completar etapas com base no cache
+          await logMatchStep(supabaseClient, userId, jobId, 'comparing_job', 'completed', Date.now() - parentStartTime);
+          await logMatchStep(supabaseClient, userId, jobId, 'generating_score', 'completed', Date.now() - parentStartTime);
+          return cachedResult.response;
+        }
+      } catch (cacheErr) {
+        console.error("[CACHE ERROR] Erro ao consultar cache de compatibilidade:", cacheErr.message);
+      }
+    }
 
     if (mockEnabled) {
       console.log("[GEMINI] Simulação ativa para testes.");
@@ -80,7 +156,7 @@ class JobMatchingEngine {
       // Registrar log de IA mockado
       await logAiUsage(supabaseClient, userId, 'job-matching', 'gemini-2.5-flash-mock', 100, 200);
 
-      return {
+      const mockResponse = {
         match_score: 85,
         strengths: ["Ponto forte técnico ou comportamental mock"],
         weaknesses: ["Ponto fraco ou gap identificado mock"],
@@ -88,6 +164,10 @@ class JobMatchingEngine {
         interview_probability: 75,
         recommendation: "Recomendação mock de preparação para entrevista."
       };
+
+      await logMatchStep(supabaseClient, userId, jobId, 'comparing_job', 'completed', Date.now() - parentStartTime);
+      await logMatchStep(supabaseClient, userId, jobId, 'generating_score', 'completed', Date.now() - parentStartTime);
+      return mockResponse;
     }
 
     const geminiApiKey = Deno.env.get('GEMINI_API_KEY');
@@ -147,6 +227,10 @@ class JobMatchingEngine {
       throw new Error(`Erro na chamada da API do Gemini: ${response.statusText} - ${errText}`);
     }
 
+    // Completar comparing_job e iniciar generating_score
+    await logMatchStep(supabaseClient, userId, jobId, 'comparing_job', 'completed', Date.now() - parentStartTime);
+    await logMatchStep(supabaseClient, userId, jobId, 'generating_score', 'running', Date.now() - parentStartTime);
+
     const resJson = await response.json();
     const extractedText = resJson.candidates?.[0]?.content?.parts?.[0]?.text;
     if (!extractedText) {
@@ -157,7 +241,27 @@ class JobMatchingEngine {
     const candidatesTokens = resJson.usageMetadata?.candidatesTokenCount || 0;
     await logAiUsage(supabaseClient, userId, 'job-matching', 'gemini-2.5-flash', promptTokens, candidatesTokens);
 
-    return JSON.parse(extractedText);
+    const matchJson = JSON.parse(extractedText);
+
+    // Salvar no cache
+    try {
+      const expiresAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString();
+      await supabaseClient
+        .from('ai_analysis_cache')
+        .insert({
+          resume_hash: resumeHash,
+          job_hash: jobHash,
+          response: matchJson,
+          expires_at: expiresAt
+        });
+    } catch (saveCacheErr) {
+      console.error("[CACHE SAVE ERROR] Falha ao salvar no cache:", saveCacheErr.message);
+    }
+
+    // Completar generating_score
+    await logMatchStep(supabaseClient, userId, jobId, 'generating_score', 'completed', Date.now() - parentStartTime);
+
+    return matchJson;
   }
 
   static async saveJobMatch(supabaseClient: any, userId: string, resumeVersionId: string, jobId: string, matchResult: any) {
@@ -189,10 +293,16 @@ serve(async (req) => {
     return new Response('ok', { status: 200, headers: corsHeaders })
   }
 
+  const requestStartTime = Date.now();
+  let resolvedUserId: string | null = null;
+  let resolvedJobId: string | null = null;
+  let supabaseClient: any = null;
+
   try {
     const { resumeId, resumeVersionId, jobId, userId: requestUserId, mockGemini } = await req.json()
     console.log("[MATCH JOB REQUEST] Recebido pedido:", { resumeId, resumeVersionId, jobId, mockGemini })
     
+    resolvedJobId = jobId;
     const resolvedVersionId = resumeVersionId || resumeId;
     console.log("[MATCH JOB RESUME VERSION] Resolving for resume version ID:", resolvedVersionId);
 
@@ -208,9 +318,23 @@ serve(async (req) => {
     const authHeader = req.headers.get('Authorization') || ''
     const isMockEnabled = mockGemini === true || req.headers.get('x-mock-gemini') === 'true'
 
-    const supabaseClient = createClient(supabaseUrl, supabaseAnonKey, {
+    supabaseClient = createClient(supabaseUrl, supabaseAnonKey, {
       global: { headers: { Authorization: authHeader } }
     })
+
+    // Resolver ID de usuário
+    const { data: { user } } = await supabaseClient.auth.getUser(authHeader.replace('Bearer ', ''));
+    resolvedUserId = requestUserId || user?.id;
+
+    if (!resolvedUserId) {
+      throw new Error("Usuário não pôde ser autenticado no Match.");
+    }
+
+    // Registrar inicio de request Gemini
+    await logApplicationEvent(supabaseClient, resolvedUserId, 'gemini_request_started', 'Gemini', 'started', { jobId });
+
+    // Etapa: preparing - Iniciada
+    await logMatchStep(supabaseClient, resolvedUserId, jobId, 'preparing', 'running', Date.now() - requestStartTime);
 
     // 1. Obter o perfil de carreira estruturado do candidato
     let careerProfile = null;
@@ -231,7 +355,7 @@ serve(async (req) => {
       if (error) throw error;
       careerProfile = data;
       
-      // Fallback: tentar buscar por resume_version_id igual ao resumeId
+      // Fallback
       if (!careerProfile) {
         const { data: fbData } = await supabaseClient
           .from('career_profiles')
@@ -243,13 +367,16 @@ serve(async (req) => {
     }
 
     if (!careerProfile) {
+      await logMatchStep(supabaseClient, resolvedUserId, jobId, 'preparing', 'failed', Date.now() - requestStartTime);
       return new Response(
         JSON.stringify({ error: 'Perfil de carreira (CareerProfile) correspondente não encontrado. Certifique-se de que o currículo foi analisado.' }),
         { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       )
     }
 
-    console.log("[MATCH JOB PROFILE FOUND] Profile ID:", careerProfile.id, "Resume Version ID:", careerProfile.resume_version_id);
+    // Etapa: preparing - Concluída e Etapa: analyzing_resume - Iniciada
+    await logMatchStep(supabaseClient, resolvedUserId, jobId, 'preparing', 'completed', Date.now() - requestStartTime);
+    await logMatchStep(supabaseClient, resolvedUserId, jobId, 'analyzing_resume', 'running', Date.now() - requestStartTime);
 
     // 2. Obter a descrição da vaga
     const { data: jobData, error: jobErr } = await supabaseClient
@@ -259,21 +386,26 @@ serve(async (req) => {
       .single();
 
     if (jobErr || !jobData) {
+      await logMatchStep(supabaseClient, resolvedUserId, jobId, 'analyzing_resume', 'failed', Date.now() - requestStartTime);
       return new Response(
         JSON.stringify({ error: `Vaga não encontrada: ${jobErr?.message || 'ID inválido'}` }),
         { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       )
     }
 
+    // Etapa: analyzing_resume - Concluída
+    await logMatchStep(supabaseClient, resolvedUserId, jobId, 'analyzing_resume', 'completed', Date.now() - requestStartTime);
+
     // 3. Executar o match semântico no Gemini 2.5 Flash
-    const userId = requestUserId || careerProfile.user_id;
     const matchResult = await JobMatchingEngine.matchWithGemini(
       careerProfile,
       jobData.title,
       jobData.description,
       supabaseClient,
-      userId,
-      isMockEnabled
+      resolvedUserId,
+      jobId,
+      isMockEnabled,
+      requestStartTime
     );
 
     console.log("[MATCH JOB RESULT] Match calculated:", matchResult);
@@ -281,11 +413,17 @@ serve(async (req) => {
     // 4. Salvar o resultado na tabela job_matches
     const savedMatch = await JobMatchingEngine.saveJobMatch(
       supabaseClient,
-      userId,
+      resolvedUserId,
       careerProfile.resume_version_id || resolvedVersionId,
       jobId,
       matchResult
     );
+
+    // Etapa: completed - Concluída
+    await logMatchStep(supabaseClient, resolvedUserId, jobId, 'completed', 'completed', Date.now() - requestStartTime);
+
+    // Registrar sucesso Gemini
+    await logApplicationEvent(supabaseClient, resolvedUserId, 'gemini_request_completed', 'Gemini', 'completed', { jobId, score: matchResult.match_score });
 
     console.log(`[EDGE FUNCTION] Match concluído e salvo com sucesso. Score: ${matchResult.match_score}%`);
 
@@ -296,6 +434,12 @@ serve(async (req) => {
   } catch (error) {
     console.error(`[EDGE FUNCTION] Erro ao calcular match:`, error)
     
+    // Registrar falha Gemini
+    if (supabaseClient && resolvedUserId) {
+      await logApplicationEvent(supabaseClient, resolvedUserId, 'gemini_request_failed', 'Gemini', 'failed', { error: error.message, jobId: resolvedJobId });
+      await logMatchStep(supabaseClient, resolvedUserId, resolvedJobId || '', 'failed', 'failed', Date.now() - requestStartTime);
+    }
+
     let code = "AI_ERROR";
     let userMessage = "Ocorreu um erro no cálculo de compatibilidade da vaga.";
     let retryable = true;
@@ -305,12 +449,15 @@ serve(async (req) => {
       userMessage = "Limite de requisições excedido. Você pode fazer no máximo 10 chamadas para 'job-matching' por hora.";
       retryable = false;
     } else if (error.message?.includes('GEMINI_API_KEY')) {
-      code = "API_NOT_CONFIGURED";
+      code = "GEMINI_SERVICE_UNAVAILABLE";
       userMessage = "O motor de inteligência artificial Gemini não está configurado nos segredos do Supabase.";
       retryable = false;
-    } else if (error.message?.includes('timeout') || error.message?.includes('fetch')) {
+    } else if (error.message?.includes('timeout') || error.message?.includes('fetch') || error.message?.includes('network')) {
       code = "AI_TIMEOUT";
       userMessage = "A requisição para o Gemini demorou mais do que o esperado. Tente novamente.";
+    } else if (error.message?.includes('indisponível') || error.message?.includes('tentativas') || error.message?.includes('Gemini')) {
+      code = "GEMINI_SERVICE_UNAVAILABLE";
+      userMessage = "Nossa IA está temporariamente indisponível. Tente novamente em alguns minutos.";
     }
 
     return new Response(

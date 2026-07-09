@@ -17,25 +17,33 @@ function cleanString(input: string): string {
     .replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F-\x9F]/g, ''); // Remove non-printable control characters
 }
 
-async function fetchWithRetry(url: string, options: any, maxRetries = 3, initialDelay = 1000): Promise<Response> {
-  let delay = initialDelay;
+async function computeHash(text: string): Promise<string> {
+  const msgUint8 = new TextEncoder().encode(text);
+  const hashBuffer = await crypto.subtle.digest("SHA-256", msgUint8);
+  const hashArray = Array.from(new Uint8Array(hashBuffer));
+  const hashHex = hashArray.map((b) => b.toString(16).padStart(2, "0")).join("");
+  return hashHex;
+}
+
+async function fetchWithRetry(url: string, options: any, maxRetries = 3): Promise<Response> {
+  const delays = [2000, 5000, 10000];
   for (let attempt = 1; attempt <= maxRetries; attempt++) {
     try {
       const response = await fetch(url, options);
       if (response.ok) return response;
       
       if (response.status === 429 || response.status >= 500) {
-        console.warn(`[GEMINI RETRY] Tentativa ${attempt} falhou com status ${response.status}. Aguardando ${delay}ms...`);
-        await new Promise(resolve => setTimeout(resolve, delay));
-        delay *= 2;
+        const delayMs = delays[attempt - 1] || 10000;
+        console.warn(`[GEMINI RETRY] Tentativa ${attempt} falhou com status ${response.status}. Aguardando ${delayMs}ms...`);
+        await new Promise(resolve => setTimeout(resolve, delayMs));
         continue;
       }
       return response;
     } catch (err) {
       if (attempt === maxRetries) throw err;
-      console.warn(`[GEMINI RETRY] Tentativa ${attempt} falhou com erro de rede: ${err.message}. Aguardando ${delay}ms...`);
-      await new Promise(resolve => setTimeout(resolve, delay));
-      delay *= 2;
+      const delayMs = delays[attempt - 1] || 10000;
+      console.warn(`[GEMINI RETRY] Tentativa ${attempt} falhou com erro de rede: ${err.message}. Aguardando ${delayMs}ms...`);
+      await new Promise(resolve => setTimeout(resolve, delayMs));
     }
   }
   throw new Error(`Falha no processamento com Gemini após ${maxRetries} tentativas.`);
@@ -80,11 +88,13 @@ async function logAiUsage(supabaseClient: any, userId: string, feature: string, 
   }
 }
 
-async function logProcessingStep(supabaseClient: any, resumeVersionId: string, step: string, status: 'success' | 'error', errorMessage?: string, metadata = {}) {
-  if (status === 'success') {
-    console.log(`[PIPELINE_LOG] ${step}`);
+async function logProcessingStep(supabaseClient: any, resumeVersionId: string, step: string, status: 'running' | 'completed' | 'failed' | 'success' | 'error', errorMessage?: string, metadata = {}, userId?: string) {
+  if (status === 'completed' || status === 'success') {
+    console.log(`[PIPELINE_LOG] ${step} - SUCESSO`);
+  } else if (status === 'running') {
+    console.log(`[PIPELINE_LOG] ${step} - INICIANDO`);
   } else {
-    console.error(`[PIPELINE_LOG] ${step}: ${errorMessage}`);
+    console.error(`[PIPELINE_LOG] ${step} - ERRO: ${errorMessage}`);
   }
 
   if (!resumeVersionId || !supabaseClient) return;
@@ -94,10 +104,13 @@ async function logProcessingStep(supabaseClient: any, resumeVersionId: string, s
       .from('resume_processing_logs')
       .insert({
         resume_version_id: resumeVersionId,
+        user_id: userId || null,
         step,
         status,
+        message: errorMessage || (status === 'completed' || status === 'success' ? `Etapa ${step} finalizada com sucesso.` : status === 'running' ? `Etapa ${step} iniciada.` : `Erro na etapa ${step}.`),
         error_message: errorMessage || null,
-        metadata
+        metadata,
+        completed_at: status === 'completed' || status === 'success' || status === 'error' || status === 'failed' ? new Date().toISOString() : null
       });
 
     if (error) {
@@ -108,25 +121,50 @@ async function logProcessingStep(supabaseClient: any, resumeVersionId: string, s
   }
 }
 
+async function logApplicationEvent(supabaseClient: any, userId: string | null, eventName: string, service: string, status: string, metadata = {}) {
+  if (!supabaseClient) return;
+  try {
+    const { error } = await supabaseClient
+      .from('application_events')
+      .insert({
+        user_id: userId || null,
+        event_name: eventName,
+        service,
+        status,
+        metadata
+      });
+    if (error) {
+      console.error(`[EVENT LOG] Erro ao gravar evento ${eventName} no banco:`, error);
+    }
+  } catch (err) {
+    console.error(`[EVENT LOG] Exceção ao gravar evento ${eventName}:`, err.message);
+  }
+}
+
 class ResumeParserService {
   static async extractText(fileData: Blob, contentType: string, storagePath: string): Promise<{ text: string, pageCount: number }> {
     let textToAnalyze = '';
     let numPages = 1;
 
-    if (contentType.includes('text/plain') || storagePath.endsWith('.txt')) {
-      textToAnalyze = await fileData.text()
-    } else if (contentType.includes('pdf') || storagePath.endsWith('.pdf')) {
-      const arrayBuffer = await fileData.arrayBuffer()
-      const pdfProxy = await getDocumentProxy(new Uint8Array(arrayBuffer))
-      numPages = pdfProxy.numPages
-      const { text } = await extractText(pdfProxy, { mergePages: true })
-      textToAnalyze = text
-    } else if (contentType.includes('officedocument.wordprocessingml.document') || storagePath.endsWith('.docx')) {
-      const arrayBuffer = await fileData.arrayBuffer()
-      const docxResult = await mammoth.extractRawText({ arrayBuffer: new Uint8Array(arrayBuffer) })
-      textToAnalyze = docxResult.value
-    } else {
-      textToAnalyze = await fileData.text()
+    try {
+      if (contentType.includes('text/plain') || storagePath.endsWith('.txt')) {
+        textToAnalyze = await fileData.text()
+      } else if (contentType.includes('pdf') || storagePath.endsWith('.pdf')) {
+        const arrayBuffer = await fileData.arrayBuffer()
+        const pdfProxy = await getDocumentProxy(new Uint8Array(arrayBuffer))
+        numPages = pdfProxy.numPages
+        const { text } = await extractText(pdfProxy, { mergePages: true })
+        textToAnalyze = text
+      } else if (contentType.includes('officedocument.wordprocessingml.document') || storagePath.endsWith('.docx')) {
+        const arrayBuffer = await fileData.arrayBuffer()
+        const docxResult = await mammoth.extractRawText({ arrayBuffer: new Uint8Array(arrayBuffer) })
+        textToAnalyze = docxResult.value
+      } else {
+        textToAnalyze = await fileData.text()
+      }
+    } catch (parseError) {
+      console.error("[PARSER ERROR] Falha ao analisar estrutura do documento:", parseError);
+      throw new Error("Arquivo inválido. Envie outro currículo.");
     }
 
     return { text: cleanString(textToAnalyze), pageCount: numPages };
@@ -135,13 +173,39 @@ class ResumeParserService {
   static async parseWithGemini(text: string, supabaseClient: any, userId: string, mockEnabled = false): Promise<any> {
     await checkRateLimit(supabaseClient, userId, 'resume-parsing');
 
+    const resumeHash = await computeHash(text);
+    const jobHash = 'parsing';
+
+    // Verificar cache se não for mock
+    if (!mockEnabled) {
+      try {
+        const nowIso = new Date().toISOString();
+        const { data: cachedResult, error: cacheError } = await supabaseClient
+          .from('ai_analysis_cache')
+          .select('*')
+          .eq('resume_hash', resumeHash)
+          .eq('job_hash', jobHash)
+          .gt('expires_at', nowIso)
+          .maybeSingle();
+
+        if (!cacheError && cachedResult) {
+          console.log("[CACHE SUCCESS] Resolvido via cache para economizar custo no parsing do currículo.");
+          // Registrar log de IA do cache com 0 tokens
+          await logAiUsage(supabaseClient, userId, 'resume-parsing', 'gemini-2.5-flash-cache', 0, 0);
+          return cachedResult.response;
+        }
+      } catch (cacheErr) {
+        console.error("[CACHE ERROR] Erro ao consultar cache de parsing:", cacheErr.message);
+      }
+    }
+
     if (mockEnabled) {
       console.log("[GEMINI] Simulação ativa para testes.");
       const isAmanda = text.includes("Amanda");
       
       await logAiUsage(supabaseClient, userId, 'resume-parsing', 'gemini-2.5-flash-mock', 100, 200);
 
-      return {
+      const mockResponse = {
         career_profile: {
           personal: {
             fullName: isAmanda ? "Amanda Teste da Silva" : "Hana Oliveira de Souza",
@@ -215,6 +279,8 @@ class ResumeParserService {
           }
         }
       };
+
+      return mockResponse;
     }
 
     const geminiApiKey = Deno.env.get('GEMINI_API_KEY');
@@ -370,7 +436,24 @@ class ResumeParserService {
     const candidatesTokens = resJson.usageMetadata?.candidatesTokenCount || 0;
     await logAiUsage(supabaseClient, userId, 'resume-parsing', 'gemini-2.5-flash', promptTokens, candidatesTokens);
 
-    return JSON.parse(extractedText);
+    const parsedData = JSON.parse(extractedText);
+
+    // Salvar no cache
+    try {
+      const expiresAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString();
+      await supabaseClient
+        .from('ai_analysis_cache')
+        .insert({
+          resume_hash: resumeHash,
+          job_hash: jobHash,
+          response: parsedData,
+          expires_at: expiresAt
+        });
+    } catch (saveCacheErr) {
+      console.error("[CACHE SAVE ERROR] Falha ao salvar no cache:", saveCacheErr.message);
+    }
+
+    return parsedData;
   }
 
   static async saveCareerProfile(supabaseClient: any, userId: string, resumeVersionId: string, profileData: any) {
@@ -388,9 +471,7 @@ class ResumeParserService {
       summary: profileData.summary || ''
     };
 
-    console.log(`[CAREER PROFILE SAVE]
-resumeVersionId recebido: ${resumeVersionId}
-payload enviado:`, JSON.stringify(payload));
+    console.log(`[CAREER PROFILE SAVE] resumeVersionId recebido: ${resumeVersionId}`);
 
     const { data, error } = await supabaseClient
       .from('career_profiles')
@@ -434,10 +515,12 @@ serve(async (req) => {
 
   let supabaseClient;
   let resumeVersionIdGlobal;
+  let userIdGlobal: string | null = null;
 
   try {
     const { storagePath, fileName, userId, resumeVersionId, mockGemini } = await req.json()
     resumeVersionIdGlobal = resumeVersionId;
+    userIdGlobal = userId;
     console.log(`[EDGE FUNCTION] Processando versão de currículo:`, { storagePath, fileName, userId, resumeVersionId, mockGemini })
 
     const supabaseUrl = Deno.env.get('SUPABASE_URL') || ''
@@ -482,14 +565,20 @@ serve(async (req) => {
       );
     }
 
-    // 1. Atualizar status para 'processing'
+    // 1. Registrar evento global de início de processamento
+    await logApplicationEvent(supabaseClient, userId, 'resume_upload_started', 'Parser', 'started', { fileName });
+
+    // Atualizar status da versão do currículo para 'processing'
     await supabaseClient
       .from('resume_versions')
       .update({ status: 'processing' })
       .eq('id', resumeVersionId);
 
-    // LOG DE PIPELINE: extract_started
-    await logProcessingStep(supabaseClient, resumeVersionId, 'extract_started', 'success', undefined, { fileName, storagePath });
+    // Etapa 1: uploaded - Concluída logo no início porque o upload do arquivo já aconteceu
+    await logProcessingStep(supabaseClient, resumeVersionId, 'uploaded', 'completed', 'Upload recebido com sucesso', { fileName, storagePath }, userId);
+
+    // Etapa 2: extracting_text - Iniciada
+    await logProcessingStep(supabaseClient, resumeVersionId, 'extracting_text', 'running', 'Extraindo informações do currículo...', {}, userId);
 
     // 2. Baixar PDF do Storage
     console.log(`[EDGE FUNCTION] Baixando arquivo: ${storagePath}`)
@@ -498,30 +587,60 @@ serve(async (req) => {
       .download(storagePath)
 
     if (downloadError) {
+      await logProcessingStep(supabaseClient, resumeVersionId, 'extracting_text', 'failed', `Erro ao baixar arquivo do Storage: ${downloadError.message}`, {}, userId);
       throw new Error(`Erro ao baixar arquivo do Storage: ${downloadError.message}`);
+    }
+
+    // Validar se o arquivo excede o limite permitido de 10MB
+    if (fileData.size > 10 * 1024 * 1024) {
+      await logProcessingStep(supabaseClient, resumeVersionId, 'extracting_text', 'failed', "Arquivo excede limite permitido.", {}, userId);
+      throw new Error("Arquivo excede limite permitido.");
     }
 
     const contentType = fileData.type || 'application/pdf';
 
     // 3. Extrair texto usando a biblioteca local (unpdf/mammoth)
     console.log(`[EDGE FUNCTION] Extraindo texto...`)
-    const { text, pageCount } = await ResumeParserService.extractText(fileData, contentType, storagePath);
-
-    if (!text || !text.trim()) {
-      throw new Error("Nenhum texto legível pôde ser extraído do documento.");
+    let textResult;
+    try {
+      textResult = await ResumeParserService.extractText(fileData, contentType, storagePath);
+    } catch (extractErr) {
+      await logProcessingStep(supabaseClient, resumeVersionId, 'extracting_text', 'failed', extractErr.message, {}, userId);
+      throw extractErr;
     }
 
-    // LOG DE PIPELINE: extract_completed
-    await logProcessingStep(supabaseClient, resumeVersionId, 'extract_completed', 'success', undefined, { pageCount, textLength: text.length });
+    const { text, pageCount } = textResult;
 
-    // LOG DE PIPELINE: gemini_started
-    await logProcessingStep(supabaseClient, resumeVersionId, 'gemini_started', 'success', undefined, { isMockEnabled });
+    // Validar se o arquivo é um PDF escaneado (sem texto legível)
+    if (!text || text.trim().length < 100) {
+      await logProcessingStep(supabaseClient, resumeVersionId, 'extracting_text', 'failed', "Não conseguimos extrair texto automaticamente.", {}, userId);
+      throw new Error("Não conseguimos extrair texto automaticamente.");
+    }
 
-    // 4. Enviar texto para Gemini 2.5 Flash
+    // Etapa 2: extracting_text - Concluída
+    await logProcessingStep(supabaseClient, resumeVersionId, 'extracting_text', 'completed', 'Texto extraído com sucesso', { pageCount, textLength: text.length }, userId);
+
+    // Registrar evento global de upload/extração concluído
+    await logApplicationEvent(supabaseClient, userId, 'resume_upload_completed', 'Parser', 'completed', { pageCount, textLength: text.length });
+
+    // Etapa 3: analyzing_profile - Iniciada (Gemini análise)
+    await logProcessingStep(supabaseClient, resumeVersionId, 'analyzing_profile', 'running', 'IA analisando histórico e competências...', { pageCount, textLength: text.length }, userId);
+
+    // Registrar evento global de início de IA
+    await logApplicationEvent(supabaseClient, userId, 'gemini_request_started', 'Gemini', 'started');
+
+    // 4. Enviar texto para Gemini 2.5 Flash (ou obter do cache)
     console.log(`[EDGE FUNCTION] Enviando para Gemini 2.5 Flash...`)
-    const parsedData = await ResumeParserService.parseWithGemini(text, supabaseClient, userId, isMockEnabled);
+    let parsedData;
+    try {
+      parsedData = await ResumeParserService.parseWithGemini(text, supabaseClient, userId, isMockEnabled);
+    } catch (geminiErr) {
+      await logProcessingStep(supabaseClient, resumeVersionId, 'analyzing_profile', 'failed', geminiErr.message, {}, userId);
+      await logApplicationEvent(supabaseClient, userId, 'gemini_request_failed', 'Gemini', 'failed', { error: geminiErr.message });
+      throw geminiErr;
+    }
 
-    // Validação estrita do perfil retornado pela IA para evitar perfis vazios ou corrompidos (Fase 5)
+    // Validação estrita do perfil retornado pela IA para evitar perfis vazios ou corrompidos
     const profile = parsedData?.career_profile;
     if (
       !profile ||
@@ -531,25 +650,26 @@ serve(async (req) => {
       !profile.experience ||
       profile.experience.length === 0
     ) {
-      throw new Error("Resume extraction returned invalid profile: missing name or work experiences.");
+      const invalidMsg = "Resume extraction returned invalid profile: missing name or work experiences.";
+      await logProcessingStep(supabaseClient, resumeVersionId, 'analyzing_profile', 'failed', invalidMsg, {}, userId);
+      await logApplicationEvent(supabaseClient, userId, 'gemini_request_failed', 'Gemini', 'failed', { reason: invalidMsg });
+      throw new Error(invalidMsg);
     }
 
-    // LOG DE PIPELINE: gemini_completed
-    await logProcessingStep(supabaseClient, resumeVersionId, 'gemini_completed', 'success');
+    // Etapa 3: analyzing_profile - Concluída
+    await logProcessingStep(supabaseClient, resumeVersionId, 'analyzing_profile', 'completed', 'Perfil estruturado pela IA com sucesso', {}, userId);
+
+    // Registrar evento de sucesso de IA
+    await logApplicationEvent(supabaseClient, userId, 'gemini_request_completed', 'Gemini', 'completed');
+
+    // Etapa 4: identifying_skills - Iniciada e concluída (visto que a identificação é parte da resposta estruturada do Gemini)
+    await logProcessingStep(supabaseClient, resumeVersionId, 'identifying_skills', 'running', 'Mapeando competências...', {}, userId);
+    await logProcessingStep(supabaseClient, resumeVersionId, 'identifying_skills', 'completed', 'Competências e soft skills mapeadas', {}, userId);
+
+    // Etapa 5: creating_profile - Iniciada
+    await logProcessingStep(supabaseClient, resumeVersionId, 'creating_profile', 'running', 'Criando perfil profissional...', {}, userId);
 
     // 5. Salvar perfil de carreira (dados puros extraídos)
-    console.log("[PIPELINE] resumeVersion:", resumeVersion);
-
-    if (!resumeVersion?.id) {
-      console.error('[EDGE FUNCTION] Erro: resumeVersion.id está vazio. Impedindo salvamento de career_profiles.');
-      throw new Error('A versão do currículo não foi criada. Pipeline interrompido.');
-    }
-
-    console.log(`[ANALYZE RESUME]
-resumeVersionId: ${resumeVersion.id}
-userId: ${userId}
-careerProfile payload:`, JSON.stringify(parsedData.career_profile || {}));
-
     console.log(`[EDGE FUNCTION] Salvando perfil de carreira...`)
     const careerProfile = await ResumeParserService.saveCareerProfile(
       supabaseClient, 
@@ -567,11 +687,14 @@ careerProfile payload:`, JSON.stringify(parsedData.career_profile || {}));
       parsedData.career_insights || {}
     );
 
-    // LOG DE PIPELINE: save_completed
-    await logProcessingStep(supabaseClient, resumeVersionId, 'save_completed', 'success', undefined, {
+    // Etapa 5: creating_profile - Concluída
+    await logProcessingStep(supabaseClient, resumeVersionId, 'creating_profile', 'completed', 'Perfil consolidado salvo no banco de dados', {
       careerProfileId: careerProfile.id,
       careerInsightsId: careerInsights.id
-    });
+    }, userId);
+
+    // Etapa 6: completed - Concluída
+    await logProcessingStep(supabaseClient, resumeVersionId, 'completed', 'completed', 'Processamento de currículo finalizado', {}, userId);
 
     // 7. Atualizar status para 'completed'
     await supabaseClient
@@ -592,8 +715,15 @@ careerProfile payload:`, JSON.stringify(parsedData.career_profile || {}));
       { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     )
   } catch (error) {
-    // LOG DE PIPELINE: failed
-    await logProcessingStep(supabaseClient, resumeVersionIdGlobal, 'failed', 'error', error.message);
+    console.error(`[EDGE FUNCTION] Erro ao processar currículo:`, error);
+
+    // Registrar evento global de falha de processamento
+    await logApplicationEvent(supabaseClient, userIdGlobal, 'resume_processing_failed', 'Parser', 'failed', { error: error.message });
+
+    // Marcar etapa atual como falha
+    if (resumeVersionIdGlobal && supabaseClient) {
+      await logProcessingStep(supabaseClient, resumeVersionIdGlobal, 'failed', 'failed', error.message, {}, userIdGlobal);
+    }
     
     // Tentar registrar o erro na tabela resume_processing_errors
     if (resumeVersionIdGlobal && supabaseClient) {
@@ -626,9 +756,25 @@ careerProfile payload:`, JSON.stringify(parsedData.career_profile || {}));
     let userMessage = "Não foi possível processar ou extrair as informações do seu currículo. Por favor, verifique se o arquivo PDF está legível e tente novamente.";
     let retryable = true;
 
-    if (error.message?.includes('Gemini') || error.message?.includes('GEMINI')) {
-      code = "AI_ERROR";
-      userMessage = "O serviço de inteligência artificial falhou durante a estruturação de dados. Tente novamente em instantes.";
+    if (error.message?.includes('limite') || error.message?.includes('excede')) {
+      code = "RESUME_LIMIT_EXCEEDED";
+      userMessage = "Arquivo excede limite permitido.";
+      retryable = false;
+    } else if (error.message?.includes('inválido') || error.message?.includes('corrompido')) {
+      code = "PARSE_ERROR";
+      userMessage = "Arquivo inválido. Envie outro currículo.";
+      retryable = false;
+    } else if (error.message?.includes('extrair texto') || error.message?.includes('automaticamente')) {
+      code = "RESUME_EMPTY";
+      userMessage = "Não conseguimos extrair texto automaticamente.";
+      retryable = false;
+    } else if (error.message?.includes('invalid profile') || error.message?.includes('work experiences')) {
+      code = "RESUME_INVALID_PROFILE";
+      userMessage = "Dados de currículo insuficientes. O currículo analisado não possui histórico profissional ou informações de identificação legíveis.";
+      retryable = false;
+    } else if (error.message?.includes('Gemini') || error.message?.includes('GEMINI')) {
+      code = "GEMINI_SERVICE_UNAVAILABLE";
+      userMessage = "O serviço de inteligência artificial está temporariamente indisponível. Tente novamente em instantes.";
     } else if (error.message?.includes('timeout') || error.message?.includes('fetch')) {
       code = "AI_TIMEOUT";
       userMessage = "Nossa inteligência artificial demorou mais que o esperado para estruturar suas experiências. Tente novamente.";

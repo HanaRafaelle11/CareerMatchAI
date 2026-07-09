@@ -120,14 +120,27 @@ export function useResumeVersions(userId: string | undefined) {
         console.error("Falha ao iniciar Edge Function:", invokeErr);
       }
 
-      // 5. Polling Loop
+      // 5. Polling Loop com frequência adaptativa e limite de 5 minutos
+      const pollingStartTime = Date.now();
       let isComplete = false;
-      let attempts = 0;
-      const maxAttempts = 65;
       
-      while (!isComplete && attempts < maxAttempts) {
-        await new Promise(resolve => setTimeout(resolve, 1500));
-        attempts++;
+      while (!isComplete) {
+        const elapsedSeconds = (Date.now() - pollingStartTime) / 1000;
+        
+        // Timeout de 5 minutos (300 segundos)
+        if (elapsedSeconds >= 300) {
+          throw new Error("Seu currículo está demorando mais que o esperado. Continuaremos processando em segundo plano. Você pode retornar depois.");
+        }
+
+        // Definir delay de polling adaptativo
+        let delayMs = 2000;
+        if (elapsedSeconds > 120) {
+          delayMs = 10000;
+        } else if (elapsedSeconds > 30) {
+          delayMs = 5000;
+        }
+
+        await new Promise(resolve => setTimeout(resolve, delayMs));
 
         const { data: verInfo, error: statusError } = await supabase
           .from('resume_versions')
@@ -144,43 +157,48 @@ export function useResumeVersions(userId: string | undefined) {
           .order('created_at', { ascending: true });
 
         if (logs) {
-          const hasExtractStarted = logs.some(l => l.step === 'extract_started');
-          const hasExtractCompleted = logs.some(l => l.step === 'extract_completed');
-          const hasGeminiStarted = logs.some(l => l.step === 'gemini_started');
-          const hasGeminiCompleted = logs.some(l => l.step === 'gemini_completed');
-          const hasSaveCompleted = logs.some(l => l.step === 'save_completed');
-          const hasFailed = logs.some(l => l.status === 'error');
+          const logUploaded = logs.find(l => l.step === 'uploaded');
+          const logExtracting = logs.find(l => l.step === 'extracting_text');
+          const logAnalyzing = logs.find(l => l.step === 'analyzing_profile');
+          const logIdentifying = logs.find(l => l.step === 'identifying_skills');
+          const logCreating = logs.find(l => l.step === 'creating_profile');
+          const logFailed = logs.find(l => l.step === 'failed' || l.status === 'failed' || l.status === 'error');
 
           const steps: PipelineStep[] = [
-            { id: 'upload', label: '✔ Upload concluído', status: 'success' },
             { 
-              id: 'extract', 
-              label: hasExtractCompleted ? '✔ Arquivo processado' : hasExtractStarted ? 'Extraindo informações do arquivo...' : 'Aguardando processamento...',
-              status: hasExtractCompleted ? 'success' : hasExtractStarted ? 'running' : 'pending'
+              id: 'uploaded', 
+              label: logUploaded?.status === 'completed' || logUploaded?.status === 'success' ? '✔ Upload recebido' : logUploaded?.status === 'running' ? 'Recebendo upload...' : 'Aguardando upload...', 
+              status: logUploaded?.status === 'completed' || logUploaded?.status === 'success' ? 'success' : logUploaded?.status === 'running' ? 'running' : 'pending' 
             },
             { 
-              id: 'gemini', 
-              label: hasGeminiCompleted ? '✔ IA mapeou histórico e competências' : hasGeminiStarted ? 'IA identificando competências e senioridade...' : 'Processando inteligência artificial...',
-              status: hasGeminiCompleted ? 'success' : hasGeminiStarted ? 'running' : 'pending'
+              id: 'extracting_text', 
+              label: logExtracting?.status === 'completed' || logExtracting?.status === 'success' ? '✔ Extraindo informações do currículo' : logExtracting?.status === 'running' ? 'Extraindo informações do currículo...' : 'Aguardando extração...', 
+              status: logExtracting?.status === 'completed' || logExtracting?.status === 'success' ? 'success' : logExtracting?.status === 'running' ? 'running' : 'pending' 
             },
             { 
-              id: 'save', 
-              label: hasSaveCompleted ? '✔ Perfil profissional criado com IA' : hasGeminiCompleted ? 'Salvando perfil profissional...' : 'Salvando perfil...',
-              status: hasSaveCompleted ? 'success' : hasGeminiCompleted ? 'running' : 'pending'
+              id: 'identifying_skills', 
+              label: logIdentifying?.status === 'completed' || logIdentifying?.status === 'success' ? '✔ IA identificando competências' : logIdentifying?.status === 'running' ? 'IA identificando competências...' : 'Aguardando IA...', 
+              status: logIdentifying?.status === 'completed' || logIdentifying?.status === 'success' ? 'success' : logIdentifying?.status === 'running' ? 'running' : 'pending' 
+            },
+            { 
+              id: 'creating_profile', 
+              label: logCreating?.status === 'completed' || logCreating?.status === 'success' ? '✔ Criando perfil profissional' : logCreating?.status === 'running' ? 'Criando perfil profissional...' : 'Aguardando finalização...', 
+              status: logCreating?.status === 'completed' || logCreating?.status === 'success' ? 'success' : logCreating?.status === 'running' ? 'running' : 'pending' 
             }
           ];
 
           setPipelineSteps(steps);
 
-          if (hasFailed) {
-            const failedLog = logs.find(l => l.status === 'error');
+          if (verInfo.status === 'failed' || logFailed || logs.some(l => l.status === 'failed' || l.status === 'error')) {
+            const failedLog = logs.find(l => l.status === 'failed' || l.status === 'error');
             throw new Error(failedLog?.error_message || 'Falha no processamento da IA.');
           }
         }
 
         if (verInfo.status === 'completed') {
           isComplete = true;
-        } else if (verInfo.status === 'failed') {
+        } else if (verInfo.status === 'failed' || verInfo.status === 'cancelled') {
+          isComplete = true;
           const { data: errorLog } = await supabase
             .from('resume_processing_errors')
             .select('error_message')
@@ -189,10 +207,6 @@ export function useResumeVersions(userId: string | undefined) {
 
           throw new Error(errorLog?.error_message || 'Falha ao estruturar currículo no Gemini.');
         }
-      }
-
-      if (!isComplete) {
-        throw new Error('Tempo limite excedido ao processar o currículo.');
       }
 
       return resumeVersion;

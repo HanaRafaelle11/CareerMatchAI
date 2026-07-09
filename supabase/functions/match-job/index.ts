@@ -110,6 +110,214 @@ async function logAiUsage(supabaseClient: any, userId: string, feature: string, 
   }
 }
 
+function calcYearsFromExperiences(experiences: any[]): number {
+  if (!experiences || experiences.length === 0) return 0;
+  const intervals: [number, number][] = experiences.map(exp => {
+    const start = exp.startDate ? new Date(exp.startDate).getTime() : new Date('2000-01-01').getTime();
+    const end = exp.isCurrent || !exp.endDate ? Date.now() : new Date(exp.endDate).getTime();
+    return [start, Math.max(start, end)];
+  });
+  intervals.sort((a, b) => a[0] - b[0]);
+  let merged = 0;
+  let curStart = intervals[0][0];
+  let curEnd = intervals[0][1];
+  for (let i = 1; i < intervals.length; i++) {
+    const [s, e] = intervals[i];
+    if (s <= curEnd) {
+      curEnd = Math.max(curEnd, e);
+    } else {
+      merged += curEnd - curStart;
+      curStart = s;
+      curEnd = e;
+    }
+  }
+  merged += curEnd - curStart;
+  const years = Math.round(merged / (1000 * 60 * 60 * 24 * 365));
+  return Math.max(0, years);
+}
+
+function buildFlatSkillsFromProfile(profile: any): string[] {
+  const names: string[] = [];
+  for (const s of profile.skills || []) {
+    if (typeof s === 'string') {
+      names.push(s.toLowerCase());
+    } else if (s && typeof s === 'object' && s.name) {
+      names.push(s.name.toLowerCase());
+    }
+  }
+  for (const ss of profile.soft_skills || []) {
+    names.push(ss.toLowerCase());
+  }
+  if (profile.ats_keywords?.existing_keywords) {
+    for (const kw of profile.ats_keywords.existing_keywords) {
+      names.push(kw.toLowerCase());
+    }
+  }
+  if (profile.ats_keywords?.recommended_keywords) {
+    for (const kw of profile.ats_keywords.recommended_keywords) {
+      names.push(kw.toLowerCase());
+    }
+  }
+  if (profile.summary) {
+    names.push(profile.summary.toLowerCase());
+  }
+  return [...new Set(names)];
+}
+
+const SYNONYM_MAP: Record<string, string[]> = {
+  'react': ['react.js', 'reactjs', 'next.js', 'nextjs', 'frontend', 'front-end', 'react native'],
+  'typescript': ['ts', 'javascript', 'js', 'ecmascript'],
+  'node.js': ['nodejs', 'node', 'express', 'nestjs', 'backend', 'back-end'],
+  'postgresql': ['postgres', 'sql', 'mysql', 'banco de dados', 'database', 'supabase'],
+  'aws': ['amazon web services', 'cloud', 'aws cloud', 's3', 'ec2', 'lambda'],
+  'docker': ['kubernetes', 'containers', 'devops', 'k8s'],
+  'python': ['py', 'django', 'flask', 'fastapi'],
+  'customer success': [
+    'cs', 'customer success management', 'customer success manager', 'csm',
+    'customer success operations', 'retenção', 'churn', 'nps', 'csat',
+    'health score', 'onboarding', 'customer journey', 'customer experience',
+    'cx', 'gestão de contas', 'account management', 'renewals', 'expansion',
+    'upsell', 'cross-sell', 'customer retention', 'client success',
+    'sucesso do cliente', 'fidelização'
+  ],
+  'saas': ['software as a service', 'b2b saas', 'enterprise saas', 'plataforma saas', 'produto saas'],
+  'nps': ['net promoter score', 'satisfação do cliente', 'pesquisa de satisfação'],
+  'churn': ['churn rate', 'taxa de cancelamento', 'retenção', 'retention'],
+  'crm': ['salesforce', 'hubspot', 'pipedrive', 'zoho crm', 'dynamics'],
+  'gainsight': ['totango', 'planhat', 'churnzero', 'cs platform'],
+  'liderança': [
+    'gestão de times', 'people management', 'team lead', 'team leader',
+    'mentor', 'mentoria', 'lider', 'líder', 'coordenação', 'gerência',
+    'gestão de equipe', 'liderou', 'coordenou', 'gerenciou', 'squad lead'
+  ],
+  'gestão': ['management', 'gerenciamento', 'coordenação', 'administração', 'liderança'],
+  'agile': ['ágil', 'scrum', 'kanban', 'sprint', 'metodologia ágil'],
+  'okr': ['okrs', 'objetivos e resultados-chave', 'metas', 'kpi', 'kpis'],
+  'analytics': ['análise de dados', 'data analysis', 'bi', 'business intelligence', 'tableau', 'power bi', 'looker'],
+  'sql': ['postgresql', 'mysql', 'banco de dados', 'queries', 'consultas sql', 'database'],
+  'comunicação': ['communication', 'apresentações', 'presentations', 'stakeholders', 'storytelling'],
+  'vendas': ['sales', 'comercial', 'revenue', 'receita', 'pipeline', 'prospecção'],
+  'enterprise': ['enterprise accounts', 'grandes contas', 'b2b enterprise', 'contas enterprise'],
+};
+
+function checkRequirement(req: string, flatSkills: string[], experiences: any[] | null): boolean {
+  const reqLower = req.toLowerCase().trim();
+  if (flatSkills.includes(reqLower)) return true;
+  
+  const syns = SYNONYM_MAP[reqLower];
+  if (syns && syns.some(s => flatSkills.includes(s.toLowerCase()))) return true;
+  
+  for (const s of flatSkills) {
+    if (s.includes(reqLower) || reqLower.includes(s)) return true;
+  }
+  
+  if (experiences) {
+    const needle = reqLower;
+    for (const exp of experiences) {
+      const haystack = [
+        exp.description || '',
+        ...(exp.highlights || []),
+        exp.role || '',
+        exp.companyName || ''
+      ].join(' ').toLowerCase();
+      if (haystack.includes(needle)) return true;
+    }
+  }
+  return false;
+}
+
+function calculateRuleBasedScore(careerProfile: any, job: any): number {
+  const flatSkills = buildFlatSkillsFromProfile(careerProfile);
+  const experiences = careerProfile.experience ?? null;
+  const yearsOfExperience = calcYearsFromExperiences(careerProfile.experience || []);
+
+  let matchedCount = 0;
+  const reqs = job.requirements || [];
+  reqs.forEach((req: string) => {
+    if (checkRequirement(req, flatSkills, experiences)) {
+      matchedCount++;
+    }
+  });
+
+  const scoreTechnical = Math.round((matchedCount / Math.max(reqs.length, 1)) * 100);
+
+  // Behavioral
+  const softTerms = [
+    ...(careerProfile.soft_skills || []).map((s: string) => s.toLowerCase()),
+    ...flatSkills
+  ];
+  const hasLeadership = softTerms.some(s =>
+    s.includes('lider') || s.includes('mentor') || s.includes('liderança') ||
+    s.includes('gestão') || s.includes('team lead')
+  );
+  const hasAgile = softTerms.some(s =>
+    s.includes('ágil') || s.includes('agile') || s.includes('scrum')
+  );
+  const hasComms = softTerms.some(s =>
+    s.includes('comun') || s.includes('equipe') || s.includes('trabalho') || s.includes('stakeholder')
+  );
+
+  let scoreBehavioral = 70;
+  if (hasLeadership) scoreBehavioral += 10;
+  if (hasAgile) scoreBehavioral += 10;
+  if (hasComms) scoreBehavioral += 10;
+  scoreBehavioral = Math.min(scoreBehavioral, 100);
+
+  // Seniority
+  const seniorityMap: Record<string, { min: number, max: number }> = {
+    'junior': { min: 0, max: 2 },
+    'pleno': { min: 2, max: 5 },
+    'senior': { min: 5, max: 10 },
+    'lead': { min: 7, max: 15 },
+    'director': { min: 10, max: 25 }
+  };
+  const jobSeniority = job.seniority?.toLowerCase() || 'senior';
+  const range = seniorityMap[jobSeniority] || { min: 2, max: 5 };
+  const exp = yearsOfExperience;
+
+  let scoreSeniority = 100;
+  if (exp < range.min) {
+    scoreSeniority = Math.max(50, 100 - (range.min - exp) * 20);
+  } else if (exp > range.max) {
+    scoreSeniority = Math.max(80, 100 - (exp - range.max) * 5);
+  }
+  scoreSeniority = Math.round(scoreSeniority);
+
+  // Location
+  let scoreLocation = 100;
+  const workMode = job.work_mode || job.workMode || 'onsite';
+  if (workMode === 'onsite' && job.location?.toLowerCase() !== 'remoto') {
+    scoreLocation = 75;
+  } else if (workMode === 'hybrid') {
+    scoreLocation = 85;
+  }
+
+  // Salary
+  let scoreSalary = 90;
+  const salaryExpectation = Number(careerProfile.personal?.preferences?.salaryExpectationMin || 0) || 11000;
+  const salaryMin = job.salary_min || job.salaryMin;
+  const salaryMax = job.salary_max || job.salaryMax;
+  if (salaryMin && salaryExpectation > 0) {
+    if (salaryExpectation > salaryMax) {
+      scoreSalary = Math.max(50, Math.round(100 - ((salaryExpectation - salaryMax) / salaryMax) * 100));
+    } else if (salaryExpectation < salaryMin) {
+      scoreSalary = 100;
+    } else {
+      scoreSalary = 95;
+    }
+  }
+
+  const scoreOverall = Math.round(
+    (scoreTechnical * 0.45) +
+    (scoreBehavioral * 0.20) +
+    (scoreSeniority * 0.20) +
+    (scoreLocation * 0.10) +
+    (scoreSalary * 0.05)
+  );
+
+  return scoreOverall;
+}
+
 class JobMatchingEngine {
   static async matchWithGemini(careerProfile: any, jobTitle: string, jobDescription: string, supabaseClient: any, userId: string, jobId: string, mockEnabled = false, parentStartTime: number): Promise<any> {
     
@@ -409,6 +617,11 @@ serve(async (req) => {
     );
 
     console.log("[MATCH JOB RESULT] Match calculated:", matchResult);
+
+    // Substituir a pontuação com a mesma lógica determinística do frontend
+    const finalCalculatedScore = calculateRuleBasedScore(careerProfile, jobData);
+    matchResult.match_score = finalCalculatedScore;
+    matchResult.interview_probability = finalCalculatedScore;
 
     // 4. Salvar o resultado na tabela job_matches
     const savedMatch = await JobMatchingEngine.saveJobMatch(

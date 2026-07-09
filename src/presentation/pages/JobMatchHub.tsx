@@ -217,19 +217,50 @@ export function JobMatchHub({
   const [errorMsg, setErrorMsg] = useState('');
 
   // States para a descoberta de vagas baseada no Career Profile ou fallback
-  const initialKeyword = careerProfile?.searchKeywords?.[0] || primaryResume?.skills?.[0]?.name || 'React';
-  const initialLocation = careerProfile?.preferredLocations?.[0] || 'Brasil';
-  const initialRemote = careerProfile ? careerProfile.preferredWorkModes.includes('remote') : true;
+  const initialKeyword = sessionStorage.getItem('job_search_keyword') || careerProfile?.searchKeywords?.[0] || primaryResume?.skills?.[0]?.name || 'React';
+  const initialLocation = sessionStorage.getItem('job_search_location') || careerProfile?.preferredLocations?.[0] || 'Brasil';
   
-  const [searchKeyword, setSearchKeyword] = useState(initialKeyword);
-  const [searchLocation, setSearchLocation] = useState(initialLocation);
-  const [searchRemoteOnly, setSearchRemoteOnly] = useState(initialRemote);
+  const storedRemote = sessionStorage.getItem('job_search_remote');
+  const initialRemote = storedRemote !== null ? storedRemote === 'true' : (careerProfile ? careerProfile.preferredWorkModes.includes('remote') : true);
+
+  const initialInputKeyword = sessionStorage.getItem('job_search_input_keyword') || initialKeyword;
+  const initialInputLocation = sessionStorage.getItem('job_search_input_location') || initialLocation;
+  const storedInputRemote = sessionStorage.getItem('job_search_input_remote');
+  const initialInputRemote = storedInputRemote !== null ? storedInputRemote === 'true' : initialRemote;
+
+  const storedPage = sessionStorage.getItem('job_search_page');
+  const initialPage = storedPage !== null ? Number(storedPage) : 1;
+
+  const [searchKeyword, setSearchKeyword] = useState(initialInputKeyword);
+  const [searchLocation, setSearchLocation] = useState(initialInputLocation);
+  const [searchRemoteOnly, setSearchRemoteOnly] = useState(initialInputRemote);
+  const [searchPage, setSearchPage] = useState(initialPage);
   
   const [activeFilters, setActiveFilters] = useState({
     keyword: initialKeyword,
     location: initialLocation,
     remoteOnly: initialRemote
   });
+
+  // Salvar entradas do usuário e filtros ativos na sessionStorage para manter o estado ao navegar
+  useEffect(() => {
+    sessionStorage.setItem('job_search_keyword', activeFilters.keyword);
+    sessionStorage.setItem('job_search_location', activeFilters.location);
+    sessionStorage.setItem('job_search_remote', String(activeFilters.remoteOnly));
+    sessionStorage.setItem('job_search_page', String(searchPage));
+  }, [activeFilters, searchPage]);
+
+  useEffect(() => {
+    sessionStorage.setItem('job_search_input_keyword', searchKeyword);
+  }, [searchKeyword]);
+
+  useEffect(() => {
+    sessionStorage.setItem('job_search_input_location', searchLocation);
+  }, [searchLocation]);
+
+  useEffect(() => {
+    sessionStorage.setItem('job_search_input_remote', String(searchRemoteOnly));
+  }, [searchRemoteOnly]);
 
   // Gatilho de redirecionamento automático do Dashboard
   useEffect(() => {
@@ -261,11 +292,10 @@ export function JobMatchHub({
   const currentMatch = selectedJob ? matches.find(m => m.jobId === selectedJob.id) : null;
   const { data: matchDetails } = getMatchDetails(currentMatch?.id || '');
 
-  const [searchPage, setSearchPage] = useState(1);
-
   // Hook do módulo de Job Discovery — passa searchPage e careerProfileNew
   const { 
     discoveredJobs, 
+    totalCount,
     isLoading: isLoadingDiscovery, 
     isError: isErrorDiscovery,
     error: errorDiscovery,
@@ -1307,30 +1337,39 @@ export function JobMatchHub({
                       ))}
                     </div>
 
-                    {/* Controles de Paginação */}
-                    <div className="flex justify-center items-center gap-4 pt-6 border-t border-slate-900/60 select-none">
-                      <button
-                        onClick={() => {
-                          setSearchPage(p => Math.max(1, p - 1));
-                          window.scrollTo({ top: 0, behavior: 'smooth' });
-                        }}
-                        disabled={searchPage === 1 || isLoadingDiscovery}
-                        className="px-4 py-2 rounded-xl bg-slate-900 border border-slate-800 hover:border-slate-700 text-slate-350 disabled:opacity-40 disabled:cursor-not-allowed text-xs font-semibold transition-all"
-                      >
-                        Anterior
-                      </button>
-                      <span className="text-xs text-slate-400">Página {searchPage}</span>
-                      <button
-                        onClick={() => {
-                          setSearchPage(p => p + 1);
-                          window.scrollTo({ top: 0, behavior: 'smooth' });
-                        }}
-                        disabled={isLoadingDiscovery || scoredDiscoveredJobs.length < 5}
-                        className="px-4 py-2 rounded-xl bg-slate-900 border border-slate-800 hover:border-slate-700 text-slate-350 disabled:opacity-40 disabled:cursor-not-allowed text-xs font-semibold transition-all"
-                      >
-                        Próxima
-                      </button>
-                    </div>
+                     {/* Controles de Paginação */}
+                     <div className="flex flex-col items-center gap-3 pt-6 border-t border-slate-900/60 select-none">
+                       <div className="flex justify-center items-center gap-4">
+                         <button
+                           onClick={() => {
+                             setSearchPage(p => Math.max(1, p - 1));
+                             window.scrollTo({ top: 0, behavior: 'smooth' });
+                           }}
+                           disabled={searchPage === 1 || isLoadingDiscovery}
+                           className="px-4 py-2 rounded-xl bg-slate-900 border border-slate-800 hover:border-slate-700 text-slate-350 disabled:opacity-40 disabled:cursor-not-allowed text-xs font-semibold transition-all"
+                         >
+                           Anterior
+                         </button>
+                         
+                         <span className="text-xs text-slate-400 font-semibold">
+                           Página {searchPage} de {Math.max(1, Math.ceil(totalCount / 15))}
+                         </span>
+
+                         <button
+                           onClick={() => {
+                             setSearchPage(p => p + 1);
+                             window.scrollTo({ top: 0, behavior: 'smooth' });
+                           }}
+                           disabled={isLoadingDiscovery || scoredDiscoveredJobs.length < 15 || searchPage >= Math.ceil(totalCount / 15)}
+                           className="px-4 py-2 rounded-xl bg-slate-900 border border-slate-800 hover:border-slate-700 text-slate-350 disabled:opacity-40 disabled:cursor-not-allowed text-xs font-semibold transition-all"
+                         >
+                           Próxima
+                         </button>
+                       </div>
+                       <div className="text-[10px] text-slate-500 font-medium">
+                         Mostrando {scoredDiscoveredJobs.length} resultados nesta página (Total encontrado: {totalCount})
+                       </div>
+                     </div>
                   </div>
                 ) : (
                   <EmptyState

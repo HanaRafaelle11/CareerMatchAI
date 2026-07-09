@@ -418,11 +418,14 @@ export class MatchingEngine {
 
     // 5. Match Salarial
     let scoreSalary = 90;
-    if (job.salaryMin) {
-      const candidatePretension = 11000;
-      if (candidatePretension > job.salaryMax!) {
-        scoreSalary = Math.max(50, Math.round(100 - ((candidatePretension - job.salaryMax!) / job.salaryMax!) * 100));
-      } else if (candidatePretension < job.salaryMin) {
+    const salaryExpectation = (consolidatedProfile
+      ? Number((consolidatedProfile.personal as any)?.preferences?.salaryExpectationMin || 0)
+      : 0) || 11000;
+
+    if (job.salaryMin && salaryExpectation > 0) {
+      if (salaryExpectation > job.salaryMax!) {
+        scoreSalary = Math.max(50, Math.round(100 - ((salaryExpectation - job.salaryMax!) / job.salaryMax!) * 100));
+      } else if (salaryExpectation < job.salaryMin) {
         scoreSalary = 100;
       } else {
         scoreSalary = 95;
@@ -659,7 +662,21 @@ ${candidateName}`,
       scoreLocation = 85;
     }
 
-    const scoreSalary = 95;
+    // Salary
+    let scoreSalary = 90;
+    const salaryExpectation = (consolidatedProfile
+      ? Number((consolidatedProfile.personal as any)?.preferences?.salaryExpectationMin || 0)
+      : 0) || 11000;
+
+    if (job.salaryMin && salaryExpectation > 0) {
+      if (salaryExpectation > job.salaryMax!) {
+        scoreSalary = Math.max(50, Math.round(100 - ((salaryExpectation - job.salaryMax!) / job.salaryMax!) * 100));
+      } else if (salaryExpectation < job.salaryMin) {
+        scoreSalary = 100;
+      } else {
+        scoreSalary = 95;
+      }
+    }
 
     const scoreOverall = Math.round(
       (scoreTechnical * 0.45) +

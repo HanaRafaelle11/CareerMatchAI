@@ -186,11 +186,11 @@ export function Dashboard({
               Parser: eventsToday.filter(e => e.service === 'Parser').length
             },
             errorBreakdown: {
-              Gemini: geminiFailures,
-              Adzuna: adzunaFailures,
-              Storage: storageFailures,
-              Database: dbFailures,
-              Parser: parserFailures
+              Gemini: errorBreakdown.Gemini,
+              Adzuna: errorBreakdown.Adzuna,
+              Storage: errorBreakdown.Storage,
+              Database: errorBreakdown.Database,
+              Parser: errorBreakdown.Parser
             },
             volToday: totalToday,
             volYesterday: eventsYesterday.length

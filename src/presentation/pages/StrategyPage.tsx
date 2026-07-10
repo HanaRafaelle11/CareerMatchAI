@@ -1,4 +1,4 @@
-import { useState, type FormEvent } from 'react';
+import { useState, useEffect, type FormEvent } from 'react';
 import { CardGlass } from '../components/CardGlass';
 import { CandidateStrategyService } from '../../application/services/CandidateStrategyService';
 import { ApplicationPipelineService } from '../../application/services/ApplicationPipelineService';
@@ -124,6 +124,19 @@ export function StrategyPage({
   const [journalLearned, setJournalLearned] = useState<string>('');
   const [journalDifferent, setJournalDifferent] = useState<string>('');
   const { data: activePostLog } = getPostLogQuery(journalAppId || 'none');
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        setShowAddForm(false);
+        setRejectingApp(null);
+        setSelectedAppId(null);
+        setShowCompanyForm(false);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, []);
 
   // Calculate dynamic list of jobs with metrics overrides
   const mappedJobs = jobs.map(j => {

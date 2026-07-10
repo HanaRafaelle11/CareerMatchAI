@@ -2,6 +2,8 @@ import { LayoutDashboard, User, LogOut, Compass, FileText, Briefcase, Award, X, 
 import { ThemeToggle } from './ThemeToggle';
 import type { Profile } from '../../domain/models/types';
 
+import { useEffect } from 'react';
+
 interface NavbarProps {
   activeTab: string;
   setActiveTab: (tab: string) => void;
@@ -21,6 +23,16 @@ export function Navbar({ activeTab, setActiveTab, profile, onLogout, isOpen, onC
     { id: 'match', label: 'Match Manual', icon: Compass },
     { id: 'coach', label: 'AI Coach', icon: Award }
   ];
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && isOpen) {
+        onClose();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isOpen, onClose]);
 
   return (
     <>

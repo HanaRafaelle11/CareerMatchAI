@@ -261,9 +261,9 @@ export function CareerProfilePage({
                   </div>
                   <div className="flex flex-wrap gap-1.5 pt-1">
                     {industries.map(ind => (
-                      <span key={ind} className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-slate-800 text-slate-300 text-xs border border-slate-700 font-medium">
+                      <span key={ind} className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-indigo-500/10 text-indigo-400 text-xs border border-indigo-500/20 font-medium">
                         {ind}
-                        <button type="button" onClick={() => removeTag(ind, setIndustries)} className="text-slate-500 hover:text-red-400">
+                        <button type="button" onClick={() => removeTag(ind, setIndustries)} className="text-indigo-500 hover:text-red-400">
                           <X size={12} />
                         </button>
                       </span>
@@ -324,9 +324,9 @@ export function CareerProfilePage({
                   </div>
                   <div className="flex flex-wrap gap-1.5 pt-1">
                     {preferredLocations.map(loc => (
-                      <span key={loc} className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-slate-800 text-slate-300 text-xs border border-slate-700 font-medium">
+                      <span key={loc} className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-blue-500/10 text-blue-400 text-xs border border-blue-500/20 font-medium">
                         {loc}
-                        <button type="button" onClick={() => removeTag(loc, setPreferredLocations)} className="text-slate-500 hover:text-red-400">
+                        <button type="button" onClick={() => removeTag(loc, setPreferredLocations)} className="text-blue-500 hover:text-red-400">
                           <X size={12} />
                         </button>
                       </span>
@@ -480,9 +480,9 @@ export function CareerProfilePage({
                   </div>
                   <div className="flex flex-wrap gap-1.5 pt-1">
                     {targetCompanies.map(comp => (
-                      <span key={comp} className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-slate-800 text-slate-300 text-xs border border-slate-700 font-medium">
+                      <span key={comp} className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-purple-500/10 text-purple-400 text-xs border border-purple-500/20 font-medium">
                         {comp}
-                        <button type="button" onClick={() => removeTag(comp, setTargetCompanies)} className="text-slate-500 hover:text-red-400">
+                        <button type="button" onClick={() => removeTag(comp, setTargetCompanies)} className="text-purple-500 hover:text-red-400">
                           <X size={12} />
                         </button>
                       </span>
@@ -512,7 +512,7 @@ export function CareerProfilePage({
                   </div>
                   <div className="flex flex-wrap gap-1.5 pt-1">
                     {searchKeywords.map(kw => (
-                      <span key={kw} className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-slate-800 text-slate-300 text-xs border border-slate-700 font-medium">
+                      <span key={kw} className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-slate-900 text-slate-300 text-xs border border-slate-850 font-medium">
                         {kw}
                         <button type="button" onClick={() => removeTag(kw, setSearchKeywords)} className="text-slate-500 hover:text-red-400">
                           <X size={12} />

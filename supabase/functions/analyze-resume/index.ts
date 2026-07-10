@@ -302,6 +302,8 @@ class ResumeParserService {
         * 'extracted': Encontrado explicitamente escrito no currículo.
         * 'inferred': Deduzido logicamente com base nas evidências factuais presentes.
         * 'recommended': Sugerido como melhoria baseada em padrões do setor.
+      - O cargo atual, senioridade, área profissional e objetivo de carreira do candidato devem guiar rigorosamente as sugestões de 'missing_skills', 'ats_keywords' e 'recommended_keywords'.
+      - NÃO USE SKILLS GENÉRICAS DO EXEMPLO (como SQL, Power BI, Tableau, Scrum, Salesforce) para perfis em que isso não faz sentido profissional. Por exemplo, se o perfil for administrativo/atendimento ao cliente, sugira skills relevantes à área (como Atendimento Omnichannel, Zendesk, Salesforce básico, Técnicas de negociação, Gestão de conflitos, CX, Indicadores SLA, CSAT, NPS) e jamais sugira stacks pesadas de tecnologia/engenharia ou analistas de dados (como Tableau ou SQL avançado) a menos que o candidato atue diretamente nessa área ou tenha isso indicado. Seja extremamente fiel à área profissional do candidato.
       - Extração de Empresa: NUNCA infira o nome da empresa baseado no cargo. Se a empresa não constar de forma explícita na experiência, defina companyName = null.
       - Senioridade: Escolha estritamente uma única categoria: Intern, Junior, Mid, Senior, Lead, Manager, Head, Director, VP.
 

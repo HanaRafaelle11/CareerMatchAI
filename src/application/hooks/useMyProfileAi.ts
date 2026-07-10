@@ -164,7 +164,7 @@ profile_id: ${profile.id}`);
 
       return { profile, insights };
     },
-    enabled: !!userId,
+    enabled: !!userId && !!resumeVersionId,
   });
 
   return {

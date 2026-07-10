@@ -111,24 +111,23 @@ export function CoachDashboard({
       let reply = '';
       const textLower = userText.toLowerCase();
       
-      const totalApps = applications.length || 15;
-      const totalInterviews = applications.filter(a => 
-        ['👥 Entrevista com recrutador', '🎯 Entrevista com gestor', '🧩 Case técnico', '🤝 Fit cultural'].includes(a.status)
-      ).length || 6;
-      
-      const conversionRate = totalApps > 0 ? Math.round((totalInterviews / totalApps) * 100) : 40;
-
-      if (textLower.includes('cs') || textLower.includes('customer success') || textLower.includes('remoto')) {
-        reply = `Analisei 214 vagas dos últimos 30 dias compatíveis com seu perfil. Seu perfil possui 91% de aderência. Recomendo focar em:
-• Customer Success Manager
-• Head de CS em startups Série A
-• Onboarding Manager Enterprise
-
-Evite vagas de Diretor neste momento, pois sua taxa histórica de avanço nelas foi de apenas 9% com seu currículo atual.`;
-      } else if (textLower.includes('diagnóstico') || textLower.includes('saas') || textLower.includes('mercado')) {
-        reply = `Seu diagnóstico aponta alta atratividade no mercado SaaS B2B. Sua taxa geral de conversão em entrevistas está em ${conversionRate}%. Empresas de médio porte (de 100 a 1000 funcionários) apresentam tempo de resposta 50% menor para o seu perfil.`;
+      if (!applications || applications.length === 0) {
+        reply = "Você ainda não possui candidaturas suficientes para gerar recomendações baseadas em histórico.";
       } else {
-        reply = `Com base nas suas candidaturas e no feedback coletado das empresas, seu maior gap técnico reside em Salesforce e SQL. Ao destacar essas duas habilidades no currículo, a IA estima que sua taxa de avanço para a etapa com gestor subirá de ${conversionRate}% para cerca de 55%.`;
+        const totalApps = applications.length;
+        const totalInterviews = applications.filter(a => 
+          ['👥 Entrevista com recrutador', '🎯 Entrevista com gestor', '🧩 Case técnico', '🤝 Fit cultural'].includes(a.status)
+        ).length;
+        
+        const conversionRate = totalApps > 0 ? Math.round((totalInterviews / totalApps) * 100) : 0;
+
+        if (textLower.includes('cs') || textLower.includes('customer success') || textLower.includes('remoto')) {
+          reply = `Analisei seu histórico de candidaturas em relação a vagas remotas. Com base nas suas ${totalApps} candidatura(s) ativas, o sistema recomenda focar em posições alinhadas ao seu perfil de Customer Success.`;
+        } else if (textLower.includes('diagnóstico') || textLower.includes('saas') || textLower.includes('mercado')) {
+          reply = `Seu diagnóstico aponta atividade no mercado. Sua taxa geral de avanço para entrevistas reais com base no seu histórico é de ${conversionRate}%.`;
+        } else {
+          reply = `Com base nas suas candidaturas reais, identificamos que você possui ${totalApps} candidatura(s) cadastrada(s) e ${totalInterviews} entrevista(s) registrada(s). Continue atualizando seus processos para obter direcionamentos de competências.`;
+        }
       }
 
       setRecruiterChat(prev => [...prev, { role: 'recruiter' as const, text: reply }]);

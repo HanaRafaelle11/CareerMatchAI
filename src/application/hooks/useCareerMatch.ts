@@ -303,17 +303,55 @@ export function useResumes(userId: string | undefined) {
   const deleteResumeMutation = useMutation({
     mutationFn: async (resumeId: string) => {
       if (isSupabaseConfigured && supabase) {
+        // 1. Obter informações do currículo antes de deletar
+        const { data: resume } = await supabase
+          .from('resumes')
+          .select('file_name, file_path')
+          .eq('id', resumeId)
+          .maybeSingle();
+
+        // 2. Deletar da tabela resumes
         const { error } = await supabase
           .from('resumes')
           .delete()
           .eq('id', resumeId);
         if (error) throw error;
+
+        // 3. Deletar da tabela resume_versions pelo nome do arquivo correspondente
+        if (resume) {
+          const fileName = resume.file_name || resume.file_path.split('/').pop();
+          await supabase
+            .from('resume_versions')
+            .delete()
+            .eq('user_id', userId)
+            .eq('file_name', fileName);
+        }
+
+        // 4. Se não restar nenhum currículo, deletar todos os registros de suporte para o usuário
+        const { data: remainingResumes } = await supabase
+          .from('resumes')
+          .select('id')
+          .eq('user_id', userId);
+
+        if (!remainingResumes || remainingResumes.length === 0) {
+          await supabase.from('resume_versions').delete().eq('user_id', userId);
+          await supabase.from('career_profiles').delete().eq('user_id', userId);
+          await supabase.from('career_insights').delete().eq('user_id', userId);
+          await supabase.from('resume_processing_logs').delete().eq('user_id', userId);
+          await supabase.from('resume_processing_errors').delete().eq('user_id', userId);
+          await supabase.from('matches').delete().eq('resume_id', resumeId);
+        }
       } else {
         localDB.deleteResume(resumeId);
       }
     },
     onSuccess: () => {
+      setPipelineSteps([]);
       queryClient.invalidateQueries({ queryKey: ['resumes', userId] });
+      queryClient.invalidateQueries({ queryKey: ['career-profile', userId] });
+      queryClient.invalidateQueries({ queryKey: ['my-profile-ai', userId] });
+      queryClient.invalidateQueries({ queryKey: ['matches', userId] });
+      queryClient.invalidateQueries({ queryKey: ['job-discovery', userId] });
     }
   });
 

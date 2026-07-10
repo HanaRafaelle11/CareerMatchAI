@@ -12,7 +12,7 @@ import {
   Flame, Sparkles, AlertCircle, Clock, Plus, Trash2, 
   Compass, CheckCircle2, ChevronRight, 
   X, Briefcase, Layout, AlertTriangle,
-  Smile, Meh, Frown, CheckSquare, Square, Building2, BookOpen, Target
+  Smile, Meh, Frown, CheckSquare, Square, Building2, BookOpen, Target, Loader2
 } from 'lucide-react';
 
 interface StrategyPageProps {
@@ -555,7 +555,10 @@ export function StrategyPage({
               </h4>
               <div className="flex-1 overflow-y-auto space-y-3 pr-1 max-h-[220px]">
                 {loadingStages ? (
-                  <span className="text-[10px] text-slate-500">Buscando...</span>
+                  <div className="flex items-center gap-1.5 text-[10px] text-slate-500 py-1">
+                    <Loader2 size={12} className="animate-spin text-brand-500" />
+                    <span>Buscando etapas da candidatura...</span>
+                  </div>
                 ) : activeStages.length === 0 ? (
                   <span className="text-[10px] text-slate-500 block">Nenhuma etapa.</span>
                 ) : (

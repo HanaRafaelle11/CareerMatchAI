@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { CardGlass } from '../components/CardGlass';
 import type { Resume, Profile as UserProfile, Application, PipelineStep } from '../../domain/models/types';
 import type { CareerProfileNew, CareerInsight } from '../../application/hooks/useMyProfileAi';
@@ -6,6 +6,8 @@ import { calcYearsFromExperiences } from '../../application/services/matchingEng
 import { Upload, FileText, Calendar, Trash2, Check, AlertCircle, Briefcase, Award, Clock, Activity, Brain, Zap, Info } from 'lucide-react';
 import { ResumeOptimizationService } from '../../application/services/ResumeOptimizationService';
 import { isSupabaseConfigured } from '../../infrastructure/api/supabaseClient';
+import { ProcessingState, ErrorState } from '../components/ErrorVisuals';
+import { AppError } from '../../application/errors/AppError';
 
 interface ProfileProps {
   profile: UserProfile | null;
@@ -35,10 +37,33 @@ export function Profile({
   onSelectResumeVersion
 }: ProfileProps) {
   const [dragActive, setDragActive] = useState(false);
-  const [errorMsg, setErrorMsg] = useState('');
+  const [errorMsg, setErrorMsg] = useState<AppError | null>(null);
   const [uploadSuccess, setUploadSuccess] = useState(false);
+  const [uploadSuccessSeconds, setUploadSuccessSeconds] = useState<number | null>(null);
   const [activeProfileTab, setActiveProfileTab] = useState<'profile' | 'transparency'>('profile');
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [showDelayWarning, setShowDelayWarning] = useState(false);
+  const timerRef = useRef<any>(null);
+
+  useEffect(() => {
+    if (isUploading) {
+      setShowDelayWarning(false);
+      timerRef.current = setTimeout(() => {
+        setShowDelayWarning(true);
+      }, 10000);
+    } else {
+      setShowDelayWarning(false);
+      if (timerRef.current) {
+        clearTimeout(timerRef.current);
+        timerRef.current = null;
+      }
+    }
+    return () => {
+      if (timerRef.current) {
+        clearTimeout(timerRef.current);
+      }
+    };
+  }, [isUploading]);
 
   const primaryResume = resumes.find(r => r.isPrimary) || resumes[0];
   const versionStats = ResumeOptimizationService.getResumeVersionStats(resumes, applications);
@@ -68,7 +93,7 @@ export function Profile({
     e.preventDefault();
     e.stopPropagation();
     setDragActive(false);
-    setErrorMsg('');
+    setErrorMsg(null);
     setUploadSuccess(false);
 
     if (e.dataTransfer.files && e.dataTransfer.files[0]) {
@@ -77,7 +102,7 @@ export function Profile({
   };
 
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    setErrorMsg('');
+    setErrorMsg(null);
     setUploadSuccess(false);
     if (e.target.files && e.target.files[0]) {
       await processFile(e.target.files[0]);
@@ -100,29 +125,59 @@ export function Profile({
   const processFile = async (file: File) => {
     // 1. Validação de tamanho
     if (file.size > MAX_FILE_SIZE) {
-      setErrorMsg(`Arquivo muito grande (${(file.size / 1024 / 1024).toFixed(1)} MB). O limite máximo é 10 MB.`);
+      setErrorMsg(new AppError({
+        code: 'RESUME_UPLOAD_INVALID',
+        title: 'Não conseguimos ler esse arquivo',
+        message: 'Envie um arquivo em formato PDF com até 10MB de tamanho.',
+        severity: 'warning',
+        retryable: false,
+        action: 'Enviar novo currículo'
+      }));
       return;
     }
 
     // 2. Validação de tamanho mínimo (arquivo vazio)
     if (file.size === 0) {
-      setErrorMsg('O arquivo está vazio. Selecione um currículo válido.');
+      setErrorMsg(new AppError({
+        code: 'RESUME_UPLOAD_INVALID',
+        title: 'Não conseguimos ler esse arquivo',
+        message: 'O arquivo está vazio. Envie um currículo em formato PDF com até 10MB de tamanho.',
+        severity: 'warning',
+        retryable: false,
+        action: 'Enviar novo currículo'
+      }));
       return;
     }
 
     // 3. Validação de extensão perigosa
     const fileExtension = '.' + file.name.split('.').pop()?.toLowerCase();
     if (DANGEROUS_EXTENSIONS.includes(fileExtension)) {
-      setErrorMsg(`Tipo de arquivo "${fileExtension}" não é permitido. Envie apenas PDF, DOCX ou TXT.`);
+      setErrorMsg(new AppError({
+        code: 'RESUME_UPLOAD_INVALID',
+        title: 'Não conseguimos ler esse arquivo',
+        message: `Tipo de arquivo "${fileExtension}" não é permitido. Envie apenas PDF, DOCX ou TXT.`,
+        severity: 'warning',
+        retryable: false,
+        action: 'Enviar novo currículo'
+      }));
       return;
     }
 
     // 4. Validação de tipo MIME
     const allowedTypes = ['application/pdf', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 'text/plain'];
     if (!allowedTypes.includes(file.type) && !file.name.endsWith('.pdf') && !file.name.endsWith('.docx') && !file.name.endsWith('.txt')) {
-      setErrorMsg('Apenas arquivos PDF, DOCX ou TXT são suportados.');
+      setErrorMsg(new AppError({
+        code: 'RESUME_UPLOAD_INVALID',
+        title: 'Não conseguimos ler esse arquivo',
+        message: 'Apenas arquivos PDF, DOCX ou TXT com até 10MB são suportados.',
+        severity: 'warning',
+        retryable: false,
+        action: 'Enviar novo currículo'
+      }));
       return;
     }
+
+    const startTime = Date.now();
 
     try {
       let rawText = '';
@@ -136,7 +191,14 @@ export function Profile({
 
         // 5. Validação de conteúdo mínimo para TXT
         if (rawText.trim().length < 50) {
-          setErrorMsg('O conteúdo do currículo é muito curto (menos de 50 caracteres). Envie um currículo mais completo.');
+          setErrorMsg(new AppError({
+            code: 'RESUME_UPLOAD_INVALID',
+            title: 'Não conseguimos ler esse arquivo',
+            message: 'O conteúdo do currículo é muito curto (menos de 50 caracteres). Envie um currículo mais completo.',
+            severity: 'warning',
+            retryable: false,
+            action: 'Enviar novo currículo'
+          }));
           return;
         }
 
@@ -144,7 +206,14 @@ export function Profile({
         rawText = sanitizeText(rawText);
       } else if (!isSupabaseConfigured) {
         // PDF/DOCX sem Supabase: orienta o usuário claramente
-        setErrorMsg('Para analisar arquivos PDF/DOCX, conecte o Supabase nas configurações. Como alternativa, salve seu currículo como .TXT e faça o upload.');
+        setErrorMsg(new AppError({
+          code: 'RESUME_UPLOAD_INVALID',
+          title: 'Não conseguimos ler esse arquivo',
+          message: 'Para analisar arquivos PDF/DOCX, conecte o Supabase nas configurações. Como alternativa, salve seu currículo como .TXT e faça o upload.',
+          severity: 'warning',
+          retryable: false,
+          action: 'Enviar novo currículo'
+        }));
         return;
       } else {
         // PDF/DOCX com Supabase: envia o arquivo binário; a Edge Function fará a extração
@@ -152,12 +221,16 @@ export function Profile({
       }
 
       await onUploadResume(file, rawText);
+      const durationSeconds = Math.round((Date.now() - startTime) / 1000);
+      setUploadSuccessSeconds(durationSeconds);
       setUploadSuccess(true);
-      setTimeout(() => setUploadSuccess(false), 3000);
+      setTimeout(() => {
+        setUploadSuccess(false);
+        setUploadSuccessSeconds(null);
+      }, 5000);
     } catch (err: any) {
       console.error('[UPLOAD ERROR DETECTED]', err);
-      const detailedMessage = err?.message || err?.error_description || err?.error || (typeof err === 'object' ? JSON.stringify(err) : String(err));
-      setErrorMsg(`Falha ao processar o arquivo: ${detailedMessage}`);
+      setErrorMsg(AppError.from(err));
     }
   };
 
@@ -202,54 +275,16 @@ export function Profile({
                 onChange={handleFileChange}
               />
               {pipelineSteps && pipelineSteps.length > 0 ? (
-                <div className="text-left w-full mx-auto space-y-3 p-1 select-none" onClick={(e) => e.stopPropagation()}>
-                  <div className="flex items-center justify-between pb-2 border-b border-slate-800 dark:border-slate-800 light:border-slate-200">
-                    <span className="text-[10px] font-bold text-slate-500 dark:text-slate-500 light:text-slate-400 uppercase tracking-wider">Etapas de Processamento</span>
-                    {isUploading ? (
-                      <span className="h-3.5 w-3.5 border-2 border-brand-500 border-t-transparent rounded-full animate-spin" />
-                    ) : pipelineSteps.some(s => s.status === 'error') ? (
-                      <button 
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          fileInputRef.current?.click();
-                        }}
-                        className="text-[10px] text-red-500 dark:text-red-400 font-bold hover:underline cursor-pointer"
-                      >
-                        Tentar novamente
-                      </button>
-                    ) : (
-                      <button 
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          fileInputRef.current?.click();
-                        }}
-                        className="text-[10px] text-brand-500 dark:text-brand-400 font-bold hover:underline cursor-pointer"
-                      >
-                        Enviar outro
-                      </button>
-                    )}
-                  </div>
-                  
-                  <div className="space-y-2.5 max-h-60 overflow-y-auto pr-1">
-                    {pipelineSteps.map((step) => (
-                      <div key={step.id} className="flex items-start gap-2 text-xs transition-all duration-300">
-                        {step.status === 'success' && <span className="text-emerald-500 dark:text-emerald-400 font-bold shrink-0">✔</span>}
-                        {step.status === 'error' && <span className="text-red-500 dark:text-red-400 font-bold shrink-0">✖</span>}
-                        {step.status === 'running' && (
-                          <div className="h-3 w-3 mt-0.5 border-2 border-brand-500 border-t-transparent rounded-full animate-spin shrink-0" />
-                        )}
-                        {step.status === 'pending' && <div className="h-2 w-2 mt-1.5 mx-0.5 rounded-full bg-slate-800 dark:bg-slate-800 light:bg-slate-300 shrink-0" />}
-                        <span className={`leading-tight
-                          ${step.status === 'success' ? 'text-emerald-400 dark:text-emerald-400 light:text-emerald-600 font-medium' : ''}
-                          ${step.status === 'error' ? 'text-red-400 dark:text-red-400 light:text-red-600 font-semibold' : ''}
-                          ${step.status === 'running' ? 'text-brand-400 dark:text-brand-400 light:text-brand-600 font-semibold' : ''}
-                          ${step.status === 'pending' ? 'text-slate-600 dark:text-slate-600 light:text-slate-400' : ''}
-                        `}>
-                          {step.label}
-                        </span>
-                      </div>
-                    ))}
-                  </div>
+                <div className="w-full text-left p-1 select-none" onClick={(e) => e.stopPropagation()}>
+                  <ProcessingState
+                    title="Processando Currículo com IA..."
+                    subtitle={showDelayWarning
+                      ? "Essa análise pode levar alguns segundos porque estamos comparando sua trajetória com inteligência artificial."
+                      : "IA analisando seu histórico profissional..."
+                    }
+                    expectedTime="Tempo esperado: ~25 segundos"
+                    steps={pipelineSteps}
+                  />
                 </div>
               ) : (
                 <div className="flex flex-col items-center gap-3">
@@ -273,16 +308,25 @@ export function Profile({
             </div>
 
             {errorMsg && (
-              <div className="p-3 rounded-xl bg-red-500/10 border border-red-500/20 flex items-center gap-2 text-red-400 text-xs">
-                <AlertCircle size={14} className="shrink-0" />
-                <span>{errorMsg}</span>
+              <div className="w-full text-left" onClick={(e) => e.stopPropagation()}>
+                <ErrorState
+                  error={errorMsg}
+                  onAction={() => {
+                    setErrorMsg(null);
+                    fileInputRef.current?.click();
+                  }}
+                  onRetry={() => {
+                    setErrorMsg(null);
+                    fileInputRef.current?.click();
+                  }}
+                />
               </div>
             )}
 
             {uploadSuccess && (
               <div className="p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/20 flex items-center gap-2 text-emerald-400 text-xs">
                 <Check size={14} className="shrink-0" />
-                <span>Análise de IA concluída com sucesso!</span>
+                <span>Análise concluída em {uploadSuccessSeconds || 0} segundos</span>
               </div>
             )}
 

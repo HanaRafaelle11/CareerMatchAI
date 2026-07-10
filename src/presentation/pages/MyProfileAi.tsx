@@ -1,6 +1,7 @@
 import { useMyProfileAi } from '../../application/hooks/useMyProfileAi';
 import { CardGlass } from '../components/CardGlass';
 import { Tooltip } from '../components/Tooltip';
+import { ProcessingState } from '../components/ErrorVisuals';
 import { 
   Sparkles, Award, MapPin, Calendar, Briefcase, 
   CheckCircle, AlertCircle, ShieldCheck, ChevronRight,
@@ -19,9 +20,12 @@ export function MyProfileAi({ userId, resumeVersionId, setActiveTab }: MyProfile
 
   if (isLoading) {
     return (
-      <div className="flex flex-col items-center justify-center py-20 gap-4">
-        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-brand-500"></div>
-        <p className="text-slate-400 text-sm">Carregando Perfil Profissional IA...</p>
+      <div className="max-w-md mx-auto py-12">
+        <ProcessingState
+          title="🤖 Carregando seu Perfil Profissional IA..."
+          subtitle="Recuperando informações estruturadas, competências e análises de mercado."
+          expectedTime="Tempo esperado: ~2 segundos"
+        />
       </div>
     );
   }

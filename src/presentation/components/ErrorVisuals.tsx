@@ -53,7 +53,7 @@ export function ErrorState({ error, onRetry, onAction }: ErrorStateProps) {
       </div>
 
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pt-3 border-t border-slate-900/60">
-        <div className="flex items-center gap-3">
+        <div className="flex flex-wrap items-center gap-2 sm:gap-3">
           {appError.retryable && onRetry && (
             <button
               onClick={onRetry}
@@ -100,8 +100,8 @@ interface EmptyStateProps {
 
 export function EmptyState({ title, message, actionText, onAction, icon, suggestions }: EmptyStateProps) {
   return (
-    <CardGlass className="flex flex-col items-center justify-center p-12 text-center space-y-5">
-      <div className="p-4 rounded-full bg-slate-900/60 border border-slate-850 text-slate-500">
+    <CardGlass className="flex flex-col items-center justify-center p-6 sm:p-12 text-center space-y-5">
+      <div className="p-3 sm:p-4 rounded-full bg-slate-900/60 border border-slate-850 text-slate-500">
         {icon || <HelpCircle size={28} />}
       </div>
       
@@ -115,11 +115,11 @@ export function EmptyState({ title, message, actionText, onAction, icon, suggest
       </div>
 
       {suggestions && suggestions.length > 0 && (
-        <div className="max-w-xs text-left p-3.5 rounded-xl bg-slate-950/40 border border-slate-900 space-y-1.5 mx-auto">
+        <div className="w-full max-w-[280px] sm:max-w-xs text-left p-3.5 rounded-xl bg-slate-950/40 border border-slate-900 space-y-1.5 mx-auto">
           <span className="text-[10px] text-slate-500 font-bold uppercase tracking-wider block">Sugestões:</span>
-          <ul className="space-y-1 text-slate-400 text-xxs font-medium list-inside list-disc">
+          <ul className="space-y-1 text-slate-400 text-[11px] leading-normal list-outside pl-4 list-disc">
             {suggestions.map((sug, i) => (
-              <li key={i}>{sug}</li>
+              <li key={i} className="break-words">{sug}</li>
             ))}
           </ul>
         </div>
@@ -147,9 +147,10 @@ interface ProcessingStateProps {
   title: string;
   subtitle?: string;
   steps?: PipelineStep[];
+  expectedTime?: string;
 }
 
-export function ProcessingState({ title, subtitle, steps }: ProcessingStateProps) {
+export function ProcessingState({ title, subtitle, steps, expectedTime }: ProcessingStateProps) {
   // Calcular porcentagem estimada baseada nos passos concluídos
   const calculateProgress = () => {
     if (!steps || steps.length === 0) return 0;
@@ -167,30 +168,36 @@ export function ProcessingState({ title, subtitle, steps }: ProcessingStateProps
   const progressPercent = calculateProgress();
 
   return (
-    <CardGlass className="flex flex-col items-center justify-center p-8 text-center space-y-6 relative overflow-hidden">
+    <CardGlass className="flex flex-col items-center justify-center p-5 sm:p-8 text-center space-y-5 sm:space-y-6 relative overflow-hidden">
       {/* Indicador superior */}
       <div className="relative flex items-center justify-center">
         <div className="absolute inset-0 rounded-full bg-brand-500/10 blur-xl animate-pulse" />
-        <div className="p-4 rounded-full bg-slate-950 border border-slate-800 text-brand-500 relative z-10 animate-bounce">
-          <Sparkles size={24} />
+        <div className="p-3.5 sm:p-4 rounded-full bg-slate-950 border border-slate-800 text-brand-500 relative z-10 animate-bounce">
+          <Sparkles size={22} />
         </div>
-        <Loader2 className="absolute text-brand-500/40 animate-spin" size={56} strokeWidth={1} />
+        <Loader2 className="absolute text-brand-500/40 animate-spin" size={48} strokeWidth={1} />
       </div>
 
       <div className="space-y-1.5 z-10 max-w-sm">
-        <h4 className="font-display font-bold text-sm text-slate-200 dark:text-slate-200 light:text-slate-800 animate-pulse">
+        <h4 className="font-display font-bold text-sm text-slate-200 dark:text-slate-200 light:text-slate-800 animate-pulse leading-snug">
           {title}
         </h4>
         {subtitle && (
-          <p className="text-xs text-slate-500 leading-relaxed font-sans">
+          <p className="text-xs text-slate-500 leading-relaxed font-sans px-1">
             {subtitle}
           </p>
         )}
       </div>
 
+      {expectedTime && (
+        <div className="text-[10px] text-brand-400 font-bold font-display z-10 bg-brand-500/10 px-3 py-1 rounded-full border border-brand-500/20 select-none">
+          ⏱ {expectedTime}
+        </div>
+      )}
+
       {/* Renderizar progresso com etapas se disponível */}
       {steps && steps.length > 0 ? (
-        <div className="w-full max-w-xs space-y-4 pt-2 z-10 text-left">
+        <div className="w-full max-w-[280px] sm:max-w-xs space-y-4 pt-1 z-10 text-left">
           {/* Barra de progresso visual */}
           <div className="space-y-1.5">
             <div className="flex justify-between items-center text-[10px] font-bold text-slate-400">
@@ -206,13 +213,13 @@ export function ProcessingState({ title, subtitle, steps }: ProcessingStateProps
           </div>
 
           {/* Listagem das etapas individuais */}
-          <div className="space-y-2 rounded-xl bg-slate-950/60 border border-slate-900 p-3.5">
+          <div className="space-y-2 rounded-xl bg-slate-950/60 border border-slate-900 p-3 sm:p-3.5">
             {steps.map((s, idx) => (
               <div key={s.id} className="flex items-center justify-between gap-3 text-xxs font-medium font-sans">
-                <span className={`${
-                  s.status === 'success' ? 'text-slate-400 line-through' :
+                <span className={`leading-tight flex-1 break-words ${
+                  s.status === 'success' ? 'text-slate-450 line-through' :
                   s.status === 'running' ? 'text-brand-400 font-bold' :
-                  'text-slate-600'
+                  'text-slate-650'
                 }`}>
                   {idx + 1}. {s.label}
                 </span>
@@ -229,8 +236,8 @@ export function ProcessingState({ title, subtitle, steps }: ProcessingStateProps
         </div>
       ) : (
         // Barra de progresso genérica
-        <div className="w-full max-w-xs space-y-1.5 pt-2">
-          <div className="h-1 w-full bg-slate-900 border border-slate-800 rounded-full overflow-hidden">
+        <div className="w-full max-w-[280px] sm:max-w-xs space-y-1.5 pt-1">
+          <div className="h-1.5 w-full bg-slate-900 border border-slate-800 rounded-full overflow-hidden">
             <div className="h-full bg-brand-500 rounded-full animate-progress-loading" />
           </div>
         </div>

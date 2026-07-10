@@ -705,6 +705,7 @@ serve(async (req) => {
 
     // Etapa 6: completed - Concluída
     await logProcessingStep(supabaseClient, resumeVersionId, 'completed', 'completed', 'Processamento de currículo finalizado', {}, userId);
+    await logProcessingStep(supabaseClient, resumeVersionId, 'save_completed', 'completed', 'Processamento finalizado com sucesso no banco.', {}, userId);
 
     // 7. Atualizar status para 'completed'
     await supabaseClient

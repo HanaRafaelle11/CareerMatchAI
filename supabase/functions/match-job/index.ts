@@ -472,7 +472,7 @@ class JobMatchingEngine {
     return matchJson;
   }
 
-  static async saveJobMatch(supabaseClient: any, userId: string, resumeVersionId: string, jobId: string, matchResult: any) {
+  static async saveJobMatch(supabaseClient: any, userId: string, resumeVersionId: string, jobId: string, matchResult: any, processingTimeMs?: number) {
     const { data, error } = await supabaseClient
       .from('job_matches')
       .insert({
@@ -484,7 +484,8 @@ class JobMatchingEngine {
         weaknesses: matchResult.weaknesses || [],
         missing_keywords: matchResult.missing_keywords || [],
         interview_probability: matchResult.interview_probability,
-        recommendation: matchResult.recommendation
+        recommendation: matchResult.recommendation,
+        processing_time_ms: processingTimeMs
       })
       .select()
       .single();
@@ -629,7 +630,8 @@ serve(async (req) => {
       resolvedUserId,
       careerProfile.resume_version_id || resolvedVersionId,
       jobId,
-      matchResult
+      matchResult,
+      Date.now() - requestStartTime
     );
 
     // Etapa: completed - Concluída

@@ -1,4 +1,4 @@
-import { useState, type FormEvent, useEffect } from 'react';
+import { useState, type FormEvent, useEffect, useRef } from 'react';
 import { CardGlass } from '../components/CardGlass';
 import { RadarChart } from '../components/RadarChart';
 import { useJobDiscovery } from '../../application/hooks/useJobDiscovery';
@@ -49,19 +49,44 @@ export function JobMatchHub({
   const primaryResume = resumes.find(r => r.isPrimary) || resumes[0];
 
   const [matchSteps, setMatchSteps] = useState<{ id: string; label: string; status: 'pending' | 'running' | 'success' | 'error' }[]>([
-    { id: 'preparing', label: 'Preparando dados da vaga...', status: 'pending' },
-    { id: 'analyzing_resume', label: 'Analisando perfil profissional...', status: 'pending' },
-    { id: 'comparing_job', label: 'Comparando currículo e requisitos...', status: 'pending' },
-    { id: 'generating_score', label: 'Calculando pontuação de compatibilidade...', status: 'pending' }
+    { id: 'preparing', label: 'Comparando seu perfil com a vaga', status: 'pending' },
+    { id: 'analyzing_resume', label: 'Analisando requisitos técnicos', status: 'pending' },
+    { id: 'comparing_job', label: 'Identificando pontos fortes', status: 'pending' },
+    { id: 'generating_score', label: 'Encontrando possíveis gaps', status: 'pending' },
+    { id: 'completed', label: 'Preparando recomendações', status: 'pending' }
   ]);
+
+  const [showDelayWarning, setShowDelayWarning] = useState(false);
+  const matchTimerRef = useRef<any>(null);
+
+  useEffect(() => {
+    if (isCalculating) {
+      setShowDelayWarning(false);
+      matchTimerRef.current = setTimeout(() => {
+        setShowDelayWarning(true);
+      }, 10000);
+    } else {
+      setShowDelayWarning(false);
+      if (matchTimerRef.current) {
+        clearTimeout(matchTimerRef.current);
+        matchTimerRef.current = null;
+      }
+    }
+    return () => {
+      if (matchTimerRef.current) {
+        clearTimeout(matchTimerRef.current);
+      }
+    };
+  }, [isCalculating]);
 
   useEffect(() => {
     if (!isCalculating || !userId || !selectedJob?.id || !isSupabaseConfigured || !supabase) {
       setMatchSteps([
-        { id: 'preparing', label: 'Preparando dados da vaga...', status: 'pending' },
-        { id: 'analyzing_resume', label: 'Analisando perfil profissional...', status: 'pending' },
-        { id: 'comparing_job', label: 'Comparando currículo e requisitos...', status: 'pending' },
-        { id: 'generating_score', label: 'Calculando pontuação de compatibilidade...', status: 'pending' }
+        { id: 'preparing', label: 'Comparando seu perfil com a vaga', status: 'pending' },
+        { id: 'analyzing_resume', label: 'Analisando requisitos técnicos', status: 'pending' },
+        { id: 'comparing_job', label: 'Identificando pontos fortes', status: 'pending' },
+        { id: 'generating_score', label: 'Encontrando possíveis gaps', status: 'pending' },
+        { id: 'completed', label: 'Preparando recomendações', status: 'pending' }
       ]);
       return;
     }
@@ -111,23 +136,28 @@ export function JobMatchHub({
           const steps = [
             { 
               id: 'preparing', 
-              label: logPreparing?.status === 'completed' || logPreparing?.status === 'success' ? '✔ Preparando dados da vaga' : logPreparing?.status === 'running' ? 'Preparando dados da vaga...' : 'Aguardando inicialização...', 
+              label: logPreparing?.status === 'completed' || logPreparing?.status === 'success' ? '✔ Comparando seu perfil com a vaga' : logPreparing?.status === 'running' ? 'Comparando seu perfil com a vaga...' : 'Comparando seu perfil com a vaga', 
               status: logPreparing?.status === 'completed' || logPreparing?.status === 'success' ? 'success' : logPreparing?.status === 'running' ? 'running' : 'pending' 
             },
             { 
               id: 'analyzing_resume', 
-              label: logAnalyzing?.status === 'completed' || logAnalyzing?.status === 'success' ? '✔ Analisando perfil profissional' : logAnalyzing?.status === 'running' ? 'Analisando perfil profissional...' : 'Aguardando perfil...', 
+              label: logAnalyzing?.status === 'completed' || logAnalyzing?.status === 'success' ? '✔ Analisando requisitos técnicos' : logAnalyzing?.status === 'running' ? 'Analisando requisitos técnicos...' : 'Analisando requisitos técnicos', 
               status: logAnalyzing?.status === 'completed' || logAnalyzing?.status === 'success' ? 'success' : logAnalyzing?.status === 'running' ? 'running' : 'pending' 
             },
             { 
               id: 'comparing_job', 
-              label: logComparing?.status === 'completed' || logComparing?.status === 'success' ? '✔ Comparando currículo e requisitos' : logComparing?.status === 'running' ? 'Comparando currículo e requisitos...' : 'Aguardando comparação...', 
+              label: logComparing?.status === 'completed' || logComparing?.status === 'success' ? '✔ Identificando pontos fortes' : logComparing?.status === 'running' ? 'Identificando pontos fortes...' : 'Identificando pontos fortes', 
               status: logComparing?.status === 'completed' || logComparing?.status === 'success' ? 'success' : logComparing?.status === 'running' ? 'running' : 'pending' 
             },
             { 
               id: 'generating_score', 
-              label: logGenerating?.status === 'completed' || logGenerating?.status === 'success' ? '✔ Calculando pontuação de compatibilidade' : logGenerating?.status === 'running' ? 'Calculando pontuação de compatibilidade...' : 'Aguardando pontuação...', 
+              label: logGenerating?.status === 'completed' || logGenerating?.status === 'success' ? '✔ Encontrando possíveis gaps' : logGenerating?.status === 'running' ? 'Encontrando possíveis gaps...' : 'Encontrando possíveis gaps', 
               status: logGenerating?.status === 'completed' || logGenerating?.status === 'success' ? 'success' : logGenerating?.status === 'running' ? 'running' : 'pending' 
+            },
+            {
+              id: 'completed',
+              label: logCompleted || logGenerating?.status === 'completed' ? '✔ Preparando recomendações' : logComparing?.status === 'completed' ? 'Preparando recomendações...' : 'Preparando recomendações',
+              status: logCompleted ? 'success' : logGenerating?.status === 'completed' ? 'running' : 'pending'
             }
           ];
 
@@ -676,6 +706,11 @@ export function JobMatchHub({
                                 {currentMatch.scoreOverall >= 90 ? 'Excelente 🔥' : currentMatch.scoreOverall >= 70 ? 'Boa ⚡' : 'Regular ⚠️'}
                               </span>
                             </div>
+                            {currentMatch.processingTimeMs && (
+                              <div className="text-[10px] text-slate-500 font-semibold mt-1">
+                                ⏱ Análise concluída em {(currentMatch.processingTimeMs / 1000).toFixed(1)} segundos
+                              </div>
+                            )}
                             <p className="text-xs text-slate-400 mt-3 leading-relaxed">
                               {currentMatch.scoreOverall >= 90
                                 ? 'Seu currículo possui um excelente alinhamento com os requisitos técnicos e comportamentais exigidos por esta oportunidade.'
@@ -1062,7 +1097,11 @@ export function JobMatchHub({
                 ) : isCalculating ? (
                   <ProcessingState 
                     title="🎯 Comparando seu perfil com os requisitos da vaga..." 
-                    subtitle="A IA está analisando a compatibilidade técnica, de senioridade e de fit comportamental."
+                    subtitle={showDelayWarning
+                      ? "Essa análise pode levar alguns segundos porque estamos comparando sua trajetória com inteligência artificial."
+                      : "Encontramos pontos fortes no seu perfil..."
+                    }
+                    expectedTime="Tempo esperado: ~12 segundos"
                     steps={matchSteps}
                   />
                 ) : (

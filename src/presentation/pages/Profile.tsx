@@ -3,7 +3,7 @@ import { CardGlass } from '../components/CardGlass';
 import type { Resume, Profile as UserProfile, Application, PipelineStep } from '../../domain/models/types';
 import type { CareerProfileNew, CareerInsight } from '../../application/hooks/useMyProfileAi';
 import { calcYearsFromExperiences } from '../../application/services/matchingEngine';
-import { Upload, FileText, Calendar, Trash2, Check, AlertCircle, Briefcase, Award, Clock, Activity, Brain, Zap, Info } from 'lucide-react';
+import { Upload, FileText, Calendar, Trash2, Check, AlertCircle, Briefcase, Award, Clock, Activity, Brain, Zap, Info, Sparkles, CheckCircle } from 'lucide-react';
 import { ResumeOptimizationService } from '../../application/services/ResumeOptimizationService';
 import { isSupabaseConfigured } from '../../infrastructure/api/supabaseClient';
 import { ProcessingState, ErrorState } from '../components/ErrorVisuals';
@@ -40,7 +40,7 @@ export function Profile({
   const [errorMsg, setErrorMsg] = useState<AppError | null>(null);
   const [uploadSuccess, setUploadSuccess] = useState(false);
   const [uploadSuccessSeconds, setUploadSuccessSeconds] = useState<number | null>(null);
-  const [activeProfileTab, setActiveProfileTab] = useState<'profile' | 'transparency'>('profile');
+  const [activeProfileTab, setActiveProfileTab] = useState<'profile' | 'ai-profile' | 'transparency'>('profile');
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [showDelayWarning, setShowDelayWarning] = useState(false);
   const timerRef = useRef<any>(null);
@@ -609,7 +609,7 @@ export function Profile({
                           {displayLanguages.length > 0
                             ? displayLanguages.map((lang, i) => (
                               <span key={i} className="px-2.5 py-1 rounded-lg bg-emerald-500/5 border border-emerald-500/10 text-xs text-emerald-400 font-semibold">
-                                {lang}
+                                {lang.language}{lang.proficiency ? ` - ${lang.proficiency}` : ''}
                               </span>
                             ))
                             : primaryResume.skills.filter(s => s.category?.includes('language')).map(s => (

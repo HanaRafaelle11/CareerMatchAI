@@ -17,7 +17,6 @@ export function Navbar({ activeTab, setActiveTab, profile, onLogout, isOpen, onC
   const menuItems = [
     { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
     { id: 'profile', label: 'Meu Currículo', icon: FileText },
-    { id: 'my-profile-ai', label: 'Meu Perfil IA', icon: Sparkles },
     { id: 'career-profile', label: 'Objetivo de Vagas', icon: User },
     { id: 'strategy', label: 'Minha Estratégia', icon: Briefcase },
     { id: 'match', label: 'Match Manual', icon: Compass },

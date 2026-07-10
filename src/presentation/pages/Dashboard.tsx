@@ -270,6 +270,39 @@ export function Dashboard({
     return `Continue sua busca com consistência. Candidaturas regulares e personalizadas aumentam significativamente suas chances de entrevista.`;
   };
 
+  if (resumes.length === 0) {
+    return (
+      <div className="space-y-8 animate-fade-in font-sans p-2">
+        {/* Boas-vindas */}
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <div>
+            <h1 className="font-display font-bold text-3xl tracking-tight text-slate-100 dark:text-slate-100 light:text-slate-800">
+              Olá, {profile?.fullName?.split(' ')[0] || 'Candidato'}
+            </h1>
+            <p className="text-slate-400 dark:text-slate-400 light:text-slate-500 text-sm mt-1">
+              Seu painel de controle operacional de recolocação profissional.
+            </p>
+          </div>
+        </div>
+
+        <div className="py-20 text-center border border-dashed border-slate-800 rounded-2xl flex flex-col items-center justify-center text-slate-400 max-w-lg mx-auto p-8 bg-slate-900/10">
+          <Sparkles size={48} className="mb-4 text-brand-500 animate-pulse" />
+          <h3 className="font-display font-bold text-lg text-slate-200">Comece enviando seu Currículo</h3>
+          <p className="text-slate-400 text-xs mt-2 max-w-sm leading-relaxed">
+            Analise suas experiências com inteligência artificial para mapear seus pontos fortes, planejar sua recolocação e calcular compatibilidade com vagas.
+          </p>
+          <button
+            onClick={() => setActiveTab('profile')}
+            className="mt-6 px-6 py-2.5 rounded-xl bg-gradient-to-r from-brand-600 to-indigo-600 hover:from-brand-500 hover:to-indigo-500 text-white font-bold text-xs shadow-lg shadow-brand-500/10 transition-all flex items-center gap-2"
+          >
+            <Plus size={14} />
+            Cadastrar Meu Currículo
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-8 animate-fade-in font-sans p-2">
       {/* Boas-vindas */}

@@ -246,47 +246,47 @@ export function Profile({
         </p>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        {/* Lado Esquerdo: Upload do Currículo */}
-        <div className="lg:col-span-1 space-y-6">
-          <CardGlass className="space-y-6">
-            <h2 className="font-display font-bold text-lg text-slate-200 dark:text-slate-200 light:text-slate-800">
-              Upload de Currículo
-            </h2>
+      {pipelineSteps && pipelineSteps.length > 0 ? (
+        <CardGlass className="p-8 border border-brand-500/20 max-w-4xl mx-auto">
+          <ProcessingState
+            title="Processando Currículo com IA..."
+            subtitle={showDelayWarning
+              ? "Essa análise pode levar alguns segundos porque estamos extraindo e catalogando detalhadamente suas competências."
+              : "Nossa IA está lendo seu histórico de experiências, extraindo competências técnicas e comportamentais e mapeando seu perfil."
+            }
+            expectedTime="Tempo esperado: ~25 segundos"
+            steps={pipelineSteps}
+          />
+        </CardGlass>
+      ) : (
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+          {/* Lado Esquerdo: Upload do Currículo */}
+          <div className="lg:col-span-1 space-y-6">
+            <CardGlass className="space-y-6">
+              <h2 className="font-display font-bold text-lg text-slate-200 dark:text-slate-200 light:text-slate-800">
+                Upload de Currículo
+              </h2>
 
-            {/* Dropzone */}
-            <div
-              onDragEnter={handleDrag}
-              onDragOver={handleDrag}
-              onDragLeave={handleDrag}
-              onDrop={handleDrop}
-              onClick={() => fileInputRef.current?.click()}
-              className={`border-2 border-dashed rounded-2xl p-6 text-center cursor-pointer transition-all ${
-                dragActive
-                  ? 'border-brand-500 bg-brand-500/5'
-                  : 'border-slate-800 dark:border-slate-800 light:border-slate-300 bg-slate-900/10 dark:bg-slate-900/10 light:bg-slate-50 hover:border-slate-700'
-              }`}
-            >
-              <input
-                ref={fileInputRef}
-                type="file"
-                className="hidden"
-                accept=".pdf,.docx,.txt"
-                onChange={handleFileChange}
-              />
-              {pipelineSteps && pipelineSteps.length > 0 ? (
-                <div className="w-full text-left p-1 select-none" onClick={(e) => e.stopPropagation()}>
-                  <ProcessingState
-                    title="Processando Currículo com IA..."
-                    subtitle={showDelayWarning
-                      ? "Essa análise pode levar alguns segundos porque estamos comparando sua trajetória com inteligência artificial."
-                      : "IA analisando seu histórico profissional..."
-                    }
-                    expectedTime="Tempo esperado: ~25 segundos"
-                    steps={pipelineSteps}
-                  />
-                </div>
-              ) : (
+              {/* Dropzone */}
+              <div
+                onDragEnter={handleDrag}
+                onDragOver={handleDrag}
+                onDragLeave={handleDrag}
+                onDrop={handleDrop}
+                onClick={() => fileInputRef.current?.click()}
+                className={`border-2 border-dashed rounded-2xl p-6 text-center cursor-pointer transition-all ${
+                  dragActive
+                    ? 'border-brand-500 bg-brand-500/5'
+                    : 'border-slate-800 dark:border-slate-800 light:border-slate-300 bg-slate-900/10 dark:bg-slate-900/10 light:bg-slate-50 hover:border-slate-700'
+                }`}
+              >
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  className="hidden"
+                  accept=".pdf,.docx,.txt"
+                  onChange={handleFileChange}
+                />
                 <div className="flex flex-col items-center gap-3">
                   <div className="p-3 rounded-xl bg-slate-900 border border-slate-800 text-slate-400">
                     {isUploading ? (
@@ -304,10 +304,9 @@ export function Profile({
                     </p>
                   </div>
                 </div>
-              )}
-            </div>
+              </div>
 
-            {errorMsg && (
+              {errorMsg && (
               <div className="w-full text-left" onClick={(e) => e.stopPropagation()}>
                 <ErrorState
                   error={errorMsg}
@@ -509,7 +508,18 @@ export function Profile({
                       : 'text-slate-400 hover:text-slate-200'
                   }`}
                 >
-                  Perfil Estruturado
+                  Currículo Original
+                </button>
+                <button
+                  onClick={() => setActiveProfileTab('ai-profile')}
+                  className={`px-4 py-2 rounded-lg text-xs font-semibold tracking-wide transition-all flex items-center gap-1.5 ${
+                    activeProfileTab === 'ai-profile'
+                      ? 'bg-brand-500 text-white shadow-md shadow-brand-500/10'
+                      : 'text-slate-400 hover:text-slate-200'
+                  }`}
+                >
+                  <Sparkles size={12} />
+                  Meu Perfil IA
                 </button>
                 <button
                   onClick={() => setActiveProfileTab('transparency')}
@@ -524,7 +534,7 @@ export function Profile({
                 </button>
               </div>
 
-              {activeProfileTab === 'profile' ? (
+              {activeProfileTab === 'profile' && (
                 <>
                   {/* Resumo Profissional */}
                   <CardGlass className="space-y-4">
@@ -561,73 +571,45 @@ export function Profile({
                       </h3>
                     </div>
 
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-                      {/* Hard Skills — career_profiles */}
-                      <div className="space-y-2.5">
-                        <span className="text-xs font-bold text-slate-500 uppercase tracking-wider block">Hard Skills</span>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-2 border-t border-slate-900 dark:border-slate-900 light:border-slate-200">
+                      {/* Hard Skills */}
+                      <div className="space-y-3">
+                        <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider block">Hard Skills</span>
                         <div className="flex flex-wrap gap-2">
                           {displaySkills.length > 0
                             ? displaySkills.map((s, i) => (
-                              <span
-                                key={i}
-                                className="px-2.5 py-1 rounded-lg bg-slate-900/60 dark:bg-slate-900/60 light:bg-slate-100 border border-slate-800 dark:border-slate-800 light:border-slate-200 text-xs text-slate-300 dark:text-slate-300 light:text-slate-700 font-semibold"
-                              >
-                                {s.name}
-                              </span>
+                              <span key={i} className="px-2.5 py-1 rounded-lg bg-slate-900 dark:bg-slate-900 light:bg-slate-100 text-xs text-slate-300 dark:text-slate-300 light:text-slate-700 border border-slate-850 dark:border-slate-850 light:border-slate-200">{s.name}</span>
                             ))
-                            : primaryResume.skills.filter(s => s.category?.includes('hard_skill')).map(s => (
-                              <span key={s.id} className="px-2.5 py-1 rounded-lg bg-slate-900/60 border border-slate-800 text-xs text-slate-300 font-semibold">{s.name}</span>
+                            : primaryResume.skills.filter(s => s.category?.includes('hard') || !s.category).map(s => (
+                              <span key={s.id} className="px-2.5 py-1 rounded-lg bg-slate-900 dark:bg-slate-900 light:bg-slate-100 text-xs text-slate-300 dark:text-slate-300 light:text-slate-700 border border-slate-850 dark:border-slate-850 light:border-slate-200">{s.name}</span>
                             ))
                           }
                         </div>
                       </div>
 
-                      {/* Soft Skills — career_profiles */}
-                      <div className="space-y-2.5">
-                        <span className="text-xs font-bold text-slate-500 uppercase tracking-wider block">Soft Skills & Liderança</span>
+                      {/* Soft Skills */}
+                      <div className="space-y-3">
+                        <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider block">Soft Skills</span>
                         <div className="flex flex-wrap gap-2">
                           {displaySoftSkills.length > 0
                             ? displaySoftSkills.map((s, i) => (
-                              <span
-                                key={i}
-                                className="px-2.5 py-1 rounded-lg bg-indigo-500/5 dark:bg-indigo-500/5 light:bg-slate-100 border border-indigo-500/10 dark:border-indigo-500/15 light:border-slate-200 text-xs text-indigo-400 dark:text-indigo-400 light:text-slate-600 font-semibold"
-                              >
-                                {s}
-                              </span>
+                              <span key={i} className="px-2.5 py-1 rounded-lg bg-slate-900 dark:bg-slate-900 light:bg-slate-100 text-xs text-slate-300 dark:text-slate-300 light:text-slate-700 border border-slate-850 dark:border-slate-850 light:border-slate-200">{s}</span>
                             ))
-                            : primaryResume.skills.filter(s => s.category?.includes('soft_skill') || s.category?.includes('leadership_skill')).map(s => (
-                              <span key={s.id} className="px-2.5 py-1 rounded-lg bg-indigo-500/5 border border-indigo-500/10 text-xs text-indigo-400 font-semibold">{s.name}</span>
+                            : primaryResume.skills.filter(s => s.category?.includes('soft')).map(s => (
+                              <span key={s.id} className="px-2.5 py-1 rounded-lg bg-slate-900 dark:bg-slate-900 light:bg-slate-100 text-xs text-slate-300 dark:text-slate-300 light:text-slate-700 border border-slate-850 dark:border-slate-850 light:border-slate-200">{s.name}</span>
                             ))
                           }
                         </div>
                       </div>
 
-                      {/* Ferramentas / Tecnologias */}
-                      <div className="space-y-2.5">
-                        <span className="text-xs font-bold text-slate-500 uppercase tracking-wider block">Ferramentas & Ferramental</span>
-                        <div className="flex flex-wrap gap-2">
-                          {primaryResume.skills.filter(s => s.category?.includes('tool')).map(s => (
-                            <span
-                              key={s.id}
-                              className="px-2.5 py-1 rounded-lg bg-slate-900/60 dark:bg-slate-900/60 light:bg-slate-100 border border-slate-800 dark:border-slate-800 light:border-slate-200 text-xs text-slate-300 dark:text-slate-300 light:text-slate-700 font-semibold"
-                            >
-                              {s.name}
-                            </span>
-                          ))}
-                        </div>
-                      </div>
-
-                      {/* Idiomas — career_profiles */}
-                      <div className="space-y-2.5">
-                        <span className="text-xs font-bold text-slate-500 uppercase tracking-wider block">Idiomas</span>
+                      {/* Idiomas */}
+                      <div className="space-y-3 md:col-span-2 pt-4 border-t border-slate-900 dark:border-slate-900 light:border-slate-200">
+                        <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider block">Idiomas</span>
                         <div className="flex flex-wrap gap-2">
                           {displayLanguages.length > 0
-                            ? displayLanguages.map((l, i) => (
-                              <span
-                                key={i}
-                                className="px-2.5 py-1 rounded-lg bg-emerald-500/5 dark:bg-emerald-500/5 light:bg-slate-100 border border-emerald-500/10 dark:border-emerald-500/15 light:border-slate-200 text-xs text-emerald-400 dark:text-emerald-400 light:text-slate-600 font-semibold"
-                              >
-                                {l.language}{l.proficiency ? ` — ${l.proficiency}` : ''}
+                            ? displayLanguages.map((lang, i) => (
+                              <span key={i} className="px-2.5 py-1 rounded-lg bg-emerald-500/5 border border-emerald-500/10 text-xs text-emerald-400 font-semibold">
+                                {lang}
                               </span>
                             ))
                             : primaryResume.skills.filter(s => s.category?.includes('language')).map(s => (
@@ -687,7 +669,150 @@ export function Profile({
                     </div>
                   </CardGlass>
                 </>
-              ) : (
+              )}
+
+              {activeProfileTab === 'ai-profile' && (
+                <div className="space-y-6 animate-fade-in">
+                  {/* Identidade Profissional */}
+                  {careerInsights?.seniority_prediction && (
+                    <CardGlass className="p-6 space-y-4 border-l-4 border-l-indigo-500">
+                      <div className="flex items-center justify-between">
+                        <h3 className="font-display font-bold text-base text-slate-200 flex items-center gap-2">
+                          <Brain className="text-indigo-400" size={18} />
+                          Identidade Profissional
+                        </h3>
+                      </div>
+
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2">
+                        <div className="bg-slate-900/30 rounded-xl p-4 border border-slate-900">
+                          <span className="text-[10px] uppercase font-bold text-indigo-400 tracking-wider">
+                            Senioridade Estimada
+                          </span>
+                          <p className="text-xl font-bold text-slate-100 mt-1">
+                            {careerInsights.seniority_prediction.value || "Não calculada"}
+                          </p>
+                        </div>
+                        <div className="bg-slate-900/30 rounded-xl p-4 border border-slate-900">
+                          <span className="text-[10px] uppercase font-bold text-indigo-400 tracking-wider">
+                            Índice de Confiança
+                          </span>
+                          <p className="text-xl font-bold text-slate-100 mt-1">
+                            {Math.round((careerInsights.seniority_prediction.confidence || 0) * 100)}%
+                          </p>
+                        </div>
+                      </div>
+
+                      <p className="text-xs text-slate-400 italic bg-indigo-500/5 p-3 rounded-lg border border-indigo-500/10 mt-2 leading-relaxed">
+                        "Esta é uma estimativa calculada pela inteligência artificial a partir do tempo de carreira e escopo de liderança. {careerInsights.seniority_prediction.reason}"
+                      </p>
+                    </CardGlass>
+                  )}
+
+                  {/* Inteligência de Carreira */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <CardGlass className="p-6 space-y-4">
+                      <h3 className="font-display font-bold text-base text-slate-200 flex items-center gap-2 border-b border-slate-900 pb-3">
+                        <CheckCircle size={16} className="text-emerald-400" />
+                        Pontos Fortes Mapeados
+                      </h3>
+                      <div className="space-y-3">
+                        {careerInsights?.methodologies && careerInsights.methodologies.length > 0 ? (
+                          careerInsights.methodologies.map((m, idx) => (
+                            <div key={idx} className="bg-emerald-500/5 rounded-xl p-3 border border-emerald-500/10 space-y-1">
+                              <span className="font-bold text-xs text-slate-200">{m.methodology_name}</span>
+                              <p className="text-[10px] text-slate-400">
+                                Evidência com {Math.round(m.confidence * 100)}% de correspondência no currículo.
+                              </p>
+                            </div>
+                          ))
+                        ) : (
+                          <div className="text-xs text-slate-500">Mapeamento de evidências concluído.</div>
+                        )}
+                      </div>
+                    </CardGlass>
+
+                    <CardGlass className="p-6 space-y-4">
+                      <h3 className="font-display font-bold text-base text-slate-200 flex items-center gap-2 border-b border-slate-900 pb-3">
+                        <AlertCircle size={16} className="text-amber-400" />
+                        Gaps de Competências
+                      </h3>
+                      <div className="space-y-3">
+                        {careerInsights?.missing_skills && careerInsights.missing_skills.value && careerInsights.missing_skills.value.length > 0 ? (
+                          careerInsights.missing_skills.value.map((skill, idx) => (
+                            <div key={idx} className="bg-amber-500/5 rounded-xl p-3 border border-amber-500/10 space-y-1">
+                              <span className="font-bold text-xs text-slate-200">{skill}</span>
+                              <p className="text-[10px] text-slate-400">
+                                {careerInsights.missing_skills.reason} (Confiança: {Math.round(careerInsights.missing_skills.confidence * 100)}%)
+                              </p>
+                            </div>
+                          ))
+                        ) : (
+                          <div className="text-xs text-slate-500">Nenhum gap crítico identificado.</div>
+                        )}
+                      </div>
+                    </CardGlass>
+                  </div>
+
+                  {/* ATS Optimization */}
+                  {careerProfileNew?.ats_keywords && (
+                    <CardGlass className="p-6 space-y-6">
+                      <h3 className="font-display font-bold text-base text-slate-200 flex items-center gap-2 border-b border-slate-900 pb-3">
+                        <Award size={18} className="text-slate-400" />
+                        Otimização de ATS
+                      </h3>
+
+                      <div className="space-y-4">
+                        <div className="space-y-2">
+                          <label className="text-xs font-semibold text-emerald-400">Já Possui (Existing)</label>
+                          <div className="flex flex-wrap gap-1.5">
+                            {careerProfileNew.ats_keywords.existing_keywords && careerProfileNew.ats_keywords.existing_keywords.length > 0 ? (
+                              careerProfileNew.ats_keywords.existing_keywords.map((kw, idx) => (
+                                <span key={idx} className="px-2 py-0.5 rounded bg-emerald-500/10 text-emerald-400 text-[10px] font-bold border border-emerald-500/25">
+                                  {kw}
+                                </span>
+                              ))
+                            ) : (
+                              <span className="text-slate-500 text-[10px]">Nenhum termo extraído.</span>
+                            )}
+                          </div>
+                        </div>
+
+                        <div className="space-y-2 pt-2 border-t border-slate-900">
+                          <label className="text-xs font-semibold text-red-400">Ausentes no Currículo</label>
+                          <div className="flex flex-wrap gap-1.5">
+                            {careerProfileNew.ats_keywords.missing_keywords && careerProfileNew.ats_keywords.missing_keywords.length > 0 ? (
+                              careerProfileNew.ats_keywords.missing_keywords.map((kw, idx) => (
+                                <span key={idx} className="px-2 py-0.5 rounded bg-red-500/10 text-red-400 text-[10px] font-bold border border-red-500/25">
+                                  {kw}
+                                </span>
+                              ))
+                            ) : (
+                              <span className="text-slate-500 text-[10px]">Nenhum termo ausente.</span>
+                            )}
+                          </div>
+                        </div>
+
+                        <div className="space-y-2 pt-2 border-t border-slate-900">
+                          <label className="text-xs font-semibold text-indigo-400">Recomendadas para a Vaga</label>
+                          <div className="flex flex-wrap gap-1.5">
+                            {careerProfileNew.ats_keywords.recommended_keywords && careerProfileNew.ats_keywords.recommended_keywords.length > 0 ? (
+                              careerProfileNew.ats_keywords.recommended_keywords.map((kw, idx) => (
+                                <span key={idx} className="px-2 py-0.5 rounded bg-indigo-500/10 text-indigo-400 text-[10px] font-bold border border-indigo-500/25">
+                                  {kw}
+                                </span>
+                              ))
+                            ) : (
+                              <span className="text-slate-500 text-[10px]">Nenhum termo recomendado.</span>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    </CardGlass>
+                  )}
+                </div>
+              )}
+
+              {activeProfileTab === 'transparency' && (
                 /* Painel de Transparência com career_insights — linguagem de usuário */
                 <CardGlass className="space-y-6">
                   <div className="flex items-center gap-3 border-b border-slate-800 dark:border-slate-800 light:border-slate-200 pb-4">
@@ -781,8 +906,7 @@ export function Profile({
             </div>
           )}
         </div>
-      </div>
-
+      )}
     </div>
   );
 }

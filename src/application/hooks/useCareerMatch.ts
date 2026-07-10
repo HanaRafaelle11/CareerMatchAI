@@ -38,7 +38,9 @@ export function useResumes(userId: string | undefined) {
         // Mapear dados estruturados do Supabase mesclando com resume_versions
         return (resumesData || []).map(r => {
           const correspondingVersion = (versionsData || []).find(
-            v => v.file_url === r.file_url || v.file_name === r.file_name
+            v => v.file_url && r.file_url && v.file_url === r.file_url
+          ) || (versionsData || []).find(
+            v => v.file_name === r.file_name
           );
           return {
             id: r.id,
@@ -291,12 +293,19 @@ export function useResumes(userId: string | undefined) {
       }
     },
     onError: (error: any) => {
+      setPipelineSteps([]);
       AppError.logError(error, supabase, 'useResumes.uploadResume', userId);
     },
     onSuccess: () => {
+      setPipelineSteps([]);
+      // Invalidar TODAS as queries dependentes do currículo
       queryClient.invalidateQueries({ queryKey: ['resumes', userId] });
       queryClient.invalidateQueries({ queryKey: ['career-profile', userId] });
       queryClient.invalidateQueries({ queryKey: ['my-profile-ai', userId] });
+      queryClient.invalidateQueries({ queryKey: ['matches', userId] });
+      queryClient.invalidateQueries({ queryKey: ['jobs', userId] });
+      queryClient.invalidateQueries({ queryKey: ['applications', userId] });
+      queryClient.invalidateQueries({ queryKey: ['job-discovery', userId] });
     }
   });
 
@@ -306,28 +315,59 @@ export function useResumes(userId: string | undefined) {
         // 1. Obter informações do currículo antes de deletar
         const { data: resume } = await supabase
           .from('resumes')
-          .select('file_name, file_path')
+          .select('file_name, file_path, file_url')
           .eq('id', resumeId)
           .maybeSingle();
 
-        // 2. Deletar da tabela resumes
+        // 2. Encontrar a resume_version correspondente para limpeza profunda
+        let resumeVersionId: string | null = null;
+        if (resume) {
+          const { data: rv } = await supabase
+            .from('resume_versions')
+            .select('id')
+            .eq('user_id', userId)
+            .eq('file_url', resume.file_url || '')
+            .maybeSingle();
+          if (rv) resumeVersionId = rv.id;
+
+          if (!resumeVersionId) {
+            const fileName = resume.file_name || resume.file_path?.split('/').pop();
+            const { data: rv2 } = await supabase
+              .from('resume_versions')
+              .select('id')
+              .eq('user_id', userId)
+              .eq('file_name', fileName || '')
+              .maybeSingle();
+            if (rv2) resumeVersionId = rv2.id;
+          }
+        }
+
+        // 3. Limpeza profunda: apagar TUDO relacionado a este currículo
+        // (resume_processing_logs não tem ON DELETE CASCADE na FK de resume_version_id)
+        if (resumeVersionId) {
+          await supabase.from('resume_processing_logs').delete().eq('resume_version_id', resumeVersionId);
+          // career_profiles, career_insights, job_matches, resume_processing_errors têm CASCADE
+        }
+
+        // 4. Deletar matches vinculados a este resume_id (CASCADE do FK)
+        await supabase.from('matches').delete().eq('resume_id', resumeId);
+
+        // 5. Deletar resume_optimizations vinculados
+        await supabase.from('resume_optimizations').delete().eq('resume_id', resumeId);
+
+        // 6. Deletar a resume_version (CASCADE apaga career_profiles, career_insights, job_matches, resume_processing_errors)
+        if (resumeVersionId) {
+          await supabase.from('resume_versions').delete().eq('id', resumeVersionId);
+        }
+
+        // 7. Deletar da tabela resumes
         const { error } = await supabase
           .from('resumes')
           .delete()
           .eq('id', resumeId);
         if (error) throw error;
 
-        // 3. Deletar da tabela resume_versions pelo nome do arquivo correspondente
-        if (resume) {
-          const fileName = resume.file_name || resume.file_path.split('/').pop();
-          await supabase
-            .from('resume_versions')
-            .delete()
-            .eq('user_id', userId)
-            .eq('file_name', fileName);
-        }
-
-        // 4. Se não restar nenhum currículo, deletar todos os registros de suporte para o usuário
+        // 8. Limpeza final: se não restar nenhum currículo, varrer tudo do usuário
         const { data: remainingResumes } = await supabase
           .from('resumes')
           .select('id')
@@ -339,7 +379,11 @@ export function useResumes(userId: string | undefined) {
           await supabase.from('career_insights').delete().eq('user_id', userId);
           await supabase.from('resume_processing_logs').delete().eq('user_id', userId);
           await supabase.from('resume_processing_errors').delete().eq('user_id', userId);
-          await supabase.from('matches').delete().eq('resume_id', resumeId);
+        }
+
+        // 9. Limpar arquivo do Storage
+        if (resume?.file_path) {
+          await supabase.storage.from('resumes').remove([resume.file_path]);
         }
       } else {
         localDB.deleteResume(resumeId);
@@ -347,11 +391,25 @@ export function useResumes(userId: string | undefined) {
     },
     onSuccess: () => {
       setPipelineSteps([]);
+      // Invalidar TODAS as queries dependentes
       queryClient.invalidateQueries({ queryKey: ['resumes', userId] });
       queryClient.invalidateQueries({ queryKey: ['career-profile', userId] });
       queryClient.invalidateQueries({ queryKey: ['my-profile-ai', userId] });
       queryClient.invalidateQueries({ queryKey: ['matches', userId] });
+      queryClient.invalidateQueries({ queryKey: ['jobs', userId] });
+      queryClient.invalidateQueries({ queryKey: ['applications', userId] });
       queryClient.invalidateQueries({ queryKey: ['job-discovery', userId] });
+      queryClient.invalidateQueries({ queryKey: ['resume-optimization'] });
+      queryClient.invalidateQueries({ queryKey: ['interview-prep'] });
+      queryClient.invalidateQueries({ queryKey: ['cover-letter'] });
+      // Limpar sessionStorage e localStorage de dados residuais
+      sessionStorage.removeItem('job_search_keyword');
+      sessionStorage.removeItem('job_search_location');
+      sessionStorage.removeItem('job_search_remote');
+      sessionStorage.removeItem('job_search_page');
+      sessionStorage.removeItem('job_search_input_keyword');
+      sessionStorage.removeItem('job_search_input_location');
+      sessionStorage.removeItem('job_search_input_remote');
     }
   });
 
@@ -569,6 +627,10 @@ export function useMatches(userId: string | undefined, resumeId?: string | null)
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['matches', userId] });
+      queryClient.invalidateQueries({ queryKey: ['match-details'] });
+      queryClient.invalidateQueries({ queryKey: ['resume-optimization'] });
+      queryClient.invalidateQueries({ queryKey: ['interview-prep'] });
+      queryClient.invalidateQueries({ queryKey: ['cover-letter'] });
     }
   });
 

@@ -512,9 +512,9 @@ export function CareerProfilePage({
                   </div>
                   <div className="flex flex-wrap gap-1.5 pt-1">
                     {searchKeywords.map(kw => (
-                      <span key={kw} className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-slate-900 text-slate-300 text-xs border border-slate-850 font-medium">
+                      <span key={kw} className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-cyan-500/10 text-cyan-400 text-xs border border-cyan-500/20 font-medium">
                         {kw}
-                        <button type="button" onClick={() => removeTag(kw, setSearchKeywords)} className="text-slate-500 hover:text-red-400">
+                        <button type="button" onClick={() => removeTag(kw, setSearchKeywords)} className="text-cyan-500 hover:text-red-400">
                           <X size={12} />
                         </button>
                       </span>

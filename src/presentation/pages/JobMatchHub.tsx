@@ -24,6 +24,9 @@ interface JobMatchHubProps {
   getMatchDetails: (matchId: string) => { data: any; isLoading: boolean };
   isCreating: boolean;
   isCalculating: boolean;
+  activeResumeVersionId?: string | null;
+  applications?: any[];
+  onCreateApplication?: (data: any) => Promise<any>;
 }
 
 export function JobMatchHub({
@@ -37,16 +40,20 @@ export function JobMatchHub({
   onCalculateMatch,
   getMatchDetails,
   isCreating,
-  isCalculating
+  isCalculating,
+  activeResumeVersionId,
+  applications = [],
+  onCreateApplication
 }: JobMatchHubProps) {
   const [subTab, setSubTab] = useState<'my-jobs' | 'discover'>('my-jobs');
   const [coachTab, setCoachTab] = useState<'coach-evaluation' | 'optimize-cv' | 'cover-letter' | 'interview-questions'>('coach-evaluation');
   const [isDeletingAnalyses, setIsDeletingAnalyses] = useState(false);
   const [appError, setAppError] = useState<AppError | null>(null);
+  const [isAddingToStrategy, setIsAddingToStrategy] = useState(false);
   const [selectedJobId, setSelectedJobId] = useState<string | null>(jobs[0]?.id || null);
 
   const selectedJob = jobs.find(j => j.id === selectedJobId);
-  const primaryResume = resumes.find(r => r.isPrimary) || resumes[0];
+  const primaryResume = (activeResumeVersionId ? resumes.find(r => r.resumeVersionId === activeResumeVersionId) : null) || resumes.find(r => r.isPrimary) || resumes[0];
 
   const [matchSteps, setMatchSteps] = useState<{ id: string; label: string; status: 'pending' | 'running' | 'success' | 'error' }[]>([
     { id: 'preparing', label: 'Comparando seu perfil com a vaga', status: 'pending' },
@@ -358,12 +365,31 @@ export function JobMatchHub({
     }
   }, [careerProfile]);
 
-  const { data: optimization = null } = getResumeOptimizationQuery(primaryResume || null, selectedJob || null);
-  const { data: prep = null } = getInterviewPrepQuery(primaryResume || null, selectedJob || null);
+  const { data: optimization = null, isLoading: isLoadingOpt } = getResumeOptimizationQuery(primaryResume || null, selectedJob || null);
+  const { data: prep = null, isLoading: isLoadingPrep } = getInterviewPrepQuery(primaryResume || null, selectedJob || null);
   const mockAppId = selectedJob ? `app-mock-${selectedJob.id}` : undefined;
   const { data: coverLetter = null } = getCoverLetterQuery(mockAppId);
   const currentMatch = selectedJob ? matches.find(m => m.jobId === selectedJob.id) : null;
   const { data: matchDetails } = getMatchDetails(currentMatch?.id || '');
+
+  const handleAddToStrategy = async () => {
+    if (!selectedJob || !userId || !onCreateApplication) return;
+    try {
+      setIsAddingToStrategy(true);
+      await onCreateApplication({
+        jobId: selectedJob.id,
+        status: '📝 Candidatura planejada',
+        notes: 'Adicionado a partir do Match Manual',
+        resumeVersionId: activeResumeVersionId || primaryResume?.resumeVersionId
+      });
+      alert('Vaga adicionada à sua estratégia com sucesso!');
+    } catch (err: any) {
+      console.error(err);
+      alert('Erro ao adicionar vaga à estratégia.');
+    } finally {
+      setIsAddingToStrategy(false);
+    }
+  };
 
   // Hook do módulo de Job Discovery — passa searchPage e careerProfileNew
   const { 
@@ -390,16 +416,32 @@ export function JobMatchHub({
       return;
     }
 
-    const reqs = requirementsInput
+    let reqs = requirementsInput
       .split(',')
       .map(r => r.trim())
       .filter(Boolean);
+
+    if (reqs.length === 0) {
+      // Extrair dinamicamente palavras-chave conhecidas do escopo para não forçar React/TS/Node por padrão
+      const possibleReqs = [
+        'React', 'TypeScript', 'Node.js', 'PostgreSQL', 'Docker', 'AWS', 
+        'JavaScript', 'CSS', 'Figma', 'Git', 'Customer Success', 'Salesforce', 
+        'SQL', 'SaaS', 'NPS', 'Churn', 'Onboarding', 'CSAT', 'Retention',
+        'Scrum', 'Agile', 'Kanban', 'Liderança', 'Gestão'
+      ];
+      reqs = possibleReqs.filter(req => 
+        new RegExp(`\\b${req}\\b`, 'i').test(title + ' ' + description)
+      );
+      if (reqs.length === 0) {
+        reqs = ['Geral'];
+      }
+    }
 
     try {
       const newJob = await onCreateJob({
         title,
         description,
-        requirements: reqs.length > 0 ? reqs : ['React', 'TypeScript', 'Node.js']
+        requirements: reqs
       });
       setTitle('');
       setDescription('');
@@ -763,14 +805,44 @@ export function JobMatchHub({
                             </p>
                           </div>
                           
-                          <div className="pt-2 border-t border-slate-900">
+                          <div className="pt-2 border-t border-slate-900 flex flex-col gap-2">
                             <button
-                              onClick={() => setCoachTab('optimize-cv')}
+                              onClick={() => {
+                                setCoachTab('optimize-cv');
+                                document.getElementById('ai-career-coach-panel')?.scrollIntoView({ behavior: 'smooth' });
+                              }}
                               className="w-full py-2 rounded-xl bg-brand-500/10 hover:bg-brand-500/20 border border-brand-500/20 text-brand-400 text-[10px] font-bold tracking-wider uppercase transition font-display flex items-center justify-center gap-1"
                             >
                               <Sparkles size={11} />
                               Melhorar meu currículo para essa vaga
                             </button>
+
+                            {selectedJob && (() => {
+                              const isAdded = applications.some((app: any) => app.jobId === selectedJob.id);
+                              if (isAdded) {
+                                return (
+                                  <div className="w-full py-2 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-[10px] font-bold tracking-wider uppercase flex items-center justify-center gap-1">
+                                    <CheckCircle size={11} />
+                                    Vaga em Acompanhamento na Estratégia
+                                  </div>
+                                );
+                              }
+                              return (
+                                <button
+                                  type="button"
+                                  onClick={handleAddToStrategy}
+                                  disabled={isAddingToStrategy}
+                                  className="w-full py-2 rounded-xl bg-indigo-600/20 hover:bg-indigo-600/30 border border-indigo-500/30 text-indigo-400 text-[10px] font-bold tracking-wider uppercase transition font-display flex items-center justify-center gap-1 disabled:opacity-50"
+                                >
+                                  {isAddingToStrategy ? (
+                                    <Loader2 size={11} className="animate-spin" />
+                                  ) : (
+                                    <Plus size={11} />
+                                  )}
+                                  Adicionar à Minha Estratégia
+                                </button>
+                              );
+                            })()}
                           </div>
 
                           <div className="grid grid-cols-2 gap-4 pt-4 border-t border-slate-900 dark:border-slate-900 light:border-slate-200">
@@ -959,7 +1031,7 @@ export function JobMatchHub({
                     )}
 
                     {/* Painel do AI Career Coach */}
-                    <CardGlass className="p-6 space-y-6 border border-brand-500/20">
+                    <CardGlass id="ai-career-coach-panel" className="p-6 space-y-6 border border-brand-500/20">
                       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-3 border-b border-slate-900">
                         <div>
                           <span className="text-[10px] px-2 py-0.5 bg-brand-500/10 text-brand-500 font-extrabold uppercase rounded-lg">AI Coach Integrado</span>
@@ -993,7 +1065,8 @@ export function JobMatchHub({
                           primaryResume,
                           selectedJob!,
                           careerProfile,
-                          careerProfileNew  // passa o perfil consolidado
+                          careerProfileNew,  // passa o perfil consolidado
+                          currentMatch
                         );
                         return (
                           <div className="space-y-4 animate-fade-in text-xs">
@@ -1031,6 +1104,19 @@ export function JobMatchHub({
                       })()}
 
                       {/* Content 2: Otimizar CV */}
+                      {coachTab === 'optimize-cv' && isLoadingOpt && (
+                        <div className="flex flex-col items-center justify-center py-12 gap-2 text-slate-400">
+                          <Loader2 className="animate-spin text-brand-500" size={24} />
+                          <span>Analisando currículo e sugerindo melhorias com IA...</span>
+                        </div>
+                      )}
+
+                      {coachTab === 'optimize-cv' && !optimization && !isLoadingOpt && (
+                        <div className="py-12 border border-dashed border-slate-900 rounded-xl flex flex-col items-center justify-center text-center text-slate-500 space-y-3">
+                          <span>Nenhuma sugestão de otimização disponível para esta vaga.</span>
+                        </div>
+                      )}
+
                       {coachTab === 'optimize-cv' && optimization && (
                         <div className="space-y-4 animate-fade-in text-xs">
                           <div className="space-y-1.5 p-4 rounded-xl bg-slate-900/30 border border-slate-900/60">
@@ -1115,6 +1201,19 @@ export function JobMatchHub({
                       )}
 
                       {/* Content 4: Perguntas STAR */}
+                      {coachTab === 'interview-questions' && isLoadingPrep && (
+                        <div className="flex flex-col items-center justify-center py-12 gap-2 text-slate-400">
+                          <Loader2 className="animate-spin text-brand-500" size={24} />
+                          <span>Mapeando perguntas prováveis e elaborando respostas STAR com IA...</span>
+                        </div>
+                      )}
+
+                      {coachTab === 'interview-questions' && !prep && !isLoadingPrep && (
+                        <div className="py-12 border border-dashed border-slate-900 rounded-xl flex flex-col items-center justify-center text-center text-slate-500 space-y-3">
+                          <span>Nenhuma pergunta STAR de preparação disponível.</span>
+                        </div>
+                      )}
+
                       {coachTab === 'interview-questions' && prep && (
                         <div className="space-y-4 animate-fade-in text-xs max-h-[350px] overflow-y-auto pr-1">
                           {prep.questions.map((q, idx) => (

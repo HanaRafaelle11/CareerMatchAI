@@ -19,7 +19,8 @@ export class CareerCoachService {
     resume: Resume | null,
     job: Job | Omit<Job, 'id' | 'userId' | 'createdAt' | 'updatedAt'>,
     profile: CareerProfile | null,
-    consolidatedProfile?: CareerProfileNew | null
+    consolidatedProfile?: CareerProfileNew | null,
+    matchOverride?: any | null
   ): CoachEvaluation {
     if (!resume && !consolidatedProfile) {
       return {
@@ -30,8 +31,19 @@ export class CareerCoachService {
       };
     }
 
-    // Calcula compatibilidade usando o perfil consolidado como fonte primária
-    const analysis = resume
+    // Calcula compatibilidade usando o perfil consolidado como fonte primária ou aproveita o match override
+    const analysis = matchOverride
+      ? {
+          scoreOverall: matchOverride.scoreOverall ?? 0,
+          scoreTechnical: matchOverride.scoreTechnical ?? 0,
+          scoreBehavioral: matchOverride.scoreBehavioral ?? 70,
+          scoreSeniority: matchOverride.scoreSeniority ?? 100,
+          scoreLocation: matchOverride.scoreLocation ?? 100,
+          missingSkills: matchOverride.gap_analysis?.missingSkills ?? [],
+          matchedSkills: matchOverride.gap_analysis?.matchedSkills ?? [],
+          yearsOfExperience: matchOverride.gap_analysis?.yearsOfExperience ?? 0
+        }
+      : resume
       ? MatchingEngine.calculateMatchSync(resume, job, consolidatedProfile)
       : {
           scoreOverall: 0,

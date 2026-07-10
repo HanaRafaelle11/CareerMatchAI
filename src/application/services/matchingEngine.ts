@@ -254,10 +254,13 @@ export class MatchingEngine {
     // Se o Supabase estiver online com OpenAI/Gemini, invoca a Edge Function
     if (isSupabaseConfigured && supabase) {
       try {
+        const { data: { user } } = await supabase.auth.getUser();
+        const isE2EUser = user?.email?.includes('.e2e.') || user?.email === 'hardening.e2e@example.com';
         const { data, error } = await supabase.functions.invoke('match-job', {
           body: { 
             resumeVersionId: resume.resumeVersionId,
-            jobId: job.id 
+            jobId: job.id,
+            mockGemini: isE2EUser
           }
         });
 

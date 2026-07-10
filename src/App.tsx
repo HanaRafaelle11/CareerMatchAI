@@ -15,7 +15,6 @@ const Dashboard = lazy(() => import('./presentation/pages/Dashboard').then(m => 
 const Profile = lazy(() => import('./presentation/pages/Profile').then(m => ({ default: m.Profile })));
 const JobMatchHub = lazy(() => import('./presentation/pages/JobMatchHub').then(m => ({ default: m.JobMatchHub })));
 const CareerProfilePage = lazy(() => import('./presentation/pages/CareerProfilePage').then(m => ({ default: m.CareerProfilePage })));
-const MyProfileAi = lazy(() => import('./presentation/pages/MyProfileAi').then(m => ({ default: m.MyProfileAi })));
 const StrategyPage = lazy(() => import('./presentation/pages/StrategyPage').then(m => ({ default: m.StrategyPage })));
 const CoachDashboard = lazy(() => import('./presentation/pages/CoachDashboard').then(m => ({ default: m.CoachDashboard })));
 
@@ -257,15 +256,7 @@ function App() {
           </Suspense>
         )}
 
-        {activeTab === 'my-profile-ai' && (
-          <Suspense fallback={<LazyFallback />}>
-            <MyProfileAi
-              userId={profile?.id}
-              resumeVersionId={selectedResumeVersionId}
-              setActiveTab={setActiveTab}
-            />
-          </Suspense>
-        )}
+
 
         {activeTab === 'career-profile' && (
           <Suspense fallback={<LazyFallback />}>
@@ -322,6 +313,9 @@ function App() {
               getMatchDetails={getMatchDetails}
               isCreating={isCreating}
               isCalculating={isCalculating}
+              activeResumeVersionId={selectedResumeVersionId}
+              applications={applications}
+              onCreateApplication={createApplication}
             />
           </Suspense>
         )}

@@ -21,9 +21,14 @@ const CoachDashboard = lazy(() => import('./presentation/pages/CoachDashboard').
 
 function LazyFallback() {
   return (
-    <div className="flex flex-col items-center justify-center py-24 gap-3 text-slate-500">
-      <Loader2 className="animate-spin text-brand-500" size={28} />
-      <span className="text-xs font-semibold uppercase tracking-wider">Carregando módulo...</span>
+    <div className="flex flex-col items-center justify-center py-24 gap-4 text-slate-400">
+      <div className="p-3 rounded-full bg-slate-950 border border-slate-800 text-brand-500">
+        <Loader2 className="animate-spin text-brand-500" size={24} />
+      </div>
+      <div className="text-center space-y-1">
+        <span className="text-xs font-semibold uppercase tracking-wider text-slate-355">Carregando Módulo</span>
+        <p className="text-[10px] text-slate-550">Preparando interface e componentes inteligentes...</p>
+      </div>
     </div>
   );
 }
@@ -103,9 +108,23 @@ function App() {
 
   if (loading) {
     return (
-      <div className="min-h-screen w-full flex flex-col items-center justify-center bg-slate-950 text-slate-400 font-sans">
-        <div className="h-10 w-10 border-4 border-brand-500 border-t-transparent rounded-full animate-spin mb-4" />
-        <span className="text-xs font-semibold uppercase tracking-wider">Carregando CareerMatch AI...</span>
+      <div className="min-h-screen w-full flex flex-col items-center justify-center bg-slate-950 text-slate-100 font-sans relative overflow-hidden">
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(99,102,241,0.05)_0%,transparent_70%)]" />
+        <div className="max-w-md w-full p-8 mx-4 rounded-3xl bg-slate-900/30 border border-slate-850 backdrop-blur-md flex flex-col items-center text-center space-y-6 relative">
+          <div className="relative">
+            <div className="absolute inset-0 rounded-full bg-brand-500/10 blur-xl animate-pulse" />
+            <div className="p-4 rounded-full bg-slate-950 border border-slate-800 text-brand-500 animate-bounce">
+              <Loader2 className="animate-spin text-brand-500" size={32} />
+            </div>
+          </div>
+          <div className="space-y-2">
+            <h3 className="font-display font-bold text-lg text-slate-200">Iniciando CareerMatch AI</h3>
+            <p className="text-xs text-slate-500">Conectando ao banco de dados e autenticando sessão de usuário...</p>
+          </div>
+          <div className="w-full max-w-[200px] h-1 bg-slate-950 border border-slate-850 rounded-full overflow-hidden">
+            <div className="h-full bg-brand-500 rounded-full animate-progress-loading" />
+          </div>
+        </div>
       </div>
     );
   }

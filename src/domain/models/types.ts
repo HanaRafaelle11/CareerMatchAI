@@ -142,6 +142,7 @@ export interface Match {
   scoreLocation: number;
   explanation: MatchExplanation;
   createdAt: string;
+  processingTimeMs?: number;
 }
 
 export interface GapAnalysis {

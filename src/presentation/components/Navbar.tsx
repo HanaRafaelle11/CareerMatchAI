@@ -105,7 +105,7 @@ export function Navbar({ activeTab, setActiveTab, profile, onLogout, isOpen, onC
             )}
             <div className="flex flex-col">
               <span className="text-xs font-semibold text-slate-200 dark:text-slate-200 light:text-slate-800 truncate max-w-[120px]">
-                {profile?.fullName || 'Carregando...'}
+                {profile?.fullName || 'Usuário'}
               </span>
               <span className="text-[10px] text-slate-500 truncate max-w-[120px]">
                 {profile?.headline || 'Candidato'}

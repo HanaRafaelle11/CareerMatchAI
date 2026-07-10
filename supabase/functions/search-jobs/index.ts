@@ -51,6 +51,7 @@ serve(async (req) => {
     return new Response('ok', { status: 200, headers: corsHeaders })
   }
 
+  const requestStartTime = Date.now();
   let resolvedUserId: string | null = null;
   let supabaseClient: any = null;
 
@@ -81,7 +82,7 @@ serve(async (req) => {
     if (!appId || !appKey) {
       console.error("[JOB SEARCH] Erro: ADZUNA_APP_ID ou ADZUNA_APP_KEY não configurada.");
       
-      await logApplicationEvent(supabaseClient, resolvedUserId, 'job_search_failed', 'Adzuna', 'failed', { error: 'API_NOT_CONFIGURED' });
+      await logApplicationEvent(supabaseClient, resolvedUserId, 'job_search_failed', 'Adzuna', 'failed', { error: 'API_NOT_CONFIGURED', duration_ms: Date.now() - requestStartTime });
 
       const msg = "O provedor de busca de vagas Adzuna não está configurado. Configure as credenciais no cofre do Supabase para ativar as buscas.";
       return new Response(
@@ -116,8 +117,9 @@ serve(async (req) => {
 
     console.log(`[JOB SEARCH SUCCESS] query: ${searchKeyword} | results: ${resultsCount}`);
 
+    const durationMs = Date.now() - requestStartTime;
     // Registrar sucesso da busca de vagas
-    await logApplicationEvent(supabaseClient, resolvedUserId, 'job_search_completed', 'Adzuna', 'completed', { searchKeyword, searchLocation, resultsCount });
+    await logApplicationEvent(supabaseClient, resolvedUserId, 'job_search_completed', 'Adzuna', 'completed', { searchKeyword, searchLocation, resultsCount, duration_ms: durationMs });
 
     return new Response(
       JSON.stringify(data),
@@ -126,9 +128,10 @@ serve(async (req) => {
   } catch (error) {
     console.error("[JOB SEARCH] Exceção na busca de vagas:", error);
 
+    const durationMs = Date.now() - requestStartTime;
     // Registrar falha da busca de vagas
     if (supabaseClient) {
-      await logApplicationEvent(supabaseClient, resolvedUserId, 'job_search_failed', 'Adzuna', 'failed', { error: error.message });
+      await logApplicationEvent(supabaseClient, resolvedUserId, 'job_search_failed', 'Adzuna', 'failed', { error: error.message, duration_ms: durationMs });
     }
 
     let code = "JOB_SEARCH_UNAVAILABLE";

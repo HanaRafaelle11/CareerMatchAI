@@ -73,11 +73,10 @@ export function useResumes(userId: string | undefined) {
 
       try {
         setPipelineSteps([
-          { id: 'upload', label: 'Upload do arquivo...', status: 'running' },
-          { id: 'db_init', label: 'Registrando referência do arquivo...', status: 'pending' },
-          { id: 'extraction', label: 'Extraindo conteúdo (PDF/DOCX/TXT)...', status: 'pending' },
-          { id: 'ia_parsing', label: 'Processando IA (OpenAI gpt-4o)...', status: 'pending' },
-          { id: 'db_save', label: 'Salvando perfil estruturado...', status: 'pending' },
+          { id: 'reading_resume', label: 'Lendo seu currículo...', status: 'running' },
+          { id: 'identifying_experiences', label: 'Identificando experiências profissionais', status: 'pending' },
+          { id: 'extracting_skills', label: 'Extraindo competências', status: 'pending' },
+          { id: 'creating_profile', label: 'Criando seu perfil profissional', status: 'pending' },
         ]);
 
         if (isSupabaseConfigured && supabase) {
@@ -100,8 +99,7 @@ export function useResumes(userId: string | undefined) {
           }
           console.log(`[PIPELINE] 2. Upload concluído para o Storage. Caminho: ${filePath}`);
           setPipelineSteps(prev => prev.map(s => 
-            s.id === 'upload' ? { ...s, label: '✔ Upload concluído', status: 'success' } :
-            s.id === 'db_init' ? { ...s, status: 'running' } : s
+            s.id === 'reading_resume' ? { ...s, status: 'running' } : s
           ));
 
           // Obter URL pública do arquivo
@@ -157,8 +155,7 @@ export function useResumes(userId: string | undefined) {
           }
           console.log(`[PIPELINE] 3. Registro inicial de 'resumes' criado no Banco. ID: ${resumeData.id}`);
           setPipelineSteps(prev => prev.map(s => 
-            s.id === 'db_init' ? { ...s, label: '✔ Referência registrada', status: 'success' } :
-            s.id === 'extraction' ? { ...s, status: 'running' } : s
+            s.id === 'reading_resume' ? { ...s, status: 'running' } : s
           ));
 
           // 3. Invocar a Edge Function 'analyze-resume' de forma ASSÍNCRONA
@@ -211,26 +208,32 @@ export function useResumes(userId: string | undefined) {
               const hasExtractCompleted = logs.some(l => l.step === 'extracting_text' && l.status === 'completed');
               const hasGeminiStarted = logs.some(l => l.step === 'analyzing_profile');
               const hasGeminiCompleted = logs.some(l => l.step === 'analyzing_profile' && l.status === 'completed');
-              const hasSaveCompleted = logs.some(l => l.step === 'creating_profile' && l.status === 'completed');
+              const hasSkillsStarted = logs.some(l => l.step === 'identifying_skills');
+              const hasSkillsCompleted = logs.some(l => l.step === 'identifying_skills' && l.status === 'completed');
+              const hasSaveStarted = logs.some(l => l.step === 'creating_profile');
+              const hasSaveCompleted = logs.some(l => l.step === 'creating_profile' && (l.status === 'completed' || l.status === 'success'));
               const hasFailed = logs.some(l => l.status === 'failed' || l.status === 'error');
 
               const steps: PipelineStep[] = [
-                { id: 'upload', label: '✔ Upload concluído', status: 'success' },
-                { id: 'db_init', label: '✔ Referência registrada', status: 'success' },
                 {
-                  id: 'extraction',
-                  label: hasExtractCompleted ? '✔ Texto extraído com sucesso' : hasExtractStarted ? 'Extraindo conteúdo (PDF/DOCX/TXT)...' : 'Extraindo conteúdo...',
+                  id: 'reading_resume',
+                  label: hasExtractCompleted ? '✔ Lendo seu currículo' : hasExtractStarted ? 'Lendo seu currículo...' : 'Lendo seu currículo',
                   status: hasExtractCompleted ? 'success' : hasExtractStarted ? 'running' : 'pending'
                 },
                 {
-                  id: 'ia_parsing',
-                  label: hasGeminiCompleted ? '✔ Processado por IA' : hasGeminiStarted ? 'Processando IA (OpenAI gpt-4o)...' : 'Processando IA...',
+                  id: 'identifying_experiences',
+                  label: hasGeminiCompleted ? '✔ Identificando experiências profissionais' : hasGeminiStarted ? 'Identificando experiências profissionais...' : 'Identificando experiências profissionais',
                   status: hasGeminiCompleted ? 'success' : hasGeminiStarted ? 'running' : 'pending'
                 },
                 {
-                  id: 'db_save',
-                  label: hasSaveCompleted ? '✔ Perfil estruturado' : hasGeminiCompleted ? 'Salvando perfil estruturado...' : 'Salvando perfil estruturado...',
-                  status: hasSaveCompleted ? 'success' : hasGeminiCompleted ? 'running' : 'pending'
+                  id: 'extracting_skills',
+                  label: hasSkillsCompleted ? '✔ Extraindo competências' : hasSkillsStarted ? 'Extraindo competências...' : 'Extraindo competências',
+                  status: hasSkillsCompleted ? 'success' : hasSkillsStarted ? 'running' : 'pending'
+                },
+                {
+                  id: 'creating_profile',
+                  label: hasSaveCompleted ? '✔ Criando seu perfil profissional' : hasSaveStarted ? 'Criando seu perfil profissional...' : 'Criando seu perfil profissional',
+                  status: hasSaveCompleted ? 'success' : hasSaveStarted ? 'running' : 'pending'
                 }
               ];
 
@@ -261,6 +264,13 @@ export function useResumes(userId: string | undefined) {
 
           const duration = Date.now() - pipelineStartTime;
           console.log(`[PIPELINE] 8. Pipeline concluído com sucesso via polling. Tempo total: ${duration}ms`);
+          
+          // Gravar tempo de processamento real no banco de dados
+          await supabase
+            .from('resume_versions')
+            .update({ processing_time_ms: duration })
+            .eq('id', resumeVersionId);
+
           return resumeData;
         } else {
           throw new Error('Supabase não está configurado. O parser de currículos requer conexão ativa com Supabase e OpenAI.');
@@ -443,7 +453,8 @@ export function useMatches(userId: string | undefined, resumeId?: string | null)
           scoreSeniority: m.score_seniority,
           scoreLocation: 100,
           explanation: m.explanation,
-          createdAt: m.created_at
+          createdAt: m.created_at,
+          processingTimeMs: m.processing_time_ms
         }));
       } else {
         return localDB.getMatches();
@@ -485,8 +496,10 @@ export function useMatches(userId: string | undefined, resumeId?: string | null)
       job: Job;
       consolidatedProfile?: CareerProfileNew | null;
     }) => {
+      const matchStartTime = Date.now();
       // 1. Calcula compatibilidade semântica usando o perfil consolidado como fonte primária
       const result = await MatchingEngine.calculateMatch(resume, job, consolidatedProfile);
+      const matchDuration = Date.now() - matchStartTime;
 
       if (isSupabaseConfigured && supabase) {
         const { data, error } = await supabase
@@ -499,7 +512,8 @@ export function useMatches(userId: string | undefined, resumeId?: string | null)
             score_behavioral: result.match.scoreBehavioral,
             score_seniority: result.match.scoreSeniority,
             explanation: result.match.explanation,
-            gap_analysis: result.gapAnalysis
+            gap_analysis: result.gapAnalysis,
+            processing_time_ms: matchDuration
           })
           .select()
           .single();

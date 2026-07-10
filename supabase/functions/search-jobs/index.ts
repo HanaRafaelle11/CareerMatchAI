@@ -129,9 +129,42 @@ serve(async (req) => {
     console.error("[JOB SEARCH] Exceção na busca de vagas:", error);
 
     const durationMs = Date.now() - requestStartTime;
-    // Registrar falha da busca de vagas
+
+    // Estruturar metadados de falha com as 6 propriedades essenciais
+    const failureMetadata = {
+      endpoint: 'api.adzuna.com/v1/api/jobs/br/search',
+      status: error.message?.match(/status:\s*(\d+)/)?.[1] || 'unknown',
+      message: error.message || String(error),
+      latency_ms: durationMs,
+      payload_summary: `keyword=${(error as any).keyword || 'N/A'}, location=${(error as any).location || 'N/A'}`,
+      reason: error.message?.includes('timeout') || error.message?.includes('fetch')
+        ? 'NETWORK_TIMEOUT'
+        : error.message?.includes('429') || error.message?.includes('Rate')
+          ? 'RATE_LIMIT'
+          : error.message?.includes('tentativas')
+            ? 'MAX_RETRIES_EXCEEDED'
+            : 'GENERIC_ERROR',
+      duration_ms: durationMs
+    };
+
+    // Registrar falha nos eventos
     if (supabaseClient) {
-      await logApplicationEvent(supabaseClient, resolvedUserId, 'job_search_failed', 'Adzuna', 'failed', { error: error.message, duration_ms: durationMs });
+      await logApplicationEvent(supabaseClient, resolvedUserId, 'job_search_failed', 'Adzuna', 'failed', failureMetadata);
+
+      // Persistir erro estruturado na tabela application_errors para diagnóstico
+      try {
+        await supabaseClient
+          .from('application_errors')
+          .insert({
+            user_id: resolvedUserId || null,
+            service: 'Adzuna',
+            error_code: failureMetadata.reason,
+            error_message: failureMetadata.message,
+            metadata: failureMetadata
+          });
+      } catch (dbErr) {
+        console.error('[ERROR LOG] Erro ao gravar em application_errors:', dbErr.message);
+      }
     }
 
     let code = "JOB_SEARCH_UNAVAILABLE";

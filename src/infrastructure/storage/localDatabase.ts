@@ -311,6 +311,15 @@ class LocalDatabase {
     let resumes = this.getResumes();
     resumes = resumes.filter(r => r.id !== id);
     localStorage.setItem(KEYS.RESUMES, JSON.stringify(resumes));
+    if (resumes.length === 0) {
+      localStorage.setItem(KEYS.CAREER_PROFILE, 'null');
+      localStorage.setItem(KEYS.MATCHES, '[]');
+      localStorage.setItem(KEYS.GAPS, '[]');
+      localStorage.setItem(KEYS.OPTIMIZATIONS, '[]');
+      localStorage.setItem(KEYS.PREPARATIONS, '[]');
+      localStorage.setItem(KEYS.SIMULATIONS, '[]');
+      localStorage.setItem(KEYS.LETTERS_V2, '[]');
+    }
   }
 
   // Jobs API

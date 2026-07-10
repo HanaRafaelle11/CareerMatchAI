@@ -79,8 +79,51 @@ export function JobMatchHub({
     };
   }, [isCalculating]);
 
+  const prevResumeIdRef = useRef<string | null>(null);
+
   useEffect(() => {
-    if (!isCalculating || !userId || !selectedJob?.id || !isSupabaseConfigured || !supabase) {
+    const currentResumeId = primaryResume?.id || null;
+    if (prevResumeIdRef.current !== null && prevResumeIdRef.current !== currentResumeId) {
+      // O currículo mudou! Limpar contexto
+      setSelectedJobId(null);
+      
+      // Limpar filtros/descoberta na sessionStorage
+      sessionStorage.removeItem('job_search_keyword');
+      sessionStorage.removeItem('job_search_location');
+      sessionStorage.removeItem('job_search_remote');
+      sessionStorage.removeItem('job_search_page');
+      sessionStorage.removeItem('job_search_input_keyword');
+      sessionStorage.removeItem('job_search_input_location');
+      sessionStorage.removeItem('job_search_input_remote');
+      
+      // Resetar states locais
+      setSearchKeyword('');
+      setSearchLocation('Brasil');
+      setSearchRemoteOnly(true);
+      setSearchPage(1);
+      setActiveFilters({
+        keyword: '',
+        location: 'Brasil',
+        remoteOnly: true
+      });
+      setErrorMsg('');
+      setAppError(null);
+    }
+    prevResumeIdRef.current = currentResumeId;
+  }, [primaryResume?.id]);
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        setShowAddForm(false);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, []);
+
+  useEffect(() => {
+    if (!isCalculating || !userId || !selectedJobId || !isSupabaseConfigured || !supabase) {
       setMatchSteps([
         { id: 'preparing', label: 'Comparando seu perfil com a vaga', status: 'pending' },
         { id: 'analyzing_resume', label: 'Analisando requisitos técnicos', status: 'pending' },
@@ -113,14 +156,14 @@ export function JobMatchHub({
       }
 
       const client = supabase;
-      if (!client || !selectedJob) return;
+      if (!client || !selectedJobId) return;
 
       try {
         const { data: logs, error } = await client
           .from('career_match_logs')
           .select('*')
           .eq('user_id', userId)
-          .eq('job_id', selectedJob.id)
+          .eq('job_id', selectedJobId)
           .order('created_at', { ascending: true });
 
         if (error) throw error;
@@ -189,7 +232,7 @@ export function JobMatchHub({
       isSubscribed = false;
       if (timeoutId) clearTimeout(timeoutId);
     };
-  }, [isCalculating, userId, selectedJob?.id]);
+  }, [isCalculating, userId, selectedJobId]);
 
   const handleDeleteAnalyses = async () => {
     if (!userId || !primaryResume || !isSupabaseConfigured || !supabase) return;
@@ -637,7 +680,7 @@ export function JobMatchHub({
                 <CardGlass className="space-y-4">
                   <div className="flex justify-between items-start gap-4">
                     <div>
-                      <span className="text-[10px] px-2 py-0.5 bg-slate-900 border border-slate-800 rounded-lg text-slate-400 font-semibold uppercase tracking-wider">
+                      <span className="text-[10px] px-2 py-0.5 bg-slate-900/60 border border-slate-800 rounded-lg text-slate-300 font-semibold uppercase tracking-wider">
                         Vaga Selecionada
                       </span>
                       <h3 className="font-display font-bold text-lg text-slate-200 dark:text-slate-200 light:text-slate-800 mt-2">
@@ -669,7 +712,7 @@ export function JobMatchHub({
                       {selectedJob.requirements.map((req, index) => (
                         <span
                           key={index}
-                          className="px-2 py-0.5 rounded bg-slate-900 border border-slate-800 text-[10px] text-slate-400 font-semibold uppercase"
+                          className="px-2 py-0.5 rounded bg-slate-900/60 border border-slate-800 text-[10px] text-slate-300 font-semibold uppercase"
                         >
                           {req}
                         </span>
@@ -1193,7 +1236,7 @@ export function JobMatchHub({
                 </div>
                 <div className="flex flex-wrap gap-1.5">
                   {((careerProfileNew.personal as any)?.preferences?.targetRoles || []).slice(0, 3).map((role: string, i: number) => (
-                    <span key={i} className="px-2.5 py-0.5 rounded-full bg-slate-950 text-[9px] text-slate-400 font-semibold border border-slate-900 uppercase">
+                    <span key={i} className="px-2.5 py-0.5 rounded-full bg-brand-500/10 text-brand-400 text-[9px] font-semibold border border-brand-500/20 uppercase">
                       {role}
                     </span>
                   ))}

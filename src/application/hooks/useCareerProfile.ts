@@ -80,7 +80,7 @@ export function useCareerProfile(userId: string | undefined, resumeVersionId?: s
         return localDB.getCareerProfile(userId);
       }
     },
-    enabled: !!userId,
+    enabled: !!userId && !!resumeVersionId,
   });
 
   const updateProfileMutation = useMutation({

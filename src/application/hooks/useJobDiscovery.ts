@@ -141,13 +141,13 @@ export function useJobDiscovery(
             company_name: discoveredJob.companyName,
             location: discoveredJob.location,
             work_mode: discoveredJob.workMode,
-            seniority: discoveredJob.seniority,
-            salary_min: discoveredJob.salaryMin,
-            salary_max: discoveredJob.salaryMax,
-            currency: discoveredJob.currency,
             source_url: discoveredJob.sourceUrl,
-            source_platform: discoveredJob.sourcePlatform,
-            is_active: true
+            salary: discoveredJob.salaryMin && discoveredJob.salaryMax 
+              ? `R$ ${discoveredJob.salaryMin} - R$ ${discoveredJob.salaryMax}`
+              : discoveredJob.salaryMin 
+                ? `R$ ${discoveredJob.salaryMin}` 
+                : null,
+            salary_numeric: discoveredJob.salaryMin || null
           })
           .select()
           .single();
@@ -155,20 +155,20 @@ export function useJobDiscovery(
         if (error) throw error;
         return {
           id: data.id,
-          companyId: data.company_id || 'adzuna',
-          companyName: data.company_name,
+          companyId: 'adzuna',
+          companyName: data.company_name || 'Empresa Confidencial',
           title: data.title,
           description: data.description,
           requirements: data.requirements || [],
           location: data.location || 'Brasil',
           workMode: data.work_mode || 'remote',
-          seniority: data.seniority || 'pleno',
-          salaryMin: data.salary_min || undefined,
-          salaryMax: data.salary_max || undefined,
-          currency: data.currency || 'BRL',
+          seniority: 'pleno',
+          salaryMin: data.salary_numeric || undefined,
+          salaryMax: undefined,
+          currency: 'BRL',
           sourceUrl: data.source_url || '',
-          sourcePlatform: data.source_platform || '',
-          isActive: data.is_active
+          sourcePlatform: 'Adzuna',
+          isActive: true
         };
       } else {
         const newJob: Job = {

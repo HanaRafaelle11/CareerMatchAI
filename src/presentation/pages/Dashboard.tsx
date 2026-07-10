@@ -69,11 +69,11 @@ export function Dashboard({
           setSystemErrors(data);
         }
 
-        // Buscar total de erros nas últimas 24 horas
+        // Buscar erros das últimas 24 horas para detalhar a instabilidade
         const oneDayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
-        const { count: errorsTodayCount } = await supabase
+        const { data: errorsToday, count: errorsTodayCount } = await supabase
           .from('application_errors')
-          .select('*', { count: 'exact', head: true })
+          .select('service', { count: 'exact' })
           .gte('created_at', oneDayAgo.toISOString());
 
         // 1. Buscar todos os eventos das últimas 48 horas
@@ -104,21 +104,43 @@ export function Dashboard({
             ? Math.round((failedEvents.length / totalToday) * 1000) / 10 
             : 0;
 
-          // Categorizar falhas para identificar serviço mais instável
-          const geminiFailures = failedEvents.filter(e => e.service === 'Gemini').length;
-          const adzunaFailures = failedEvents.filter(e => e.service === 'Adzuna').length;
-          const storageFailures = failedEvents.filter(e => e.service === 'Storage' || e.service === 'S3').length;
-          const parserFailures = failedEvents.filter(e => e.service === 'Parser').length;
-          const dbFailures = failedEvents.filter(e => e.service === 'Database' || e.service === 'DB').length;
+          // Categorizar falhas combinando eventos e erros para identificar o serviço mais instável
+          const errorBreakdown: Record<string, number> = {
+            Gemini: 0,
+            Adzuna: 0,
+            Storage: 0,
+            Parser: 0,
+            Database: 0
+          };
+
+          failedEvents.forEach(e => {
+            const svc = e.service || '';
+            if (svc.toLowerCase().includes('gemini')) errorBreakdown.Gemini++;
+            else if (svc.toLowerCase().includes('adzuna')) errorBreakdown.Adzuna++;
+            else if (svc.toLowerCase().includes('storage') || svc.toLowerCase().includes('s3')) errorBreakdown.Storage++;
+            else if (svc.toLowerCase().includes('parser')) errorBreakdown.Parser++;
+            else if (svc.toLowerCase().includes('database') || svc.toLowerCase().includes('db')) errorBreakdown.Database++;
+          });
+
+          if (errorsToday) {
+            errorsToday.forEach(err => {
+              const svc = err.service || '';
+              if (svc.toLowerCase().includes('gemini')) errorBreakdown.Gemini++;
+              else if (svc.toLowerCase().includes('adzuna')) errorBreakdown.Adzuna++;
+              else if (svc.toLowerCase().includes('storage') || svc.toLowerCase().includes('s3')) errorBreakdown.Storage++;
+              else if (svc.toLowerCase().includes('parser')) errorBreakdown.Parser++;
+              else if (svc.toLowerCase().includes('database') || svc.toLowerCase().includes('db')) errorBreakdown.Database++;
+            });
+          }
 
           let unstableService = 'Nenhum';
-          const maxFailures = Math.max(geminiFailures, adzunaFailures, storageFailures, parserFailures, dbFailures);
+          const maxFailures = Math.max(...Object.values(errorBreakdown));
           if (maxFailures > 0) {
-            if (maxFailures === geminiFailures) unstableService = 'Gemini';
-            else if (maxFailures === adzunaFailures) unstableService = 'Adzuna';
-            else if (maxFailures === storageFailures) unstableService = 'Storage';
-            else if (maxFailures === parserFailures) unstableService = 'Parser';
-            else unstableService = 'Database';
+            const keys = Object.keys(errorBreakdown);
+            const foundKey = keys.find(k => errorBreakdown[k] === maxFailures);
+            if (foundKey) {
+              unstableService = foundKey;
+            }
           }
 
           // Tempo médio Gemini (matches)
@@ -220,12 +242,9 @@ export function Dashboard({
 
   // Funil de Candidaturas (Goal Tracker)
   const funnel = CareerAnalyticsService.getFunnel(applications);
-  
+
   // Objetivo ativo
-  const activeGoal = careerGoals.find(g => g.isActive) || {
-    title: 'Conseguir emprego desejado',
-    targetDate: '2026-10-31'
-  };
+  const activeGoal = careerGoals.find(g => g.isActive) || null;
 
   // Insight dinâmico baseado em dados reais
   const getAIInsight = () => {
@@ -425,8 +444,10 @@ export function Dashboard({
           </div>
           <div className="text-left sm:text-right">
             <span className="text-[10px] text-slate-500 uppercase font-extrabold tracking-wider block">Meta Ativa</span>
-            <span className="text-xs text-slate-300 font-semibold">{activeGoal.title}</span>
-            <span className="text-[10px] text-brand-500 font-bold block mt-0.5">Prazo: {new Date(activeGoal.targetDate).toLocaleDateString()}</span>
+            <span className="text-xs text-slate-300 font-semibold">{activeGoal ? activeGoal.title : 'Sugira um prazo'}</span>
+            <span className="text-[10px] text-brand-500 font-bold block mt-0.5">
+              {activeGoal && activeGoal.targetDate ? `Prazo: ${new Date(activeGoal.targetDate).toLocaleDateString()}` : 'Sem prazo definido'}
+            </span>
           </div>
         </div>
 

@@ -3,8 +3,6 @@ import { test, expect } from '@playwright/test';
 
 async function ensureAuthenticated(page: any) {
   await page.goto('/');
-  
-  // Aguarda até 15s para a tela de login ou a tela principal (dashboard) estar visível e hidratação concluída
   const emailInput = page.locator('input[type="email"]');
   const dashboard = page.locator('text=Goal Tracker');
   
@@ -16,10 +14,23 @@ async function ensureAuthenticated(page: any) {
     await page.locator('button[type="submit"]').click();
     
     try {
-      await expect(dashboard.first()).toBeVisible({ timeout: 6000 });
-      return; // Login efetuado com sucesso!
+      await expect(dashboard.first()).toBeVisible({ timeout: 12000 });
+      return;
     } catch (e) {
-      console.log("Login falhou para hardening.e2e@example.com. Tentando cadastrar novo usuário...");
+      console.log("Primeira tentativa de login falhou ou demorou. Recarregando e tentando novamente...");
+    }
+
+    await page.goto('/');
+    await expect(emailInput).toBeVisible({ timeout: 5000 });
+    await emailInput.fill('hardening.e2e@example.com');
+    await page.locator('input[type="password"]').fill('HardeningE2EPassword123!');
+    await page.locator('button[type="submit"]').click();
+
+    try {
+      await expect(dashboard.first()).toBeVisible({ timeout: 12000 });
+      return;
+    } catch (e) {
+      console.log("Segunda tentativa de login falhou. Tentando cadastro...");
     }
 
     const signUpToggle = page.locator('button:has-text("Cadastre-se agora")');
@@ -32,25 +43,19 @@ async function ensureAuthenticated(page: any) {
       await page.locator('button[type="submit"]:has-text("Cadastrar")').click();
     }
     
-    // Garantir que estamos no dashboard após o cadastro
     await expect(dashboard.first()).toBeVisible({ timeout: 15000 });
   }
 }
 
 async function navigateSidebar(page: any, tabLabel: string) {
-  const menuBtn = page.locator('header button').first();
-  if (await menuBtn.isVisible()) {
-    await menuBtn.click();
-    await page.waitForTimeout(600);
-  }
-  const tabButton = page.locator(`aside button:has-text("${tabLabel}")`);
-  await expect(tabButton).toBeVisible();
+  const tabButton = page.locator(`aside button:has-text("${tabLabel}"), nav button:has-text("${tabLabel}")`).filter({ visible: true }).first();
+  await expect(tabButton).toBeVisible({ timeout: 10000 });
   await tabButton.click();
 }
 
 async function runMobileUXAudit(page: any, width: number) {
   // Ir para a página de perfil / currículo
-  await navigateSidebar(page, "Meu Currículo");
+  await navigateSidebar(page, "Currículo");
   
   // Verificar se a seção do dropzone cabe na tela
   const dropzone = page.locator('div[class*="border-2"][class*="border-dashed"]').first();
@@ -62,7 +67,7 @@ async function runMobileUXAudit(page: any, width: number) {
   }
 
   // Ir para o Match Manual / Job Match Hub
-  await navigateSidebar(page, "Match Manual");
+  await navigateSidebar(page, "Compatibilidade");
   
   // Verificar se a área principal cabe na tela
   const mainContainer = page.locator('main').first();

@@ -78,13 +78,18 @@ export function useJobDiscovery(
         page: filters.page || 1
       });
 
-      // ── Filtragem Avançada no Frontend baseada nas Preferências do Usuário ──
+      // ── Pós-processamento inteligente e Ordenação das vagas ──
       if (careerProfileNew) {
         const preferences = (careerProfileNew.personal as any)?.preferences || {};
         const targetSeniority = preferences.seniority?.toLowerCase();
         const minSalary = Number(preferences.salaryExpectationMin || 0);
+        const preferredWorkModes = preferences.preferredWorkModes || [];
+        const preferredLocations = preferences.preferredLocations || [];
+        const targetRoles = preferences.targetRoles || [];
+        const industries = preferences.industries || [];
 
-        searchResult.results = searchResult.results.filter(job => {
+        // 1. Filtrar resultados incompatíveis
+        let filteredResults = searchResult.results.filter(job => {
           // A. Filtragem por Senioridade
           if (targetSeniority) {
             const jobTitleLower = job.title.toLowerCase();
@@ -104,14 +109,80 @@ export function useJobDiscovery(
           }
 
           // B. Filtragem por Pretensão Salarial (tolerância de 20% para flexibilidade)
-          if (minSalary > 0 && job.salaryMax) {
-            if (job.salaryMax < minSalary * 0.8) {
+          const jobMax = job.salaryMax || job.salaryMin;
+          if (minSalary > 0 && jobMax) {
+            if (jobMax < minSalary * 0.8) {
               return false;
+            }
+          }
+
+          // C. Filtragem por Modalidade de Trabalho (se houver preferência estrita e remoteOnly marcado)
+          if (preferredWorkModes.length > 0) {
+            if (preferredWorkModes.includes('remote') && !preferredWorkModes.includes('onsite') && job.workMode === 'onsite') {
+              if (filters.remoteOnly) return false;
             }
           }
 
           return true;
         });
+
+        // 2. Ordenação/Priorização Inteligente dos Resultados baseada no Score
+        const scoredResults = filteredResults.map(job => {
+          let score = 0;
+          const jobTitleLower = job.title.toLowerCase();
+          const jobDescLower = job.description.toLowerCase();
+          const jobLocLower = job.location.toLowerCase();
+
+          // A. Cargo (targetRoles)
+          targetRoles.forEach((role: string) => {
+            if (jobTitleLower.includes(role.toLowerCase())) {
+              score += 15;
+            }
+          });
+
+          // B. Localização
+          preferredLocations.forEach((loc: string) => {
+            if (jobLocLower.includes(loc.toLowerCase())) {
+              score += 10;
+            }
+          });
+
+          // C. Modalidade
+          if (preferredWorkModes.includes(job.workMode)) {
+            score += 8;
+          }
+
+          // D. Pretensão Salarial
+          const jobMin = job.salaryMin || 0;
+          const jobMax = job.salaryMax || jobMin;
+          if (minSalary > 0 && jobMin > 0) {
+            if (jobMin >= minSalary) {
+              score += 10;
+            } else if (jobMax >= minSalary) {
+              score += 5;
+            }
+          }
+
+          // E. Senioridade
+          if (targetSeniority) {
+            if (jobTitleLower.includes(targetSeniority)) {
+              score += 8;
+            }
+          }
+
+          // F. Área de atuação (Industries)
+          industries.forEach((ind: string) => {
+            if (jobTitleLower.includes(ind.toLowerCase()) || jobDescLower.includes(ind.toLowerCase())) {
+              score += 5;
+            }
+          });
+
+          return { job, score };
+        });
+
+        // Ordenar do maior score para o menor
+        scoredResults.sort((a, b) => b.score - a.score);
+        searchResult.results = scoredResults.map(item => item.job);
       }
 
       return searchResult;

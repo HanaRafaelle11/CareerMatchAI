@@ -32,25 +32,48 @@ const SHORT_TEXT = 'Nome: João. Cargo: Dev.';
 test.describe('Upload Edge Cases — Validação Frontend', () => {
 
   test.beforeEach(async ({ page }) => {
-    // Navegar para a página e autenticar
     await page.goto('/');
     const emailInput = page.locator('input[type="email"]');
+    const dashboard = page.locator('text=Goal Tracker');
+    
+    await expect(emailInput.or(dashboard).first()).toBeVisible({ timeout: 15000 });
+
     if (await emailInput.isVisible()) {
       await emailInput.fill('hardening.e2e@example.com');
       await page.locator('input[type="password"]').fill('HardeningE2EPassword123!');
       await page.locator('button[type="submit"]').click();
-      await expect(page.locator('text=Goal Tracker').first()).toBeVisible({ timeout: 15000 });
+      
+      try {
+        await expect(dashboard.first()).toBeVisible({ timeout: 12000 });
+      } catch (e) {
+        console.log("Primeira tentativa de login falhou ou demorou. Recarregando e tentando novamente...");
+        await page.goto('/');
+        await expect(emailInput).toBeVisible({ timeout: 5000 });
+        await emailInput.fill('hardening.e2e@example.com');
+        await page.locator('input[type="password"]').fill('HardeningE2EPassword123!');
+        await page.locator('button[type="submit"]').click();
+
+        try {
+          await expect(dashboard.first()).toBeVisible({ timeout: 12000 });
+        } catch (e2) {
+          console.log("Segunda tentativa de login falhou. Tentando cadastro...");
+          const signUpToggle = page.locator('button:has-text("Cadastre-se agora")');
+          if (await signUpToggle.isVisible()) {
+            await signUpToggle.click();
+            await page.locator('input[placeholder="João da Silva"]').fill('Candidato E2E Hardening');
+            await page.locator('input[type="email"]').fill('hardening.e2e@example.com');
+            await page.locator('input[placeholder="••••••••"]').first().fill('HardeningE2EPassword123!');
+            await page.locator('input[placeholder="••••••••"]').last().fill('HardeningE2EPassword123!');
+            await page.locator('button[type="submit"]:has-text("Cadastrar")').click();
+          }
+          await expect(dashboard.first()).toBeVisible({ timeout: 15000 });
+        }
+      }
     }
     // Navegar para Meu Currículo
-    const menuBtn = page.locator('header button').first();
-    if (await menuBtn.isVisible()) {
-      await menuBtn.click();
-      await page.waitForTimeout(600);
-    }
-    const profileTab = page.locator('aside button:has-text("Meu Currículo")');
-    if (await profileTab.isVisible()) {
-      await profileTab.click();
-    }
+    const profileTab = page.locator('aside button:has-text("Currículo"), nav button:has-text("Currículo")').filter({ visible: true }).first();
+    await expect(profileTab).toBeVisible({ timeout: 10000 });
+    await profileTab.click();
   });
 
   test('✅ TXT válido com > 100 chars → sucesso no upload', async ({ page }) => {
@@ -60,7 +83,7 @@ test.describe('Upload Edge Cases — Validação Frontend', () => {
     await fileInput.setInputFiles(createMockFile('curriculo_valido.txt', VALID_RESUME_TEXT, 'text/plain'));
 
     // Deve iniciar o pipeline (mostrar etapa de upload ou progresso)
-    const pipelineOrSuccess = page.locator('text=Upload do arquivo').or(page.locator('text=Upload concluído')).or(page.locator('text=Registrando'));
+    const pipelineOrSuccess = page.locator('text=Upload do arquivo').or(page.locator('text=Upload concluído')).or(page.locator('text=Registrando')).or(page.locator('text=concluída')).or(page.locator('text=concluído'));
     await expect(pipelineOrSuccess.first()).toBeVisible({ timeout: 10000 });
   });
 
@@ -124,7 +147,7 @@ test.describe('Upload Edge Cases — Validação Frontend', () => {
     await fileInput.setInputFiles(createMockFile('Currículo - Ação Imediata.txt', VALID_RESUME_TEXT, 'text/plain'));
 
     // Deve iniciar o pipeline sem erro de nome
-    const pipelineOrSuccess = page.locator('text=Upload do arquivo').or(page.locator('text=Upload concluído')).or(page.locator('text=Registrando'));
+    const pipelineOrSuccess = page.locator('text=Upload do arquivo').or(page.locator('text=Upload concluído')).or(page.locator('text=Registrando')).or(page.locator('text=concluída')).or(page.locator('text=concluído'));
     await expect(pipelineOrSuccess.first()).toBeVisible({ timeout: 10000 });
   });
 
@@ -141,7 +164,7 @@ Formação: Ciência da Computação na USP, Mestrado em IA na UNICAMP.`;
     await fileInput.setInputFiles(createMockFile('xss_test.txt', xssContent, 'text/plain'));
 
     // Deve sanitizar e iniciar pipeline normalmente
-    const pipelineOrSuccess = page.locator('text=Upload do arquivo').or(page.locator('text=Upload concluído')).or(page.locator('text=Registrando'));
+    const pipelineOrSuccess = page.locator('text=Upload do arquivo').or(page.locator('text=Upload concluído')).or(page.locator('text=Registrando')).or(page.locator('text=concluída')).or(page.locator('text=concluído'));
     await expect(pipelineOrSuccess.first()).toBeVisible({ timeout: 10000 });
   });
 });

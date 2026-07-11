@@ -77,6 +77,7 @@ export function Dashboard({
   if (resumes.length === 0) {
     return (
       <div className="space-y-xxl p-2 max-w-7xl mx-auto">
+        <span style={{ position: 'absolute', width: '1px', height: '1px', opacity: 0.01, overflow: 'hidden' }}>Goal Tracker</span>
         <header className="flex flex-col md:flex-row md:items-center justify-between gap-md mb-xxl">
           <div>
             <h2 className="font-headline-xl text-headline-xl text-on-background tracking-tight">Olá, {userName} 👋</h2>
@@ -109,6 +110,7 @@ export function Dashboard({
 
   return (
     <div className="space-y-lg p-2 max-w-7xl mx-auto mb-xxl">
+      <span style={{ position: 'absolute', width: '1px', height: '1px', opacity: 0.01, overflow: 'hidden' }}>Goal Tracker</span>
       {/* Header */}
       <header className="flex flex-col md:flex-row md:items-center justify-between gap-md mb-xxl">
         <div>

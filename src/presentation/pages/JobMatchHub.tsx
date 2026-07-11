@@ -392,7 +392,152 @@ export function JobMatchHub({
       setIsDeletingAnalyses(false);
     }
   };
-  
+
+  const handleDeleteSelectedAnalysis = async () => {
+    const currentResume = (activeResumeVersionId ? resumes.find(r => r.resumeVersionId === activeResumeVersionId) : null) || resumes.find(r => r.isPrimary) || resumes[0];
+    if (!userId || !currentResume || !selectedJob) return;
+
+    const confirm = window.confirm(`Deseja realmente apagar a análise de compatibilidade e otimizações criadas especificamente para a vaga "${selectedJob.title}" em "${selectedJob.companyName}"? O currículo físico e a vaga permanecerão intactos.`);
+    if (!confirm) return;
+
+    try {
+      setIsDeletingAnalyses(true);
+      
+      if (isSupabaseConfigured && supabase) {
+        // 1. Apagar matches associados para esta vaga
+        const { error: matchesErr } = await supabase
+          .from('matches')
+          .delete()
+          .eq('resume_id', currentResume.id)
+          .eq('job_id', selectedJob.id);
+        if (matchesErr) throw matchesErr;
+
+        // 2. Apagar job_matches associados para esta vaga
+        if (currentResume.resumeVersionId) {
+          const { error: jmErr } = await supabase
+            .from('job_matches')
+            .delete()
+            .eq('resume_version_id', currentResume.resumeVersionId)
+            .eq('job_id', selectedJob.id);
+          if (jmErr) throw jmErr;
+        }
+
+        // 3. Apagar resume_optimizations associados para esta vaga
+        const { error: optErr } = await supabase
+          .from('resume_optimizations')
+          .delete()
+          .eq('resume_id', currentResume.id)
+          .eq('job_id', selectedJob.id);
+        if (optErr) throw optErr;
+
+        // 4. Apagar cover_letters associadas para esta vaga/application
+        if (currentResume.resumeVersionId) {
+          const { data: apps } = await supabase
+            .from('applications')
+            .select('id')
+            .eq('resume_version_id', currentResume.resumeVersionId)
+            .eq('job_id', selectedJob.id);
+          
+          if (apps && apps.length > 0) {
+            const appIds = apps.map(a => a.id);
+            await supabase
+              .from('cover_letters')
+              .delete()
+              .in('application_id', appIds);
+          }
+        }
+
+        // 5. Apagar cache específico da IA
+        let resumeHash = '';
+        if (careerProfileNew) {
+          const textToHash = JSON.stringify(careerProfileNew);
+          const msgUint8 = new TextEncoder().encode(textToHash);
+          const hashBuffer = await crypto.subtle.digest("SHA-256", msgUint8);
+          const hashArray = Array.from(new Uint8Array(hashBuffer));
+          resumeHash = hashArray.map((b) => b.toString(16).padStart(2, "0")).join("");
+        } else if (careerProfile) {
+          const textToHash = JSON.stringify(careerProfile);
+          const msgUint8 = new TextEncoder().encode(textToHash);
+          const hashBuffer = await crypto.subtle.digest("SHA-256", msgUint8);
+          const hashArray = Array.from(new Uint8Array(hashBuffer));
+          resumeHash = hashArray.map((b) => b.toString(16).padStart(2, "0")).join("");
+        }
+
+        let jobHash = '';
+        if (selectedJob) {
+          const textToHash = JSON.stringify(selectedJob);
+          const msgUint8 = new TextEncoder().encode(textToHash);
+          const hashBuffer = await crypto.subtle.digest("SHA-256", msgUint8);
+          const hashArray = Array.from(new Uint8Array(hashBuffer));
+          jobHash = hashArray.map((b) => b.toString(16).padStart(2, "0")).join("");
+        }
+
+        if (resumeHash && jobHash) {
+          await supabase
+            .from('ai_analysis_cache')
+            .delete()
+            .eq('resume_hash', resumeHash)
+            .eq('job_hash', jobHash);
+        }
+      } else {
+        // MODO LOCAL / MOCK
+        try {
+          const matchesRaw = localStorage.getItem('careermatch_matches');
+          if (matchesRaw) {
+            const list = JSON.parse(matchesRaw);
+            const filtered = list.filter((m: any) => !(m.jobId === selectedJob.id && (m.resumeId === currentResume.id || m.resume_id === currentResume.id)));
+            localStorage.setItem('careermatch_matches', JSON.stringify(filtered));
+          }
+        } catch (e) { console.error(e); }
+
+        try {
+          const optRaw = localStorage.getItem('careermatch_resume_optimizations');
+          if (optRaw) {
+            const list = JSON.parse(optRaw);
+            const filtered = list.filter((o: any) => !(o.jobId === selectedJob.id && (o.resumeId === currentResume.id || o.resume_id === currentResume.id)));
+            localStorage.setItem('careermatch_resume_optimizations', JSON.stringify(filtered));
+          }
+        } catch (e) { console.error(e); }
+
+        try {
+          const letterRaw = localStorage.getItem('careermatch_cover_letters_v2');
+          if (letterRaw) {
+            const list = JSON.parse(letterRaw);
+            const filtered = list.filter((l: any) => !(l.applicationId === mockAppId));
+            localStorage.setItem('careermatch_cover_letters_v2', JSON.stringify(filtered));
+          }
+        } catch (e) { console.error(e); }
+
+        try {
+          const prepRaw = localStorage.getItem('careermatch_interview_preparations');
+          if (prepRaw) {
+            const list = JSON.parse(prepRaw);
+            const filtered = list.filter((p: any) => !(p.jobId === selectedJob.id));
+            localStorage.setItem('careermatch_interview_preparations', JSON.stringify(filtered));
+          }
+        } catch (e) { console.error(e); }
+      }
+
+      // Invalida os caches do React Query
+      queryClient.invalidateQueries({ queryKey: ['matches', userId] });
+      queryClient.invalidateQueries({ queryKey: ['match-details'] });
+      queryClient.invalidateQueries({ queryKey: ['resume-optimization'] });
+      queryClient.invalidateQueries({ queryKey: ['cover-letter'] });
+      queryClient.invalidateQueries({ queryKey: ['interview-prep'] });
+
+      alert("Análise desta vaga excluída com sucesso! Você pode recalcular a compatibilidade quando desejar.");
+    } catch (err: any) {
+      console.error("Erro ao apagar análise selecionada:", err);
+      const formatted = AppError.from(err);
+      setAppError(formatted);
+      if (isSupabaseConfigured && supabase) {
+        AppError.logError(err, supabase, 'JobMatchHub.handleDeleteSelectedAnalysis', userId);
+      }
+    } finally {
+      setIsDeletingAnalyses(false);
+    }
+  };
+
   const { 
     getResumeOptimizationQuery, 
     generateResumeOptimization,
@@ -460,11 +605,12 @@ export function JobMatchHub({
   const [errorMsg, setErrorMsg] = useState('');
 
   // States para a descoberta de vagas baseada no Career Profile ou fallback
-  const initialKeyword = sessionStorage.getItem('job_search_keyword') || careerProfile?.searchKeywords?.[0] || primaryResume?.skills?.[0]?.name || 'React';
-  const initialLocation = sessionStorage.getItem('job_search_location') || careerProfile?.preferredLocations?.[0] || 'Brasil';
+  const pref = (careerProfileNew?.personal as any)?.preferences || {};
+  const initialKeyword = sessionStorage.getItem('job_search_keyword') || pref.searchKeywords?.[0] || pref.targetRoles?.[0] || careerProfile?.searchKeywords?.[0] || primaryResume?.skills?.[0]?.name || 'React';
+  const initialLocation = sessionStorage.getItem('job_search_location') || pref.preferredLocations?.[0] || careerProfile?.preferredLocations?.[0] || 'Brasil';
   
   const storedRemote = sessionStorage.getItem('job_search_remote');
-  const initialRemote = storedRemote !== null ? storedRemote === 'true' : (careerProfile ? careerProfile.preferredWorkModes.includes('remote') : true);
+  const initialRemote = storedRemote !== null ? storedRemote === 'true' : (pref.preferredWorkModes ? pref.preferredWorkModes.includes('remote') : (careerProfile ? careerProfile.preferredWorkModes.includes('remote') : true));
 
   const initialInputKeyword = sessionStorage.getItem('job_search_input_keyword') || initialKeyword;
   const initialInputLocation = sessionStorage.getItem('job_search_input_location') || initialLocation;
@@ -508,13 +654,15 @@ export function JobMatchHub({
   // Gatilho de redirecionamento automático do Dashboard
   useEffect(() => {
     const trigger = localStorage.getItem('careermatch_trigger_discovery');
-    if (trigger === 'true' && careerProfile) {
+    const activeProf = careerProfileNew || careerProfile;
+    if (trigger === 'true' && activeProf) {
       localStorage.removeItem('careermatch_trigger_discovery');
       setSubTab('discover');
       
-      const keyword = careerProfile.searchKeywords[0] || 'React';
-      const loc = careerProfile.preferredLocations[0] || 'Brasil';
-      const isRemote = careerProfile.preferredWorkModes.includes('remote');
+      const preferences = (careerProfileNew?.personal as any)?.preferences || {};
+      const keyword = preferences.searchKeywords?.[0] || (careerProfile as any)?.searchKeywords?.[0] || 'React';
+      const loc = preferences.preferredLocations?.[0] || (careerProfile as any)?.preferredLocations?.[0] || 'Brasil';
+      const isRemote = preferences.preferredWorkModes ? preferences.preferredWorkModes.includes('remote') : ((careerProfile as any)?.preferredWorkModes?.includes('remote') ?? true);
       
       setSearchKeyword(keyword);
       setSearchLocation(loc);
@@ -526,7 +674,7 @@ export function JobMatchHub({
         remoteOnly: isRemote
       });
     }
-  }, [careerProfile]);
+  }, [careerProfile, careerProfileNew]);
 
   const { data: optimization = null, isLoading: isLoadingOpt } = getResumeOptimizationQuery(primaryResume || null, selectedJob || null);
   const { data: prep = null, isLoading: isLoadingPrep } = getInterviewPrepQuery(primaryResume || null, selectedJob || null);
@@ -1046,6 +1194,19 @@ export function JobMatchHub({
                             >
                               <Sparkles size={11} />
                               Melhorar meu currículo para essa vaga
+                            </button>
+
+                            <button
+                              onClick={handleDeleteSelectedAnalysis}
+                              disabled={isDeletingAnalyses}
+                              className="w-full py-2 rounded-xl bg-red-950/20 hover:bg-red-950/40 border border-red-900/30 text-red-400 text-[10px] font-bold tracking-wider uppercase transition font-display flex items-center justify-center gap-1 disabled:opacity-50"
+                            >
+                              {isDeletingAnalyses ? (
+                                <Loader2 size={11} className="animate-spin" />
+                              ) : (
+                                <Trash2 size={11} />
+                              )}
+                              Excluir esta análise
                             </button>
 
                             {selectedJob && (() => {

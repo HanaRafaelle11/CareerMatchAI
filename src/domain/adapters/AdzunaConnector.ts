@@ -71,11 +71,12 @@ export class AdzunaConnector extends BaseJobConnector {
           );
 
           let defaultReq = 'Geral';
-          if (/farmac|estet|saude|saúde|cosmet/i.test(title + ' ' + description)) {
+          const titleDesc = (title + ' ' + description).toLowerCase();
+          if (/\b(farmac|estet|saude|saúde|cosmet|medico|médica|psicol|hospitalar|clinica|clínica)\b/i.test(titleDesc)) {
             defaultReq = 'Saúde';
-          } else if (/venda|comercial|negoc/i.test(title + ' ' + description)) {
+          } else if (/\b(venda|sales|comercial|negoc|comercio|comércio|telemarketing|atendimento)\b/i.test(titleDesc)) {
             defaultReq = 'Vendas';
-          } else if (/react|ts|node|dev|engineer|tech/i.test(title + ' ' + description)) {
+          } else if (/\b(react|typescript|ts|node|nodejs|developer|desenvolvedor|programador|software|engineer|engenheiro|tech|ti|it|tecnologia|computa|sistemas|front|back|fullstack)\b/i.test(titleDesc)) {
             defaultReq = 'Tecnologia';
           }
 

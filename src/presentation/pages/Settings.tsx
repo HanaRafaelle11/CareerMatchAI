@@ -36,6 +36,7 @@ export function Settings({
   const [fullName, setFullName] = useState(profile?.fullName || '');
   const [headline, setHeadline] = useState(profile?.headline || '');
   const [avatarUrl, setAvatarUrl] = useState(profile?.avatarUrl || '');
+  const [skillsSummary, setSkillsSummary] = useState(profile?.skillsSummary || '');
   const [isSaving, setIsSaving] = useState(false);
   const [email, setEmail] = useState('');
 
@@ -44,6 +45,7 @@ export function Settings({
       setFullName(profile.fullName || '');
       setHeadline(profile.headline || '');
       setAvatarUrl(profile.avatarUrl || '');
+      setSkillsSummary(profile.skillsSummary || '');
     }
   }, [profile]);
 
@@ -136,6 +138,7 @@ export function Settings({
             full_name: fullName,
             headline: headline,
             avatar_url: avatarUrl,
+            skills_summary: skillsSummary,
             updated_at: new Date().toISOString()
           })
           .eq('id', profile.id);
@@ -147,6 +150,7 @@ export function Settings({
             .update({
               full_name: fullName,
               headline: headline,
+              skills_summary: skillsSummary,
               updated_at: new Date().toISOString()
             })
             .eq('id', profile.id);
@@ -180,7 +184,7 @@ export function Settings({
         queryClient.invalidateQueries({ queryKey: ['career-profile'] });
       } else {
         // Mock local save
-        const savedProfile = { ...profile, fullName, headline, avatarUrl };
+        const savedProfile = { ...profile, fullName, headline, avatarUrl, skillsSummary };
         localStorage.setItem('careermatch_profile', JSON.stringify(savedProfile));
 
         // Sincronizar todos os perfis de IA mockados
@@ -233,7 +237,7 @@ export function Settings({
       }
 
       if (onUpdateProfileState) {
-        onUpdateProfileState({ fullName, headline, avatarUrl });
+        onUpdateProfileState({ fullName, headline, avatarUrl, skillsSummary });
       }
       alert('Configurações de conta salvas com sucesso!');
     } catch (err: any) {
@@ -458,6 +462,17 @@ export function Settings({
                     onChange={e => setHeadline(e.target.value)}
                     className="w-full px-4 py-2.5 rounded-xl bg-slate-900/50 border border-slate-850 focus:border-brand-500 outline-none text-xs text-slate-200"
                     placeholder="Ex: Farmacêutica Esteta, Senior Frontend Developer"
+                  />
+                </div>
+
+                <div className="space-y-1">
+                  <label className="text-xs text-slate-400 font-semibold block">Sobre / Resumo Profissional (About)</label>
+                  <textarea
+                    value={skillsSummary}
+                    onChange={e => setSkillsSummary(e.target.value)}
+                    rows={4}
+                    className="w-full px-4 py-2.5 rounded-xl bg-slate-900/50 border border-slate-850 focus:border-brand-500 outline-none text-xs text-slate-200 resize-y"
+                    placeholder="Conte sobre sua jornada profissional, conquistas e objetivos..."
                   />
                 </div>
 

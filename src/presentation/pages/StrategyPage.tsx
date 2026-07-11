@@ -20,6 +20,7 @@ interface StrategyPageProps {
   careerProfileNew: CareerProfileNew | null;
   resumes: Resume[];
   jobs: Job[];
+  onDeleteJob?: (jobId: string) => Promise<any>;
   applications: Application[];
   onCreateApplication: (data: Omit<Application, 'id' | 'userId' | 'createdAt' | 'updatedAt'>) => Promise<any>;
   onUpdateApplication: (data: Application) => Promise<any>;
@@ -47,6 +48,7 @@ export function StrategyPage({
   careerProfileNew,
   resumes,
   jobs,
+  onDeleteJob,
   applications,
   onCreateApplication,
   onUpdateApplication,
@@ -788,6 +790,19 @@ export function StrategyPage({
                         🎤 Simular
                       </button>
                     )}
+                    <button
+                      onClick={async () => {
+                        if (window.confirm(`Deseja realmente excluir a vaga "${rec.job.title}" de sua estratégia?`)) {
+                          if (onDeleteJob) {
+                            await onDeleteJob((rec.job as any).id);
+                          }
+                        }
+                      }}
+                      className="p-1.5 rounded-xl bg-red-950/20 hover:bg-red-950/40 border border-red-900/30 text-red-400 flex items-center justify-center transition"
+                      title="Excluir Vaga"
+                    >
+                      <Trash2 size={13} />
+                    </button>
                   </div>
                 </CardGlass>
               ))}
@@ -838,6 +853,19 @@ export function StrategyPage({
                         🎤 Simular
                       </button>
                     )}
+                    <button
+                      onClick={async () => {
+                        if (window.confirm(`Deseja realmente excluir a vaga "${rec.job.title}" de sua estratégia?`)) {
+                          if (onDeleteJob) {
+                            await onDeleteJob((rec.job as any).id);
+                          }
+                        }
+                      }}
+                      className="p-1.5 rounded-xl bg-red-950/20 hover:bg-red-950/40 border border-red-900/30 text-red-400 flex items-center justify-center transition"
+                      title="Excluir Vaga"
+                    >
+                      <Trash2 size={13} />
+                    </button>
                   </div>
                 </CardGlass>
               ))}
@@ -860,7 +888,23 @@ export function StrategyPage({
                       <h4 className="font-bold text-slate-300 truncate">{rec.job.title}</h4>
                       <p className="text-[10px] text-slate-500 mt-0.5 truncate">{rec.job.companyName}</p>
                     </div>
-                    <span className="text-[10px] px-1.5 py-0.5 rounded bg-slate-900 text-slate-500 font-semibold">{rec.cpi}% CPI</span>
+                    <div className="flex items-center gap-2">
+                      <span className="text-[10px] px-1.5 py-0.5 rounded bg-slate-900 text-slate-500 font-semibold">{rec.cpi}% CPI</span>
+                      <button
+                        onClick={async (e) => {
+                          e.stopPropagation();
+                          if (window.confirm(`Deseja realmente excluir a vaga "${rec.job.title}" de sua estratégia?`)) {
+                            if (onDeleteJob) {
+                              await onDeleteJob((rec.job as any).id);
+                            }
+                          }
+                        }}
+                        className="p-1 rounded bg-red-950/20 hover:bg-red-950/40 border border-red-900/30 text-red-400 hover:text-red-300 transition"
+                        title="Excluir Vaga"
+                      >
+                        <Trash2 size={11} />
+                      </button>
+                    </div>
                   </div>
                 ))}
               </div>

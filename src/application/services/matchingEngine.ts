@@ -461,16 +461,58 @@ export class MatchingEngine {
       }
     }
 
-    // 6. Score Geral
+    // Match de Cargo e Área Semântica (Novidade para evitar falsos positivos crassos como CS Leader -> Gari)
+    const titleLower = job.title.toLowerCase();
+    const targetRoles: string[] = (consolidatedProfile?.personal as any)?.preferences?.targetRoles || [];
+    const normalizedTargetRoles = targetRoles.map((r: string) => r.toLowerCase());
+    
+    let hasRoleMatch = false;
+    if (normalizedTargetRoles.length > 0) {
+      hasRoleMatch = normalizedTargetRoles.some((role: string) => {
+        const roleWords = role.split(/\s+/).filter((w: string) => w.length > 3);
+        return roleWords.some((w: string) => titleLower.includes(w)) || titleLower.includes(role);
+      });
+    } else {
+      const headline = (consolidatedProfile?.personal?.headline) || '';
+      if (headline) {
+        const headlineLower = headline.toLowerCase();
+        const hlWords = headlineLower.split(/\s+/).filter((w: string) => w.length > 3);
+        hasRoleMatch = hlWords.some((w: string) => titleLower.includes(w)) || titleLower.includes(headlineLower);
+      } else {
+        hasRoleMatch = true;
+      }
+    }
+
+    const isManualJob = /gari|coletor|limpeza|auxiliar de servicos gerais|serviços gerais|porteiro|copa|cozinha/i.test(titleLower);
+    const isOfficeCandidate = flatSkills.some((s: string) => 
+      /react|typescript|node|customer success|cs|salesforce|gerência|gerente|diretor|lead|liderança|marketing|agile/i.test(s)
+    ) || normalizedTargetRoles.some((r: string) => /success|cs|dev|manager|eng|soft|lider|analista/i.test(r));
+
+    let scoreRoleCompatibility = 100;
+    if (isManualJob && isOfficeCandidate) {
+      scoreRoleCompatibility = 5; 
+    } else if (!hasRoleMatch && targetRoles.length > 0) {
+      scoreRoleCompatibility = 30;
+    }
+
+    // 6. Score Geral ajustado com compatibilidade de cargo
     let scoreOverall = Math.round(
-      (scoreTechnical * 0.45) +
-      (scoreBehavioral * 0.20) +
-      (scoreSeniority * 0.20) +
+      (scoreTechnical * 0.35) +
+      (scoreBehavioral * 0.15) +
+      (scoreSeniority * 0.15) +
       (scoreLocation * 0.10) +
-      (scoreSalary * 0.05)
+      (scoreSalary * 0.05) +
+      (scoreRoleCompatibility * 0.20)
     );
 
-    if (scoreTechnical === 0) {
+    const containsOnlyGenericReqs = job.requirements.length === 1 && 
+      ['tecnologia', 'saúde', 'saude', 'vendas', 'geral'].includes(job.requirements[0].toLowerCase());
+
+    if (scoreRoleCompatibility <= 30) {
+      scoreOverall = Math.min(scoreOverall, scoreRoleCompatibility + 15);
+    } else if (containsOnlyGenericReqs && !hasRoleMatch) {
+      scoreOverall = Math.min(scoreOverall, 25);
+    } else if (scoreTechnical === 0) {
       scoreOverall = Math.round(scoreOverall * 0.15);
     } else if (scoreTechnical < 20) {
       scoreOverall = Math.round(scoreOverall * 0.40);

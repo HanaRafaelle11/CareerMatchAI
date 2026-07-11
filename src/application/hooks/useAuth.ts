@@ -79,6 +79,7 @@ export function useAuth() {
           fullName: data.full_name,
           headline: data.headline || undefined,
           avatarUrl: data.avatar_url || undefined,
+          skillsSummary: data.skills_summary || undefined,
           createdAt: data.created_at,
           updatedAt: data.updated_at,
         });

@@ -349,6 +349,12 @@ class LocalDatabase {
     return job;
   }
 
+  deleteJob(id: string): void {
+    const jobs = JSON.parse(localStorage.getItem(KEYS.JOBS) || '[]');
+    const filtered = jobs.filter((j: any) => j.id !== id);
+    localStorage.setItem(KEYS.JOBS, JSON.stringify(filtered));
+  }
+
   // Matches API
   getMatches(): Match[] {
     const all = JSON.parse(localStorage.getItem(KEYS.MATCHES) || '[]');

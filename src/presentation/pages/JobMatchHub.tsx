@@ -17,6 +17,7 @@ interface JobMatchHubProps {
   userId: string | undefined;
   resumes: Resume[];
   jobs: Job[];
+  onDeleteJob?: (jobId: string) => Promise<any>;
   matches: Match[];
   careerProfile: CareerProfile | null;
   careerProfileNew: CareerProfileNew | null;
@@ -38,6 +39,7 @@ export function JobMatchHub({
   userId,
   resumes,
   jobs,
+  onDeleteJob,
   matches,
   careerProfile,
   careerProfileNew,
@@ -108,10 +110,12 @@ export function JobMatchHub({
   const prevResumeIdRef = useRef<string | null>(null);
 
   useEffect(() => {
-    const currentResumeId = primaryResume?.id || null;
+    const currentResumeId = primaryResume?.resumeVersionId || primaryResume?.id || null;
     if (prevResumeIdRef.current !== null && prevResumeIdRef.current !== currentResumeId) {
       // O currículo mudou! Limpar contexto
-      setSelectedJobId(null);
+      if (propOnSelectJob) {
+        propOnSelectJob(null);
+      }
       
       // Limpar filtros/descoberta na sessionStorage
       sessionStorage.removeItem('job_search_keyword');
@@ -122,21 +126,27 @@ export function JobMatchHub({
       sessionStorage.removeItem('job_search_input_location');
       sessionStorage.removeItem('job_search_input_remote');
       
-      // Resetar states locais
-      setSearchKeyword('');
-      setSearchLocation('Brasil');
-      setSearchRemoteOnly(true);
+      // Obter preferências novas do perfil selecionado
+      const newPref = (careerProfileNew?.personal as any)?.preferences || {};
+      const newKeyword = newPref.searchKeywords?.[0] || newPref.targetRoles?.[0] || careerProfile?.searchKeywords?.[0] || primaryResume?.skills?.[0]?.name || 'React';
+      const newLocation = newPref.preferredLocations?.[0] || careerProfile?.preferredLocations?.[0] || 'Brasil';
+      const newRemote = true;
+
+      // Resetar para as preferências do novo perfil
+      setSearchKeyword(newKeyword);
+      setSearchLocation(newLocation);
+      setSearchRemoteOnly(newRemote);
       setSearchPage(1);
       setActiveFilters({
-        keyword: '',
-        location: 'Brasil',
-        remoteOnly: true
+        keyword: newKeyword,
+        location: newLocation,
+        remoteOnly: newRemote
       });
       setErrorMsg('');
       setAppError(null);
     }
     prevResumeIdRef.current = currentResumeId;
-  }, [primaryResume?.id]);
+  }, [primaryResume?.id, primaryResume?.resumeVersionId, careerProfileNew]);
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -481,11 +491,14 @@ export function JobMatchHub({
         }
       } else {
         // MODO LOCAL / MOCK
+        const mockApp = applications.find((a: any) => String(a.jobId) === String(selectedJob.id));
+        const mockAppId = mockApp?.id || 'mock-app-id';
+
         try {
           const matchesRaw = localStorage.getItem('careermatch_matches');
           if (matchesRaw) {
             const list = JSON.parse(matchesRaw);
-            const filtered = list.filter((m: any) => !(m.jobId === selectedJob.id && (m.resumeId === currentResume.id || m.resume_id === currentResume.id)));
+            const filtered = list.filter((m: any) => !(String(m.jobId) === String(selectedJob.id) && (String(m.resumeId || m.resume_id) === String(currentResume.id))));
             localStorage.setItem('careermatch_matches', JSON.stringify(filtered));
           }
         } catch (e) { console.error(e); }
@@ -494,7 +507,7 @@ export function JobMatchHub({
           const optRaw = localStorage.getItem('careermatch_resume_optimizations');
           if (optRaw) {
             const list = JSON.parse(optRaw);
-            const filtered = list.filter((o: any) => !(o.jobId === selectedJob.id && (o.resumeId === currentResume.id || o.resume_id === currentResume.id)));
+            const filtered = list.filter((o: any) => !(String(o.jobId) === String(selectedJob.id) && (String(o.resumeId || o.resume_id) === String(currentResume.id))));
             localStorage.setItem('careermatch_resume_optimizations', JSON.stringify(filtered));
           }
         } catch (e) { console.error(e); }
@@ -503,7 +516,7 @@ export function JobMatchHub({
           const letterRaw = localStorage.getItem('careermatch_cover_letters_v2');
           if (letterRaw) {
             const list = JSON.parse(letterRaw);
-            const filtered = list.filter((l: any) => !(l.applicationId === mockAppId));
+            const filtered = list.filter((l: any) => !(String(l.applicationId || l.application_id) === String(mockAppId)));
             localStorage.setItem('careermatch_cover_letters_v2', JSON.stringify(filtered));
           }
         } catch (e) { console.error(e); }
@@ -512,7 +525,7 @@ export function JobMatchHub({
           const prepRaw = localStorage.getItem('careermatch_interview_preparations');
           if (prepRaw) {
             const list = JSON.parse(prepRaw);
-            const filtered = list.filter((p: any) => !(p.jobId === selectedJob.id));
+            const filtered = list.filter((p: any) => !(String(p.jobId) === String(selectedJob.id)));
             localStorage.setItem('careermatch_interview_preparations', JSON.stringify(filtered));
           }
         } catch (e) { console.error(e); }
@@ -707,6 +720,8 @@ export function JobMatchHub({
       
       await onCreateApplication({
         jobId: selectedJob.id,
+        companyName: selectedJob.companyName || 'Empresa Confidencial',
+        jobTitle: selectedJob.title,
         status,
         notes: `Adicionado a partir do Match Manual (Score: ${matchScore}%)`,
         resumeVersionId: activeResumeVersionId || primaryResume?.resumeVersionId
@@ -769,11 +784,12 @@ export function JobMatchHub({
       );
       if (reqs.length === 0) {
         let defaultReq = 'Geral';
-        if (/farmac|estet|saude|saúde|cosmet/i.test(title + ' ' + description)) {
+        const titleDesc = (title + ' ' + description).toLowerCase();
+        if (/\b(farmac|estet|saude|saúde|cosmet|medico|médica|psicol|hospitalar|clinica|clínica)\b/i.test(titleDesc)) {
           defaultReq = 'Saúde';
-        } else if (/venda|comercial|negoc/i.test(title + ' ' + description)) {
+        } else if (/\b(venda|sales|comercial|negoc|comercio|comércio|telemarketing|atendimento)\b/i.test(titleDesc)) {
           defaultReq = 'Vendas';
-        } else if (/react|ts|node|dev|engineer|tech/i.test(title + ' ' + description)) {
+        } else if (/\b(react|typescript|ts|node|nodejs|developer|desenvolvedor|programador|software|engineer|engenheiro|tech|ti|it|tecnologia|computa|sistemas|front|back|fullstack)\b/i.test(titleDesc)) {
           defaultReq = 'Tecnologia';
         }
         reqs = [defaultReq];
@@ -1195,19 +1211,35 @@ export function JobMatchHub({
                               <Sparkles size={11} />
                               Melhorar meu currículo para essa vaga
                             </button>
+                             <div className="flex gap-2">
+                               <button
+                                 onClick={handleDeleteSelectedAnalysis}
+                                 disabled={isDeletingAnalyses}
+                                 className="flex-1 py-2 rounded-xl bg-red-950/20 hover:bg-red-950/40 border border-red-900/30 text-red-400 text-[10px] font-bold tracking-wider uppercase transition font-display flex items-center justify-center gap-1 disabled:opacity-50"
+                               >
+                                 {isDeletingAnalyses ? (
+                                   <Loader2 size={11} className="animate-spin" />
+                                 ) : (
+                                   <Trash2 size={11} />
+                                 )}
+                                 Excluir esta análise
+                               </button>
 
-                            <button
-                              onClick={handleDeleteSelectedAnalysis}
-                              disabled={isDeletingAnalyses}
-                              className="w-full py-2 rounded-xl bg-red-950/20 hover:bg-red-950/40 border border-red-900/30 text-red-400 text-[10px] font-bold tracking-wider uppercase transition font-display flex items-center justify-center gap-1 disabled:opacity-50"
-                            >
-                              {isDeletingAnalyses ? (
-                                <Loader2 size={11} className="animate-spin" />
-                              ) : (
-                                <Trash2 size={11} />
-                              )}
-                              Excluir esta análise
-                            </button>
+                               <button
+                                 onClick={async () => {
+                                   if (window.confirm(`Deseja realmente excluir a vaga "${selectedJob.title}"? Isso removerá a vaga e todo o histórico de análises permanentemente.`)) {
+                                     if (onDeleteJob) {
+                                       await onDeleteJob(selectedJob.id);
+                                       propOnSelectJob?.(null);
+                                     }
+                                   }
+                                 }}
+                                 className="flex-1 py-2 rounded-xl bg-red-600/10 hover:bg-red-600/20 border border-red-500/20 text-red-400 text-[10px] font-bold tracking-wider uppercase transition font-display flex items-center justify-center gap-1"
+                               >
+                                 <Trash2 size={11} />
+                                 Excluir esta vaga
+                               </button>
+                             </div>
 
                             {selectedJob && (() => {
                               const isAdded = applications.some((app: any) => app.jobId === selectedJob.id);

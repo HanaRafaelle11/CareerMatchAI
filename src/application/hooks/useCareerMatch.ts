@@ -608,11 +608,35 @@ export function useJobs(userId: string | undefined) {
     }
   });
 
+  const deleteJobMutation = useMutation({
+    mutationFn: async (jobId: string) => {
+      if (!userId) throw new Error('Usuário não autenticado.');
+
+      if (isSupabaseConfigured && supabase) {
+        const { error } = await supabase
+          .from('jobs')
+          .delete()
+          .eq('id', jobId)
+          .eq('user_id', userId);
+
+        if (error) throw error;
+      } else {
+        localDB.deleteJob(jobId);
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['jobs', userId] });
+      queryClient.invalidateQueries({ queryKey: ['matches', userId] });
+    }
+  });
+
   return {
     jobs: jobsQuery.data || [],
     isLoading: jobsQuery.isLoading,
     createJob: createJobMutation.mutateAsync,
-    isCreating: createJobMutation.isPending
+    isCreating: createJobMutation.isPending,
+    deleteJob: deleteJobMutation.mutateAsync,
+    isDeleting: deleteJobMutation.isPending
   };
 }
 

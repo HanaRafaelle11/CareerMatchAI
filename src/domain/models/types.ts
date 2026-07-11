@@ -3,6 +3,7 @@ export interface Profile {
   fullName: string;
   avatarUrl?: string;
   headline?: string;
+  skillsSummary?: string;
   createdAt: string;
   updatedAt: string;
 }

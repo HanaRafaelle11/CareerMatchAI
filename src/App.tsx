@@ -69,11 +69,11 @@ function App() {
         appId = target;
       } else {
         const job = target;
-        let app = applications.find(a => a.jobId === job.id);
+        let app = applications.find(a => String(a.jobId) === String(job.id));
         if (!app) {
           app = await createApplication({
             jobId: job.id,
-            companyName: job.companyName,
+            companyName: job.companyName || 'Empresa Confidencial',
             jobTitle: job.title,
             status: '📝 Vou me candidatar',
             resumeVersionId: selectedResumeVersionId || undefined
@@ -145,7 +145,7 @@ function App() {
   const selectedResume = resumes.find(r => r.resumeVersionId === selectedResumeVersionId) || resumes[0];
   const selectedResumeId = selectedResume?.id || null;
 
-  const { jobs, createJob, isCreating } = useJobs(profile?.id);
+  const { jobs, createJob, isCreating, deleteJob } = useJobs(profile?.id);
   const { matches, calculateMatch, isCalculating, getMatchDetails } = useMatches(profile?.id, selectedResumeId);
   const { careerProfile, updateCareerProfile, isUpdating: isSavingProfile } = useCareerProfile(profile?.id, selectedResumeVersionId);
 
@@ -375,6 +375,7 @@ function App() {
               careerProfileNew={careerProfileNew}
               resumes={resumes}
               jobs={jobs}
+              onDeleteJob={deleteJob}
               applications={applications}
               onCreateApplication={createApplication}
               onUpdateApplication={updateApplication}
@@ -403,6 +404,7 @@ function App() {
               userId={profile?.id}
               resumes={resumes}
               jobs={jobs}
+              onDeleteJob={deleteJob}
               matches={matches}
               careerProfile={careerProfile}
               careerProfileNew={careerProfileNew}

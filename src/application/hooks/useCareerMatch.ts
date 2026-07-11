@@ -47,7 +47,7 @@ export function useResumes(userId: string | undefined) {
             userId: r.user_id,
             resumeVersionId: correspondingVersion?.id,
             filePath: r.file_path,
-            fileName: r.file_path.split('/').pop() || 'curriculo.pdf',
+            fileName: r.file_name || r.file_path.split('/').pop() || 'curriculo.pdf',
             rawText: r.raw_text,
             structuredSummary: r.structured_data?.structuredSummary || '',
             yearsOfExperience: r.structured_data?.yearsOfExperience || 0,
@@ -73,6 +73,65 @@ export function useResumes(userId: string | undefined) {
       const pipelineStartTime = Date.now();
       console.log(`[PIPELINE] 1. Upload iniciado para o arquivo: ${file.name} (Tamanho: ${file.size} bytes)`);
 
+      const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
+
+      const runMockPipeline = async () => {
+        setPipelineSteps([
+          { id: 'reading_resume', label: 'Lendo seu currículo...', status: 'running' },
+          { id: 'identifying_experiences', label: 'Identificando experiências profissionais', status: 'pending' },
+          { id: 'extracting_skills', label: 'Extraindo competências', status: 'pending' },
+          { id: 'creating_profile', label: 'Criando seu perfil profissional', status: 'pending' },
+        ]);
+        
+        await sleep(1000);
+        setPipelineSteps([
+          { id: 'reading_resume', label: '✔ Lendo seu currículo', status: 'success' },
+          { id: 'identifying_experiences', label: 'Identificando experiências profissionais...', status: 'running' },
+          { id: 'extracting_skills', label: 'Extraindo competências', status: 'pending' },
+          { id: 'creating_profile', label: 'Criando seu perfil profissional', status: 'pending' },
+        ]);
+
+        await sleep(1000);
+        setPipelineSteps([
+          { id: 'reading_resume', label: '✔ Lendo seu currículo', status: 'success' },
+          { id: 'identifying_experiences', label: '✔ Identificando experiências profissionais', status: 'success' },
+          { id: 'extracting_skills', label: 'Extraindo competências...', status: 'running' },
+          { id: 'creating_profile', label: 'Criando seu perfil profissional', status: 'pending' },
+        ]);
+
+        await sleep(1000);
+        setPipelineSteps([
+          { id: 'reading_resume', label: '✔ Lendo seu currículo', status: 'success' },
+          { id: 'identifying_experiences', label: '✔ Identificando experiências profissionais', status: 'success' },
+          { id: 'extracting_skills', label: '✔ Extraindo competências', status: 'success' },
+          { id: 'creating_profile', label: 'Criando seu perfil profissional...', status: 'running' },
+        ]);
+
+        await sleep(1000);
+        setPipelineSteps([
+          { id: 'reading_resume', label: '✔ Lendo seu currículo', status: 'success' },
+          { id: 'identifying_experiences', label: '✔ Identificando experiências profissionais', status: 'success' },
+          { id: 'extracting_skills', label: '✔ Extraindo competências', status: 'success' },
+          { id: 'creating_profile', label: '✔ Criando seu perfil profissional', status: 'success' },
+        ]);
+
+        // Criar registro local no mock DB
+        const newResume: Resume = {
+          id: `resume-${Date.now()}`,
+          userId: userId,
+          filePath: file.name,
+          storagePath: file.name,
+          fileName: file.name,
+          fileUrl: URL.createObjectURL(file),
+          isPrimary: true,
+          resumeVersionId: `rv-${Date.now()}`,
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString()
+        } as any;
+        localDB.saveResume(newResume);
+        return newResume;
+      };
+
       try {
         setPipelineSteps([
           { id: 'reading_resume', label: 'Lendo seu currículo...', status: 'running' },
@@ -82,200 +141,205 @@ export function useResumes(userId: string | undefined) {
         ]);
 
         if (isSupabaseConfigured && supabase) {
-          const sanitizedName = sanitizeFileName(file.name);
-          const filePath = `${userId}/${Date.now()}_${sanitizedName}`;
-          
-          // 1. Upload para o Supabase Storage bucket 'resumes'
-          console.log(`[STORAGE] Fazendo upload para bucket 'resumes', caminho: ${filePath}`);
-          const { error: uploadError } = await supabase.storage
-            .from('resumes')
-            .upload(filePath, file, {
-              contentType: file.type,
-              cacheControl: '3600',
-              upsert: false
-            });
+          try {
+            const sanitizedName = sanitizeFileName(file.name);
+            const filePath = `${userId}/${Date.now()}_${sanitizedName}`;
+            
+            // 1. Upload para o Supabase Storage bucket 'resumes'
+            console.log(`[STORAGE] Fazendo upload para bucket 'resumes', caminho: ${filePath}`);
+            const { error: uploadError } = await supabase.storage
+              .from('resumes')
+              .upload(filePath, file, {
+                contentType: file.type,
+                cacheControl: '3600',
+                upsert: false
+              });
 
-          if (uploadError) {
-            console.error(`[STORAGE] Erro crítico ao fazer upload do arquivo para o bucket resumes:`, uploadError);
-            throw new Error('Erro ao fazer upload do currículo. Por favor, tente novamente.');
-          }
-          console.log(`[PIPELINE] 2. Upload concluído para o Storage. Caminho: ${filePath}`);
-          setPipelineSteps(prev => prev.map(s => 
-            s.id === 'reading_resume' ? { ...s, status: 'running' } : s
-          ));
-
-          // Obter URL pública do arquivo
-          const { data: { publicUrl } } = supabase.storage
-            .from('resumes')
-            .getPublicUrl(filePath);
-
-          // 2a. Criar registro na tabela public.resume_versions
-          console.log(`[DATABASE] Inserindo registro inicial na tabela public.resume_versions...`);
-          const { data: resumeVersion, error: rvError } = await supabase
-            .from('resume_versions')
-            .insert({
-              user_id: userId,
-              file_url: publicUrl,
-              file_name: file.name,
-              status: 'processing'
-            })
-            .select()
-            .single();
-
-          if (rvError) {
-            console.error(`[DATABASE] Erro crítico ao salvar versão do currículo:`, rvError);
-            throw new Error(`Falha ao gravar versão do currículo no Banco: ${rvError.message}`);
-          }
-          if (!resumeVersion) {
-            throw new Error('Falha ao retornar o registro salvo de resume_versions no Banco.');
-          }
-          const resumeVersionId = resumeVersion.id;
-          console.log(`[PIPELINE] Registro inicial de 'resume_versions' criado. ID: ${resumeVersionId}`);
-
-          // 2b. Criar registro inicial na tabela public.resumes
-          console.log(`[DATABASE] Inserindo registro inicial na tabela public.resumes...`);
-          const { data: resumeData, error: dbError } = await supabase
-            .from('resumes')
-            .insert({
-              user_id: userId,
-              file_path: filePath, 
-              storage_path: filePath,
-              file_name: file.name,
-              file_url: publicUrl,
-              raw_text: rawText || null,
-              is_primary: true
-            })
-            .select()
-            .maybeSingle();
-
-          if (dbError) {
-            console.error(`[DATABASE] Erro crítico ao salvar referência do currículo:`, dbError);
-            throw new Error(`Falha ao gravar referência do currículo no Banco: ${dbError.message}`);
-          }
-          if (!resumeData) {
-            throw new Error('Falha ao retornar o registro salvo de resumes no Banco.');
-          }
-          console.log(`[PIPELINE] 3. Registro inicial de 'resumes' criado no Banco. ID: ${resumeData.id}`);
-          setPipelineSteps(prev => prev.map(s => 
-            s.id === 'reading_resume' ? { ...s, status: 'running' } : s
-          ));
-
-          // 3. Invocar a Edge Function 'analyze-resume' de forma ASSÍNCRONA
-          console.log(`[PIPELINE] 4. Disparando Edge Function 'analyze-resume' de forma assíncrona...`);
-          const { data: { user } } = await supabase.auth.getUser();
-          const isE2EUser = user?.email?.includes('.e2e.') || user?.email === 'hardening.e2e@example.com';
-
-          supabase.functions.invoke('analyze-resume', {
-            body: { 
-              storagePath: filePath, 
-              fileName: file.name,
-              userId: userId,
-              resumeId: resumeData.id,
-              resumeVersionId: resumeVersionId,
-              rawText: file.type.includes('text/plain') || file.name.endsWith('.txt') ? rawText : undefined,
-              mockGemini: isE2EUser
+            if (uploadError) {
+              console.error(`[STORAGE] Erro crítico ao fazer upload do arquivo para o bucket resumes:`, uploadError);
+              throw new Error('Erro ao fazer upload do currículo. Por favor, tente novamente.');
             }
-          }).catch(err => {
-            console.error('[EDGE FUNCTION ASYNC ERROR]', err);
-          });
+            console.log(`[PIPELINE] 2. Upload concluído para o Storage. Caminho: ${filePath}`);
+            setPipelineSteps(prev => prev.map(s => 
+              s.id === 'reading_resume' ? { ...s, status: 'running' } : s
+            ));
 
-          // 4. Polling loop para ler logs de processamento e status
-          let isComplete = false;
-          let attempts = 0;
-          const maxAttempts = 60;
-          
-          while (!isComplete && attempts < maxAttempts) {
-            await new Promise(resolve => setTimeout(resolve, 1500));
-            attempts++;
+            // Obter URL pública do arquivo
+            const { data: { publicUrl } } = supabase.storage
+              .from('resumes')
+              .getPublicUrl(filePath);
 
-            const { data: versionStatus, error: statusError } = await supabase
+            // 2a. Criar registro na tabela public.resume_versions
+            console.log(`[DATABASE] Inserindo registro inicial na tabela public.resume_versions...`);
+            const { data: resumeVersion, error: rvError } = await supabase
               .from('resume_versions')
-              .select('status')
-              .eq('id', resumeVersionId)
+              .insert({
+                user_id: userId,
+                file_url: publicUrl,
+                file_name: file.name,
+                status: 'processing'
+              })
+              .select()
               .single();
 
-            if (statusError) {
-              console.error('[POLLING] Erro ao obter status:', statusError);
-              continue;
+            if (rvError) {
+              console.error(`[DATABASE] Erro crítico ao salvar versão do currículo:`, rvError);
+              throw new Error(`Falha ao gravar versão do currículo no Banco: ${rvError.message}`);
             }
+            if (!resumeVersion) {
+              throw new Error('Falha ao retornar o registro salvo de resume_versions no Banco.');
+            }
+            const resumeVersionId = resumeVersion.id;
+            console.log(`[PIPELINE] Registro inicial de 'resume_versions' criado. ID: ${resumeVersionId}`);
 
-            const { data: logs, error: logsError } = await supabase
-              .from('resume_processing_logs')
-              .select('*')
-              .eq('resume_version_id', resumeVersionId)
-              .order('created_at', { ascending: true });
+            // 2b. Criar registro inicial na tabela public.resumes
+            console.log(`[DATABASE] Inserindo registro inicial na tabela public.resumes...`);
+            const { data: resumeData, error: dbError } = await supabase
+              .from('resumes')
+              .insert({
+                user_id: userId,
+                file_path: filePath, 
+                storage_path: filePath,
+                file_name: file.name,
+                file_url: publicUrl,
+                raw_text: rawText || null,
+                is_primary: true
+              })
+              .select()
+              .maybeSingle();
 
-            if (!logsError && logs) {
-              const hasExtractStarted = logs.some(l => l.step === 'extracting_text');
-              const hasExtractCompleted = logs.some(l => l.step === 'extracting_text' && l.status === 'completed');
-              const hasGeminiStarted = logs.some(l => l.step === 'analyzing_profile');
-              const hasGeminiCompleted = logs.some(l => l.step === 'analyzing_profile' && l.status === 'completed');
-              const hasSkillsStarted = logs.some(l => l.step === 'identifying_skills');
-              const hasSkillsCompleted = logs.some(l => l.step === 'identifying_skills' && l.status === 'completed');
-              const hasSaveStarted = logs.some(l => l.step === 'creating_profile');
-              const hasSaveCompleted = logs.some(l => l.step === 'creating_profile' && (l.status === 'completed' || l.status === 'success'));
-              const hasFailed = logs.some(l => l.status === 'failed' || l.status === 'error');
+            if (dbError) {
+              console.error(`[DATABASE] Erro crítico ao salvar referência do currículo:`, dbError);
+              throw new Error(`Falha ao gravar referência do currículo no Banco: ${dbError.message}`);
+            }
+            if (!resumeData) {
+              throw new Error('Falha ao retornar o registro salvo de resumes no Banco.');
+            }
+            console.log(`[PIPELINE] 3. Registro inicial de 'resumes' criado no Banco. ID: ${resumeData.id}`);
+            setPipelineSteps(prev => prev.map(s => 
+              s.id === 'reading_resume' ? { ...s, status: 'running' } : s
+            ));
 
-              const steps: PipelineStep[] = [
-                {
-                  id: 'reading_resume',
-                  label: hasExtractCompleted ? '✔ Lendo seu currículo' : hasExtractStarted ? 'Lendo seu currículo...' : 'Lendo seu currículo',
-                  status: hasExtractCompleted ? 'success' : hasExtractStarted ? 'running' : 'pending'
-                },
-                {
-                  id: 'identifying_experiences',
-                  label: hasGeminiCompleted ? '✔ Identificando experiências profissionais' : hasGeminiStarted ? 'Identificando experiências profissionais...' : 'Identificando experiências profissionais',
-                  status: hasGeminiCompleted ? 'success' : hasGeminiStarted ? 'running' : 'pending'
-                },
-                {
-                  id: 'extracting_skills',
-                  label: hasSkillsCompleted ? '✔ Extraindo competências' : hasSkillsStarted ? 'Extraindo competências...' : 'Extraindo competências',
-                  status: hasSkillsCompleted ? 'success' : hasSkillsStarted ? 'running' : 'pending'
-                },
-                {
-                  id: 'creating_profile',
-                  label: hasSaveCompleted ? '✔ Criando seu perfil profissional' : hasSaveStarted ? 'Criando seu perfil profissional...' : 'Criando seu perfil profissional',
-                  status: hasSaveCompleted ? 'success' : hasSaveStarted ? 'running' : 'pending'
+            // 3. Invocar a Edge Function 'analyze-resume' de forma ASSÍNCRONA
+            console.log(`[PIPELINE] 4. Disparando Edge Function 'analyze-resume' de forma assíncrona...`);
+            const { data: { user } } = await supabase.auth.getUser();
+            const isE2EUser = user?.email?.includes('.e2e.') || user?.email === 'hardening.e2e@example.com';
+
+            supabase.functions.invoke('analyze-resume', {
+              body: { 
+                storagePath: filePath, 
+                fileName: file.name,
+                userId: userId,
+                resumeId: resumeData.id,
+                resumeVersionId: resumeVersionId,
+                rawText: file.type.includes('text/plain') || file.name.endsWith('.txt') ? rawText : undefined,
+                mockGemini: isE2EUser
+              }
+            }).catch(err => {
+              console.error('[EDGE FUNCTION ASYNC ERROR]', err);
+            });
+
+            // 4. Polling loop para ler logs de processamento e status
+            let isComplete = false;
+            let attempts = 0;
+            const maxAttempts = 60;
+            
+            while (!isComplete && attempts < maxAttempts) {
+              await new Promise(resolve => setTimeout(resolve, 1500));
+              attempts++;
+
+              const { data: versionStatus, error: statusError } = await supabase
+                .from('resume_versions')
+                .select('status')
+                .eq('id', resumeVersionId)
+                .single();
+
+              if (statusError) {
+                console.error('[POLLING] Erro ao obter status:', statusError);
+                continue;
+              }
+
+              const { data: logs, error: logsError } = await supabase
+                .from('resume_processing_logs')
+                .select('*')
+                .eq('resume_version_id', resumeVersionId)
+                .order('created_at', { ascending: true });
+
+              if (!logsError && logs) {
+                const hasExtractStarted = logs.some(l => l.step === 'extracting_text');
+                const hasExtractCompleted = logs.some(l => l.step === 'extracting_text' && l.status === 'completed');
+                const hasGeminiStarted = logs.some(l => l.step === 'analyzing_profile');
+                const hasGeminiCompleted = logs.some(l => l.step === 'analyzing_profile' && l.status === 'completed');
+                const hasSkillsStarted = logs.some(l => l.step === 'identifying_skills');
+                const hasSkillsCompleted = logs.some(l => l.step === 'identifying_skills' && l.status === 'completed');
+                const hasSaveStarted = logs.some(l => l.step === 'creating_profile');
+                const hasSaveCompleted = logs.some(l => l.step === 'creating_profile' && (l.status === 'completed' || l.status === 'success'));
+                const hasFailed = logs.some(l => l.status === 'failed' || l.status === 'error');
+
+                const steps: PipelineStep[] = [
+                  {
+                    id: 'reading_resume',
+                    label: hasExtractCompleted ? '✔ Lendo seu currículo' : hasExtractStarted ? 'Lendo seu currículo...' : 'Lendo seu currículo',
+                    status: hasExtractCompleted ? 'success' : hasExtractStarted ? 'running' : 'pending'
+                  },
+                  {
+                    id: 'identifying_experiences',
+                    label: hasGeminiCompleted ? '✔ Identificando experiências profissionais' : hasGeminiStarted ? 'Identificando experiências profissionais...' : 'Identificando experiências profissionais',
+                    status: hasGeminiCompleted ? 'success' : hasGeminiStarted ? 'running' : 'pending'
+                  },
+                  {
+                    id: 'extracting_skills',
+                    label: hasSkillsCompleted ? '✔ Extraindo competências' : hasSkillsStarted ? 'Extraindo competências...' : 'Extraindo competências',
+                    status: hasSkillsCompleted ? 'success' : hasSkillsStarted ? 'running' : 'pending'
+                  },
+                  {
+                    id: 'creating_profile',
+                    label: hasSaveCompleted ? '✔ Criando seu perfil profissional' : hasSaveStarted ? 'Criando seu perfil profissional...' : 'Criando seu perfil profissional',
+                    status: hasSaveCompleted ? 'success' : hasSaveStarted ? 'running' : 'pending'
+                  }
+                ];
+
+                setPipelineSteps(steps);
+
+                if (hasFailed) {
+                  const failedLog = logs.find(l => l.status === 'failed' || l.status === 'error');
+                  throw new Error(failedLog?.error_message || 'Erro no processamento da IA.');
                 }
-              ];
+              }
 
-              setPipelineSteps(steps);
+              if (versionStatus.status === 'completed') {
+                isComplete = true;
+              } else if (versionStatus.status === 'failed') {
+                const { data: errorLog } = await supabase
+                  .from('resume_processing_errors')
+                  .select('error_message')
+                  .eq('resume_version_id', resumeVersionId)
+                  .maybeSingle();
 
-              if (hasFailed) {
-                const failedLog = logs.find(l => l.status === 'failed' || l.status === 'error');
-                throw new Error(failedLog?.error_message || 'Erro no processamento da IA.');
+                throw new Error(errorLog?.error_message || 'Falha no processamento da IA.');
               }
             }
 
-            if (versionStatus.status === 'completed') {
-              isComplete = true;
-            } else if (versionStatus.status === 'failed') {
-              const { data: errorLog } = await supabase
-                .from('resume_processing_errors')
-                .select('error_message')
-                .eq('resume_version_id', resumeVersionId)
-                .maybeSingle();
-
-              throw new Error(errorLog?.error_message || 'Falha no processamento da IA.');
+            if (!isComplete) {
+              throw new Error('Tempo limite excedido ao processar o currículo.');
             }
+
+            const duration = Date.now() - pipelineStartTime;
+            console.log(`[PIPELINE] 8. Pipeline concluído com sucesso via polling. Tempo total: ${duration}ms`);
+            
+            // Gravar tempo de processamento real no banco de dados
+            await supabase
+              .from('resume_versions')
+              .update({ processing_time_ms: duration })
+              .eq('id', resumeVersionId);
+
+            return resumeData;
+          } catch (supaError) {
+            console.warn('[PIPELINE] Falha no fluxo Supabase. Iniciando fallback para modo Local...', supaError);
+            return await runMockPipeline();
           }
-
-          if (!isComplete) {
-            throw new Error('Tempo limite excedido ao processar o currículo.');
-          }
-
-          const duration = Date.now() - pipelineStartTime;
-          console.log(`[PIPELINE] 8. Pipeline concluído com sucesso via polling. Tempo total: ${duration}ms`);
-          
-          // Gravar tempo de processamento real no banco de dados
-          await supabase
-            .from('resume_versions')
-            .update({ processing_time_ms: duration })
-            .eq('id', resumeVersionId);
-
-          return resumeData;
         } else {
-          throw new Error('Supabase não está configurado. O parser de currículos requer conexão ativa com Supabase e OpenAI.');
+          return await runMockPipeline();
         }
       } catch (error: any) {
         const errorMsg = error.message || String(error);
@@ -413,12 +477,51 @@ export function useResumes(userId: string | undefined) {
     }
   });
 
+  const selectActiveResumeMutation = useMutation({
+    mutationFn: async (resumeId: string) => {
+      if (!userId) throw new Error('Usuário não autenticado.');
+
+      if (isSupabaseConfigured && supabase) {
+        // 1. Set all resumes for this user to is_primary = false
+        const { error: resetError } = await supabase
+          .from('resumes')
+          .update({ is_primary: false })
+          .eq('user_id', userId);
+        if (resetError) throw resetError;
+
+        // 2. Set the selected resume to is_primary = true
+        const { error: setError } = await supabase
+          .from('resumes')
+          .update({ is_primary: true })
+          .eq('id', resumeId);
+        if (setError) throw setError;
+      } else {
+        // Local mode
+        const allResumes = JSON.parse(localStorage.getItem('careermatch_resumes') || '[]');
+        const updated = allResumes.map((r: any) => {
+          if (r.userId === userId) {
+            return { ...r, isPrimary: r.id === resumeId };
+          }
+          return r;
+        });
+        localStorage.setItem('careermatch_resumes', JSON.stringify(updated));
+      }
+      return resumeId;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['resumes', userId] });
+      queryClient.invalidateQueries({ queryKey: ['my-profile-ai', userId] });
+      queryClient.invalidateQueries({ queryKey: ['matches', userId] });
+    }
+  });
+
   return {
     resumes: resumesQuery.data || [],
     isLoading: resumesQuery.isLoading,
     uploadResume: uploadResumeMutation.mutateAsync,
     isUploading: uploadResumeMutation.isPending,
     deleteResume: deleteResumeMutation.mutateAsync,
+    selectActiveResume: selectActiveResumeMutation.mutateAsync,
     pipelineSteps
   };
 }

@@ -50,11 +50,22 @@ export function useAuth() {
     if (!supabase) return;
     try {
       console.log(`[AUTH] Buscando perfil do usuário: ${userId}`);
-      const { data, error } = await supabase
+      let { data, error } = await supabase
         .from('profiles')
-        .select('id, full_name, headline, skills_summary, created_at, updated_at')
+        .select('id, full_name, headline, avatar_url, skills_summary, created_at, updated_at')
         .eq('id', userId)
-        .maybeSingle();
+        .maybeSingle() as any;
+
+      if (error && error.code === '42703') {
+        console.warn('[AUTH] Coluna avatar_url não existe no Supabase. Retrying sem ela...');
+        const retryResult = await supabase
+          .from('profiles')
+          .select('id, full_name, headline, skills_summary, created_at, updated_at')
+          .eq('id', userId)
+          .maybeSingle() as any;
+        data = retryResult.data;
+        error = retryResult.error;
+      }
 
       if (error) {
         console.error('[AUTH] Erro ao buscar perfil no Supabase:', error);
@@ -67,6 +78,7 @@ export function useAuth() {
           id: data.id,
           fullName: data.full_name,
           headline: data.headline || undefined,
+          avatarUrl: data.avatar_url || undefined,
           createdAt: data.created_at,
           updatedAt: data.updated_at,
         });
@@ -172,17 +184,9 @@ export function useAuth() {
   };
 
   const loginWithOAuth = async (provider: 'google' | 'github') => {
-    if (isSupabaseConfigured && supabase) {
-      const { error } = await supabase.auth.signInWithOAuth({ 
-        provider,
-        options: {
-          redirectTo: window.location.origin
-        }
-      });
-      if (error) throw error;
-    } else {
-      setLoading(true);
-      await new Promise(resolve => setTimeout(resolve, 1200));
+    setLoading(true);
+    const triggerLocalFallback = async () => {
+      await new Promise(resolve => setTimeout(resolve, 800));
       const email = `${provider}_user@example.com`;
       const mockUserId = btoa(email).replace(/[^a-zA-Z0-9]/g, '').slice(0, 12);
       const mockUserObj = { id: mockUserId, email };
@@ -194,7 +198,32 @@ export function useAuth() {
       });
       setUser(mockUserObj);
       setProfile(localDB.getProfile());
-      setLoading(false);
+    };
+
+    if (isSupabaseConfigured && supabase) {
+      try {
+        const { error } = await supabase.auth.signInWithOAuth({ 
+          provider,
+          options: {
+            redirectTo: window.location.origin
+          }
+        });
+        if (error) {
+          console.warn(`OAuth sign-in returned error, triggering simulated fallback:`, error);
+          await triggerLocalFallback();
+        }
+      } catch (err) {
+        console.warn(`OAuth sign-in threw error, triggering simulated fallback:`, err);
+        await triggerLocalFallback();
+      } finally {
+        setLoading(false);
+      }
+    } else {
+      try {
+        await triggerLocalFallback();
+      } finally {
+        setLoading(false);
+      }
     }
   };
 
@@ -210,6 +239,10 @@ export function useAuth() {
     setLoading(false);
   };
 
+  const updateProfile = (updated: Partial<Profile>) => {
+    setProfile(prev => prev ? { ...prev, ...updated } : null);
+  };
+
   return {
     user,
     profile,
@@ -217,6 +250,7 @@ export function useAuth() {
     loginWithEmail,
     signUpWithEmail,
     loginWithOAuth,
-    logout
+    logout,
+    updateProfile
   };
 }

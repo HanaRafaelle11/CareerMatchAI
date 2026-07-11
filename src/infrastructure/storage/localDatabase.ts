@@ -285,7 +285,9 @@ class LocalDatabase {
 
   // Resumes API
   getResumes(): Resume[] {
-    return JSON.parse(localStorage.getItem(KEYS.RESUMES) || '[]');
+    const all = JSON.parse(localStorage.getItem(KEYS.RESUMES) || '[]');
+    const activeUserId = this.getActiveUserId();
+    return all.filter((r: Resume) => r.userId === activeUserId);
   }
 
   getPrimaryResume(): Resume | undefined {
@@ -293,11 +295,15 @@ class LocalDatabase {
   }
 
   saveResume(resume: Resume): Resume {
-    const resumes = this.getResumes();
+    const resumes = JSON.parse(localStorage.getItem(KEYS.RESUMES) || '[]');
     if (resume.isPrimary) {
-      resumes.forEach(r => r.isPrimary = false);
+      resumes.forEach((r: any) => {
+        if (r.userId === resume.userId) {
+          r.isPrimary = false;
+        }
+      });
     }
-    const index = resumes.findIndex(r => r.id === resume.id);
+    const index = resumes.findIndex((r: any) => r.id === resume.id);
     if (index >= 0) {
       resumes[index] = resume;
     } else {
@@ -332,8 +338,8 @@ class LocalDatabase {
   }
 
   saveJob(job: Job): Job {
-    const jobs = this.getJobs();
-    const index = jobs.findIndex(j => j.id === job.id);
+    const jobs = JSON.parse(localStorage.getItem(KEYS.JOBS) || '[]');
+    const index = jobs.findIndex((j: any) => j.id === job.id);
     if (index >= 0) {
       jobs[index] = job;
     } else {
@@ -345,7 +351,9 @@ class LocalDatabase {
 
   // Matches API
   getMatches(): Match[] {
-    return JSON.parse(localStorage.getItem(KEYS.MATCHES) || '[]');
+    const all = JSON.parse(localStorage.getItem(KEYS.MATCHES) || '[]');
+    const activeUserId = this.getActiveUserId();
+    return all.filter((m: Match) => m.userId === activeUserId);
   }
 
   getMatch(id: string): Match | undefined {
@@ -357,8 +365,8 @@ class LocalDatabase {
   }
 
   saveMatch(match: Match): Match {
-    const matches = this.getMatches();
-    const index = matches.findIndex(m => m.id === match.id);
+    const matches = JSON.parse(localStorage.getItem(KEYS.MATCHES) || '[]');
+    const index = matches.findIndex((m: any) => m.id === match.id);
     if (index >= 0) {
       matches[index] = match;
     } else {
@@ -411,14 +419,19 @@ class LocalDatabase {
 
   saveLegacyInterviewPrep(prep: InterviewPrep): InterviewPrep {
     const preps = this.getInterviewPreps();
-    preps[prep.matchId] = prep;
-    localStorage.setItem(KEYS.PREPS, JSON.stringify(preps));
+    const key = prep.matchId || prep.jobId || prep.id;
+    if (key) {
+      preps[key] = prep;
+      localStorage.setItem(KEYS.PREPS, JSON.stringify(preps));
+    }
     return prep;
   }
 
   // Applications API
   getApplications(): Application[] {
-    return JSON.parse(localStorage.getItem(KEYS.APPLICATIONS) || '[]');
+    const all = JSON.parse(localStorage.getItem(KEYS.APPLICATIONS) || '[]');
+    const activeUserId = this.getActiveUserId();
+    return all.filter((a: Application) => a.userId === activeUserId);
   }
 
   getApplication(id: string): Application | undefined {
@@ -426,8 +439,8 @@ class LocalDatabase {
   }
 
   saveApplication(app: Application): Application {
-    const apps = this.getApplications();
-    const index = apps.findIndex(a => a.id === app.id);
+    const apps = JSON.parse(localStorage.getItem(KEYS.APPLICATIONS) || '[]');
+    const index = apps.findIndex((a: any) => a.id === app.id);
     if (index >= 0) {
       apps[index] = { ...app, updatedAt: new Date().toISOString() };
     } else {
@@ -507,6 +520,143 @@ class LocalDatabase {
     const all = JSON.parse(raw) as ApplicationStage[];
     const filtered = all.filter(s => s.id !== id);
     localStorage.setItem(KEYS.STAGES, JSON.stringify(filtered));
+  }
+
+  getMockMyProfileAi(userId: string, resumeVersionId?: string | null): any {
+    const key = `careermatch_my_profile_ai_${resumeVersionId || 'default'}`;
+    const raw = localStorage.getItem(key);
+    if (raw) {
+      try {
+        return JSON.parse(raw);
+      } catch (e) {
+        console.error(e);
+      }
+    }
+
+    const mockProfile = {
+      id: `cp-new-${resumeVersionId || 'default'}`,
+      userId: userId,
+      resumeVersionId: resumeVersionId || 'rv-default',
+      personal: {
+        fullName: 'Alexandre Silva',
+        headline: 'Software Engineer | React | TypeScript | Node.js',
+        email: 'alexandre.silva@exemplo.com',
+        phone: '+55 11 99999-9999',
+        linkedin: 'https://linkedin.com/in/alexandresilva',
+        website: 'https://alexandresilva.dev',
+        location: 'São Paulo, Brasil',
+        preferences: {
+          seniority: 'Pleno',
+          tools: ['React', 'TypeScript', 'Node.js', 'PostgreSQL'],
+          preferredWorkModes: ['remote', 'hybrid'],
+          preferredLocations: ['São Paulo', 'Remoto'],
+          targetCompanies: ['Stripe Brasil', 'Linear Technologies', 'Nubank'],
+          salaryExpectationMin: 12000,
+          targetRoles: ['Software Engineer Pleno', 'Frontend Engineer', 'Full Stack Developer']
+        }
+      },
+      summary: 'Desenvolvedor Full Stack com mais de 5 anos de experiência prática na criação de aplicações web escaláveis. Especialista em ecossistemas React, Node.js e computação em nuvem (AWS). Apaixonado por metodologias ágeis, Clean Code e otimização de performance.',
+      experience: [
+        {
+          companyName: 'TechFlow Solutions',
+          role: 'Software Engineer Pleno',
+          startDate: '2023-02-15',
+          endDate: null,
+          isCurrent: true,
+          description: 'Liderança no desenvolvimento de novos módulos de uma plataforma SaaS corporativa utilizando React, TypeScript e Next.js. Otimização do tempo de carregamento da aplicação em 35% por meio de code-splitting e lazy loading.',
+          highlights: [
+            'Otimizou performance em 35% com lazy loading.',
+            'Desenvolveu microserviços em Node.js altamente resilientes.'
+          ]
+        },
+        {
+          companyName: 'Codex Dev Studio',
+          role: 'Desenvolvedor Frontend Junior',
+          startDate: '2021-01-10',
+          endDate: '2023-02-01',
+          isCurrent: false,
+          description: 'Desenvolvimento de interfaces responsivas para clientes de e-commerce utilizando React, Tailwind CSS e Redux Toolkit.',
+          highlights: [
+            'Aumentou cobertura de testes unitários para 80%.',
+            'Refatorou 4 legados de sites complexos para React.'
+          ]
+        }
+      ],
+      education: [
+        {
+          institution: 'Universidade Federal de Santa Catarina',
+          degree: 'Bacharelado em Ciência da Computação',
+          fieldOfStudy: 'Ciência da Computação',
+          startDate: '2017-03-01',
+          endDate: '2021-12-15'
+        }
+      ],
+      skills: [
+        { name: 'React', proficiency: 'Avançado' },
+        { name: 'TypeScript', proficiency: 'Avançado' },
+        { name: 'Node.js', proficiency: 'Avançado' },
+        { name: 'Tailwind CSS', proficiency: 'Avançado' },
+        { name: 'AWS', proficiency: 'Intermediário' }
+      ],
+      soft_skills: ['Comunicação', 'Trabalho em Equipe', 'Resolução de Problemas', 'Liderança'],
+      languages: [
+        { language: 'Inglês', proficiency: 'Avançado' },
+        { language: 'Português', proficiency: 'Nativo' }
+      ],
+      certifications: ['AWS Certified Cloud Practitioner'],
+      ats_keywords: {
+        existing_keywords: ['React', 'TypeScript', 'Node.js', 'Next.js', 'Tailwind', 'SaaS'],
+        missing_keywords: ['Docker', 'GraphQL', 'CI/CD'],
+        recommended_keywords: ['Docker', 'GraphQL', 'Kubernetes', 'Microservices']
+      },
+      createdAt: new Date().toISOString()
+    };
+
+    const mockInsights = {
+      id: `ci-new-${resumeVersionId || 'default'}`,
+      userId: userId,
+      resumeVersionId: resumeVersionId || 'rv-default',
+      seniority_prediction: {
+        value: 'Pleno-Avançado / Software Engineer Pleno',
+        confidence: 0.92,
+        reason: 'O candidato possui 5 anos de experiência comprovada com tecnologias modernas (React/Node) e liderou otimizações importantes em projetos SaaS.',
+        source_type: 'inferred'
+      },
+      industry_prediction: {
+        value: 'Tecnologia / SaaS / Finanças',
+        confidence: 0.88,
+        reason: 'Grande parte do histórico profissional envolve desenvolvimento de sistemas SaaS complexos e plataformas digitais na Codex e TechFlow.',
+        source_type: 'inferred'
+      },
+      methodologies: [
+        { methodology_name: 'Scrum', confidence: 0.95, source_type: 'extracted' },
+        { methodology_name: 'Kanban', confidence: 0.90, source_type: 'extracted' },
+        { methodology_name: 'XP (Extreme Programming)', confidence: 0.75, source_type: 'inferred' }
+      ],
+      recommended_keywords: {
+        value: ['Kubernetes', 'CI/CD', 'Automated Testing', 'Docker', 'GraphQL'],
+        confidence: 0.85,
+        reason: 'Essas habilidades complementariam as stacks de React/Node em vagas altamente sênior.',
+        source_type: 'recommended'
+      },
+      missing_skills: {
+        value: ['Docker', 'GraphQL', 'CI/CD Pipelines'],
+        confidence: 0.90,
+        reason: 'Esses tópicos aparecem de forma recorrente como lacunas técnicas no perfil atual em comparação com vagas sênior consultadas.',
+        source_type: 'recommended'
+      },
+      confidence_scores: {
+        value: { technical: 90, behavioral: 92, overall: 91 },
+        confidence: 0.90,
+        reason: 'O currículo possui excelente estruturação de conquistas e dados numéricos comprováveis.',
+        source_type: 'inferred'
+      },
+      createdAt: new Date().toISOString()
+    };
+
+    const result = { profile: mockProfile, insights: mockInsights };
+    localStorage.setItem(key, JSON.stringify(result));
+    return result;
   }
 
   // Resume Optimizations API
@@ -617,12 +767,14 @@ class LocalDatabase {
 
   // Company Profiles API
   getCompanyProfiles(): CompanyProfile[] {
-    return JSON.parse(localStorage.getItem(KEYS.COMPANY_PROFILES) || '[]');
+    const all = JSON.parse(localStorage.getItem(KEYS.COMPANY_PROFILES) || '[]');
+    const activeUserId = this.getActiveUserId();
+    return all.filter((c: CompanyProfile) => c.userId === activeUserId);
   }
 
   saveCompanyProfile(profile: CompanyProfile): CompanyProfile {
-    const all = this.getCompanyProfiles();
-    const index = all.findIndex(c => c.id === profile.id || (c.companyName.toLowerCase() === profile.companyName.toLowerCase() && c.userId === profile.userId));
+    const all = JSON.parse(localStorage.getItem(KEYS.COMPANY_PROFILES) || '[]');
+    const index = all.findIndex((c: any) => c.id === profile.id || (c.companyName.toLowerCase() === profile.companyName.toLowerCase() && c.userId === profile.userId));
     if (index >= 0) {
       all[index] = { ...all[index], ...profile, updatedAt: new Date().toISOString() };
     } else {
@@ -633,24 +785,26 @@ class LocalDatabase {
   }
 
   deleteCompanyProfile(id: string): void {
-    const all = this.getCompanyProfiles();
-    const filtered = all.filter(c => c.id !== id);
+    const all = JSON.parse(localStorage.getItem(KEYS.COMPANY_PROFILES) || '[]');
+    const filtered = all.filter((c: any) => c.id !== id);
     localStorage.setItem(KEYS.COMPANY_PROFILES, JSON.stringify(filtered));
   }
 
   // Weekly Planner API
   getWeeklyPlanners(): WeeklyPlanner[] {
-    return JSON.parse(localStorage.getItem(KEYS.WEEKLY_PLANNERS) || '[]');
+    const all = JSON.parse(localStorage.getItem(KEYS.WEEKLY_PLANNERS) || '[]');
+    const activeUserId = this.getActiveUserId();
+    return all.filter((p: WeeklyPlanner) => p.userId === activeUserId);
   }
 
   getWeeklyPlanner(userId: string, weekNumber: number): WeeklyPlanner | null {
     const all = this.getWeeklyPlanners();
-    return all.find(p => p.userId === userId && p.weekNumber === weekNumber) || null;
+    return all.find((p: any) => p.userId === userId && p.weekNumber === weekNumber) || null;
   }
 
   saveWeeklyPlanner(planner: WeeklyPlanner): WeeklyPlanner {
-    const all = this.getWeeklyPlanners();
-    const index = all.findIndex(p => p.userId === planner.userId && p.weekNumber === planner.weekNumber);
+    const all = JSON.parse(localStorage.getItem(KEYS.WEEKLY_PLANNERS) || '[]');
+    const index = all.findIndex((p: any) => p.userId === planner.userId && p.weekNumber === planner.weekNumber);
     if (index >= 0) {
       all[index] = { ...planner, updatedAt: new Date().toISOString() };
     } else {
@@ -662,17 +816,19 @@ class LocalDatabase {
 
   // Weekly Goals API
   getWeeklyGoals(): WeeklyGoal[] {
-    return JSON.parse(localStorage.getItem(KEYS.WEEKLY_GOALS) || '[]');
+    const all = JSON.parse(localStorage.getItem(KEYS.WEEKLY_GOALS) || '[]');
+    const activeUserId = this.getActiveUserId();
+    return all.filter((g: WeeklyGoal) => g.userId === activeUserId);
   }
 
   getWeeklyGoal(userId: string, weekNumber: number): WeeklyGoal | null {
     const all = this.getWeeklyGoals();
-    return all.find(g => g.userId === userId && g.weekNumber === weekNumber) || null;
+    return all.find((g: any) => g.userId === userId && g.weekNumber === weekNumber) || null;
   }
 
   saveWeeklyGoal(goal: WeeklyGoal): WeeklyGoal {
-    const all = this.getWeeklyGoals();
-    const index = all.findIndex(g => g.userId === goal.userId && g.weekNumber === goal.weekNumber);
+    const all = JSON.parse(localStorage.getItem(KEYS.WEEKLY_GOALS) || '[]');
+    const index = all.findIndex((g: any) => g.userId === goal.userId && g.weekNumber === goal.weekNumber);
     if (index >= 0) {
       all[index] = { ...goal, updatedAt: new Date().toISOString() };
     } else {

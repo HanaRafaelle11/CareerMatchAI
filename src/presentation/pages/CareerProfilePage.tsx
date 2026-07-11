@@ -123,7 +123,7 @@ export function CareerProfilePage({
   };
 
   return (
-    <div className="space-y-8 animate-fade-in font-sans p-2">
+    <div className="space-y-8 animate-fade-in font-sans p-0">
       {/* Cabeçalho */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
@@ -209,7 +209,7 @@ export function CareerProfilePage({
                     <button
                       type="button"
                       onClick={() => addTag(newRole, setTargetRoles, () => setNewRole(''))}
-                      className="px-3 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-bold"
+                      className="px-3 rounded-xl bg-brand-600 hover:bg-brand-500 text-white text-xs font-bold transition-all"
                     >
                       <Plus size={14} />
                     </button>
@@ -254,7 +254,7 @@ export function CareerProfilePage({
                     <button
                       type="button"
                       onClick={() => addTag(newIndustry, setIndustries, () => setNewIndustry(''))}
-                      className="px-3 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-bold"
+                      className="px-3 rounded-xl bg-brand-600 hover:bg-brand-500 text-white text-xs font-bold transition-all"
                     >
                       <Plus size={14} />
                     </button>
@@ -317,7 +317,7 @@ export function CareerProfilePage({
                     <button
                       type="button"
                       onClick={() => addTag(newLocation, setPreferredLocations, () => setNewLocation(''))}
-                      className="px-3 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-bold"
+                      className="px-3 rounded-xl bg-brand-600 hover:bg-brand-500 text-white text-xs font-bold transition-all"
                     >
                       <Plus size={14} />
                     </button>
@@ -371,7 +371,7 @@ export function CareerProfilePage({
                     <button
                       type="button"
                       onClick={() => addTag(newSkill, setSkills, () => setNewSkill(''))}
-                      className="px-3 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-bold"
+                      className="px-3 rounded-xl bg-brand-600 hover:bg-brand-500 text-white text-xs font-bold transition-all"
                     >
                       <Plus size={14} />
                     </button>
@@ -403,7 +403,7 @@ export function CareerProfilePage({
                     <button
                       type="button"
                       onClick={() => addTag(newTool, setTools, () => setNewTool(''))}
-                      className="px-3 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-bold"
+                      className="px-3 rounded-xl bg-brand-600 hover:bg-brand-500 text-white text-xs font-bold transition-all"
                     >
                       <Plus size={14} />
                     </button>
@@ -435,7 +435,7 @@ export function CareerProfilePage({
                     <button
                       type="button"
                       onClick={() => addTag(newLang, setLanguages, () => setNewLang(''))}
-                      className="px-3 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-bold"
+                      className="px-3 rounded-xl bg-brand-600 hover:bg-brand-500 text-white text-xs font-bold transition-all"
                     >
                       <Plus size={14} />
                     </button>
@@ -473,7 +473,7 @@ export function CareerProfilePage({
                     <button
                       type="button"
                       onClick={() => addTag(newCompany, setTargetCompanies, () => setNewCompany(''))}
-                      className="px-3 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-bold"
+                      className="px-3 rounded-xl bg-brand-600 hover:bg-brand-500 text-white text-xs font-bold transition-all"
                     >
                       <Plus size={14} />
                     </button>
@@ -505,7 +505,7 @@ export function CareerProfilePage({
                     <button
                       type="button"
                       onClick={() => addTag(newKeyword, setSearchKeywords, () => setNewKeyword(''))}
-                      className="px-3 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-bold"
+                      className="px-3 rounded-xl bg-brand-600 hover:bg-brand-500 text-white text-xs font-bold transition-all"
                     >
                       <Plus size={14} />
                     </button>

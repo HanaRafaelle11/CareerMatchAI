@@ -28,6 +28,10 @@ interface JobMatchHubProps {
   activeResumeVersionId?: string | null;
   applications?: any[];
   onCreateApplication?: (data: any) => Promise<any>;
+  setActiveTab?: (tab: string) => void;
+  selectedJobId?: string | null;
+  onSelectJob?: (id: string | null) => void;
+  onStartSimulation?: (target: Job | string) => void;
 }
 
 export function JobMatchHub({
@@ -44,15 +48,22 @@ export function JobMatchHub({
   isCalculating,
   activeResumeVersionId,
   applications = [],
-  onCreateApplication
+  onCreateApplication,
+  setActiveTab,
+  selectedJobId: propSelectedJobId,
+  onSelectJob: propOnSelectJob,
+  onStartSimulation
 }: JobMatchHubProps) {
   const queryClient = useQueryClient();
-  const [subTab, setSubTab] = useState<'my-jobs' | 'discover'>('my-jobs');
+  const [subTab, setSubTab] = useState<'my-jobs' | 'discover'>('discover');
   const [coachTab, setCoachTab] = useState<'coach-evaluation' | 'optimize-cv' | 'cover-letter' | 'interview-questions'>('coach-evaluation');
   const [isDeletingAnalyses, setIsDeletingAnalyses] = useState(false);
   const [appError, setAppError] = useState<AppError | null>(null);
   const [isAddingToStrategy, setIsAddingToStrategy] = useState(false);
-  const [selectedJobId, setSelectedJobId] = useState<string | null>(jobs[0]?.id || null);
+  const [manualStrategyStatus, setManualStrategyStatus] = useState<string>('auto');
+  const [localSelectedJobId, setLocalSelectedJobId] = useState<string | null>(jobs[0]?.id || null);
+  const selectedJobId = propSelectedJobId !== undefined ? propSelectedJobId : localSelectedJobId;
+  const setSelectedJobId = propOnSelectJob !== undefined ? propOnSelectJob : setLocalSelectedJobId;
 
   const selectedJob = jobs.find(j => j.id === selectedJobId);
   const primaryResume = (activeResumeVersionId ? resumes.find(r => r.resumeVersionId === activeResumeVersionId) : null) || resumes.find(r => r.isPrimary) || resumes[0];
@@ -67,6 +78,12 @@ export function JobMatchHub({
 
   const [showDelayWarning, setShowDelayWarning] = useState(false);
   const matchTimerRef = useRef<any>(null);
+
+  useEffect(() => {
+    if (!selectedJobId && jobs.length > 0) {
+      setSelectedJobId(jobs[0].id);
+    }
+  }, [jobs, selectedJobId, setSelectedJobId]);
 
   useEffect(() => {
     if (isCalculating) {
@@ -244,7 +261,8 @@ export function JobMatchHub({
   }, [isCalculating, userId, selectedJobId]);
 
   const handleDeleteAnalyses = async () => {
-    if (!userId || !primaryResume || !isSupabaseConfigured || !supabase) return;
+    const currentResume = (activeResumeVersionId ? resumes.find(r => r.resumeVersionId === activeResumeVersionId) : null) || resumes.find(r => r.isPrimary) || resumes[0];
+    if (!userId || !currentResume) return;
     
     const confirm = window.confirm("Você irá remover todas as análises feitas pela IA deste currículo (compatibilidade, otimizações, STAR questions). O currículo físico continuará ativo. Deseja continuar?");
     if (!confirm) return;
@@ -252,63 +270,106 @@ export function JobMatchHub({
     try {
       setIsDeletingAnalyses(true);
       
-      // 1. Apagar matches associados
-      const { error: matchesErr } = await supabase
-        .from('matches')
-        .delete()
-        .eq('resume_id', primaryResume.id);
-      if (matchesErr) throw matchesErr;
-
-      // 2. Apagar job_matches associados
-      if (primaryResume.resumeVersionId) {
-        await supabase
-          .from('job_matches')
+      if (isSupabaseConfigured && supabase) {
+        // 1. Apagar matches associados
+        const { error: matchesErr } = await supabase
+          .from('matches')
           .delete()
-          .eq('resume_version_id', primaryResume.resumeVersionId);
-      }
+          .eq('resume_id', currentResume.id);
+        if (matchesErr) throw matchesErr;
 
-      // 3. Apagar resume_optimizations associados
-      await supabase
-        .from('resume_optimizations')
-        .delete()
-        .eq('resume_id', primaryResume.id);
-
-      // 4. Apagar cover_letters associadas
-      if (primaryResume.resumeVersionId) {
-        const { data: apps } = await supabase
-          .from('applications')
-          .select('id')
-          .eq('resume_version_id', primaryResume.resumeVersionId);
-        
-        if (apps && apps.length > 0) {
-          const appIds = apps.map(a => a.id);
+        // 2. Apagar job_matches associados
+        if (currentResume.resumeVersionId) {
           await supabase
-            .from('cover_letters')
+            .from('job_matches')
             .delete()
-            .in('application_id', appIds);
+            .eq('resume_version_id', currentResume.resumeVersionId);
         }
-      }
 
-      // 5. Apagar career_insights associados
-      if (primaryResume.resumeVersionId) {
+        // 3. Apagar resume_optimizations associados
         await supabase
-          .from('career_insights')
+          .from('resume_optimizations')
           .delete()
-          .eq('resume_version_id', primaryResume.resumeVersionId);
-      }
+          .eq('resume_id', currentResume.id);
 
-      // 6. Apagar ai_analysis_cache relacionado
-      if (careerProfile) {
-        const textToHash = JSON.stringify(careerProfile);
-        const msgUint8 = new TextEncoder().encode(textToHash);
-        const hashBuffer = await crypto.subtle.digest("SHA-256", msgUint8);
-        const hashArray = Array.from(new Uint8Array(hashBuffer));
-        const hashHex = hashArray.map((b) => b.toString(16).padStart(2, "0")).join("");
-        
-        await supabase
-          .from('ai_analysis_cache')
-          .delete()
-          .eq('resume_hash', hashHex);
+        // 4. Apagar cover_letters associadas
+        if (currentResume.resumeVersionId) {
+          const { data: apps } = await supabase
+            .from('applications')
+            .select('id')
+            .eq('resume_version_id', currentResume.resumeVersionId);
+          
+          if (apps && apps.length > 0) {
+            const appIds = apps.map(a => a.id);
+            await supabase
+              .from('cover_letters')
+              .delete()
+              .in('application_id', appIds);
+          }
+        }
+
+        // 5. Apagar career_insights associados
+        if (currentResume.resumeVersionId) {
+          await supabase
+            .from('career_insights')
+            .delete()
+            .eq('resume_version_id', currentResume.resumeVersionId);
+        }
+
+        // 6. Apagar ai_analysis_cache relacionado
+        if (careerProfile) {
+          const textToHash = JSON.stringify(careerProfile);
+          const msgUint8 = new TextEncoder().encode(textToHash);
+          const hashBuffer = await crypto.subtle.digest("SHA-256", msgUint8);
+          const hashArray = Array.from(new Uint8Array(hashBuffer));
+          const hashHex = hashArray.map((b) => b.toString(16).padStart(2, "0")).join("");
+          
+          await supabase
+            .from('ai_analysis_cache')
+            .delete()
+            .eq('resume_hash', hashHex);
+        }
+      } else {
+        // MODO LOCAL / MOCK
+        // 1. Apagar matches locais
+        try {
+          const matchesRaw = localStorage.getItem('careermatch_matches');
+          if (matchesRaw) {
+            const list = JSON.parse(matchesRaw);
+            const filtered = list.filter((m: any) => m.resumeId !== currentResume.id && m.resume_id !== currentResume.id);
+            localStorage.setItem('careermatch_matches', JSON.stringify(filtered));
+          }
+        } catch (e) { console.error(e); }
+
+        // 2. Apagar otimizações locais
+        try {
+          const optRaw = localStorage.getItem('careermatch_resume_optimizations');
+          if (optRaw) {
+            const list = JSON.parse(optRaw);
+            const filtered = list.filter((o: any) => o.resumeId !== currentResume.id && o.resume_id !== currentResume.id);
+            localStorage.setItem('careermatch_resume_optimizations', JSON.stringify(filtered));
+          }
+        } catch (e) { console.error(e); }
+
+        // 3. Apagar cover letters locais
+        try {
+          const letterRaw = localStorage.getItem('careermatch_cover_letters_v2');
+          if (letterRaw) {
+            const list = JSON.parse(letterRaw);
+            const filtered = list.filter((l: any) => l.resumeVersionId !== currentResume.resumeVersionId && l.resume_version_id !== currentResume.resumeVersionId);
+            localStorage.setItem('careermatch_cover_letters_v2', JSON.stringify(filtered));
+          }
+        } catch (e) { console.error(e); }
+
+        // 4. Apagar prep locais
+        try {
+          const prepRaw = localStorage.getItem('careermatch_interview_preparations');
+          if (prepRaw) {
+            const list = JSON.parse(prepRaw);
+            const filtered = list.filter((p: any) => p.resumeVersionId !== currentResume.resumeVersionId && p.resume_version_id !== currentResume.resumeVersionId);
+            localStorage.setItem('careermatch_interview_preparations', JSON.stringify(filtered));
+          }
+        } catch (e) { console.error(e); }
       }
 
       // Invalida todos os caches no frontend para refletir a remoção imediatamente de forma reativa
@@ -324,7 +385,9 @@ export function JobMatchHub({
       console.error("Erro ao apagar análises:", err);
       const formatted = AppError.from(err);
       setAppError(formatted);
-      AppError.logError(err, supabase, 'JobMatchHub.handleDeleteAnalyses', userId);
+      if (isSupabaseConfigured && supabase) {
+        AppError.logError(err, supabase, 'JobMatchHub.handleDeleteAnalyses', userId);
+      }
     } finally {
       setIsDeletingAnalyses(false);
     }
@@ -341,6 +404,52 @@ export function JobMatchHub({
     generateInterviewPrep,
     isGeneratingPrep
   } = useCoach(userId);
+
+  const handleGenerateOptimization = async () => {
+    if (!primaryResume || !selectedJob) return;
+    try {
+      await generateResumeOptimization({
+        resumeId: primaryResume.id,
+        resumeVersionId: primaryResume.resumeVersionId || primaryResume.id,
+        jobId: selectedJob.id
+      });
+      alert('Currículo otimizado com sucesso!');
+    } catch (err: any) {
+      console.error(err);
+      alert('Erro ao gerar otimização: ' + (err.message || err));
+    }
+  };
+
+  const handleGenerateCoverLetter = async () => {
+    if (!primaryResume || !selectedJob) return;
+    try {
+      await generateCoverLetter({
+        resumeId: primaryResume.id,
+        resumeVersionId: primaryResume.resumeVersionId || primaryResume.id,
+        jobId: selectedJob.id,
+        applicationId: mockAppId || `mock-app-${Date.now()}`
+      });
+      alert('Cartas de apresentação geradas com sucesso!');
+    } catch (err: any) {
+      console.error(err);
+      alert('Erro ao gerar cartas: ' + (err.message || err));
+    }
+  };
+
+  const handleGenerateInterviewPrep = async () => {
+    if (!primaryResume || !selectedJob) return;
+    try {
+      await generateInterviewPrep({
+        resumeId: primaryResume.id,
+        resumeVersionId: primaryResume.resumeVersionId || primaryResume.id,
+        jobId: selectedJob.id
+      });
+      alert('Roteiro STAR gerado com sucesso!');
+    } catch (err: any) {
+      console.error(err);
+      alert('Erro ao gerar roteiro STAR: ' + (err.message || err));
+    }
+  };
 
   const [showAddForm, setShowAddForm] = useState(false);
   
@@ -430,13 +539,35 @@ export function JobMatchHub({
     if (!selectedJob || !userId || !onCreateApplication) return;
     try {
       setIsAddingToStrategy(true);
+      
+      // Determine Kanban column based on match score or manual selection
+      const matchScore = currentMatch?.scoreOverall ?? 0;
+      let status = '📝 Candidatura planejada';
+      if (manualStrategyStatus !== 'auto') {
+        status = manualStrategyStatus;
+      } else {
+        if (matchScore >= 80) {
+          status = '🎯 Alta Prioridade';
+        } else if (matchScore >= 50) {
+          status = '📝 Candidatura planejada';
+        } else if (matchScore >= 20) {
+          status = '🔧 Ajustar antes';
+        } else {
+          status = '⚠️ Baixa aderência';
+        }
+      }
+      
       await onCreateApplication({
         jobId: selectedJob.id,
-        status: '📝 Candidatura planejada',
-        notes: 'Adicionado a partir do Match Manual',
+        status,
+        notes: `Adicionado a partir do Match Manual (Score: ${matchScore}%)`,
         resumeVersionId: activeResumeVersionId || primaryResume?.resumeVersionId
       });
-      alert('Vaga adicionada à sua estratégia com sucesso!');
+      
+      // Redirect to strategy tab
+      if (setActiveTab) {
+        setActiveTab('strategy');
+      }
     } catch (err: any) {
       console.error(err);
       alert('Erro ao adicionar vaga à estratégia.');
@@ -481,13 +612,23 @@ export function JobMatchHub({
         'React', 'TypeScript', 'Node.js', 'PostgreSQL', 'Docker', 'AWS', 
         'JavaScript', 'CSS', 'Figma', 'Git', 'Customer Success', 'Salesforce', 
         'SQL', 'SaaS', 'NPS', 'Churn', 'Onboarding', 'CSAT', 'Retention',
-        'Scrum', 'Agile', 'Kanban', 'Liderança', 'Gestão'
+        'Scrum', 'Agile', 'Kanban', 'Liderança', 'Gestão',
+        'Farmácia', 'Estética', 'Cosméticos', 'Saúde', 'Dermocosméticos',
+        'Vendas', 'Atendimento', 'Clínica', 'Biologia', 'Química', 'Marketing'
       ];
       reqs = possibleReqs.filter(req => 
         new RegExp(`\\b${req}\\b`, 'i').test(title + ' ' + description)
       );
       if (reqs.length === 0) {
-        reqs = ['Geral'];
+        let defaultReq = 'Geral';
+        if (/farmac|estet|saude|saúde|cosmet/i.test(title + ' ' + description)) {
+          defaultReq = 'Saúde';
+        } else if (/venda|comercial|negoc/i.test(title + ' ' + description)) {
+          defaultReq = 'Vendas';
+        } else if (/react|ts|node|dev|engineer|tech/i.test(title + ' ' + description)) {
+          defaultReq = 'Tecnologia';
+        }
+        reqs = [defaultReq];
       }
     }
 
@@ -497,11 +638,15 @@ export function JobMatchHub({
         description,
         requirements: reqs
       });
-      setTitle('');
-      setDescription('');
-      setRequirementsInput('');
-      setShowAddForm(false);
-      setSelectedJobId(newJob.id);
+      if (newJob && newJob.id) {
+        setSelectedJobId(newJob.id);
+        setTitle('');
+        setDescription('');
+        setRequirementsInput('');
+        setShowAddForm(false);
+      } else {
+        throw new Error('Não foi possível obter o ID da vaga criada.');
+      }
     } catch (err: any) {
       const formatted = AppError.from(err);
       setAppError(formatted);
@@ -520,11 +665,25 @@ export function JobMatchHub({
     setErrorMsg('');
     setAppError(null);
     try {
-      await onCalculateMatch({
+      const matchResult = await onCalculateMatch({
         resume: primaryResume,
         job: jobToMatch,
         consolidatedProfile: careerProfileNew  // injeta o perfil consolidado
       });
+
+      // Auto-add to "Alta Prioridade" column if score is above 80%
+      const score = matchResult?.score_overall ?? matchResult?.scoreOverall ?? 0;
+      if (score > 80 && onCreateApplication) {
+        const isAlreadyAdded = applications.some((app: any) => app.jobId === jobToMatch.id);
+        if (!isAlreadyAdded) {
+          await onCreateApplication({
+            jobId: jobToMatch.id,
+            status: '🎯 Alta Prioridade',
+            notes: `Adicionado automaticamente por atingir compatibilidade de ${score}% (> 80%).`,
+            resumeVersionId: activeResumeVersionId || primaryResume?.resumeVersionId
+          });
+        }
+      }
     } catch (err: any) {
       const formatted = AppError.from(err);
       setAppError(formatted);
@@ -534,6 +693,7 @@ export function JobMatchHub({
 
   const handleSearchDiscovery = (e: FormEvent) => {
     e.preventDefault();
+    setSearchPage(1);
     setActiveFilters({
       keyword: searchKeyword,
       location: searchLocation,
@@ -559,8 +719,22 @@ export function JobMatchHub({
     }
   };
 
+  const handleSimulateDiscovery = async (discJob: any) => {
+    try {
+      const imported = await importJob(discJob);
+      setSelectedJobId(imported.id);
+      setSubTab('my-jobs');
+      await handleTriggerMatch(imported as any);
+      if (onStartSimulation) {
+        onStartSimulation(imported as any);
+      }
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
   return (
-    <div className="space-y-8 animate-fade-in font-sans p-2">
+    <div className="space-y-8 animate-fade-in font-sans p-0">
       {/* Cabeçalho */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
@@ -600,17 +774,6 @@ export function JobMatchHub({
       {/* Sub Tabs switcher */}
       <div className="flex border-b border-slate-800 dark:border-slate-800 light:border-slate-200 gap-6">
         <button
-          onClick={() => setSubTab('my-jobs')}
-          className={`pb-3 font-semibold text-sm transition-all relative ${
-            subTab === 'my-jobs'
-              ? 'text-brand-500 font-bold'
-              : 'text-slate-400 hover:text-slate-200'
-          }`}
-        >
-          {subTab === 'my-jobs' && <span className="absolute bottom-0 left-0 w-full h-[2px] bg-brand-500" />}
-          Minhas Análises
-        </button>
-        <button
           onClick={() => setSubTab('discover')}
           className={`pb-3 font-semibold text-sm transition-all relative ${
             subTab === 'discover'
@@ -620,6 +783,17 @@ export function JobMatchHub({
         >
           {subTab === 'discover' && <span className="absolute bottom-0 left-0 w-full h-[2px] bg-brand-500" />}
           Descoberta de Vagas (Discovery)
+        </button>
+        <button
+          onClick={() => setSubTab('my-jobs')}
+          className={`pb-3 font-semibold text-sm transition-all relative ${
+            subTab === 'my-jobs'
+              ? 'text-brand-500 font-bold'
+              : 'text-slate-400 hover:text-slate-200'
+          }`}
+        >
+          {subTab === 'my-jobs' && <span className="absolute bottom-0 left-0 w-full h-[2px] bg-brand-500" />}
+          Minhas Análises
         </button>
       </div>
 
@@ -655,7 +829,7 @@ export function JobMatchHub({
       {/* Modal de colagem de vaga manual */}
       {showAddForm && (
         <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <CardGlass className="w-full max-w-lg space-y-6 relative border border-slate-800">
+          <CardGlass className="w-full max-w-lg min-w-[320px] sm:min-w-[400px] space-y-6 relative border border-slate-800">
             <button
               onClick={() => setShowAddForm(false)}
               className="absolute top-4 right-4 text-slate-500 hover:text-slate-300"
@@ -865,11 +1039,7 @@ export function JobMatchHub({
                                 setCoachTab('optimize-cv');
                                 document.getElementById('ai-career-coach-panel')?.scrollIntoView({ behavior: 'smooth' });
                                 if (!optimization && primaryResume && selectedJob) {
-                                  generateResumeOptimization({
-                                    resumeId: primaryResume.id,
-                                    resumeVersionId: primaryResume.resumeVersionId || primaryResume.id,
-                                    jobId: selectedJob.id
-                                  });
+                                  handleGenerateOptimization();
                                 }
                               }}
                               className="w-full py-2 rounded-xl bg-brand-500/10 hover:bg-brand-500/20 border border-brand-500/20 text-brand-400 text-[10px] font-bold tracking-wider uppercase transition font-display flex items-center justify-center gap-1"
@@ -880,28 +1050,54 @@ export function JobMatchHub({
 
                             {selectedJob && (() => {
                               const isAdded = applications.some((app: any) => app.jobId === selectedJob.id);
-                              if (isAdded) {
-                                return (
-                                  <div className="w-full py-2 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-[10px] font-bold tracking-wider uppercase flex items-center justify-center gap-1">
-                                    <CheckCircle size={11} />
-                                    Vaga em Acompanhamento na Estratégia
-                                  </div>
-                                );
-                              }
                               return (
-                                <button
-                                  type="button"
-                                  onClick={handleAddToStrategy}
-                                  disabled={isAddingToStrategy}
-                                  className="w-full py-2 rounded-xl bg-indigo-600/20 hover:bg-indigo-600/30 border border-indigo-500/30 text-indigo-400 text-[10px] font-bold tracking-wider uppercase transition font-display flex items-center justify-center gap-1 disabled:opacity-50"
-                                >
-                                  {isAddingToStrategy ? (
-                                    <Loader2 size={11} className="animate-spin" />
+                                <div className="space-y-2 text-left">
+                                  {isAdded ? (
+                                    <div className="w-full py-2 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-[10px] font-bold tracking-wider uppercase flex items-center justify-center gap-1">
+                                      <CheckCircle size={11} />
+                                      Vaga em Acompanhamento na Estratégia
+                                    </div>
                                   ) : (
-                                    <Plus size={11} />
+                                    <>
+                                      <div className="flex items-center justify-between gap-2 px-1">
+                                        <span className="text-[10px] text-slate-500 font-semibold">Coluna Kanban:</span>
+                                        <select
+                                          value={manualStrategyStatus}
+                                          onChange={(e) => setManualStrategyStatus(e.target.value)}
+                                          className="bg-slate-900/80 border border-slate-800 text-slate-300 text-[10px] rounded-lg px-2 py-0.5 outline-none focus:border-brand-500"
+                                        >
+                                          <option value="auto">Automático (Score)</option>
+                                          <option value="🎯 Alta Prioridade">🎯 Alta Prioridade</option>
+                                          <option value="📝 Candidatura planejada">📝 Candidatura planejada</option>
+                                          <option value="🔧 Ajustar antes">🔧 Ajustar antes</option>
+                                          <option value="⚠️ Baixa aderência">⚠️ Baixa aderência</option>
+                                        </select>
+                                      </div>
+                                      <button
+                                        type="button"
+                                        onClick={handleAddToStrategy}
+                                        disabled={isAddingToStrategy}
+                                        className="w-full py-2 rounded-xl bg-indigo-600/20 hover:bg-indigo-600/30 border border-indigo-500/30 text-indigo-400 text-[10px] font-bold tracking-wider uppercase transition font-display flex items-center justify-center gap-1 disabled:opacity-50"
+                                      >
+                                        {isAddingToStrategy ? (
+                                          <Loader2 size={11} className="animate-spin" />
+                                        ) : (
+                                          <Plus size={11} />
+                                        )}
+                                        Adicionar à Minha Estratégia
+                                      </button>
+                                    </>
                                   )}
-                                  Adicionar à Minha Estratégia
-                                </button>
+                                  {onStartSimulation && (
+                                    <button
+                                      type="button"
+                                      onClick={() => onStartSimulation(selectedJob)}
+                                      className="w-full py-2 rounded-xl bg-brand-500/10 hover:bg-brand-500/20 border border-brand-500/30 text-brand-400 text-[10px] font-bold tracking-wider uppercase transition font-display flex items-center justify-center gap-1"
+                                    >
+                                      🎤 Simular entrevista
+                                    </button>
+                                  )}
+                                </div>
                               );
                             })()}
                           </div>
@@ -1176,11 +1372,7 @@ export function JobMatchHub({
                         <div className="py-12 border border-dashed border-slate-800 rounded-xl flex flex-col items-center justify-center text-center p-6 space-y-4 animate-fade-in">
                           <span className="text-slate-400 text-xs">O seu currículo ainda não foi otimizado para esta vaga específica.</span>
                           <button
-                            onClick={() => generateResumeOptimization({
-                              resumeId: primaryResume!.id,
-                              resumeVersionId: primaryResume!.resumeVersionId || primaryResume!.id,
-                              jobId: selectedJob!.id
-                            })}
+                            onClick={handleGenerateOptimization}
                             disabled={isGeneratingOptimization}
                             className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-brand-600 hover:bg-brand-500 text-white text-xs font-bold transition-all disabled:opacity-50"
                           >
@@ -1268,12 +1460,7 @@ export function JobMatchHub({
                               <span className="text-slate-400 text-xs">Gere cartas de apresentação personalizadas com IA baseadas na vaga e empresa.</span>
                               <button
                                 type="button"
-                                onClick={() => generateCoverLetter({
-                                  resumeId: primaryResume!.id,
-                                  resumeVersionId: primaryResume!.resumeVersionId || primaryResume!.id,
-                                  jobId: selectedJob?.id,
-                                  applicationId: mockAppId || `mock-app-${Date.now()}`
-                                })}
+                                onClick={handleGenerateCoverLetter}
                                 disabled={isGeneratingLetter}
                                 className="px-4 py-2 bg-brand-600 hover:bg-brand-500 text-white font-bold rounded-xl transition-all shadow cursor-pointer text-xs"
                               >
@@ -1296,11 +1483,7 @@ export function JobMatchHub({
                         <div className="py-12 border border-dashed border-slate-800 rounded-xl flex flex-col items-center justify-center text-center p-6 space-y-4 animate-fade-in">
                           <span className="text-slate-400 text-xs">As perguntas preparatórias baseadas no método STAR ainda não foram criadas para esta vaga.</span>
                           <button
-                            onClick={() => generateInterviewPrep({
-                              resumeId: primaryResume!.id,
-                              resumeVersionId: primaryResume!.resumeVersionId || primaryResume!.id,
-                              jobId: selectedJob!.id
-                            })}
+                            onClick={handleGenerateInterviewPrep}
                             disabled={isGeneratingPrep}
                             className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-brand-600 hover:bg-brand-500 text-white text-xs font-bold transition-all disabled:opacity-50 cursor-pointer"
                           >
@@ -1607,14 +1790,26 @@ export function JobMatchHub({
                               </span>
                             )}
                             
-                            <button
-                              onClick={() => handleImportAndMatch(job)}
-                              disabled={isImporting}
-                              className="px-3 py-1.5 rounded-xl bg-brand-600 hover:bg-brand-500 text-white font-bold text-xs flex items-center gap-1.5 shadow shadow-brand-500/10 disabled:opacity-50"
-                            >
-                              Importar e Analisar Match
-                              <ChevronRight size={14} />
-                            </button>
+                            <div className="flex gap-2 flex-wrap">
+                              {onStartSimulation && (
+                                <button
+                                  onClick={() => handleSimulateDiscovery(job)}
+                                  disabled={isImporting}
+                                  className="px-3 py-1.5 rounded-xl bg-brand-500/10 border border-brand-500/30 hover:bg-brand-500/20 text-brand-400 font-bold text-xs flex items-center gap-1.5 shadow disabled:opacity-50"
+                                >
+                                  🎤 Simular Entrevista
+                                </button>
+                              )}
+
+                              <button
+                                onClick={() => handleImportAndMatch(job)}
+                                disabled={isImporting}
+                                className="px-3 py-1.5 rounded-xl bg-brand-600 hover:bg-brand-500 text-white font-bold text-xs flex items-center gap-1.5 shadow shadow-brand-500/10 disabled:opacity-50"
+                              >
+                                Importar e Analisar Match
+                                <ChevronRight size={14} />
+                              </button>
+                            </div>
                           </div>
                         </CardGlass>
                       ))}
@@ -1643,7 +1838,7 @@ export function JobMatchHub({
                              setSearchPage(p => p + 1);
                              window.scrollTo({ top: 0, behavior: 'smooth' });
                            }}
-                           disabled={isLoadingDiscovery || scoredDiscoveredJobs.length < 15 || searchPage >= Math.ceil(totalCount / 15)}
+                           disabled={isLoadingDiscovery || searchPage >= Math.ceil(totalCount / 15)}
                            className="px-4 py-2 rounded-xl bg-slate-900 border border-slate-800 hover:border-slate-700 text-slate-350 disabled:opacity-40 disabled:cursor-not-allowed text-xs font-semibold transition-all"
                          >
                            Próxima

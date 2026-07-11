@@ -462,13 +462,19 @@ export class MatchingEngine {
     }
 
     // 6. Score Geral
-    const scoreOverall = Math.round(
+    let scoreOverall = Math.round(
       (scoreTechnical * 0.45) +
       (scoreBehavioral * 0.20) +
       (scoreSeniority * 0.20) +
       (scoreLocation * 0.10) +
       (scoreSalary * 0.05)
     );
+
+    if (scoreTechnical === 0) {
+      scoreOverall = Math.round(scoreOverall * 0.15);
+    } else if (scoreTechnical < 20) {
+      scoreOverall = Math.round(scoreOverall * 0.40);
+    }
 
     const matchId = `match-dynamic-${job.id}`;
 
@@ -707,13 +713,19 @@ ${candidateName}`,
       }
     }
 
-    const scoreOverall = Math.round(
+    let scoreOverall = Math.round(
       (scoreTechnical * 0.45) +
       (scoreBehavioral * 0.20) +
       (scoreSeniority * 0.20) +
       (scoreLocation * 0.10) +
       (scoreSalary * 0.05)
     );
+
+    if (scoreTechnical === 0) {
+      scoreOverall = Math.round(scoreOverall * 0.15);
+    } else if (scoreTechnical < 20) {
+      scoreOverall = Math.round(scoreOverall * 0.40);
+    }
 
     return {
       scoreOverall,

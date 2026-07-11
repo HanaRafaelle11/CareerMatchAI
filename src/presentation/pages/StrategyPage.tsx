@@ -10,7 +10,7 @@ import type {
 import type { CareerProfileNew } from '../../application/hooks/useMyProfileAi';
 import { 
   Flame, Sparkles, AlertCircle, Clock, Plus, Trash2, 
-  Compass, CheckCircle2, ChevronRight, 
+  Compass, CheckCircle2, ChevronRight, ChevronLeft,
   X, Briefcase, Layout, AlertTriangle,
   Smile, Meh, Frown, CheckSquare, Square, Building2, BookOpen, Target, Loader2
 } from 'lucide-react';
@@ -39,6 +39,7 @@ interface StrategyPageProps {
   saveWeeklyGoal: (goal: WeeklyGoal) => Promise<any>;
   getPostLogQuery: (appId: string) => any;
   savePostLog: (log: any) => Promise<any>;
+  onStartSimulation?: (target: Job | string) => void;
 }
 
 export function StrategyPage({
@@ -63,7 +64,8 @@ export function StrategyPage({
   getWeeklyGoalQuery,
   saveWeeklyGoal,
   getPostLogQuery,
-  savePostLog
+  savePostLog,
+  onStartSimulation
 }: StrategyPageProps) {
   const [subTab, setSubTab] = useState<'strategy' | 'planner' | 'goals' | 'companies' | 'journal' | 'pipeline' | 'tracker'>('strategy');
   const primaryResume = resumes.find(r => r.isPrimary) || resumes[0];
@@ -80,6 +82,52 @@ export function StrategyPage({
 
   // Kanban Pipeline Map
   const pipelineColumns = ApplicationPipelineService.getColumnMap(applications);
+
+  const columnsOrder = [
+    'encontradas',
+    'aplicar_depois',
+    'cv_enviado',
+    'triagem',
+    'entrevista_rh',
+    'entrevista_tecnica',
+    'case_tecnico',
+    'oferta',
+    'contratado',
+    'recusado',
+    'arquivado'
+  ];
+
+  const handleMoveStage = async (app: Application, direction: 'prev' | 'next') => {
+    const currentColumnId = Object.keys(pipelineColumns).find(key => 
+      (pipelineColumns as any)[key].apps.some((a: any) => a.id === app.id)
+    );
+
+    if (!currentColumnId) return;
+
+    const currentIndex = columnsOrder.indexOf(currentColumnId);
+    let targetIndex = direction === 'next' ? currentIndex + 1 : currentIndex - 1;
+
+    if (targetIndex >= 0 && targetIndex < columnsOrder.length) {
+      const targetColumnId = columnsOrder[targetIndex];
+      const targetStatus = (pipelineColumns as any)[targetColumnId].defaultStatus;
+      await handleQuickStatusChange(app, targetStatus);
+    }
+  };
+
+  const handleApplyFromStrategy = async (job: Job) => {
+    const app = applications.find(a => a.jobId === job.id);
+    if (app) {
+      await handleQuickStatusChange(app, '📨 Me candidatei');
+    } else {
+      await onCreateApplication({
+        jobId: job.id,
+        companyName: job.companyName,
+        jobTitle: job.title,
+        status: '📨 Me candidatei',
+        resumeVersionId: primaryResume?.resumeVersionId || undefined
+      });
+    }
+  };
 
   // States for manual creation
   const [showAddForm, setShowAddForm] = useState(false);
@@ -373,7 +421,7 @@ export function StrategyPage({
   const funnel = CareerAnalyticsService.getFunnel(applications);
 
   return (
-    <div className="space-y-8 animate-fade-in font-sans p-2">
+    <div className="space-y-8 animate-fade-in font-sans p-0">
       {/* Cabeçalho */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
@@ -427,7 +475,7 @@ export function StrategyPage({
       {/* 1. Modal: Candidatura Manual */}
       {showAddForm && (
         <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <CardGlass className="w-full max-w-md space-y-6 relative border border-slate-800">
+          <CardGlass className="w-full max-w-md min-w-[320px] sm:min-w-[400px] space-y-6 relative border border-slate-800">
             <button onClick={() => setShowAddForm(false)} className="absolute top-4 right-4 text-slate-500 hover:text-slate-300">
               <X size={18} />
             </button>
@@ -511,7 +559,7 @@ export function StrategyPage({
       {/* 2. Modal: Rejeição */}
       {rejectingApp && (
         <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <CardGlass className="w-full max-w-sm space-y-6 relative border border-slate-800 text-center">
+          <CardGlass className="w-full max-w-sm min-w-[300px] sm:min-w-[360px] space-y-6 relative border border-slate-800 text-center">
             <div className="mx-auto w-12 h-12 rounded-full bg-red-500/10 text-red-400 flex items-center justify-center">
               <AlertTriangle size={24} />
             </div>
@@ -541,7 +589,7 @@ export function StrategyPage({
       {/* 3. Modal: Timeline stages */}
       {selectedAppId && selectedApp && (
         <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <CardGlass className="w-full max-w-xl space-y-6 relative border border-slate-800 flex flex-col md:flex-row gap-6 max-h-[85vh] overflow-y-auto">
+          <CardGlass className="w-full max-w-xl min-w-[320px] sm:min-w-[500px] space-y-6 relative border border-slate-800 flex flex-col md:flex-row gap-6 max-h-[85vh] overflow-y-auto">
             <button onClick={() => setSelectedAppId(null)} className="absolute top-4 right-4 text-slate-500 hover:text-slate-300">
               <X size={18} />
             </button>
@@ -726,11 +774,20 @@ export function StrategyPage({
 
                   <div className="flex gap-2 pt-2 border-t border-slate-900/50">
                     <button
-                      onClick={() => handleQuickStatusChange(rec.job as any, '📨 Me candidatei')}
+                      onClick={() => handleApplyFromStrategy(rec.job as Job)}
                       className="flex-1 py-1.5 rounded-xl bg-brand-600 hover:bg-brand-500 text-white font-bold text-xs"
                     >
                       Aplicar
                     </button>
+                    {onStartSimulation && (
+                      <button
+                        onClick={() => onStartSimulation(rec.job as Job)}
+                        className="py-1.5 px-3 rounded-xl bg-brand-500/10 hover:bg-brand-500/20 border border-brand-500/30 text-brand-400 font-bold text-xs flex items-center justify-center gap-1 transition"
+                        title="Simular Entrevista"
+                      >
+                        🎤 Simular
+                      </button>
+                    )}
                   </div>
                 </CardGlass>
               ))}
@@ -764,14 +821,23 @@ export function StrategyPage({
                     <p>💡 <strong>Dica da IA:</strong> Adicione termos ausentes: <strong className="text-slate-200">{rec.missingSkills.slice(0, 2).join(', ')}</strong>.</p>
                   </div>
 
-                  <div className="pt-2">
+                  <div className="pt-2 flex gap-2">
                     <button
                       onClick={() => setActiveTab('match')}
-                      className="w-full py-1.5 rounded-xl bg-slate-900 border border-slate-800 hover:border-slate-700 text-slate-200 font-bold text-xs flex items-center justify-center gap-1"
+                      className="flex-1 py-1.5 rounded-xl bg-slate-900 border border-slate-800 hover:border-slate-700 text-slate-200 font-bold text-xs flex items-center justify-center gap-1"
                     >
-                      Otimizar no Matcher
+                      Otimizar
                       <ChevronRight size={14} />
                     </button>
+                    {onStartSimulation && (
+                      <button
+                        onClick={() => onStartSimulation(rec.job as Job)}
+                        className="py-1.5 px-3 rounded-xl bg-brand-500/10 hover:bg-brand-500/20 border border-brand-500/30 text-brand-400 font-bold text-xs flex items-center justify-center gap-1 transition"
+                        title="Simular Entrevista"
+                      >
+                        🎤 Simular
+                      </button>
+                    )}
                   </div>
                 </CardGlass>
               ))}
@@ -991,7 +1057,7 @@ export function StrategyPage({
           {/* Form Modal for Company */}
           {showCompanyForm && (
             <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-              <CardGlass className="w-full max-w-md space-y-4 relative border border-slate-800 max-h-[85vh] overflow-y-auto">
+              <CardGlass className="w-full max-w-md min-w-[320px] sm:min-w-[400px] space-y-4 relative border border-slate-800 max-h-[85vh] overflow-y-auto">
                 <button onClick={() => setShowCompanyForm(false)} className="absolute top-4 right-4 text-slate-500 hover:text-slate-300">
                   <X size={18} />
                 </button>
@@ -1153,12 +1219,12 @@ export function StrategyPage({
                   <Trash2 size={13} />
                 </button>
                 <div className="space-y-2">
-                  <div className="flex justify-between items-start">
+                  <div className="flex justify-between items-start pr-6">
                     <div>
                       <h4 className="font-bold text-sm text-slate-100">{comp.companyName}</h4>
                       <span className="text-[10px] text-slate-400 block mt-0.5">{comp.industry || 'Tecnologia'} • {comp.size || 'Média'}</span>
                     </div>
-                    <span className="text-[10px] px-2 py-0.5 bg-brand-500/10 text-brand-400 font-extrabold border border-brand-500/20 rounded">
+                    <span className="text-[10px] px-2 py-0.5 bg-brand-500/10 text-brand-400 font-extrabold border border-brand-500/20 rounded shrink-0">
                       ★ {comp.glassdoorRating || '4.0'} Glassdoor
                     </span>
                   </div>
@@ -1222,8 +1288,8 @@ export function StrategyPage({
                 </select>
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-1.5">
+              <div className="flex flex-col sm:flex-row items-end gap-4">
+                <div className="space-y-1.5 flex-1 w-full text-left">
                   <label className="text-slate-400 font-semibold block">Como se sentiu?</label>
                   <div className="flex gap-2">
                     {[
@@ -1246,15 +1312,15 @@ export function StrategyPage({
                   </div>
                 </div>
 
-                <div className="space-y-1.5">
-                  <label className="text-slate-400 font-semibold">Score de Confiança (1-10)</label>
+                <div className="space-y-1.5 w-full sm:w-1/3 text-left">
+                  <label className="text-slate-400 font-semibold block">Score de Confiança (1-10)</label>
                   <input 
                     type="number" 
                     min="1" 
                     max="10" 
                     value={journalConfidence}
                     onChange={e => setJournalConfidence(parseInt(e.target.value) || 7)}
-                    className="w-full bg-slate-900 border border-slate-800 rounded-xl px-4 py-2 text-slate-200 font-semibold"
+                    className="w-full bg-slate-900 border border-slate-800 rounded-xl px-4 py-2.5 text-slate-200 font-semibold"
                   />
                 </div>
               </div>
@@ -1313,8 +1379,23 @@ export function StrategyPage({
                   Após 15 reflexões salvas, o coach identificará medos técnicos ocultos ou barreiras. Atualmente, com base nas notas:
                 </p>
                 <div className="p-3 rounded-xl bg-slate-950/40 border border-slate-900 text-[10px] text-slate-400 leading-relaxed space-y-1">
-                  <div>💡 <strong>Insegurança detectada:</strong> Você costuma perder confiança quando perguntado sobre frameworks operacionais pesados como **SQL** ou **Salesforce**.</div>
-                  <div className="mt-1">📚 <strong>Dica de Ação:</strong> Treine no módulo Coach com simulador voltado para perguntas de banco de dados e controle de pipeline de vendas.</div>
+                  {(() => {
+                    const isPharmacy = /farmac|estet|saude|saúde|cosmet/i.test(careerProfileNew?.personal?.headline || '');
+                    if (isPharmacy) {
+                      return (
+                        <>
+                          <div>💡 <strong>Insegurança detectada:</strong> Você costuma perder confiança quando perguntado sobre procedimentos clínicos complexos ou regulamentações da ANVISA.</div>
+                          <div className="mt-1">📚 <strong>Dica de Ação:</strong> Treine no módulo Coach com simulador voltado para perguntas de biossegurança, atendimento a pacientes e farmacologia clínica.</div>
+                        </>
+                      );
+                    }
+                    return (
+                      <>
+                        <div>💡 <strong>Insegurança detectada:</strong> Você costuma perder confiança quando perguntado sobre frameworks operacionais pesados como **SQL** ou **Salesforce**.</div>
+                        <div className="mt-1">📚 <strong>Dica de Ação:</strong> Treine no módulo Coach com simulador voltado para perguntas de banco de dados e controle de pipeline de vendas.</div>
+                      </>
+                    );
+                  })()}
                 </div>
               </div>
             </CardGlass>
@@ -1379,6 +1460,34 @@ export function StrategyPage({
                     }}
                     className="p-3 rounded-xl bg-slate-950 border border-slate-900 hover:border-slate-800 transition-all cursor-grab active:cursor-grabbing space-y-3 relative group text-left"
                   >
+                    {/* Hover actions */}
+                    <div className="absolute top-2 right-2 hidden group-hover:flex items-center gap-1 bg-slate-950/90 pl-1 py-0.5 rounded-lg border border-slate-900/60 z-10" onClick={e => e.stopPropagation()}>
+                      <button
+                        type="button"
+                        title="Retirar da fila (Arquivar)"
+                        onClick={() => handleQuickStatusChange(app, '🚫 Fora do meu objetivo')}
+                        className="p-1 hover:bg-slate-900 text-slate-400 hover:text-amber-500 rounded transition-all"
+                      >
+                        <AlertCircle size={11} />
+                      </button>
+                      <button
+                        type="button"
+                        title="Apagar Candidatura"
+                        onClick={async () => {
+                          if (window.confirm(`Excluir permanentemente o acompanhamento de ${app.jobTitle} em ${app.companyName}?`)) {
+                            try {
+                              await onDeleteApplication(app.id);
+                            } catch (e) {
+                              alert("Erro ao excluir candidatura.");
+                            }
+                          }
+                        }}
+                        className="p-1 hover:bg-slate-900 text-slate-400 hover:text-red-500 rounded transition-all"
+                      >
+                        <Trash2 size={11} />
+                      </button>
+                    </div>
+
                     <div>
                       <h4 className="font-bold text-[11px] text-slate-100 truncate pr-4">{app.jobTitle}</h4>
                       <span className="text-[10px] text-slate-400 block mt-0.5">{app.companyName}</span>
@@ -1389,11 +1498,35 @@ export function StrategyPage({
                       {app.appliedAt && <span>{new Date(app.appliedAt).toLocaleDateString()}</span>}
                     </div>
 
-                    <div className="flex gap-1" onClick={e => e.stopPropagation()}>
+                    {/* Botão de Simulação de Entrevista */}
+                    {onStartSimulation && (
+                      <div onClick={e => e.stopPropagation()} className="pt-0.5">
+                        <button
+                          type="button"
+                          onClick={() => onStartSimulation(app.id)}
+                          className="w-full py-1 rounded-lg bg-brand-500/10 hover:bg-brand-500/20 border border-brand-500/30 text-brand-400 font-bold text-[9px] uppercase flex items-center justify-center gap-1 transition"
+                        >
+                          🎤 Simular Entrevista
+                        </button>
+                      </div>
+                    )}
+
+                    {/* Controles de Etapa (Setas + Dropdown) */}
+                    <div className="flex items-center justify-between gap-1 pt-1" onClick={e => e.stopPropagation()}>
+                      <button
+                        type="button"
+                        onClick={() => handleMoveStage(app, 'prev')}
+                        disabled={app.status === '🔎 Encontrada'}
+                        className="p-1 hover:bg-slate-900 text-slate-400 hover:text-white rounded disabled:opacity-30 disabled:hover:text-slate-400"
+                        title="Voltar Etapa"
+                      >
+                        <ChevronLeft size={14} />
+                      </button>
+
                       <select
                         value={app.status}
                         onChange={e => handleQuickStatusChange(app, e.target.value as any)}
-                        className="w-full bg-slate-900 border border-slate-850 text-[9px] text-slate-350 rounded p-1 cursor-pointer focus:outline-none"
+                        className="bg-slate-900 border border-slate-855 text-[9px] text-slate-350 rounded p-1 cursor-pointer focus:outline-none flex-1 max-w-[120px]"
                       >
                         <option value="🔎 Encontrada">🔎 Encontrada</option>
                         <option value="⭐ Tenho interesse">⭐ Tenho interesse</option>
@@ -1408,6 +1541,47 @@ export function StrategyPage({
                         <option value="✅ Aceita">✅ Aceita</option>
                         <option value="❌ Rejeitada">❌ Rejeitada</option>
                       </select>
+
+                      <button
+                        type="button"
+                        onClick={() => handleMoveStage(app, 'next')}
+                        disabled={app.status === '🚫 Fora do meu objetivo'}
+                        className="p-1 hover:bg-slate-900 text-slate-400 hover:text-white rounded disabled:opacity-30 disabled:hover:text-slate-400"
+                        title="Próxima Etapa"
+                      >
+                        <ChevronRight size={14} />
+                      </button>
+                    </div>
+
+                    {/* Ações Rápidas Persistentes (Arquivar / Excluir) */}
+                    <div className="flex justify-between items-center gap-1.5 pt-1.5 border-t border-slate-900/60" onClick={e => e.stopPropagation()}>
+                      <button
+                        type="button"
+                        onClick={() => handleQuickStatusChange(app, '🚫 Fora do meu objetivo')}
+                        className="text-[9px] text-slate-500 hover:text-amber-500 flex items-center gap-0.5 transition-all"
+                        title="Remover da estratégia (Arquivar)"
+                      >
+                        <AlertCircle size={12} />
+                        <span>Arquivar</span>
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={async () => {
+                          if (window.confirm(`Excluir permanentemente o acompanhamento de ${app.jobTitle} em ${app.companyName}?`)) {
+                            try {
+                              await onDeleteApplication(app.id);
+                            } catch (e) {
+                              alert("Erro ao excluir candidatura.");
+                            }
+                          }
+                        }}
+                        className="text-[9px] text-slate-500 hover:text-red-500 flex items-center gap-0.5 transition-all"
+                        title="Excluir permanentemente"
+                      >
+                        <Trash2 size={12} />
+                        <span>Excluir</span>
+                      </button>
                     </div>
                   </div>
                 ))
@@ -1479,11 +1653,19 @@ export function StrategyPage({
                         {app.appliedAt ? new Date(app.appliedAt).toLocaleDateString() : '—'}
                       </td>
                       <td className="py-3.5 px-4 text-right flex justify-end gap-2">
+                        {onStartSimulation && (
+                          <button
+                            onClick={() => onStartSimulation(app.id)}
+                            className="px-2.5 py-1 rounded bg-brand-500/10 hover:bg-brand-500/20 text-brand-400 border border-brand-500/30 font-bold transition-colors"
+                          >
+                            🎤 Simular
+                          </button>
+                        )}
                         <button
                           onClick={() => setSelectedAppId(app.id)}
-                          className="px-2.5 py-1 rounded bg-slate-900 hover:bg-slate-800 text-slate-300 hover:text-white border border-slate-800 transition-colors"
+                          className="px-2.5 py-1 rounded bg-slate-900 hover:bg-slate-800 text-slate-350 hover:text-white border border-slate-800 transition-colors"
                         >
-                          Ver Linha do Tempo
+                          Linha do Tempo
                         </button>
                         <button
                           onClick={() => {

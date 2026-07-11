@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, lazy, Suspense } from 'react';
+import { useState, useEffect, lazy, Suspense } from 'react';
 import { useAuth } from './application/hooks/useAuth';
 import { useResumes, useJobs, useMatches } from './application/hooks/useCareerMatch';
 import { useCareerProfile } from './application/hooks/useCareerProfile';
@@ -10,6 +10,7 @@ import { Navbar } from './presentation/components/Navbar';
 import { Login } from './presentation/pages/Login';
 import { Menu, FileText, Loader2 } from 'lucide-react';
 import { isSupabaseConfigured, supabase } from './infrastructure/api/supabaseClient';
+import type { Job } from './domain/models/types';
 
 // ── Code Splitting: Lazy-load das páginas pesadas ──
 const Dashboard = lazy(() => import('./presentation/pages/Dashboard').then(m => ({ default: m.Dashboard })));
@@ -19,6 +20,8 @@ const CareerProfilePage = lazy(() => import('./presentation/pages/CareerProfileP
 const StrategyPage = lazy(() => import('./presentation/pages/StrategyPage').then(m => ({ default: m.StrategyPage })));
 const CoachDashboard = lazy(() => import('./presentation/pages/CoachDashboard').then(m => ({ default: m.CoachDashboard })));
 const AdminDashboard = lazy(() => import('./presentation/pages/AdminDashboard').then(m => ({ default: m.AdminDashboard })));
+const SettingsPage = lazy(() => import('./presentation/pages/Settings').then(m => ({ default: m.Settings })));
+const NotificationsPage = lazy(() => import('./presentation/pages/Notifications').then(m => ({ default: m.Notifications })));
 
 function LazyFallback() {
   return (
@@ -34,11 +37,46 @@ function LazyFallback() {
   );
 }
 
+import { useQueryClient } from '@tanstack/react-query';
+
 function App() {
-  const { user, profile, loading, loginWithEmail, signUpWithEmail, loginWithOAuth, logout } = useAuth();
+  const { user, profile, loading, loginWithEmail, signUpWithEmail, loginWithOAuth, logout, updateProfile } = useAuth();
   const [activeTab, setActiveTab] = useState('dashboard');
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
+  const queryClient = useQueryClient();
+  const [selectedJobId, setSelectedJobId] = useState<string | null>(null);
+  const [activeSimulationAppId, setActiveSimulationAppId] = useState<string | null>(null);
+
+  const handleStartSimulation = async (target: Job | string) => {
+    if (!profile?.id) return;
+    try {
+      let appId: string;
+      if (typeof target === 'string') {
+        appId = target;
+      } else {
+        const job = target;
+        let app = applications.find(a => a.jobId === job.id);
+        if (!app) {
+          app = await createApplication({
+            jobId: job.id,
+            companyName: job.companyName,
+            jobTitle: job.title,
+            status: '📝 Vou me candidatar',
+            resumeVersionId: selectedResumeVersionId || undefined
+          });
+        }
+        appId = app.id;
+      }
+
+      await startSimulation(appId);
+      setActiveSimulationAppId(appId);
+      setActiveTab('coach');
+    } catch (err) {
+      console.error('Erro ao iniciar simulação de entrevista:', err);
+      alert('Não foi possível iniciar a simulação no momento.');
+    }
+  };
 
   useEffect(() => {
     async function checkAdmin() {
@@ -60,29 +98,36 @@ function App() {
     checkAdmin();
   }, [user]);
 
-  const { resumes, uploadResume, deleteResume, isUploading, pipelineSteps } = useResumes(profile?.id);
+  const { resumes, uploadResume, deleteResume, isUploading, pipelineSteps, selectActiveResume } = useResumes(profile?.id);
   
   // Sincronizar o currículo/versão selecionado
   const [selectedResumeVersionId, setSelectedResumeVersionId] = useState<string | null>(null);
 
-  const prevIsUploading = useRef(false);
   useEffect(() => {
     if (resumes && resumes.length > 0) {
-      const exists = resumes.some(r => r.resumeVersionId === selectedResumeVersionId);
       const primary = resumes.find(r => r.isPrimary) || resumes[0];
-      
-      const justFinishedUpload = prevIsUploading.current && !isUploading;
-      
-      if (!exists || justFinishedUpload) {
-        if (primary && primary.resumeVersionId) {
-          setSelectedResumeVersionId(primary.resumeVersionId);
-        }
+      if (primary && primary.resumeVersionId && selectedResumeVersionId !== primary.resumeVersionId) {
+        setSelectedResumeVersionId(primary.resumeVersionId);
       }
     } else {
       setSelectedResumeVersionId(null);
     }
-    prevIsUploading.current = isUploading;
-  }, [resumes, selectedResumeVersionId, isUploading]);
+  }, [resumes]);
+
+  const handleSelectResumeVersion = async (versionId: string | null) => {
+    if (!versionId) return;
+    const selected = resumes.find(r => r.resumeVersionId === versionId);
+    if (selected) {
+      setSelectedResumeVersionId(versionId);
+      try {
+        await selectActiveResume(selected.id);
+        queryClient.invalidateQueries({ queryKey: ['my-profile-ai', profile?.id, versionId] });
+        queryClient.invalidateQueries({ queryKey: ['matches', profile?.id, selected.id] });
+      } catch (err) {
+        console.error('Erro ao alternar currículo ativo:', err);
+      }
+    }
+  };
 
   const selectedResume = resumes.find(r => r.resumeVersionId === selectedResumeVersionId) || resumes[0];
   const selectedResumeId = selectedResume?.id || null;
@@ -104,7 +149,7 @@ function App() {
     getStagesQuery,
     addStage,
     deleteStage
-  } = useApplications(profile?.id);
+  } = useApplications(profile?.id, selectedResumeVersionId);
 
   const { 
     startSimulation, 
@@ -113,6 +158,8 @@ function App() {
     triggerDailyChecks,
     notifications,
     markNotificationAsRead,
+    deleteNotification,
+    markAllNotificationsAsRead,
     getPostLogQuery,
     savePostLog
   } = useCoach(profile?.id);
@@ -190,10 +237,14 @@ function App() {
             <img
               src={profile.avatarUrl}
               alt={profile.fullName}
-              className="h-8 w-8 rounded-full object-cover border border-slate-700"
+              className="h-8 w-8 rounded-full object-cover border border-slate-700 cursor-pointer hover:opacity-85"
+              onClick={() => setActiveTab('settings')}
             />
           ) : (
-            <div className="h-8 w-8 rounded-full bg-indigo-500/20 text-indigo-400 flex items-center justify-center font-display font-semibold text-xs border border-indigo-500/30">
+            <div 
+              onClick={() => setActiveTab('settings')}
+              className="h-8 w-8 rounded-full bg-indigo-500/20 text-indigo-400 flex items-center justify-center font-display font-semibold text-xs border border-indigo-500/30 cursor-pointer hover:opacity-85"
+            >
               {profile?.fullName?.charAt(0).toUpperCase() || 'C'}
             </div>
           )}
@@ -212,7 +263,7 @@ function App() {
       />
 
       {/* Container Principal */}
-      <main className="flex-1 px-4 md:pl-72 md:pr-8 py-8 pt-20 md:pt-8 min-h-screen overflow-x-hidden relative z-10">
+      <main className="flex-1 w-full min-w-0 px-4 sm:px-6 md:pl-72 md:pr-10 py-8 pt-20 md:pt-8 min-h-screen overflow-x-hidden relative z-10">
 
         {/* Seletor de Currículo Ativo Global */}
         {resumes && resumes.length > 0 && (
@@ -231,7 +282,7 @@ function App() {
               <span className="text-xs text-slate-400 font-medium">Trocar currículo:</span>
               <select
                 value={selectedResumeVersionId || ''}
-                onChange={(e) => setSelectedResumeVersionId(e.target.value)}
+                onChange={(e) => handleSelectResumeVersion(e.target.value)}
                 className="px-3 py-2 rounded-xl bg-slate-900 border border-slate-800 text-xs text-slate-200 hover:border-slate-700 focus:outline-none focus:ring-1 focus:ring-brand-500 font-semibold"
               >
                 {resumes.map((r) => (
@@ -257,6 +308,8 @@ function App() {
               setActiveTab={setActiveTab}
               applications={applications}
               careerGoals={careerGoals}
+              jobs={jobs}
+              setSelectedJobId={setSelectedJobId}
             />
           </Suspense>
         )}
@@ -275,7 +328,7 @@ function App() {
               applications={applications}
               pipelineSteps={pipelineSteps}
               activeResumeVersionId={selectedResumeVersionId}
-              onSelectResumeVersion={setSelectedResumeVersionId}
+              onSelectResumeVersion={handleSelectResumeVersion}
             />
           </Suspense>
         )}
@@ -319,6 +372,7 @@ function App() {
               saveWeeklyGoal={saveWeeklyGoal}
               getPostLogQuery={getPostLogQuery}
               savePostLog={savePostLog}
+              onStartSimulation={handleStartSimulation}
             />
           </Suspense>
         )}
@@ -340,6 +394,10 @@ function App() {
               activeResumeVersionId={selectedResumeVersionId}
               applications={applications}
               onCreateApplication={createApplication}
+              setActiveTab={setActiveTab}
+              selectedJobId={selectedJobId}
+              onSelectJob={setSelectedJobId}
+              onStartSimulation={handleStartSimulation}
             />
           </Suspense>
         )}
@@ -351,17 +409,48 @@ function App() {
               careerProfileNew={careerProfileNew}
               applications={applications}
               jobs={jobs}
+              matches={matches}
               startSimulation={startSimulation}
               sendMessage={sendMessage}
               getSimulationQuery={getSimulationQuery}
               triggerDailyChecks={triggerDailyChecks}
+              initialSelectedAppId={activeSimulationAppId}
+              onClearInitialSelectedAppId={() => setActiveSimulationAppId(null)}
             />
           </Suspense>
         )}
 
-        {activeTab === 'admin' && (
+        {activeTab === 'notifications' && (
+          <Suspense fallback={<LazyFallback />}>
+            <NotificationsPage
+              notifications={notifications}
+              markNotificationAsRead={markNotificationAsRead}
+              deleteNotification={deleteNotification}
+              markAllNotificationsAsRead={markAllNotificationsAsRead}
+              setActiveTab={setActiveTab}
+              jobs={jobs}
+              setSelectedJobId={setSelectedJobId}
+            />
+          </Suspense>
+        )}
+
+        {activeTab === 'admin' && isAdmin && (
           <Suspense fallback={<LazyFallback />}>
             <AdminDashboard userId={profile?.id} />
+          </Suspense>
+        )}
+
+        {activeTab === 'settings' && (
+          <Suspense fallback={<LazyFallback />}>
+            <SettingsPage
+              profile={profile}
+              resumes={resumes}
+              careerProfileNew={careerProfileNew}
+              onSaveProfile={updateCareerProfile}
+              onDeleteResume={deleteResume}
+              onLogout={logout}
+              onUpdateProfileState={updateProfile}
+            />
           </Suspense>
         )}
       </main>

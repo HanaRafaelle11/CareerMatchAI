@@ -136,7 +136,7 @@ function calcYearsFromExperiences(experiences: any[]): number {
   }
   merged += curEnd - curStart;
   const years = Math.round(merged / (1000 * 60 * 60 * 24 * 365));
-  return Math.max(0, years);
+  return isNaN(years) ? 0 : Math.max(0, years);
 }
 
 function buildFlatSkillsFromProfile(profile: any): string[] {
@@ -272,6 +272,8 @@ class JobMatchingEngine {
       
       INSTRUÇÕES IMPORTANTES:
       - Realize uma análise semântica robusta de adequação técnica, comportamental e de nível de experiência.
+      - NÃO atribua scores genéricos de média (como 46% ou 50%) para perfis incompatíveis. Se a área profissional do candidato (ex: Farmácia/Estética) não tiver nenhuma afinidade com a vaga (ex: Software Engineer, Gari, Motorista), o "match_score" DEVE ser muito baixo, entre 0% e 15%.
+      - A recomendação verbal ("recommendation"), os pontos fortes ("strengths") e os pontos fracos ("weaknesses") devem estar em total coerência matemática com o "match_score" atribuído (se o match é de 10%, os pontos fracos devem dominar e a recomendação deve explicar a incompatibilidade de área).
       - Retorne estritamente um objeto JSON válido correspondente ao JSON Schema especificado abaixo.
 
       JSON Schema de Saída:

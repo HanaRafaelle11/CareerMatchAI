@@ -35,19 +35,26 @@ export function mapStatusFromDb(dbStatus: string): Application['status'] {
   }
 }
 
-export function useApplications(userId: string | undefined) {
+export function useApplications(userId: string | undefined, resumeVersionId?: string | null) {
   const queryClient = useQueryClient();
 
   const applicationsQuery = useQuery<Application[]>({
-    queryKey: ['applications', userId],
+    queryKey: ['applications', userId, resumeVersionId],
     queryFn: async () => {
       if (!userId) return [];
       if (isSupabaseConfigured && supabase) {
-        const { data, error } = await supabase
+        let query = supabase
           .from('applications')
           .select('*')
-          .eq('user_id', userId)
-          .order('created_at', { ascending: false });
+          .eq('user_id', userId);
+
+        if (resumeVersionId) {
+          query = query.eq('resume_version_id', resumeVersionId);
+        } else {
+          query = query.is('resume_version_id', null);
+        }
+
+        const { data, error } = await query.order('created_at', { ascending: false });
 
         if (error) throw error;
         return (data || []).map(d => ({
@@ -67,7 +74,11 @@ export function useApplications(userId: string | undefined) {
           updatedAt: d.updated_at
         }));
       } else {
-        return localDB.getApplications();
+        const all = localDB.getApplications();
+        if (resumeVersionId) {
+          return all.filter(a => a.resumeVersionId === resumeVersionId);
+        }
+        return all;
       }
     },
     enabled: !!userId,
@@ -89,7 +100,7 @@ export function useApplications(userId: string | undefined) {
             status: mapStatusToDb(appData.status),
             rejection_reason: appData.rejectionReason || null,
             source_platform: appData.sourcePlatform || null,
-            resume_version_id: appData.resumeVersionId || null,
+            resume_version_id: appData.resumeVersionId || resumeVersionId || null,
             notes: appData.notes || null,
             applied_at: appData.appliedAt || null
           })
@@ -117,6 +128,7 @@ export function useApplications(userId: string | undefined) {
         const newApp: Application = {
           id: `app-${Date.now()}`,
           userId,
+          resumeVersionId: appData.resumeVersionId || resumeVersionId || undefined,
           ...appData,
           createdAt: new Date().toISOString(),
           updatedAt: new Date().toISOString()

@@ -1,4 +1,4 @@
-import { useState, type FormEvent } from 'react';
+import { useState, useEffect, type FormEvent } from 'react';
 import { CardGlass } from '../components/CardGlass';
 import { MarketIntelligenceService } from '../../application/services/MarketIntelligenceService';
 import type { Application, CareerProfile, Job } from '../../domain/models/types';
@@ -6,7 +6,7 @@ import type { CareerProfileNew } from '../../application/hooks/useMyProfileAi';
 import { calcYearsFromExperiences } from '../../application/services/matchingEngine';
 import { 
   Award, Play, MessageSquare, Send, 
-  BarChart3, RefreshCcw, Star, UserCheck
+  BarChart3, RefreshCcw, Star, UserCheck, Loader2
 } from 'lucide-react';
 
 interface CoachDashboardProps {
@@ -14,10 +14,13 @@ interface CoachDashboardProps {
   careerProfileNew: CareerProfileNew | null;
   applications: Application[];
   jobs: Job[];
+  matches?: any[];
   startSimulation: (appId: string) => Promise<any>;
   sendMessage: (args: { sim: any; role: 'interviewer' | 'candidate'; text: string }) => Promise<any>;
   getSimulationQuery: (appId: string) => any;
   triggerDailyChecks: () => Promise<any>;
+  initialSelectedAppId?: string | null;
+  onClearInitialSelectedAppId?: () => void;
 }
 
 export function CoachDashboard({
@@ -25,12 +28,16 @@ export function CoachDashboard({
   careerProfileNew,
   applications,
   jobs,
+  matches,
   startSimulation,
   sendMessage,
   getSimulationQuery,
-  triggerDailyChecks
+  triggerDailyChecks,
+  initialSelectedAppId,
+  onClearInitialSelectedAppId
 }: CoachDashboardProps) {
   const [activeSubTab, setActiveSubTab] = useState<'simulator' | 'recruiter'>('simulator');
+  const [isCheckingVagas, setIsCheckingVagas] = useState(false);
   
   // Dados do perfil consolidado para personalizar respostas
   const profileName = careerProfileNew?.personal?.fullName?.split(' ')[0] || 'Profissional';
@@ -45,6 +52,13 @@ export function CoachDashboard({
   );
   const [selectedAppId, setSelectedAppId] = useState(activeApps[0]?.id || '');
 
+  useEffect(() => {
+    if (initialSelectedAppId) {
+      setSelectedAppId(initialSelectedAppId);
+      onClearInitialSelectedAppId?.();
+    }
+  }, [initialSelectedAppId, onClearInitialSelectedAppId]);
+
   // Hook query para simulação
   const { data: simulation = null, isLoading: loadingSim } = getSimulationQuery(selectedAppId);
 
@@ -53,7 +67,9 @@ export function CoachDashboard({
   const [isSending, setIsSending] = useState(false);
 
   // Estatísticas e Heurísticas
-  const marketTrends = MarketIntelligenceService.getMarketTrends(jobs);
+  const matchedJobIds = new Set((matches || []).map((m: any) => m.jobId || m.job_id));
+  const activeJobs = jobs.filter(j => matchedJobIds.has(j.id));
+  const marketTrends = MarketIntelligenceService.getMarketTrends(activeJobs, careerProfileNew);
 
   // AI Recruiter Chat States — personalizado com dados reais do perfil
   const initialRecruiterMsg = careerProfileNew
@@ -66,6 +82,15 @@ export function CoachDashboard({
       text: initialRecruiterMsg
     }
   ]);
+
+  useEffect(() => {
+    setRecruiterChat([
+      {
+        role: 'recruiter',
+        text: initialRecruiterMsg
+      }
+    ]);
+  }, [initialRecruiterMsg]);
 
   const [recruiterInput, setRecruiterInput] = useState('');
 
@@ -113,6 +138,8 @@ export function CoachDashboard({
       
       if (!applications || applications.length === 0) {
         reply = "Você ainda não cadastrou candidaturas na sua aba de Estratégia. \n\nAssim que você adicionar suas vagas de interesse ou processos em andamento por lá, eu poderei analisar o seu histórico para te fornecer insights de conversão para entrevistas, dicas de negociação de salário e sugestões de foco técnico/comportamental.";
+      } else if (applications.length < 5) {
+        reply = `Percebi que você tem apenas ${applications.length} candidatura(s) cadastrada(s) na aba de Estratégia. \n\nPor termos um histórico recente com poucos registros, prefiro ser sincero: ainda não temos dados amostrais suficientes para gerar estimativas de conversão confiáveis.\n\nSugiro cadastrar pelo menos 5 candidaturas para podermos projetar taxas estatísticas de avanço e gargalos. Por enquanto, recomendo focar em alinhar seu perfil como ${profileRole} para as vagas de interesse.`;
       } else {
         const totalApps = applications.length;
         const totalInterviews = applications.filter(a => 
@@ -121,12 +148,12 @@ export function CoachDashboard({
         
         const conversionRate = totalApps > 0 ? Math.round((totalInterviews / totalApps) * 100) : 0;
 
-        if (textLower.includes('cs') || textLower.includes('customer success') || textLower.includes('remoto')) {
-          reply = `Analisei seu histórico de candidaturas em relação a vagas remotas. Com base nas suas ${totalApps} candidatura(s) ativas, o sistema recomenda focar em posições alinhadas ao seu perfil de Customer Success.`;
-        } else if (textLower.includes('diagnóstico') || textLower.includes('saas') || textLower.includes('mercado')) {
+        if (textLower.includes('cs') || textLower.includes('customer success') || textLower.includes('remoto') || textLower.includes('farmácia') || textLower.includes('estética') || textLower.includes('vaga')) {
+          reply = `Analisei seu histórico de candidaturas. Com base nas suas ${totalApps} candidatura(s) ativas, o sistema recomenda focar em posições alinhadas ao seu perfil de ${profileRole}.`;
+        } else if (textLower.includes('diagnóstico') || textLower.includes('mercado') || textLower.includes('competências')) {
           reply = `Seu diagnóstico aponta atividade no mercado. Sua taxa geral de avanço para entrevistas reais com base no seu histórico é de ${conversionRate}%.`;
         } else {
-          reply = `Com base nas suas candidaturas reais, identificamos que você possui ${totalApps} candidatura(s) cadastrada(s) e ${totalInterviews} entrevista(s) registrada(s). Continue atualizando seus processos para obter direcionamentos de competências.`;
+          reply = `Com base nas suas candidaturas reais, identificamos que você possui ${totalApps} candidatura(s) cadastrada(s) e ${totalInterviews} entrevista(s) registrada(s) como ${profileRole}. Continue atualizando seus processos para obter direcionamentos de competências.`;
         }
       }
 
@@ -134,8 +161,21 @@ export function CoachDashboard({
     }, 600);
   };
 
+  const handleVerificarVagas = async () => {
+    try {
+      setIsCheckingVagas(true);
+      await triggerDailyChecks();
+      alert('Vagas verificadas com sucesso!');
+    } catch (err) {
+      console.error(err);
+      alert('Erro ao verificar novas vagas.');
+    } finally {
+      setIsCheckingVagas(false);
+    }
+  };
+
   return (
-    <div className="space-y-8 animate-fade-in font-sans p-2">
+    <div className="space-y-8 animate-fade-in font-sans p-0">
       {/* Cabeçalho */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
@@ -147,11 +187,16 @@ export function CoachDashboard({
           </p>
         </div>
         <button
-          onClick={triggerDailyChecks}
-          className="px-4 py-2.5 rounded-xl bg-slate-900 border border-slate-800 hover:border-slate-700 text-xs font-bold text-slate-200 flex items-center gap-1.5 transition-all"
+          onClick={handleVerificarVagas}
+          disabled={isCheckingVagas}
+          className="px-4 py-2.5 rounded-xl bg-slate-900 border border-slate-800 hover:border-slate-700 text-xs font-bold text-slate-200 flex items-center gap-1.5 transition-all disabled:opacity-50"
         >
-          <RefreshCcw size={14} />
-          Verificar Novas Vagas
+          {isCheckingVagas ? (
+            <Loader2 size={14} className="animate-spin text-brand-500" />
+          ) : (
+            <RefreshCcw size={14} />
+          )}
+          {isCheckingVagas ? 'Verificando...' : 'Verificar Novas Vagas'}
         </button>
       </div>
 
@@ -378,11 +423,21 @@ export function CoachDashboard({
             <div className="space-y-3 text-xs">
               <div className="space-y-1">
                 <span className="text-[10px] text-slate-500 uppercase font-bold block">Forças</span>
-                <p className="text-slate-300">Gestão de Churn, NPS, Liderança de Equipes de CS e Playbooks SaaS.</p>
+                <p className="text-slate-300">
+                  {careerProfileNew?.ats_keywords?.existing_keywords && careerProfileNew.ats_keywords.existing_keywords.length > 0
+                    ? careerProfileNew.ats_keywords.existing_keywords.slice(0, 5).join(', ')
+                    : careerProfileNew?.skills && careerProfileNew.skills.length > 0
+                      ? careerProfileNew.skills.slice(0, 5).map(s => s.name).join(', ')
+                      : 'Liderança, Gestão de Projetos, Comunicação e Organização.'}
+                </p>
               </div>
               <div className="space-y-1">
                 <span className="text-[10px] text-slate-500 uppercase font-bold block">Gaps Recomendados</span>
-                <p className="text-slate-300">Falta proficiência em Salesforce e modelagem de dados com SQL.</p>
+                <p className="text-slate-300">
+                  {careerProfileNew?.ats_keywords?.missing_keywords && careerProfileNew.ats_keywords.missing_keywords.length > 0
+                    ? `Recomenda-se focar em: ${careerProfileNew.ats_keywords.missing_keywords.slice(0, 4).join(', ')}.`
+                    : 'Nenhum gap crítico identificado no momento. Continue atualizando seu perfil.'}
+                </p>
               </div>
             </div>
           </CardGlass>

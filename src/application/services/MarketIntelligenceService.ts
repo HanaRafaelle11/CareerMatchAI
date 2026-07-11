@@ -10,40 +10,53 @@ export class MarketIntelligenceService {
   /**
    * Compila tendências estatísticas de mercado com base nas vagas analisadas
    */
-  static getMarketTrends(jobs: Job[]): MarketTrend[] {
-    const trends: MarketTrend[] = [
-      { keyword: 'SaaS B2B', percentage: 65, type: 'sector' },
-      { keyword: 'Salesforce', percentage: 42, type: 'tool' },
-      { keyword: 'Gestão de Churn', percentage: 38, type: 'skill' },
-      { keyword: 'SQL para Análise', percentage: 30, type: 'tool' },
-      { keyword: 'NPS e Retenção', percentage: 72, type: 'skill' }
-    ];
+  static getMarketTrends(jobs: Job[], careerProfileNew?: any): MarketTrend[] {
+    if (!jobs || jobs.length === 0) {
+      if (careerProfileNew && careerProfileNew.skills && careerProfileNew.skills.length > 0) {
+        return careerProfileNew.skills.slice(0, 5).map((s: any, idx: number) => ({
+          keyword: s.name,
+          percentage: 95 - idx * 8,
+          type: 'skill'
+        }));
+      }
+      return [
+        { keyword: 'Gestão', percentage: 65, type: 'skill' },
+        { keyword: 'Planejamento', percentage: 42, type: 'skill' },
+        { keyword: 'Liderança', percentage: 38, type: 'skill' },
+        { keyword: 'Comunicação', percentage: 30, type: 'skill' }
+      ];
+    }
 
-    if (jobs.length === 0) return trends;
-
-    // Se houver vagas, podemos recalcular dinamicamente os valores relativos
     const total = jobs.length;
-    const counters: Record<string, { count: number; type: MarketTrend['type'] }> = {
-      'SaaS': { count: 0, type: 'sector' },
-      'Salesforce': { count: 0, type: 'tool' },
-      'Churn': { count: 0, type: 'skill' },
-      'SQL': { count: 0, type: 'tool' },
-      'NPS': { count: 0, type: 'skill' }
-    };
+    const counters: Record<string, { count: number; type: MarketTrend['type'] }> = {};
 
     jobs.forEach(job => {
-      const text = `${job.title} ${job.description} ${job.requirements.join(' ')}`.toLowerCase();
-      Object.keys(counters).forEach(key => {
-        if (text.includes(key.toLowerCase())) {
-          counters[key].count++;
+      const skills = [...(job.requirements || [])];
+      skills.forEach(skill => {
+        const cleanSkill = skill.trim();
+        if (!cleanSkill) return;
+        const key = cleanSkill.charAt(0).toUpperCase() + cleanSkill.slice(1).toLowerCase();
+        if (!counters[key]) {
+          counters[key] = { count: 0, type: 'skill' };
         }
+        counters[key].count++;
       });
     });
 
-    return Object.entries(counters).map(([keyword, data]) => ({
+    const results = Object.entries(counters).map(([keyword, data]) => ({
       keyword,
-      percentage: total > 0 ? Math.round((data.count / total) * 100) : 0,
+      percentage: total > 0 ? Math.min(100, Math.round((data.count / total) * 100)) : 0,
       type: data.type
     })).sort((a, b) => b.percentage - a.percentage);
+
+    if (results.length > 0) return results.slice(0, 6);
+
+    return [
+      { keyword: 'Gestão', percentage: 65, type: 'skill' },
+      { keyword: 'Planejamento', percentage: 42, type: 'skill' },
+      { keyword: 'Liderança', percentage: 38, type: 'skill' },
+      { keyword: 'Comunicação', percentage: 30, type: 'skill' }
+    ];
   }
 }
+

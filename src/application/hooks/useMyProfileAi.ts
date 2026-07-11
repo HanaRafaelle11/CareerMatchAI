@@ -1,5 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import { isSupabaseConfigured, supabase } from '../../infrastructure/api/supabaseClient';
+import { localDB } from '../../infrastructure/storage/localDatabase';
 
 export interface CareerProfileNew {
   id: string;
@@ -95,8 +96,12 @@ export function useMyProfileAi(userId: string | undefined, resumeVersionId?: str
   const profileQuery = useQuery<{ profile: CareerProfileNew | null; insights: CareerInsight | null }>({
     queryKey: ['my-profile-ai', userId, resumeVersionId],
     queryFn: async () => {
-      if (!userId || !isSupabaseConfigured || !supabase) {
+      if (!userId) {
         return { profile: null, insights: null };
+      }
+
+      if (!isSupabaseConfigured || !supabase) {
+        return localDB.getMockMyProfileAi(userId, resumeVersionId);
       }
 
       // 1. Buscar o perfil de carreira
@@ -164,7 +169,7 @@ profile_id: ${profile.id}`);
 
       return { profile, insights };
     },
-    enabled: !!userId && !!resumeVersionId,
+    enabled: !!userId,
   });
 
   return {

@@ -284,41 +284,134 @@ export function useCoach(userId: string | undefined) {
       const isMock = applicationId.includes('mock') || !isValidUUID(applicationId);
 
       if (isSupabaseConfigured && supabase && !isMock) {
+        // Verificar se já existe uma simulação para evitar duplicatas
+        const { data: existing } = await supabase
+          .from('interview_simulations')
+          .select('*')
+          .eq('application_id', applicationId)
+          .maybeSingle();
+
+        if (existing) {
+          return {
+            id: existing.id,
+            applicationId: existing.application_id,
+            chatHistory: existing.chat_history,
+            evaluations: existing.evaluations,
+            createdAt: existing.created_at
+          };
+        }
+
+        // Buscar cargo da vaga
+        const { data: appData } = await supabase
+          .from('applications')
+          .select('job_title')
+          .eq('id', applicationId)
+          .maybeSingle();
+
+        const jobTitle = appData?.job_title || 'esta vaga';
+        const isPharmacy = /farmac|estet|saude|saúde/i.test(jobTitle);
+
+        const defaultHistory = [
+          {
+            role: 'interviewer',
+            text: isPharmacy
+              ? `Olá! Seja bem-vindo à entrevista simulada para a vaga de ${jobTitle}. Para começar, conte-me um pouco sobre você e como suas qualificações na área de saúde e estética se conectam com o nosso perfil.`
+              : `Olá! Seja bem-vindo à entrevista simulada para a vaga de ${jobTitle}. Para começar, conte-me um pouco sobre você e como suas experiências se conectam com os requisitos da vaga.`
+          }
+        ];
+
         const sim = {
           application_id: applicationId,
-          chat_history: [
-            {
-              role: 'interviewer',
-              text: 'Olá! Seja bem-vindo à entrevista simulada. Vamos começar com uma apresentação rápida: conte-me sobre você.'
-            }
-          ]
+          chat_history: defaultHistory
         };
         const { data, error } = await supabase.from('interview_simulations').insert(sim).select().single();
         if (error) throw error;
-        return data;
+        return {
+          id: data.id,
+          applicationId: data.application_id,
+          chatHistory: data.chat_history,
+          evaluations: data.evaluations,
+          createdAt: data.created_at
+        };
       } else {
         return InterviewSimulationService.startSimulation(applicationId);
       }
     },
-    onSuccess: (_, applicationId) => {
-      queryClient.invalidateQueries({ queryKey: ['simulation', applicationId] });
+    onSuccess: (data) => {
+      const appId = (data as any)?.applicationId || (data as any)?.application_id;
+      if (appId) {
+        queryClient.invalidateQueries({ queryKey: ['simulation', appId] });
+      }
     }
   });
 
   const sendMessageMutation = useMutation({
     mutationFn: async ({ sim, role, text }: { sim: InterviewSimulation; role: 'interviewer' | 'candidate'; text: string }) => {
-      const updated = InterviewSimulationService.addMessage(sim, role, text);
       const isMock = sim.applicationId.includes('mock') || !isValidUUID(sim.applicationId);
+      let updated: InterviewSimulation;
 
       if (isSupabaseConfigured && supabase && !isMock) {
+        const { data: appData } = await supabase
+          .from('applications')
+          .select('job_title')
+          .eq('id', sim.applicationId)
+          .maybeSingle();
+        
+        const jobTitle = appData?.job_title || 'esta vaga';
+        const isPharmacy = /farmac|estet|saude|saúde/i.test(jobTitle);
+
+        const updatedHistory = [...sim.chatHistory, { role, text }];
+        let evaluations = sim.evaluations;
+
+        if (updatedHistory.filter(h => h.role === 'candidate').length >= 2) {
+          evaluations = {
+            clarity: 85,
+            objectivity: 90,
+            adherence: 80,
+            strengths: isPharmacy
+              ? [
+                  'Destaque claro de sua formação técnica/científica.',
+                  'Alinhamento com os produtos de biossegurança e qualidade clínica.'
+                ]
+              : [
+                  'Destaque claro de indicadores quantitativos.',
+                  'Tom de comunicação profissional e focado em soluções.'
+                ],
+            improvements: isPharmacy
+              ? [
+                  'Tente estruturar a resposta no método STAR (Situação, Ação, Resultado).',
+                  'Destaque mais as principais técnicas e regulamentações ANVISA correspondentes.'
+                ]
+              : [
+                  'Tente encurtar a introdução para ser mais direto na ação do STAR.',
+                  'Destaque mais as ferramentas operacionais recomendadas.'
+                ]
+          };
+        } else if (role === 'candidate') {
+          updatedHistory.push({
+            role: 'interviewer',
+            text: isPharmacy
+              ? 'Excelente. Como você lidaria com uma situação de insatisfação ou reclamação de um paciente após um procedimento estético?'
+              : 'Excelente. Como você lidaria com um conflito ou desafio técnico sob pressão no dia a dia da equipe?'
+          });
+        }
+
         const { error } = await supabase
           .from('interview_simulations')
           .update({
-            chat_history: updated.chatHistory,
-            evaluations: updated.evaluations
+            chat_history: updatedHistory,
+            evaluations: evaluations
           })
           .eq('id', sim.id);
         if (error) throw error;
+
+        updated = {
+          ...sim,
+          chatHistory: updatedHistory,
+          evaluations
+        };
+      } else {
+        updated = InterviewSimulationService.addMessage(sim, role, text);
       }
       return updated;
     },
@@ -459,6 +552,44 @@ export function useCoach(userId: string | undefined) {
     }
   });
 
+  const deleteNotificationMutation = useMutation({
+    mutationFn: async (id: string) => {
+      if (isSupabaseConfigured && supabase && isValidUUID(id)) {
+        const { error } = await supabase
+          .from('notifications')
+          .delete()
+          .eq('id', id);
+        if (error) throw error;
+      } else {
+        localDB.deleteNotification(id);
+      }
+      return id;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['notifications', userId] });
+    }
+  });
+
+  const markAllNotificationsAsReadMutation = useMutation({
+    mutationFn: async () => {
+      if (isSupabaseConfigured && supabase) {
+        const { error } = await supabase
+          .from('notifications')
+          .update({ is_read: true })
+          .eq('user_id', userId)
+          .eq('is_read', false);
+        if (error) throw error;
+      } else {
+        const unread = localDB.getNotifications(userId || '').filter(n => !n.isRead);
+        unread.forEach(n => localDB.markNotificationAsRead(n.id));
+      }
+      return userId;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['notifications', userId] });
+    }
+  });
+
   const triggerDailyChecksMutation = useMutation({
     mutationFn: async () => {
       // Invalida o cache de descoberta de vagas e de compatibilidades para forçar um refetch limpo da Adzuna
@@ -487,6 +618,8 @@ export function useCoach(userId: string | undefined) {
     notifications: notificationsQuery.data || [],
     isLoadingNotifications: notificationsQuery.isLoading,
     markNotificationAsRead: markNotificationAsReadMutation.mutateAsync,
+    deleteNotification: deleteNotificationMutation.mutateAsync,
+    markAllNotificationsAsRead: markAllNotificationsAsReadMutation.mutateAsync,
     triggerDailyChecks: triggerDailyChecksMutation.mutateAsync
   };
 }

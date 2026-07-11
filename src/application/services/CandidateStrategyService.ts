@@ -156,11 +156,11 @@ export class CandidateStrategyService {
       minSalaryExpectation
     );
 
-    // Categorização por faixa de pontuação
+    // Categorização por faixa de pontuação baseada no Match (scoreOverall)
     let priority: StrategyRecommendation['priority'] = '📚 Baixa aderência';
-    if (cpi >= 85) {
+    if (scoreOverall >= 80) {
       priority = '🔥 Aplicar hoje';
-    } else if (cpi >= 70) {
+    } else if (scoreOverall >= 50) {
       priority = '⚡ Preparar antes de aplicar';
     }
 

@@ -1,4 +1,4 @@
-import type { Resume, Match, CareerProfile, Profile, Notification, Application, CareerGoal } from '../../domain/models/types';
+import type { Resume, Match, CareerProfile, Profile, Notification, Application, CareerGoal, Job } from '../../domain/models/types';
 import type { CareerProfileNew } from '../../application/hooks/useMyProfileAi';
 import { CareerAnalyticsService } from '../../application/services/CareerAnalyticsService';
 
@@ -13,6 +13,8 @@ interface DashboardProps {
   setActiveTab: (tab: string) => void;
   applications: Application[];
   careerGoals: CareerGoal[];
+  jobs?: Job[];
+  setSelectedJobId?: (id: string | null) => void;
 }
 
 export function Dashboard({ 
@@ -23,7 +25,9 @@ export function Dashboard({
   notifications,
   markNotificationAsRead,
   setActiveTab,
-  applications = []
+  applications = [],
+  jobs = [],
+  setSelectedJobId
 }: DashboardProps) {
   const primaryResume = resumes.find(r => r.isPrimary) || resumes[0];
   const unreadNotifications = notifications.filter(n => !n.isRead);
@@ -220,12 +224,30 @@ export function Dashboard({
         <section className="lg:col-span-7 premium-card rounded-xl p-lg">
           <div className="flex items-center justify-between mb-lg">
             <h3 className="font-headline-md text-headline-md text-on-background">Atividades recentes</h3>
-            <button className="text-primary font-bold font-label-md hover:underline cursor-pointer" onClick={() => setActiveTab('match')}>Ver todas</button>
+            <button className="text-primary font-bold font-label-md hover:underline cursor-pointer" onClick={() => setActiveTab('notifications')}>Ver todas</button>
           </div>
           <div className="space-y-md">
             {unreadNotifications.length > 0 ? (
               unreadNotifications.slice(0, 3).map(n => (
-                <div key={n.id} className="flex items-start gap-md p-md rounded-lg hover:bg-surface-container-high transition-colors">
+                <div 
+                  key={n.id} 
+                  onClick={() => {
+                    markNotificationAsRead(n.id);
+                    if (n.type === 'job_alert' || n.title.toLowerCase().includes('vaga') || n.message.toLowerCase().includes('vaga')) {
+                      const relatedJob = jobs.find(j => 
+                        n.message.toLowerCase().includes(j.companyName.toLowerCase()) || 
+                        n.title.toLowerCase().includes(j.companyName.toLowerCase())
+                      );
+                      if (relatedJob) {
+                        setSelectedJobId?.(relatedJob.id);
+                      }
+                      setActiveTab('match');
+                    } else {
+                      setActiveTab('notifications');
+                    }
+                  }}
+                  className="flex items-start gap-md p-md rounded-lg hover:bg-surface-container-high transition-colors cursor-pointer hover:scale-[1.01]"
+                >
                   <div className="w-10 h-10 rounded-full bg-primary-container/20 text-primary flex items-center justify-center flex-shrink-0">
                     <span className="material-symbols-outlined">campaign</span>
                   </div>
@@ -234,7 +256,10 @@ export function Dashboard({
                     <p className="font-body-sm text-body-sm text-on-surface-variant">{n.message}</p>
                   </div>
                   <button 
-                    onClick={() => markNotificationAsRead(n.id)}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      markNotificationAsRead(n.id);
+                    }}
                     className="font-label-sm text-label-sm text-primary hover:underline whitespace-nowrap cursor-pointer"
                   >
                     Marcar lida

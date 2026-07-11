@@ -184,13 +184,19 @@ export interface CoverLetter {
 
 export interface InterviewPrepQuestion {
   question: string;
-  suggestedAnswer: string;
+  suggestedAnswer?: string;
+  answerStar?: {
+    context: string;
+    action: string;
+    result: string;
+  };
   type: 'technical' | 'behavioral' | 'fit';
 }
 
 export interface InterviewPrep {
   id: string;
-  matchId: string;
+  matchId?: string;
+  jobId?: string;
   questions: InterviewPrepQuestion[];
   strengths: string[];
   weaknesses: string[];

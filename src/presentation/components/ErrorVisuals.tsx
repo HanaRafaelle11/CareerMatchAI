@@ -188,7 +188,7 @@ export function ProcessingState({ title, subtitle, steps, expectedTime }: Proces
   const progressPercent = calculateProgress();
 
   return (
-    <CardGlass className="flex flex-col items-center justify-center p-5 sm:p-8 text-center space-y-5 sm:space-y-6 relative overflow-hidden">
+    <CardGlass className="w-full max-w-md mx-auto flex flex-col items-center justify-center p-5 sm:p-8 text-center space-y-5 sm:space-y-6 relative overflow-hidden">
       {/* Indicador superior */}
       <div className="relative flex items-center justify-center">
         <div className="absolute inset-0 rounded-full bg-brand-500/10 blur-xl animate-pulse" />

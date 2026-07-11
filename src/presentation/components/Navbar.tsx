@@ -13,12 +13,14 @@ interface NavbarProps {
 
 export function Navbar({ activeTab, setActiveTab, profile, onLogout, isOpen, onClose, isAdmin }: NavbarProps) {
   const menuItems = [
-    { id: 'dashboard', label: 'Dashboard', icon: 'dashboard' },
-    { id: 'profile', label: 'Resume', icon: 'description' },
-    { id: 'career-profile', label: 'Search', icon: 'search' },
-    { id: 'match', label: 'Match', icon: 'analytics' },
-    { id: 'strategy', label: 'Strategy', icon: 'track_changes' },
-    { id: 'coach', label: 'Prep', icon: 'psychology' }
+    { id: 'dashboard', label: 'Painel', icon: 'dashboard' },
+    { id: 'profile', label: 'Currículo', icon: 'description' },
+    { id: 'career-profile', label: 'Configurações de Busca', icon: 'search' },
+    { id: 'match', label: 'Central de Compatibilidade', icon: 'analytics' },
+    { id: 'strategy', label: 'Estratégia de Vagas', icon: 'track_changes' },
+    { id: 'coach', label: 'Desenvolvimento & Coach', icon: 'psychology' },
+    { id: 'notifications', label: 'Central de Notificações', icon: 'notifications' },
+    { id: 'settings', label: 'Configurações', icon: 'settings' }
   ];
 
   if (isAdmin) {
@@ -38,7 +40,8 @@ export function Navbar({ activeTab, setActiveTab, profile, onLogout, isOpen, onC
   return (
     <>
       {/* SideNavBar (Desktop) */}
-      <aside className="fixed left-0 top-0 h-full w-64 bg-surface-container-low hidden md:flex flex-col p-md gap-sm z-50 border-r border-outline-variant/20">
+      <aside className="fixed left-0 top-0 h-full w-64 bg-surface-container-low hidden md:flex flex-col justify-between p-md z-50 border-r border-outline-variant/20 overflow-y-auto">
+        <div>
         <div className="flex items-center gap-sm mb-xl px-sm">
           <div className="w-10 h-10 bg-primary-container rounded-lg flex items-center justify-center text-on-primary-container">
             <span className="material-symbols-outlined" style={{ fontVariationSettings: "'FILL' 1" }}>rocket_launch</span>
@@ -68,8 +71,9 @@ export function Navbar({ activeTab, setActiveTab, profile, onLogout, isOpen, onC
             );
           })}
         </nav>
+        </div>
 
-        <div className="mt-auto border-t border-outline-variant/20 pt-md space-y-3">
+        <div className="border-t border-outline-variant/20 pt-md space-y-3 flex-shrink-0">
           {/* User profile card in sidebar */}
           <div className="flex items-center justify-between p-2 rounded-xl bg-surface-container-high/40 border border-outline-variant/20">
             <div className="flex items-center gap-3">
@@ -77,10 +81,14 @@ export function Navbar({ activeTab, setActiveTab, profile, onLogout, isOpen, onC
                 <img
                   src={profile.avatarUrl}
                   alt={profile.fullName}
-                  className="h-9 w-9 rounded-full object-cover border border-outline-variant/35"
+                  className="h-9 w-9 rounded-full object-cover border border-outline-variant/35 cursor-pointer hover:opacity-80 transition-opacity"
+                  onClick={() => setActiveTab('settings')}
                 />
               ) : (
-                <div className="h-9 w-9 rounded-full bg-primary-container text-on-primary-container flex items-center justify-center font-bold text-sm border border-outline-variant/35">
+                <div 
+                  onClick={() => setActiveTab('settings')}
+                  className="h-9 w-9 rounded-full bg-primary-container text-on-primary-container flex items-center justify-center font-bold text-sm border border-outline-variant/35 cursor-pointer hover:opacity-80 transition-opacity"
+                >
                   {profile?.fullName?.charAt(0).toUpperCase() || 'U'}
                 </div>
               )}

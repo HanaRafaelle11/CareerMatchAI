@@ -202,7 +202,7 @@ export function AdminDashboard({ userId }: AdminDashboardProps) {
   }
 
   return (
-    <div className="space-y-8 animate-fade-in font-sans p-2">
+    <div className="space-y-8 animate-fade-in font-sans p-0">
       <div className="flex justify-between items-center flex-wrap gap-4">
         <div>
           <span className="text-[9px] px-2.5 py-0.5 bg-red-500/10 text-red-400 border border-red-500/20 font-bold uppercase rounded-lg">Telemetria de Produção</span>

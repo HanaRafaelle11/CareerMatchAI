@@ -61,12 +61,49 @@
   --radius-lg: 0.5rem;
   --radius-xl: 0.75rem;
 
+  --spacing-xs: 4px;
+  --spacing-sm: 8px;
+  --spacing-md: 16px;
+  --spacing-lg: 24px;
+  --spacing-xl: 40px;
+  --spacing-xxl: 64px;
+  --spacing-gutter: 20px;
+  --spacing-container-padding: 24px;
+  --spacing-base: 4px;
+
+  /* Explicit max-width tokens to prevent v4 spacing fallback */
+  --max-width-xs: 20rem;
+  --max-width-sm: 24rem;
+  --max-width-md: 28rem;
+  --max-width-lg: 32rem;
+  --max-width-xl: 36rem;
+  --max-width-2xl: 42rem;
+  --max-width-3xl: 48rem;
+  --max-width-4xl: 56rem;
+  --max-width-5xl: 64rem;
+  --max-width-6xl: 72rem;
+  --max-width-7xl: 80rem;
+
+  /* Explicit width tokens to prevent v4 spacing fallback */
+  --width-xs: 20rem;
+  --width-sm: 24rem;
+  --width-md: 28rem;
+  --width-lg: 32rem;
+  --width-xl: 36rem;
+  --width-2xl: 42rem;
+  --width-3xl: 48rem;
+  --width-4xl: 56rem;
+  --width-5xl: 64rem;
+  --width-6xl: 72rem;
+  --width-7xl: 80rem;
+
   --animate-pulse-slow: pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite;
 }
 
 @utility glass-panel {
-  background: #1c1b1d;
-  border: 1px solid rgba(67, 70, 87, 0.3);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.02) 0%, rgba(255, 255, 255, 0) 100%), #1c1b1d;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.5);
 }
 
 .light .glass-panel {
@@ -101,10 +138,6 @@
     @apply bg-surface text-on-surface font-sans antialiased selection:bg-primary-container/30 selection:text-on-primary-container;
     transition: background-color 0.3s ease, color 0.3s ease;
   }
-
-  body.light {
-    @apply bg-[#f8fafc] text-slate-900;
-  }
 }
 
 /* Custom premium scrollbar */
@@ -126,18 +159,63 @@
   background: rgba(148, 163, 184, 0.4);
 }
 
-/* Light mode overrides for high readability and premium look */
-.light {
+/* ══════════════════════════════════════════════════════════════
+   LIGHT MODE — Override Tailwind-generated CSS custom properties
+   Applied when body.light is active. This overrides the @theme
+   values that Tailwind compiled as :root CSS variables.
+   ══════════════════════════════════════════════════════════════ */
+body.light {
+  /* Surface colors */
+  --color-surface: #f8fafc;
+  --color-surface-dim: #f1f5f9;
+  --color-surface-bright: #cbd5e1;
+  --color-surface-container-lowest: #ffffff;
+  --color-surface-container-low: #f1f5f9;
+  --color-surface-container: #ffffff;
+  --color-surface-container-high: #f1f5f9;
+  --color-surface-container-highest: #e2e8f0;
+
+  /* On-surface */
+  --color-on-surface: #0f172a;
+  --color-on-surface-variant: #475569;
+  --color-outline: #64748b;
+  --color-outline-variant: #e2e8f0;
+
+  /* Primary */
+  --color-primary: #2563eb;
+  --color-on-primary: #ffffff;
+  --color-primary-container: #dbeafe;
+  --color-on-primary-container: #1e40af;
+
+  /* Secondary */
+  --color-secondary: #7c3aed;
+  --color-on-secondary: #ffffff;
+  --color-secondary-container: #ede9fe;
+  --color-on-secondary-container: #5b21b6;
+
+  /* Tertiary */
+  --color-tertiary: #ea580c;
+  --color-on-tertiary: #ffffff;
+  --color-tertiary-container: #ffedd5;
+  --color-on-tertiary-container: #9a3412;
+
+  /* Error */
+  --color-error: #dc2626;
+  --color-on-error: #ffffff;
+  --color-error-container: #fee2e2;
+  --color-on-error-container: #991b1b;
+
+  /* Brand overrides */
   --color-slate-950: #f8fafc;
   --color-brand-card: #ffffff;
   --color-brand-dark: #f8fafc;
-}
+  --color-brand-border: #e2e8f0;
 
-.light body {
   background-color: #f8fafc;
   color: #0f172a;
 }
 
+/* Extra light mode text & bg overrides for Tailwind utility classes */
 .light .text-slate-100,
 .light .text-slate-200,
 .light .text-white {
@@ -234,14 +312,25 @@
 
 /* Components */
 .premium-card {
-  background: #1c1b1d;
-  border: 1px solid #2d2d32;
-  box-shadow: 0px 10px 40px rgba(0, 0, 0, 0.2);
-  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.03) 0%, rgba(255, 255, 255, 0.01) 100%), #16161a;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  box-shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.7);
+  transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1), border-color 0.3s ease, box-shadow 0.3s ease;
 }
 .premium-card:hover {
-  transform: translateY(-2px);
-  box-shadow: 0px 15px 45px rgba(0, 0, 0, 0.3);
+  transform: translateY(-4px);
+  border-color: rgba(51, 119, 255, 0.45);
+  box-shadow: 0 20px 40px -15px rgba(0, 0, 0, 0.9), 0 0 20px 1px rgba(51, 119, 255, 0.1);
+}
+
+.light .premium-card {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  box-shadow: 0 4px 16px -4px rgba(0, 0, 0, 0.08);
+}
+.light .premium-card:hover {
+  border-color: rgba(37, 99, 235, 0.4);
+  box-shadow: 0 8px 24px -8px rgba(0, 0, 0, 0.12), 0 0 12px 1px rgba(37, 99, 235, 0.08);
 }
 
 .ai-gradient {
@@ -262,4 +351,3 @@
   direction: ltr;
   -webkit-font-smoothing: antialiased;
 }
-

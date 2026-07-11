@@ -61,18 +61,30 @@ export class AdzunaConnector extends BaseJobConnector {
           const possibleReqs = [
             'React', 'TypeScript', 'Node.js', 'PostgreSQL', 'Docker', 'AWS', 
             'JavaScript', 'CSS', 'Figma', 'Git', 'Customer Success', 'Salesforce', 
-            'SQL', 'SaaS', 'NPS', 'Churn', 'Onboarding', 'CSAT', 'Retention'
+            'SQL', 'SaaS', 'NPS', 'Churn', 'Onboarding', 'CSAT', 'Retention',
+            'Farmácia', 'Estética', 'Cosméticos', 'Saúde', 'Dermocosméticos',
+            'Vendas', 'Atendimento', 'Clínica', 'Biologia', 'Química', 'Gestão',
+            'Farmacêutico', 'Farmacêutica', 'Procedimentos', 'CRM', 'Marketing'
           ];
           const requirements = possibleReqs.filter(req => 
             new RegExp(`\\b${req}\\b`, 'i').test(title + ' ' + description)
           );
+
+          let defaultReq = 'Geral';
+          if (/farmac|estet|saude|saúde|cosmet/i.test(title + ' ' + description)) {
+            defaultReq = 'Saúde';
+          } else if (/venda|comercial|negoc/i.test(title + ' ' + description)) {
+            defaultReq = 'Vendas';
+          } else if (/react|ts|node|dev|engineer|tech/i.test(title + ' ' + description)) {
+            defaultReq = 'Tecnologia';
+          }
 
           return {
             companyId: 'adzuna',
             companyName: result.company?.display_name || 'Empresa Confidencial',
             title: title,
             description: description,
-            requirements: requirements.length > 0 ? requirements : ['Tecnologia'],
+            requirements: requirements.length > 0 ? requirements : [defaultReq],
             location: result.location?.display_name || 'Brasil',
             workMode: workMode,
             seniority: seniority,

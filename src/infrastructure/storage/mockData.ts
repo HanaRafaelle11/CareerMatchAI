@@ -146,6 +146,26 @@ export const mockJobs: Job[] = [
     isActive: true,
     createdAt: new Date(Date.now() - 6 * 24 * 60 * 60 * 1000).toISOString(),
     updatedAt: new Date(Date.now() - 6 * 24 * 60 * 60 * 1000).toISOString()
+  },
+  {
+    id: 'job-5',
+    companyId: 'comp-5',
+    companyName: 'Pipefy',
+    companyLogo: 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=100&auto=format&fit=crop&q=60&ixlib=rb-4.0.3',
+    title: 'Customer Success Manager',
+    description: 'Buscamos uma pessoa Customer Success Manager para integrar nosso time de atendimento. Você atuará garantindo o sucesso e satisfação dos nossos clientes corporativos (B2B), definindo estratégias para mitigar churn e melhorar a conversão. É essencial ter experiência com Salesforce, SQL e metodologias ágeis de prospecção e engajamento.',
+    requirements: ['Customer Success', 'SaaS', 'Churn', 'NPS', 'Salesforce', 'SQL', 'Inglês Intermediário'],
+    location: 'Curitiba - PR',
+    workMode: 'remote',
+    seniority: 'pleno',
+    salaryMin: 10000,
+    salaryMax: 13000,
+    currency: 'BRL',
+    sourceUrl: 'https://pipefy.com/careers',
+    sourcePlatform: 'Indeed',
+    isActive: true,
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString()
   }
 ];
 
@@ -216,6 +236,39 @@ export const mockMatches: Match[] = [
         seniority: 'Seu tempo de experiência (5 anos) se alinha perfeitamente com as expectativas para uma pessoa engenheira plena na empresa.',
         salary: 'O salário proposto atende ou supera ligeiramente sua pretensão média para posições 100% remotas.',
         location: 'Vaga 100% remota com flexibilidade geográfica total, pontuação de compatibilidade máxima.'
+      }
+    }
+  },
+  {
+    id: 'match-job-5',
+    userId: 'mock-user-id',
+    resumeId: 'resume-123',
+    jobId: 'job-5',
+    jobTitle: 'Customer Success Manager',
+    companyName: 'Pipefy',
+    companyLogo: 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=100&auto=format&fit=crop&q=60&ixlib=rb-4.0.3',
+    scoreOverall: 96,
+    scoreTechnical: 95,
+    scoreBehavioral: 97,
+    scoreSeniority: 90,
+    scoreSalary: 98,
+    scoreLocation: 100,
+    createdAt: new Date().toISOString(),
+    explanation: {
+      strengths: [
+        'Excelente alinhamento com as metas de Customer Success declaradas em suas preferências.',
+        'Sólida experiência com ferramentas de CRM e gestão como Salesforce.',
+        'Fluência nas métricas principais (Churn, NPS, LTV).'
+      ],
+      weaknesses: [
+        'Apenas conhecimento básico em banco de dados SQL (pode exigir treinamento rápido).'
+      ],
+      details: {
+        technical: 'Você preenche mais de 90% dos requisitos fundamentais do cargo. O conhecimento de Salesforce é um grande diferencial.',
+        behavioral: 'Competências comportamentais de negociação e foco em metas estão perfeitamente destacadas.',
+        seniority: 'Adequado para o nível pleno da oportunidade.',
+        salary: 'Excelente compatibilidade de pretensão salarial.',
+        location: 'Posição remota, totalmente de acordo com suas preferências.'
       }
     }
   }
@@ -301,23 +354,35 @@ Alexandre Silva`,
 };
 
 export const mockInterviewPreps: Record<string, InterviewPrep> = {
-  'match-job-1': {
+  'job-1': {
     id: 'ip-1',
-    matchId: 'match-job-1',
+    jobId: 'job-1',
     questions: [
       {
         question: 'A Stripe processa volumes massivos de transações em tempo real. Como você lidaria com gargalos de performance e concorrência em uma API escrita em Node.js?',
-        suggestedAnswer: 'Eu começaria identificando o gargalo através de Profiling (usando ferramentas como autocannon e clinic.js). No Node.js, como a Event Loop é single-threaded, gargalos costumam ser causados por tarefas intensivas de CPU bloqueando a thread ou por latência de banco de dados. Para resolver, eu implementaria caching estratégico com Redis para leituras, otimizaria queries do PostgreSQL (adicionando índices e analisando o plano de execução com EXPLAIN ANALYZE) e, para tarefas assíncronas custosas, usaria Workers ou filas com RabbitMQ/BullMQ.',
+        answerStar: {
+          context: 'Ao projetar APIs Node.js transacionais de alta concorrência na Stripe...',
+          action: 'Eu identifico gargalos via profilers (clinic.js), adiciono caching estratégico no Redis e otimizo consultas PostgreSQL com indexação adequada.',
+          result: 'Isso garante throughput de milhares de requisições por segundo sob tempo de resposta sub-100ms.'
+        },
         type: 'technical'
       },
       {
         question: 'Você pode citar um exemplo de quando liderou uma otimização técnica de alto impacto e como mediu o sucesso dela?',
-        suggestedAnswer: 'Na TechFlow Solutions, percebemos que o onboarding de novos usuários estava lento devido ao tamanho excessivo do bundle do React. Liderou a reestruturação da aplicação aplicando Code Splitting por rotas e lazy loading de componentes pesados de gráficos. Adicionalmente, ativei compressão Brotli e cache estático no CDN da AWS CloudFront. Como resultado direto das métricas do Core Web Vitals, reduzimos o Largest Contentful Paint (LCP) em 35% e observamos um aumento imediato na taxa de conversão de novos usuários.',
+        answerStar: {
+          context: 'No onboarding da TechFlow Solutions, o carregamento inicial do dashboard estava lento gerando perda de usuários.',
+          action: 'Eu implementei code-splitting por rota, lazy-loading de componentes e cache estático no AWS CloudFront.',
+          result: 'Conseguimos reduzir o Largest Contentful Paint (LCP) em 35% e aumentar a conversão de novos usuários.'
+        },
         type: 'behavioral'
       },
       {
         question: 'Como você reage quando discorda de uma decisão técnica de arquitetura tomada por um colega sênior?',
-        suggestedAnswer: 'Eu adoto a abordagem de discordar de forma respeitosa e fundamentada. Em vez de simplesmente rejeitar a proposta, eu trago dados, prós e contras das abordagens em discussão (por exemplo, impactos na manutenibilidade, performance ou custos de infraestrutura). Crio uma pequena prova de conceito se necessário. Contudo, se após o debate o time decidir seguir a outra direção, aplico o princípio de "discordar e assumir o compromisso" (disagree and commit) dando 100% de apoio para que a escolha dê certo.',
+        answerStar: {
+          context: 'Durante debates técnicos sobre infraestrutura de microsserviços na equipe...',
+          action: 'Eu trago dados objetivos e provas de conceito rápidas para decidir a melhor alternativa de forma colaborativa.',
+          result: 'Mesmo que a minha proposta não vença, sigo o princípio do "discordar e assumir compromisso" (disagree and commit) com 100% de dedicação.'
+        },
         type: 'fit'
       }
     ],
@@ -336,18 +401,26 @@ export const mockInterviewPreps: Record<string, InterviewPrep> = {
     ],
     createdAt: new Date().toISOString()
   },
-  'match-job-2': {
+  'job-2': {
     id: 'ip-2',
-    matchId: 'match-job-2',
+    jobId: 'job-2',
     questions: [
       {
         question: 'Como você aborda a criação de micro-interações fluidas sem degradar o frame-rate (FPS) da aplicação?',
-        suggestedAnswer: 'Eu priorizo animações baseadas em propriedades CSS que podem ser aceleradas por hardware pela GPU, como transform (translate, scale, rotate) e opacity, evitando propriedades que causam reflow do layout (como width, height, top, left). No React, ao utilizar Framer Motion, utilizo `layoutId` para transições de layout suaves e certifico-me de evitar re-renderizações desnecessárias da árvore de componentes vinculada aos estados de animação.',
+        answerStar: {
+          context: 'Ao implementar micro-interações fluidas no Linear...',
+          action: 'Eu animo propriedades aceleradas pela GPU (transform, opacity) e utilizo hooks de cache para evitar renders excessivos.',
+          result: 'Mantemos a interface responsiva a 60 FPS estáveis mesmo em views densas de tarefas.'
+        },
         type: 'technical'
       },
       {
         question: 'O Linear é conhecido por seu suporte completo a atalhos de teclado. Como você projetaria um hook customizado em React para gerenciar atalhos globais de forma escalável?',
-        suggestedAnswer: 'Eu criaria um hook `useKeyboardShortcut` que registra um listener no evento `keydown` da janela (`window`). Para garantir escalabilidade e evitar colisões, o hook aceitaria uma combinação de teclas (ex: "Meta+K" ou "g d") e uma função de callback. Ele lidaria com a limpeza automática do listener ao desmontar o componente e ignoraria os atalhos quando o foco estivesse em elementos editáveis (como inputs ou textareas), a menos que explicitamente configurado de outra forma.',
+        answerStar: {
+          context: 'Para dar suporte a atalhos de teclado globais no sistema...',
+          action: 'Criei um hook useKeyboardShortcut que ouve o evento keydown, limpa listeners no unmount e ignora o foco em campos de entrada.',
+          result: 'Permitiu aos usuários realizar ações instantâneas sem usar o mouse de forma muito robusta.'
+        },
         type: 'technical'
       }
     ],

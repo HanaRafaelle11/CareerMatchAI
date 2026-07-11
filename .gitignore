@@ -29,3 +29,9 @@ dist-ssr
 .vercel
 playwright-report
 test-results
+
+# Stitch design system reference assets
+stitch_mycareer_premium_ai_copilot/
+stitch_mycareer_premium_ai_copilot.zip
+scratch/
+

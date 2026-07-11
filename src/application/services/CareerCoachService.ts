@@ -39,9 +39,9 @@ export class CareerCoachService {
           scoreBehavioral: matchOverride.scoreBehavioral ?? 70,
           scoreSeniority: matchOverride.scoreSeniority ?? 100,
           scoreLocation: matchOverride.scoreLocation ?? 100,
-          missingSkills: matchOverride.gap_analysis?.missingSkills ?? [],
-          matchedSkills: matchOverride.gap_analysis?.matchedSkills ?? [],
-          yearsOfExperience: matchOverride.gap_analysis?.yearsOfExperience ?? 0
+          missingSkills: matchOverride.gap_analysis?.missingSkills ?? matchOverride.gapAnalysis?.missingSkills ?? [],
+          matchedSkills: matchOverride.gap_analysis?.matchedSkills ?? matchOverride.gapAnalysis?.matchedSkills ?? [],
+          yearsOfExperience: matchOverride.gap_analysis?.yearsOfExperience ?? matchOverride.gapAnalysis?.yearsOfExperience ?? 0
         }
       : resume
       ? MatchingEngine.calculateMatchSync(resume, job, consolidatedProfile)
@@ -85,7 +85,7 @@ export class CareerCoachService {
 
     // ── Competências encontradas (construtivo) ──
     const matched = analysis.matchedSkills || [];
-    matched.slice(0, 3).forEach(sk => {
+    matched.slice(0, 3).forEach((sk: string) => {
       reasons.push(`Experiência comprovada em ${sk}.`);
     });
 
@@ -96,7 +96,7 @@ export class CareerCoachService {
       // Com o perfil consolidado disponível, checamos se os "ausentes" realmente não
       // aparecem em nenhuma parte do perfil antes de reportar como gap
       const flatSkills = buildFlatSkillsFromProfile(consolidatedProfile);
-      const reallyMissing = missing.filter(sk => {
+      const reallyMissing = missing.filter((sk: string) => {
         const skLow = sk.toLowerCase();
         // Dupla verificação: se aparecer em qualquer parte do texto do perfil, não é ausente
         const inSkills = flatSkills.some(s => s.includes(skLow) || skLow.includes(s));
@@ -108,18 +108,18 @@ export class CareerCoachService {
       });
 
       // Para skills presentes no perfil mas "ausentes" no match (diferença semântica):
-      const semanticPresent = missing.filter(sk => !reallyMissing.includes(sk));
-      semanticPresent.slice(0, 2).forEach(sk => {
+      const semanticPresent = missing.filter((sk: string) => !reallyMissing.includes(sk));
+      semanticPresent.slice(0, 2).forEach((sk: string) => {
         warnings.push(`Encontramos ${sk} no seu perfil. Para maximizar a aderência, destaque resultados mensuráveis relacionados a ${sk} no currículo.`);
       });
 
       // Para gaps reais:
-      reallyMissing.slice(0, 2).forEach(sk => {
+      reallyMissing.slice(0, 2).forEach((sk: string) => {
         warnings.push(`A vaga exige ${sk}, que não identificamos no seu perfil atual. Considere adicionar projetos ou certificações relacionados.`);
       });
     } else {
       // Fallback sem perfil consolidado — usa linguagem construtiva
-      missing.slice(0, 2).forEach(sk => {
+      missing.slice(0, 2).forEach((sk: string) => {
         warnings.push(`Para aumentar a aderência, vale destacar experiências relacionadas a ${sk} no currículo.`);
       });
     }
@@ -135,7 +135,7 @@ export class CareerCoachService {
       recommendation = 'Excelente aderência! Esta vaga está alinhada ao seu perfil. Prossiga com o envio da candidatura, destacando os pontos fortes identificados.';
     } else if (analysis.scoreOverall >= 65) {
       shouldApply = '🟡 Ajustar antes';
-      const toHighlight = missing.filter(sk => {
+      const toHighlight = missing.filter((sk: string) => {
         if (!consolidatedProfile) return true;
         const flat = buildFlatSkillsFromProfile(consolidatedProfile);
         return !flat.some(s => s.includes(sk.toLowerCase()));

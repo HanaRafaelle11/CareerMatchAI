@@ -549,6 +549,7 @@ export function useMatches(userId: string | undefined, resumeId?: string | null)
           scoreSeniority: m.score_seniority,
           scoreLocation: 100,
           explanation: m.explanation,
+          gap_analysis: m.gap_analysis, // Adiciona o gap_analysis para o AI Coach
           createdAt: m.created_at,
           processingTimeMs: m.processing_time_ms
         }));

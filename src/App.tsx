@@ -9,6 +9,7 @@ import { useRoadmapServices } from './application/hooks/useRoadmapServices';
 import { Navbar } from './presentation/components/Navbar';
 import { Login } from './presentation/pages/Login';
 import { Menu, FileText, Loader2 } from 'lucide-react';
+import { isSupabaseConfigured, supabase } from './infrastructure/api/supabaseClient';
 
 // ── Code Splitting: Lazy-load das páginas pesadas ──
 const Dashboard = lazy(() => import('./presentation/pages/Dashboard').then(m => ({ default: m.Dashboard })));
@@ -17,6 +18,7 @@ const JobMatchHub = lazy(() => import('./presentation/pages/JobMatchHub').then(m
 const CareerProfilePage = lazy(() => import('./presentation/pages/CareerProfilePage').then(m => ({ default: m.CareerProfilePage })));
 const StrategyPage = lazy(() => import('./presentation/pages/StrategyPage').then(m => ({ default: m.StrategyPage })));
 const CoachDashboard = lazy(() => import('./presentation/pages/CoachDashboard').then(m => ({ default: m.CoachDashboard })));
+const AdminDashboard = lazy(() => import('./presentation/pages/AdminDashboard').then(m => ({ default: m.AdminDashboard })));
 
 function LazyFallback() {
   return (
@@ -36,6 +38,27 @@ function App() {
   const { user, profile, loading, loginWithEmail, signUpWithEmail, loginWithOAuth, logout } = useAuth();
   const [activeTab, setActiveTab] = useState('dashboard');
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const [isAdmin, setIsAdmin] = useState(false);
+
+  useEffect(() => {
+    async function checkAdmin() {
+      if (!isSupabaseConfigured || !supabase) {
+        setIsAdmin(true); // local developer fallback
+        return;
+      }
+      const { data: { user: currentUser } } = await supabase.auth.getUser();
+      if (currentUser) {
+        const adminEmail = currentUser.email?.includes('admin') || 
+                           currentUser.email?.includes('rafox') || 
+                           currentUser.email?.includes('suporte') ||
+                           currentUser.user_metadata?.role === 'admin';
+        setIsAdmin(!!adminEmail);
+      } else {
+        setIsAdmin(false);
+      }
+    }
+    checkAdmin();
+  }, [user]);
 
   const { resumes, uploadResume, deleteResume, isUploading, pipelineSteps } = useResumes(profile?.id);
   
@@ -185,6 +208,7 @@ function App() {
         onLogout={logout}
         isOpen={isSidebarOpen}
         onClose={() => setIsSidebarOpen(false)}
+        isAdmin={isAdmin}
       />
 
       {/* Container Principal */}
@@ -332,6 +356,12 @@ function App() {
               getSimulationQuery={getSimulationQuery}
               triggerDailyChecks={triggerDailyChecks}
             />
+          </Suspense>
+        )}
+
+        {activeTab === 'admin' && (
+          <Suspense fallback={<LazyFallback />}>
+            <AdminDashboard userId={profile?.id} />
           </Suspense>
         )}
       </main>

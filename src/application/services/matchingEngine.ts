@@ -17,9 +17,15 @@ export function calcYearsFromExperiences(
 
   // Coleta todos os intervalos [startMs, endMs]
   const intervals: [number, number][] = experiences.map(exp => {
-    const start = exp.startDate ? new Date(exp.startDate).getTime() : new Date('2000-01-01').getTime();
-    const end = exp.isCurrent || !exp.endDate ? Date.now() : new Date(exp.endDate).getTime();
-    return [start, Math.max(start, end)];
+    let start = exp.startDate ? new Date(exp.startDate).getTime() : new Date('2000-01-01').getTime();
+    if (isNaN(start)) {
+      start = new Date('2000-01-01').getTime();
+    }
+    let end = exp.isCurrent || !exp.endDate ? Date.now() : new Date(exp.endDate).getTime();
+    if (isNaN(end)) {
+      end = Date.now();
+    }
+    return [Math.min(start, end), Math.max(start, end)];
   });
 
   // Ordena e mescla intervalos para evitar dupla contagem
@@ -41,7 +47,7 @@ export function calcYearsFromExperiences(
   merged += curEnd - curStart;
 
   const years = Math.round(merged / (1000 * 60 * 60 * 24 * 365));
-  return Math.max(0, years);
+  return isNaN(years) ? 0 : Math.max(0, years);
 }
 
 /**

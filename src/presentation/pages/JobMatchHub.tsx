@@ -1,4 +1,5 @@
 import { useState, type FormEvent, useEffect, useRef } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import { CardGlass } from '../components/CardGlass';
 import { RadarChart } from '../components/RadarChart';
 import { useJobDiscovery } from '../../application/hooks/useJobDiscovery';
@@ -45,6 +46,7 @@ export function JobMatchHub({
   applications = [],
   onCreateApplication
 }: JobMatchHubProps) {
+  const queryClient = useQueryClient();
   const [subTab, setSubTab] = useState<'my-jobs' | 'discover'>('my-jobs');
   const [coachTab, setCoachTab] = useState<'coach-evaluation' | 'optimize-cv' | 'cover-letter' | 'interview-questions'>('coach-evaluation');
   const [isDeletingAnalyses, setIsDeletingAnalyses] = useState(false);
@@ -244,32 +246,80 @@ export function JobMatchHub({
   const handleDeleteAnalyses = async () => {
     if (!userId || !primaryResume || !isSupabaseConfigured || !supabase) return;
     
-    const confirm = window.confirm("Você irá remover todas as análises feitas pela IA deste currículo. Deseja continuar?");
+    const confirm = window.confirm("Você irá remover todas as análises feitas pela IA deste currículo (compatibilidade, otimizações, STAR questions). O currículo físico continuará ativo. Deseja continuar?");
     if (!confirm) return;
 
     try {
       setIsDeletingAnalyses(true);
       
-      // 1. Apagar da tabela public.resume_versions (as restrições cascade do banco apagam career_profiles, career_insights e job_matches em cascata)
+      // 1. Apagar matches associados
+      const { error: matchesErr } = await supabase
+        .from('matches')
+        .delete()
+        .eq('resume_id', primaryResume.id);
+      if (matchesErr) throw matchesErr;
+
+      // 2. Apagar job_matches associados
       if (primaryResume.resumeVersionId) {
-        console.log(`[CLEANUP] Removendo versão do currículo: ${primaryResume.resumeVersionId}`);
-        const { error: rvError } = await supabase
-          .from('resume_versions')
+        await supabase
+          .from('job_matches')
           .delete()
-          .eq('id', primaryResume.resumeVersionId);
-        if (rvError) throw rvError;
+          .eq('resume_version_id', primaryResume.resumeVersionId);
       }
 
-      // 2. Apagar da tabela public.resumes (deleta matches em cascata)
-      console.log(`[CLEANUP] Removendo currículo legado: ${primaryResume.id}`);
-      const { error: rError } = await supabase
-        .from('resumes')
+      // 3. Apagar resume_optimizations associados
+      await supabase
+        .from('resume_optimizations')
         .delete()
-        .eq('id', primaryResume.id);
-      if (rError) throw rError;
+        .eq('resume_id', primaryResume.id);
 
-      alert("Análises deste currículo apagadas com sucesso!");
-      window.location.reload();
+      // 4. Apagar cover_letters associadas
+      if (primaryResume.resumeVersionId) {
+        const { data: apps } = await supabase
+          .from('applications')
+          .select('id')
+          .eq('resume_version_id', primaryResume.resumeVersionId);
+        
+        if (apps && apps.length > 0) {
+          const appIds = apps.map(a => a.id);
+          await supabase
+            .from('cover_letters')
+            .delete()
+            .in('application_id', appIds);
+        }
+      }
+
+      // 5. Apagar career_insights associados
+      if (primaryResume.resumeVersionId) {
+        await supabase
+          .from('career_insights')
+          .delete()
+          .eq('resume_version_id', primaryResume.resumeVersionId);
+      }
+
+      // 6. Apagar ai_analysis_cache relacionado
+      if (careerProfile) {
+        const textToHash = JSON.stringify(careerProfile);
+        const msgUint8 = new TextEncoder().encode(textToHash);
+        const hashBuffer = await crypto.subtle.digest("SHA-256", msgUint8);
+        const hashArray = Array.from(new Uint8Array(hashBuffer));
+        const hashHex = hashArray.map((b) => b.toString(16).padStart(2, "0")).join("");
+        
+        await supabase
+          .from('ai_analysis_cache')
+          .delete()
+          .eq('resume_hash', hashHex);
+      }
+
+      // Invalida todos os caches no frontend para refletir a remoção imediatamente de forma reativa
+      queryClient.invalidateQueries({ queryKey: ['matches', userId] });
+      queryClient.invalidateQueries({ queryKey: ['match-details'] });
+      queryClient.invalidateQueries({ queryKey: ['resume-optimization'] });
+      queryClient.invalidateQueries({ queryKey: ['cover-letter'] });
+      queryClient.invalidateQueries({ queryKey: ['interview-prep'] });
+      queryClient.invalidateQueries({ queryKey: ['career-insights'] });
+
+      alert("Análises deste currículo apagadas com sucesso! Você pode recalcular compatibilidades.");
     } catch (err: any) {
       console.error("Erro ao apagar análises:", err);
       const formatted = AppError.from(err);
@@ -282,10 +332,14 @@ export function JobMatchHub({
   
   const { 
     getResumeOptimizationQuery, 
+    generateResumeOptimization,
+    isGeneratingOptimization,
     getCoverLetterQuery, 
     generateCoverLetter, 
     isGeneratingLetter, 
-    getInterviewPrepQuery 
+    getInterviewPrepQuery,
+    generateInterviewPrep,
+    isGeneratingPrep
   } = useCoach(userId);
 
   const [showAddForm, setShowAddForm] = useState(false);
@@ -810,6 +864,13 @@ export function JobMatchHub({
                               onClick={() => {
                                 setCoachTab('optimize-cv');
                                 document.getElementById('ai-career-coach-panel')?.scrollIntoView({ behavior: 'smooth' });
+                                if (!optimization && primaryResume && selectedJob) {
+                                  generateResumeOptimization({
+                                    resumeId: primaryResume.id,
+                                    resumeVersionId: primaryResume.resumeVersionId || primaryResume.id,
+                                    jobId: selectedJob.id
+                                  });
+                                }
                               }}
                               className="w-full py-2 rounded-xl bg-brand-500/10 hover:bg-brand-500/20 border border-brand-500/20 text-brand-400 text-[10px] font-bold tracking-wider uppercase transition font-display flex items-center justify-center gap-1"
                             >
@@ -1112,8 +1173,26 @@ export function JobMatchHub({
                       )}
 
                       {coachTab === 'optimize-cv' && !optimization && !isLoadingOpt && (
-                        <div className="py-12 border border-dashed border-slate-900 rounded-xl flex flex-col items-center justify-center text-center text-slate-500 space-y-3">
-                          <span>Nenhuma sugestão de otimização disponível para esta vaga.</span>
+                        <div className="py-12 border border-dashed border-slate-800 rounded-xl flex flex-col items-center justify-center text-center p-6 space-y-4 animate-fade-in">
+                          <span className="text-slate-400 text-xs">O seu currículo ainda não foi otimizado para esta vaga específica.</span>
+                          <button
+                            onClick={() => generateResumeOptimization({
+                              resumeId: primaryResume!.id,
+                              resumeVersionId: primaryResume!.resumeVersionId || primaryResume!.id,
+                              jobId: selectedJob!.id
+                            })}
+                            disabled={isGeneratingOptimization}
+                            className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-brand-600 hover:bg-brand-500 text-white text-xs font-bold transition-all disabled:opacity-50"
+                          >
+                            {isGeneratingOptimization ? (
+                              <>
+                                <Loader2 className="animate-spin" size={14} />
+                                Otimizando...
+                              </>
+                            ) : (
+                              'Melhorar meu currículo para essa vaga'
+                            )}
+                          </button>
                         </div>
                       )}
 
@@ -1185,13 +1264,18 @@ export function JobMatchHub({
                               </div>
                             </div>
                           ) : (
-                            <div className="py-12 border border-dashed border-slate-900 rounded-xl flex flex-col items-center justify-center text-center text-slate-500 space-y-3">
-                              <span>Gere apresentações customizadas com IA baseadas no perfil da vaga e da empresa.</span>
+                            <div className="py-12 border border-dashed border-slate-800 rounded-xl flex flex-col items-center justify-center text-center p-6 space-y-4 animate-fade-in">
+                              <span className="text-slate-400 text-xs">Gere cartas de apresentação personalizadas com IA baseadas na vaga e empresa.</span>
                               <button
                                 type="button"
-                                onClick={() => generateCoverLetter({ applicationId: mockAppId!, jobTitle: selectedJob!.title, companyName: selectedJob!.companyName })}
+                                onClick={() => generateCoverLetter({
+                                  resumeId: primaryResume!.id,
+                                  resumeVersionId: primaryResume!.resumeVersionId || primaryResume!.id,
+                                  jobId: selectedJob?.id,
+                                  applicationId: mockAppId || `mock-app-${Date.now()}`
+                                })}
                                 disabled={isGeneratingLetter}
-                                className="px-4 py-2 bg-brand-600 hover:bg-brand-500 text-white font-bold rounded-xl transition-all shadow"
+                                className="px-4 py-2 bg-brand-600 hover:bg-brand-500 text-white font-bold rounded-xl transition-all shadow cursor-pointer text-xs"
                               >
                                 {isGeneratingLetter ? 'Gerando Cartas...' : 'Gerar Cartas de Apresentação'}
                               </button>
@@ -1209,14 +1293,32 @@ export function JobMatchHub({
                       )}
 
                       {coachTab === 'interview-questions' && !prep && !isLoadingPrep && (
-                        <div className="py-12 border border-dashed border-slate-900 rounded-xl flex flex-col items-center justify-center text-center text-slate-500 space-y-3">
-                          <span>Nenhuma pergunta STAR de preparação disponível.</span>
+                        <div className="py-12 border border-dashed border-slate-800 rounded-xl flex flex-col items-center justify-center text-center p-6 space-y-4 animate-fade-in">
+                          <span className="text-slate-400 text-xs">As perguntas preparatórias baseadas no método STAR ainda não foram criadas para esta vaga.</span>
+                          <button
+                            onClick={() => generateInterviewPrep({
+                              resumeId: primaryResume!.id,
+                              resumeVersionId: primaryResume!.resumeVersionId || primaryResume!.id,
+                              jobId: selectedJob!.id
+                            })}
+                            disabled={isGeneratingPrep}
+                            className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-brand-600 hover:bg-brand-500 text-white text-xs font-bold transition-all disabled:opacity-50 cursor-pointer"
+                          >
+                            {isGeneratingPrep ? (
+                              <>
+                                <Loader2 className="animate-spin" size={14} />
+                                Gerando Perguntas...
+                              </>
+                            ) : (
+                              'Gerar perguntas STAR e roteiro'
+                            )}
+                          </button>
                         </div>
                       )}
 
                       {coachTab === 'interview-questions' && prep && (
                         <div className="space-y-4 animate-fade-in text-xs max-h-[350px] overflow-y-auto pr-1">
-                          {prep.questions.map((q, idx) => (
+                          {prep.questions.map((q: any, idx: number) => (
                             <div key={idx} className="p-4 rounded-xl bg-slate-900/30 border border-slate-900/60 space-y-3 text-left">
                               <div className="flex justify-between items-start gap-2">
                                 <strong className="text-slate-200 text-xs">P: {q.question}</strong>

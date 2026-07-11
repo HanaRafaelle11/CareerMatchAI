@@ -5,7 +5,7 @@ import { ResumeOptimizationService } from '../services/ResumeOptimizationService
 import { InterviewPreparationService } from '../services/InterviewPreparationService';
 import { InterviewSimulationService } from '../services/InterviewSimulationService';
 import type { 
-  Resume, Job, CoverLetter, InterviewPreparation, 
+  Resume, Job, CoverLetter, 
   InterviewSimulation, PostInterviewLog, Notification 
 } from '../../domain/models/types';
 
@@ -37,9 +37,9 @@ export function useCoach(userId: string | undefined) {
 
             if (error) {
               console.error('[COACH] Erro ao buscar otimização:', error);
-              return ResumeOptimizationService.optimizeForJob(resume, job);
+              return null;
             }
-            if (!data) return ResumeOptimizationService.optimizeForJob(resume, job);
+            if (!data) return null;
             return {
               id: data.id,
               resumeId: data.resume_id,
@@ -52,15 +52,40 @@ export function useCoach(userId: string | undefined) {
             };
           } catch (err) {
             console.error('[COACH] Erro na consulta de otimização:', err);
-            return ResumeOptimizationService.optimizeForJob(resume, job);
+            return null;
           }
         } else {
-          return ResumeOptimizationService.optimizeForJob(resume, job);
+          return localDB.getResumeOptimization(resume.id, (job as any).id);
         }
       },
       enabled: !!resume && !!job
     });
   };
+
+  const generateResumeOptimizationMutation = useMutation({
+    mutationFn: async ({ resumeId, resumeVersionId, jobId }: { resumeId: string; resumeVersionId: string; jobId: string }) => {
+      if (isSupabaseConfigured && supabase) {
+        const { data, error } = await supabase.functions.invoke('match-job', {
+          body: {
+            resumeId,
+            resumeVersionId,
+            jobId,
+            operation: 'optimize-cv'
+          }
+        });
+        if (error) throw error;
+        return data;
+      } else {
+        const resume = localDB.getResumes().find(r => r.id === resumeId);
+        const job = localDB.getJob(jobId);
+        if (!resume || !job) throw new Error('Currículo ou vaga local não encontrados.');
+        return ResumeOptimizationService.optimizeForJob(resume, job);
+      }
+    },
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['resume-optimization', variables.resumeId, variables.jobId] });
+    }
+  });
 
   // 2. Cover Letter
   const getCoverLetterQuery = (applicationId: string | undefined) => {
@@ -103,30 +128,31 @@ export function useCoach(userId: string | undefined) {
   };
 
   const generateCoverLetterMutation = useMutation({
-    mutationFn: async ({ applicationId, jobTitle, companyName }: { applicationId: string; jobTitle: string; companyName: string }) => {
-      const letter: CoverLetter = {
-        id: `letter-${Date.now()}`,
-        applicationId,
-        textFormal: `Prezada equipe de recrutamento da ${companyName},\n\nGostaria de formalizar meu interesse na posição de ${jobTitle}. Com ampla experiência em Customer Success no segmento SaaS...`,
-        textDirect: `Olá time da ${companyName},\n\nVi a vaga para ${jobTitle} e me identifiquei muito. Sou especialista em CS com foco em redução de Churn e controle de NPS.`,
-        textExecutive: `À Direção de Operações da ${companyName},\n\nEscrevo para apresentar minha candidatura à vaga de ${jobTitle}. Possuo histórico consolidado liderando equipes de CS e operando com Salesforce/SQL.`,
-        createdAt: new Date().toISOString()
-      };
-
-      const isMock = applicationId.includes('mock') || !isValidUUID(applicationId);
-
-      if (isSupabaseConfigured && supabase && !isMock) {
-        const { error } = await supabase.from('cover_letters').insert({
-          application_id: letter.applicationId,
-          text_formal: letter.textFormal,
-          text_direct: letter.textDirect,
-          text_executive: letter.textExecutive
+    mutationFn: async ({ resumeId, resumeVersionId, jobId, applicationId }: { resumeId: string; resumeVersionId: string; jobId?: string; applicationId: string }) => {
+      if (isSupabaseConfigured && supabase) {
+        const { data, error } = await supabase.functions.invoke('match-job', {
+          body: {
+            resumeId,
+            resumeVersionId,
+            jobId,
+            applicationId,
+            operation: 'cover-letter'
+          }
         });
         if (error) throw error;
+        return data;
       } else {
+        const letter: CoverLetter = {
+          id: `letter-${Date.now()}`,
+          applicationId,
+          textFormal: `Prezada equipe de recrutamento,\n\nGostaria de formalizar meu interesse nesta vaga...`,
+          textDirect: `Olá time,\n\nVi a vaga e me identifiquei muito. Sou especialista na minha área de atuação...`,
+          textExecutive: `À Direção de Operações,\n\nEscrevo para apresentar minha candidatura. Possuo histórico consolidado liderando projetos...`,
+          createdAt: new Date().toISOString()
+        };
         localDB.saveCoverLetter(letter);
+        return letter;
       }
-      return letter;
     },
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ['cover-letter', variables.applicationId] });
@@ -135,8 +161,8 @@ export function useCoach(userId: string | undefined) {
 
   // 3. Interview Prep
   const getInterviewPrepQuery = (resume: Resume | null, job: Job | Omit<Job, 'id' | 'userId' | 'createdAt' | 'updatedAt'> | null) => {
-    return useQuery<InterviewPreparation | null>({
-      queryKey: ['interview-prep', (job as any)?.id],
+    return useQuery<any | null>({
+      queryKey: ['interview-prep', resume?.id, (job as any)?.id],
       queryFn: async () => {
         if (!job) return null;
         if (isSupabaseConfigured && supabase && (job as any).id && isValidUUID((job as any).id)) {
@@ -149,26 +175,70 @@ export function useCoach(userId: string | undefined) {
 
             if (error) {
               console.error('[COACH] Erro ao carregar prep:', error);
-              return InterviewPreparationService.getPreparation(resume, job);
+              return null;
             }
-            if (!data) return InterviewPreparationService.getPreparation(resume, job);
+            if (!data) return null;
+            
+            // Suporta o novo formato com introdução
+            const isLegacyFormat = Array.isArray(data.questions);
             return {
               id: data.id,
               jobId: data.job_id,
-              questions: data.questions,
+              questions: isLegacyFormat ? data.questions : (data.questions.questions || []),
+              introduction: isLegacyFormat ? undefined : data.questions.introduction,
               createdAt: data.created_at
             };
           } catch (err) {
             console.error('[COACH] Erro na consulta de interview prep:', err);
-            return InterviewPreparationService.getPreparation(resume, job);
+            return null;
           }
         } else {
-          return InterviewPreparationService.getPreparation(resume, job);
+          const prep = localDB.getInterviewPreparation((job as any).id);
+          if (!prep) return null;
+          return {
+            id: prep.id,
+            jobId: prep.jobId,
+            questions: prep.questions,
+            createdAt: prep.createdAt
+          };
         }
       },
       enabled: !!job
     });
   };
+
+  const generateInterviewPrepMutation = useMutation({
+    mutationFn: async ({ resumeId, resumeVersionId, jobId }: { resumeId: string; resumeVersionId: string; jobId: string }) => {
+      if (isSupabaseConfigured && supabase) {
+        const { data, error } = await supabase.functions.invoke('match-job', {
+          body: {
+            resumeId,
+            resumeVersionId,
+            jobId,
+            operation: 'interview-prep'
+          }
+        });
+        if (error) throw error;
+        
+        const isLegacyFormat = Array.isArray(data.questions);
+        return {
+          id: data.id,
+          jobId: data.job_id,
+          questions: isLegacyFormat ? data.questions : (data.questions.questions || []),
+          introduction: isLegacyFormat ? undefined : data.questions.introduction,
+          createdAt: data.created_at
+        };
+      } else {
+        const resume = localDB.getResumes().find(r => r.id === resumeId);
+        const job = localDB.getJob(jobId);
+        if (!job) throw new Error('Vaga local não encontrada.');
+        return InterviewPreparationService.getPreparation(resume || null, job);
+      }
+    },
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['interview-prep', variables.jobId] });
+    }
+  });
 
   // 4. Interview Simulation
   const getSimulationQuery = (applicationId: string | undefined) => {
@@ -391,21 +461,24 @@ export function useCoach(userId: string | undefined) {
 
   const triggerDailyChecksMutation = useMutation({
     mutationFn: async () => {
-      if (isSupabaseConfigured && supabase) {
-        // As Edge Functions fariam isso em produção. Simulando resposta.
-        return { success: true, checked: new Date().toISOString() };
-      } else {
-        return { success: true, checked: new Date().toISOString() };
-      }
+      // Invalida o cache de descoberta de vagas e de compatibilidades para forçar um refetch limpo da Adzuna
+      queryClient.invalidateQueries({ queryKey: ['job-discovery'] });
+      queryClient.invalidateQueries({ queryKey: ['jobs', userId] });
+      queryClient.invalidateQueries({ queryKey: ['matches', userId] });
+      return { success: true, checked: new Date().toISOString() };
     }
   });
 
   return {
     getResumeOptimizationQuery,
+    generateResumeOptimization: generateResumeOptimizationMutation.mutateAsync,
+    isGeneratingOptimization: generateResumeOptimizationMutation.isPending,
     getCoverLetterQuery,
     generateCoverLetter: generateCoverLetterMutation.mutateAsync,
     isGeneratingLetter: generateCoverLetterMutation.isPending,
     getInterviewPrepQuery,
+    generateInterviewPrep: generateInterviewPrepMutation.mutateAsync,
+    isGeneratingPrep: generateInterviewPrepMutation.isPending,
     getSimulationQuery,
     startSimulation: startSimulationMutation.mutateAsync,
     sendMessage: sendMessageMutation.mutateAsync,

@@ -1486,8 +1486,12 @@ export function StrategyPage({
                           Ver Linha do Tempo
                         </button>
                         <button
-                          onClick={() => onDeleteApplication(app.id)}
-                          className="p-1.5 rounded-lg text-slate-500 hover:text-red-400 hover:bg-red-500/10 transition-colors"
+                          onClick={() => {
+                            if (window.confirm(`Tem certeza que deseja excluir a candidatura para a vaga "${app.jobTitle}" na empresa "${app.companyName}"? Todos os estágios e logs desta candidatura serão removidos permanentemente.`)) {
+                              onDeleteApplication(app.id);
+                            }
+                          }}
+                          className="p-1.5 rounded-lg text-slate-500 hover:text-red-400 hover:bg-red-500/10 transition-colors cursor-pointer"
                         >
                           <Trash2 size={14} />
                         </button>

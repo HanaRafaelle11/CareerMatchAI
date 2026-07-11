@@ -55,7 +55,25 @@ export function useRoadmapServices(userId: string | undefined) {
             .maybeSingle();
 
           if (error) throw error;
-          if (!data) return null;
+          if (!data) {
+            // Retorna um planner vazio padrão para evitar telas em branco
+            return {
+              id: 'wp-default-' + weekNumber,
+              userId: userId,
+              weekNumber: weekNumber,
+              plannerData: {
+                'Segunda-feira': { tasks: [] },
+                'Terça-feira': { tasks: [] },
+                'Quarta-feira': { tasks: [] },
+                'Quinta-feira': { tasks: [] },
+                'Sexta-feira': { tasks: [] },
+                'Sábado': { tasks: [] },
+                'Domingo': { tasks: [] }
+              },
+              createdAt: new Date().toISOString(),
+              updatedAt: new Date().toISOString()
+            };
+          }
           return {
             id: data.id,
             userId: data.user_id,
@@ -65,7 +83,22 @@ export function useRoadmapServices(userId: string | undefined) {
             updatedAt: data.updated_at
           };
         } else {
-          return localDB.getWeeklyPlanner(userId, weekNumber);
+          return localDB.getWeeklyPlanner(userId, weekNumber) || {
+            id: 'wp-default-' + weekNumber,
+            userId: userId,
+            weekNumber: weekNumber,
+            plannerData: {
+              'Segunda-feira': { tasks: [] },
+              'Terça-feira': { tasks: [] },
+              'Quarta-feira': { tasks: [] },
+              'Quinta-feira': { tasks: [] },
+              'Sexta-feira': { tasks: [] },
+              'Sábado': { tasks: [] },
+              'Domingo': { tasks: [] }
+            },
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString()
+          };
         }
       },
       enabled: !!userId && !!weekNumber,
@@ -116,7 +149,19 @@ export function useRoadmapServices(userId: string | undefined) {
             .maybeSingle();
 
           if (error) throw error;
-          if (!data) return null;
+          if (!data) {
+            // Retorna meta padrão para evitar erros e carregar o form
+            return {
+              id: 'wg-default-' + weekNumber,
+              userId: userId,
+              weekNumber: weekNumber,
+              targetApplications: 5,
+              targetInterviewsRh: 2,
+              targetInterviewsManager: 1,
+              createdAt: new Date().toISOString(),
+              updatedAt: new Date().toISOString()
+            };
+          }
           return {
             id: data.id,
             userId: data.user_id,
@@ -128,7 +173,16 @@ export function useRoadmapServices(userId: string | undefined) {
             updatedAt: data.updated_at
           };
         } else {
-          return localDB.getWeeklyGoal(userId, weekNumber);
+          return localDB.getWeeklyGoal(userId, weekNumber) || {
+            id: 'wg-default-' + weekNumber,
+            userId: userId,
+            weekNumber: weekNumber,
+            targetApplications: 5,
+            targetInterviewsRh: 2,
+            targetInterviewsManager: 1,
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString()
+          };
         }
       },
       enabled: !!userId && !!weekNumber,

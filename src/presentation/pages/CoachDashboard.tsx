@@ -112,7 +112,7 @@ export function CoachDashboard({
       const textLower = userText.toLowerCase();
       
       if (!applications || applications.length === 0) {
-        reply = "Você ainda não possui candidaturas suficientes para gerar recomendações baseadas em histórico.";
+        reply = "Você ainda não cadastrou candidaturas na sua aba de Estratégia. \n\nAssim que você adicionar suas vagas de interesse ou processos em andamento por lá, eu poderei analisar o seu histórico para te fornecer insights de conversão para entrevistas, dicas de negociação de salário e sugestões de foco técnico/comportamental.";
       } else {
         const totalApps = applications.length;
         const totalInterviews = applications.filter(a => 

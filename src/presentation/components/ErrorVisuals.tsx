@@ -4,7 +4,7 @@ import {
   ShieldAlert, FileText, Cpu, Briefcase, CheckCircle, Circle, MailCheck
 } from 'lucide-react';
 import { CardGlass } from './CardGlass';
-import { AppError } from '../../application/errors/AppError';
+import { AppError, ERROR_CATALOG } from '../../application/errors/AppError';
 
 interface ErrorStateProps {
   error: any;
@@ -49,6 +49,26 @@ export function ErrorState({ error, onRetry, onAction }: ErrorStateProps) {
           <p className="text-xs text-slate-400 leading-relaxed font-sans">
             {appError.message}
           </p>
+          
+          {ERROR_CATALOG[appError.code] && (() => {
+            const item = ERROR_CATALOG[appError.code];
+            return (
+              <div className="mt-3 p-3.5 rounded-xl bg-slate-950/60 border border-slate-900/60 space-y-1.5 text-[11px] font-sans leading-relaxed text-slate-400 animate-fade-in">
+                <div>
+                  <strong className="text-brand-400 block text-[9px] uppercase font-extrabold tracking-wider mb-1">Diagnóstico Detalhado</strong>
+                </div>
+                <div>
+                  <strong className="text-slate-300">Causa provável:</strong> {item.cause}
+                </div>
+                <div>
+                  <strong className="text-slate-300">Impacto no sistema:</strong> {item.impact}
+                </div>
+                <div>
+                  <strong className="text-slate-300">Recomendação:</strong> {item.recommendation}
+                </div>
+              </div>
+            );
+          })()}
         </div>
       </div>
 

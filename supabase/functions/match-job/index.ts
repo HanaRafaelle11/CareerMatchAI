@@ -20,6 +20,7 @@ async function fetchWithRetry(url: string, options: any, maxRetries = 3): Promis
         continue;
       }
       return response;
+      
     } catch (err) {
       if (attempt === maxRetries) throw err;
       console.warn(`[GEMINI RETRY] Tentativa ${attempt} falhou com erro de rede: ${err.message}. Aguardando ${delays[attempt - 1] || 10000}ms...`);
@@ -113,8 +114,10 @@ async function logAiUsage(supabaseClient: any, userId: string, feature: string, 
 function calcYearsFromExperiences(experiences: any[]): number {
   if (!experiences || experiences.length === 0) return 0;
   const intervals: [number, number][] = experiences.map(exp => {
-    const start = exp.startDate ? new Date(exp.startDate).getTime() : new Date('2000-01-01').getTime();
-    const end = exp.isCurrent || !exp.endDate ? Date.now() : new Date(exp.endDate).getTime();
+    const startVal = exp.startDate ? new Date(exp.startDate).getTime() : new Date('2000-01-01').getTime();
+    const endVal = exp.isCurrent || !exp.endDate ? Date.now() : new Date(exp.endDate).getTime();
+    const start = isNaN(startVal) ? Date.now() : startVal;
+    const end = isNaN(endVal) ? Date.now() : endVal;
     return [start, Math.max(start, end)];
   });
   intervals.sort((a, b) => a[0] - b[0]);
@@ -200,137 +203,18 @@ const SYNONYM_MAP: Record<string, string[]> = {
   'enterprise': ['enterprise accounts', 'grandes contas', 'b2b enterprise', 'contas enterprise'],
 };
 
-function checkRequirement(req: string, flatSkills: string[], experiences: any[] | null): boolean {
-  const reqLower = req.toLowerCase().trim();
-  if (flatSkills.includes(reqLower)) return true;
-  
-  const syns = SYNONYM_MAP[reqLower];
-  if (syns && syns.some(s => flatSkills.includes(s.toLowerCase()))) return true;
-  
-  for (const s of flatSkills) {
-    if (s.includes(reqLower) || reqLower.includes(s)) return true;
-  }
-  
-  if (experiences) {
-    const needle = reqLower;
-    for (const exp of experiences) {
-      const haystack = [
-        exp.description || '',
-        ...(exp.highlights || []),
-        exp.role || '',
-        exp.companyName || ''
-      ].join(' ').toLowerCase();
-      if (haystack.includes(needle)) return true;
-    }
-  }
-  return false;
-}
-
-function calculateRuleBasedScore(careerProfile: any, job: any): number {
-  const flatSkills = buildFlatSkillsFromProfile(careerProfile);
-  const experiences = careerProfile.experience ?? null;
-  const yearsOfExperience = calcYearsFromExperiences(careerProfile.experience || []);
-
-  let matchedCount = 0;
-  const reqs = job.requirements || [];
-  reqs.forEach((req: string) => {
-    if (checkRequirement(req, flatSkills, experiences)) {
-      matchedCount++;
-    }
-  });
-
-  const scoreTechnical = Math.round((matchedCount / Math.max(reqs.length, 1)) * 100);
-
-  // Behavioral
-  const softTerms = [
-    ...(careerProfile.soft_skills || []).map((s: string) => s.toLowerCase()),
-    ...flatSkills
-  ];
-  const hasLeadership = softTerms.some(s =>
-    s.includes('lider') || s.includes('mentor') || s.includes('liderança') ||
-    s.includes('gestão') || s.includes('team lead')
-  );
-  const hasAgile = softTerms.some(s =>
-    s.includes('ágil') || s.includes('agile') || s.includes('scrum')
-  );
-  const hasComms = softTerms.some(s =>
-    s.includes('comun') || s.includes('equipe') || s.includes('trabalho') || s.includes('stakeholder')
-  );
-
-  let scoreBehavioral = 70;
-  if (hasLeadership) scoreBehavioral += 10;
-  if (hasAgile) scoreBehavioral += 10;
-  if (hasComms) scoreBehavioral += 10;
-  scoreBehavioral = Math.min(scoreBehavioral, 100);
-
-  // Seniority
-  const seniorityMap: Record<string, { min: number, max: number }> = {
-    'junior': { min: 0, max: 2 },
-    'pleno': { min: 2, max: 5 },
-    'senior': { min: 5, max: 10 },
-    'lead': { min: 7, max: 15 },
-    'director': { min: 10, max: 25 }
-  };
-  const jobSeniority = job.seniority?.toLowerCase() || 'senior';
-  const range = seniorityMap[jobSeniority] || { min: 2, max: 5 };
-  const exp = yearsOfExperience;
-
-  let scoreSeniority = 100;
-  if (exp < range.min) {
-    scoreSeniority = Math.max(50, 100 - (range.min - exp) * 20);
-  } else if (exp > range.max) {
-    scoreSeniority = Math.max(80, 100 - (exp - range.max) * 5);
-  }
-  scoreSeniority = Math.round(scoreSeniority);
-
-  // Location
-  let scoreLocation = 100;
-  const workMode = job.work_mode || job.workMode || 'onsite';
-  if (workMode === 'onsite' && job.location?.toLowerCase() !== 'remoto') {
-    scoreLocation = 75;
-  } else if (workMode === 'hybrid') {
-    scoreLocation = 85;
-  }
-
-  // Salary
-  let scoreSalary = 90;
-  const salaryExpectation = Number(careerProfile.personal?.preferences?.salaryExpectationMin || 0) || 11000;
-  const salaryMin = job.salary_min || job.salaryMin;
-  const salaryMax = job.salary_max || job.salaryMax;
-  if (salaryMin && salaryExpectation > 0) {
-    if (salaryExpectation > salaryMax) {
-      scoreSalary = Math.max(50, Math.round(100 - ((salaryExpectation - salaryMax) / salaryMax) * 100));
-    } else if (salaryExpectation < salaryMin) {
-      scoreSalary = 100;
-    } else {
-      scoreSalary = 95;
-    }
-  }
-
-  const scoreOverall = Math.round(
-    (scoreTechnical * 0.45) +
-    (scoreBehavioral * 0.20) +
-    (scoreSeniority * 0.20) +
-    (scoreLocation * 0.10) +
-    (scoreSalary * 0.05)
-  );
-
-  return scoreOverall;
-}
+const isValidUUID = (uuid: string) => {
+  return /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/.test(uuid);
+};
 
 class JobMatchingEngine {
   static async matchWithGemini(careerProfile: any, jobTitle: string, jobDescription: string, supabaseClient: any, userId: string, jobId: string, mockEnabled = false, parentStartTime: number): Promise<any> {
-    
-    // Etapa anterior finalizada e nova iniciada: comparing_job
     await logMatchStep(supabaseClient, userId, jobId, 'comparing_job', 'running', Date.now() - parentStartTime);
-
     await checkRateLimit(supabaseClient, userId, 'job-matching');
 
-    // 1. Calcular hashes para o Cache
     const resumeHash = await computeHash(JSON.stringify(careerProfile));
     const jobHash = await computeHash(jobTitle + "\n" + jobDescription);
 
-    // 2. Verificar cache se não for mock
     if (!mockEnabled) {
       try {
         const nowIso = new Date().toISOString();
@@ -344,11 +228,7 @@ class JobMatchingEngine {
 
         if (!cacheError && cachedResult) {
           console.log("[CACHE SUCCESS] Resolvido via cache para economizar custo.");
-          
-          // Registrar log de IA do cache com 0 tokens
           await logAiUsage(supabaseClient, userId, 'job-matching', 'gemini-2.5-flash-cache', 0, 0);
-
-          // Completar etapas com base no cache
           await logMatchStep(supabaseClient, userId, jobId, 'comparing_job', 'completed', Date.now() - parentStartTime);
           await logMatchStep(supabaseClient, userId, jobId, 'generating_score', 'completed', Date.now() - parentStartTime);
           return cachedResult.response;
@@ -360,8 +240,6 @@ class JobMatchingEngine {
 
     if (mockEnabled) {
       console.log("[GEMINI] Simulação ativa para testes.");
-      
-      // Registrar log de IA mockado
       await logAiUsage(supabaseClient, userId, 'job-matching', 'gemini-2.5-flash-mock', 100, 200);
 
       const mockResponse = {
@@ -370,7 +248,10 @@ class JobMatchingEngine {
         weaknesses: ["Ponto fraco ou gap identificado mock"],
         missing_keywords: ["SQL", "Data Analysis"],
         interview_probability: 75,
-        recommendation: "Recomendação mock de preparação para entrevista."
+        recommendation: "Recomendação mock de preparação para entrevista.",
+        to_include: ["Destacar sua experiência prática com análise de dados no resumo.", "Incluir certificação relevante no portfólio."],
+        to_exclude: ["Remover competências genéricas como Microsoft Word.", "Reduzir a descrição de projetos muito antigos."],
+        skills_to_learn: ["Estudar modelagem relacional de banco de dados.", "Praticar consultas avançadas de SQL."]
       };
 
       await logMatchStep(supabaseClient, userId, jobId, 'comparing_job', 'completed', Date.now() - parentStartTime);
@@ -400,7 +281,10 @@ class JobMatchingEngine {
         "weaknesses": ["Ponto fraco ou gap identificado 1", "Ponto fraco 2"],
         "missing_keywords": ["Palavra-chave ou competência ausente 1", "Palavra-chave 2"],
         "interview_probability": 75,
-        "recommendation": "Recomendação detalhada de como o candidato pode otimizar seu currículo ou se preparar para a entrevista."
+        "recommendation": "Recomendação detalhada de como o candidato pode otimizar seu currículo ou se preparar para a entrevista.",
+        "to_include": ["Recomendação 1 de o que destacar ou incluir no currículo"],
+        "to_exclude": ["Recomendação 1 de o que excluir ou reduzir do currículo"],
+        "skills_to_learn": ["Habilidade 1 que o candidato deve aprender/estudar"]
       }
 
       Perfil do Candidato:
@@ -435,7 +319,6 @@ class JobMatchingEngine {
       throw new Error(`Erro na chamada da API do Gemini: ${response.statusText} - ${errText}`);
     }
 
-    // Completar comparing_job e iniciar generating_score
     await logMatchStep(supabaseClient, userId, jobId, 'comparing_job', 'completed', Date.now() - parentStartTime);
     await logMatchStep(supabaseClient, userId, jobId, 'generating_score', 'running', Date.now() - parentStartTime);
 
@@ -451,7 +334,6 @@ class JobMatchingEngine {
 
     const matchJson = JSON.parse(extractedText);
 
-    // Salvar no cache
     try {
       const expiresAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString();
       await supabaseClient
@@ -466,25 +348,40 @@ class JobMatchingEngine {
       console.error("[CACHE SAVE ERROR] Falha ao salvar no cache:", saveCacheErr.message);
     }
 
-    // Completar generating_score
     await logMatchStep(supabaseClient, userId, jobId, 'generating_score', 'completed', Date.now() - parentStartTime);
-
     return matchJson;
   }
 
   static async saveJobMatch(supabaseClient: any, userId: string, resumeVersionId: string, jobId: string, matchResult: any, processingTimeMs?: number) {
+    const gapAnalysis = {
+      missingSkills: matchResult.missing_keywords || [],
+      skillsToLearn: matchResult.skills_to_learn || ["Aprofundar os conhecimentos técnicos exigidos na vaga."],
+      toIncludeInResume: matchResult.to_include || ["Demonstrar maior relevância em projetos anteriores."],
+      toExcludeFromResume: matchResult.to_exclude || ["Evitar dados pessoais excessivos ou informações de cargos irrelevantes."]
+    };
+
     const { data, error } = await supabaseClient
-      .from('job_matches')
+      .from('matches')
       .insert({
         user_id: userId,
-        resume_version_id: resumeVersionId,
+        resume_id: resumeVersionId,
         job_id: jobId,
-        match_score: matchResult.match_score,
-        strengths: matchResult.strengths || [],
-        weaknesses: matchResult.weaknesses || [],
-        missing_keywords: matchResult.missing_keywords || [],
-        interview_probability: matchResult.interview_probability,
-        recommendation: matchResult.recommendation,
+        score_overall: matchResult.match_score,
+        score_technical: matchResult.match_score,
+        score_behavioral: matchResult.match_score,
+        score_seniority: matchResult.match_score,
+        explanation: {
+          strengths: matchResult.strengths || [],
+          weaknesses: matchResult.weaknesses || [],
+          details: {
+            technical: matchResult.recommendation || '',
+            behavioral: `Probabilidade de entrevista: ${matchResult.interview_probability}%`,
+            seniority: '',
+            salary: '',
+            location: ''
+          }
+        },
+        gap_analysis: gapAnalysis,
         processing_time_ms: processingTimeMs
       })
       .select()
@@ -493,7 +390,226 @@ class JobMatchingEngine {
     if (error) {
       throw new Error(`Erro ao salvar match de vaga: ${error.message}`);
     }
+
+    try {
+      await supabaseClient
+        .from('job_matches')
+        .insert({
+          user_id: userId,
+          resume_version_id: resumeVersionId,
+          job_id: jobId,
+          match_score: matchResult.match_score,
+          strengths: matchResult.strengths || [],
+          weaknesses: matchResult.weaknesses || [],
+          missing_keywords: matchResult.missing_keywords || [],
+          interview_probability: matchResult.interview_probability,
+          recommendation: matchResult.recommendation,
+          processing_time_ms: processingTimeMs
+        });
+    } catch (dbErr) {
+      console.warn("[BACKWARD COMPATIBILITY] Não foi possível espelhar na tabela job_matches:", dbErr.message);
+    }
+
     return data;
+  }
+
+  static async optimizeResumeWithGemini(careerProfile: any, jobTitle: string, jobDescription: string, supabaseClient: any, userId: string, resumeId: string, jobId: string, mockEnabled = false): Promise<any> {
+    await checkRateLimit(supabaseClient, userId, 'resume-optimization');
+
+    if (mockEnabled) {
+      return {
+        optimized_summary: "Profissional sênior e estratégico, atuando diretamente em projetos complexos relacionados a " + jobTitle,
+        key_experiences: (careerProfile.experience || []).map((exp: any) => ({
+          role: exp.role,
+          company: exp.companyName || exp.company || "Empresa",
+          description: exp.description + " Foco em entregar impacto alinhado a " + jobTitle
+        })),
+        missing_keywords: ["Desenvolvimento", "Metodologia Ágil"],
+        redundant_info: ["Cursos antigos não correlacionados"]
+      };
+    }
+
+    const geminiApiKey = Deno.env.get('GEMINI_API_KEY');
+    if (!geminiApiKey) throw new Error("GEMINI_API_KEY não configurada nos segredos do Supabase.");
+
+    const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${geminiApiKey}`;
+
+    const prompt = `
+      Você é um especialista em recrutamento e otimização de currículos para ATS (Applicant Tracking Systems).
+      Sua tarefa é otimizar o resumo profissional e as experiências do candidato para a vaga abaixo, sem inventar fatos ou mentiras.
+      Melhore a redação e destaque as palavras-chave solicitadas.
+
+      JSON Schema de Saída:
+      {
+        "optimized_summary": "Resumo profissional reescrito de forma premium...",
+        "key_experiences": [
+          {
+            "role": "Cargo",
+            "company": "Empresa",
+            "description": "Descrição da experiência aprimorada para dar destaque às competências da vaga"
+          }
+        ],
+        "missing_keywords": ["competência 1", "competência 2"],
+        "redundant_info": ["informação 1 a reduzir"]
+      }
+
+      Perfil do Candidato:
+      ${JSON.stringify(careerProfile, null, 2)}
+
+      Vaga:
+      Título: ${jobTitle}
+      Descrição: ${jobDescription}
+    `;
+
+    const response = await fetchWithRetry(geminiUrl, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        contents: [{ parts: [{ text: prompt }] }],
+        generationConfig: { responseMimeType: 'application/json' }
+      })
+    });
+
+    if (!response.ok) throw new Error("Erro na API do Gemini durante a otimização.");
+
+    const resJson = await response.json();
+    const extractedText = resJson.candidates?.[0]?.content?.parts?.[0]?.text;
+    if (!extractedText) throw new Error("Resposta do Gemini vazia.");
+
+    await logAiUsage(supabaseClient, userId, 'resume-optimization', 'gemini-2.5-flash', resJson.usageMetadata?.promptTokenCount || 0, resJson.usageMetadata?.candidatesTokenCount || 0);
+    return JSON.parse(extractedText);
+  }
+
+  static async generateCoverLetterWithGemini(careerProfile: any, jobTitle: string, companyName: string, jobDescription: string, supabaseClient: any, userId: string, mockEnabled = false): Promise<any> {
+    await checkRateLimit(supabaseClient, userId, 'cover-letter');
+
+    if (mockEnabled) {
+      return {
+        text_formal: `Prezada equipe da ${companyName},\n\nGostaria de expressar meu interesse na vaga de ${jobTitle}...`,
+        text_direct: `Olá time da ${companyName},\n\nEstou me candidatando para a vaga de ${jobTitle}...`,
+        text_executive: `Prezados executivos da ${companyName},\n\nSubmeto minha candidatura ao cargo de ${jobTitle}...`
+      };
+    }
+
+    const geminiApiKey = Deno.env.get('GEMINI_API_KEY');
+    if (!geminiApiKey) throw new Error("GEMINI_API_KEY não configurada nos segredos do Supabase.");
+
+    const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${geminiApiKey}`;
+
+    const prompt = `
+      Você é um redator profissional de carreiras.
+      Escreva 3 cartas de apresentação personalizadas (Formal, Direta e Executiva) para a vaga e empresa especificadas abaixo.
+      Use o nome real da empresa e do cargo. Se o nome da empresa for genérico ou nulo, use "Equipe de Recrutamento".
+
+      JSON Schema de Saída:
+      {
+        "text_formal": "Texto formal da carta...",
+        "text_direct": "Texto direto e moderno da carta...",
+        "text_executive": "Texto executivo e focado em impacto..."
+      }
+
+      Perfil do Candidato:
+      ${JSON.stringify(careerProfile, null, 2)}
+
+      Vaga:
+      Título: ${jobTitle}
+      Empresa: ${companyName}
+      Descrição: ${jobDescription}
+    `;
+
+    const response = await fetchWithRetry(geminiUrl, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        contents: [{ parts: [{ text: prompt }] }],
+        generationConfig: { responseMimeType: 'application/json' }
+      })
+    });
+
+    if (!response.ok) throw new Error("Erro na API do Gemini durante a carta de apresentação.");
+
+    const resJson = await response.json();
+    const extractedText = resJson.candidates?.[0]?.content?.parts?.[0]?.text;
+    if (!extractedText) throw new Error("Resposta do Gemini vazia.");
+
+    await logAiUsage(supabaseClient, userId, 'cover-letter', 'gemini-2.5-flash', resJson.usageMetadata?.promptTokenCount || 0, resJson.usageMetadata?.candidatesTokenCount || 0);
+    return JSON.parse(extractedText);
+  }
+
+  static async generateInterviewPrepWithGemini(careerProfile: any, jobTitle: string, jobDescription: string, supabaseClient: any, userId: string, mockEnabled = false): Promise<any> {
+    await checkRateLimit(supabaseClient, userId, 'interview-prep');
+
+    if (mockEnabled) {
+      return {
+        introduction: "O método STAR é um padrão comportamental para estruturar respostas em entrevistas.",
+        questions: [
+          {
+            question: "Conte sobre um desafio técnico superado.",
+            type: "tecnica",
+            expectation: "Espera-se entender sua lógica de resolução.",
+            answerStar: {
+              context: "Contexto mock...",
+              action: "Ação mock...",
+              result: "Resultado mock..."
+            }
+          }
+        ]
+      };
+    }
+
+    const geminiApiKey = Deno.env.get('GEMINI_API_KEY');
+    if (!geminiApiKey) throw new Error("GEMINI_API_KEY não configurada nos segredos do Supabase.");
+
+    const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${geminiApiKey}`;
+
+    const prompt = `
+      Você é um preparador profissional de entrevistas de emprego.
+      Gere 4 perguntas de entrevista (uma de RH, uma Técnica, uma de Gestor e uma de Fit Cultural) para a vaga especificada.
+      Adicione uma introdução detalhada explicando a importância do método STAR e como estruturar as respostas.
+      Para cada pergunta, adicione o que o entrevistador espera ouvir (expectation) e uma resposta de exemplo realista no formato STAR baseada nas experiências reais do candidato.
+
+      JSON Schema de Saída:
+      {
+        "introduction": "Introdução detalhada sobre o método STAR e por que os recrutadores utilizam...",
+        "questions": [
+          {
+            "question": "Pergunta...",
+            "type": "RH" | "tecnica" | "gestor" | "cultura",
+            "expectation": "O que o entrevistador realmente quer avaliar com esta pergunta...",
+            "answerStar": {
+              "context": "Contexto do seu histórico...",
+              "action": "Ação que você tomou...",
+              "result": "Resultado quantitativo..."
+            }
+          }
+        ]
+      }
+
+      Perfil do Candidato:
+      ${JSON.stringify(careerProfile, null, 2)}
+
+      Vaga:
+      Título: ${jobTitle}
+      Descrição: ${jobDescription}
+    `;
+
+    const response = await fetchWithRetry(geminiUrl, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        contents: [{ parts: [{ text: prompt }] }],
+        generationConfig: { responseMimeType: 'application/json' }
+      })
+    });
+
+    if (!response.ok) throw new Error("Erro na API do Gemini durante a preparação da entrevista.");
+
+    const resJson = await response.json();
+    const extractedText = resJson.candidates?.[0]?.content?.parts?.[0]?.text;
+    if (!extractedText) throw new Error("Resposta do Gemini vazia.");
+
+    await logAiUsage(supabaseClient, userId, 'interview-prep', 'gemini-2.5-flash', resJson.usageMetadata?.promptTokenCount || 0, resJson.usageMetadata?.candidatesTokenCount || 0);
+    return JSON.parse(extractedText);
   }
 }
 
@@ -508,16 +624,15 @@ serve(async (req) => {
   let supabaseClient: any = null;
 
   try {
-    const { resumeId, resumeVersionId, jobId, userId: requestUserId, mockGemini } = await req.json()
-    console.log("[MATCH JOB REQUEST] Recebido pedido:", { resumeId, resumeVersionId, jobId, mockGemini })
+    const { resumeId, resumeVersionId, jobId, applicationId, userId: requestUserId, mockGemini, operation = 'match' } = await req.json()
+    console.log("[MATCH JOB REQUEST] Recebido pedido:", { resumeId, resumeVersionId, jobId, applicationId, mockGemini, operation })
     
     resolvedJobId = jobId;
     const resolvedVersionId = resumeVersionId || resumeId;
-    console.log("[MATCH JOB RESUME VERSION] Resolving for resume version ID:", resolvedVersionId);
 
-    if ((!resumeId && !resumeVersionId) || !jobId) {
+    if ((!resumeId && !resumeVersionId) || (!jobId && operation !== 'cover-letter') || (operation === 'cover-letter' && !applicationId)) {
       return new Response(
-        JSON.stringify({ error: 'Os parâmetros resumeId (ou resumeVersionId) e jobId são obrigatórios.' }),
+        JSON.stringify({ error: 'Os parâmetros obrigatórios estão ausentes.' }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       )
     }
@@ -531,31 +646,26 @@ serve(async (req) => {
       global: { headers: { Authorization: authHeader } }
     })
 
-    // Resolver ID de usuário
     const { data: { user } } = await supabaseClient.auth.getUser(authHeader.replace('Bearer ', ''));
     resolvedUserId = requestUserId || user?.id;
 
     if (!resolvedUserId) {
-      throw new Error("Usuário não pôde ser autenticado no Match.");
+      throw new Error("Usuário não pôde ser autenticado.");
     }
-
-    // Registrar inicio de request Gemini
-    await logApplicationEvent(supabaseClient, resolvedUserId, 'gemini_request_started', 'Gemini', 'started', { jobId });
-
-    // Etapa: preparing - Iniciada
-    await logMatchStep(supabaseClient, resolvedUserId, jobId, 'preparing', 'running', Date.now() - requestStartTime);
 
     // 1. Obter o perfil de carreira estruturado do candidato
     let careerProfile = null;
-    if (resumeVersionId) {
+    if (resolvedVersionId) {
       const { data, error } = await supabaseClient
         .from('career_profiles')
         .select('*')
-        .eq('resume_version_id', resumeVersionId)
+        .eq('resume_version_id', resolvedVersionId)
         .maybeSingle();
       if (error) throw error;
       careerProfile = data;
-    } else if (resumeId) {
+    }
+
+    if (!careerProfile && resumeId) {
       const { data, error } = await supabaseClient
         .from('career_profiles')
         .select('*')
@@ -563,116 +673,212 @@ serve(async (req) => {
         .maybeSingle();
       if (error) throw error;
       careerProfile = data;
-      
-      // Fallback
-      if (!careerProfile) {
-        const { data: fbData } = await supabaseClient
-          .from('career_profiles')
-          .select('*')
-          .eq('resume_version_id', resumeId)
-          .maybeSingle();
-        careerProfile = fbData;
-      }
     }
 
     if (!careerProfile) {
-      await logMatchStep(supabaseClient, resolvedUserId, jobId, 'preparing', 'failed', Date.now() - requestStartTime);
       return new Response(
-        JSON.stringify({ error: 'Perfil de carreira (CareerProfile) correspondente não encontrado. Certifique-se de que o currículo foi analisado.' }),
+        JSON.stringify({ error: 'Perfil de carreira não encontrado. Por favor, reenvie seu currículo.' }),
         { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       )
     }
 
-    // Etapa: preparing - Concluída e Etapa: analyzing_resume - Iniciada
-    await logMatchStep(supabaseClient, resolvedUserId, jobId, 'preparing', 'completed', Date.now() - requestStartTime);
-    await logMatchStep(supabaseClient, resolvedUserId, jobId, 'analyzing_resume', 'running', Date.now() - requestStartTime);
+    // 2. Resolver dados da vaga (se aplicável)
+    let jobData = null;
+    let actualJobId = jobId;
 
-    // 2. Obter a descrição da vaga
-    const { data: jobData, error: jobErr } = await supabaseClient
-      .from('jobs')
-      .select('*')
-      .eq('id', jobId)
-      .single();
-
-    if (jobErr || !jobData) {
-      await logMatchStep(supabaseClient, resolvedUserId, jobId, 'analyzing_resume', 'failed', Date.now() - requestStartTime);
-      return new Response(
-        JSON.stringify({ error: `Vaga não encontrada: ${jobErr?.message || 'ID inválido'}` }),
-        { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      )
+    if (operation === 'cover-letter' && applicationId && !jobId) {
+      const { data: appData } = await supabaseClient
+        .from('applications')
+        .select('job_id, company_name, job_title')
+        .eq('id', applicationId)
+        .maybeSingle();
+      
+      if (appData) {
+        actualJobId = appData.job_id;
+        jobData = {
+          title: appData.job_title,
+          company_name: appData.company_name,
+          description: "Gere uma carta alinhada à empresa."
+        };
+      }
     }
 
-    // Etapa: analyzing_resume - Concluída
-    await logMatchStep(supabaseClient, resolvedUserId, jobId, 'analyzing_resume', 'completed', Date.now() - requestStartTime);
+    if (actualJobId && !jobData) {
+      const { data, error } = await supabaseClient
+        .from('jobs')
+        .select('*')
+        .eq('id', actualJobId)
+        .single();
+      if (error || !data) {
+        throw new Error(`Vaga não encontrada: ${error?.message || 'ID inválido'}`);
+      }
+      jobData = data;
+    }
 
-    // 3. Executar o match semântico no Gemini 2.5 Flash
-    const matchResult = await JobMatchingEngine.matchWithGemini(
-      careerProfile,
-      jobData.title,
-      jobData.description,
-      supabaseClient,
-      resolvedUserId,
-      jobId,
-      isMockEnabled,
-      requestStartTime
-    );
+    if (!jobData && operation !== 'cover-letter') {
+      throw new Error("Dados da vaga são necessários para esta operação.");
+    }
 
-    console.log("[MATCH JOB RESULT] Match calculated:", matchResult);
+    // 3. Roteamento por operação
+    if (operation === 'match') {
+      await logApplicationEvent(supabaseClient, resolvedUserId, 'gemini_request_started', 'Gemini', 'started', { jobId: actualJobId });
+      await logMatchStep(supabaseClient, resolvedUserId, actualJobId, 'preparing', 'running', Date.now() - requestStartTime);
+      await logMatchStep(supabaseClient, resolvedUserId, actualJobId, 'preparing', 'completed', Date.now() - requestStartTime);
+      await logMatchStep(supabaseClient, resolvedUserId, actualJobId, 'analyzing_resume', 'running', Date.now() - requestStartTime);
+      await logMatchStep(supabaseClient, resolvedUserId, actualJobId, 'analyzing_resume', 'completed', Date.now() - requestStartTime);
 
-    // Substituir a pontuação com a mesma lógica determinística do frontend
-    const finalCalculatedScore = calculateRuleBasedScore(careerProfile, jobData);
-    matchResult.match_score = finalCalculatedScore;
-    matchResult.interview_probability = finalCalculatedScore;
+      const matchResult = await JobMatchingEngine.matchWithGemini(
+        careerProfile,
+        jobData.title,
+        jobData.description,
+        supabaseClient,
+        resolvedUserId,
+        actualJobId,
+        isMockEnabled,
+        requestStartTime
+      );
 
-    // 4. Salvar o resultado na tabela job_matches
-    const savedMatch = await JobMatchingEngine.saveJobMatch(
-      supabaseClient,
-      resolvedUserId,
-      careerProfile.resume_version_id || resolvedVersionId,
-      jobId,
-      matchResult,
-      Date.now() - requestStartTime
-    );
+      const savedMatch = await JobMatchingEngine.saveJobMatch(
+        supabaseClient,
+        resolvedUserId,
+        careerProfile.resume_version_id || resolvedVersionId,
+        actualJobId,
+        matchResult,
+        Date.now() - requestStartTime
+      );
 
-    // Etapa: completed - Concluída
-    await logMatchStep(supabaseClient, resolvedUserId, jobId, 'completed', 'completed', Date.now() - requestStartTime);
+      await logMatchStep(supabaseClient, resolvedUserId, actualJobId, 'completed', 'completed', Date.now() - requestStartTime);
+      await logApplicationEvent(supabaseClient, resolvedUserId, 'gemini_request_completed', 'Gemini', 'completed', { jobId: actualJobId, score: matchResult.match_score });
 
-    // Registrar sucesso Gemini
-    await logApplicationEvent(supabaseClient, resolvedUserId, 'gemini_request_completed', 'Gemini', 'completed', { jobId, score: matchResult.match_score });
+      return new Response(JSON.stringify(savedMatch), { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
 
-    console.log(`[EDGE FUNCTION] Match concluído e salvo com sucesso. Score: ${matchResult.match_score}%`);
+    } else if (operation === 'optimize-cv') {
+      const result = await JobMatchingEngine.optimizeResumeWithGemini(
+        careerProfile,
+        jobData.title,
+        jobData.description,
+        supabaseClient,
+        resolvedUserId,
+        careerProfile.resume_id,
+        actualJobId,
+        isMockEnabled
+      );
 
-    return new Response(
-      JSON.stringify(savedMatch),
-      { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-    )
+      const toSave = {
+        resume_id: careerProfile.resume_id,
+        job_id: actualJobId || null,
+        optimized_summary: result.optimized_summary,
+        key_experiences: result.key_experiences || [],
+        missing_keywords: result.missing_keywords || [],
+        redundant_info: result.redundant_info || []
+      };
+
+      let savedRecord = null;
+      if (isValidUUID(careerProfile.resume_id)) {
+        const { data, error } = await supabaseClient
+          .from('resume_optimizations')
+          .insert(toSave)
+          .select()
+          .single();
+        if (error) console.error("[OPTIMIZE CV SAVE ERROR]", error.message);
+        savedRecord = data;
+      }
+
+      return new Response(
+        JSON.stringify(savedRecord || { id: "opt-preview-" + Date.now(), resumeId: careerProfile.resume_id, jobId: actualJobId, optimizedSummary: result.optimized_summary, keyExperiences: result.key_experiences, missingKeywords: result.missing_keywords, redundantInfo: result.redundant_info }),
+        { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+
+    } else if (operation === 'cover-letter') {
+      const result = await JobMatchingEngine.generateCoverLetterWithGemini(
+        careerProfile,
+        jobData ? jobData.title : "Vaga",
+        jobData ? (jobData.company_name || jobData.companyName || "Empresa") : "Empresa",
+        jobData ? jobData.description : "Gere uma carta de apresentação.",
+        supabaseClient,
+        resolvedUserId,
+        isMockEnabled
+      );
+
+      const toSave = {
+        application_id: applicationId,
+        text_formal: result.text_formal,
+        text_direct: result.text_direct,
+        text_executive: result.text_executive
+      };
+
+      let savedRecord = null;
+      if (applicationId && isValidUUID(applicationId)) {
+        const { data, error } = await supabaseClient
+          .from('cover_letters')
+          .insert(toSave)
+          .select()
+          .single();
+        if (error) console.error("[COVER LETTER SAVE ERROR]", error.message);
+        savedRecord = data;
+      }
+
+      return new Response(
+        JSON.stringify(savedRecord || { id: "letter-preview-" + Date.now(), applicationId, textFormal: result.text_formal, textDirect: result.text_direct, textExecutive: result.text_executive }),
+        { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+
+    } else if (operation === 'interview-prep') {
+      const result = await JobMatchingEngine.generateInterviewPrepWithGemini(
+        careerProfile,
+        jobData.title,
+        jobData.description,
+        supabaseClient,
+        resolvedUserId,
+        isMockEnabled
+      );
+
+      const toSave = {
+        job_id: actualJobId,
+        questions: result
+      };
+
+      let savedRecord = null;
+      if (actualJobId && isValidUUID(actualJobId)) {
+        const { data, error } = await supabaseClient
+          .from('interview_preparations')
+          .insert(toSave)
+          .select()
+          .single();
+        if (error) console.error("[INTERVIEW PREP SAVE ERROR]", error.message);
+        savedRecord = data;
+      }
+
+      return new Response(
+        JSON.stringify(savedRecord || { id: "prep-preview-" + Date.now(), jobId: actualJobId, questions: result }),
+        { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    throw new Error(`Operação não suportada: ${operation}`);
+
   } catch (error) {
-    console.error(`[EDGE FUNCTION] Erro ao calcular match:`, error)
+    console.error(`[EDGE FUNCTION] Erro geral:`, error)
     
-    // Registrar falha Gemini
     if (supabaseClient && resolvedUserId) {
       await logApplicationEvent(supabaseClient, resolvedUserId, 'gemini_request_failed', 'Gemini', 'failed', { error: error.message, jobId: resolvedJobId });
-      await logMatchStep(supabaseClient, resolvedUserId, resolvedJobId || '', 'failed', 'failed', Date.now() - requestStartTime);
     }
 
     let code = "AI_ERROR";
-    let userMessage = "Ocorreu um erro no cálculo de compatibilidade da vaga.";
+    let userMessage = "Ocorreu um erro no processamento da IA.";
     let retryable = true;
     
     if (error.message?.includes('Limit') || error.message?.includes('excedido')) {
       code = "RATE_LIMIT_EXCEEDED";
-      userMessage = "Limite de requisições excedido. Você pode fazer no máximo 10 chamadas para 'job-matching' por hora.";
+      userMessage = "Limite de requisições excedido. Você pode fazer no máximo 10 chamadas para este recurso por hora.";
       retryable = false;
     } else if (error.message?.includes('GEMINI_API_KEY')) {
       code = "GEMINI_SERVICE_UNAVAILABLE";
-      userMessage = "O motor de inteligência artificial Gemini não está configurado nos segredos do Supabase.";
+      userMessage = "O motor de inteligência artificial Gemini não está configurado.";
       retryable = false;
     } else if (error.message?.includes('timeout') || error.message?.includes('fetch') || error.message?.includes('network')) {
       code = "AI_TIMEOUT";
       userMessage = "A requisição para o Gemini demorou mais do que o esperado. Tente novamente.";
-    } else if (error.message?.includes('indisponível') || error.message?.includes('tentativas') || error.message?.includes('Gemini')) {
-      code = "GEMINI_SERVICE_UNAVAILABLE";
-      userMessage = "Nossa IA está temporariamente indisponível. Tente novamente em alguns minutos.";
     }
 
     return new Response(

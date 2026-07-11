@@ -14,13 +14,10 @@ interface NavbarProps {
 export function Navbar({ activeTab, setActiveTab, profile, onLogout, isOpen, onClose, isAdmin }: NavbarProps) {
   const menuItems = [
     { id: 'dashboard', label: 'Painel', icon: 'dashboard' },
-    { id: 'profile', label: 'Currículo', icon: 'description' },
-    { id: 'career-profile', label: 'Configurações de Busca', icon: 'search' },
-    { id: 'match', label: 'Central de Compatibilidade', icon: 'analytics' },
-    { id: 'strategy', label: 'Estratégia de Vagas', icon: 'track_changes' },
-    { id: 'coach', label: 'Desenvolvimento & Coach', icon: 'psychology' },
-    { id: 'notifications', label: 'Central de Notificações', icon: 'notifications' },
-    { id: 'settings', label: 'Configurações', icon: 'settings' }
+    { id: 'profile', label: 'Meu Perfil', icon: 'person' },
+    { id: 'match', label: 'Encontrar Vagas', icon: 'search' },
+    { id: 'strategy', label: 'Minha Jornada', icon: 'track_changes' },
+    { id: 'coach', label: 'Mentor IA', icon: 'psychology' }
   ];
 
   if (isAdmin) {
@@ -40,16 +37,27 @@ export function Navbar({ activeTab, setActiveTab, profile, onLogout, isOpen, onC
   return (
     <>
       {/* SideNavBar (Desktop) */}
-      <aside className="fixed left-0 top-0 h-full w-64 bg-surface-container-low hidden md:flex flex-col justify-between p-md z-50 border-r border-outline-variant/20 overflow-y-auto">
+      <aside className={`fixed left-0 top-0 h-full w-64 bg-surface-container-low flex-col justify-between p-md z-50 border-r border-outline-variant/20 overflow-y-auto ${
+        isOpen ? 'flex' : 'hidden md:flex'
+      }`}>
         <div>
-        <div className="flex items-center gap-sm mb-xl px-sm">
-          <div className="w-10 h-10 bg-primary-container rounded-lg flex items-center justify-center text-on-primary-container">
-            <span className="material-symbols-outlined" style={{ fontVariationSettings: "'FILL' 1" }}>rocket_launch</span>
+        <div className="flex items-center justify-between gap-sm mb-xl px-sm">
+          <div className="flex items-center gap-sm">
+            <div className="w-10 h-10 bg-primary-container rounded-lg flex items-center justify-center text-on-primary-container">
+              <span className="material-symbols-outlined" style={{ fontVariationSettings: "'FILL' 1" }}>rocket_launch</span>
+            </div>
+            <div>
+              <h1 className="font-headline-md text-headline-md font-bold text-primary leading-tight">MyCareer AI</h1>
+              <p className="font-label-sm text-label-sm text-on-surface-variant">Premium Copilot</p>
+            </div>
           </div>
-          <div>
-            <h1 className="font-headline-md text-headline-md font-bold text-primary leading-tight">MyCareer AI</h1>
-            <p className="font-label-sm text-label-sm text-on-surface-variant">Premium Copilot</p>
-          </div>
+          <button
+            onClick={onClose}
+            className="md:hidden p-1 rounded-lg hover:bg-surface-container-high text-on-surface-variant hover:text-on-surface transition-colors"
+            title="Fechar menu"
+          >
+            <span className="material-symbols-outlined text-[20px]">close</span>
+          </button>
         </div>
 
         <nav className="flex-1 space-y-1">
@@ -58,7 +66,10 @@ export function Navbar({ activeTab, setActiveTab, profile, onLogout, isOpen, onC
             return (
               <button
                 key={item.id}
-                onClick={() => setActiveTab(item.id)}
+                onClick={() => {
+                  setActiveTab(item.id);
+                  onClose();
+                }}
                 className={`w-full flex items-center gap-md p-md rounded-lg font-bold transition-all duration-200 text-left ${
                   isActive
                     ? 'bg-primary-container text-on-primary-container scale-[0.98]'

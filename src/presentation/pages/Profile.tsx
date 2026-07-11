@@ -3,11 +3,13 @@ import { CardGlass } from '../components/CardGlass';
 import type { Resume, Profile as UserProfile, Application, PipelineStep } from '../../domain/models/types';
 import type { CareerProfileNew, CareerInsight } from '../../application/hooks/useMyProfileAi';
 import { calcYearsFromExperiences } from '../../application/services/matchingEngine';
-import { Upload, FileText, Calendar, Trash2, Check, AlertCircle, Briefcase, Award, Clock, Activity, Brain, Zap, Info, Sparkles, CheckCircle } from 'lucide-react';
+import { Upload, FileText, Calendar, Trash2, Check, AlertCircle, Briefcase, Award, Clock, Activity, Brain, Zap, Info, Sparkles, CheckCircle, Search, Settings } from 'lucide-react';
 import { ResumeOptimizationService } from '../../application/services/ResumeOptimizationService';
 import { isSupabaseConfigured } from '../../infrastructure/api/supabaseClient';
 import { ProcessingState, ErrorState } from '../components/ErrorVisuals';
 import { AppError } from '../../application/errors/AppError';
+import { CareerProfilePage } from './CareerProfilePage';
+import { Settings as SettingsPage } from './Settings';
 
 interface ProfileProps {
   profile: UserProfile | null;
@@ -21,6 +23,13 @@ interface ProfileProps {
   pipelineSteps?: PipelineStep[];
   activeResumeVersionId?: string | null;
   onSelectResumeVersion?: (versionId: string) => void;
+  careerProfile?: any;
+  onSaveCareerProfile?: (profile: any) => Promise<any>;
+  isSavingCareerProfile?: boolean;
+  onLogout?: () => void;
+  onUpdateProfileState?: (profile: Partial<UserProfile>) => void;
+  activeProfileTab: 'profile' | 'ai-profile' | 'transparency' | 'career-preferences' | 'account-settings';
+  setActiveProfileTab: (tab: 'profile' | 'ai-profile' | 'transparency' | 'career-preferences' | 'account-settings') => void;
 }
 
 export function Profile({ 
@@ -34,13 +43,19 @@ export function Profile({
   applications = [],
   pipelineSteps = [],
   activeResumeVersionId,
-  onSelectResumeVersion
+  onSelectResumeVersion,
+  careerProfile,
+  onSaveCareerProfile,
+  isSavingCareerProfile,
+  onLogout,
+  onUpdateProfileState,
+  activeProfileTab,
+  setActiveProfileTab
 }: ProfileProps) {
   const [dragActive, setDragActive] = useState(false);
   const [errorMsg, setErrorMsg] = useState<AppError | null>(null);
   const [uploadSuccess, setUploadSuccess] = useState(false);
   const [uploadSuccessSeconds, setUploadSuccessSeconds] = useState<number | null>(null);
-  const [activeProfileTab, setActiveProfileTab] = useState<'profile' | 'ai-profile' | 'transparency'>('profile');
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [showDelayWarning, setShowDelayWarning] = useState(false);
   const timerRef = useRef<any>(null);
@@ -496,10 +511,10 @@ export function Profile({
 
         {/* Lado Direito: Perfil Estruturado pela IA */}
         <div className="lg:col-span-2 space-y-6">
-          {primaryResume ? (
+          {primaryResume || ['career-preferences', 'account-settings'].includes(activeProfileTab) ? (
             <div className="space-y-6">
               {/* Navegação por Abas (Fase 9) */}
-              <div className="flex gap-2 p-1 rounded-xl bg-slate-950 border border-slate-900 w-full sm:w-fit select-none">
+              <div className="flex flex-wrap gap-2 p-1 rounded-xl bg-slate-950 border border-slate-900 w-full select-none">
                 <button
                   onClick={() => setActiveProfileTab('profile')}
                   className={`px-4 py-2 rounded-lg text-xs font-semibold tracking-wide transition-all ${
@@ -531,6 +546,28 @@ export function Profile({
                 >
                   <Activity size={12} />
                   Como a IA Concluiu?
+                </button>
+                <button
+                  onClick={() => setActiveProfileTab('career-preferences')}
+                  className={`px-4 py-2 rounded-lg text-xs font-semibold tracking-wide transition-all flex items-center gap-1.5 ${
+                    activeProfileTab === 'career-preferences'
+                      ? 'bg-brand-500 text-white shadow-md shadow-brand-500/10'
+                      : 'text-slate-400 hover:text-slate-200'
+                  }`}
+                >
+                  <Search size={12} />
+                  Preferências de Busca
+                </button>
+                <button
+                  onClick={() => setActiveProfileTab('account-settings')}
+                  className={`px-4 py-2 rounded-lg text-xs font-semibold tracking-wide transition-all flex items-center gap-1.5 ${
+                    activeProfileTab === 'account-settings'
+                      ? 'bg-brand-500 text-white shadow-md shadow-brand-500/10'
+                      : 'text-slate-400 hover:text-slate-200'
+                  }`}
+                >
+                  <Settings size={12} />
+                  Configurações da Conta
                 </button>
               </div>
 
@@ -897,6 +934,28 @@ export function Profile({
                     </div>
                   )}
                 </CardGlass>
+              )}
+
+              {activeProfileTab === 'career-preferences' && (
+                <CareerProfilePage
+                  careerProfile={careerProfile || null}
+                  careerProfileNew={careerProfileNew}
+                  onSaveProfile={onSaveCareerProfile || (async () => {})}
+                  isSaving={!!isSavingCareerProfile}
+                  setActiveTab={() => {}}
+                />
+              )}
+
+              {activeProfileTab === 'account-settings' && (
+                <SettingsPage
+                  profile={profile}
+                  resumes={resumes}
+                  careerProfileNew={careerProfileNew}
+                  onSaveProfile={onSaveCareerProfile || (async () => {})}
+                  onDeleteResume={onDeleteResume}
+                  onLogout={onLogout || (() => {})}
+                  onUpdateProfileState={onUpdateProfileState}
+                />
               )}
             </div>
           ) : (

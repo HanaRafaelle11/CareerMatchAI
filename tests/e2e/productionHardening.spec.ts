@@ -49,7 +49,11 @@ async function ensureAuthenticated(page: any) {
 
 // Navegação responsiva e segura na barra lateral (funciona em desktop e mobile)
 async function navigateSidebar(page: any, tabLabel: string) {
-  const tabButton = page.locator(`aside button:has-text("${tabLabel}"), nav button:has-text("${tabLabel}")`).filter({ visible: true }).first();
+  let actualLabel = tabLabel;
+  if (tabLabel === 'Currículo') actualLabel = 'Meu Perfil';
+  if (tabLabel === 'Compatibilidade') actualLabel = 'Encontrar Vagas';
+  
+  const tabButton = page.locator(`aside button:has-text("${actualLabel}"), nav button:has-text("${actualLabel}")`).filter({ visible: true }).first();
   await expect(tabButton).toBeVisible({ timeout: 10000 });
   await tabButton.click();
 }

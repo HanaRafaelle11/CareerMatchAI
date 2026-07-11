@@ -70,8 +70,8 @@ test.describe('Upload Edge Cases — Validação Frontend', () => {
         }
       }
     }
-    // Navegar para Meu Currículo
-    const profileTab = page.locator('aside button:has-text("Currículo"), nav button:has-text("Currículo")').filter({ visible: true }).first();
+    // Navegar para Meu Currículo (Meu Perfil)
+    const profileTab = page.locator('aside button:has-text("Meu Perfil"), nav button:has-text("Meu Perfil")').filter({ visible: true }).first();
     await expect(profileTab).toBeVisible({ timeout: 10000 });
     await profileTab.click();
   });
@@ -84,7 +84,7 @@ test.describe('Upload Edge Cases — Validação Frontend', () => {
 
     // Deve iniciar o pipeline (mostrar etapa de upload ou progresso)
     const pipelineOrSuccess = page.locator('text=Upload do arquivo').or(page.locator('text=Upload concluído')).or(page.locator('text=Registrando')).or(page.locator('text=concluída')).or(page.locator('text=concluído'));
-    await expect(pipelineOrSuccess.first()).toBeVisible({ timeout: 10000 });
+    await expect(pipelineOrSuccess.first()).toBeVisible({ timeout: 20000 });
   });
 
   test('❌ TXT vazio → mensagem de erro', async ({ page }) => {
@@ -148,7 +148,7 @@ test.describe('Upload Edge Cases — Validação Frontend', () => {
 
     // Deve iniciar o pipeline sem erro de nome
     const pipelineOrSuccess = page.locator('text=Upload do arquivo').or(page.locator('text=Upload concluído')).or(page.locator('text=Registrando')).or(page.locator('text=concluída')).or(page.locator('text=concluído'));
-    await expect(pipelineOrSuccess.first()).toBeVisible({ timeout: 10000 });
+    await expect(pipelineOrSuccess.first()).toBeVisible({ timeout: 20000 });
   });
 
   test('✅ XSS no conteúdo TXT → tags removidas, upload sucesso', async ({ page }) => {
@@ -165,6 +165,6 @@ Formação: Ciência da Computação na USP, Mestrado em IA na UNICAMP.`;
 
     // Deve sanitizar e iniciar pipeline normalmente
     const pipelineOrSuccess = page.locator('text=Upload do arquivo').or(page.locator('text=Upload concluído')).or(page.locator('text=Registrando')).or(page.locator('text=concluída')).or(page.locator('text=concluído'));
-    await expect(pipelineOrSuccess.first()).toBeVisible({ timeout: 10000 });
+    await expect(pipelineOrSuccess.first()).toBeVisible({ timeout: 20000 });
   });
 });

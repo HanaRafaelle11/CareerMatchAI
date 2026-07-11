@@ -42,6 +42,19 @@ import { useQueryClient } from '@tanstack/react-query';
 function App() {
   const { user, profile, loading, loginWithEmail, signUpWithEmail, loginWithOAuth, logout, updateProfile } = useAuth();
   const [activeTab, setActiveTab] = useState('dashboard');
+  const [activeProfileTab, setActiveProfileTab] = useState<'profile' | 'ai-profile' | 'transparency' | 'career-preferences' | 'account-settings'>('profile');
+  
+  const handleSetActiveTab = (tab: string) => {
+    if (tab === 'settings') {
+      setActiveTab('profile');
+      setActiveProfileTab('account-settings');
+    } else if (tab === 'career-profile') {
+      setActiveTab('profile');
+      setActiveProfileTab('career-preferences');
+    } else {
+      setActiveTab(tab);
+    }
+  };
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
   const queryClient = useQueryClient();
@@ -238,11 +251,11 @@ function App() {
               src={profile.avatarUrl}
               alt={profile.fullName}
               className="h-8 w-8 rounded-full object-cover border border-slate-700 cursor-pointer hover:opacity-85"
-              onClick={() => setActiveTab('settings')}
+              onClick={() => handleSetActiveTab('settings')}
             />
           ) : (
             <div 
-              onClick={() => setActiveTab('settings')}
+              onClick={() => handleSetActiveTab('settings')}
               className="h-8 w-8 rounded-full bg-indigo-500/20 text-indigo-400 flex items-center justify-center font-display font-semibold text-xs border border-indigo-500/30 cursor-pointer hover:opacity-85"
             >
               {profile?.fullName?.charAt(0).toUpperCase() || 'C'}
@@ -254,7 +267,7 @@ function App() {
       {/* Navbar Lateral Fixa */}
       <Navbar
         activeTab={activeTab}
-        setActiveTab={setActiveTab}
+        setActiveTab={handleSetActiveTab}
         profile={profile}
         onLogout={logout}
         isOpen={isSidebarOpen}
@@ -305,7 +318,7 @@ function App() {
               careerProfileNew={careerProfileNew}
               notifications={notifications}
               markNotificationAsRead={markNotificationAsRead}
-              setActiveTab={setActiveTab}
+              setActiveTab={handleSetActiveTab}
               applications={applications}
               careerGoals={careerGoals}
               jobs={jobs}
@@ -329,6 +342,13 @@ function App() {
               pipelineSteps={pipelineSteps}
               activeResumeVersionId={selectedResumeVersionId}
               onSelectResumeVersion={handleSelectResumeVersion}
+              careerProfile={careerProfile}
+              onSaveCareerProfile={updateCareerProfile}
+              isSavingCareerProfile={isSavingProfile}
+              onLogout={logout}
+              onUpdateProfileState={updateProfile}
+              activeProfileTab={activeProfileTab}
+              setActiveProfileTab={setActiveProfileTab}
             />
           </Suspense>
         )}
@@ -342,7 +362,7 @@ function App() {
               careerProfileNew={careerProfileNew}
               onSaveProfile={updateCareerProfile}
               isSaving={isSavingProfile}
-              setActiveTab={setActiveTab}
+              setActiveTab={handleSetActiveTab}
             />
           </Suspense>
         )}
@@ -362,7 +382,7 @@ function App() {
               getStagesQuery={getStagesQuery}
               addStage={addStage}
               deleteStage={deleteStage}
-              setActiveTab={setActiveTab}
+              setActiveTab={handleSetActiveTab}
               companyProfiles={companyProfiles}
               saveCompanyProfile={saveCompanyProfile}
               deleteCompanyProfile={deleteCompanyProfile}
@@ -394,7 +414,7 @@ function App() {
               activeResumeVersionId={selectedResumeVersionId}
               applications={applications}
               onCreateApplication={createApplication}
-              setActiveTab={setActiveTab}
+              setActiveTab={handleSetActiveTab}
               selectedJobId={selectedJobId}
               onSelectJob={setSelectedJobId}
               onStartSimulation={handleStartSimulation}
@@ -427,7 +447,7 @@ function App() {
               markNotificationAsRead={markNotificationAsRead}
               deleteNotification={deleteNotification}
               markAllNotificationsAsRead={markAllNotificationsAsRead}
-              setActiveTab={setActiveTab}
+              setActiveTab={handleSetActiveTab}
               jobs={jobs}
               setSelectedJobId={setSelectedJobId}
             />

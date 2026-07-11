@@ -1498,9 +1498,9 @@ export function StrategyPage({
                       {app.appliedAt && <span>{new Date(app.appliedAt).toLocaleDateString()}</span>}
                     </div>
 
-                    {/* Botão de Simulação de Entrevista */}
-                    {onStartSimulation && (
-                      <div onClick={e => e.stopPropagation()} className="pt-0.5">
+                    {/* Ações Visíveis da Vaga (Simular e Remover da Estratégia) */}
+                    <div onClick={e => e.stopPropagation()} className="pt-0.5 space-y-1">
+                      {onStartSimulation && (
                         <button
                           type="button"
                           onClick={() => onStartSimulation(app.id)}
@@ -1508,8 +1508,24 @@ export function StrategyPage({
                         >
                           🎤 Simular Entrevista
                         </button>
-                      </div>
-                    )}
+                      )}
+                      <button
+                        type="button"
+                        onClick={async () => {
+                          if (window.confirm(`Remover permanentemente a vaga "${app.jobTitle}" de "${app.companyName}" da sua estratégia?`)) {
+                            try {
+                              await onDeleteApplication(app.id);
+                            } catch (e) {
+                              alert("Erro ao remover vaga da estratégia.");
+                            }
+                          }
+                        }}
+                        className="w-full py-1 rounded-lg bg-red-950/15 hover:bg-red-950/30 border border-red-900/25 text-red-400 font-bold text-[9px] uppercase flex items-center justify-center gap-1 transition"
+                      >
+                        <Trash2 size={10} />
+                        Remover da Estratégia
+                      </button>
+                    </div>
 
                     {/* Controles de Etapa (Setas + Dropdown) */}
                     <div className="flex items-center justify-between gap-1 pt-1" onClick={e => e.stopPropagation()}>

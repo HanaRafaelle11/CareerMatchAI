@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import { CardGlass } from '../components/CardGlass';
 import { isSupabaseConfigured, supabase } from '../../infrastructure/api/supabaseClient';
+import { localDB } from '../../infrastructure/storage/localDatabase';
 import type { Profile, Resume } from '../../domain/models/types';
 import type { CareerProfileNew } from '../../application/hooks/useMyProfileAi';
 import { 
@@ -29,6 +31,7 @@ export function Settings({
   onLogout,
   onUpdateProfileState
 }: SettingsProps) {
+  const queryClient = useQueryClient();
   const [activeSubTab, setActiveSubTab] = useState<SettingsTab>('account');
   const [fullName, setFullName] = useState(profile?.fullName || '');
   const [headline, setHeadline] = useState(profile?.headline || '');
@@ -151,10 +154,82 @@ export function Settings({
         } else if (error) {
           throw error;
         }
+
+        // Sincronizar dados com a tabela career_profiles para evitar inconsistência visual (Nome/Headline antigo)
+        const { data: cpList } = await supabase
+          .from('career_profiles')
+          .select('*')
+          .eq('user_id', profile.id);
+        
+        if (cpList && cpList.length > 0) {
+          for (const cp of cpList) {
+            const updatedPersonal = {
+              ...(cp.personal || {}),
+              fullName: fullName,
+              headline: headline
+            };
+            await supabase
+              .from('career_profiles')
+              .update({ personal: updatedPersonal })
+              .eq('id', cp.id);
+          }
+        }
+
+        // Invalida os caches do React Query
+        queryClient.invalidateQueries({ queryKey: ['my-profile-ai'] });
+        queryClient.invalidateQueries({ queryKey: ['career-profile'] });
       } else {
         // Mock local save
         const savedProfile = { ...profile, fullName, headline, avatarUrl };
         localStorage.setItem('careermatch_profile', JSON.stringify(savedProfile));
+
+        // Sincronizar todos os perfis de IA mockados
+        const resumesLocal = localDB.getResumes();
+        resumesLocal.forEach(r => {
+          const cpNewKey = `careermatch_my_profile_ai_${r.resumeVersionId || 'default'}`;
+          const mockCpRaw = localStorage.getItem(cpNewKey);
+          if (mockCpRaw) {
+            try {
+              const parsed = JSON.parse(mockCpRaw);
+              if (parsed.profile) {
+                parsed.profile.personal = {
+                  ...(parsed.profile.personal || {}),
+                  fullName: fullName,
+                  headline: headline
+                };
+                localStorage.setItem(cpNewKey, JSON.stringify(parsed));
+              }
+            } catch (err) { console.error(err); }
+          }
+        });
+
+        const mockCpRawDefault = localStorage.getItem('careermatch_my_profile_ai_default');
+        if (mockCpRawDefault) {
+          try {
+            const parsed = JSON.parse(mockCpRawDefault);
+            if (parsed.profile) {
+              parsed.profile.personal = {
+                ...(parsed.profile.personal || {}),
+                fullName: fullName,
+                headline: headline
+              };
+              localStorage.setItem('careermatch_my_profile_ai_default', JSON.stringify(parsed));
+            }
+          } catch (err) { console.error(err); }
+        }
+
+        const localCpRaw = localStorage.getItem('careermatch_career_profile');
+        if (localCpRaw) {
+          try {
+            const cp = JSON.parse(localCpRaw);
+            cp.fullName = fullName;
+            cp.headline = headline;
+            localStorage.setItem('careermatch_career_profile', JSON.stringify(cp));
+          } catch (err) { console.error(err); }
+        }
+
+        queryClient.invalidateQueries({ queryKey: ['my-profile-ai'] });
+        queryClient.invalidateQueries({ queryKey: ['career-profile'] });
       }
 
       if (onUpdateProfileState) {

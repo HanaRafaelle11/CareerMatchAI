@@ -104,70 +104,75 @@ export function useMyProfileAi(userId: string | undefined, resumeVersionId?: str
         return localDB.getMockMyProfileAi(userId, resumeVersionId);
       }
 
-      // 1. Buscar o perfil de carreira
-      let query = supabase
-        .from('career_profiles')
-        .select('*')
-        .eq('user_id', userId);
+      try {
+        // 1. Buscar o perfil de carreira
+        let query = supabase
+          .from('career_profiles')
+          .select('*')
+          .eq('user_id', userId);
 
-      if (resumeVersionId) {
-        query = query.eq('resume_version_id', resumeVersionId);
-      } else {
-        query = query.order('created_at', { ascending: false }).limit(1);
-      }
+        if (resumeVersionId) {
+          query = query.eq('resume_version_id', resumeVersionId);
+        } else {
+          query = query.order('created_at', { ascending: false }).limit(1);
+        }
 
-      const { data: profileData, error: profileErr } = await query.maybeSingle();
+        const { data: profileData, error: profileErr } = await query.maybeSingle();
 
-      if (profileErr) throw profileErr;
-      if (!profileData) return { profile: null, insights: null };
+        if (profileErr) throw profileErr;
+        if (!profileData) return localDB.getMockMyProfileAi(userId, resumeVersionId);
 
-      const profile: CareerProfileNew = {
-        id: profileData.id,
-        userId: profileData.user_id,
-        resumeVersionId: profileData.resume_version_id,
-        personal: profileData.personal || {},
-        summary: profileData.summary || '',
-        experience: profileData.experience || [],
-        education: profileData.education || [],
-        skills: profileData.skills || [],
-        soft_skills: profileData.soft_skills || [],
-        languages: profileData.languages || [],
-        certifications: profileData.certifications || [],
-        ats_keywords: profileData.ats_keywords || {},
-        createdAt: profileData.created_at
-      };
-
-      console.log(`[CAREER PROFILE LOAD]
-user_id: ${profile.userId}
-resume_version_id: ${profile.resumeVersionId}
-profile_id: ${profile.id}`);
-
-      // 2. Buscar o insights correspondente da mesma versão de currículo
-      const { data: insightsData, error: insightsErr } = await supabase
-        .from('career_insights')
-        .select('*')
-        .eq('resume_version_id', profile.resumeVersionId)
-        .maybeSingle();
-
-      if (insightsErr) throw insightsErr;
-
-      let insights: CareerInsight | null = null;
-      if (insightsData) {
-        insights = {
-          id: insightsData.id,
-          userId: insightsData.user_id,
-          resumeVersionId: insightsData.resume_version_id,
-          seniority_prediction: insightsData.seniority_prediction || {},
-          industry_prediction: insightsData.industry_prediction || {},
-          methodologies: insightsData.methodologies || [],
-          recommended_keywords: insightsData.recommended_keywords || {},
-          missing_skills: insightsData.missing_skills || {},
-          confidence_scores: insightsData.confidence_scores || {},
-          createdAt: insightsData.created_at
+        const profile: CareerProfileNew = {
+          id: profileData.id,
+          userId: profileData.user_id,
+          resumeVersionId: profileData.resume_version_id,
+          personal: profileData.personal || {},
+          summary: profileData.summary || '',
+          experience: profileData.experience || [],
+          education: profileData.education || [],
+          skills: profileData.skills || [],
+          soft_skills: profileData.soft_skills || [],
+          languages: profileData.languages || [],
+          certifications: profileData.certifications || [],
+          ats_keywords: profileData.ats_keywords || {},
+          createdAt: profileData.created_at
         };
-      }
 
-      return { profile, insights };
+        console.log(`[CAREER PROFILE LOAD]
+  user_id: ${profile.userId}
+  resume_version_id: ${profile.resumeVersionId}
+  profile_id: ${profile.id}`);
+
+        // 2. Buscar o insights correspondente da mesma versão de currículo
+        const { data: insightsData, error: insightsErr } = await supabase
+          .from('career_insights')
+          .select('*')
+          .eq('resume_version_id', profile.resumeVersionId)
+          .maybeSingle();
+
+        if (insightsErr) throw insightsErr;
+
+        let insights: CareerInsight | null = null;
+        if (insightsData) {
+          insights = {
+            id: insightsData.id,
+            userId: insightsData.user_id,
+            resumeVersionId: insightsData.resume_version_id,
+            seniority_prediction: insightsData.seniority_prediction || {},
+            industry_prediction: insightsData.industry_prediction || {},
+            methodologies: insightsData.methodologies || [],
+            recommended_keywords: insightsData.recommended_keywords || {},
+            missing_skills: insightsData.missing_skills || {},
+            confidence_scores: insightsData.confidence_scores || {},
+            createdAt: insightsData.created_at
+          };
+        }
+
+        return { profile, insights };
+      } catch (err) {
+        console.warn('[DATABASE] Erro ao carregar perfil/insights do Supabase, usando localDB:', err);
+        return localDB.getMockMyProfileAi(userId, resumeVersionId);
+      }
     },
     enabled: !!userId,
   });

@@ -82,7 +82,20 @@ export function useCoach(userId: string | undefined) {
         return ResumeOptimizationService.optimizeForJob(resume, job);
       }
     },
-    onSuccess: (_, variables) => {
+    onSuccess: (data: any, variables) => {
+      const isMock = variables.jobId.includes('mock') || !isValidUUID(variables.jobId);
+      if (isMock && data) {
+        localDB.saveResumeOptimization({
+          id: data.id || `opt-mock-${Date.now()}`,
+          resumeId: variables.resumeId,
+          jobId: variables.jobId,
+          optimizedSummary: data.optimizedSummary || data.optimized_summary || '',
+          keyExperiences: data.keyExperiences || data.key_experiences || [],
+          missingKeywords: data.missingKeywords || data.missing_keywords || [],
+          redundantInfo: data.redundantInfo || data.redundant_info || [],
+          createdAt: new Date().toISOString()
+        });
+      }
       queryClient.invalidateQueries({ queryKey: ['resume-optimization', variables.resumeId, variables.jobId] });
     }
   });
@@ -154,15 +167,26 @@ export function useCoach(userId: string | undefined) {
         return letter;
       }
     },
-    onSuccess: (_, variables) => {
+    onSuccess: (data: any, variables) => {
+      const isMock = variables.applicationId.includes('mock') || !isValidUUID(variables.applicationId);
+      if (isMock && data) {
+        localDB.saveCoverLetter({
+          id: data.id || `letter-mock-${Date.now()}`,
+          applicationId: variables.applicationId,
+          textFormal: data.textFormal || data.text_formal || '',
+          textDirect: data.textDirect || data.text_direct || '',
+          textExecutive: data.textExecutive || data.text_executive || '',
+          createdAt: new Date().toISOString()
+        });
+      }
       queryClient.invalidateQueries({ queryKey: ['cover-letter', variables.applicationId] });
     }
   });
 
   // 3. Interview Prep
-  const getInterviewPrepQuery = (resume: Resume | null, job: Job | Omit<Job, 'id' | 'userId' | 'createdAt' | 'updatedAt'> | null) => {
+  const getInterviewPrepQuery = (_resume: Resume | null, job: Job | Omit<Job, 'id' | 'userId' | 'createdAt' | 'updatedAt'> | null) => {
     return useQuery<any | null>({
-      queryKey: ['interview-prep', resume?.id, (job as any)?.id],
+      queryKey: ['interview-prep', (job as any)?.id],
       queryFn: async () => {
         if (!job) return null;
         if (isSupabaseConfigured && supabase && (job as any).id && isValidUUID((job as any).id)) {
@@ -235,7 +259,16 @@ export function useCoach(userId: string | undefined) {
         return InterviewPreparationService.getPreparation(resume || null, job);
       }
     },
-    onSuccess: (_, variables) => {
+    onSuccess: (data: any, variables) => {
+      const isMock = variables.jobId.includes('mock') || !isValidUUID(variables.jobId);
+      if (isMock && data) {
+        localDB.saveInterviewPreparation({
+          id: data.id || `prep-mock-${Date.now()}`,
+          jobId: variables.jobId,
+          questions: data.questions || [],
+          createdAt: new Date().toISOString()
+        });
+      }
       queryClient.invalidateQueries({ queryKey: ['interview-prep', variables.jobId] });
     }
   });
@@ -364,28 +397,75 @@ export function useCoach(userId: string | undefined) {
         let evaluations = sim.evaluations;
 
         if (updatedHistory.filter(h => h.role === 'candidate').length >= 2) {
+          const candidateReplies = updatedHistory.filter(h => h.role === 'candidate').map(h => h.text);
+          let totalLength = 0;
+          let hasInappropriateWords = false;
+          let usesStarWords = false;
+
+          const badWords = [/xingar/i, /ofender/i, /bater/i, /gritar/i, /palavrão/i, /ofensa/i, /agredir/i, /insultar/i, /ignorar/i];
+          const starWords = [/resultado/i, /ação/i, /acao/i, /situação/i, /situacao/i, /meta/i, /objetivo/i, /consegui/i, /resolvi/i, /aprendi/i, /indicador/i];
+
+          for (const reply of candidateReplies) {
+            totalLength += reply.length;
+            if (badWords.some(r => r.test(reply))) hasInappropriateWords = true;
+            if (starWords.some(r => r.test(reply))) usesStarWords = true;
+          }
+
+          const avgLength = candidateReplies.length > 0 ? totalLength / candidateReplies.length : 0;
+          let clarity = 75;
+          let objectivity = 75;
+          let adherence = 75;
+          let strengths: string[] = [];
+          let improvements: string[] = [];
+
+          if (hasInappropriateWords) {
+            clarity = 10;
+            objectivity = 15;
+            adherence = 0;
+            strengths = ['Nenhum ponto forte identificado. Comportamento e linguajar inadequados.'];
+            improvements = [
+              'COMPORTAMENTO INACEITÁVEL: Respostas agressivas, violentas ou contendo xingamentos/ameaças resultam em reprovação imediata.',
+              'Mantenha a inteligência emocional sob pressão e responda de maneira profissional.',
+              'Pratique a resolução diplomática de conflitos através de comunicação assertiva.'
+            ];
+          } else {
+            if (avgLength < 15) {
+              clarity -= 35;
+              objectivity += 15;
+              adherence -= 30;
+              improvements.push('Respostas extremamente superficiais. Desenvolva mais suas respostas com exemplos reais.');
+            } else if (avgLength > 150) {
+              clarity += 10;
+              objectivity -= 20;
+              improvements.push('Sua resposta foi muito longa e pode dispersar o entrevistador. Seja mais conciso e focado.');
+            } else {
+              clarity += 10;
+              objectivity += 10;
+              strengths.push('Boa extensão de resposta, mantendo-se focado no assunto sem prolixidade.');
+            }
+
+            if (usesStarWords) {
+              adherence += 15;
+              clarity += 5;
+              strengths.push('Demonstrou uso de estrutura clara de causa, ação e resultados (Método STAR).');
+            } else {
+              adherence -= 10;
+              improvements.push('Tente estruturar suas respostas usando o método STAR (Situação, Desafio, Ação e Resultados obtidos).');
+            }
+
+            if (isPharmacy) {
+              strengths.push('Alinhamento satisfatório com diretrizes de atendimento ao paciente e biossegurança.');
+            } else {
+              strengths.push('Demonstrou senso prático para lidar com desafios operacionais corporativos.');
+            }
+          }
+
           evaluations = {
-            clarity: 85,
-            objectivity: 90,
-            adherence: 80,
-            strengths: isPharmacy
-              ? [
-                  'Destaque claro de sua formação técnica/científica.',
-                  'Alinhamento com os produtos de biossegurança e qualidade clínica.'
-                ]
-              : [
-                  'Destaque claro de indicadores quantitativos.',
-                  'Tom de comunicação profissional e focado em soluções.'
-                ],
-            improvements: isPharmacy
-              ? [
-                  'Tente estruturar a resposta no método STAR (Situação, Ação, Resultado).',
-                  'Destaque mais as principais técnicas e regulamentações ANVISA correspondentes.'
-                ]
-              : [
-                  'Tente encurtar a introdução para ser mais direto na ação do STAR.',
-                  'Destaque mais as ferramentas operacionais recomendadas.'
-                ]
+            clarity: Math.max(0, Math.min(100, clarity)),
+            objectivity: Math.max(0, Math.min(100, objectivity)),
+            adherence: Math.max(0, Math.min(100, adherence)),
+            strengths,
+            improvements
           };
         } else if (role === 'candidate') {
           updatedHistory.push({

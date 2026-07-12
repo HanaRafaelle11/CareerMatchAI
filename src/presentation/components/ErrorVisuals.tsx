@@ -86,7 +86,7 @@ export function ErrorState({ error, onRetry, onAction }: ErrorStateProps) {
           {appError.action && onAction && (!appError.retryable || appError.action.toLowerCase() !== 'tentar novamente') && (
             <button
               onClick={onAction}
-              className="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 transition text-xs text-slate-350 font-semibold font-display cursor-pointer"
+              className="px-3 py-1.5 rounded-lg bg-brand-600 hover:bg-brand-500 text-white transition text-xs font-semibold font-display cursor-pointer"
             >
               {appError.action}
             </button>

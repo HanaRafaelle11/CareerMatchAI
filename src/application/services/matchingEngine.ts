@@ -264,6 +264,7 @@ export class MatchingEngine {
         const isE2EUser = user?.email?.includes('.e2e.') || user?.email === 'hardening.e2e@example.com';
         const { data, error } = await supabase.functions.invoke('match-job', {
           body: { 
+            resumeId: resume.id,
             resumeVersionId: resume.resumeVersionId,
             jobId: job.id,
             mockGemini: isE2EUser
@@ -323,12 +324,12 @@ export class MatchingEngine {
           gapAnalysis: {
             id: data.id,
             matchId: data.id,
-            missingSkills: data.missing_keywords || [],
-            skillsToLearn: [],
-            toIncludeInResume: [],
-            toExcludeFromResume: [],
-            repetitiveContent: [],
-            lowValueContent: []
+            missingSkills: data.gap_analysis?.missingSkills || data.missing_keywords || [],
+            skillsToLearn: data.gap_analysis?.skillsToLearn || [],
+            toIncludeInResume: data.gap_analysis?.toIncludeInResume || [],
+            toExcludeFromResume: data.gap_analysis?.toExcludeFromResume || [],
+            repetitiveContent: data.gap_analysis?.repetitiveContent || [],
+            lowValueContent: data.gap_analysis?.lowValueContent || []
           },
           coverLetter: { id: data.id, createdAt: data.created_at },
           interviewPrep: {

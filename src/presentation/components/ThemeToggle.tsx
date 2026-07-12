@@ -7,26 +7,32 @@ export function ThemeToggle() {
   useEffect(() => {
     const savedTheme = localStorage.getItem('theme');
     const systemPrefersLight = window.matchMedia('(prefers-color-scheme: light)').matches;
+    const isLightMode = savedTheme === 'light' || (!savedTheme && systemPrefersLight);
     
-    if (savedTheme === 'light' || (!savedTheme && systemPrefersLight)) {
-      setIsLight(true);
+    setIsLight(isLightMode);
+    if (isLightMode) {
       document.body.classList.add('light');
+      document.documentElement.classList.add('light');
     } else {
-      setIsLight(false);
       document.body.classList.remove('light');
+      document.documentElement.classList.remove('light');
     }
   }, []);
 
   const toggleTheme = () => {
-    if (isLight) {
-      document.body.classList.remove('light');
-      localStorage.setItem('theme', 'dark');
-      setIsLight(false);
-    } else {
+    const nextLight = !isLight;
+    setIsLight(nextLight);
+    
+    if (nextLight) {
       document.body.classList.add('light');
+      document.documentElement.classList.add('light');
       localStorage.setItem('theme', 'light');
-      setIsLight(true);
+    } else {
+      document.body.classList.remove('light');
+      document.documentElement.classList.remove('light');
+      localStorage.setItem('theme', 'dark');
     }
+    window.dispatchEvent(new Event('theme-change'));
   };
 
   return (

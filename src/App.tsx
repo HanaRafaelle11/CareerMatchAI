@@ -7,8 +7,10 @@ import { useApplications } from './application/hooks/useApplications';
 import { useCoach } from './application/hooks/useCoach';
 import { useRoadmapServices } from './application/hooks/useRoadmapServices';
 import { Navbar } from './presentation/components/Navbar';
+import { CompactHeader } from './presentation/components/ds/CompactHeader';
 import { Login } from './presentation/pages/Login';
-import { Menu, FileText, Loader2 } from 'lucide-react';
+import { Menu, Loader2 } from 'lucide-react';
+import { MyCareerLogo } from './presentation/components/ds/MyCareerIcons';
 import { isSupabaseConfigured, supabase } from './infrastructure/api/supabaseClient';
 import type { Job } from './domain/models/types';
 
@@ -42,15 +44,55 @@ import { useQueryClient } from '@tanstack/react-query';
 function App() {
   const { user, profile, loading, loginWithEmail, signUpWithEmail, loginWithOAuth, logout, updateProfile } = useAuth();
   const [activeTab, setActiveTab] = useState('dashboard');
-  const [activeProfileTab, setActiveProfileTab] = useState<'profile' | 'ai-profile' | 'transparency' | 'career-preferences' | 'account-settings'>('profile');
-  
+  const [activeProfileTab, setActiveProfileTab] = useState<'profile' | 'ai-profile' | 'transparency'>('profile');
+  const [settingsInitialSubTab, setSettingsInitialSubTab] = useState<'account' | 'resumes' | 'preferences' | 'notifications' | 'appearance' | 'privacy' | 'billing'>('account');
+  const [strategyInitialSubTab, setStrategyInitialSubTab] = useState<'strategy' | 'planner' | 'pipeline' | 'journal'>('strategy');
+
+  // Synchronize visual theme on mount and on 'theme-change' events
+  useEffect(() => {
+    const applyTheme = () => {
+      const savedTheme = localStorage.getItem('theme') || 'dark';
+      if (savedTheme === 'light') {
+        document.documentElement.classList.add('light');
+        document.body.classList.add('light');
+      } else if (savedTheme === 'dark') {
+        document.documentElement.classList.remove('light');
+        document.body.classList.remove('light');
+      } else {
+        const systemPrefersLight = window.matchMedia('(prefers-color-scheme: light)').matches;
+        if (systemPrefersLight) {
+          document.documentElement.classList.add('light');
+          document.body.classList.add('light');
+        } else {
+          document.documentElement.classList.remove('light');
+          document.body.classList.remove('light');
+        }
+      }
+    };
+    applyTheme();
+    window.addEventListener('theme-change', applyTheme);
+    return () => window.removeEventListener('theme-change', applyTheme);
+  }, []);
+
   const handleSetActiveTab = (tab: string) => {
     if (tab === 'settings') {
-      setActiveTab('profile');
-      setActiveProfileTab('account-settings');
+      setSettingsInitialSubTab('account');
+      setActiveTab('settings');
     } else if (tab === 'career-profile') {
-      setActiveTab('profile');
-      setActiveProfileTab('career-preferences');
+      setSettingsInitialSubTab('preferences');
+      setActiveTab('settings');
+    } else if (tab === 'strategy') {
+      setStrategyInitialSubTab('strategy');
+      setActiveTab('strategy');
+    } else if (tab === 'pipeline') {
+      setStrategyInitialSubTab('pipeline');
+      setActiveTab('strategy');
+    } else if (tab === 'planner') {
+      setStrategyInitialSubTab('planner');
+      setActiveTab('strategy');
+    } else if (tab === 'journal') {
+      setStrategyInitialSubTab('journal');
+      setActiveTab('strategy');
     } else {
       setActiveTab(tab);
     }
@@ -118,14 +160,17 @@ function App() {
 
   useEffect(() => {
     if (resumes && resumes.length > 0) {
-      const primary = resumes.find(r => r.isPrimary) || resumes[0];
-      if (primary && primary.resumeVersionId && selectedResumeVersionId !== primary.resumeVersionId) {
-        setSelectedResumeVersionId(primary.resumeVersionId);
+      const hasValidSelection = resumes.some(r => r.resumeVersionId === selectedResumeVersionId);
+      if (!selectedResumeVersionId || !hasValidSelection) {
+        const primary = resumes.find(r => r.isPrimary) || resumes[0];
+        if (primary && primary.resumeVersionId) {
+          setSelectedResumeVersionId(primary.resumeVersionId);
+        }
       }
     } else {
       setSelectedResumeVersionId(null);
     }
-  }, [resumes]);
+  }, [resumes, selectedResumeVersionId]);
 
   const handleSelectResumeVersion = async (versionId: string | null) => {
     if (!versionId) return;
@@ -236,14 +281,7 @@ function App() {
           >
             <Menu size={24} />
           </button>
-          <div className="flex items-center gap-2">
-            <div className="h-7 w-7 rounded-lg bg-gradient-to-tr from-brand-600 to-indigo-500 flex items-center justify-center font-display font-bold text-white text-xs shadow-md shadow-brand-500/10">
-              CM
-            </div>
-            <span className="font-display font-bold text-sm bg-gradient-to-r from-white to-slate-400 dark:from-white dark:to-slate-400 light:from-slate-900 light:to-slate-600 bg-clip-text text-transparent">
-              CareerMatch AI
-            </span>
-          </div>
+          <MyCareerLogo className="h-7" showText={false} />
         </div>
         <div className="flex items-center gap-2">
           {profile?.avatarUrl ? (
@@ -273,39 +311,31 @@ function App() {
         isOpen={isSidebarOpen}
         onClose={() => setIsSidebarOpen(false)}
         isAdmin={isAdmin}
+        hasResume={resumes.length > 0}
+        hasProfile={!!careerProfileNew}
+        matchCount={matches.length}
+        applicationCount={applications.length}
+        interviewCount={applications.filter(a => ['👥 Entrevista com recrutador', '🎯 Entrevista com gestor', '🧩 Case técnico', '🤝 Fit cultural'].includes(a.status)).length}
       />
 
       {/* Container Principal */}
-      <main className="flex-1 w-full min-w-0 px-4 sm:px-6 md:pl-72 md:pr-10 py-8 pt-20 md:pt-8 min-h-screen overflow-x-hidden relative z-10">
+      <main className="flex-1 w-full min-w-0 px-4 sm:px-6 md:pl-[276px] md:pr-8 py-6 pt-20 md:pt-6 pb-24 md:pb-6 min-h-screen overflow-x-hidden relative z-10">
 
-        {/* Seletor de Currículo Ativo Global */}
+        {/* Compact Header — Currículo ativo */}
         {resumes && resumes.length > 0 && (
-          <div className="mb-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 p-4 rounded-2xl border border-slate-900 bg-slate-950/40 backdrop-blur-md relative overflow-hidden">
-            <div className="absolute top-0 right-0 h-24 w-24 bg-brand-500/10 rounded-full blur-2xl pointer-events-none" />
-            <div className="space-y-1">
-              <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500">Currículo Selecionado</span>
-              <div className="flex items-center gap-2">
-                <FileText size={16} className="text-brand-500" />
-                <span className="font-semibold text-sm text-slate-200">
-                  {selectedResume?.fileName || "Nenhum currículo selecionado"}
-                </span>
-              </div>
-            </div>
-            <div className="flex items-center gap-3">
-              <span className="text-xs text-slate-400 font-medium">Trocar currículo:</span>
-              <select
-                value={selectedResumeVersionId || ''}
-                onChange={(e) => handleSelectResumeVersion(e.target.value)}
-                className="px-3 py-2 rounded-xl bg-slate-900 border border-slate-800 text-xs text-slate-200 hover:border-slate-700 focus:outline-none focus:ring-1 focus:ring-brand-500 font-semibold"
-              >
-                {resumes.map((r) => (
-                  <option key={r.resumeVersionId} value={r.resumeVersionId}>
-                    {r.fileName} {r.isPrimary ? '(Padrão)' : ''}
-                  </option>
-                ))}
-              </select>
-            </div>
-          </div>
+          <CompactHeader
+            userName={profile?.fullName?.split(' ')[0] || 'Candidato'}
+            activeResume={selectedResume || null}
+            aiScore={matches.length > 0 ? Math.round(matches.reduce((a, m) => a + m.scoreOverall, 0) / matches.length) : undefined}
+            resumes={resumes}
+            onSelectResume={selectActiveResume}
+            onSwitchResume={() => {
+              setSettingsInitialSubTab('resumes');
+              handleSetActiveTab('settings');
+            }}
+            onReanalyze={() => handleSetActiveTab('profile')}
+            className="mb-4 border-b border-outline-variant/10 pb-3"
+          />
         )}
 
         {activeTab === 'dashboard' && (
@@ -342,13 +372,9 @@ function App() {
               pipelineSteps={pipelineSteps}
               activeResumeVersionId={selectedResumeVersionId}
               onSelectResumeVersion={handleSelectResumeVersion}
-              careerProfile={careerProfile}
-              onSaveCareerProfile={updateCareerProfile}
-              isSavingCareerProfile={isSavingProfile}
-              onLogout={logout}
-              onUpdateProfileState={updateProfile}
               activeProfileTab={activeProfileTab}
               setActiveProfileTab={setActiveProfileTab}
+              setActiveTab={handleSetActiveTab}
             />
           </Suspense>
         )}
@@ -394,6 +420,8 @@ function App() {
               getPostLogQuery={getPostLogQuery}
               savePostLog={savePostLog}
               onStartSimulation={handleStartSimulation}
+              setSelectedJobId={setSelectedJobId}
+              initialSubTab={strategyInitialSubTab}
             />
           </Suspense>
         )}
@@ -472,6 +500,7 @@ function App() {
               onDeleteResume={deleteResume}
               onLogout={logout}
               onUpdateProfileState={updateProfile}
+              initialTab={settingsInitialSubTab}
             />
           </Suspense>
         )}

@@ -47,17 +47,45 @@ export function useRoadmapServices(userId: string | undefined) {
       queryFn: async () => {
         if (!userId) return null;
         if (isSupabaseConfigured && supabase) {
-          const { data, error } = await supabase
-            .from('weekly_planners')
-            .select('*')
-            .eq('user_id', userId)
-            .eq('week_number', weekNumber)
-            .maybeSingle();
+          try {
+            const { data, error } = await supabase
+              .from('weekly_planners')
+              .select('*')
+              .eq('user_id', userId)
+              .eq('week_number', weekNumber)
+              .maybeSingle();
 
-          if (error) throw error;
-          if (!data) {
-            // Retorna um planner vazio padrão para evitar telas em branco
+            if (error) throw error;
+            if (!data) {
+              // Retorna um planner vazio padrão para evitar telas em branco
+              return {
+                id: 'wp-default-' + weekNumber,
+                userId: userId,
+                weekNumber: weekNumber,
+                plannerData: {
+                  'Segunda-feira': { tasks: [] },
+                  'Terça-feira': { tasks: [] },
+                  'Quarta-feira': { tasks: [] },
+                  'Quinta-feira': { tasks: [] },
+                  'Sexta-feira': { tasks: [] },
+                  'Sábado': { tasks: [] },
+                  'Domingo': { tasks: [] }
+                },
+                createdAt: new Date().toISOString(),
+                updatedAt: new Date().toISOString()
+              };
+            }
             return {
+              id: data.id,
+              userId: data.user_id,
+              weekNumber: data.week_number,
+              plannerData: data.planner_data,
+              createdAt: data.created_at,
+              updatedAt: data.updated_at
+            };
+          } catch (dbErr) {
+            console.warn('[DATABASE] Erro ao buscar planner no Supabase, usando localDB:', dbErr);
+            return localDB.getWeeklyPlanner(userId, weekNumber) || {
               id: 'wp-default-' + weekNumber,
               userId: userId,
               weekNumber: weekNumber,
@@ -74,14 +102,6 @@ export function useRoadmapServices(userId: string | undefined) {
               updatedAt: new Date().toISOString()
             };
           }
-          return {
-            id: data.id,
-            userId: data.user_id,
-            weekNumber: data.week_number,
-            plannerData: data.planner_data,
-            createdAt: data.created_at,
-            updatedAt: data.updated_at
-          };
         } else {
           return localDB.getWeeklyPlanner(userId, weekNumber) || {
             id: 'wp-default-' + weekNumber,
@@ -109,20 +129,25 @@ export function useRoadmapServices(userId: string | undefined) {
     mutationFn: async (planner: WeeklyPlanner) => {
       if (!userId) throw new Error('Usuário não autenticado.');
       if (isSupabaseConfigured && supabase) {
-        const { data, error } = await supabase
-          .from('weekly_planners')
-          .upsert({
-            id: planner.id.startsWith('wp-') ? undefined : planner.id,
-            user_id: userId,
-            week_number: planner.weekNumber,
-            planner_data: planner.plannerData,
-            updated_at: new Date().toISOString()
-          })
-          .select()
-          .single();
+        try {
+          const { data, error } = await supabase
+            .from('weekly_planners')
+            .upsert({
+              id: planner.id.startsWith('wp-') ? undefined : planner.id,
+              user_id: userId,
+              week_number: planner.weekNumber,
+              planner_data: planner.plannerData,
+              updated_at: new Date().toISOString()
+            })
+            .select()
+            .single();
 
-        if (error) throw error;
-        return data;
+          if (error) throw error;
+          return data;
+        } catch (dbErr) {
+          console.warn('[DATABASE] Erro ao salvar planner no Supabase, usando localDB:', dbErr);
+          return localDB.saveWeeklyPlanner({ ...planner, userId });
+        }
       } else {
         return localDB.saveWeeklyPlanner({ ...planner, userId });
       }
@@ -141,17 +166,41 @@ export function useRoadmapServices(userId: string | undefined) {
       queryFn: async () => {
         if (!userId) return null;
         if (isSupabaseConfigured && supabase) {
-          const { data, error } = await supabase
-            .from('weekly_goals')
-            .select('*')
-            .eq('user_id', userId)
-            .eq('week_number', weekNumber)
-            .maybeSingle();
+          try {
+            const { data, error } = await supabase
+              .from('weekly_goals')
+              .select('*')
+              .eq('user_id', userId)
+              .eq('week_number', weekNumber)
+              .maybeSingle();
 
-          if (error) throw error;
-          if (!data) {
-            // Retorna meta padrão para evitar erros e carregar o form
+            if (error) throw error;
+            if (!data) {
+              // Retorna meta padrão para evitar erros e carregar o form
+              return {
+                id: 'wg-default-' + weekNumber,
+                userId: userId,
+                weekNumber: weekNumber,
+                targetApplications: 5,
+                targetInterviewsRh: 2,
+                targetInterviewsManager: 1,
+                createdAt: new Date().toISOString(),
+                updatedAt: new Date().toISOString()
+              };
+            }
             return {
+              id: data.id,
+              userId: data.user_id,
+              weekNumber: data.week_number,
+              targetApplications: data.target_applications,
+              targetInterviewsRh: data.target_interviews_rh,
+              targetInterviewsManager: data.target_interviews_manager,
+              createdAt: data.created_at,
+              updatedAt: data.updated_at
+            };
+          } catch (dbErr) {
+            console.warn('[DATABASE] Erro ao buscar metas no Supabase, usando localDB:', dbErr);
+            return localDB.getWeeklyGoal(userId, weekNumber) || {
               id: 'wg-default-' + weekNumber,
               userId: userId,
               weekNumber: weekNumber,
@@ -162,16 +211,6 @@ export function useRoadmapServices(userId: string | undefined) {
               updatedAt: new Date().toISOString()
             };
           }
-          return {
-            id: data.id,
-            userId: data.user_id,
-            weekNumber: data.week_number,
-            targetApplications: data.target_applications,
-            targetInterviewsRh: data.target_interviews_rh,
-            targetInterviewsManager: data.target_interviews_manager,
-            createdAt: data.created_at,
-            updatedAt: data.updated_at
-          };
         } else {
           return localDB.getWeeklyGoal(userId, weekNumber) || {
             id: 'wg-default-' + weekNumber,
@@ -193,22 +232,27 @@ export function useRoadmapServices(userId: string | undefined) {
     mutationFn: async (goal: WeeklyGoal) => {
       if (!userId) throw new Error('Usuário não autenticado.');
       if (isSupabaseConfigured && supabase) {
-        const { data, error } = await supabase
-          .from('weekly_goals')
-          .upsert({
-            id: goal.id.startsWith('wg-') ? undefined : goal.id,
-            user_id: userId,
-            week_number: goal.weekNumber,
-            target_applications: goal.targetApplications,
-            target_interviews_rh: goal.targetInterviewsRh,
-            target_interviews_manager: goal.targetInterviewsManager,
-            updated_at: new Date().toISOString()
-          })
-          .select()
-          .single();
+        try {
+          const { data, error } = await supabase
+            .from('weekly_goals')
+            .upsert({
+              id: goal.id.startsWith('wg-') ? undefined : goal.id,
+              user_id: userId,
+              week_number: goal.weekNumber,
+              target_applications: goal.targetApplications,
+              target_interviews_rh: goal.targetInterviewsRh,
+              target_interviews_manager: goal.targetInterviewsManager,
+              updated_at: new Date().toISOString()
+            })
+            .select()
+            .single();
 
-        if (error) throw error;
-        return data;
+          if (error) throw error;
+          return data;
+        } catch (dbErr) {
+          console.warn('[DATABASE] Erro ao salvar metas no Supabase, usando localDB:', dbErr);
+          return localDB.saveWeeklyGoal({ ...goal, userId });
+        }
       } else {
         return localDB.saveWeeklyGoal({ ...goal, userId });
       }

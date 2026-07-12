@@ -8,10 +8,11 @@ import { CareerCoachService } from '../../application/services/CareerCoachServic
 import { MatchingEngine } from '../../application/services/matchingEngine';
 import type { Job, Resume, Match, CareerProfile } from '../../domain/models/types';
 import type { CareerProfileNew } from '../../application/hooks/useMyProfileAi';
-import { Play, Clipboard, Award, CheckCircle, AlertTriangle, AlertCircle, X, ChevronRight, BookOpen, Plus, Search, MapPin, Loader2, ArrowUpRight, Flame, Sparkles, Trash2 } from 'lucide-react';
+import { Play, Clipboard, Award, CheckCircle, AlertTriangle, AlertCircle, X, ChevronRight, BookOpen, Plus, Search, MapPin, Loader2, ArrowUpRight, Flame, Sparkles, Trash2, Briefcase, Heart, DollarSign, Building } from 'lucide-react';
 import { isSupabaseConfigured, supabase } from '../../infrastructure/api/supabaseClient';
 import { AppError } from '../../application/errors/AppError';
 import { ErrorState, EmptyState, ProcessingState } from '../components/ErrorVisuals';
+import { ProgressRing } from '../components/ds';
 
 interface JobMatchHubProps {
   userId: string | undefined;
@@ -60,6 +61,7 @@ export function JobMatchHub({
   const [subTab, setSubTab] = useState<'my-jobs' | 'discover'>('discover');
   const [coachTab, setCoachTab] = useState<'coach-evaluation' | 'optimize-cv' | 'cover-letter' | 'interview-questions'>('coach-evaluation');
   const [isDeletingAnalyses, setIsDeletingAnalyses] = useState(false);
+  const [letterStyle, setLetterStyle] = useState<'formal' | 'direct' | 'executive'>('formal');
   const [appError, setAppError] = useState<AppError | null>(null);
   const [isAddingToStrategy, setIsAddingToStrategy] = useState(false);
   const [manualStrategyStatus, setManualStrategyStatus] = useState<string>('auto');
@@ -147,6 +149,20 @@ export function JobMatchHub({
     }
     prevResumeIdRef.current = currentResumeId;
   }, [primaryResume?.id, primaryResume?.resumeVersionId, careerProfileNew]);
+
+  const [copiedSummary, setCopiedSummary] = useState(false);
+  const handleCopySummary = (text: string) => {
+    navigator.clipboard.writeText(text);
+    setCopiedSummary(true);
+    setTimeout(() => setCopiedSummary(false), 2000);
+  };
+
+  useEffect(() => {
+    if (propSelectedJobId) {
+      setSubTab('my-jobs');
+      setCoachTab('optimize-cv');
+    }
+  }, [propSelectedJobId]);
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -327,8 +343,9 @@ export function JobMatchHub({
         }
 
         // 6. Apagar ai_analysis_cache relacionado
-        if (careerProfile) {
-          const textToHash = JSON.stringify(careerProfile);
+        const activeProfileForHash = careerProfileNew || careerProfile;
+        if (activeProfileForHash) {
+          const textToHash = JSON.stringify(activeProfileForHash);
           const msgUint8 = new TextEncoder().encode(textToHash);
           const hashBuffer = await crypto.subtle.digest("SHA-256", msgUint8);
           const hashArray = Array.from(new Uint8Array(hashBuffer));
@@ -404,8 +421,7 @@ export function JobMatchHub({
   };
 
   const handleDeleteSelectedAnalysis = async () => {
-    const currentResume = (activeResumeVersionId ? resumes.find(r => r.resumeVersionId === activeResumeVersionId) : null) || resumes.find(r => r.isPrimary) || resumes[0];
-    if (!userId || !currentResume || !selectedJob) return;
+    if (!userId || !selectedJob || !currentMatch) return;
 
     const confirm = window.confirm(`Deseja realmente apagar a análise de compatibilidade e otimizações criadas especificamente para a vaga "${selectedJob.title}" em "${selectedJob.companyName}"? O currículo físico e a vaga permanecerão intactos.`);
     if (!confirm) return;
@@ -413,48 +429,46 @@ export function JobMatchHub({
     try {
       setIsDeletingAnalyses(true);
       
+      const matchResumeId = currentMatch.resumeId;
+
       if (isSupabaseConfigured && supabase) {
         // 1. Apagar matches associados para esta vaga
         const { error: matchesErr } = await supabase
           .from('matches')
           .delete()
-          .eq('resume_id', currentResume.id)
-          .eq('job_id', selectedJob.id);
+          .eq('id', currentMatch.id);
         if (matchesErr) throw matchesErr;
 
         // 2. Apagar job_matches associados para esta vaga
-        if (currentResume.resumeVersionId) {
-          const { error: jmErr } = await supabase
-            .from('job_matches')
-            .delete()
-            .eq('resume_version_id', currentResume.resumeVersionId)
-            .eq('job_id', selectedJob.id);
-          if (jmErr) throw jmErr;
+        const { error: jmErr } = await supabase
+          .from('job_matches')
+          .delete()
+          .eq('job_id', selectedJob.id);
+        if (jmErr) {
+          console.warn('[DELETE ANALYSIS] Falha ao deletar job_matches (pode não existir):', jmErr);
         }
 
         // 3. Apagar resume_optimizations associados para esta vaga
         const { error: optErr } = await supabase
           .from('resume_optimizations')
           .delete()
-          .eq('resume_id', currentResume.id)
+          .eq('resume_id', matchResumeId)
           .eq('job_id', selectedJob.id);
         if (optErr) throw optErr;
 
         // 4. Apagar cover_letters associadas para esta vaga/application
-        if (currentResume.resumeVersionId) {
-          const { data: apps } = await supabase
-            .from('applications')
-            .select('id')
-            .eq('resume_version_id', currentResume.resumeVersionId)
-            .eq('job_id', selectedJob.id);
-          
-          if (apps && apps.length > 0) {
-            const appIds = apps.map(a => a.id);
-            await supabase
-              .from('cover_letters')
-              .delete()
-              .in('application_id', appIds);
-          }
+        const { data: apps } = await supabase
+          .from('applications')
+          .select('id')
+          .eq('user_id', userId)
+          .eq('job_id', selectedJob.id);
+        
+        if (apps && apps.length > 0) {
+          const appIds = apps.map(a => a.id);
+          await supabase
+            .from('cover_letters')
+            .delete()
+            .in('application_id', appIds);
         }
 
         // 5. Apagar cache específico da IA
@@ -498,7 +512,7 @@ export function JobMatchHub({
           const matchesRaw = localStorage.getItem('careermatch_matches');
           if (matchesRaw) {
             const list = JSON.parse(matchesRaw);
-            const filtered = list.filter((m: any) => !(String(m.jobId) === String(selectedJob.id) && (String(m.resumeId || m.resume_id) === String(currentResume.id))));
+            const filtered = list.filter((m: any) => !(String(m.jobId) === String(selectedJob.id) && (String(m.resumeId || m.resume_id) === String(matchResumeId))));
             localStorage.setItem('careermatch_matches', JSON.stringify(filtered));
           }
         } catch (e) { console.error(e); }
@@ -507,7 +521,7 @@ export function JobMatchHub({
           const optRaw = localStorage.getItem('careermatch_resume_optimizations');
           if (optRaw) {
             const list = JSON.parse(optRaw);
-            const filtered = list.filter((o: any) => !(String(o.jobId) === String(selectedJob.id) && (String(o.resumeId || o.resume_id) === String(currentResume.id))));
+            const filtered = list.filter((o: any) => !(String(o.jobId) === String(selectedJob.id) && (String(o.resumeId || o.resume_id) === String(matchResumeId))));
             localStorage.setItem('careermatch_resume_optimizations', JSON.stringify(filtered));
           }
         } catch (e) { console.error(e); }
@@ -581,11 +595,27 @@ export function JobMatchHub({
   const handleGenerateCoverLetter = async () => {
     if (!primaryResume || !selectedJob) return;
     try {
+      // 1. Verificar se já existe uma candidatura real para este job
+      let activeApp = applications.find((app: any) => app.jobId === selectedJob.id);
+      
+      // 2. Se não existir, criar uma automaticamente com status '🔎 Encontrada'
+      if (!activeApp && onCreateApplication) {
+        activeApp = await onCreateApplication({
+          jobId: selectedJob.id,
+          companyName: selectedJob.companyName,
+          jobTitle: selectedJob.title,
+          status: '🔎 Encontrada',
+          resumeVersionId: primaryResume.resumeVersionId || undefined
+        });
+      }
+
+      const appId = activeApp?.id || mockAppId || `mock-app-${Date.now()}`;
+
       await generateCoverLetter({
         resumeId: primaryResume.id,
         resumeVersionId: primaryResume.resumeVersionId || primaryResume.id,
         jobId: selectedJob.id,
-        applicationId: mockAppId || `mock-app-${Date.now()}`
+        applicationId: appId
       });
       alert('Cartas de apresentação geradas com sucesso!');
     } catch (err: any) {
@@ -692,7 +722,8 @@ export function JobMatchHub({
   const { data: optimization = null, isLoading: isLoadingOpt } = getResumeOptimizationQuery(primaryResume || null, selectedJob || null);
   const { data: prep = null, isLoading: isLoadingPrep } = getInterviewPrepQuery(primaryResume || null, selectedJob || null);
   const mockAppId = selectedJob ? `app-mock-${selectedJob.id}` : undefined;
-  const { data: coverLetter = null } = getCoverLetterQuery(mockAppId);
+  const realApp = selectedJob ? applications.find((app: any) => app.jobId === selectedJob.id) : null;
+  const { data: coverLetter = null } = getCoverLetterQuery(realApp?.id || mockAppId);
   const currentMatch = selectedJob ? matches.find(m => m.jobId === selectedJob.id) : null;
   const { data: matchDetails } = getMatchDetails(currentMatch?.id || '');
 
@@ -897,19 +928,38 @@ export function JobMatchHub({
     }
   };
 
+  // Calculate quick stats
+  const avgOverallMatch = jobs.length > 0 && matches.length > 0
+    ? Math.round(matches.reduce((acc, m) => acc + m.scoreOverall, 0) / matches.length)
+    : 0;
+
+  const jobsWithSalaries = jobs.filter(j => j.salaryNumeric || j.salaryMin || j.salaryMax);
+  const averageSalary = jobs.length > 0 && jobsWithSalaries.length > 0
+    ? Math.round(
+        jobsWithSalaries.reduce((acc, j) => {
+          const min = j.salaryMin || 0;
+          const max = j.salaryMax || 0;
+          const mid = min && max ? (min + max) / 2 : (j.salaryNumeric || max || min || 0);
+          return acc + mid;
+        }, 0) / jobsWithSalaries.length
+      )
+    : 0;
+
+  const uniqueCompaniesCount = new Set(jobs.map(j => j.companyName)).size;
+
   return (
-    <div className="space-y-8 animate-fade-in font-sans p-0">
+    <div className="space-y-6 animate-fade-in font-sans p-0">
       {/* Cabeçalho */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <h1 className="font-display font-bold text-3xl tracking-tight text-slate-100 dark:text-slate-100 light:text-slate-800">
-            Módulo de Vagas
+          <h1 className="font-display font-bold text-xl tracking-tight text-on-surface">
+            Mapeamento de Vagas & Match
           </h1>
-          <p className="text-slate-400 dark:text-slate-400 light:text-slate-500 text-sm mt-1">
-            Encontre vagas compatíveis via buscas ou analise descrições de cargos manualmente.
+          <p className="text-on-surface-variant text-xs mt-0.5">
+            Encontre vagas compatíveis via buscas inteligentes ou analise descrições de cargos de forma personalizada.
           </p>
         </div>
-        <div className="flex gap-3">
+        <div className="flex gap-3 shrink-0">
           {primaryResume && (
             <button
               onClick={handleDeleteAnalyses}
@@ -932,6 +982,38 @@ export function JobMatchHub({
             <Plus size={16} />
             Colar Nova Vaga
           </button>
+        </div>
+      </div>
+
+      {/* Estatísticas Rápidas */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="premium-card rounded-xl p-4 flex flex-col justify-between">
+          <div className="flex items-center justify-between mb-2">
+            <span className="text-[10px] text-on-surface-variant font-bold uppercase tracking-wider">Vagas Analisadas</span>
+            <Briefcase size={16} className="text-primary" />
+          </div>
+          <p className="text-xl font-bold text-on-surface">{jobs.length}</p>
+        </div>
+        <div className="premium-card rounded-xl p-4 flex flex-col justify-between">
+          <div className="flex items-center justify-between mb-2">
+            <span className="text-[10px] text-on-surface-variant font-bold uppercase tracking-wider">Compatibilidade</span>
+            <Heart size={16} className="text-emerald-400" />
+          </div>
+          <p className="text-xl font-bold text-on-surface">{avgOverallMatch > 0 ? `${avgOverallMatch}%` : '--'}</p>
+        </div>
+        <div className="premium-card rounded-xl p-4 flex flex-col justify-between">
+          <div className="flex items-center justify-between mb-2">
+            <span className="text-[10px] text-on-surface-variant font-bold uppercase tracking-wider">Salário Médio</span>
+            <DollarSign size={16} className="text-amber-400" />
+          </div>
+          <p className="text-xl font-bold text-on-surface">{averageSalary > 0 ? `R$ ${(averageSalary / 1000).toFixed(0)}k` : '--'}</p>
+        </div>
+        <div className="premium-card rounded-xl p-4 flex flex-col justify-between">
+          <div className="flex items-center justify-between mb-2">
+            <span className="text-[10px] text-on-surface-variant font-bold uppercase tracking-wider">Empresas</span>
+            <Building size={16} className="text-secondary" />
+          </div>
+          <p className="text-xl font-bold text-on-surface">{uniqueCompaniesCount}</p>
         </div>
       </div>
 
@@ -1073,7 +1155,7 @@ export function JobMatchHub({
             <CardGlass className="p-4 space-y-4">
               <span className="text-xs font-bold text-slate-500 uppercase tracking-wider px-2">Vagas Disponíveis</span>
               <div className="space-y-2 max-h-[500px] overflow-y-auto pr-1">
-                {jobs.map(job => {
+                {jobs.filter(job => matches.some(m => m.jobId === job.id)).map(job => {
                   const isActive = job.id === selectedJobId;
                   const match = matches.find(m => m.jobId === job.id);
                   return (
@@ -1295,22 +1377,22 @@ export function JobMatchHub({
                             })()}
                           </div>
 
-                          <div className="grid grid-cols-2 gap-4 pt-4 border-t border-slate-900 dark:border-slate-900 light:border-slate-200">
-                            <div>
-                              <span className="text-[10px] text-slate-500 block font-semibold">Técnico</span>
-                              <span className="text-sm font-bold text-slate-300 dark:text-slate-300 light:text-slate-700">{currentMatch.scoreTechnical}%</span>
+                          <div className="grid grid-cols-4 gap-2 pt-4 border-t border-slate-900 dark:border-slate-900 light:border-slate-200 text-center">
+                            <div className="flex flex-col items-center">
+                              <ProgressRing value={currentMatch.scoreTechnical} size={30} strokeWidth={3} />
+                              <span className="text-[9px] text-slate-500 font-semibold mt-1 block">Técnico</span>
                             </div>
-                            <div>
-                              <span className="text-[10px] text-slate-500 block font-semibold">Comportamental</span>
-                              <span className="text-sm font-bold text-slate-300 dark:text-slate-300 light:text-slate-700">{currentMatch.scoreBehavioral}%</span>
+                            <div className="flex flex-col items-center">
+                              <ProgressRing value={currentMatch.scoreBehavioral} size={30} strokeWidth={3} />
+                              <span className="text-[9px] text-slate-500 font-semibold mt-1 block">Comport.</span>
                             </div>
-                            <div>
-                              <span className="text-[10px] text-slate-500 block font-semibold">Senioridade</span>
-                              <span className="text-sm font-bold text-slate-300 dark:text-slate-300 light:text-slate-700">{currentMatch.scoreSeniority}%</span>
+                            <div className="flex flex-col items-center">
+                              <ProgressRing value={currentMatch.scoreSeniority} size={30} strokeWidth={3} />
+                              <span className="text-[9px] text-slate-500 font-semibold mt-1 block">Seniorid.</span>
                             </div>
-                            <div>
-                              <span className="text-[10px] text-slate-500 block font-semibold">Localização</span>
-                              <span className="text-sm font-bold text-slate-300 dark:text-slate-300 light:text-slate-700">{currentMatch.scoreLocation}%</span>
+                            <div className="flex flex-col items-center">
+                              <ProgressRing value={currentMatch.scoreLocation} size={30} strokeWidth={3} />
+                              <span className="text-[9px] text-slate-500 font-semibold mt-1 block">Localiz.</span>
                             </div>
                           </div>
                         </CardGlass>
@@ -1583,8 +1665,26 @@ export function JobMatchHub({
 
                       {coachTab === 'optimize-cv' && optimization && (
                         <div className="space-y-4 animate-fade-in text-xs">
-                          <div className="space-y-1.5 p-4 rounded-xl bg-slate-900/30 border border-slate-900/60">
-                            <strong className="text-slate-200 block text-[11px]">Resumo Profissional Otimizado (sem inventar fatos):</strong>
+                          <div className="space-y-1.5 p-4 rounded-xl bg-slate-900/30 border border-slate-900/60 relative">
+                            <div className="flex justify-between items-center mb-1">
+                              <strong className="text-slate-200 text-[11px]">Resumo Profissional Otimizado (sem inventar fatos):</strong>
+                              <button
+                                onClick={() => handleCopySummary(optimization.optimizedSummary)}
+                                className="px-2 py-1 rounded bg-slate-950 hover:bg-slate-800 text-[10px] text-slate-400 hover:text-slate-200 flex items-center gap-1 transition"
+                              >
+                                {copiedSummary ? (
+                                  <>
+                                    <CheckCircle size={11} className="text-emerald-500" />
+                                    <span>Copiado!</span>
+                                  </>
+                                ) : (
+                                  <>
+                                    <Clipboard size={11} />
+                                    <span>Copiar</span>
+                                  </>
+                                )}
+                              </button>
+                            </div>
                             <p className="text-slate-350 leading-relaxed italic">"{optimization.optimizedSummary}"</p>
                           </div>
 
@@ -1629,22 +1729,50 @@ export function JobMatchHub({
                         <div className="space-y-4 animate-fade-in text-xs">
                           {coverLetter ? (
                             <div className="space-y-4">
-                              <div className="space-y-2">
-                                <span className="text-[10px] text-slate-500 uppercase font-bold block">Estilo Formal</span>
-                                <div className="p-3 rounded-xl bg-slate-950/40 border border-slate-900 text-slate-300 font-mono text-[10px] leading-relaxed whitespace-pre-line">
-                                  {(coverLetter as any).textFormal || (coverLetter as any).content}
-                                </div>
+                              <div className="flex gap-2 p-1 bg-slate-950/40 border border-slate-900 rounded-xl w-fit">
+                                {(['formal', 'direct', 'executive'] as const).map((style) => (
+                                  <button
+                                    key={style}
+                                    type="button"
+                                    onClick={() => setLetterStyle(style)}
+                                    className={`px-3 py-1.5 rounded-lg text-[10px] font-bold transition-all capitalize cursor-pointer ${
+                                      letterStyle === style
+                                        ? 'bg-brand-600 text-white shadow'
+                                        : 'text-slate-400 hover:text-slate-200'
+                                    }`}
+                                  >
+                                    {style === 'formal' ? 'Formal' : style === 'direct' ? 'Direto / Moderno' : 'Executivo'}
+                                  </button>
+                                ))}
                               </div>
-                              <div className="space-y-2">
-                                <span className="text-[10px] text-slate-500 uppercase font-bold block">Estilo Direto</span>
-                                <div className="p-3 rounded-xl bg-slate-950/40 border border-slate-900 text-slate-300 font-mono text-[10px] leading-relaxed whitespace-pre-line">
-                                  {(coverLetter as any).textDirect || (coverLetter as any).content}
+
+                              <div className="space-y-2.5">
+                                <div className="flex justify-between items-center">
+                                  <span className="text-[10px] text-slate-500 uppercase font-bold">
+                                    Carta ({letterStyle === 'formal' ? 'Formal' : letterStyle === 'direct' ? 'Direta' : 'Executiva'})
+                                  </span>
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      const text = letterStyle === 'formal'
+                                        ? ((coverLetter as any).textFormal || (coverLetter as any).content)
+                                        : letterStyle === 'direct'
+                                        ? ((coverLetter as any).textDirect || (coverLetter as any).content)
+                                        : ((coverLetter as any).textExecutive || (coverLetter as any).content);
+                                      navigator.clipboard.writeText(text);
+                                      alert('Carta de apresentação copiada!');
+                                    }}
+                                    className="px-2.5 py-1 rounded bg-slate-900 hover:bg-slate-850 text-slate-300 text-[10px] font-bold border border-slate-850 flex items-center gap-1 transition cursor-pointer"
+                                  >
+                                    Copiar
+                                  </button>
                                 </div>
-                              </div>
-                              <div className="space-y-2">
-                                <span className="text-[10px] text-slate-500 uppercase font-bold block">Estilo Executivo</span>
-                                <div className="p-3 rounded-xl bg-slate-950/40 border border-slate-900 text-slate-300 font-mono text-[10px] leading-relaxed whitespace-pre-line">
-                                  {(coverLetter as any).textExecutive || (coverLetter as any).content}
+                                <div className="p-3.5 rounded-xl bg-slate-950/40 border border-slate-900 text-slate-300 font-mono text-[10px] leading-relaxed whitespace-pre-line">
+                                  {letterStyle === 'formal'
+                                    ? ((coverLetter as any).textFormal || (coverLetter as any).content)
+                                    : letterStyle === 'direct'
+                                    ? ((coverLetter as any).textDirect || (coverLetter as any).content)
+                                    : ((coverLetter as any).textExecutive || (coverLetter as any).content)}
                                 </div>
                               </div>
                             </div>
@@ -1693,7 +1821,33 @@ export function JobMatchHub({
                       )}
 
                       {coachTab === 'interview-questions' && prep && (
-                        <div className="space-y-4 animate-fade-in text-xs max-h-[350px] overflow-y-auto pr-1">
+                        <div className="space-y-4 animate-fade-in text-xs max-h-[420px] overflow-y-auto pr-1">
+                          {/* Card Informativo do Método STAR */}
+                          <div className="p-3.5 bg-brand-500/5 border border-brand-500/10 rounded-xl space-y-2 text-left">
+                            <p className="font-bold text-slate-200 text-xs">💡 O que é o Método STAR?</p>
+                            <p className="text-[11px] text-slate-450 leading-relaxed">
+                              O método STAR é uma técnica recomendada para responder a perguntas comportamentais em entrevistas de emprego. Ele ajuda a estruturar suas respostas focando em quatro pilares:
+                            </p>
+                            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-[9px] pt-1">
+                              <div className="p-2 rounded-lg bg-slate-950/40 border border-slate-900 leading-tight">
+                                <strong className="text-brand-400 block font-bold">1. Situação (S)</strong>
+                                Contextualize o desafio ou problema enfrentado.
+                              </div>
+                              <div className="p-2 rounded-lg bg-slate-950/40 border border-slate-900 leading-tight">
+                                <strong className="text-amber-400 block font-bold">2. Tarefa (T)</strong>
+                                Explique seu papel e objetivo a ser atingido.
+                              </div>
+                              <div className="p-2 rounded-lg bg-slate-950/40 border border-slate-900 leading-tight">
+                                <strong className="text-emerald-400 block font-bold">3. Ação (A)</strong>
+                                Detalhe o que fez para solucionar o desafio.
+                              </div>
+                              <div className="p-2 rounded-lg bg-slate-950/40 border border-slate-900 leading-tight">
+                                <strong className="text-indigo-400 block font-bold">4. Resultado (R)</strong>
+                                Mostre os frutos e métricas obtidas.
+                              </div>
+                            </div>
+                          </div>
+
                           {prep.questions.map((q: any, idx: number) => (
                             <div key={idx} className="p-4 rounded-xl bg-slate-900/30 border border-slate-900/60 space-y-3 text-left">
                               <div className="flex justify-between items-start gap-2">
@@ -1702,11 +1856,22 @@ export function JobMatchHub({
                                   {q.type}
                                 </span>
                               </div>
-                              <div className="p-3 bg-slate-950/60 border border-slate-900 rounded-lg space-y-1.5 text-[11px] leading-relaxed">
-                                <span className="text-[9px] text-slate-500 uppercase font-bold block">Sugestão de Resposta (STAR):</span>
-                                <div><strong>S/C:</strong> {q.answerStar.context}</div>
-                                <div><strong>Ação:</strong> {q.answerStar.action}</div>
-                                <div><strong>Result:</strong> {q.answerStar.result}</div>
+                              <div className="p-3.5 bg-slate-950/60 border border-slate-900 rounded-lg space-y-3 text-[11px] leading-relaxed">
+                                <span className="text-[9px] text-slate-500 uppercase font-bold block border-b border-slate-900 pb-1">Sugestão de Resposta (STAR):</span>
+                                <div className="space-y-2.5">
+                                  <div>
+                                    <span className="text-brand-400 font-bold block text-[10px] uppercase tracking-wider">Situação e Tarefa (S/T)</span>
+                                    <p className="text-slate-300 mt-0.5 font-sans">{q.answerStar.context}</p>
+                                  </div>
+                                  <div>
+                                    <span className="text-emerald-400 font-bold block text-[10px] uppercase tracking-wider">Ação (A)</span>
+                                    <p className="text-slate-300 mt-0.5 font-sans">{q.answerStar.action}</p>
+                                  </div>
+                                  <div>
+                                    <span className="text-indigo-400 font-bold block text-[10px] uppercase tracking-wider">Resultado (R)</span>
+                                    <p className="text-slate-300 mt-0.5 font-sans">{q.answerStar.result}</p>
+                                  </div>
+                                </div>
                               </div>
                             </div>
                           ))}
@@ -1912,14 +2077,19 @@ export function JobMatchHub({
                   <div className="space-y-6">
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                       {scoredDiscoveredJobs.map((job, idx) => (
-                        <CardGlass key={idx} className="flex flex-col justify-between space-y-4 hover:border-slate-800">
+                        <CardGlass key={idx} className="flex flex-col justify-between space-y-4 hover:border-brand-500/30 transition-all">
                           <div className="space-y-2">
-                            <div className="flex justify-between items-start gap-2">
-                              <div>
-                                <h4 className="font-bold text-sm text-slate-200 dark:text-slate-200 light:text-slate-800">
-                                  {job.title}
-                                </h4>
-                                <span className="text-xs text-brand-500 font-semibold">{job.companyName}</span>
+                            <div className="flex justify-between items-start gap-3">
+                              <div className="flex gap-3 min-w-0">
+                                <div className="w-10 h-10 rounded-xl bg-surface-container-high border border-outline-variant/20 flex items-center justify-center font-bold text-xs text-primary shrink-0">
+                                  {job.companyName?.substring(0, 2).toUpperCase()}
+                                </div>
+                                <div className="min-w-0">
+                                  <h4 className="font-bold text-sm text-slate-200 dark:text-slate-200 light:text-slate-800 truncate" title={job.title}>
+                                    {job.title}
+                                  </h4>
+                                  <span className="text-xs text-brand-500 font-semibold truncate block">{job.companyName}</span>
+                                </div>
                               </div>
                               <span className="text-[10px] px-2 py-0.5 rounded-full bg-slate-900 border border-slate-800 text-slate-500 font-semibold shrink-0">
                                 {job.sourcePlatform}
@@ -1948,6 +2118,11 @@ export function JobMatchHub({
                               <span className="px-2 py-0.5 rounded bg-indigo-500/10 text-[10px] text-indigo-400 font-bold uppercase">
                                 {job.seniority}
                               </span>
+                              {job.salary && (
+                                <span className="px-2 py-0.5 rounded bg-emerald-500/10 text-[10px] text-emerald-400 font-bold">
+                                  {job.salary}
+                                </span>
+                              )}
                             </div>
 
                             {/* Exibição de lacunas de competências */}

@@ -12,7 +12,7 @@ import {
   Flame, Sparkles, AlertCircle, Clock, Plus, Trash2, 
   Compass, CheckCircle2, ChevronRight, ChevronLeft,
   X, Briefcase, Layout, AlertTriangle,
-  Smile, Meh, Frown, CheckSquare, Square, Building2, BookOpen, Target, Loader2
+  Smile, Meh, Frown, CheckSquare, Square, Building2, BookOpen, Target, Loader2, List
 } from 'lucide-react';
 
 interface StrategyPageProps {
@@ -41,6 +41,8 @@ interface StrategyPageProps {
   getPostLogQuery: (appId: string) => any;
   savePostLog: (log: any) => Promise<any>;
   onStartSimulation?: (target: Job | string) => void;
+  setSelectedJobId?: (id: string | null) => void;
+  initialSubTab?: 'strategy' | 'planner' | 'pipeline' | 'journal';
 }
 
 export function StrategyPage({
@@ -67,9 +69,19 @@ export function StrategyPage({
   saveWeeklyGoal,
   getPostLogQuery,
   savePostLog,
-  onStartSimulation
+  onStartSimulation,
+  initialSubTab
 }: StrategyPageProps) {
-  const [subTab, setSubTab] = useState<'strategy' | 'planner' | 'goals' | 'companies' | 'journal' | 'pipeline' | 'tracker'>('strategy');
+  const [subTab, setSubTab] = useState<'strategy' | 'planner' | 'pipeline' | 'journal'>(initialSubTab || 'strategy');
+
+  useEffect(() => {
+    if (initialSubTab) {
+      setSubTab(initialSubTab);
+    }
+  }, [initialSubTab]);
+
+  const [viewMode, setViewMode] = useState<'kanban' | 'list'>('kanban');
+  const [intelSubTab, setIntelSubTab] = useState<'companies' | 'diary'>('companies');
   const primaryResume = resumes.find(r => r.isPrimary) || resumes[0];
 
   // Week configuration (default is week 202628)
@@ -349,16 +361,7 @@ export function StrategyPage({
     }
   };
 
-  const handleSaveGoal = async (e: FormEvent) => {
-    e.preventDefault();
-    if (!goal) return;
 
-    try {
-      await saveWeeklyGoal(goal);
-    } catch (err) {
-      console.error(err);
-    }
-  };
 
   const handleSaveCompany = async (e: FormEvent) => {
     e.preventDefault();
@@ -448,13 +451,10 @@ export function StrategyPage({
       {/* Sub Tabs Switcher */}
       <div className="flex flex-wrap border-b border-slate-800 dark:border-slate-800 light:border-slate-200 gap-6">
         {[
-          { id: 'strategy', label: 'Prioridades CPI & ROI', icon: Flame },
-          { id: 'planner', label: 'Planner Semanal', icon: CheckSquare },
-          { id: 'goals', label: 'Metas da Semana', icon: Target },
-          { id: 'companies', label: 'Inteligência de Empresas', icon: Building2 },
-          { id: 'journal', label: 'AI Journal', icon: BookOpen },
-          { id: 'pipeline', label: 'Pipeline Kanban', icon: Layout },
-          { id: 'tracker', label: 'Histórico Lista', icon: Clock }
+          { id: 'strategy', label: 'Painel Estratégico', icon: Flame },
+          { id: 'planner', label: 'Planner & Progresso', icon: CheckSquare },
+          { id: 'pipeline', label: 'Pipeline de Vagas', icon: Layout },
+          { id: 'journal', label: 'Inteligência & Journal', icon: BookOpen }
         ].map(tab => {
           const Icon = tab.icon;
           return (
@@ -977,63 +977,59 @@ export function StrategyPage({
               Nenhum planner ativo encontrado para a semana {currentWeekNumber}.
             </div>
           )}
-        </div>
-      )}
 
-      {/* ==========================================
-          SUB TAB 3: METAS DA SEMANA
-          ========================================== */}
-      {subTab === 'goals' && (
-        <div className="max-w-xl mx-auto space-y-6 animate-slide-in">
-          <div>
-            <h3 className="font-display font-bold text-base text-slate-200">Metas Semanais</h3>
-            <p className="text-xs text-slate-500 mt-1">Configure seus objetivos operacionais e a IA medirá o seu progresso.</p>
-          </div>
-
+          {/* Fusão de Abas: Metas Semanais & Progresso */}
           {goal && (
-            <CardGlass className="p-6 space-y-6">
-              <form onSubmit={handleSaveGoal} className="space-y-6">
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 pt-6 border-t border-slate-800/60 mt-6">
+              <CardGlass className="p-5 space-y-4 border border-slate-900">
+                <div>
+                  <h4 className="font-display font-bold text-xs text-brand-400 uppercase tracking-wider">Metas Operacionais</h4>
+                  <p className="text-[10px] text-slate-500 mt-0.5">Configure seus objetivos operacionais para esta semana.</p>
+                </div>
+                <div className="grid grid-cols-3 gap-3">
                   <div className="space-y-1.5">
-                    <label className="text-xs text-slate-400 font-semibold">Candidaturas</label>
+                    <label className="text-[10px] text-slate-400 font-semibold block">Candidaturas</label>
                     <input 
                       type="number" 
                       value={goal.targetApplications}
                       onChange={e => saveWeeklyGoal({ ...goal, targetApplications: parseInt(e.target.value) || 0 })}
-                      className="w-full bg-slate-900/50 border border-slate-800 rounded-xl px-4 py-2.5 text-slate-200 text-sm outline-none focus:border-brand-500"
+                      className="w-full bg-slate-955 border border-slate-900 rounded-xl px-3 py-2 text-slate-200 text-xs outline-none focus:border-brand-500"
                     />
                   </div>
                   <div className="space-y-1.5">
-                    <label className="text-xs text-slate-400 font-semibold">Conversas Recrutador (RH)</label>
+                    <label className="text-[10px] text-slate-400 font-semibold block">Conversas RH</label>
                     <input 
                       type="number" 
                       value={goal.targetInterviewsRh}
                       onChange={e => saveWeeklyGoal({ ...goal, targetInterviewsRh: parseInt(e.target.value) || 0 })}
-                      className="w-full bg-slate-900/50 border border-slate-800 rounded-xl px-4 py-2.5 text-slate-200 text-sm outline-none focus:border-brand-500"
+                      className="w-full bg-slate-955 border border-slate-900 rounded-xl px-3 py-2 text-slate-200 text-xs outline-none focus:border-brand-500"
                     />
                   </div>
                   <div className="space-y-1.5">
-                    <label className="text-xs text-slate-400 font-semibold">Entrevistas Gestor</label>
+                    <label className="text-[10px] text-slate-400 font-semibold block">Entrev. Gestor</label>
                     <input 
                       type="number" 
                       value={goal.targetInterviewsManager}
                       onChange={e => saveWeeklyGoal({ ...goal, targetInterviewsManager: parseInt(e.target.value) || 0 })}
-                      className="w-full bg-slate-900/50 border border-slate-800 rounded-xl px-4 py-2.5 text-slate-200 text-sm outline-none focus:border-brand-500"
+                      className="w-full bg-slate-955 border border-slate-900 rounded-xl px-3 py-2 text-slate-200 text-xs outline-none focus:border-brand-500"
                     />
                   </div>
                 </div>
+              </CardGlass>
 
-                {/* Progress bars */}
-                <div className="space-y-4 pt-4 border-t border-slate-900">
-                  <h4 className="text-xs font-bold text-slate-300 uppercase tracking-wider">Seu Progresso Real</h4>
-                  
+              <CardGlass className="p-5 space-y-4 border border-slate-905">
+                <div>
+                  <h4 className="font-display font-bold text-xs text-brand-400 uppercase tracking-wider">Seu Progresso Real</h4>
+                  <p className="text-[10px] text-slate-500 mt-0.5">Progresso calculado automaticamente a partir de suas candidaturas.</p>
+                </div>
+                <div className="space-y-3">
                   {/* Apps progress */}
-                  <div className="space-y-1.5">
-                    <div className="flex justify-between text-xs text-slate-400">
+                  <div className="space-y-1">
+                    <div className="flex justify-between text-[10px] text-slate-400">
                       <span>Candidaturas Realizadas</span>
                       <span className="font-bold text-slate-200">{funnel.applied} / {goal.targetApplications}</span>
                     </div>
-                    <div className="w-full h-2.5 rounded-full bg-slate-900 overflow-hidden">
+                    <div className="w-full h-2 rounded-full bg-slate-955 overflow-hidden">
                       <div 
                         className="h-full bg-brand-500 rounded-full" 
                         style={{ width: `${Math.min(100, goal.targetApplications > 0 ? (funnel.applied / goal.targetApplications) * 100 : 0)}%` }}
@@ -1042,14 +1038,14 @@ export function StrategyPage({
                   </div>
 
                   {/* RH progress */}
-                  <div className="space-y-1.5">
-                    <div className="flex justify-between text-xs text-slate-400">
+                  <div className="space-y-1">
+                    <div className="flex justify-between text-[10px] text-slate-400">
                       <span>Entrevistas com Recrutadores</span>
                       <span className="font-bold text-slate-200">
                         {applications.filter(a => a.status === '👥 Entrevista com recrutador').length} / {goal.targetInterviewsRh}
                       </span>
                     </div>
-                    <div className="w-full h-2.5 rounded-full bg-slate-900 overflow-hidden">
+                    <div className="w-full h-2 rounded-full bg-slate-955 overflow-hidden">
                       <div 
                         className="h-full bg-amber-500 rounded-full" 
                         style={{ width: `${Math.min(100, goal.targetInterviewsRh > 0 ? (applications.filter(a => a.status === '👥 Entrevista com recrutador').length / goal.targetInterviewsRh) * 100 : 0)}%` }}
@@ -1058,14 +1054,14 @@ export function StrategyPage({
                   </div>
 
                   {/* Manager progress */}
-                  <div className="space-y-1.5">
-                    <div className="flex justify-between text-xs text-slate-400">
+                  <div className="space-y-1">
+                    <div className="flex justify-between text-[10px] text-slate-400">
                       <span>Entrevistas com Gestores</span>
                       <span className="font-bold text-slate-200">
                         {applications.filter(a => a.status === '🎯 Entrevista com gestor').length} / {goal.targetInterviewsManager}
                       </span>
                     </div>
-                    <div className="w-full h-2.5 rounded-full bg-slate-900 overflow-hidden">
+                    <div className="w-full h-2 rounded-full bg-slate-955 overflow-hidden">
                       <div 
                         className="h-full bg-purple-500 rounded-full" 
                         style={{ width: `${Math.min(100, goal.targetInterviewsManager > 0 ? (applications.filter(a => a.status === '🎯 Entrevista com gestor').length / goal.targetInterviewsManager) * 100 : 0)}%` }}
@@ -1073,30 +1069,68 @@ export function StrategyPage({
                     </div>
                   </div>
                 </div>
-              </form>
-            </CardGlass>
+              </CardGlass>
+            </div>
           )}
         </div>
       )}
 
+
+
       {/* ==========================================
-          SUB TAB 4: INTELIGÊNCIA DE EMPRESAS (COMPANY INTEL)
+          SUB TAB 4: INTELIGÊNCIA DE EMPRESAS (COMPANY INTEL) & AI JOURNAL
           ========================================== */}
-      {subTab === 'companies' && (
+      {subTab === 'journal' && (
         <div className="space-y-6 animate-slide-in">
-          <div className="flex justify-between items-center">
-            <div>
-              <h3 className="font-display font-bold text-base text-slate-200">Inteligência de Empresas</h3>
-              <p className="text-xs text-slate-500 mt-1">Monitore e analise o fit corporativo das empresas com quem você interage.</p>
+          {/* Inner Tab Selector */}
+          <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-3 bg-slate-900/40 p-4 rounded-2xl border border-slate-900">
+            <div className="flex bg-slate-900 border border-slate-800 p-0.5 rounded-xl shrink-0">
+              <button
+                type="button"
+                onClick={() => setIntelSubTab('companies')}
+                className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
+                  intelSubTab === 'companies'
+                    ? 'bg-brand-600 text-white shadow-md'
+                    : 'text-slate-400 hover:text-slate-200'
+                }`}
+              >
+                <Building2 size={13} />
+                Empresas Monitoradas
+              </button>
+              <button
+                type="button"
+                onClick={() => setIntelSubTab('diary')}
+                className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
+                  intelSubTab === 'diary'
+                    ? 'bg-brand-600 text-white shadow-md'
+                    : 'text-slate-400 hover:text-slate-200'
+                }`}
+              >
+                <BookOpen size={13} />
+                Diário / AI Journal
+              </button>
             </div>
-            <button 
-              onClick={() => setShowCompanyForm(true)}
-              className="inline-flex items-center gap-2 px-3 py-1.5 rounded-xl bg-brand-600 hover:bg-brand-500 text-white font-bold text-xs shadow-lg"
-            >
-              <Plus size={14} />
-              Avaliar Empresa
-            </button>
+            
+            {intelSubTab === 'companies' && (
+              <button 
+                type="button"
+                onClick={() => setShowCompanyForm(true)}
+                className="inline-flex items-center gap-2 px-3 py-1.5 rounded-xl bg-brand-600 hover:bg-brand-500 text-white font-bold text-xs shadow-lg cursor-pointer"
+              >
+                <Plus size={13} />
+                Avaliar Empresa
+              </button>
+            )}
           </div>
+
+          {intelSubTab === 'companies' && (
+            <div className="space-y-6 animate-slide-in">
+              <div className="flex justify-between items-center">
+                <div>
+                  <h3 className="font-display font-bold text-base text-slate-200">Inteligência de Empresas</h3>
+                  <p className="text-xs text-slate-500 mt-1">Monitore e analise o fit corporativo das empresas com quem você interage.</p>
+                </div>
+              </div>
 
           {/* Form Modal for Company */}
           {showCompanyForm && (
@@ -1299,14 +1333,11 @@ export function StrategyPage({
               </CardGlass>
             ))}
           </div>
-        </div>
-      )}
+          </div>
+          )}
 
-      {/* ==========================================
-          SUB TAB 5: AI JOURNAL (DIÁRIO POS-ENTREVISTA)
-          ========================================== */}
-      {subTab === 'journal' && (
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 animate-slide-in">
+          {intelSubTab === 'diary' && (
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 animate-slide-in">
           {/* Reflections Logger */}
           <CardGlass className="p-6 space-y-6">
             <div>
@@ -1462,14 +1493,52 @@ export function StrategyPage({
             </div>
           </div>
         </div>
+        )}
+      </div>
       )}
 
       {/* ==========================================
-          SUB TAB 6: PIPELINE KANBAN
+          SUB TAB 6: PIPELINE DE VAGAS (KANBAN & LISTA INTEGRADOS)
           ========================================== */}
       {subTab === 'pipeline' && (
-        <div className="flex gap-4 overflow-x-auto pb-6 items-start scrollbar-thin select-none">
-          {Object.values(pipelineColumns).map(col => (
+        <div className="space-y-6 animate-slide-in">
+          {/* Alternância de Visualização (Toggle) */}
+          <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-3 bg-slate-900/40 p-4 rounded-2xl border border-slate-900">
+            <div>
+              <h3 className="font-display font-bold text-sm text-slate-200">Pipeline de Vagas</h3>
+              <p className="text-[10px] text-slate-500 mt-0.5">Acompanhe e movimente o status de seus processos seletivos.</p>
+            </div>
+            <div className="flex bg-slate-900 border border-slate-800 p-0.5 rounded-xl shrink-0">
+              <button
+                type="button"
+                onClick={() => setViewMode('kanban')}
+                className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
+                  viewMode === 'kanban'
+                    ? 'bg-brand-600 text-white shadow-md'
+                    : 'text-slate-400 hover:text-slate-200'
+                }`}
+              >
+                <Layout size={13} />
+                Kanban
+              </button>
+              <button
+                type="button"
+                onClick={() => setViewMode('list')}
+                className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
+                  viewMode === 'list'
+                    ? 'bg-brand-600 text-white shadow-md'
+                    : 'text-slate-400 hover:text-slate-200'
+                }`}
+              >
+                <List size={13} />
+                Lista
+              </button>
+            </div>
+          </div>
+
+          {viewMode === 'kanban' ? (
+            <div className="flex gap-4 overflow-x-auto pb-6 items-start scrollbar-thin select-none">
+              {Object.values(pipelineColumns).map(col => (
             <div 
               key={col.id} 
               onDragOver={(e) => e.preventDefault()}
@@ -1649,13 +1718,8 @@ export function StrategyPage({
             </div>
           ))}
         </div>
-      )}
-
-      {/* ==========================================
-          SUB TAB 7: HISTÓRICO LISTA
-          ========================================== */}
-      {subTab === 'tracker' && (
-        <CardGlass className="p-6 space-y-6 animate-slide-in">
+      ) : (
+        <CardGlass className="p-6 space-y-6">
           <div className="flex justify-between items-center pb-3 border-b border-slate-900">
             <h3 className="font-display font-bold text-base text-slate-200 flex items-center gap-2">
               <Briefcase size={18} className="text-brand-500" />
@@ -1745,6 +1809,8 @@ export function StrategyPage({
             </div>
           )}
         </CardGlass>
+      )}
+        </div>
       )}
     </div>
   );

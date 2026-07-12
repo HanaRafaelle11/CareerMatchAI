@@ -273,7 +273,7 @@ class JobMatchingEngine {
       INSTRUÇÕES IMPORTANTES:
       - Realize uma análise semântica robusta de adequação técnica, comportamental e de nível de experiência.
       - NÃO atribua scores genéricos de média (como 46% ou 50%) para perfis incompatíveis. Se a área profissional do candidato (ex: Farmácia/Estética) não tiver nenhuma afinidade com a vaga (ex: Software Engineer, Gari, Motorista), o "match_score" DEVE ser muito baixo, entre 0% e 15%.
-      - A recomendação verbal ("recommendation"), os pontos fortes ("strengths") e os pontos fracos ("weaknesses") devem estar em total coerência matemática com o "match_score" atribuído (se o match é de 10%, os pontos fracos devem dominar e a recomendação deve explicar a incompatibilidade de área).
+      - A recomendação verbal ("recommendation"), os pontos fortes ("strengths") e os pontos fracos ("weaknesses") devem estar em total coerência matemática com o "match_score" atribuído. Se a nota de match for baixa (menor que 50%), a lista de pontos fracos/atenção ("weaknesses") DEVE conter mais itens e detalhes do que a lista de pontos fortes. Se a nota for alta (maior que 70%), os pontos fortes ("strengths") devem ser amplamente dominantes.
       - Retorne estritamente um objeto JSON válido correspondente ao JSON Schema especificado abaixo.
 
       JSON Schema de Saída:
@@ -354,7 +354,7 @@ class JobMatchingEngine {
     return matchJson;
   }
 
-  static async saveJobMatch(supabaseClient: any, userId: string, resumeVersionId: string, jobId: string, matchResult: any, processingTimeMs?: number) {
+  static async saveJobMatch(supabaseClient: any, userId: string, resumeId: string, resumeVersionId: string, jobId: string, matchResult: any, processingTimeMs?: number) {
     const gapAnalysis = {
       missingSkills: matchResult.missing_keywords || [],
       skillsToLearn: matchResult.skills_to_learn || ["Aprofundar os conhecimentos técnicos exigidos na vaga."],
@@ -366,7 +366,7 @@ class JobMatchingEngine {
       .from('matches')
       .insert({
         user_id: userId,
-        resume_id: resumeVersionId,
+        resume_id: resumeId,
         job_id: jobId,
         score_overall: matchResult.match_score,
         score_technical: matchResult.match_score,
@@ -743,6 +743,7 @@ serve(async (req) => {
       const savedMatch = await JobMatchingEngine.saveJobMatch(
         supabaseClient,
         resolvedUserId,
+        resumeId,
         careerProfile.resume_version_id || resolvedVersionId,
         actualJobId,
         matchResult,
@@ -761,13 +762,13 @@ serve(async (req) => {
         jobData.description,
         supabaseClient,
         resolvedUserId,
-        careerProfile.resume_id,
+        resumeId,
         actualJobId,
         isMockEnabled
       );
 
       const toSave = {
-        resume_id: careerProfile.resume_id,
+        resume_id: resumeId,
         job_id: actualJobId || null,
         optimized_summary: result.optimized_summary,
         key_experiences: result.key_experiences || [],
@@ -776,7 +777,7 @@ serve(async (req) => {
       };
 
       let savedRecord = null;
-      if (isValidUUID(careerProfile.resume_id)) {
+      if (isValidUUID(resumeId)) {
         const { data, error } = await supabaseClient
           .from('resume_optimizations')
           .insert(toSave)

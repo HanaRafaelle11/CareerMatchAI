@@ -7,7 +7,8 @@ import type { Profile, Resume } from '../../domain/models/types';
 import type { CareerProfileNew } from '../../application/hooks/useMyProfileAi';
 import { 
   User, FileText, Settings as SettingsIcon, Bell, 
-  Palette, ShieldAlert, CreditCard, Trash2, Download, Check
+  Palette, ShieldAlert, CreditCard, Trash2, Download, Check,
+  Sun, Moon, Monitor
 } from 'lucide-react';
 
 interface SettingsProps {
@@ -18,6 +19,7 @@ interface SettingsProps {
   onDeleteResume: (resumeId: string) => Promise<any>;
   onLogout: () => void;
   onUpdateProfileState?: (profile: Partial<Profile>) => void;
+  initialTab?: SettingsTab;
 }
 
 type SettingsTab = 'account' | 'resumes' | 'preferences' | 'notifications' | 'appearance' | 'privacy' | 'billing';
@@ -29,7 +31,8 @@ export function Settings({
   onSaveProfile, 
   onDeleteResume,
   onLogout,
-  onUpdateProfileState
+  onUpdateProfileState,
+  initialTab
 }: SettingsProps) {
   const queryClient = useQueryClient();
   const [activeSubTab, setActiveSubTab] = useState<SettingsTab>('account');
@@ -37,8 +40,15 @@ export function Settings({
   const [headline, setHeadline] = useState(profile?.headline || '');
   const [avatarUrl, setAvatarUrl] = useState(profile?.avatarUrl || '');
   const [skillsSummary, setSkillsSummary] = useState(profile?.skillsSummary || '');
+  const [linkedin, setLinkedin] = useState(careerProfileNew?.personal?.linkedin || '');
   const [isSaving, setIsSaving] = useState(false);
   const [email, setEmail] = useState('');
+
+  useEffect(() => {
+    if (initialTab) {
+      setActiveSubTab(initialTab);
+    }
+  }, [initialTab]);
 
   useEffect(() => {
     if (profile) {
@@ -47,7 +57,10 @@ export function Settings({
       setAvatarUrl(profile.avatarUrl || '');
       setSkillsSummary(profile.skillsSummary || '');
     }
-  }, [profile]);
+    if (careerProfileNew?.personal) {
+      setLinkedin(careerProfileNew.personal.linkedin || '');
+    }
+  }, [profile, careerProfileNew]);
 
   useEffect(() => {
     async function loadEmail() {
@@ -95,18 +108,7 @@ export function Settings({
   const handleApplyTheme = (newTheme: 'light' | 'dark' | 'system') => {
     setTheme(newTheme);
     localStorage.setItem('theme', newTheme);
-    if (newTheme === 'light') {
-      document.body.classList.add('light');
-    } else if (newTheme === 'dark') {
-      document.body.classList.remove('light');
-    } else {
-      const systemPrefersLight = window.matchMedia('(prefers-color-scheme: light)').matches;
-      if (systemPrefersLight) {
-        document.body.classList.add('light');
-      } else {
-        document.body.classList.remove('light');
-      }
-    }
+    window.dispatchEvent(new Event('theme-change'));
   };
 
   const handleAvatarChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -143,7 +145,7 @@ export function Settings({
           })
           .eq('id', profile.id);
         
-        if (error && error.code === '42703') {
+        if (error && (error.code === '42703' || error.message?.includes('avatar_url') || error.message?.includes('schema cache'))) {
           console.warn('[SETTINGS] Coluna avatar_url não existe no Supabase. Retrying update sem ela...');
           const { error: retryError } = await supabase
             .from('profiles')
@@ -164,13 +166,13 @@ export function Settings({
           .from('career_profiles')
           .select('*')
           .eq('user_id', profile.id);
-        
-        if (cpList && cpList.length > 0) {
+               if (cpList && cpList.length > 0) {
           for (const cp of cpList) {
             const updatedPersonal = {
               ...(cp.personal || {}),
               fullName: fullName,
-              headline: headline
+              headline: headline,
+              linkedin: linkedin
             };
             await supabase
               .from('career_profiles')
@@ -199,7 +201,8 @@ export function Settings({
                 parsed.profile.personal = {
                   ...(parsed.profile.personal || {}),
                   fullName: fullName,
-                  headline: headline
+                  headline: headline,
+                  linkedin: linkedin
                 };
                 localStorage.setItem(cpNewKey, JSON.stringify(parsed));
               }
@@ -215,12 +218,13 @@ export function Settings({
               parsed.profile.personal = {
                 ...(parsed.profile.personal || {}),
                 fullName: fullName,
-                headline: headline
+                headline: headline,
+                linkedin: linkedin
               };
               localStorage.setItem('careermatch_my_profile_ai_default', JSON.stringify(parsed));
             }
           } catch (err) { console.error(err); }
-        }
+        }   }
 
         const localCpRaw = localStorage.getItem('careermatch_career_profile');
         if (localCpRaw) {
@@ -234,6 +238,16 @@ export function Settings({
 
         queryClient.invalidateQueries({ queryKey: ['my-profile-ai'] });
         queryClient.invalidateQueries({ queryKey: ['career-profile'] });
+
+      // Backup save to localStorage to survive schema/session overrides
+      const backupProfile = { ...profile, fullName, headline, avatarUrl, skillsSummary };
+      localStorage.setItem('careermatch_profile', JSON.stringify(backupProfile));
+      if (profile?.id) {
+        if (avatarUrl) {
+          localStorage.setItem(`careermatch_avatar_${profile.id}`, avatarUrl);
+        } else {
+          localStorage.removeItem(`careermatch_avatar_${profile.id}`);
+        }
       }
 
       if (onUpdateProfileState) {
@@ -466,6 +480,17 @@ export function Settings({
                 </div>
 
                 <div className="space-y-1">
+                  <label className="text-xs text-slate-400 font-semibold block">LinkedIn URL</label>
+                  <input
+                    type="url"
+                    value={linkedin}
+                    onChange={e => setLinkedin(e.target.value)}
+                    className="w-full px-4 py-2.5 rounded-xl bg-slate-900/50 border border-slate-850 focus:border-brand-500 outline-none text-xs text-slate-200"
+                    placeholder="https://linkedin.com/in/seu-perfil"
+                  />
+                </div>
+
+                <div className="space-y-1">
                   <label className="text-xs text-slate-400 font-semibold block">Sobre / Resumo Profissional (About)</label>
                   <textarea
                     value={skillsSummary}
@@ -637,7 +662,7 @@ export function Settings({
                     step="500"
                     value={salaryMin}
                     onChange={e => setSalaryMin(Number(e.target.value))}
-                    className="w-full h-1 bg-slate-900 rounded-lg appearance-none cursor-pointer accent-brand-500"
+                    className="w-full h-1 bg-slate-700 light:bg-slate-300 rounded-lg appearance-none cursor-pointer accent-brand-500"
                   />
                 </div>
 
@@ -736,7 +761,7 @@ export function Settings({
                   }`}
                 >
                   {theme === 'light' && <div className="absolute top-2.5 right-2.5 p-0.5 bg-brand-500 text-white rounded-full"><Check size={10} /></div>}
-                  <span className="material-symbols-outlined text-3xl mb-2">light_mode</span>
+                  <Sun size={28} className="mb-2" />
                   <span className="text-xs font-bold">Tema Claro</span>
                   <span className="text-[9px] opacity-70 mt-1">Interface brilhante e limpa</span>
                 </div>
@@ -750,7 +775,7 @@ export function Settings({
                   }`}
                 >
                   {theme === 'dark' && <div className="absolute top-2.5 right-2.5 p-0.5 bg-brand-500 text-white rounded-full"><Check size={10} /></div>}
-                  <span className="material-symbols-outlined text-3xl mb-2">dark_mode</span>
+                  <Moon size={28} className="mb-2" />
                   <span className="text-xs font-bold">Tema Escuro</span>
                   <span className="text-[9px] opacity-70 mt-1">Modo focado e anti-fadiga</span>
                 </div>
@@ -764,7 +789,7 @@ export function Settings({
                   }`}
                 >
                   {theme === 'system' && <div className="absolute top-2.5 right-2.5 p-0.5 bg-brand-500 text-white rounded-full"><Check size={10} /></div>}
-                  <span className="material-symbols-outlined text-3xl mb-2">desktop_windows</span>
+                  <Monitor size={28} className="mb-2" />
                   <span className="text-xs font-bold">Sistema</span>
                   <span className="text-[9px] opacity-70 mt-1">Segue as configurações do OS</span>
                 </div>
@@ -827,7 +852,7 @@ export function Settings({
                 Assinatura e Planos
               </h3>
 
-              <div className="max-w-xl p-6 rounded-2xl bg-gradient-to-br from-indigo-950/40 via-slate-900 to-brand-950/40 border border-slate-800/80 relative overflow-hidden">
+              <div className="max-w-xl p-6 rounded-2xl bg-gradient-to-br from-indigo-950/40 via-slate-900 to-brand-950/40 light:from-slate-100 light:via-white light:to-brand-50 border border-slate-800/80 light:border-slate-200 relative overflow-hidden">
                 <div className="absolute top-0 right-0 h-32 w-32 bg-brand-500/10 rounded-full blur-3xl pointer-events-none" />
                 <div className="flex justify-between items-start">
                   <div>

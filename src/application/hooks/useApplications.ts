@@ -5,24 +5,38 @@ import { applicationTrackerService } from '../services/ApplicationTrackerService
 import type { Application, ApplicationStage } from '../../domain/models/types';
 
 export function mapStatusToDb(frontendStatus: string): string {
+  const validDbStatuses = [
+    '🔎 Encontrada', '⭐ Tenho interesse', '📝 Vou me candidatar', '📨 Me candidatei', 
+    '⏳ Aguardando retorno', '👥 Entrevista com recrutador', '🎯 Entrevista com gestor', 
+    '🧩 Case técnico', '🤝 Fit cultural', '🏆 Oferta recebida', '✅ Aceita', 
+    '❌ Rejeitada', '🚫 Fora do meu objetivo', '👻 Sem resposta'
+  ];
+  if (validDbStatuses.includes(frontendStatus)) {
+    return frontendStatus;
+  }
+
+  // Mapeamentos de colunas da Estratégia / Kanban
   switch (frontendStatus) {
-    case '🔎 Encontrada': return 'Encontrada';
-    case '⭐ Tenho interesse':
-    case '📝 Vou me candidatar': return 'Interessante';
-    case '📨 Me candidatei':
-    case '⏳ Aguardando retorno': return 'Aplicada';
-    case '👥 Entrevista com recrutador': return 'Entrevista RH';
-    case '🎯 Entrevista com gestor':
-    case '🧩 Case técnico':
-    case '🤝 Fit cultural': return 'Entrevista Gestor';
-    case '🏆 Oferta recebida':
-    case '✅ Aceita': return 'Oferta';
-    case '❌ Rejeitada': return 'Recusada';
-    default: return 'Encontrada';
+    case '🎯 Alta Prioridade': return '⭐ Tenho interesse';
+    case '📝 Candidatura planejada': return '📝 Vou me candidatar';
+    case '🔧 Ajustar antes': return '🔎 Encontrada';
+    case '⚠️ Baixa aderência': return '🚫 Fora do meu objetivo';
+    default: return '🔎 Encontrada';
   }
 }
 
 export function mapStatusFromDb(dbStatus: string): Application['status'] {
+  const validDbStatuses = [
+    '🔎 Encontrada', '⭐ Tenho interesse', '📝 Vou me candidatar', '📨 Me candidatei', 
+    '⏳ Aguardando retorno', '👥 Entrevista com recrutador', '🎯 Entrevista com gestor', 
+    '🧩 Case técnico', '🤝 Fit cultural', '🏆 Oferta recebida', '✅ Aceita', 
+    '❌ Rejeitada', '🚫 Fora do meu objetivo', '👻 Sem resposta'
+  ];
+  if (validDbStatuses.includes(dbStatus)) {
+    return dbStatus as any;
+  }
+
+  // Fallback para compatibilidade de dados legados sem emojis
   switch (dbStatus) {
     case 'Encontrada': return '🔎 Encontrada';
     case 'Interessante': return '⭐ Tenho interesse';

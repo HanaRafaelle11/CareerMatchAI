@@ -6,8 +6,9 @@ import type { CareerProfileNew } from '../../application/hooks/useMyProfileAi';
 import { calcYearsFromExperiences } from '../../application/services/matchingEngine';
 import { 
   Award, Play, MessageSquare, Send, 
-  BarChart3, RefreshCcw, Star, UserCheck, Loader2
+  RefreshCcw, Star, UserCheck, Loader2, BarChart3
 } from 'lucide-react';
+import { ProgressRing, Badge } from '../components/ds';
 
 interface CoachDashboardProps {
   careerProfile: CareerProfile | null;
@@ -84,12 +85,12 @@ export function CoachDashboard({
   ]);
 
   useEffect(() => {
-    setRecruiterChat([
-      {
-        role: 'recruiter',
-        text: initialRecruiterMsg
+    setRecruiterChat(prev => {
+      if (prev.length <= 1) {
+        return [{ role: 'recruiter' as const, text: initialRecruiterMsg }];
       }
-    ]);
+      return prev;
+    });
   }, [initialRecruiterMsg]);
 
   const [recruiterInput, setRecruiterInput] = useState('');
@@ -136,25 +137,31 @@ export function CoachDashboard({
       let reply = '';
       const textLower = userText.toLowerCase();
       
-      if (!applications || applications.length === 0) {
-        reply = "Você ainda não cadastrou candidaturas na sua aba de Estratégia. \n\nAssim que você adicionar suas vagas de interesse ou processos em andamento por lá, eu poderei analisar o seu histórico para te fornecer insights de conversão para entrevistas, dicas de negociação de salário e sugestões de foco técnico/comportamental.";
-      } else if (applications.length < 5) {
-        reply = `Percebi que você tem apenas ${applications.length} candidatura(s) cadastrada(s) na aba de Estratégia. \n\nPor termos um histórico recente com poucos registros, prefiro ser sincero: ainda não temos dados amostrais suficientes para gerar estimativas de conversão confiáveis.\n\nSugiro cadastrar pelo menos 5 candidaturas para podermos projetar taxas estatísticas de avanço e gargalos. Por enquanto, recomendo focar em alinhar seu perfil como ${profileRole} para as vagas de interesse.`;
-      } else {
-        const totalApps = applications.length;
-        const totalInterviews = applications.filter(a => 
-          ['👥 Entrevista com recrutador', '🎯 Entrevista com gestor', '🧩 Case técnico', '🤝 Fit cultural'].includes(a.status)
-        ).length;
-        
-        const conversionRate = totalApps > 0 ? Math.round((totalInterviews / totalApps) * 100) : 0;
+      // Verificar se a última mensagem foi a resposta padrão de direcionamento
+      const lastRecruiterMsg = recruiterChat[recruiterChat.length - 1];
+      const wasLastMsgDefault = lastRecruiterMsg && lastRecruiterMsg.role === 'recruiter' && lastRecruiterMsg.text.startsWith('Entendi perfeitamente sua colocação');
 
-        if (textLower.includes('cs') || textLower.includes('customer success') || textLower.includes('remoto') || textLower.includes('farmácia') || textLower.includes('estética') || textLower.includes('vaga')) {
-          reply = `Analisei seu histórico de candidaturas. Com base nas suas ${totalApps} candidatura(s) ativas, o sistema recomenda focar em posições alinhadas ao seu perfil de ${profileRole}.`;
-        } else if (textLower.includes('diagnóstico') || textLower.includes('mercado') || textLower.includes('competências')) {
-          reply = `Seu diagnóstico aponta atividade no mercado. Sua taxa geral de avanço para entrevistas reais com base no seu histórico é de ${conversionRate}%.`;
-        } else {
-          reply = `Com base nas suas candidaturas reais, identificamos que você possui ${totalApps} candidatura(s) cadastrada(s) e ${totalInterviews} entrevista(s) registrada(s) como ${profileRole}. Continue atualizando seus processos para obter direcionamentos de competências.`;
-        }
+      // Respostas dinâmicas baseadas em heurísticas inteligentes
+      if (textLower.includes('como') || textLower.includes('onde') || textLower.includes('fazer isso') || textLower.includes('fazer')) {
+        reply = `Você pode fazer isso de duas maneiras muito simples:\n\n1. **Cadastrar/Colar Vagas**: Vá até a aba **Encontrar Vagas** no menu lateral esquerdo. Lá você pode pesquisar oportunidades ou clicar em "Colar Vaga Manualmente" para analisar a compatibilidade do seu currículo com a vaga e adicioná-la à sua estratégia.\n2. **Ajustar Preferências e Metas**: Clique na aba **Ajustes** no menu lateral para atualizar suas pretensões salariais e preferências de trabalho.`;
+      } else if (textLower.includes('ajuda') || textLower.includes('como funciona') || textLower.includes('o que você faz') || textLower.includes('ajudar')) {
+        reply = `Como seu AI Recruiter Advisor, posso atuar em várias frentes para acelerar sua recolocação:\n\n1. **Simulação de Entrevistas**: Preparação com rodadas de perguntas STAR e feedback instantâneo.\n2. **Diagnóstico de Match**: Analisar a aderência técnica e comportamental do seu currículo frente a qualquer vaga.\n3. **Insights de Conversão**: Mapear gargalos e estimar sua taxa de sucesso nas etapas.\n4. **Negociação Salarial**: Direcionar pretensões baseadas na senioridade e modelo de trabalho.`;
+      } else if (textLower.includes('remoto') || textLower.includes('cs') || textLower.includes('customer success') || textLower.includes('vaga') || textLower.includes('salário') || textLower.includes('15k') || textLower.includes('+15k')) {
+        reply = `Excelente meta! Vagas de Customer Success remotas na faixa de R$ 15k+ costumam exigir proficiência avançada em **CS Ops, análise de dados (SQL/BI), gestão de Net Retention (NRR) e liderança de times**.\n\nCom base no seu perfil de ${profileRole}, sugiro mapear as principais vagas que se encaixam nesta meta e adicioná-las na aba **Estratégia** para diagnosticarmos se há gaps específicos de termos ou ferramentas.`;
+      } else if (textLower.includes('olá') || textLower.includes('oi') || textLower.includes('bom dia') || textLower.includes('boa tarde')) {
+        reply = `Olá, ${profileName}! Como posso te auxiliar em sua jornada profissional hoje? Quer conversar sobre vagas de interesse, simular uma entrevista ou analisar sua estratégia salarial?`;
+      } else if (wasLastMsgDefault) {
+        reply = `Compreendo seu interesse. Para que possamos aprofundar em análises estatísticas e feedbacks mais ricos, é fundamental termos dados reais na sua conta. Qual o próximo passo ou dúvida de carreira que você gostaria de explorar agora?`;
+      } else {
+        reply = `Entendi perfeitamente sua colocação. Na minha atuação como conselheiro de carreira, a melhor forma de atingirmos esse objetivo é vinculando suas ideias a vagas reais de mercado.\n\nSugiro colar a descrição de uma vaga na aba **Match de Vagas** ou cadastrar metas de salário em configurações para refinarmos nossa orientação.`;
+      }
+
+      // Adicionar observação contextual amigável se houver poucas ou nenhuma vaga cadastrada
+      const hasStrategyMention = reply.includes('aba Estratégia') || reply.includes('aba Ajustes') || reply.includes('aba Encontrar Vagas');
+      if ((!applications || applications.length === 0) && !hasStrategyMention) {
+        reply += `\n\n*(Nota: Você ainda não tem vagas na sua aba de Estratégia. Cadastre vagas por lá para desbloquear o monitoramento completo de conversão e negociação de salário!)*`;
+      } else if (applications && applications.length > 0 && applications.length < 5 && !reply.includes('candidatura') && !hasStrategyMention) {
+        reply += `\n\n*(Nota: Identificamos ${applications.length} vaga(s) cadastrada(s). Cadastre pelo menos 5 vagas para projetarmos suas taxas estatísticas de avanço e identificar gargalos!)*`;
       }
 
       setRecruiterChat(prev => [...prev, { role: 'recruiter' as const, text: reply }]);
@@ -244,38 +251,34 @@ export function CoachDashboard({
                   <span>Nenhuma candidatura ativa registrada para simular.</span>
                 </div>
               ) : (
-                <div className="space-y-4 flex-1 flex flex-col">
-                  <div className="flex gap-3">
-                    <select
-                      value={selectedAppId}
-                      onChange={e => setSelectedAppId(e.target.value)}
-                      className="flex-1 bg-slate-900 border border-slate-800 text-slate-300 text-xs rounded-xl p-2.5 outline-none focus:border-brand-500"
-                    >
-                      {activeApps.map(app => (
-                        <option key={app.id} value={app.id}>{app.jobTitle} em {app.companyName}</option>
-                      ))}
-                    </select>
-                    {!simulation && (
-                      <button
-                        onClick={handleStartSim}
-                        disabled={loadingSim}
-                        className="px-4 py-2.5 rounded-xl bg-brand-600 hover:bg-brand-500 text-white font-bold text-xs flex items-center gap-1.5 whitespace-nowrap"
-                      >
-                        <Play size={12} />
-                        Iniciar Sabatina
-                      </button>
-                    )}
-                  </div>
-
+                <div className="flex-1 flex flex-col min-h-[420px]">
                   {simulation ? (
                     <div className="flex-1 flex flex-col gap-4">
-                      <div className="flex-1 max-h-[300px] overflow-y-auto space-y-3 p-3 rounded-xl bg-slate-900/30 border border-slate-900/60 text-xs">
+                      {/* Active simulation header */}
+                      <div className="flex items-center justify-between p-3 rounded-xl bg-slate-950/30 border border-slate-900 text-xs">
+                        <div className="min-w-0">
+                          <span className="text-[10px] text-brand-500 font-bold uppercase tracking-wider block">Sabatina Ativa</span>
+                          <span className="text-slate-350 font-semibold truncate block max-w-xs md:max-w-md">
+                            {activeApps.find(app => app.id === selectedAppId)?.jobTitle} em {activeApps.find(app => app.id === selectedAppId)?.companyName}
+                          </span>
+                        </div>
+                        <button
+                          onClick={handleStartSim}
+                          className="px-3 py-1.5 rounded-lg border border-slate-850 hover:border-slate-800 text-slate-400 font-semibold text-[10px] flex items-center gap-1 transition-all"
+                        >
+                          <RefreshCcw size={10} />
+                          Reiniciar
+                        </button>
+                      </div>
+
+                      {/* Chat History */}
+                      <div className="flex-1 max-h-[300px] overflow-y-auto space-y-3 p-3 rounded-xl bg-slate-900/30 border border-slate-900/60 text-xs flex flex-col">
                         {simulation.chatHistory.map((msg: any, i: number) => (
                           <div
                             key={i}
                             className={`p-3 rounded-xl max-w-[85%] leading-relaxed ${
                               msg.role === 'interviewer'
-                                ? 'bg-slate-900 border border-slate-850 text-slate-300 self-start mr-auto'
+                                ? 'bg-slate-900 border border-slate-850 text-slate-350 self-start mr-auto'
                                 : 'bg-brand-500/10 border border-brand-500/20 text-brand-400 self-end ml-auto'
                             }`}
                           >
@@ -287,29 +290,99 @@ export function CoachDashboard({
                         ))}
                       </div>
 
-                      {simulation.evaluations && (
-                        <div className="p-4 rounded-xl bg-emerald-500/5 border border-emerald-500/10 space-y-4">
-                          <div className="flex items-center gap-2 text-emerald-400 font-bold text-sm">
-                            <Star size={16} className="fill-emerald-400" />
-                            Avaliação de Performance
-                          </div>
-                          <div className="grid grid-cols-3 gap-3 text-center">
-                            <div className="p-2.5 rounded bg-slate-900/40 border border-slate-850">
-                              <span className="text-[10px] text-slate-500 uppercase font-bold block">Clareza</span>
-                              <strong className="text-sm text-slate-200">{simulation.evaluations.clarity}/100</strong>
-                            </div>
-                            <div className="p-2.5 rounded bg-slate-900/40 border border-slate-850">
-                              <span className="text-[10px] text-slate-500 uppercase font-bold block">Objetividade</span>
-                              <strong className="text-sm text-slate-200">{simulation.evaluations.objectivity}/100</strong>
-                            </div>
-                            <div className="p-2.5 rounded bg-slate-900/40 border border-slate-850">
-                              <span className="text-[10px] text-slate-500 uppercase font-bold block">Aderência</span>
-                              <strong className="text-sm text-slate-200">{simulation.evaluations.adherence}/100</strong>
-                            </div>
-                          </div>
-                        </div>
-                      )}
+                      {/* Evaluations */}
+                      {simulation.evaluations && (() => {
+                        const avgScore = Math.round(
+                          (simulation.evaluations.clarity + 
+                           simulation.evaluations.objectivity + 
+                           simulation.evaluations.adherence) / 3
+                        );
+                        const hasStarPattern = simulation.chatHistory.some((msg: any) => 
+                          msg.role === 'candidate' && 
+                          /resultado|ação|acao|situação|situacao|meta|objetivo|consegui|resolvi/i.test(msg.text)
+                        );
 
+                        return (
+                          <div className="p-4 rounded-xl bg-surface-container/30 border border-outline-variant/10 space-y-4 animate-fade-in text-xs">
+                            <div className="flex items-center justify-between">
+                              <div className="flex items-center gap-2 text-on-surface font-bold text-sm">
+                                <Star size={16} className="text-amber-400 fill-amber-400" />
+                                <span>Avaliação Final da IA</span>
+                              </div>
+                              <Badge variant={avgScore >= 80 ? 'success' : avgScore >= 50 ? 'warning' : 'error'}>
+                                Score: {avgScore}/100
+                              </Badge>
+                            </div>
+
+                            <div className="grid grid-cols-1 sm:grid-cols-4 gap-4 items-center p-3 rounded-xl bg-surface-container-high/40 border border-outline-variant/10">
+                              <div className="flex flex-col items-center sm:border-r border-outline-variant/10 shrink-0 py-1">
+                                <ProgressRing value={avgScore} size={40} strokeWidth={4} />
+                                <span className="text-[10px] font-bold text-on-surface mt-1 block">Aderência Geral</span>
+                              </div>
+
+                              <div className="sm:col-span-3 grid grid-cols-3 gap-2 text-center">
+                                <div className="p-2 rounded bg-surface-container-highest/20 border border-outline-variant/10">
+                                  <span className="text-[9px] text-on-surface-variant font-medium block">Clareza</span>
+                                  <strong className="text-xs text-on-surface">{simulation.evaluations.clarity}%</strong>
+                                </div>
+                                <div className="p-2 rounded bg-surface-container-highest/20 border border-outline-variant/10">
+                                  <span className="text-[9px] text-on-surface-variant font-medium block">Objetividade</span>
+                                  <strong className="text-xs text-on-surface">{simulation.evaluations.objectivity}%</strong>
+                                </div>
+                                <div className="p-2 rounded bg-surface-container-highest/20 border border-outline-variant/10">
+                                  <span className="text-[9px] text-on-surface-variant font-medium block">Aderência STAR</span>
+                                  <strong className="text-xs text-on-surface">{simulation.evaluations.adherence}%</strong>
+                                </div>
+                              </div>
+                            </div>
+
+                            {/* Método STAR Breakdown Card */}
+                            <div className="p-3 bg-brand-500/5 border border-brand-500/10 rounded-xl space-y-2">
+                              <div className="flex items-center justify-between">
+                                <span className="font-bold text-on-surface text-[10px] uppercase tracking-wider block">Diagnóstico de Resposta STAR</span>
+                                <Badge variant={hasStarPattern ? 'success' : 'warning'} size="sm">
+                                  {hasStarPattern ? 'Estrutura STAR Identificada' : 'Estrutura STAR Pendente'}
+                                </Badge>
+                              </div>
+                              <div className="grid grid-cols-2 gap-2 text-[9px]">
+                                <div className="p-2 rounded bg-surface-container-high border border-outline-variant/10">
+                                  <strong className="text-primary block font-bold mb-0.5">Situação / Tarefa:</strong>
+                                  <span className="text-on-surface-variant">Contexto do desafio e seus objetivos explicados.</span>
+                                </div>
+                                <div className="p-2 rounded bg-surface-container-high border border-outline-variant/10">
+                                  <strong className="text-emerald-400 block font-bold mb-0.5">Ações / Resultados:</strong>
+                                  <span className="text-on-surface-variant">
+                                    {hasStarPattern 
+                                      ? 'Você usou termos de ação e indicou resultados tangíveis.'
+                                      : 'Faltam termos que conectem suas ações diretas a resultados/métricas.'}
+                                  </span>
+                                </div>
+                              </div>
+                            </div>
+
+                            <div className="space-y-3">
+                              {simulation.evaluations.strengths && simulation.evaluations.strengths.length > 0 && (
+                                <div className="space-y-1">
+                                  <strong className="text-emerald-400 font-semibold block">✓ Pontos Fortes:</strong>
+                                  <ul className="list-disc pl-4 space-y-0.5 text-on-surface-variant">
+                                    {simulation.evaluations.strengths.map((s: string, idx: number) => <li key={idx}>{s}</li>)}
+                                  </ul>
+                                </div>
+                              )}
+                              {simulation.evaluations.improvements && simulation.evaluations.improvements.length > 0 && (
+                                <div className="space-y-1">
+                                  <strong className="text-amber-400 font-semibold block">⚠️ Oportunidades de Melhoria:</strong>
+                                  <ul className="list-disc pl-4 space-y-0.5 text-on-surface-variant">
+                                    {simulation.evaluations.improvements.map((s: string, idx: number) => <li key={idx}>{s}</li>)}
+                                  </ul>
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        );
+                      })()}
+
+                      {/* Reply Input Form */}
                       {!simulation.evaluations && (
                         <form onSubmit={handleSendResponse} className="flex gap-2">
                           <input
@@ -330,8 +403,39 @@ export function CoachDashboard({
                       )}
                     </div>
                   ) : (
-                    <div className="flex-1 flex flex-col justify-center items-center py-20 text-slate-500 text-xs">
-                      <span>Pronto para simular.</span>
+                    <div className="flex-grow flex flex-col justify-center items-center text-center py-4 px-2 space-y-4">
+                      <div className="w-12 h-12 rounded-full bg-brand-500/10 border border-brand-500/20 flex items-center justify-center text-brand-400 shrink-0">
+                        <MessageSquare size={24} />
+                      </div>
+                      <div className="max-w-md space-y-1.5">
+                        <h4 className="font-display font-bold text-base text-slate-205">
+                          Treine suas Entrevistas com a IA
+                        </h4>
+                        <p className="text-slate-500 text-xs leading-relaxed">
+                          Nossa inteligência simula uma rodada completa de perguntas baseadas na vaga que você escolher. 
+                          Suas respostas serão avaliadas segundo o método **STAR** (Situação, Tarefa, Ação e Resultado).
+                        </p>
+                      </div>
+                      <div className="w-full max-w-sm p-3.5 rounded-xl bg-slate-950/40 border border-slate-900 text-left space-y-2">
+                        <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block">Escolha a vaga para simular:</label>
+                        <select
+                          value={selectedAppId}
+                          onChange={e => setSelectedAppId(e.target.value)}
+                          className="w-full bg-slate-900/80 border border-slate-800 text-slate-350 text-xs rounded-xl p-2 outline-none focus:border-brand-500"
+                        >
+                          {activeApps.map(app => (
+                            <option key={app.id} value={app.id} className="truncate">{app.jobTitle} em {app.companyName}</option>
+                          ))}
+                        </select>
+                      </div>
+                      <button
+                        onClick={handleStartSim}
+                        disabled={loadingSim}
+                        className="px-8 py-2.5 rounded-xl bg-brand-600 hover:bg-brand-500 text-white font-bold text-xs flex items-center justify-center gap-2 shadow-lg shadow-brand-500/20 w-full max-w-sm transition-all transform active:scale-95 disabled:opacity-50 cursor-pointer"
+                      >
+                        {loadingSim ? <Loader2 size={14} className="animate-spin" /> : <Play size={14} />}
+                        Iniciar Simulação
+                      </button>
                     </div>
                   )}
                 </div>
@@ -415,6 +519,33 @@ export function CoachDashboard({
 
         {/* Coluna 3: Gaps and demand */}
         <div className="space-y-6">
+          {activeSubTab === 'simulator' && activeApps.length > 0 && (
+            <CardGlass className="p-6 space-y-4">
+              <h3 className="font-display font-bold text-base text-slate-200 pb-2 border-b border-slate-900 flex items-center gap-1.5">
+                <Star size={16} className="text-brand-500 fill-brand-500" />
+                Histórico de Simulações
+              </h3>
+              <div className="space-y-2 max-h-[220px] overflow-y-auto pr-1 select-none">
+                {activeApps.map(app => (
+                  <button
+                    key={app.id}
+                    onClick={() => setSelectedAppId(app.id)}
+                    className={`w-full p-2.5 rounded-xl border text-left text-xs transition-all flex items-center justify-between ${
+                      app.id === selectedAppId
+                        ? 'bg-brand-500/10 border-brand-500/30 text-slate-200 font-semibold font-sans'
+                        : 'bg-slate-900/20 border-slate-900 hover:border-slate-800 text-slate-450'
+                    }`}
+                  >
+                    <div className="truncate pr-2">
+                      <span className="font-bold block truncate">{app.jobTitle}</span>
+                      <span className="text-[9px] text-slate-500 truncate block mt-0.5">{app.companyName}</span>
+                    </div>
+                  </button>
+                ))}
+              </div>
+            </CardGlass>
+          )}
+
           <CardGlass className="p-6 space-y-4">
             <h3 className="font-display font-bold text-base text-slate-200 pb-2 border-b border-slate-900 flex items-center gap-1.5">
               <Award size={18} className="text-emerald-500" />

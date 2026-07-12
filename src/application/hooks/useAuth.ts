@@ -74,12 +74,21 @@ export function useAuth() {
 
       if (data) {
         console.log('[AUTH] Perfil carregado com sucesso:', data);
+        const localProfileRaw = localStorage.getItem('careermatch_profile');
+        let localProfile: any = {};
+        if (localProfileRaw) {
+          try {
+            localProfile = JSON.parse(localProfileRaw);
+          } catch (_) {}
+        }
+        const localAvatar = localStorage.getItem(`careermatch_avatar_${userId}`) || undefined;
+
         setProfile({
           id: data.id,
-          fullName: data.full_name,
-          headline: data.headline || undefined,
-          avatarUrl: data.avatar_url || undefined,
-          skillsSummary: data.skills_summary || undefined,
+          fullName: data.full_name || localProfile.fullName,
+          headline: data.headline || localProfile.headline || undefined,
+          avatarUrl: data.avatar_url || localAvatar || localProfile.avatarUrl || undefined,
+          skillsSummary: data.skills_summary || localProfile.skillsSummary || undefined,
           createdAt: data.created_at,
           updatedAt: data.updated_at,
         });
@@ -241,7 +250,20 @@ export function useAuth() {
   };
 
   const updateProfile = (updated: Partial<Profile>) => {
-    setProfile(prev => prev ? { ...prev, ...updated } : null);
+    setProfile(prev => {
+      const newVal = prev ? { ...prev, ...updated } : null;
+      if (newVal) {
+        localStorage.setItem('careermatch_profile', JSON.stringify(newVal));
+        if (newVal.id) {
+          if (newVal.avatarUrl) {
+            localStorage.setItem(`careermatch_avatar_${newVal.id}`, newVal.avatarUrl);
+          } else {
+            localStorage.removeItem(`careermatch_avatar_${newVal.id}`);
+          }
+        }
+      }
+      return newVal;
+    });
   };
 
   return {

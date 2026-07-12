@@ -44,6 +44,42 @@ export function Settings({
   const [isSaving, setIsSaving] = useState(false);
   const [email, setEmail] = useState('');
 
+  // Generate billing history dynamically based on registration date to avoid showing June if they signed up in July
+  const regDate = profile?.createdAt ? new Date(profile.createdAt) : new Date();
+  const currentDate = new Date();
+  const invoiceDay = 12; // Standard renewal day
+  
+  const billingHistory: Array<{ dateStr: string; plan: string; price: string }> = [];
+  
+  // Starting from registration month, add a monthly invoice up to the current date
+  let invoiceDate = new Date(regDate.getFullYear(), regDate.getMonth(), invoiceDay);
+  if (invoiceDate < regDate) {
+    invoiceDate = new Date(regDate);
+  }
+  
+  while (invoiceDate <= currentDate) {
+    billingHistory.push({
+      dateStr: invoiceDate.toLocaleDateString('pt-BR'),
+      plan: 'Premium Copilot - Mensal',
+      price: 'R$ 49,90'
+    });
+    // Add 1 month
+    invoiceDate = new Date(invoiceDate.getFullYear(), invoiceDate.getMonth() + 1, invoiceDay);
+  }
+  
+  if (billingHistory.length === 0) {
+    billingHistory.push({
+      dateStr: new Date().toLocaleDateString('pt-BR'),
+      plan: 'Premium Copilot - Mensal',
+      price: 'R$ 49,90'
+    });
+  }
+  
+  billingHistory.reverse();
+
+  // Next renewal date is invoiceDate (which is already incremented to the next month after the loop)
+  const nextRenewalDateStr = invoiceDate.toLocaleDateString('pt-BR', { day: '2-digit', month: 'long', year: 'numeric' });
+
   useEffect(() => {
     if (initialTab) {
       setActiveSubTab(initialTab);
@@ -166,7 +202,7 @@ export function Settings({
           .from('career_profiles')
           .select('*')
           .eq('user_id', profile.id);
-               if (cpList && cpList.length > 0) {
+        if (cpList && cpList.length > 0) {
           for (const cp of cpList) {
             const updatedPersonal = {
               ...(cp.personal || {}),
@@ -178,6 +214,50 @@ export function Settings({
               .from('career_profiles')
               .update({ personal: updatedPersonal })
               .eq('id', cp.id);
+          }
+        } else {
+          // Criar um perfil básico de carreira para persistir as informações (LinkedIn/Nome/Headline)
+          const { data: resumes } = await supabase
+            .from('resume_versions')
+            .select('id')
+            .eq('user_id', profile.id)
+            .order('created_at', { ascending: false })
+            .limit(1);
+
+          let targetResumeId = resumes && resumes.length > 0 ? resumes[0].id : null;
+          if (!targetResumeId) {
+            const { data: newRv } = await supabase
+              .from('resume_versions')
+              .insert({
+                user_id: profile.id,
+                file_name: 'Configurações Iniciais',
+                status: 'placeholder'
+              })
+              .select('id')
+              .single();
+            if (newRv) targetResumeId = newRv.id;
+          }
+
+          if (targetResumeId) {
+            await supabase
+              .from('career_profiles')
+              .insert({
+                user_id: profile.id,
+                resume_version_id: targetResumeId,
+                personal: {
+                  fullName: fullName,
+                  headline: headline,
+                  linkedin: linkedin
+                },
+                skills: [],
+                languages: [],
+                experience: [],
+                education: [],
+                soft_skills: [],
+                certifications: [],
+                ats_keywords: {},
+                summary: ''
+              });
           }
         }
 
@@ -211,20 +291,34 @@ export function Settings({
         });
 
         const mockCpRawDefault = localStorage.getItem('careermatch_my_profile_ai_default');
+        let parsed: any = {};
         if (mockCpRawDefault) {
           try {
-            const parsed = JSON.parse(mockCpRawDefault);
-            if (parsed.profile) {
-              parsed.profile.personal = {
-                ...(parsed.profile.personal || {}),
-                fullName: fullName,
-                headline: headline,
-                linkedin: linkedin
-              };
-              localStorage.setItem('careermatch_my_profile_ai_default', JSON.stringify(parsed));
-            }
-          } catch (err) { console.error(err); }
-        }   }
+            parsed = JSON.parse(mockCpRawDefault);
+          } catch (e) { parsed = {}; }
+        }
+        
+        if (!parsed.profile) {
+          parsed.profile = {
+            id: 'cp-new-default',
+            userId: profile?.id || 'default-user',
+            resumeVersionId: 'rv-default',
+            personal: {},
+            skills: [],
+            languages: [],
+            experience: [],
+            education: []
+          };
+        }
+
+        parsed.profile.personal = {
+          ...(parsed.profile.personal || {}),
+          fullName: fullName,
+          headline: headline,
+          linkedin: linkedin
+        };
+        localStorage.setItem('careermatch_my_profile_ai_default', JSON.stringify(parsed));
+      }
 
         const localCpRaw = localStorage.getItem('careermatch_career_profile');
         if (localCpRaw) {
@@ -266,35 +360,55 @@ export function Settings({
     e.preventDefault();
     setIsSaving(true);
     try {
-      if (careerProfileNew) {
-        const targetRolesArray = roles.split(',').map(s => s.trim()).filter(Boolean);
-        const preferredLocationsArray = locations.split(',').map(s => s.trim()).filter(Boolean);
+      const targetRolesArray = roles.split(',').map(s => s.trim()).filter(Boolean);
+      const preferredLocationsArray = locations.split(',').map(s => s.trim()).filter(Boolean);
 
-        const updatedProfile = {
-          id: careerProfileNew.id,
-          userId: careerProfileNew.userId,
-          resumeId: careerProfileNew.resumeVersionId,
-          targetRoles: targetRolesArray,
-          seniority: (careerProfileNew.personal as any)?.preferences?.seniority || 'Sênior',
-          industries: (careerProfileNew.personal as any)?.preferences?.industries || [],
-          skills: careerProfileNew.skills.map(s => s.name),
-          tools: (careerProfileNew.personal as any)?.preferences?.tools || [],
-          languages: careerProfileNew.languages.map(l => l.language),
-          preferredLocations: preferredLocationsArray,
-          preferredWorkModes: workModes,
-          targetCompanies: (careerProfileNew.personal as any)?.preferences?.targetCompanies || [],
-          salaryExpectationMin: Number(salaryMin),
-          searchKeywords: targetRolesArray,
-          isApprovedByUser: true,
-          createdAt: careerProfileNew.createdAt,
-          updatedAt: new Date().toISOString()
-        };
+      const profileSource = careerProfileNew || {
+        id: '00000000-0000-0000-0000-000000000000',
+        userId: profile?.id || 'default-user',
+        resumeVersionId: '00000000-0000-0000-0000-000000000000',
+        personal: {
+          fullName: profile?.fullName || 'Profissional',
+          headline: profile?.headline || '',
+          email: email || '',
+          phone: '',
+          linkedin: '',
+          website: '',
+          location: ''
+        },
+        summary: '',
+        experience: [],
+        education: [],
+        skills: [],
+        soft_skills: [],
+        languages: [],
+        certifications: [],
+        ats_keywords: {},
+        createdAt: new Date().toISOString()
+      };
 
-        await onSaveProfile(updatedProfile);
-        alert('Preferências de vagas atualizadas com sucesso!');
-      } else {
-        alert('Faça o upload do seu currículo primeiro para poder definir suas preferências.');
-      }
+      const updatedProfile = {
+        id: profileSource.id,
+        userId: profileSource.userId,
+        resumeId: profileSource.resumeVersionId,
+        targetRoles: targetRolesArray,
+        seniority: (profileSource.personal as any)?.preferences?.seniority || 'Sênior',
+        industries: (profileSource.personal as any)?.preferences?.industries || [],
+        skills: profileSource.skills.map(s => s.name),
+        tools: (profileSource.personal as any)?.preferences?.tools || [],
+        languages: profileSource.languages.map(l => l.language),
+        preferredLocations: preferredLocationsArray,
+        preferredWorkModes: workModes,
+        targetCompanies: (profileSource.personal as any)?.preferences?.targetCompanies || [],
+        salaryExpectationMin: Number(salaryMin),
+        searchKeywords: targetRolesArray,
+        isApprovedByUser: true,
+        createdAt: profileSource.createdAt,
+        updatedAt: new Date().toISOString()
+      };
+
+      await onSaveProfile(updatedProfile);
+      alert('Preferências de vagas atualizadas com sucesso!');
     } catch (err: any) {
       console.error(err);
       alert('Erro ao salvar preferências: ' + err.message);
@@ -865,7 +979,7 @@ export function Settings({
                 <div className="mt-6 flex justify-between items-end border-t border-slate-800/80 pt-4">
                   <div>
                     <span className="text-[9px] text-slate-500 uppercase font-bold block">Próxima Renovação</span>
-                    <span className="text-xs font-semibold text-slate-350">12 de Agosto, 2026</span>
+                    <span className="text-xs font-semibold text-slate-350">{nextRenewalDateStr}</span>
                   </div>
                   <button 
                     onClick={() => alert('Parabéns! Você já está no plano Premium Copilot máximo.')}
@@ -885,16 +999,13 @@ export function Settings({
                     <span className="text-right">Valor</span>
                   </div>
                   <div className="divide-y divide-slate-900/40">
-                    <div className="grid grid-cols-3 p-3 text-slate-300">
-                      <span>12/07/2026</span>
-                      <span>Premium Copilot - Mensal</span>
-                      <span className="text-right">R$ 49,90</span>
-                    </div>
-                    <div className="grid grid-cols-3 p-3 text-slate-300">
-                      <span>12/06/2026</span>
-                      <span>Premium Copilot - Mensal</span>
-                      <span className="text-right">R$ 49,90</span>
-                    </div>
+                    {billingHistory.map((item, idx) => (
+                      <div key={idx} className="grid grid-cols-3 p-3 text-slate-300">
+                        <span>{item.dateStr}</span>
+                        <span>{item.plan}</span>
+                        <span className="text-right">{item.price}</span>
+                      </div>
+                    ))}
                   </div>
                 </div>
               </div>

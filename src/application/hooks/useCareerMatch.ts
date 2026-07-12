@@ -407,21 +407,35 @@ export function useResumes(userId: string | undefined) {
         }
 
         // 3. Limpeza profunda: apagar TUDO relacionado a este currículo
-        // (resume_processing_logs não tem ON DELETE CASCADE na FK de resume_version_id)
         if (resumeVersionId) {
-          await supabase.from('resume_processing_logs').delete().eq('resume_version_id', resumeVersionId);
-          // career_profiles, career_insights, job_matches, resume_processing_errors têm CASCADE
+          try {
+            await supabase.from('resume_processing_logs').delete().eq('resume_version_id', resumeVersionId);
+          } catch (e) {
+            console.warn('[DELETE] Falha ao apagar logs do CV:', e);
+          }
         }
 
-        // 4. Deletar matches vinculados a este resume_id (CASCADE do FK)
-        await supabase.from('matches').delete().eq('resume_id', resumeId);
+        // 4. Deletar matches vinculados a este resume_id
+        try {
+          await supabase.from('matches').delete().eq('resume_id', resumeId);
+        } catch (e) {
+          console.warn('[DELETE] Falha ao apagar matches do CV:', e);
+        }
 
         // 5. Deletar resume_optimizations vinculados
-        await supabase.from('resume_optimizations').delete().eq('resume_id', resumeId);
+        try {
+          await supabase.from('resume_optimizations').delete().eq('resume_id', resumeId);
+        } catch (e) {
+          console.warn('[DELETE] Falha ao apagar otimizações do CV:', e);
+        }
 
-        // 6. Deletar a resume_version (CASCADE apaga career_profiles, career_insights, job_matches, resume_processing_errors)
+        // 6. Deletar a resume_version (CASCADE apaga career_profiles, career_insights, job_matches)
         if (resumeVersionId) {
-          await supabase.from('resume_versions').delete().eq('id', resumeVersionId);
+          try {
+            await supabase.from('resume_versions').delete().eq('id', resumeVersionId);
+          } catch (e) {
+            console.warn('[DELETE] Falha ao apagar versão de CV:', e);
+          }
         }
 
         // 7. Deletar da tabela resumes
@@ -432,22 +446,30 @@ export function useResumes(userId: string | undefined) {
         if (error) throw error;
 
         // 8. Limpeza final: se não restar nenhum currículo, varrer tudo do usuário
-        const { data: remainingResumes } = await supabase
-          .from('resumes')
-          .select('id')
-          .eq('user_id', userId);
+        try {
+          const { data: remainingResumes } = await supabase
+            .from('resumes')
+            .select('id')
+            .eq('user_id', userId);
 
-        if (!remainingResumes || remainingResumes.length === 0) {
-          await supabase.from('resume_versions').delete().eq('user_id', userId);
-          await supabase.from('career_profiles').delete().eq('user_id', userId);
-          await supabase.from('career_insights').delete().eq('user_id', userId);
-          await supabase.from('resume_processing_logs').delete().eq('user_id', userId);
-          await supabase.from('resume_processing_errors').delete().eq('user_id', userId);
+          if (!remainingResumes || remainingResumes.length === 0) {
+            await supabase.from('resume_versions').delete().eq('user_id', userId);
+            await supabase.from('career_profiles').delete().eq('user_id', userId);
+            await supabase.from('career_insights').delete().eq('user_id', userId);
+            await supabase.from('resume_processing_logs').delete().eq('user_id', userId);
+            await supabase.from('resume_processing_errors').delete().eq('user_id', userId);
+          }
+        } catch (e) {
+          console.warn('[DELETE] Falha ao fazer limpeza profunda final:', e);
         }
 
         // 9. Limpar arquivo do Storage
         if (resume?.file_path) {
-          await supabase.storage.from('resumes').remove([resume.file_path]);
+          try {
+            await supabase.storage.from('resumes').remove([resume.file_path]);
+          } catch (e) {
+            console.warn('[DELETE] Falha ao remover arquivo do Storage:', e);
+          }
         }
       } else {
         localDB.deleteResume(resumeId);

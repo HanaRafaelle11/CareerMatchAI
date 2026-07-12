@@ -120,7 +120,18 @@ export function useMyProfileAi(userId: string | undefined, resumeVersionId?: str
         const { data: profileData, error: profileErr } = await query.maybeSingle();
 
         if (profileErr) throw profileErr;
-        if (!profileData) return localDB.getMockMyProfileAi(userId, resumeVersionId);
+        if (!profileData) {
+          const { data: resumes } = await supabase
+            .from('resumes')
+            .select('id')
+            .eq('user_id', userId)
+            .limit(1);
+
+          if (!resumes || resumes.length === 0) {
+            return { profile: null, insights: null };
+          }
+          return localDB.getMockMyProfileAi(userId, resumeVersionId);
+        }
 
         const profile: CareerProfileNew = {
           id: profileData.id,

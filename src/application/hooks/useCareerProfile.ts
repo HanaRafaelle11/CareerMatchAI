@@ -143,14 +143,41 @@ export function useCareerProfile(userId: string | undefined, resumeVersionId?: s
             if (error) throw error;
           } else {
             // Se não existir perfil estruturado (caso raro), cria uma casca básica
-            if (!updated.resumeId || updated.resumeId === '00000000-0000-0000-0000-000000000000') {
-              console.error('[CAREER PROFILE SAVE] Erro: resumeId está vazio ou é inválido.');
-              throw new Error('A versão do currículo não foi identificada. Por favor, envie um currículo primeiro.');
+            let targetResumeId = updated.resumeId;
+            if (!targetResumeId || targetResumeId === '00000000-0000-0000-0000-000000000000') {
+              // 1. Procurar se já existe alguma versão de currículo no banco
+              const { data: existingRvs } = await supabase
+                .from('resume_versions')
+                .select('id')
+                .eq('user_id', updated.userId)
+                .order('created_at', { ascending: false })
+                .limit(1);
+
+              if (existingRvs && existingRvs.length > 0) {
+                targetResumeId = existingRvs[0].id;
+              } else {
+                // 2. Criar uma versão placeholder temporária
+                const { data: newRv, error: newRvError } = await supabase
+                  .from('resume_versions')
+                  .insert({
+                    user_id: updated.userId,
+                    file_name: 'Configurações Iniciais',
+                    status: 'placeholder'
+                  })
+                  .select('id')
+                  .single();
+
+                if (newRvError) {
+                  console.error('[CAREER PROFILE SAVE] Falha ao criar placeholder resume_version:', newRvError);
+                  throw newRvError;
+                }
+                targetResumeId = newRv.id;
+              }
             }
 
             const newProfilePayload = {
               user_id: updated.userId,
-              resume_version_id: updated.resumeId,
+              resume_version_id: targetResumeId,
               personal: {
                 fullName: 'Profissional',
                 preferences: {

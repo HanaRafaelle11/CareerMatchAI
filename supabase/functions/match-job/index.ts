@@ -228,7 +228,7 @@ class JobMatchingEngine {
 
         if (!cacheError && cachedResult) {
           console.log("[CACHE SUCCESS] Resolvido via cache para economizar custo.");
-          await logAiUsage(supabaseClient, userId, 'job-matching', 'gemini-2.5-flash-cache', 0, 0);
+          await logAiUsage(supabaseClient, userId, 'job-matching', 'gemini-1.5-flash-cache', 0, 0);
           await logMatchStep(supabaseClient, userId, jobId, 'comparing_job', 'completed', Date.now() - parentStartTime);
           await logMatchStep(supabaseClient, userId, jobId, 'generating_score', 'completed', Date.now() - parentStartTime);
           return cachedResult.response;
@@ -240,7 +240,7 @@ class JobMatchingEngine {
 
     if (mockEnabled) {
       console.log("[GEMINI] Simulação ativa para testes.");
-      await logAiUsage(supabaseClient, userId, 'job-matching', 'gemini-2.5-flash-mock', 100, 200);
+      await logAiUsage(supabaseClient, userId, 'job-matching', 'gemini-1.5-flash-mock', 100, 200);
 
       const mockResponse = {
         match_score: 85,
@@ -264,7 +264,7 @@ class JobMatchingEngine {
       throw new Error("GEMINI_API_KEY não configurada nos segredos do Supabase.");
     }
 
-    const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${geminiApiKey}`;
+    const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${geminiApiKey}`;
 
     const prompt = `
       Você é o motor de match semântico e recrutador automatizado do CareerMatch AI.
@@ -332,7 +332,7 @@ class JobMatchingEngine {
 
     const promptTokens = resJson.usageMetadata?.promptTokenCount || 0;
     const candidatesTokens = resJson.usageMetadata?.candidatesTokenCount || 0;
-    await logAiUsage(supabaseClient, userId, 'job-matching', 'gemini-2.5-flash', promptTokens, candidatesTokens);
+    await logAiUsage(supabaseClient, userId, 'job-matching', 'gemini-1.5-flash', promptTokens, candidatesTokens);
 
     const matchJson = JSON.parse(extractedText);
 
@@ -434,7 +434,7 @@ class JobMatchingEngine {
     const geminiApiKey = Deno.env.get('GEMINI_API_KEY');
     if (!geminiApiKey) throw new Error("GEMINI_API_KEY não configurada nos segredos do Supabase.");
 
-    const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${geminiApiKey}`;
+    const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${geminiApiKey}`;
 
     const prompt = `
       Você é um especialista em recrutamento e otimização de currículos para ATS (Applicant Tracking Systems).
@@ -478,7 +478,7 @@ class JobMatchingEngine {
     const extractedText = resJson.candidates?.[0]?.content?.parts?.[0]?.text;
     if (!extractedText) throw new Error("Resposta do Gemini vazia.");
 
-    await logAiUsage(supabaseClient, userId, 'resume-optimization', 'gemini-2.5-flash', resJson.usageMetadata?.promptTokenCount || 0, resJson.usageMetadata?.candidatesTokenCount || 0);
+    await logAiUsage(supabaseClient, userId, 'resume-optimization', 'gemini-1.5-flash', resJson.usageMetadata?.promptTokenCount || 0, resJson.usageMetadata?.candidatesTokenCount || 0);
     return JSON.parse(extractedText);
   }
 
@@ -496,7 +496,7 @@ class JobMatchingEngine {
     const geminiApiKey = Deno.env.get('GEMINI_API_KEY');
     if (!geminiApiKey) throw new Error("GEMINI_API_KEY não configurada nos segredos do Supabase.");
 
-    const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${geminiApiKey}`;
+    const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${geminiApiKey}`;
 
     const prompt = `
       Você é um redator profissional de carreiras.
@@ -534,7 +534,7 @@ class JobMatchingEngine {
     const extractedText = resJson.candidates?.[0]?.content?.parts?.[0]?.text;
     if (!extractedText) throw new Error("Resposta do Gemini vazia.");
 
-    await logAiUsage(supabaseClient, userId, 'cover-letter', 'gemini-2.5-flash', resJson.usageMetadata?.promptTokenCount || 0, resJson.usageMetadata?.candidatesTokenCount || 0);
+    await logAiUsage(supabaseClient, userId, 'cover-letter', 'gemini-1.5-flash', resJson.usageMetadata?.promptTokenCount || 0, resJson.usageMetadata?.candidatesTokenCount || 0);
     return JSON.parse(extractedText);
   }
 
@@ -562,7 +562,7 @@ class JobMatchingEngine {
     const geminiApiKey = Deno.env.get('GEMINI_API_KEY');
     if (!geminiApiKey) throw new Error("GEMINI_API_KEY não configurada nos segredos do Supabase.");
 
-    const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${geminiApiKey}`;
+    const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${geminiApiKey}`;
 
     const prompt = `
       Você é um preparador profissional de entrevistas de emprego.
@@ -610,7 +610,7 @@ class JobMatchingEngine {
     const extractedText = resJson.candidates?.[0]?.content?.parts?.[0]?.text;
     if (!extractedText) throw new Error("Resposta do Gemini vazia.");
 
-    await logAiUsage(supabaseClient, userId, 'interview-prep', 'gemini-2.5-flash', resJson.usageMetadata?.promptTokenCount || 0, resJson.usageMetadata?.candidatesTokenCount || 0);
+    await logAiUsage(supabaseClient, userId, 'interview-prep', 'gemini-1.5-flash', resJson.usageMetadata?.promptTokenCount || 0, resJson.usageMetadata?.candidatesTokenCount || 0);
     return JSON.parse(extractedText);
   }
 }

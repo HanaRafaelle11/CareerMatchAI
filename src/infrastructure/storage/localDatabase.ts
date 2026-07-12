@@ -529,6 +529,11 @@ class LocalDatabase {
   }
 
   getMockMyProfileAi(userId: string, resumeVersionId?: string | null): any {
+    const resumes = this.getResumes();
+    if (resumes.length === 0) {
+      return { profile: null, insights: null };
+    }
+
     const key = `careermatch_my_profile_ai_${resumeVersionId || 'default'}`;
     const raw = localStorage.getItem(key);
     if (raw) {

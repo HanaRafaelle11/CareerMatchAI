@@ -191,7 +191,7 @@ class ResumeParserService {
         if (!cacheError && cachedResult) {
           console.log("[CACHE SUCCESS] Resolvido via cache para economizar custo no parsing do currículo.");
           // Registrar log de IA do cache com 0 tokens
-          await logAiUsage(supabaseClient, userId, 'resume-parsing', 'gemini-2.5-flash-cache', 0, 0);
+          await logAiUsage(supabaseClient, userId, 'resume-parsing', 'gemini-1.5-flash-cache', 0, 0);
           return cachedResult.response;
         }
       } catch (cacheErr) {
@@ -203,7 +203,7 @@ class ResumeParserService {
       console.log("[GEMINI] Simulação ativa para testes.");
       const isAmanda = text.includes("Amanda");
       
-      await logAiUsage(supabaseClient, userId, 'resume-parsing', 'gemini-2.5-flash-mock', 100, 200);
+      await logAiUsage(supabaseClient, userId, 'resume-parsing', 'gemini-1.5-flash-mock', 100, 200);
 
       const mockResponse = {
         career_profile: {
@@ -288,7 +288,7 @@ class ResumeParserService {
       throw new Error("Configuração ausente: A chave Gemini (GEMINI_API_KEY) não está configurada nos segredos do Supabase.");
     }
 
-    const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${geminiApiKey}`;
+    const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${geminiApiKey}`;
 
     const prompt = `
       Você é um consultor sênior de recrutamento e estrategista de IA.
@@ -436,7 +436,7 @@ class ResumeParserService {
 
     const promptTokens = resJson.usageMetadata?.promptTokenCount || 0;
     const candidatesTokens = resJson.usageMetadata?.candidatesTokenCount || 0;
-    await logAiUsage(supabaseClient, userId, 'resume-parsing', 'gemini-2.5-flash', promptTokens, candidatesTokens);
+    await logAiUsage(supabaseClient, userId, 'resume-parsing', 'gemini-1.5-flash', promptTokens, candidatesTokens);
 
     const parsedData = JSON.parse(extractedText);
 

@@ -3,15 +3,16 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { loginSchema, signUpSchema } from '../../domain/validators/schemas';
 import { Mail, Lock, User, AlertCircle, ArrowRight } from 'lucide-react';
-import { MyCareerLogo } from '../components/ds/MyCareerIcons';
+import { TalentaLogo } from '../components/ds/MyCareerIcons';
 
 interface LoginProps {
   onLogin: (email: string, password: string) => Promise<void>;
   onSignUp: (fullName: string, email: string, password: string) => Promise<void>;
   onOAuth: (provider: 'google' | 'github') => Promise<void>;
+  onBack?: () => void;
 }
 
-export function Login({ onLogin, onSignUp, onOAuth }: LoginProps) {
+export function Login({ onLogin, onSignUp, onOAuth, onBack }: LoginProps) {
   const [isSignUp, setIsSignUp] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
   const [loading, setLoading] = useState(false);
@@ -69,11 +70,19 @@ export function Login({ onLogin, onSignUp, onOAuth }: LoginProps) {
       <div className="absolute bottom-[-20%] right-[-10%] w-[50%] h-[60%] rounded-full bg-indigo-500/10 blur-[120px] pointer-events-none" />
 
       <div className="w-full sm:w-[420px] max-w-full z-10 flex flex-col gap-6">
+        {onBack && (
+          <button 
+            onClick={onBack}
+            className="self-start text-[10.5px] font-semibold text-slate-450 hover:text-slate-300 flex items-center gap-1 transition-colors -mb-3 cursor-pointer select-none"
+          >
+            ← Voltar para o início
+          </button>
+        )}
         {/* Cabeçalho */}
         <div className="text-center flex flex-col items-center">
-          <MyCareerLogo className="mb-3" showText={true} variant="vertical" />
+          <TalentaLogo className="mb-3" showText={true} variant="vertical" />
           <p className="text-xs text-slate-400 mt-3 max-w-[320px] leading-relaxed">
-            Seu copiloto inteligente de recolocação profissional baseado em IA
+            Conectando pessoas e oportunidades através da inteligência artificial
           </p>
         </div>
 

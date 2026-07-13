@@ -9,8 +9,9 @@ import { useRoadmapServices } from './application/hooks/useRoadmapServices';
 import { Navbar } from './presentation/components/Navbar';
 import { CompactHeader } from './presentation/components/ds/CompactHeader';
 import { Login } from './presentation/pages/Login';
+import { LandingPage } from './presentation/pages/LandingPage';
 import { Menu, Loader2 } from 'lucide-react';
-import { MyCareerLogo } from './presentation/components/ds/MyCareerIcons';
+import { TalentaLogo } from './presentation/components/ds/MyCareerIcons';
 import { isSupabaseConfigured, supabase } from './infrastructure/api/supabaseClient';
 import type { Job } from './domain/models/types';
 
@@ -44,6 +45,7 @@ import { useQueryClient } from '@tanstack/react-query';
 function App() {
   const { user, profile, loading, loginWithEmail, signUpWithEmail, loginWithOAuth, logout, updateProfile } = useAuth();
   const [activeTab, setActiveTab] = useState('dashboard');
+  const [showAuth, setShowAuth] = useState(false);
   const [activeProfileTab, setActiveProfileTab] = useState<'profile' | 'ai-profile' | 'transparency'>('profile');
   const [settingsInitialSubTab, setSettingsInitialSubTab] = useState<'account' | 'resumes' | 'preferences' | 'notifications' | 'appearance' | 'privacy' | 'billing'>('account');
   const [strategyInitialSubTab, setStrategyInitialSubTab] = useState<'strategy' | 'planner' | 'pipeline' | 'journal'>('strategy');
@@ -238,14 +240,14 @@ function App() {
       <div className="min-h-screen w-full flex flex-col items-center justify-center bg-slate-950 text-slate-100 font-sans relative overflow-hidden">
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(99,102,241,0.05)_0%,transparent_70%)]" />
         <div className="max-w-md w-full p-8 mx-4 rounded-3xl bg-slate-900/30 border border-slate-850 backdrop-blur-md flex flex-col items-center text-center space-y-6 relative">
-          <div className="relative">
-            <div className="absolute inset-0 rounded-full bg-brand-500/10 blur-xl animate-pulse" />
-            <div className="p-4 rounded-full bg-slate-950 border border-slate-800 text-brand-500 animate-bounce">
-              <Loader2 className="animate-spin text-brand-500" size={32} />
+          <div className="relative flex flex-col items-center">
+            <div className="absolute inset-0 rounded-full bg-brand-500/15 blur-2xl animate-pulse" />
+            <div className="p-5 rounded-full bg-slate-950 border border-slate-800 text-brand-500 shadow-2xl relative z-10 flex items-center justify-center">
+              <TalentaLogo className="h-12 w-12 animate-pulse" showText={false} variant="symbol" />
             </div>
           </div>
           <div className="space-y-2">
-            <h3 className="font-display font-bold text-lg text-slate-200">Iniciando CareerMatch AI</h3>
+            <h3 className="font-display font-bold text-lg text-slate-200">Iniciando Talenta</h3>
             <p className="text-xs text-slate-500">Conectando ao banco de dados e autenticando sessão de usuário...</p>
           </div>
           <div className="w-full max-w-[200px] h-1 bg-slate-950 border border-slate-850 rounded-full overflow-hidden">
@@ -257,11 +259,19 @@ function App() {
   }
 
   if (!user) {
+    if (showAuth) {
+      return (
+        <Login
+          onLogin={loginWithEmail}
+          onSignUp={signUpWithEmail}
+          onOAuth={loginWithOAuth}
+          onBack={() => setShowAuth(false)}
+        />
+      );
+    }
     return (
-      <Login
-        onLogin={loginWithEmail}
-        onSignUp={signUpWithEmail}
-        onOAuth={loginWithOAuth}
+      <LandingPage 
+        onNavigateToAuth={() => setShowAuth(true)}
       />
     );
   }
@@ -281,7 +291,7 @@ function App() {
           >
             <Menu size={24} />
           </button>
-          <MyCareerLogo className="h-7" showText={false} />
+          <TalentaLogo className="h-7" showText={false} />
         </div>
         <div className="flex items-center gap-2">
           {profile?.avatarUrl ? (

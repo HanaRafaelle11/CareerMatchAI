@@ -9,41 +9,34 @@ interface LogoProps {
   colorMode?: 'default' | 'white' | 'black' | 'monochrome';
 }
 
-export function MyCareerLogo({ 
+export function TalentaLogo({ 
   className = "h-8", 
   showText = true, 
   variant = 'horizontal', 
   colorMode = 'default' 
 }: LogoProps) {
   
-  let fillGradient = true;
-  let strokeColor = "url(#logo-grad)";
-  let headFill = "url(#logo-grad)";
+  let fillGradient = colorMode === 'default';
+  let topFill = "url(#logo-t-top-grad)";
+  let stemFill = "url(#logo-t-stem-grad)";
+  let starFill = "url(#logo-star-grad)";
   let textClassPrimary = "text-on-surface";
-  let textClassSecondary = "text-on-surface";
-  let textClassAi = "text-primary";
 
   if (colorMode === 'white') {
-    fillGradient = false;
-    strokeColor = "#FFFFFF";
-    headFill = "#FFFFFF";
+    topFill = "#FFFFFF";
+    stemFill = "#FFFFFF";
+    starFill = "#FFFFFF";
     textClassPrimary = "text-white";
-    textClassSecondary = "text-white";
-    textClassAi = "text-white opacity-90";
   } else if (colorMode === 'black') {
-    fillGradient = false;
-    strokeColor = "#000000";
-    headFill = "#000000";
+    topFill = "#000000";
+    stemFill = "#000000";
+    starFill = "#000000";
     textClassPrimary = "text-black";
-    textClassSecondary = "text-black";
-    textClassAi = "text-black";
   } else if (colorMode === 'monochrome') {
-    fillGradient = false;
-    strokeColor = "currentColor";
-    headFill = "currentColor";
+    topFill = "currentColor";
+    stemFill = "currentColor";
+    starFill = "currentColor";
     textClassPrimary = "text-current";
-    textClassSecondary = "text-current";
-    textClassAi = "text-current opacity-80";
   }
 
   const isVertical = variant === 'vertical';
@@ -51,40 +44,61 @@ export function MyCareerLogo({
 
   return (
     <div className={`flex ${isVertical ? 'flex-col text-center' : 'flex-row'} items-center gap-2.5 select-none ${className}`}>
-      <svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg" className={`${isVertical ? 'h-14 w-14 mb-1' : 'h-full aspect-square'} shrink-0`}>
+      <svg 
+        viewBox="0 0 96 96" 
+        fill="none" 
+        xmlns="http://www.w3.org/2000/svg" 
+        className={`${isVertical ? 'h-16 w-16 mb-2' : 'h-full aspect-square'} shrink-0`}
+      >
         {fillGradient && (
           <defs>
-            <linearGradient id="logo-grad" x1="0%" y1="0%" x2="100%" y2="100%">
-              <stop offset="0%" stopColor="#2563EB" />
-              <stop offset="100%" stopColor="#8B5CF6" />
+            <linearGradient id="logo-t-top-grad" x1="16" y1="48" x2="80" y2="48" gradientUnits="userSpaceOnUse">
+              <stop offset="0%" stopColor="#4F46E5" />
+              <stop offset="100%" stopColor="#7C3AED" />
+            </linearGradient>
+            <linearGradient id="logo-t-stem-grad" x1="48" y1="84" x2="48" y2="56" gradientUnits="userSpaceOnUse">
+              <stop offset="0%" stopColor="#0F172A" />
+              <stop offset="100%" stopColor="#4F46E5" />
+            </linearGradient>
+            <linearGradient id="logo-star-grad" x1="40" y1="28" x2="56" y2="12" gradientUnits="userSpaceOnUse">
+              <stop offset="0%" stopColor="#3B82F6" />
+              <stop offset="100%" stopColor="#7C3AED" />
             </linearGradient>
           </defs>
         )}
-        <path 
-          d="M 22 75 C 22 45, 34 32, 46 45 C 50 49, 50 49, 54 45 C 66 32, 78 45, 78 75" 
-          stroke={strokeColor} 
-          strokeWidth="12" 
-          strokeLinecap="round" 
-          strokeLinejoin="round" 
-        />
-        <circle cx="50" cy="26" r="9" fill={headFill} />
+        
+        {/* Stem of T (Rounded bottom) */}
+        <path d="M 40 56 H 56 V 76 A 8 8 0 0 1 40 76 Z" fill={stemFill} />
+
+        {/* Top Bar of T (Rounded Capsule) */}
+        <rect x="16" y="40" width="64" height="16" rx="8" ry="8" fill={topFill} />
+
+        {/* Sparkle Star */}
+        <path d="M 48 12 Q 48 20 56 20 Q 48 20 48 28 Q 48 20 40 20 Q 48 20 48 12" fill={starFill} />
       </svg>
       
       {showText && !isSymbolOnly && (
-        <div className={`flex flex-col ${isVertical ? 'items-center' : 'items-start'} leading-none`}>
-          <span className="font-display text-sm tracking-tight select-none flex items-center gap-0.5">
-            <span className={`font-normal ${textClassPrimary}`}>My</span>
-            <span className={`font-bold ${textClassSecondary}`}>Career</span>
-            <span className={`font-extrabold ${textClassAi}`}>AI</span>
+        <div className={`flex flex-col ${isVertical ? 'items-center text-center' : 'items-start'} leading-none`}>
+          <span className={`font-display ${isVertical ? 'text-2xl' : 'text-lg'} font-bold tracking-tight select-none ${textClassPrimary}`}>
+            Talenta
           </span>
-          <span className="text-[6px] font-semibold tracking-[0.2em] text-slate-400 uppercase mt-0.5">
-            SEU COPILOTO DE CARREIRA
-          </span>
+          {isVertical ? (
+            <span className="text-[9px] font-medium tracking-[0.05em] text-slate-400 dark:text-slate-500 mt-1.5 max-w-[200px]">
+              Transformando <span className="text-blue-500 font-semibold">talento</span> em <span className="text-purple-500 font-semibold">oportunidades</span>
+            </span>
+          ) : (
+            <span className="text-[7px] font-semibold tracking-[0.15em] text-slate-400 dark:text-slate-500 uppercase mt-1">
+              Inteligência Artificial
+            </span>
+          )}
         </div>
       )}
     </div>
   );
 }
+
+// Alias for backward compatibility
+export { TalentaLogo as MyCareerLogo };
 
 // 👤 User Profile: Ícone de usuário com uma engrenagem de configuração
 export function UserProfileIcon({ className = "w-5 h-5" }: IconProps) {

@@ -92,7 +92,7 @@ export function ErrorState({ error, onRetry, onAction }: ErrorStateProps) {
             </button>
           )}
           <a
-            href="mailto:suporte@careermatch.ai?subject=Relato%20de%20Erro%20CareerMatch"
+            href="mailto:suporte@talenta.ai?subject=Relato%20de%20Erro%20Talenta"
             className="inline-flex items-center gap-1 text-[11px] text-slate-500 hover:text-slate-400 transition font-medium"
           >
             <MailCheck size={11} />

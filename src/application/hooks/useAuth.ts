@@ -100,7 +100,7 @@ export function useAuth() {
         const newProfile = {
           id: userId,
           full_name: initialName,
-          headline: 'Candidato | CareerMatch AI',
+          headline: 'Candidato | Talenta',
           created_at: new Date().toISOString(),
           updated_at: new Date().toISOString()
         };
@@ -186,7 +186,7 @@ export function useAuth() {
       const mockUserId = btoa(email).replace(/[^a-zA-Z0-9]/g, '').slice(0, 12);
       const mockUserObj = { id: mockUserId, email };
       localStorage.setItem('careermatch_auth_user', JSON.stringify(mockUserObj));
-      localDB.updateProfile({ fullName, headline: 'Novo Usuário | CareerMatch AI' });
+      localDB.updateProfile({ fullName, headline: 'Novo Usuário | Talenta' });
       setUser(mockUserObj);
       setProfile(localDB.getProfile());
       setLoading(false);

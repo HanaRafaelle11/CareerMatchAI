@@ -195,7 +195,7 @@ export function AdminDashboard({ userId }: AdminDashboardProps) {
         </div>
         <h2 className="font-display font-extrabold text-xl text-slate-100">Acesso Restrito</h2>
         <p className="text-slate-400 text-xs leading-relaxed">
-          Esta área é destinada exclusivamente a administradores do CareerMatch AI para auditoria de desempenho e telemetria de erros da inteligência artificial.
+          Esta área é destinada exclusivamente a administradores da Talenta para auditoria de desempenho e telemetria de erros da inteligência artificial.
         </p>
       </div>
     );

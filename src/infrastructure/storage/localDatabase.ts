@@ -271,9 +271,15 @@ class LocalDatabase {
     this.init();
   }
 
-  // Profile API
   getProfile(): Profile {
-    return JSON.parse(localStorage.getItem(KEYS.PROFILE) || '{}');
+    try {
+      const raw = localStorage.getItem(KEYS.PROFILE);
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        if (parsed && typeof parsed === 'object') return parsed as Profile;
+      }
+    } catch (_) {}
+    return {} as Profile;
   }
 
   updateProfile(profile: Partial<Profile>): Profile {
@@ -462,13 +468,16 @@ class LocalDatabase {
     localStorage.setItem(KEYS.APPLICATIONS, JSON.stringify(apps));
   }
 
-  // Career Profile API
   getCareerProfile(userId: string): CareerProfile | null {
     const raw = localStorage.getItem(KEYS.CAREER_PROFILE);
     if (!raw) return null;
-    const profile = JSON.parse(raw) as CareerProfile;
-    if (profile.userId !== userId) return null;
-    return profile;
+    try {
+      const profile = JSON.parse(raw);
+      if (profile && typeof profile === 'object' && profile.userId === userId) {
+        return profile as CareerProfile;
+      }
+    } catch (_) {}
+    return null;
   }
 
   saveCareerProfile(profile: CareerProfile): CareerProfile {

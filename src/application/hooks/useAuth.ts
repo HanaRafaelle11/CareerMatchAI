@@ -78,7 +78,10 @@ export function useAuth() {
         let localProfile: any = {};
         if (localProfileRaw) {
           try {
-            localProfile = JSON.parse(localProfileRaw);
+            const parsed = JSON.parse(localProfileRaw);
+            if (parsed && typeof parsed === 'object') {
+              localProfile = parsed;
+            }
           } catch (_) {}
         }
         const localAvatar = localStorage.getItem(`careermatch_avatar_${userId}`) || undefined;

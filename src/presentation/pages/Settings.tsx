@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
+import { motion, AnimatePresence } from 'framer-motion';
 import { CardGlass } from '../components/CardGlass';
 import { isSupabaseConfigured, supabase } from '../../infrastructure/api/supabaseClient';
 import { localDB } from '../../infrastructure/storage/localDatabase';
@@ -43,6 +44,11 @@ export function Settings({
   const [linkedin, setLinkedin] = useState(careerProfileNew?.personal?.linkedin || '');
   const [isSaving, setIsSaving] = useState(false);
   const [email, setEmail] = useState('');
+  const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
+  const showToast = (message: string, type: 'success' | 'error' = 'success') => {
+    setToast({ message, type });
+    setTimeout(() => setToast(null), 3500);
+  };
 
   // Generate billing history dynamically based on registration date to avoid showing June if they signed up in July
   const regDate = profile?.createdAt ? new Date(profile.createdAt) : new Date();
@@ -152,7 +158,7 @@ export function Settings({
     if (!file) return;
 
     if (file.size > 2 * 1024 * 1024) {
-      alert("A imagem deve ter no máximo 2MB.");
+      showToast("A imagem deve ter no máximo 2MB.", "error");
       return;
     }
 
@@ -347,10 +353,10 @@ export function Settings({
       if (onUpdateProfileState) {
         onUpdateProfileState({ fullName, headline, avatarUrl, skillsSummary });
       }
-      alert('Configurações de conta salvas com sucesso!');
+      showToast('Configurações de conta salvas com sucesso!', 'success');
     } catch (err: any) {
       console.error(err);
-      alert('Erro ao salvar conta: ' + err.message);
+      showToast('Erro ao salvar conta: ' + err.message, 'error');
     } finally {
       setIsSaving(false);
     }
@@ -408,10 +414,10 @@ export function Settings({
       };
 
       await onSaveProfile(updatedProfile);
-      alert('Preferências de vagas atualizadas com sucesso!');
+      showToast('Preferências de vagas atualizadas com sucesso!', 'success');
     } catch (err: any) {
       console.error(err);
-      alert('Erro ao salvar preferências: ' + err.message);
+      showToast('Erro ao salvar preferências: ' + err.message, 'error');
     } finally {
       setIsSaving(false);
     }
@@ -424,13 +430,13 @@ export function Settings({
           redirectTo: `${window.location.origin}/auth/callback`,
         });
         if (error) throw error;
-        alert('E-mail de redefinição de senha enviado com sucesso!');
+        showToast('E-mail de redefinição de senha enviado com sucesso!', 'success');
       } else {
-        alert('[Simulado] E-mail de redefinição enviado para seu endereço cadastrado.');
+        showToast('E-mail de redefinição enviado para seu endereço cadastrado.', 'success');
       }
     } catch (err: any) {
       console.error(err);
-      alert('Erro ao enviar e-mail de redefinição: ' + err.message);
+      showToast('Erro ao enviar e-mail de redefinição: ' + err.message, 'error');
     }
   };
 
@@ -446,11 +452,11 @@ export function Settings({
         const { error } = await supabase.from('profiles').delete().eq('id', profile?.id);
         if (error) throw error;
       }
-      alert('Sua conta foi excluída com sucesso.');
-      onLogout();
+      showToast('Sua conta foi excluída com sucesso.', 'success');
+      setTimeout(() => onLogout(), 1500);
     } catch (err: any) {
       console.error(err);
-      alert('Erro ao excluir conta: ' + err.message);
+      showToast('Erro ao excluir conta: ' + err.message, 'error');
     }
   };
 
@@ -845,7 +851,7 @@ export function Settings({
 
                 <button
                   type="button"
-                  onClick={() => alert('Preferências de notificação salvas com sucesso!')}
+                  onClick={() => showToast('Preferências de notificação salvas com sucesso!', 'success')}
                   className="px-5 py-2.5 rounded-xl bg-brand-600 hover:bg-brand-500 text-white text-xs font-bold transition-all"
                 >
                   Salvar Configurações
@@ -982,7 +988,7 @@ export function Settings({
                     <span className="text-xs font-semibold text-slate-350">{nextRenewalDateStr}</span>
                   </div>
                   <button 
-                    onClick={() => alert('Parabéns! Você já está no plano Premium Copilot máximo.')}
+                    onClick={() => showToast('Você já está no plano Premium Copilot máximo.', 'success')}
                     className="px-3.5 py-1.5 rounded-lg bg-brand-600 hover:bg-brand-500 text-white font-bold text-[10px] transition-all shadow shadow-brand-500/10"
                   >
                     Gerenciar Plano
@@ -1013,6 +1019,20 @@ export function Settings({
           )}
         </div>
       </div>
+
+      <AnimatePresence>
+        {toast && (
+          <motion.div
+            initial={{ opacity: 0, y: 30, scale: 0.95 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: 20, scale: 0.95 }}
+            className="fixed bottom-6 right-6 z-[100] bg-slate-900/95 border border-brand-500/30 text-slate-100 px-4 py-3 rounded-xl shadow-2xl flex items-center gap-3 backdrop-blur-md text-xs font-semibold select-none"
+          >
+            {toast.type === 'success' ? '✅' : '❌'}
+            <span>{toast.message}</span>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

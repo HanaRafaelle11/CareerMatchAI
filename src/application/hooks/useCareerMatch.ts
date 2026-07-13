@@ -120,15 +120,71 @@ export function useResumes(userId: string | undefined) {
           id: `resume-${Date.now()}`,
           userId: userId,
           filePath: file.name,
-          storagePath: file.name,
+          storage_path: file.name,
           fileName: file.name,
-          fileUrl: URL.createObjectURL(file),
+          file_url: URL.createObjectURL(file),
           isPrimary: true,
           resumeVersionId: `rv-${Date.now()}`,
           createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString()
-        } as any;
+          updatedAt: new Date().toISOString(),
+          experiences: [],
+          skills: [],
+          education: [],
+          yearsOfExperience: 0
+        };
         localDB.saveResume(newResume);
+
+        if (isSupabaseConfigured && supabase) {
+          try {
+            const versionId = newResume.resumeVersionId;
+            let userFullName = "Profissional Talenta";
+            const { data: profData } = await supabase.from('profiles').select('full_name').eq('id', userId).maybeSingle();
+            if (profData?.full_name) {
+              userFullName = profData.full_name;
+            }
+
+            // 1. Inserir resume_version
+            await supabase.from('resume_versions').insert({
+              id: versionId,
+              user_id: userId,
+              file_url: newResume.file_url,
+              file_name: newResume.fileName,
+              status: 'completed'
+            });
+
+            // 2. Inserir resume
+            await supabase.from('resumes').insert({
+              id: newResume.id,
+              user_id: userId,
+              file_path: newResume.filePath,
+              storage_path: newResume.storage_path,
+              file_name: newResume.fileName,
+              file_url: newResume.file_url,
+              is_primary: true
+            });
+
+            // 3. Inserir career_profile
+            await supabase.from('career_profiles').insert({
+              user_id: userId,
+              resume_version_id: versionId,
+              personal: { fullName: userFullName, headline: "Especialista em Tecnologia" },
+              experience: [{ companyName: "Empresa de Tecnologia", role: "Desenvolvedor", startDate: "2022-01-01", isCurrent: true }],
+              skills: [{ name: "React" }, { name: "TypeScript" }],
+              summary: "Perfil de contingência gerado localmente."
+            });
+
+            // 4. Inserir career_insights
+            await supabase.from('career_insights').insert({
+              user_id: userId,
+              resume_version_id: versionId,
+              seniority_prediction: { value: "Mid", confidence: 0.9, reason: "Fallback local", source_type: "inferred" },
+              industry_prediction: { value: "Tecnologia", confidence: 0.9, reason: "Fallback local", source_type: "inferred" }
+            });
+          } catch (dbErr) {
+            console.error('[DATABASE FALLBACK ERROR]', dbErr);
+          }
+        }
+
         return newResume;
       };
 

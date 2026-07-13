@@ -105,7 +105,7 @@ function App() {
   const [selectedJobId, setSelectedJobId] = useState<string | null>(null);
   const [activeSimulationAppId, setActiveSimulationAppId] = useState<string | null>(null);
 
-  const handleStartSimulation = async (target: Job | string) => {
+  const handleStartSimulation = async (target: Job | string, reset?: boolean) => {
     if (!profile?.id) return;
     try {
       let appId: string;
@@ -126,7 +126,7 @@ function App() {
         appId = app.id;
       }
 
-      await startSimulation(appId);
+      await startSimulation({ applicationId: appId, reset });
       setActiveSimulationAppId(appId);
       setActiveTab('coach');
     } catch (err) {
@@ -470,7 +470,7 @@ function App() {
               applications={applications}
               jobs={jobs}
               matches={matches}
-              startSimulation={startSimulation}
+              startSimulation={(appId, reset) => startSimulation({ applicationId: appId, reset })}
               sendMessage={sendMessage}
               getSimulationQuery={getSimulationQuery}
               triggerDailyChecks={triggerDailyChecks}

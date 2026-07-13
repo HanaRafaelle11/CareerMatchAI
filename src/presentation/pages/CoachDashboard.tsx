@@ -16,7 +16,7 @@ interface CoachDashboardProps {
   applications: Application[];
   jobs: Job[];
   matches?: any[];
-  startSimulation: (appId: string) => Promise<any>;
+  startSimulation: (appId: string, reset?: boolean) => Promise<any>;
   sendMessage: (args: { sim: any; role: 'interviewer' | 'candidate'; text: string }) => Promise<any>;
   getSimulationQuery: (appId: string) => any;
   triggerDailyChecks: () => Promise<any>;
@@ -109,7 +109,7 @@ export function CoachDashboard({
     const confirm = window.confirm("Deseja realmente reiniciar o simulador de entrevista? Todo o progresso e avaliação desta rodada serão apagados.");
     if (!confirm) return;
     try {
-      await startSimulation({ applicationId: selectedAppId, reset: true });
+      await startSimulation(selectedAppId, true);
     } catch (err) {
       console.error(err);
     }

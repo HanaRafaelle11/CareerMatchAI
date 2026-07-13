@@ -313,25 +313,35 @@ export function useCoach(userId: string | undefined) {
   };
 
   const startSimulationMutation = useMutation({
-    mutationFn: async (applicationId: string) => {
+    mutationFn: async (args: string | { applicationId: string; reset?: boolean }) => {
+      const applicationId = typeof args === 'string' ? args : args.applicationId;
+      const reset = typeof args === 'string' ? false : !!args.reset;
       const isMock = applicationId.includes('mock') || !isValidUUID(applicationId);
 
       if (isSupabaseConfigured && supabase && !isMock) {
-        // Verificar se já existe uma simulação para evitar duplicatas
-        const { data: existing } = await supabase
-          .from('interview_simulations')
-          .select('*')
-          .eq('application_id', applicationId)
-          .maybeSingle();
+        if (reset) {
+          // Deleta a simulação existente para iniciar do zero
+          await supabase
+            .from('interview_simulations')
+            .delete()
+            .eq('application_id', applicationId);
+        } else {
+          // Verificar se já existe uma simulação para evitar duplicatas
+          const { data: existing } = await supabase
+            .from('interview_simulations')
+            .select('*')
+            .eq('application_id', applicationId)
+            .maybeSingle();
 
-        if (existing) {
-          return {
-            id: existing.id,
-            applicationId: existing.application_id,
-            chatHistory: existing.chat_history,
-            evaluations: existing.evaluations,
-            createdAt: existing.created_at
-          };
+          if (existing) {
+            return {
+              id: existing.id,
+              applicationId: existing.application_id,
+              chatHistory: existing.chat_history,
+              evaluations: existing.evaluations,
+              createdAt: existing.created_at
+            };
+          }
         }
 
         // Buscar cargo da vaga
@@ -367,6 +377,9 @@ export function useCoach(userId: string | undefined) {
           createdAt: data.created_at
         };
       } else {
+        if (reset) {
+          localDB.deleteInterviewSimulation(applicationId);
+        }
         return InterviewSimulationService.startSimulation(applicationId);
       }
     },

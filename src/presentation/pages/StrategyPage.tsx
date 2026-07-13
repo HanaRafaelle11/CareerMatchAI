@@ -72,7 +72,7 @@ export function StrategyPage({
   onStartSimulation,
   initialSubTab
 }: StrategyPageProps) {
-  const [subTab, setSubTab] = useState<'strategy' | 'planner' | 'pipeline' | 'journal'>(initialSubTab || 'strategy');
+  const [subTab, setSubTab] = useState<'strategy' | 'planner' | 'pipeline' | 'journal'>(initialSubTab || 'pipeline');
 
   useEffect(() => {
     if (initialSubTab) {
@@ -451,10 +451,10 @@ export function StrategyPage({
       {/* Sub Tabs Switcher */}
       <div className="flex flex-wrap border-b border-slate-800 dark:border-slate-800 light:border-slate-200 gap-6">
         {[
-          { id: 'strategy', label: 'Painel Estratégico', icon: Flame },
-          { id: 'planner', label: 'Planner & Progresso', icon: CheckSquare },
-          { id: 'pipeline', label: 'Pipeline de Vagas', icon: Layout },
-          { id: 'journal', label: 'Inteligência & Journal', icon: BookOpen }
+          { id: 'pipeline', label: 'Pipeline (Kanban)', icon: Layout },
+          { id: 'strategy', label: 'Prioridades (ROI)', icon: Flame },
+          { id: 'planner', label: 'Planner Semanal', icon: CheckSquare },
+          { id: 'journal', label: 'Diário & Journal', icon: BookOpen }
         ].map(tab => {
           const Icon = tab.icon;
           return (

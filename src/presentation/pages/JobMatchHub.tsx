@@ -400,7 +400,7 @@ export function JobMatchHub({
       }
 
       // Invalida todos os caches no frontend para refletir a remoção imediatamente de forma reativa
-      queryClient.invalidateQueries({ queryKey: ['matches', userId] });
+      queryClient.invalidateQueries({ queryKey: ['matches'] });
       queryClient.invalidateQueries({ queryKey: ['match-details'] });
       queryClient.invalidateQueries({ queryKey: ['resume-optimization'] });
       queryClient.invalidateQueries({ queryKey: ['cover-letter'] });
@@ -546,7 +546,7 @@ export function JobMatchHub({
       }
 
       // Invalida os caches do React Query
-      queryClient.invalidateQueries({ queryKey: ['matches', userId] });
+      queryClient.invalidateQueries({ queryKey: ['matches'] });
       queryClient.invalidateQueries({ queryKey: ['match-details'] });
       queryClient.invalidateQueries({ queryKey: ['resume-optimization'] });
       queryClient.invalidateQueries({ queryKey: ['cover-letter'] });
@@ -718,6 +718,42 @@ export function JobMatchHub({
       });
     }
   }, [careerProfile, careerProfileNew]);
+
+  useEffect(() => {
+    const activeProf = careerProfileNew || careerProfile;
+    if (activeProf) {
+      const preferences = (careerProfileNew?.personal as any)?.preferences || {};
+      const targetRolesList = preferences.targetRoles || (careerProfile as any)?.targetRoles || [];
+      const defaultKeyword = targetRolesList.join(', ') || preferences.searchKeywords?.[0] || (careerProfile as any)?.searchKeywords?.[0] || '';
+      
+      if (defaultKeyword && (!searchKeyword || searchKeyword === 'React')) {
+        setSearchKeyword(defaultKeyword);
+        setActiveFilters(prev => ({
+          ...prev,
+          keyword: defaultKeyword
+        }));
+      }
+
+      const defaultLoc = preferences.preferredLocations?.[0] || (careerProfile as any)?.preferredLocations?.[0] || 'Brasil';
+      if (defaultLoc && (!searchLocation || searchLocation === 'Brasil')) {
+        setSearchLocation(defaultLoc);
+        setActiveFilters(prev => ({
+          ...prev,
+          location: defaultLoc
+        }));
+      }
+
+      const defaultRemote = preferences.preferredWorkModes ? preferences.preferredWorkModes.includes('remote') : ((careerProfile as any)?.preferredWorkModes?.includes('remote') ?? true);
+      const isInitialRemote = sessionStorage.getItem('job_search_input_remote') === null;
+      if (isInitialRemote) {
+        setSearchRemoteOnly(defaultRemote);
+        setActiveFilters(prev => ({
+          ...prev,
+          remoteOnly: defaultRemote
+        }));
+      }
+    }
+  }, [careerProfileNew, careerProfile]);
 
   const { data: optimization = null, isLoading: isLoadingOpt } = getResumeOptimizationQuery(primaryResume || null, selectedJob || null);
   const { data: prep = null, isLoading: isLoadingPrep } = getInterviewPrepQuery(primaryResume || null, selectedJob || null);
@@ -1175,8 +1211,12 @@ export function JobMatchHub({
                         <p className="text-[10px] text-slate-500 truncate mt-0.5">{job.companyName}</p>
                       </div>
                       {match ? (
-                        <span className={`font-bold font-display text-xs px-2 py-0.5 rounded-lg bg-slate-900/80 border border-slate-800 ${
-                          match.scoreOverall >= 85 ? 'text-brand-500' : match.scoreOverall >= 70 ? 'text-amber-500' : 'text-slate-500'
+                        <span className={`font-bold font-display text-xs px-2 py-0.5 rounded-lg border ${
+                          match.scoreOverall >= 85 
+                            ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' 
+                            : match.scoreOverall >= 70 
+                            ? 'bg-amber-500/10 text-amber-400 border-amber-500/20' 
+                            : 'bg-slate-500/10 text-slate-350 border-slate-700/30'
                         }`}>
                           {match.scoreOverall}%
                         </span>
@@ -1381,20 +1421,40 @@ export function JobMatchHub({
 
                           <div className="grid grid-cols-4 gap-2 pt-4 border-t border-slate-900 dark:border-slate-900 light:border-slate-200 text-center">
                             <div className="flex flex-col items-center">
-                              <ProgressRing value={currentMatch.scoreTechnical} size={30} strokeWidth={3} />
-                              <span className="text-[9px] text-slate-500 font-semibold mt-1 block">Técnico</span>
+                              <ProgressRing 
+                                value={currentMatch.scoreTechnical} 
+                                size={32} 
+                                strokeWidth={3} 
+                                color={currentMatch.scoreTechnical >= 85 ? 'stroke-emerald-500' : currentMatch.scoreTechnical >= 70 ? 'stroke-amber-500' : 'stroke-slate-500'}
+                              />
+                              <span className="text-[9px] text-slate-400 font-bold mt-1 block">Técnico</span>
                             </div>
                             <div className="flex flex-col items-center">
-                              <ProgressRing value={currentMatch.scoreBehavioral} size={30} strokeWidth={3} />
-                              <span className="text-[9px] text-slate-500 font-semibold mt-1 block">Comport.</span>
+                              <ProgressRing 
+                                value={currentMatch.scoreBehavioral} 
+                                size={32} 
+                                strokeWidth={3} 
+                                color={currentMatch.scoreBehavioral >= 85 ? 'stroke-emerald-500' : currentMatch.scoreBehavioral >= 70 ? 'stroke-amber-500' : 'stroke-slate-500'}
+                              />
+                              <span className="text-[9px] text-slate-400 font-bold mt-1 block">Comport.</span>
                             </div>
                             <div className="flex flex-col items-center">
-                              <ProgressRing value={currentMatch.scoreSeniority} size={30} strokeWidth={3} />
-                              <span className="text-[9px] text-slate-500 font-semibold mt-1 block">Seniorid.</span>
+                              <ProgressRing 
+                                value={currentMatch.scoreSeniority} 
+                                size={32} 
+                                strokeWidth={3} 
+                                color={currentMatch.scoreSeniority >= 85 ? 'stroke-emerald-500' : currentMatch.scoreSeniority >= 70 ? 'stroke-amber-500' : 'stroke-slate-500'}
+                              />
+                              <span className="text-[9px] text-slate-400 font-bold mt-1 block">Seniorid.</span>
                             </div>
                             <div className="flex flex-col items-center">
-                              <ProgressRing value={currentMatch.scoreLocation} size={30} strokeWidth={3} />
-                              <span className="text-[9px] text-slate-500 font-semibold mt-1 block">Localiz.</span>
+                              <ProgressRing 
+                                value={currentMatch.scoreLocation} 
+                                size={32} 
+                                strokeWidth={3} 
+                                color={currentMatch.scoreLocation >= 85 ? 'stroke-emerald-500' : currentMatch.scoreLocation >= 70 ? 'stroke-amber-500' : 'stroke-slate-500'}
+                              />
+                              <span className="text-[9px] text-slate-400 font-bold mt-1 block">Localiz.</span>
                             </div>
                           </div>
                         </CardGlass>
@@ -1969,34 +2029,6 @@ export function JobMatchHub({
 
         return (
           <div className="space-y-6">
-            {/* Seção explicativa da busca automatizada com o perfil */}
-            {careerProfileNew ? (
-              <CardGlass className="p-4 bg-slate-900/30 border border-slate-800 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-                <div>
-                  <span className="text-[10px] text-brand-500 font-bold uppercase tracking-wider">Busca Inteligente Ativa</span>
-                  <p className="text-xs text-slate-300 mt-1 leading-relaxed">
-                    A IA gerou buscas para: <strong className="text-slate-100">{((careerProfileNew.personal as any)?.preferences?.targetRoles)?.join(', ') || careerProfileNew.personal?.headline || 'Seus cargos desejados'}</strong>.
-                  </p>
-                </div>
-                <div className="flex flex-wrap gap-1.5">
-                  {((careerProfileNew.personal as any)?.preferences?.targetRoles || []).slice(0, 3).map((role: string, i: number) => (
-                    <span key={i} className="px-2.5 py-0.5 rounded-full bg-brand-500/10 text-brand-400 text-[9px] font-semibold border border-brand-500/20 uppercase">
-                      {role}
-                    </span>
-                  ))}
-                </div>
-              </CardGlass>
-            ) : careerProfile && (
-              <CardGlass className="p-4 bg-slate-900/30 border border-slate-800 flex items-center justify-between gap-4">
-                <div>
-                  <span className="text-[10px] text-brand-500 font-bold uppercase tracking-wider">Filtro Inteligente Ativo</span>
-                  <p className="text-xs text-slate-300 mt-1">
-                    Buscando vagas para <strong className="text-slate-100">{careerProfile.targetRoles.join(', ')}</strong>.
-                  </p>
-                </div>
-              </CardGlass>
-            )}
-
             {/* Warning de API não configurada */}
             {isErrorDiscovery && errorDiscovery?.message?.includes('API_NOT_CONFIGURED') ? (
               <div className="py-12 border border-dashed border-slate-800 rounded-2xl flex flex-col items-center justify-center text-slate-400 max-w-lg mx-auto p-8 bg-slate-900/10">
@@ -2020,7 +2052,7 @@ export function JobMatchHub({
                     <div className="space-y-1">
                       <label className="text-xs font-semibold text-slate-400 flex items-center gap-1.5">
                         <Search size={12} />
-                        Palavra-chave adicional
+                        Palavra-chave / Cargo
                       </label>
                       <input
                         type="text"
@@ -2115,7 +2147,7 @@ export function JobMatchHub({
                                 {job.location}
                               </span>
                               <span className="px-2 py-0.5 rounded bg-brand-500/10 text-[10px] text-brand-500 font-bold uppercase">
-                                {job.workMode}
+                                {job.workMode === 'remote' ? 'Remoto' : job.workMode === 'hybrid' ? 'Híbrido' : 'Presencial'}
                               </span>
                               <span className="px-2 py-0.5 rounded bg-indigo-500/10 text-[10px] text-indigo-400 font-bold uppercase">
                                 {job.seniority}

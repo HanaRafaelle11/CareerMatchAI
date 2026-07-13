@@ -252,12 +252,16 @@ export function Dashboard({
             {/* Visual Funnel Indicator */}
             <div className="grid grid-cols-4 gap-3 pt-2">
               {[
-                { label: 'CV Mapeado', value: '100%', icon: <CheckCircle size={16} />, color: 'text-emerald-400 bg-emerald-500/10 border-emerald-500/20 light:text-emerald-600' },
-                { label: 'Vagas & Match', value: `${matches.length} vagas`, icon: <Search size={16} />, color: 'text-primary bg-primary/10 border-primary/20' },
-                { label: 'Candidaturas', value: `${applications.length} ativas`, icon: <Send size={16} />, color: 'text-amber-400 bg-amber-500/10 border-amber-500/20 light:text-amber-700' },
-                { label: 'Entrevistas', value: `${interviewsCount} marcadas`, icon: <MessageSquareText size={16} />, color: 'text-secondary bg-secondary/10 border-secondary/20' },
+                { label: 'CV Mapeado', value: '100%', icon: <CheckCircle size={16} />, color: 'text-emerald-400 bg-emerald-500/10 border-emerald-500/20 light:text-emerald-600', tabId: 'profile' },
+                { label: 'Vagas & Match', value: `${matches.length} vagas`, icon: <Search size={16} />, color: 'text-primary bg-primary/10 border-primary/20', tabId: 'match' },
+                { label: 'Candidaturas', value: `${applications.length} ativas`, icon: <Send size={16} />, color: 'text-amber-400 bg-amber-500/10 border-amber-500/20 light:text-amber-700', tabId: 'strategy' },
+                { label: 'Entrevistas', value: `${interviewsCount} marcadas`, icon: <MessageSquareText size={16} />, color: 'text-secondary bg-secondary/10 border-secondary/20', tabId: 'coach' },
               ].map((step, idx) => (
-                <div key={idx} className="flex flex-col items-center text-center p-3 rounded-2xl bg-surface-container-high/30 border border-outline-variant/10 hover:scale-[1.02] transition-all duration-300">
+                <div 
+                  key={idx} 
+                  onClick={() => setActiveTab(step.tabId)}
+                  className="flex flex-col items-center text-center p-3 rounded-2xl bg-surface-container-high/30 border border-outline-variant/10 hover:scale-[1.02] hover:border-outline-variant/35 hover:bg-surface-container-high/50 cursor-pointer active:scale-[0.99] transition-all duration-300"
+                >
                   <div className={`w-9 h-9 rounded-xl flex items-center justify-center mb-2 ${step.color} border shadow-sm`}>
                     {step.icon}
                   </div>
@@ -408,7 +412,11 @@ export function Dashboard({
               <div className="rounded-xl overflow-hidden relative group h-28 border border-outline-variant/15">
                 <img alt="Career insights graph" className="w-full h-full object-cover opacity-60 absolute inset-0 transition-transform duration-700 group-hover:scale-105" src={careerInsightsGraph}/>
                 <div className="absolute inset-0 bg-gradient-to-t from-surface-container-lowest via-surface-container-lowest/80 to-transparent flex items-end p-3">
-                  <p className="text-on-surface font-semibold text-xs relative z-10 leading-tight">Sua atratividade no mercado aumentou 42% após a última otimização de CV.</p>
+                  <p className="text-on-surface font-semibold text-xs relative z-10 leading-tight">
+                    {resumes.length > 1 || resumes.some(r => !r.isPrimary)
+                      ? "Sua atratividade no mercado aumentou 42% após a última otimização de CV."
+                      : "Otimize seu currículo e aumente suas chances em até 42%!"}
+                  </p>
                 </div>
               </div>
             </div>

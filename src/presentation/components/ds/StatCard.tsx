@@ -19,8 +19,17 @@ const accentBg: Record<string, string> = {
 };
 
 export function StatCard({ icon, label, value, trend, action, accent = 'primary', className = '' }: StatCardProps) {
+  const handleClick = () => {
+    if (action?.onClick) {
+      action.onClick();
+    }
+  };
+
   return (
-    <div className={`premium-card rounded-xl p-lg group ${className}`}>
+    <div 
+      onClick={handleClick}
+      className={`premium-card rounded-xl p-lg group ${action ? 'cursor-pointer hover:border-slate-800 transition-all hover:scale-[1.01] active:scale-[0.99]' : ''} ${className}`}
+    >
       <div className="flex items-center justify-between mb-3">
         <div className={`w-9 h-9 rounded-lg flex items-center justify-center ${accentBg[accent]}`}>
           {icon}
@@ -35,7 +44,10 @@ export function StatCard({ icon, label, value, trend, action, accent = 'primary'
       <p className="text-xs text-on-surface-variant font-medium">{label}</p>
       {action && (
         <button
-          onClick={action.onClick}
+          onClick={(e) => {
+            e.stopPropagation();
+            action.onClick();
+          }}
           className="mt-3 text-xs text-primary font-semibold hover:underline cursor-pointer opacity-0 group-hover:opacity-100 transition-opacity"
         >
           {action.label} →

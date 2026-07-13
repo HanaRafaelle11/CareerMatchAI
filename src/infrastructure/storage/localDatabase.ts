@@ -740,6 +740,12 @@ class LocalDatabase {
     return sim;
   }
 
+  deleteInterviewSimulation(applicationId: string): void {
+    const all = JSON.parse(localStorage.getItem(KEYS.SIMULATIONS) || '[]') as InterviewSimulation[];
+    const filtered = all.filter(s => s.applicationId !== applicationId);
+    localStorage.setItem(KEYS.SIMULATIONS, JSON.stringify(filtered));
+  }
+
   // Post Interview Logs API
   getPostInterviewLog(applicationId: string): PostInterviewLog | null {
     const all = JSON.parse(localStorage.getItem(KEYS.POST_LOGS) || '[]') as PostInterviewLog[];

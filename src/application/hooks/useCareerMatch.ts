@@ -715,7 +715,7 @@ export function useJobs(userId: string | undefined) {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['jobs', userId] });
-      queryClient.invalidateQueries({ queryKey: ['matches', userId] });
+      queryClient.invalidateQueries({ queryKey: ['matches'] });
     }
   });
 
@@ -843,7 +843,7 @@ export function useMatches(userId: string | undefined, resumeId?: string | null)
       }
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['matches', userId] });
+      queryClient.invalidateQueries({ queryKey: ['matches'] });
       queryClient.invalidateQueries({ queryKey: ['match-details'] });
       queryClient.invalidateQueries({ queryKey: ['resume-optimization'] });
       queryClient.invalidateQueries({ queryKey: ['interview-prep'] });

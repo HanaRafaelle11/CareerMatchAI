@@ -104,6 +104,17 @@ export function CoachDashboard({
     }
   };
 
+  const handleRestartSim = async () => {
+    if (!selectedAppId) return;
+    const confirm = window.confirm("Deseja realmente reiniciar o simulador de entrevista? Todo o progresso e avaliação desta rodada serão apagados.");
+    if (!confirm) return;
+    try {
+      await startSimulation({ applicationId: selectedAppId, reset: true });
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
   const handleSendResponse = async (e: FormEvent) => {
     e.preventDefault();
     if (!simulation || !candidateResponse.trim() || isSending) return;
@@ -146,8 +157,8 @@ export function CoachDashboard({
         reply = `Você pode fazer isso de duas maneiras muito simples:\n\n1. **Cadastrar/Colar Vagas**: Vá até a aba **Encontrar Vagas** no menu lateral esquerdo. Lá você pode pesquisar oportunidades ou clicar em "Colar Vaga Manualmente" para analisar a compatibilidade do seu currículo com a vaga e adicioná-la à sua estratégia.\n2. **Ajustar Preferências e Metas**: Clique na aba **Ajustes** no menu lateral para atualizar suas pretensões salariais e preferências de trabalho.`;
       } else if (textLower.includes('ajuda') || textLower.includes('como funciona') || textLower.includes('o que você faz') || textLower.includes('ajudar')) {
         reply = `Como seu AI Recruiter Advisor, posso atuar em várias frentes para acelerar sua recolocação:\n\n1. **Simulação de Entrevistas**: Preparação com rodadas de perguntas STAR e feedback instantâneo.\n2. **Diagnóstico de Match**: Analisar a aderência técnica e comportamental do seu currículo frente a qualquer vaga.\n3. **Insights de Conversão**: Mapear gargalos e estimar sua taxa de sucesso nas etapas.\n4. **Negociação Salarial**: Direcionar pretensões baseadas na senioridade e modelo de trabalho.`;
-      } else if (textLower.includes('remoto') || textLower.includes('cs') || textLower.includes('customer success') || textLower.includes('vaga') || textLower.includes('salário') || textLower.includes('15k') || textLower.includes('+15k')) {
-        reply = `Excelente meta! Vagas de Customer Success remotas na faixa de R$ 15k+ costumam exigir proficiência avançada em **CS Ops, análise de dados (SQL/BI), gestão de Net Retention (NRR) e liderança de times**.\n\nCom base no seu perfil de ${profileRole}, sugiro mapear as principais vagas que se encaixam nesta meta e adicioná-las na aba **Estratégia** para diagnosticarmos se há gaps específicos de termos ou ferramentas.`;
+      } else if (textLower.includes('remoto') || textLower.includes(profileRole.toLowerCase()) || textLower.includes('vaga') || textLower.includes('salário') || textLower.includes('15k') || textLower.includes('+15k')) {
+        reply = `Excelente meta! Vagas de ${profileRole} remotas ou seniores na faixa de R$ 15k+ costumam exigir proficiência avançada em termos estratégicos específicos da área (tais como ${profileSkills}) e liderança de projetos complexos.\n\nCom base no seu perfil, sugiro mapear as principais vagas que se encaixam nesta meta e adicioná-las na aba **Estratégia** para diagnosticarmos se há gaps específicos de termos ou ferramentas.`;
       } else if (textLower.includes('olá') || textLower.includes('oi') || textLower.includes('bom dia') || textLower.includes('boa tarde')) {
         reply = `Olá, ${profileName}! Como posso te auxiliar em sua jornada profissional hoje? Quer conversar sobre vagas de interesse, simular uma entrevista ou analisar sua estratégia salarial?`;
       } else if (wasLastMsgDefault) {
@@ -263,8 +274,8 @@ export function CoachDashboard({
                           </span>
                         </div>
                         <button
-                          onClick={handleStartSim}
-                          className="px-3 py-1.5 rounded-lg border border-slate-850 hover:border-slate-800 text-slate-400 font-semibold text-[10px] flex items-center gap-1 transition-all"
+                          onClick={handleRestartSim}
+                          className="px-3 py-1.5 rounded-lg border border-slate-850 hover:border-slate-800 text-slate-400 font-semibold text-[10px] flex items-center gap-1 transition-all cursor-pointer"
                         >
                           <RefreshCcw size={10} />
                           Reiniciar
@@ -479,20 +490,20 @@ export function CoachDashboard({
                 {/* Suggestions Quick keys */}
                 <div className="flex flex-wrap gap-2 text-[10px]">
                   <button 
-                    onClick={() => handleSendRecruiterMessage(undefined, 'Quero CS remoto pagando +15k')}
+                    onClick={() => handleSendRecruiterMessage(undefined, `Quero vaga de ${profileRole} remoto pagando +15k`)}
                     type="button"
-                    className="px-2.5 py-1.5 bg-slate-900 hover:bg-slate-800 text-slate-300 border border-slate-800 rounded-xl"
+                    className="px-2.5 py-1.5 bg-slate-900 hover:bg-slate-800 text-slate-300 border border-slate-800 rounded-xl cursor-pointer"
                   >
-                    🔍 Vagas CS remoto &gt; 15k?
+                    🔍 Vagas de {profileRole} remoto &gt; 15k?
                   </button>
                   <button 
                     onClick={() => {
-                      setRecruiterInput("Análise de SaaS e diagnóstico de mercado");
+                      setRecruiterInput(`Diagnóstico de mercado e tendências para ${profileRole}`);
                     }}
                     type="button"
-                    className="px-2.5 py-1.5 bg-slate-900 hover:bg-slate-800 text-slate-300 border border-slate-800 rounded-xl"
+                    className="px-2.5 py-1.5 bg-slate-900 hover:bg-slate-800 text-slate-300 border border-slate-800 rounded-xl cursor-pointer"
                   >
-                    📊 Diagnóstico SaaS B2B
+                    📊 Diagnóstico de {profileRole}
                   </button>
                 </div>
 

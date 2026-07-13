@@ -12,9 +12,19 @@ export class AdzunaConnector extends BaseJobConnector {
       return { results: [], count: 0 };
     }
 
-    const keywords = filters.keywords && filters.keywords.length > 0
+    let keywords = filters.keywords && filters.keywords.length > 0
       ? filters.keywords
       : [filters.keyword || 'React'];
+      
+    if (filters.remoteOnly) {
+      keywords = keywords.map(kw => {
+        const kwLower = kw.toLowerCase();
+        if (kwLower.includes('remoto') || kwLower.includes('remote')) {
+          return kw;
+        }
+        return `${kw} remoto`;
+      });
+    }
       
     const location = filters.location || 'Brasil';
     const pageNum = filters.page || 1;

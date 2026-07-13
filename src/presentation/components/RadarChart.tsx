@@ -11,8 +11,8 @@ interface RadarChartProps {
 }
 
 export function RadarChart({ scores, labels = ['Técnico', 'Comportamental', 'Senioridade', 'Geral', 'Localização'] }: RadarChartProps) {
-  const width = 240;
-  const height = 240;
+  const width = 320;
+  const height = 280;
   const centerX = width / 2;
   const centerY = height / 2;
   const radius = 80;

@@ -288,7 +288,7 @@ class ResumeParserService {
       throw new Error("Configuração ausente: A chave Gemini (GEMINI_API_KEY) não está configurada nos segredos do Supabase.");
     }
 
-    const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${geminiApiKey}`;
+    let geminiUrl = '';
 
     const prompt = `
       Você é um consultor sênior de recrutamento e estrategista de IA.
@@ -407,28 +407,55 @@ class ResumeParserService {
       """
     `;
 
-    console.log("[GEMINI] Enviando prompt para Gemini 2.5 Flash...");
-    const response = await fetchWithRetry(geminiUrl, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({
-        contents: [{
-          parts: [{ text: prompt }]
-        }],
-        generationConfig: {
-          responseMimeType: 'application/json'
-        }
-      })
-    });
+    const modelsToTry = [
+      'gemini-1.5-flash',
+      'gemini-1.5-flash-latest',
+      'gemini-2.5-flash',
+      'gemini-2.0-flash'
+    ];
 
-    if (!response.ok) {
-      const errText = await response.text();
-      throw new Error(`Erro na chamada da API do Gemini: ${response.statusText} - ${errText}`);
+    let lastError: any = null;
+    let resJson: any = null;
+    let selectedModel = '';
+
+    for (const model of modelsToTry) {
+      try {
+        console.log(`[GEMINI] Tentando chamada com o modelo: ${model}...`);
+        const targetUrl = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${geminiApiKey}`;
+        const response = await fetchWithRetry(targetUrl, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            contents: [{
+              parts: [{ text: prompt }]
+            }],
+            generationConfig: {
+              responseMimeType: 'application/json'
+            }
+          })
+        });
+
+        if (!response.ok) {
+          const errText = await response.text();
+          throw new Error(`Erro na API (${response.status} ${response.statusText}): ${errText}`);
+        }
+
+        resJson = await response.json();
+        selectedModel = model;
+        console.log(`[GEMINI] Sucesso com o modelo: ${model}!`);
+        break; // Sucesso, sai do loop
+      } catch (err: any) {
+        console.warn(`[GEMINI] Falha ao usar modelo ${model}:`, err.message || err);
+        lastError = err;
+      }
     }
 
-    const resJson = await response.json();
+    if (!resJson) {
+      throw new Error(`Falha em todos os modelos do Gemini. Último erro: ${lastError?.message || lastError}`);
+    }
+
     const extractedText = resJson.candidates?.[0]?.content?.parts?.[0]?.text;
     if (!extractedText) {
       throw new Error("Resposta do Gemini vazia ou em formato incorreto.");
@@ -436,7 +463,7 @@ class ResumeParserService {
 
     const promptTokens = resJson.usageMetadata?.promptTokenCount || 0;
     const candidatesTokens = resJson.usageMetadata?.candidatesTokenCount || 0;
-    await logAiUsage(supabaseClient, userId, 'resume-parsing', 'gemini-1.5-flash', promptTokens, candidatesTokens);
+    await logAiUsage(supabaseClient, userId, 'resume-parsing', selectedModel, promptTokens, candidatesTokens);
 
     const parsedData = JSON.parse(extractedText);
 
@@ -518,6 +545,7 @@ serve(async (req) => {
   let supabaseClient;
   let resumeVersionIdGlobal;
   let userIdGlobal: string | null = null;
+  let parsedData: any;
 
   try {
     const { storagePath, fileName, userId, resumeVersionId, mockGemini } = await req.json()

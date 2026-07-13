@@ -115,16 +115,27 @@ export function useResumes(userId: string | undefined) {
           { id: 'creating_profile', label: '✔ Criando seu perfil profissional', status: 'success' },
         ]);
 
+        const generateUUID = (): string => {
+          if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
+            return crypto.randomUUID();
+          }
+          return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => {
+            const r = (Math.random() * 16) | 0;
+            const v = c === 'x' ? r : (r & 0x3) | 0x8;
+            return v.toString(16);
+          });
+        };
+
         // Criar registro local no mock DB
         const newResume: Resume = {
-          id: `resume-${Date.now()}`,
+          id: generateUUID(),
           userId: userId,
           filePath: file.name,
           storage_path: file.name,
           fileName: file.name,
           file_url: URL.createObjectURL(file),
           isPrimary: true,
-          resumeVersionId: `rv-${Date.now()}`,
+          resumeVersionId: generateUUID(),
           createdAt: new Date().toISOString(),
           updatedAt: new Date().toISOString(),
           experiences: [],

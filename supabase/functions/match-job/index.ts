@@ -111,6 +111,54 @@ async function logAiUsage(supabaseClient: any, userId: string, feature: string, 
   }
 }
 
+async function callGeminiWithFallback(
+  prompt: string,
+  geminiApiKey: string,
+  responseMimeType: string | undefined = undefined
+): Promise<{ resJson: any; selectedModel: string }> {
+  const modelsToTry = [
+    'gemini-1.5-flash',
+    'gemini-1.5-flash-latest',
+    'gemini-2.5-flash',
+    'gemini-2.0-flash'
+  ];
+
+  let lastError: any = null;
+  for (const model of modelsToTry) {
+    try {
+      console.log(`[GEMINI FALLBACK HELPER] Tentando modelo: ${model}...`);
+      const targetUrl = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${geminiApiKey}`;
+      const response = await fetchWithRetry(targetUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          contents: [{
+            parts: [{ text: prompt }]
+          }],
+          generationConfig: {
+            ...(responseMimeType ? { responseMimeType } : {})
+          }
+        })
+      });
+
+      if (!response.ok) {
+        const errText = await response.text();
+        throw new Error(`Erro na API (${response.status} ${response.statusText}): ${errText}`);
+      }
+
+      const resJson = await response.json();
+      console.log(`[GEMINI FALLBACK HELPER] Sucesso com o modelo: ${model}!`);
+      return { resJson, selectedModel: model };
+    } catch (err: any) {
+      console.warn(`[GEMINI FALLBACK HELPER] Falha ao usar modelo ${model}:`, err.message || err);
+      lastError = err;
+    }
+  }
+  throw new Error(`Falha em todos os modelos do Gemini. Último erro: ${lastError?.message || lastError}`);
+}
+
 function calcYearsFromExperiences(experiences: any[]): number {
   if (!experiences || experiences.length === 0) return 0;
   const intervals: [number, number][] = experiences.map(exp => {
@@ -300,31 +348,11 @@ class JobMatchingEngine {
       """
     `;
 
-    console.log("[GEMINI] Comparando currículo e vaga com Gemini 2.5 Flash...");
-    const response = await fetchWithRetry(geminiUrl, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({
-        contents: [{
-          parts: [{ text: prompt }]
-        }],
-        generationConfig: {
-          responseMimeType: 'application/json'
-        }
-      })
-    });
-
-    if (!response.ok) {
-      const errText = await response.text();
-      throw new Error(`Erro na chamada da API do Gemini: ${response.statusText} - ${errText}`);
-    }
+    const { resJson, selectedModel } = await callGeminiWithFallback(prompt, geminiApiKey, 'application/json');
 
     await logMatchStep(supabaseClient, userId, jobId, 'comparing_job', 'completed', Date.now() - parentStartTime);
     await logMatchStep(supabaseClient, userId, jobId, 'generating_score', 'running', Date.now() - parentStartTime);
 
-    const resJson = await response.json();
     const extractedText = resJson.candidates?.[0]?.content?.parts?.[0]?.text;
     if (!extractedText) {
       throw new Error("Resposta do Gemini vazia ou em formato incorreto.");
@@ -332,7 +360,7 @@ class JobMatchingEngine {
 
     const promptTokens = resJson.usageMetadata?.promptTokenCount || 0;
     const candidatesTokens = resJson.usageMetadata?.candidatesTokenCount || 0;
-    await logAiUsage(supabaseClient, userId, 'job-matching', 'gemini-1.5-flash', promptTokens, candidatesTokens);
+    await logAiUsage(supabaseClient, userId, 'job-matching', selectedModel, promptTokens, candidatesTokens);
 
     const matchJson = JSON.parse(extractedText);
 
@@ -365,7 +393,6 @@ class JobMatchingEngine {
     const { data, error } = await supabaseClient
       .from('matches')
       .insert({
-        user_id: userId,
         resume_id: resumeId,
         job_id: jobId,
         score_overall: matchResult.match_score,
@@ -434,8 +461,6 @@ class JobMatchingEngine {
     const geminiApiKey = Deno.env.get('GEMINI_API_KEY');
     if (!geminiApiKey) throw new Error("GEMINI_API_KEY não configurada nos segredos do Supabase.");
 
-    const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${geminiApiKey}`;
-
     const prompt = `
       Você é um especialista em recrutamento e otimização de currículos para ATS (Applicant Tracking Systems).
       Sua tarefa é otimizar o resumo profissional e as experiências do candidato para a vaga abaixo, sem inventar fatos ou mentiras.
@@ -463,22 +488,12 @@ class JobMatchingEngine {
       Descrição: ${jobDescription}
     `;
 
-    const response = await fetchWithRetry(geminiUrl, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        contents: [{ parts: [{ text: prompt }] }],
-        generationConfig: { responseMimeType: 'application/json' }
-      })
-    });
+    const { resJson, selectedModel } = await callGeminiWithFallback(prompt, geminiApiKey, 'application/json');
 
-    if (!response.ok) throw new Error("Erro na API do Gemini durante a otimização.");
-
-    const resJson = await response.json();
     const extractedText = resJson.candidates?.[0]?.content?.parts?.[0]?.text;
     if (!extractedText) throw new Error("Resposta do Gemini vazia.");
 
-    await logAiUsage(supabaseClient, userId, 'resume-optimization', 'gemini-1.5-flash', resJson.usageMetadata?.promptTokenCount || 0, resJson.usageMetadata?.candidatesTokenCount || 0);
+    await logAiUsage(supabaseClient, userId, 'resume-optimization', selectedModel, resJson.usageMetadata?.promptTokenCount || 0, resJson.usageMetadata?.candidatesTokenCount || 0);
     return JSON.parse(extractedText);
   }
 
@@ -519,22 +534,12 @@ class JobMatchingEngine {
       Descrição: ${jobDescription}
     `;
 
-    const response = await fetchWithRetry(geminiUrl, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        contents: [{ parts: [{ text: prompt }] }],
-        generationConfig: { responseMimeType: 'application/json' }
-      })
-    });
+    const { resJson, selectedModel } = await callGeminiWithFallback(prompt, geminiApiKey, 'application/json');
 
-    if (!response.ok) throw new Error("Erro na API do Gemini durante a carta de apresentação.");
-
-    const resJson = await response.json();
     const extractedText = resJson.candidates?.[0]?.content?.parts?.[0]?.text;
     if (!extractedText) throw new Error("Resposta do Gemini vazia.");
 
-    await logAiUsage(supabaseClient, userId, 'cover-letter', 'gemini-1.5-flash', resJson.usageMetadata?.promptTokenCount || 0, resJson.usageMetadata?.candidatesTokenCount || 0);
+    await logAiUsage(supabaseClient, userId, 'cover-letter', selectedModel, resJson.usageMetadata?.promptTokenCount || 0, resJson.usageMetadata?.candidatesTokenCount || 0);
     return JSON.parse(extractedText);
   }
 
@@ -595,22 +600,12 @@ class JobMatchingEngine {
       Descrição: ${jobDescription}
     `;
 
-    const response = await fetchWithRetry(geminiUrl, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        contents: [{ parts: [{ text: prompt }] }],
-        generationConfig: { responseMimeType: 'application/json' }
-      })
-    });
+    const { resJson, selectedModel } = await callGeminiWithFallback(prompt, geminiApiKey, 'application/json');
 
-    if (!response.ok) throw new Error("Erro na API do Gemini durante a preparação da entrevista.");
-
-    const resJson = await response.json();
     const extractedText = resJson.candidates?.[0]?.content?.parts?.[0]?.text;
     if (!extractedText) throw new Error("Resposta do Gemini vazia.");
 
-    await logAiUsage(supabaseClient, userId, 'interview-prep', 'gemini-1.5-flash', resJson.usageMetadata?.promptTokenCount || 0, resJson.usageMetadata?.candidatesTokenCount || 0);
+    await logAiUsage(supabaseClient, userId, 'interview-prep', selectedModel, resJson.usageMetadata?.promptTokenCount || 0, resJson.usageMetadata?.candidatesTokenCount || 0);
     return JSON.parse(extractedText);
   }
 }

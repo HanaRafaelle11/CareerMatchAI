@@ -873,6 +873,8 @@ export function JobMatchHub({
         if (!isAlreadyAdded) {
           await onCreateApplication({
             jobId: jobToMatch.id,
+            companyName: jobToMatch.companyName || 'Vaga Manual',
+            jobTitle: jobToMatch.title,
             status: '🎯 Alta Prioridade',
             notes: `Adicionado automaticamente por atingir compatibilidade de ${score}% (> 80%).`,
             resumeVersionId: activeResumeVersionId || primaryResume?.resumeVersionId

@@ -298,33 +298,27 @@ export class MatchingEngine {
         return {
           match: {
             id: data.id,
-            userId: data.user_id,
-            resumeId: data.career_profile_id,
+            userId: resume.userId,
+            resumeId: data.resume_id,
             jobId: data.job_id,
             jobTitle: job.title,
             companyName: job.companyName || '',
-            scoreOverall: data.match_score,
-            scoreTechnical: data.match_score,
-            scoreBehavioral: data.match_score,
-            scoreSeniority: data.match_score,
+            scoreOverall: data.score_overall,
+            scoreTechnical: data.score_technical,
+            scoreBehavioral: data.score_behavioral,
+            scoreSeniority: data.score_seniority,
             scoreLocation: 100,
-            explanation: {
-              strengths: data.strengths || [],
-              weaknesses: data.weaknesses || [],
-              details: {
-                technical: data.recommendation || '',
-                behavioral: `Probabilidade de entrevista: ${data.interview_probability}%`,
-                seniority: '',
-                salary: '',
-                location: ''
-              }
+            explanation: data.explanation || {
+              strengths: [],
+              weaknesses: [],
+              details: { technical: '', behavioral: '', seniority: '', salary: '', location: '' }
             },
             createdAt: data.created_at
           },
           gapAnalysis: {
             id: data.id,
             matchId: data.id,
-            missingSkills: data.gap_analysis?.missingSkills || data.missing_keywords || [],
+            missingSkills: data.gap_analysis?.missingSkills || [],
             skillsToLearn: data.gap_analysis?.skillsToLearn || [],
             toIncludeInResume: data.gap_analysis?.toIncludeInResume || [],
             toExcludeFromResume: data.gap_analysis?.toExcludeFromResume || [],
@@ -336,21 +330,21 @@ export class MatchingEngine {
             id: data.id,
             matchId: data.id,
             questions: [],
-            strengths: data.strengths || [],
-            weaknesses: data.weaknesses || [],
+            strengths: data.explanation?.strengths || [],
+            weaknesses: data.explanation?.weaknesses || [],
             questionsToAsk: [],
             createdAt: data.created_at
           }
         };
       } catch (err: any) {
-        console.error('Erro ao invocar match-job do Supabase:', err);
+        console.warn('[MATCH ENGINE] Falha ao invocar match-job do Supabase. Executando fallback local...', err);
         
-        // Registrar erro no banco se houver conexão com Supabase
+        // Registrar log de erro de forma não-bloqueante
         try {
           await supabase.from('ai_usage_logs').insert({
             user_id: resume.userId || null,
             feature: 'job-matching',
-            model: 'gemini-2.5-flash',
+            model: 'gemini-2.5-flash-fallback',
             input_tokens: 0,
             output_tokens: 0,
             estimated_cost: 0,
@@ -359,8 +353,6 @@ export class MatchingEngine {
         } catch (dbErr) {
           console.error('Erro ao gravar log de falha no banco:', dbErr);
         }
-
-        throw err;
       }
     }
 
@@ -393,7 +385,7 @@ export class MatchingEngine {
       }
     });
 
-    const scoreTechnical = Math.round((matchedCount / Math.max(job.requirements.length, 1)) * 100);
+    let scoreTechnical = Math.round((matchedCount / Math.max(job.requirements.length, 1)) * 100);
 
     // 2. Match Comportamental
     const softTerms = consolidatedProfile
@@ -453,8 +445,9 @@ export class MatchingEngine {
       : 0) || 11000;
 
     if (job.salaryMin && salaryExpectation > 0) {
-      if (salaryExpectation > job.salaryMax!) {
-        scoreSalary = Math.max(50, Math.round(100 - ((salaryExpectation - job.salaryMax!) / job.salaryMax!) * 100));
+      const maxSalary = job.salaryMax || job.salaryMin;
+      if (salaryExpectation > maxSalary) {
+        scoreSalary = Math.max(50, Math.round(100 - ((salaryExpectation - maxSalary) / maxSalary) * 100));
       } else if (salaryExpectation < job.salaryMin) {
         scoreSalary = 100;
       } else {
@@ -518,6 +511,13 @@ export class MatchingEngine {
     } else if (scoreTechnical < 20) {
       scoreOverall = Math.round(scoreOverall * 0.40);
     }
+
+    if (isNaN(scoreOverall)) scoreOverall = 75;
+    if (isNaN(scoreTechnical)) scoreTechnical = 75;
+    if (isNaN(scoreBehavioral)) scoreBehavioral = 75;
+    if (isNaN(scoreSeniority)) scoreSeniority = 75;
+    if (isNaN(scoreSalary)) scoreSalary = 75;
+    if (isNaN(scoreLocation)) scoreLocation = 100;
 
     const matchId = `match-dynamic-${job.id}`;
 
@@ -688,7 +688,7 @@ ${candidateName}`,
       }
     });
 
-    const scoreTechnical = Math.round((matchedCount / Math.max(job.requirements.length, 1)) * 100);
+    let scoreTechnical = Math.round((matchedCount / Math.max(job.requirements.length, 1)) * 100);
 
     // Behavioral
     const softTerms = consolidatedProfile
@@ -747,8 +747,9 @@ ${candidateName}`,
       : 0) || 11000;
 
     if (job.salaryMin && salaryExpectation > 0) {
-      if (salaryExpectation > job.salaryMax!) {
-        scoreSalary = Math.max(50, Math.round(100 - ((salaryExpectation - job.salaryMax!) / job.salaryMax!) * 100));
+      const maxSalary = job.salaryMax || job.salaryMin;
+      if (salaryExpectation > maxSalary) {
+        scoreSalary = Math.max(50, Math.round(100 - ((salaryExpectation - maxSalary) / maxSalary) * 100));
       } else if (salaryExpectation < job.salaryMin) {
         scoreSalary = 100;
       } else {
@@ -769,6 +770,13 @@ ${candidateName}`,
     } else if (scoreTechnical < 20) {
       scoreOverall = Math.round(scoreOverall * 0.40);
     }
+
+    if (isNaN(scoreOverall)) scoreOverall = 75;
+    if (isNaN(scoreTechnical)) scoreTechnical = 75;
+    if (isNaN(scoreBehavioral)) scoreBehavioral = 75;
+    if (isNaN(scoreSeniority)) scoreSeniority = 75;
+    if (isNaN(scoreSalary)) scoreSalary = 75;
+    if (isNaN(scoreLocation)) scoreLocation = 100;
 
     return {
       scoreOverall,

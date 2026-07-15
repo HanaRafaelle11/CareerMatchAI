@@ -285,30 +285,229 @@ export function CoachDashboard({
                       </div>
 
                       {/* Chat History */}
-                      <div className="flex-1 max-h-[300px] overflow-y-auto space-y-3 p-3 rounded-xl bg-slate-900/30 border border-slate-900/60 text-xs flex flex-col">
-                        {simulation.chatHistory.map((msg: any, i: number) => (
-                          <div
-                            key={i}
-                            className={`p-3 rounded-xl max-w-[85%] leading-relaxed ${
-                              msg.role === 'interviewer'
-                                ? 'bg-slate-900 border border-slate-850 text-slate-350 self-start mr-auto'
-                                : 'bg-brand-500/10 border border-brand-500/20 text-brand-400 self-end ml-auto'
-                            }`}
-                          >
-                            <strong className="block mb-0.5 text-[10px] uppercase font-bold text-slate-500">
-                              {msg.role === 'interviewer' ? 'Recrutador IA' : 'Você'}
-                            </strong>
-                            {msg.text}
+                      <div className="flex-grow max-h-[350px] overflow-y-auto space-y-4 p-4 rounded-2xl bg-slate-950/20 border border-slate-900/60 text-xs flex flex-col">
+                        {simulation.chatHistory.map((msg: any, i: number) => {
+                          const isInterviewer = msg.role === 'interviewer';
+                          return (
+                            <div key={i} className="space-y-2 flex flex-col w-full">
+                              <div
+                                className={`p-3 rounded-2xl max-w-[85%] leading-relaxed ${
+                                  isInterviewer
+                                    ? 'bg-slate-900 border border-slate-850 text-slate-350 self-start mr-auto'
+                                    : 'bg-brand-500/15 border border-brand-500/20 text-brand-400 self-end ml-auto'
+                                }`}
+                              >
+                                <strong className="block mb-0.5 text-[9px] uppercase font-bold text-slate-500">
+                                  {isInterviewer ? 'Recrutador IA' : 'Você'}
+                                </strong>
+                                <span className="whitespace-pre-line">{msg.text}</span>
+                              </div>
+                              
+                              {/* Rich dynamic turn evaluation */}
+                              {!isInterviewer && msg.evaluation && (
+                                <div className="self-end ml-auto mr-2 max-w-[80%] p-3.5 rounded-2xl bg-slate-950/65 border border-slate-900 text-[10px] text-slate-300 space-y-2 animate-fade-in shadow-lg">
+                                  <div className="flex items-center justify-between gap-4 font-bold pb-1.5 border-b border-slate-900">
+                                    <span className="text-emerald-400">⭐ Turno: {msg.evaluation.score}/100</span>
+                                    <span className="text-slate-500 uppercase tracking-wider text-[8px]">Dificuldade: {msg.evaluation.difficulty}</span>
+                                  </div>
+                                  
+                                  {/* STAR framework breakdown */}
+                                  <div className="grid grid-cols-2 gap-2 text-[9px] py-1">
+                                    <div className="p-2 rounded-xl bg-slate-900/50">
+                                      <strong className="text-brand-400 block font-bold mb-0.5">Situação:</strong>
+                                      <span className="text-slate-400 font-sans">{msg.evaluation.star.situation}</span>
+                                    </div>
+                                    <div className="p-2 rounded-xl bg-slate-900/50">
+                                      <strong className="text-indigo-400 block font-bold mb-0.5">Tarefa:</strong>
+                                      <span className="text-slate-400 font-sans">{msg.evaluation.star.task}</span>
+                                    </div>
+                                    <div className="p-2 rounded-xl bg-slate-900/50">
+                                      <strong className="text-sky-400 block font-bold mb-0.5">Ação:</strong>
+                                      <span className="text-slate-400 font-sans">{msg.evaluation.star.action}</span>
+                                    </div>
+                                    <div className="p-2 rounded-xl bg-slate-900/50">
+                                      <strong className="text-emerald-400 block font-bold mb-0.5">Resultado:</strong>
+                                      <span className="text-slate-400 font-sans">{msg.evaluation.star.result}</span>
+                                    </div>
+                                  </div>
+
+                                  {/* Scores breakdown */}
+                                  <div className="flex justify-between gap-3 text-[9px] pt-2 text-slate-400 font-semibold border-t border-slate-900">
+                                    <span>Técnico: <strong className="text-slate-200">{msg.evaluation.technicalScore}%</strong></span>
+                                    <span>Clareza: <strong className="text-slate-200">{msg.evaluation.clarityScore}%</strong></span>
+                                    <span>Comunicação: <strong className="text-slate-200">{msg.evaluation.communicationScore}%</strong></span>
+                                    <span>Confiança: <strong className="text-slate-200">{msg.evaluation.confidenceScore}%</strong></span>
+                                  </div>
+
+                                  {msg.evaluation.feedback && (
+                                    <p className="italic text-slate-400 leading-relaxed pt-1.5 font-sans">
+                                      "{msg.evaluation.feedback}"
+                                    </p>
+                                  )}
+                                  
+                                  {msg.evaluation.positives?.length > 0 && (
+                                    <div className="text-emerald-400">
+                                      <strong>✓ Pontos Fortes:</strong> {msg.evaluation.positives.join(', ')}
+                                    </div>
+                                  )}
+                                  {msg.evaluation.improvements?.length > 0 && (
+                                    <div className="text-amber-400">
+                                      <strong>⚠️ Oportunidades:</strong> {msg.evaluation.improvements.join(', ')}
+                                    </div>
+                                  )}
+                                </div>
+                              )}
+                            </div>
+                          );
+                        })}
+
+                        {isSending && (
+                          <div className="p-3 rounded-2xl max-w-[85%] bg-slate-900 border border-slate-850 text-slate-350 self-start mr-auto animate-pulse flex items-center gap-2">
+                            <Loader2 size={12} className="animate-spin text-brand-500" />
+                            <span className="text-[10px] text-slate-400">O Recrutador IA está avaliando sua resposta e elaborando a próxima pergunta...</span>
                           </div>
-                        ))}
+                        )}
                       </div>
 
                       {/* Evaluations */}
                       {simulation.evaluations && (() => {
+                        const evaluations = simulation.evaluations as any;
+                        const isNewSchema = evaluations.scoreOverall !== undefined;
+
+                        if (isNewSchema) {
+                          return (
+                            <div className="p-5 rounded-2xl bg-slate-950/40 border border-slate-900 space-y-6 animate-fade-in text-xs">
+                              {/* Header */}
+                              <div className="flex items-center justify-between gap-4 border-b border-slate-900 pb-3">
+                                <div className="flex items-center gap-2 font-display font-bold text-slate-200 text-sm">
+                                  <Star size={16} className="text-amber-400 fill-amber-400" />
+                                  <span>Relatório Consolidado de IA</span>
+                                </div>
+                                <div className="text-slate-500 text-[10px]">
+                                  Duração: <strong className="text-slate-350">{Math.floor((evaluations.duration_seconds || simulation.duration_seconds || 0) / 60)}m {((evaluations.duration_seconds || simulation.duration_seconds || 0) % 60)}s</strong>
+                                </div>
+                              </div>
+
+                              {/* Progress Rings Grid */}
+                              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                                <div className="p-4 rounded-2xl bg-slate-900/40 border border-slate-850 flex flex-col items-center justify-center text-center space-y-1">
+                                  <ProgressRing value={evaluations.scoreOverall || 0} size={50} strokeWidth={5} />
+                                  <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block pt-2">Nota Geral</span>
+                                  <strong className="text-lg text-slate-200">{evaluations.scoreOverall}%</strong>
+                                </div>
+                                <div className="p-4 rounded-2xl bg-slate-900/40 border border-slate-850 flex flex-col items-center justify-center text-center space-y-1">
+                                  <ProgressRing value={evaluations.jobAdherence || 0} size={50} strokeWidth={5} />
+                                  <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block pt-2">Aderência à Vaga</span>
+                                  <strong className="text-lg text-slate-200">{evaluations.jobAdherence}%</strong>
+                                </div>
+                                <div className="p-4 rounded-2xl bg-slate-900/40 border border-slate-850 flex flex-col items-center justify-center text-center space-y-1">
+                                  <ProgressRing value={evaluations.approvalProbability || 0} size={50} strokeWidth={5} />
+                                  <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block pt-2">Chance de Aprovação</span>
+                                  <strong className="text-lg text-slate-200">{evaluations.approvalProbability}%</strong>
+                                </div>
+                              </div>
+
+                              {/* Detailed Feedback Categories */}
+                              <div className="space-y-4">
+                                <div className="p-4 bg-slate-900/20 border border-slate-900 rounded-2xl space-y-1">
+                                  <strong className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Análise de Competências STAR</strong>
+                                  <p className="text-slate-350 leading-relaxed font-sans">{evaluations.starAnalysis}</p>
+                                </div>
+
+                                <div className="p-4 bg-slate-900/20 border border-slate-900 rounded-2xl space-y-1">
+                                  <strong className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Avaliação de Adequação Técnica</strong>
+                                  <p className="text-slate-350 leading-relaxed font-sans">{evaluations.technicalAnalysis}</p>
+                                </div>
+
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                  <div className="p-4 bg-slate-900/20 border border-slate-900 rounded-2xl space-y-1">
+                                    <strong className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Comunicação & Expressão</strong>
+                                    <p className="text-slate-350 leading-relaxed font-sans">{evaluations.communicationAnalysis}</p>
+                                    <p className="text-slate-400 text-[10px] mt-1.5 italic font-sans">{evaluations.postureAnalysis}</p>
+                                  </div>
+                                  <div className="p-4 bg-slate-900/20 border border-slate-900 rounded-2xl space-y-1">
+                                    <strong className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Clareza & Segurança</strong>
+                                    <p className="text-slate-350 leading-relaxed font-sans">{evaluations.clarityAnalysis}</p>
+                                    <p className="text-slate-400 text-[10px] mt-1.5 italic font-sans">Foco: {evaluations.objectivityAnalysis} | Confiança: {evaluations.confidenceAnalysis}</p>
+                                  </div>
+                                </div>
+                              </div>
+
+                              {/* Strengths / Weaknesses Grid */}
+                              <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 border-t border-slate-900 pt-4">
+                                <div className="space-y-2">
+                                  <strong className="text-emerald-400 font-semibold block text-[10px] uppercase tracking-wider">✓ Pontos Fortes Identificados:</strong>
+                                  <ul className="list-disc pl-4 space-y-1.5 text-slate-350 font-sans">
+                                    {evaluations.strengths?.map((s: string, idx: number) => <li key={idx}>{s}</li>)}
+                                  </ul>
+                                </div>
+                                <div className="space-y-2">
+                                  <strong className="text-amber-400 font-semibold block text-[10px] uppercase tracking-wider">⚠️ Gaps e Pontos Fracos:</strong>
+                                  <ul className="list-disc pl-4 space-y-1.5 text-slate-350 font-sans">
+                                    {evaluations.weaknesses?.map((s: string, idx: number) => <li key={idx}>{s}</li>)}
+                                  </ul>
+                                </div>
+                              </div>
+
+                              {/* Key Highlights */}
+                              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                <div className="p-4 rounded-2xl bg-emerald-500/5 border border-emerald-500/10 space-y-1">
+                                  <strong className="text-emerald-400 font-semibold block text-[10px] uppercase tracking-wider">🌟 Melhor Resposta:</strong>
+                                  <p className="text-slate-350 leading-relaxed font-sans">{evaluations.bestAnswers?.[0] || 'Respostas consistentes e alinhadas.'}</p>
+                                </div>
+                                <div className="p-4 rounded-2xl bg-amber-500/5 border border-amber-500/10 space-y-1">
+                                  <strong className="text-amber-400 font-semibold block text-[10px] uppercase tracking-wider">🚨 Maior Desafio:</strong>
+                                  <p className="text-slate-350 leading-relaxed font-sans">{evaluations.worstAnswers?.[0] || 'Gaps textuais não identificados.'}</p>
+                                </div>
+                              </div>
+
+                              {/* Improvement Plan */}
+                              <div className="p-4.5 bg-brand-500/5 border border-brand-500/10 rounded-2xl space-y-2">
+                                <strong className="text-brand-400 font-bold text-[10px] uppercase tracking-wider block">📋 Plano de Preparação e Ação</strong>
+                                <ul className="list-decimal pl-4 space-y-1.5 text-slate-350 font-sans">
+                                  {evaluations.improvementPlan?.map((item: string, idx: number) => <li key={idx}>{item}</li>)}
+                                </ul>
+                              </div>
+
+                              {/* Cost Metrics */}
+                              <div className="flex items-center justify-between text-[9px] text-slate-500 border-t border-slate-900 pt-3">
+                                <span>Tokens de Execução: <strong className="text-slate-400">{(evaluations.tokens_used || simulation.tokens_used || 0).toLocaleString()} tokens</strong></span>
+                                <span>Custo Estimado da IA: <strong className="text-slate-450">USD ${(evaluations.estimated_cost || simulation.estimated_cost || 0).toFixed(4)}</strong></span>
+                              </div>
+
+                              {/* Action Buttons */}
+                              <div className="flex gap-3 pt-2">
+                                <button
+                                  onClick={handleRestartSim}
+                                  className="flex-1 py-2.5 rounded-xl border border-slate-800 hover:bg-slate-900 text-slate-300 font-bold text-xs transition-all cursor-pointer"
+                                >
+                                  Treinar Novamente
+                                </button>
+                                <button
+                                  onClick={() => {
+                                    const jsonString = `data:text/json;charset=utf-8,${encodeURIComponent(
+                                      JSON.stringify(simulation, null, 2)
+                                    )}`;
+                                    const downloadAnchor = document.createElement('a');
+                                    downloadAnchor.setAttribute('href', jsonString);
+                                    downloadAnchor.setAttribute('download', `feedback_entrevista_${simulation.id}.json`);
+                                    document.body.appendChild(downloadAnchor);
+                                    downloadAnchor.click();
+                                    downloadAnchor.remove();
+                                  }}
+                                  className="flex-1 py-2.5 bg-brand-650 hover:bg-brand-600 rounded-xl text-white font-bold text-xs transition-all cursor-pointer"
+                                >
+                                  Exportar Feedback
+                                </button>
+                              </div>
+                            </div>
+                          );
+                        }
+
                         const avgScore = Math.round(
-                          (simulation.evaluations.clarity + 
-                           simulation.evaluations.objectivity + 
-                           simulation.evaluations.adherence) / 3
+                          ((evaluations.clarity || 0) + 
+                           (evaluations.objectivity || 0) + 
+                           (evaluations.adherence || 0)) / 3
                         );
                         const hasStarPattern = simulation.chatHistory.some((msg: any) => 
                           msg.role === 'candidate' && 
@@ -320,7 +519,7 @@ export function CoachDashboard({
                             <div className="flex items-center justify-between">
                               <div className="flex items-center gap-2 text-on-surface font-bold text-sm">
                                 <Star size={16} className="text-amber-400 fill-amber-400" />
-                                <span>Avaliação Final da IA</span>
+                                <span>Avaliação Final da IA (Offline Fallback)</span>
                               </div>
                               <Badge variant={avgScore >= 80 ? 'success' : avgScore >= 50 ? 'warning' : 'error'}>
                                 Score: {avgScore}/100
@@ -336,15 +535,15 @@ export function CoachDashboard({
                               <div className="sm:col-span-3 grid grid-cols-3 gap-2 text-center">
                                 <div className="p-2 rounded bg-surface-container-highest/20 border border-outline-variant/10">
                                   <span className="text-[9px] text-on-surface-variant font-medium block">Clareza</span>
-                                  <strong className="text-xs text-on-surface">{simulation.evaluations.clarity}%</strong>
+                                  <strong className="text-xs text-on-surface">{evaluations.clarity}%</strong>
                                 </div>
                                 <div className="p-2 rounded bg-surface-container-highest/20 border border-outline-variant/10">
                                   <span className="text-[9px] text-on-surface-variant font-medium block">Objetividade</span>
-                                  <strong className="text-xs text-on-surface">{simulation.evaluations.objectivity}%</strong>
+                                  <strong className="text-xs text-on-surface">{evaluations.objectivity}%</strong>
                                 </div>
                                 <div className="p-2 rounded bg-surface-container-highest/20 border border-outline-variant/10">
                                   <span className="text-[9px] text-on-surface-variant font-medium block">Aderência STAR</span>
-                                  <strong className="text-xs text-on-surface">{simulation.evaluations.adherence}%</strong>
+                                  <strong className="text-xs text-on-surface">{evaluations.adherence}%</strong>
                                 </div>
                               </div>
                             </div>
@@ -374,19 +573,19 @@ export function CoachDashboard({
                             </div>
 
                             <div className="space-y-3">
-                              {simulation.evaluations.strengths && simulation.evaluations.strengths.length > 0 && (
+                              {evaluations.strengths && evaluations.strengths.length > 0 && (
                                 <div className="space-y-1">
                                   <strong className="text-emerald-400 font-semibold block">✓ Pontos Fortes:</strong>
                                   <ul className="list-disc pl-4 space-y-0.5 text-on-surface-variant">
-                                    {simulation.evaluations.strengths.map((s: string, idx: number) => <li key={idx}>{s}</li>)}
+                                    {evaluations.strengths.map((s: string, idx: number) => <li key={idx}>{s}</li>)}
                                   </ul>
                                 </div>
                               )}
-                              {simulation.evaluations.improvements && simulation.evaluations.improvements.length > 0 && (
+                              {evaluations.improvements && evaluations.improvements.length > 0 && (
                                 <div className="space-y-1">
                                   <strong className="text-amber-400 font-semibold block">⚠️ Oportunidades de Melhoria:</strong>
                                   <ul className="list-disc pl-4 space-y-0.5 text-on-surface-variant">
-                                    {simulation.evaluations.improvements.map((s: string, idx: number) => <li key={idx}>{s}</li>)}
+                                    {evaluations.improvements.map((s: string, idx: number) => <li key={idx}>{s}</li>)}
                                   </ul>
                                 </div>
                               )}

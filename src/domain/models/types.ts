@@ -279,15 +279,49 @@ export interface InterviewPreparation {
 export interface InterviewSimulation {
   id: string;
   applicationId: string;
-  chatHistory: { role: 'interviewer' | 'candidate'; text: string }[];
+  chatHistory: { 
+    role: 'interviewer' | 'candidate'; 
+    text: string;
+    evaluation?: {
+      score: number;
+      star: { situation: string; task: string; action: string; result: string };
+      technicalScore: number;
+      communicationScore: number;
+      confidenceScore: number;
+      clarityScore: number;
+      positives: string[];
+      improvements: string[];
+      feedback: string;
+      difficulty: string;
+      interviewerNotes?: string;
+    };
+  }[];
   evaluations?: {
-    clarity: number;
-    objectivity: number;
-    adherence: number;
-    strengths: string[];
-    improvements: string[];
+    clarity?: number;
+    objectivity?: number;
+    adherence?: number;
+    strengths?: string[];
+    improvements?: string[];
+
+    scoreOverall?: number;
+    jobAdherence?: number;
+    starAnalysis?: string;
+    technicalAnalysis?: string;
+    communicationAnalysis?: string;
+    postureAnalysis?: string;
+    clarityAnalysis?: string;
+    objectivityAnalysis?: string;
+    confidenceAnalysis?: string;
+    weaknesses?: string[];
+    bestAnswers?: string[];
+    worstAnswers?: string[];
+    improvementPlan?: string[];
+    approvalProbability?: number;
   };
   createdAt: string;
+  tokens_used?: number;
+  estimated_cost?: number;
+  duration_seconds?: number;
 }
 
 export interface PostInterviewLog {

@@ -322,14 +322,15 @@ export function useCoach(userId: string | undefined) {
       const isMock = applicationId.includes('mock') || !isValidUUID(applicationId);
 
       if (isSupabaseConfigured && supabase && !isMock) {
+        let simId = '';
+        let createdAt = new Date().toISOString();
+
         if (reset) {
-          // Deleta a simulação existente para iniciar do zero
           await supabase
             .from('interview_simulations')
             .delete()
             .eq('application_id', applicationId);
         } else {
-          // Verificar se já existe uma simulação para evitar duplicatas
           const { data: existing } = await supabase
             .from('interview_simulations')
             .select('*')
@@ -342,43 +343,89 @@ export function useCoach(userId: string | undefined) {
               applicationId: existing.application_id,
               chatHistory: existing.chat_history,
               evaluations: existing.evaluations,
-              createdAt: existing.created_at
+              createdAt: existing.created_at,
+              tokens_used: existing.tokens_used,
+              estimated_cost: existing.estimated_cost,
+              duration_seconds: existing.duration_seconds
             };
           }
         }
 
-        // Buscar cargo da vaga
-        const { data: appData } = await supabase
-          .from('applications')
-          .select('job_title')
-          .eq('id', applicationId)
-          .maybeSingle();
+        // Insere registro inicial
+        const { data: insertedSim, error: insertError } = await supabase
+          .from('interview_simulations')
+          .insert({
+            application_id: applicationId,
+            chat_history: []
+          })
+          .select()
+          .single();
 
-        const jobTitle = appData?.job_title || 'esta vaga';
-        const isPharmacy = /farmac|estet|saude|saúde/i.test(jobTitle);
+        if (insertError) throw insertError;
+        simId = insertedSim.id;
+        createdAt = insertedSim.created_at;
 
-        const defaultHistory = [
-          {
-            role: 'interviewer',
-            text: isPharmacy
-              ? `Olá! Seja bem-vindo à entrevista simulada para a vaga de ${jobTitle}. Para começar, conte-me um pouco sobre você e como suas qualificações na área de saúde e estética se conectam com o nosso perfil.`
-              : `Olá! Seja bem-vindo à entrevista simulada para a vaga de ${jobTitle}. Para começar, conte-me um pouco sobre você e como suas experiências se conectam com os requisitos da vaga.`
+        try {
+          const { data, error } = await supabase.functions.invoke('simulate-interview', {
+            body: {
+              action: 'start',
+              applicationId,
+              simulationId: simId
+            }
+          });
+
+          if (error || !data || !data.nextQuestion) {
+            throw new Error(error?.message || 'Resposta de início inválida.');
           }
-        ];
 
-        const sim = {
-          application_id: applicationId,
-          chat_history: defaultHistory
-        };
-        const { data, error } = await supabase.from('interview_simulations').insert(sim).select().single();
-        if (error) throw error;
-        return {
-          id: data.id,
-          applicationId: data.application_id,
-          chatHistory: data.chat_history,
-          evaluations: data.evaluations,
-          createdAt: data.created_at
-        };
+          const firstMessage = { role: 'interviewer' as const, text: data.nextQuestion };
+          const { data: updatedSim, error: updateError } = await supabase
+            .from('interview_simulations')
+            .update({
+              chat_history: [firstMessage]
+            })
+            .eq('id', simId)
+            .select()
+            .single();
+
+          if (updateError) throw updateError;
+
+          return {
+            id: updatedSim.id,
+            applicationId: updatedSim.application_id,
+            chatHistory: updatedSim.chat_history,
+            evaluations: updatedSim.evaluations,
+            createdAt: updatedSim.created_at,
+            tokens_used: updatedSim.tokens_used,
+            estimated_cost: updatedSim.estimated_cost,
+            duration_seconds: updatedSim.duration_seconds
+          };
+        } catch (edgeErr) {
+          console.warn('[COACH] Falha ao iniciar simulação via Edge Function. Executando fallback local...', edgeErr);
+          const app = await supabase
+            .from('applications')
+            .select('job_title')
+            .eq('id', applicationId)
+            .maybeSingle();
+          const jobTitle = app.data?.job_title || 'esta vaga';
+          const isPharmacy = /farmac|estet|saude|saúde/i.test(jobTitle);
+          const firstQuestion = isPharmacy
+            ? `Olá! Seja bem-vindo à entrevista simulada para a vaga de ${jobTitle}. Para começar, conte-me um pouco sobre você e como suas qualificações na área de saúde e estética se conectam com o nosso perfil.`
+            : `Olá! Seja bem-vindo à entrevista simulada para a vaga de ${jobTitle}. Para começar, conte-me um pouco sobre você e como suas experiências se conectam com os requisitos da vaga.`;
+
+          const firstMessage = { role: 'interviewer' as const, text: firstQuestion };
+          await supabase
+            .from('interview_simulations')
+            .update({ chat_history: [firstMessage] })
+            .eq('id', simId);
+
+          return {
+            id: simId,
+            applicationId,
+            chatHistory: [firstMessage],
+            createdAt
+          };
+        }
       } else {
         if (reset) {
           localDB.deleteInterviewSimulation(applicationId);
@@ -401,112 +448,129 @@ export function useCoach(userId: string | undefined) {
       let updated: InterviewSimulation;
 
       if (isSupabaseConfigured && supabase && !isMock) {
-        const { data: appData } = await supabase
-          .from('applications')
-          .select('job_title')
-          .eq('id', sim.applicationId)
-          .maybeSingle();
-        
-        const jobTitle = appData?.job_title || 'esta vaga';
-        const isPharmacy = /farmac|estet|saude|saúde/i.test(jobTitle);
-
         const updatedHistory = [...sim.chatHistory, { role, text }];
-        let evaluations = sim.evaluations;
+        const candidateReplies = updatedHistory.filter(h => h.role === 'candidate');
+        
+        try {
+          if (role === 'candidate') {
+            // Executa avaliação do turno atual e elabora próxima pergunta
+            const { data: turnData, error: turnError } = await supabase.functions.invoke('simulate-interview', {
+              body: {
+                action: 'next',
+                applicationId: sim.applicationId,
+                simulationId: sim.id,
+                chatHistory: sim.chatHistory,
+                candidateResponse: text
+              }
+            });
 
-        if (updatedHistory.filter(h => h.role === 'candidate').length >= 2) {
-          const candidateReplies = updatedHistory.filter(h => h.role === 'candidate').map(h => h.text);
-          let totalLength = 0;
-          let hasInappropriateWords = false;
-          let usesStarWords = false;
+            if (turnError || !turnData) {
+              throw new Error(turnError?.message || 'Falha ao processar turno via IA.');
+            }
 
-          const badWords = [/xingar/i, /ofender/i, /bater/i, /gritar/i, /palavrão/i, /ofensa/i, /agredir/i, /insultar/i, /ignorar/i];
-          const starWords = [/resultado/i, /ação/i, /acao/i, /situação/i, /situacao/i, /meta/i, /objetivo/i, /consegui/i, /resolvi/i, /aprendi/i, /indicador/i];
+            // Anexa a avaliação do turno à última mensagem do candidato
+            const lastCandidateIdx = updatedHistory.length - 1;
+            updatedHistory[lastCandidateIdx] = {
+              ...updatedHistory[lastCandidateIdx],
+              evaluation: {
+                score: turnData.score,
+                star: turnData.star,
+                technicalScore: turnData.technicalScore,
+                communicationScore: turnData.communicationScore,
+                confidenceScore: turnData.confidenceScore,
+                clarityScore: turnData.clarityScore,
+                positives: turnData.positives || [],
+                improvements: turnData.improvements || [],
+                feedback: turnData.feedback || '',
+                difficulty: turnData.difficulty || 'medium',
+                interviewerNotes: turnData.interviewerNotes || ''
+              }
+            };
 
-          for (const reply of candidateReplies) {
-            totalLength += reply.length;
-            if (badWords.some(r => r.test(reply))) hasInappropriateWords = true;
-            if (starWords.some(r => r.test(reply))) usesStarWords = true;
-          }
+            let finalEvaluations = sim.evaluations;
 
-          const avgLength = candidateReplies.length > 0 ? totalLength / candidateReplies.length : 0;
-          let clarity = 75;
-          let objectivity = 75;
-          let adherence = 75;
-          let strengths: string[] = [];
-          let improvements: string[] = [];
+            // Se o candidato completou as 4 rodadas de perguntas e respostas
+            if (candidateReplies.length >= 4) {
+              // Executa a finalização e compilação do relatório final
+              const { data: reportData, error: reportError } = await supabase.functions.invoke('simulate-interview', {
+                body: {
+                  action: 'finalize',
+                  applicationId: sim.applicationId,
+                  simulationId: sim.id,
+                  chatHistory: updatedHistory
+                }
+              });
 
-          if (hasInappropriateWords) {
-            clarity = 10;
-            objectivity = 15;
-            adherence = 0;
-            strengths = ['Nenhum ponto forte identificado. Comportamento e linguajar inadequados.'];
-            improvements = [
-              'COMPORTAMENTO INACEITÁVEL: Respostas agressivas, violentas ou contendo xingamentos/ameaças resultam em reprovação imediata.',
-              'Mantenha a inteligência emocional sob pressão e responda de maneira profissional.',
-              'Pratique a resolução diplomática de conflitos através de comunicação assertiva.'
-            ];
+              if (reportError || !reportData) {
+                throw new Error(reportError?.message || 'Falha ao compilar relatório final da entrevista.');
+              }
+
+              finalEvaluations = reportData;
+            } else {
+              // Se ainda não acabou, insere a nova pergunta do entrevistador no histórico
+              updatedHistory.push({
+                role: 'interviewer',
+                text: turnData.nextQuestion || 'Excelente. Prossiga com o seu relato.'
+              });
+            }
+
+            const { data: updatedSim, error: dbError } = await supabase
+              .from('interview_simulations')
+              .update({
+                chat_history: updatedHistory,
+                evaluations: finalEvaluations
+              })
+              .eq('id', sim.id)
+              .select()
+              .single();
+
+            if (dbError) throw dbError;
+
+            updated = {
+              id: updatedSim.id,
+              applicationId: updatedSim.application_id,
+              chatHistory: updatedSim.chat_history,
+              evaluations: updatedSim.evaluations,
+              createdAt: updatedSim.created_at,
+              tokens_used: updatedSim.tokens_used,
+              estimated_cost: updatedSim.estimated_cost,
+              duration_seconds: updatedSim.duration_seconds
+            };
           } else {
-            if (avgLength < 15) {
-              clarity -= 35;
-              objectivity += 15;
-              adherence -= 30;
-              improvements.push('Respostas extremamente superficiais. Desenvolva mais suas respostas com exemplos reais.');
-            } else if (avgLength > 150) {
-              clarity += 10;
-              objectivity -= 20;
-              improvements.push('Sua resposta foi muito longa e pode dispersar o entrevistador. Seja mais conciso e focado.');
-            } else {
-              clarity += 10;
-              objectivity += 10;
-              strengths.push('Boa extensão de resposta, mantendo-se focado no assunto sem prolixidade.');
-            }
+            // Se for mensagem vinda do entrevistador diretamente (não usual)
+            const { data: updatedSim, error: dbError } = await supabase
+              .from('interview_simulations')
+              .update({
+                chat_history: updatedHistory
+              })
+              .eq('id', sim.id)
+              .select()
+              .single();
 
-            if (usesStarWords) {
-              adherence += 15;
-              clarity += 5;
-              strengths.push('Demonstrou uso de estrutura clara de causa, ação e resultados (Método STAR).');
-            } else {
-              adherence -= 10;
-              improvements.push('Tente estruturar suas respostas usando o método STAR (Situação, Desafio, Ação e Resultados obtidos).');
-            }
-
-            if (isPharmacy) {
-              strengths.push('Alinhamento satisfatório com diretrizes de atendimento ao paciente e biossegurança.');
-            } else {
-              strengths.push('Demonstrou senso prático para lidar com desafios operacionais corporativos.');
-            }
+            if (dbError) throw dbError;
+            updated = {
+              id: updatedSim.id,
+              applicationId: updatedSim.application_id,
+              chatHistory: updatedSim.chat_history,
+              evaluations: updatedSim.evaluations,
+              createdAt: updatedSim.created_at,
+              tokens_used: updatedSim.tokens_used,
+              estimated_cost: updatedSim.estimated_cost,
+              duration_seconds: updatedSim.duration_seconds
+            };
           }
-
-          evaluations = {
-            clarity: Math.max(0, Math.min(100, clarity)),
-            objectivity: Math.max(0, Math.min(100, objectivity)),
-            adherence: Math.max(0, Math.min(100, adherence)),
-            strengths,
-            improvements
-          };
-        } else if (role === 'candidate') {
-          updatedHistory.push({
-            role: 'interviewer',
-            text: isPharmacy
-              ? 'Excelente. Como você lidaria com uma situação de insatisfação ou reclamação de um paciente após um procedimento estético?'
-              : 'Excelente. Como você lidaria com um conflito ou desafio técnico sob pressão no dia a dia da equipe?'
-          });
+        } catch (edgeErr) {
+          console.warn('[COACH] Falha na Edge Function do simulador. Executando fallback local...', edgeErr);
+          const fallbackSim = InterviewSimulationService.addMessage(sim, role, text);
+          await supabase
+            .from('interview_simulations')
+            .update({
+              chat_history: fallbackSim.chatHistory,
+              evaluations: fallbackSim.evaluations
+            })
+            .eq('id', sim.id);
+          updated = fallbackSim;
         }
-
-        const { error } = await supabase
-          .from('interview_simulations')
-          .update({
-            chat_history: updatedHistory,
-            evaluations: evaluations
-          })
-          .eq('id', sim.id);
-        if (error) throw error;
-
-        updated = {
-          ...sim,
-          chatHistory: updatedHistory,
-          evaluations
-        };
       } else {
         updated = InterviewSimulationService.addMessage(sim, role, text);
       }

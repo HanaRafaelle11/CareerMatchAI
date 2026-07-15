@@ -4,6 +4,7 @@ export interface Profile {
   avatarUrl?: string;
   headline?: string;
   skillsSummary?: string;
+  role?: 'administrador' | 'suporte' | 'financeiro' | 'somente_leitura' | 'user';
   createdAt: string;
   updatedAt: string;
 }

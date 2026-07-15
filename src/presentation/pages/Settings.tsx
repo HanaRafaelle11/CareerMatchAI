@@ -548,7 +548,7 @@ export function Settings({
                       type="file"
                       accept="image/*"
                       id="avatar-upload"
-                      className="hidden"
+                      className="absolute inset-0 w-0 h-0 opacity-0 pointer-events-none"
                       onChange={handleAvatarChange}
                     />
                     <label
@@ -694,7 +694,13 @@ export function Settings({
                             <button
                               onClick={async () => {
                                 if (window.confirm(`Tem certeza que deseja deletar permanentemente o currículo ${resume.fileName}?`)) {
-                                  await onDeleteResume(resume.id);
+                                  try {
+                                    await onDeleteResume(resume.id);
+                                    showToast('Currículo excluído com sucesso!', 'success');
+                                  } catch (err: any) {
+                                    console.error(err);
+                                    showToast('Erro ao excluir currículo: ' + (err.message || String(err)), 'error');
+                                  }
                                 }
                               }}
                               disabled={resume.isPrimary}

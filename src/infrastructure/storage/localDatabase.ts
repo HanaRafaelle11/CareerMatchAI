@@ -60,6 +60,7 @@ class LocalDatabase {
         fullName: 'Alexandre Silva',
         avatarUrl: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=100&auto=format&fit=crop&q=60&ixlib=rb-4.0.3',
         headline: 'Software Engineer | React, Node.js & AWS',
+        role: 'administrador',
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString()
       };

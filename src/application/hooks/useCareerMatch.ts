@@ -813,26 +813,12 @@ export function useMatches(userId: string | undefined, resumeId?: string | null)
       // 1. Calcula compatibilidade semântica usando o perfil consolidado como fonte primária
       const result = await MatchingEngine.calculateMatch(resume, job, consolidatedProfile);
       const matchDuration = Date.now() - matchStartTime;
+      console.info(`Matching calculated in ${matchDuration}ms`);
 
       if (isSupabaseConfigured && supabase) {
-        const { data, error } = await supabase
-          .from('matches')
-          .insert({
-            resume_id: resume.id,
-            job_id: job.id,
-            score_overall: result.match.scoreOverall,
-            score_technical: result.match.scoreTechnical,
-            score_behavioral: result.match.scoreBehavioral,
-            score_seniority: result.match.scoreSeniority,
-            explanation: result.match.explanation,
-            gap_analysis: result.gapAnalysis,
-            processing_time_ms: matchDuration
-          })
-          .select()
-          .single();
-
-        if (error) throw error;
-        return data;
+        // O match-job já salvou o registro no banco via saveJobMatch!
+        // Apenas retornamos a propriedade match do resultado.
+        return result.match;
       } else {
         // Salvar localmente no mock DB
         localDB.saveMatch(result.match);

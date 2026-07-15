@@ -52,7 +52,7 @@ export function useAuth() {
       console.log(`[AUTH] Buscando perfil do usuário: ${userId}`);
       let { data, error } = await supabase
         .from('profiles')
-        .select('id, full_name, headline, avatar_url, skills_summary, created_at, updated_at')
+        .select('id, full_name, headline, avatar_url, skills_summary, role, created_at, updated_at')
         .eq('id', userId)
         .maybeSingle() as any;
 
@@ -60,7 +60,7 @@ export function useAuth() {
         console.warn('[AUTH] Coluna avatar_url não existe no Supabase. Retrying sem ela...');
         const retryResult = await supabase
           .from('profiles')
-          .select('id, full_name, headline, skills_summary, created_at, updated_at')
+          .select('id, full_name, headline, skills_summary, role, created_at, updated_at')
           .eq('id', userId)
           .maybeSingle() as any;
         data = retryResult.data;
@@ -92,6 +92,7 @@ export function useAuth() {
           headline: data.headline || localProfile.headline || undefined,
           avatarUrl: data.avatar_url || localAvatar || localProfile.avatarUrl || undefined,
           skillsSummary: data.skills_summary || localProfile.skillsSummary || undefined,
+          role: data.role || localProfile.role || 'user',
           createdAt: data.created_at,
           updatedAt: data.updated_at,
         });
@@ -104,6 +105,7 @@ export function useAuth() {
           id: userId,
           full_name: initialName,
           headline: 'Candidato | Talenta',
+          role: 'user',
           created_at: new Date().toISOString(),
           updated_at: new Date().toISOString()
         };
@@ -111,7 +113,7 @@ export function useAuth() {
         const { data: inserted, error: insertError } = await supabase
           .from('profiles')
           .insert(newProfile)
-          .select('id, full_name, headline, created_at, updated_at')
+          .select('id, full_name, headline, role, created_at, updated_at')
           .maybeSingle();
 
         if (insertError) {
@@ -125,6 +127,7 @@ export function useAuth() {
             id: inserted.id,
             fullName: inserted.full_name,
             headline: inserted.headline || undefined,
+            role: inserted.role || 'user',
             createdAt: inserted.created_at,
             updatedAt: inserted.updated_at,
           });

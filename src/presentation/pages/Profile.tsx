@@ -414,23 +414,39 @@ export function Profile({
           <ProgressRing value={completeness} size={36} strokeWidth={3} />
           <div className="text-left">
             <span className="text-xs font-bold text-on-surface block leading-tight">Perfil {completeness}% Completo</span>
-            <span className="text-[10px] text-on-surface-variant block">
-              {completeness === 100 
-                ? 'Perfil totalmente otimizado!' 
-                : !hasLinkedin 
-                  ? (
-                      <span>
-                        Dica: Adicione seu LinkedIn em{' '}
-                        <button 
-                          onClick={() => setActiveTab && setActiveTab('settings')}
-                          className="underline text-brand-500 hover:text-brand-400 font-semibold bg-transparent border-none p-0 cursor-pointer outline-none"
-                        >
-                          Ajustes
-                        </button>.
-                      </span>
-                    )
-                  : 'Dica: Adicione competências para 100%.'}
-            </span>
+            {completeness === 100 ? (
+              <span className="text-[10px] text-emerald-400 block mt-0.5">Perfil totalmente otimizado! 🔥</span>
+            ) : (
+              <div className="mt-1.5 text-[10px] text-on-surface-variant space-y-1">
+                <span className="font-semibold text-slate-400 block mb-0.5">Como chegar em 100%:</span>
+                <div className="flex flex-col gap-1 font-sans">
+                  <span className="flex items-center gap-1.5">
+                    <span className={`w-3 h-3 rounded-full flex items-center justify-center text-[8px] font-bold ${hasResume ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30' : 'bg-slate-900/60 text-slate-500 border border-slate-800'}`}>✓</span>
+                    <span className={hasResume ? 'line-through text-slate-500' : 'text-slate-350'}>Fazer upload do currículo (+30%)</span>
+                  </span>
+                  <span className="flex items-center gap-1.5">
+                    <span className={`w-3 h-3 rounded-full flex items-center justify-center text-[8px] font-bold ${hasLinkedin ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30' : 'bg-slate-900/60 text-slate-500 border border-slate-800'}`}>✓</span>
+                    <span className={hasLinkedin ? 'line-through text-slate-500' : 'text-slate-350'}>
+                      Adicionar LinkedIn em{' '}
+                      <button 
+                        onClick={() => setActiveTab && setActiveTab('settings')}
+                        className="underline text-brand-500 hover:text-brand-400 font-semibold bg-transparent border-none p-0 cursor-pointer outline-none text-[10px]"
+                      >
+                        Ajustes
+                      </button> (+20%)
+                    </span>
+                  </span>
+                  <span className="flex items-center gap-1.5">
+                    <span className={`w-3 h-3 rounded-full flex items-center justify-center text-[8px] font-bold ${hasSkills ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30' : 'bg-slate-900/60 text-slate-500 border border-slate-800'}`}>✓</span>
+                    <span className={hasSkills ? 'line-through text-slate-500' : 'text-slate-350'}>Mapear competências técnicas/soft (+20%)</span>
+                  </span>
+                  <span className="flex items-center gap-1.5">
+                    <span className={`w-3 h-3 rounded-full flex items-center justify-center text-[8px] font-bold ${hasExperiences ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30' : 'bg-slate-900/60 text-slate-500 border border-slate-800'}`}>✓</span>
+                    <span className={hasExperiences ? 'line-through text-slate-500' : 'text-slate-350'}>Adicionar experiências de trabalho (+20%)</span>
+                  </span>
+                </div>
+              </div>
+            )}
           </div>
         </div>
       </div>
@@ -566,9 +582,16 @@ export function Profile({
                         )}
                       </div>
                       <button
-                        onClick={(e) => {
+                        onClick={async (e) => {
                           e.stopPropagation();
-                          onDeleteResume(res.id);
+                          if (window.confirm(`Tem certeza que deseja deletar permanentemente o currículo "${res.fileName}"?`)) {
+                            try {
+                              await onDeleteResume(res.id);
+                            } catch (err) {
+                              console.error(err);
+                              alert('Erro ao excluir currículo. Verifique se ele não é o currículo ativo ou está em uso.');
+                            }
+                          }
                         }}
                         className="p-1 rounded hover:bg-red-500/10 text-slate-500 hover:text-red-400 transition-colors"
                         title="Excluir currículo"

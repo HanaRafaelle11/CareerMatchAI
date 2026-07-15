@@ -77,6 +77,14 @@ function App() {
   }, []);
 
   const handleSetActiveTab = (tab: string) => {
+    if (tab === 'admin') {
+      window.history.pushState(null, '', '/admin');
+      setActiveTab('admin');
+      return;
+    } else {
+      window.history.pushState(null, '', '/');
+    }
+
     if (tab === 'settings') {
       setSettingsInitialSubTab('account');
       setActiveTab('settings');
@@ -134,26 +142,47 @@ function App() {
       alert('Não foi possível iniciar a simulação no momento.');
     }
   };
-
+  // Observa mudanças de histórico (Voltar / Avançar do navegador)
   useEffect(() => {
-    async function checkAdmin() {
-      if (!isSupabaseConfigured || !supabase) {
-        setIsAdmin(true); // local developer fallback
-        return;
-      }
-      const { data: { user: currentUser } } = await supabase.auth.getUser();
-      if (currentUser) {
-        const adminEmail = currentUser.email?.includes('admin') || 
-                           currentUser.email?.includes('rafox') || 
-                           currentUser.email?.includes('suporte') ||
-                           currentUser.user_metadata?.role === 'admin';
-        setIsAdmin(!!adminEmail);
+    const handlePopState = () => {
+      if (window.location.pathname === '/admin') {
+        setActiveTab('admin');
       } else {
-        setIsAdmin(false);
+        setActiveTab('dashboard');
+      }
+    };
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, []);
+
+  // Avalia perfil administrativo de forma reativa a partir do RBAC
+  useEffect(() => {
+    if (!isSupabaseConfigured || !supabase) {
+      setIsAdmin(true); // fallback local
+      return;
+    }
+    if (profile) {
+      const hasAdminRole = ['administrador', 'suporte', 'financeiro', 'somente_leitura'].includes(profile.role || '');
+      setIsAdmin(hasAdminRole);
+    } else {
+      setIsAdmin(false);
+    }
+  }, [profile]);
+
+  // Redireciona usuários não autorizados tentando acessar /admin
+  useEffect(() => {
+    if (!loading) {
+      const isPathAdmin = window.location.pathname === '/admin';
+      if (isPathAdmin) {
+        if (profile && ['administrador', 'suporte', 'financeiro', 'somente_leitura'].includes(profile.role || '')) {
+          setActiveTab('admin');
+        } else if (profile) {
+          window.history.replaceState(null, '', '/');
+          setActiveTab('dashboard');
+        }
       }
     }
-    checkAdmin();
-  }, [user]);
+  }, [loading, profile]);
 
   const { resumes, uploadResume, deleteResume, isUploading, pipelineSteps, selectActiveResume } = useResumes(profile?.id);
   

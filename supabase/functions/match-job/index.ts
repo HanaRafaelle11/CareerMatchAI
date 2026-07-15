@@ -663,13 +663,42 @@ serve(async (req) => {
     }
 
     if (!careerProfile && resumeId) {
-      const { data, error } = await supabaseClient
-        .from('career_profiles')
-        .select('*')
+      const { data: resume, error: resumeErr } = await supabaseClient
+        .from('resumes')
+        .select('file_name, file_url, user_id')
         .eq('id', resumeId)
         .maybeSingle();
-      if (error) throw error;
-      careerProfile = data;
+      
+      if (!resumeErr && resume) {
+        const { data: rv } = await supabaseClient
+          .from('resume_versions')
+          .select('id')
+          .eq('user_id', resume.user_id)
+          .eq('file_url', resume.file_url || '')
+          .maybeSingle();
+        
+        let rvId = rv?.id;
+        if (!rvId) {
+          const { data: rv2 } = await supabaseClient
+            .from('resume_versions')
+            .select('id')
+            .eq('user_id', resume.user_id)
+            .eq('file_name', resume.file_name || '')
+            .maybeSingle();
+          rvId = rv2?.id;
+        }
+
+        if (rvId) {
+          const { data: cp, error: cpErr } = await supabaseClient
+            .from('career_profiles')
+            .select('*')
+            .eq('resume_version_id', rvId)
+            .maybeSingle();
+          if (!cpErr && cp) {
+            careerProfile = cp;
+          }
+        }
+      }
     }
 
     if (!careerProfile) {

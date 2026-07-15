@@ -1,11 +1,10 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { CardGlass } from '../components/CardGlass';
 import { isSupabaseConfigured, supabase } from '../../infrastructure/api/supabaseClient';
-import { localDB } from '../../infrastructure/storage/localDatabase';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { 
   Activity, Loader2, ShieldAlert, RefreshCw, 
-  Users, CreditCard, Search, Filter, ArrowUpRight, 
+  Users, CreditCard, Search, Filter, 
   ShieldCheck, UserCheck, AlertTriangle, AlertCircle, 
   ArrowLeft, Calendar, Clock, Laptop, Key, FileText, 
   Layers, Bot, Video, History, Terminal, UploadCloud
@@ -25,13 +24,7 @@ const defaultMockUsers = [
   { id: 'usr-6', full_name: 'Juliana Melo', email: 'juliana@yahoo.com', role: 'user', headline: 'Customer Success Analyst', created_at: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString() }
 ];
 
-const defaultMockTransactions = [
-  { id: 'tx-1', user_name: 'Thiago Oliveira', plan: 'Pro', amount: 49.90, status: 'succeeded', payment_method: 'credit_card', created_at: new Date().toISOString() },
-  { id: 'tx-2', user_name: 'Juliana Melo', plan: 'Pro', amount: 49.90, status: 'succeeded', payment_method: 'pix', created_at: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString() },
-  { id: 'tx-3', user_name: 'Renata Souza', plan: 'Enterprise', amount: 249.90, status: 'succeeded', payment_method: 'credit_card', created_at: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString() },
-  { id: 'tx-4', user_name: 'Marcos Pires', plan: 'Pro', amount: 49.90, status: 'failed', payment_method: 'credit_card', created_at: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString() },
-  { id: 'tx-5', user_name: 'Luciana Reis', plan: 'Enterprise', amount: 249.90, status: 'succeeded', payment_method: 'pix', created_at: new Date(Date.now() - 4 * 24 * 60 * 60 * 1000).toISOString() }
-];
+
 
 function getMockUserDetails(user: any) {
   const name = user.full_name || 'Usuário';
@@ -86,6 +79,8 @@ function getMockUserDetails(user: any) {
   };
 }
 
+declare const __BUILD_TIME__: string;
+
 export function AdminDashboard({ userId }: AdminDashboardProps) {
   const queryClient = useQueryClient();
   const [activeSubTab, setActiveSubTab] = useState('overview');
@@ -95,51 +90,6 @@ export function AdminDashboard({ userId }: AdminDashboardProps) {
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' | 'warning' } | null>(null);
   const [selectedUser, setSelectedUser] = useState<any | null>(null);
   const [userDetailTab, setUserDetailTab] = useState('profile');
-  const [liveEvents, setLiveEvents] = useState<any[]>([]);
-
-  useEffect(() => {
-    // Eventos iniciais mockados
-    const initialEvents = [
-      { id: 'le-1', time: '20:15', msg: 'Usuário João entrou.', type: 'auth' },
-      { id: 'le-2', time: '20:15', msg: 'Upload de currículo realizado.', type: 'upload' },
-      { id: 'le-3', time: '20:16', msg: 'Interação com o Coach IA.', type: 'ia' },
-      { id: 'le-4', time: '20:17', msg: 'Match calculado: 92% de compatibilidade.', type: 'match' },
-      { id: 'le-5', time: '20:18', msg: 'Candidatura enviada para Stripe.', type: 'apply' },
-      { id: 'le-6', time: '20:19', msg: 'Upgrade Premium realizado via Cartão.', type: 'billing' }
-    ];
-    setLiveEvents(initialEvents);
-
-    const msgs = [
-      'Usuário Maria Silva fez upload de currículo.',
-      'Coach IA respondeu pergunta sobre currículo.',
-      'Match calculado: 74% para vaga no LinkedIn.',
-      'Usuário Carlos Estevão fez login via Google.',
-      'Candidatura criada para Gupy (Desenvolvedor React).',
-      'Assinatura Pro renovada automaticamente.',
-      'Nova simulação de entrevista iniciada.',
-      'Exportou PDF do currículo otimizado.',
-      'Gerou carta de apresentação por IA.',
-      'Tentativa de login malsucedida (IP 192.168.1.10).'
-    ];
-    
-    const types = ['upload', 'ia', 'match', 'auth', 'apply', 'billing', 'ia', 'pdf', 'ia', 'security'];
-
-    const interval = setInterval(() => {
-      const now = new Date();
-      const timeStr = now.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
-      const randomMsg = msgs[Math.floor(Math.random() * msgs.length)];
-      const randomType = types[Math.floor(Math.random() * types.length)];
-      const newEvent = {
-        id: `le-${Date.now()}`,
-        time: timeStr,
-        msg: randomMsg,
-        type: randomType
-      };
-      setLiveEvents(prev => [newEvent, ...prev.slice(0, 8)]); // manter os 8 últimos eventos na stream
-    }, 10000); // atualiza a cada 10 segundos
-
-    return () => clearInterval(interval);
-  }, []);
 
   // Exibir feedback temporário na tela (Toast)
   const showToast = (message: string, type: 'success' | 'error' | 'warning' = 'success') => {
@@ -152,7 +102,6 @@ export function AdminDashboard({ userId }: AdminDashboardProps) {
     queryKey: ['active-profile-admin', userId],
     queryFn: async () => {
       if (!isSupabaseConfigured || !supabase) {
-        // Fallback local do desenvolvedor
         return { role: 'administrador', fullName: 'Desenvolvedor Local' };
       }
       const { data, error } = await supabase
@@ -167,13 +116,9 @@ export function AdminDashboard({ userId }: AdminDashboardProps) {
   });
 
   const currentUserRole = activeProfile?.role || 'user';
-
-  // Controle Fino de Permissões por Papel (RBAC)
   const isSuperAdmin = currentUserRole === 'administrador';
   const hasTelemetryAccess = ['administrador', 'suporte', 'somente_leitura'].includes(currentUserRole);
   const hasUsersAccess = ['administrador', 'suporte', 'somente_leitura'].includes(currentUserRole);
-  const hasFinancesAccess = ['administrador', 'financeiro', 'somente_leitura'].includes(currentUserRole);
-
   const canEditRoles = isSuperAdmin;
 
   // ── 2. BUSCAR TODOS OS USUÁRIOS/PERFIS DO SISTEMA ──
@@ -181,19 +126,17 @@ export function AdminDashboard({ userId }: AdminDashboardProps) {
     queryKey: ['admin-users-list'],
     queryFn: async () => {
       if (!isSupabaseConfigured || !supabase) {
-        const stored = localStorage.getItem('mock_admin_users');
-        if (stored) return JSON.parse(stored);
-        localStorage.setItem('mock_admin_users', JSON.stringify(defaultMockUsers));
         return defaultMockUsers;
       }
       const { data, error } = await supabase
         .from('profiles')
-        .select('id, full_name, headline, role, created_at, updated_at')
+        .select('id, full_name, email, headline, role, created_at, updated_at')
         .order('created_at', { ascending: false });
       if (error) throw error;
       return data.map((d: any) => ({
         id: d.id,
         full_name: d.full_name,
+        email: d.email,
         headline: d.headline,
         role: d.role || 'user',
         created_at: d.created_at
@@ -206,17 +149,9 @@ export function AdminDashboard({ userId }: AdminDashboardProps) {
   const changeRoleMutation = useMutation({
     mutationFn: async ({ targetUserId, newRole }: { targetUserId: string; newRole: string }) => {
       if (!canEditRoles) throw new Error('Ação não permitida para o seu papel.');
-
       if (!isSupabaseConfigured || !supabase) {
-        const currentMock = [...users];
-        const idx = currentMock.findIndex(u => u.id === targetUserId);
-        if (idx >= 0) {
-          currentMock[idx].role = newRole;
-          localStorage.setItem('mock_admin_users', JSON.stringify(currentMock));
-        }
-        return currentMock;
+        return;
       }
-
       const { error } = await supabase
         .from('profiles')
         .update({ role: newRole })
@@ -233,95 +168,94 @@ export function AdminDashboard({ userId }: AdminDashboardProps) {
     }
   });
 
-  // ── 3. BUSCAR TELEMETRIA DE ERROS & TELEMETRIA ──
-  const { data: systemErrors = [], refetch: refetchTelemetry } = useQuery({
-    queryKey: ['admin-telemetry-errors'],
+  // ── 3. BUSCAR OVERVIEW STATS (REAL SUPABASE RPC) ──
+  const { data: overviewStats, isLoading: isLoadingOverview, refetch: refetchOverview } = useQuery({
+    queryKey: ['admin-overview-stats'],
     queryFn: async () => {
       if (!isSupabaseConfigured || !supabase) {
-        return [
-          { id: 'err-1', created_at: new Date().toISOString(), component: 'Gemini API', error_code: 'AI_TIMEOUT', message: 'Gemini demorou mais do que 15000ms para responder.', resolved: false },
-          { id: 'err-2', created_at: new Date(Date.now() - 3600000).toISOString(), component: 'Database query', error_code: '42P01', message: 'Table public.career_profiles does not exist.', resolved: true }
-        ];
+        return {
+          users_count: 0,
+          resumes_count: 0,
+          jobs_count: 0,
+          matches_count: 0,
+          avg_processing_time: 0,
+          total_tokens: 0,
+          success_rate: 100.0
+        };
       }
-      const { data, error } = await supabase
-          .from('application_errors')
-          .select('*, profiles(full_name)')
-          .order('created_at', { ascending: false })
-          .limit(40);
+      const { data, error } = await supabase.rpc('get_admin_dashboard_overview');
       if (error) throw error;
       return data;
     },
     enabled: hasTelemetryAccess
   });
 
-  // ── 4. BUSCAR INFORMAÇÕES FINANCEIRAS (STRIPE/TRANSAÇÕES) ──
-  const { data: billingData, isLoading: isLoadingFinances, refetch: refetchFinances } = useQuery({
-    queryKey: ['admin-billing-finances'],
+  // ── 4. BUSCAR METRICAS DE IA E ROI (REAL SUPABASE RPC) ──
+  const { data: iaStats, isLoading: isLoadingIaStats, refetch: refetchIaStats } = useQuery({
+    queryKey: ['admin-ia-stats'],
     queryFn: async () => {
       if (!isSupabaseConfigured || !supabase) {
         return {
-          transactions: defaultMockTransactions,
-          subscriptionsCount: { active: 3, trial: 2, canceled: 1 }
+          total_calls: 0,
+          total_tokens: 0,
+          total_cost_brl: 0.0,
+          avg_processing_time: 0.0,
+          errors_count: 0,
+          optimizations_count: 0,
+          letters_count: 0,
+          simulations_count: 0,
+          matches_count: 0,
+          avg_match_score: 0.0,
+          hours_saved: 0.0
         };
       }
-      const { data: transactions, error: txError } = await supabase
-        .from('billing_transactions')
-        .select('*, profiles(full_name)')
-        .order('created_at', { ascending: false });
-
-      const { data: subscriptions, error: subError } = await supabase
-        .from('billing_subscriptions')
-        .select('*');
-
-      if (txError || subError) throw txError || subError;
-
-      const activeCount = subscriptions?.filter((s: any) => s.status === 'active').length || 0;
-      const trialCount = subscriptions?.filter((s: any) => s.status === 'trialing').length || 0;
-      const canceledCount = subscriptions?.filter((s: any) => s.status === 'canceled').length || 0;
-
-      return {
-        transactions: (transactions || []).map((t: any) => ({
-          id: t.id,
-          user_name: t.profiles?.full_name || 'Usuário',
-          amount: Number(t.amount),
-          status: t.status,
-          payment_method: t.payment_method,
-          created_at: t.created_at
-        })),
-        subscriptionsCount: { active: activeCount, trial: trialCount, canceled: canceledCount }
-      };
+      const { data, error } = await supabase.rpc('get_admin_ia_analytics');
+      if (error) throw error;
+      return data;
     },
-    enabled: hasFinancesAccess
+    enabled: hasTelemetryAccess
   });
 
-  // ── 5. BUSCAR MÉTRICAS DE USO DE RECURSOS E IA ──
-  const { data: usageCounts = { resumes: 12, jobs: 48, simulations: 8, chats: 45 }, refetch: refetchUsage } = useQuery({
-    queryKey: ['admin-usage-counts'],
+  // ── 5. EVENT STREAM (REAL-TIME LOGS DE EVENTOS) ──
+  const { data: liveEvents = [], refetch: refetchEvents } = useQuery({
+    queryKey: ['admin-live-events'],
     queryFn: async () => {
       if (!isSupabaseConfigured || !supabase) {
-        return { resumes: 12, jobs: 48, simulations: 8, chats: 45 };
+        return [];
       }
-      try {
-        const [resumesRes, jobsRes, simsRes, logsRes] = await Promise.all([
-          supabase.from('resumes').select('*', { count: 'exact', head: true }),
-          supabase.from('jobs').select('*', { count: 'exact', head: true }),
-          supabase.from('interview_simulations').select('*', { count: 'exact', head: true }),
-          supabase.from('ai_usage_logs').select('*', { count: 'exact', head: true })
-        ]);
-        return {
-          resumes: resumesRes.count || 0,
-          jobs: jobsRes.count || 0,
-          simulations: simsRes.count || 0,
-          chats: logsRes.count || 0
-        };
-      } catch (err) {
-        console.error('Error fetching database usage counts:', err);
-        return { resumes: 0, jobs: 0, simulations: 0, chats: 0 };
-      }
-    }
+      const { data, error } = await supabase
+        .from('analytics_events')
+        .select('*, profiles(full_name, email)')
+        .order('created_at', { ascending: false })
+        .limit(40);
+      if (error) throw error;
+      return data;
+    },
+    enabled: hasTelemetryAccess,
+    refetchInterval: 10000 // auto-refresh a cada 10 segundos
   });
 
-  // ── 6. BUSCAR INFORMAÇÕES DETALHADAS DO USUÁRIO SELECIONADO ──
+  // ── 6. BUSCAR TELEMETRIA DE ERROS DE PRODUÇÃO ──
+  const { data: systemErrors = [], refetch: refetchTelemetry } = useQuery({
+    queryKey: ['admin-telemetry-errors'],
+    queryFn: async () => {
+      if (!isSupabaseConfigured || !supabase) {
+        return [
+          { id: 'err-1', created_at: new Date().toISOString(), component: 'Gemini API', error_code: 'AI_TIMEOUT', message: 'Gemini demorou mais do que 15000ms para responder.', resolved: false }
+        ];
+      }
+      const { data, error } = await supabase
+        .from('application_errors')
+        .select('*, profiles(full_name)')
+        .order('created_at', { ascending: false })
+        .limit(40);
+      if (error) throw error;
+      return data;
+    },
+    enabled: hasTelemetryAccess
+  });
+
+  // ── 7. BUSCAR INFORMAÇÕES DETALHADAS DO USUÁRIO SELECIONADO ──
   const { data: userDetails, isLoading: isLoadingDetails } = useQuery({
     queryKey: ['admin-user-details', selectedUser?.id],
     queryFn: async () => {
@@ -334,10 +268,10 @@ export function AdminDashboard({ userId }: AdminDashboardProps) {
           supabase.from('resumes').select('*').eq('user_id', selectedUser.id),
           supabase.from('jobs').select('*').eq('user_id', selectedUser.id),
           supabase.from('applications').select('*').eq('user_id', selectedUser.id),
-          supabase.from('interview_simulations').select('*').eq('user_id', selectedUser.id),
+          supabase.from('interview_simulations').select('*, applications!inner(user_id, job_title, company_name)').eq('applications.user_id', selectedUser.id),
           supabase.from('ai_usage_logs').select('*').eq('user_id', selectedUser.id),
           supabase.from('application_errors').select('*').eq('user_id', selectedUser.id),
-          supabase.from('application_events').select('*').eq('user_id', selectedUser.id),
+          supabase.from('analytics_events').select('*').eq('user_id', selectedUser.id).order('created_at', { ascending: false }).limit(20),
           supabase.from('billing_subscriptions').select('*').eq('user_id', selectedUser.id).maybeSingle(),
           supabase.from('billing_transactions').select('*').eq('user_id', selectedUser.id)
         ]);
@@ -357,12 +291,10 @@ export function AdminDashboard({ userId }: AdminDashboardProps) {
         const estimatedCostUSD = totalTokens * 0.000015;
         const estimatedCostBRL = estimatedCostUSD * 5.4;
 
-        // Se o Supabase estiver configurado mas o banco não registrar sessões específicas, mockamos login/uploads a partir dos eventos
         const sessions = [
           { id: 'ss-1', ip_address: '191.185.12.84', device: 'Chrome / Windows', location: 'São Paulo, BR', last_active: new Date().toISOString() }
         ];
         const resumeVersions = [
-          { id: 'ver-1.1', version_number: 2, version_label: 'CV Otimizado por IA', created_at: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString() },
           { id: 'ver-1.0', version_number: 1, version_label: 'Versão Original', created_at: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString() }
         ];
         const lastAccess = selectedUser.last_active || selectedUser.updated_at || new Date().toISOString();
@@ -375,7 +307,12 @@ export function AdminDashboard({ userId }: AdminDashboardProps) {
           simulations,
           aiUsage,
           errors,
-          events,
+          events: events.map((e: any) => ({
+            id: e.id,
+            event_name: e.event_name,
+            details: `Ação na categoria ${e.category}`,
+            created_at: e.created_at
+          })),
           subscription,
           transactions,
           totalTokens,
@@ -398,97 +335,6 @@ export function AdminDashboard({ userId }: AdminDashboardProps) {
     enabled: !!selectedUser
   });
 
-  // ── 9. BUSCAR RPCs DE ANALYTICS REAL-TIME ──
-  const { data: funnelData = [], refetch: refetchFunnel } = useQuery({
-    queryKey: ['admin-funnel-analytics'],
-    queryFn: async () => {
-      if (!isSupabaseConfigured || !supabase) {
-        return localDB.getMockAnalyticsData('get_funnel_analytics');
-      }
-      const { data, error } = await supabase.rpc('get_funnel_analytics');
-      if (error) {
-        console.error('Error fetching funnel RPC:', error);
-        return localDB.getMockAnalyticsData('get_funnel_analytics');
-      }
-      return data;
-    }
-  });
-
-  const { data: featureAdoption = [], refetch: refetchAdoption } = useQuery({
-    queryKey: ['admin-feature-adoption'],
-    queryFn: async () => {
-      if (!isSupabaseConfigured || !supabase) {
-        return localDB.getMockAnalyticsData('get_feature_adoption');
-      }
-      const { data, error } = await supabase.rpc('get_feature_adoption');
-      if (error) {
-        console.error('Error fetching feature adoption RPC:', error);
-        return localDB.getMockAnalyticsData('get_feature_adoption');
-      }
-      return data;
-    }
-  });
-
-  const { data: iaCostCenter = [], refetch: refetchCosts } = useQuery({
-    queryKey: ['admin-ia-cost-center'],
-    queryFn: async () => {
-      if (!isSupabaseConfigured || !supabase) {
-        return localDB.getMockAnalyticsData('get_ia_cost_center');
-      }
-      const { data, error } = await supabase.rpc('get_ia_cost_center');
-      if (error) {
-        console.error('Error fetching ia cost center RPC:', error);
-        return localDB.getMockAnalyticsData('get_ia_cost_center');
-      }
-      return data;
-    }
-  });
-
-  const { data: skillsIntelligence = [], refetch: refetchSkills } = useQuery({
-    queryKey: ['admin-skills-intelligence'],
-    queryFn: async () => {
-      if (!isSupabaseConfigured || !supabase) {
-        return localDB.getMockAnalyticsData('get_skills_intelligence');
-      }
-      const { data, error } = await supabase.rpc('get_skills_intelligence');
-      if (error) {
-        console.error('Error fetching skills gap RPC:', error);
-        return localDB.getMockAnalyticsData('get_skills_intelligence');
-      }
-      return data;
-    }
-  });
-
-  const { data: heatmapJobs = [], refetch: refetchHeatmap } = useQuery({
-    queryKey: ['admin-heatmap-jobs'],
-    queryFn: async () => {
-      if (!isSupabaseConfigured || !supabase) {
-        return localDB.getMockAnalyticsData('get_heatmap_jobs');
-      }
-      const { data, error } = await supabase.rpc('get_heatmap_jobs');
-      if (error) {
-        console.error('Error fetching heatmap RPC:', error);
-        return localDB.getMockAnalyticsData('get_heatmap_jobs');
-      }
-      return data;
-    }
-  });
-
-  const { data: aiInsights = [], refetch: refetchInsights } = useQuery({
-    queryKey: ['admin-ai-insights'],
-    queryFn: async () => {
-      if (!isSupabaseConfigured || !supabase) {
-        return localDB.getMockAnalyticsData('get_ai_insights');
-      }
-      const { data, error } = await supabase.rpc('get_ai_insights');
-      if (error) {
-        console.error('Error fetching AI insights RPC:', error);
-        return localDB.getMockAnalyticsData('get_ai_insights');
-      }
-      return data;
-    }
-  });
-
   // Filtrar e Paginar Usuários na aba de Usuários
   const filteredUsers = users.filter((user: any) => {
     const matchesSearch = (user.full_name || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -505,15 +351,10 @@ export function AdminDashboard({ userId }: AdminDashboardProps) {
 
   const handleRefreshAll = () => {
     if (hasUsersAccess) refetchUsers();
-    if (hasTelemetryAccess) refetchTelemetry();
-    if (hasFinancesAccess) refetchFinances();
-    refetchUsage();
-    refetchFunnel();
-    refetchAdoption();
-    refetchCosts();
-    refetchSkills();
-    refetchHeatmap();
-    refetchInsights();
+    refetchOverview();
+    refetchIaStats();
+    refetchEvents();
+    refetchTelemetry();
     showToast('Dados administrativos atualizados!', 'success');
   };
 
@@ -541,20 +382,13 @@ export function AdminDashboard({ userId }: AdminDashboardProps) {
     );
   }
 
-  // Estatísticas de Faturamento e Telemetria para o Overview
-  const succeededTx = billingData?.transactions?.filter(t => t.status === 'succeeded') || [];
-  const mrr = succeededTx.reduce((acc, t) => acc + (t.amount || 0), 0);
-  const unresolvedErrors = systemErrors.filter((e: any) => !e.resolved).length;
+
 
   const tabs = [
-    { id: 'overview', label: 'Command Overview' },
-    hasUsersAccess && { id: 'users', label: 'Controle de Usuários' },
-    hasUsersAccess && { id: 'intelligence', label: 'Career Intelligence' },
-    hasFinancesAccess && { id: 'finances', label: 'Financeiro' },
-    hasTelemetryAccess && { id: 'ia_analytics', label: 'Inteligência Artificial' },
-    hasUsersAccess && { id: 'jobs_observability', label: 'Observabilidade de Vagas' },
-    hasUsersAccess && { id: 'growth_os', label: 'Growth OS & Suporte' },
-    hasTelemetryAccess && { id: 'system_health', label: 'Saúde do Sistema' }
+    { id: 'overview', label: 'Overview' },
+    hasUsersAccess && { id: 'users', label: 'Usuários' },
+    hasTelemetryAccess && { id: 'logs', label: 'Logs' },
+    hasTelemetryAccess && { id: 'ia', label: 'IA' }
   ].filter(Boolean) as { id: string; label: string }[];
 
   if (selectedUser) {
@@ -1019,6 +853,84 @@ export function AdminDashboard({ userId }: AdminDashboardProps) {
     );
   }
 
+  const funnelData = [
+    { step_name: '1. Match Calculado', count: iaStats?.matches_count || 0 },
+    { step_name: '2. Otimizações de Currículo', count: iaStats?.optimizations_count || 0 },
+    { step_name: '3. Cartas de Apresentação', count: iaStats?.letters_count || 0 },
+    { step_name: '4. Entrevistas STAR Simuladas', count: iaStats?.simulations_count || 0 }
+  ];
+
+  const getDeployAge = () => {
+    try {
+      const buildDate = new Date(__BUILD_TIME__);
+      const diffMs = Date.now() - buildDate.getTime();
+      const diffMins = Math.floor(diffMs / 60000);
+      const diffHours = Math.floor(diffMins / 60);
+      const diffDays = Math.floor(diffHours / 24);
+
+      if (diffMins < 1) return 'Agora mesmo';
+      if (diffMins < 60) return `${diffMins} min atrás`;
+      if (diffHours < 24) return `${diffHours} h atrás`;
+      return `${diffDays} dias atrás`;
+    } catch {
+      return 'Disponível';
+    }
+  };
+
+  const getEventMsg = (evt: any) => {
+    const name = evt.profiles?.full_name || evt.profiles?.email || 'Usuário Anônimo';
+    switch (evt.event_name) {
+      case 'user_registered': return `Usuário ${name} se cadastrou na plataforma.`;
+      case 'login': return `Usuário ${name} fez login no sistema.`;
+      case 'logout': return `Usuário ${name} saiu da sessão.`;
+      case 'resume_uploaded': return `Upload de currículo realizado por ${name}.`;
+      case 'resume_parsed': return `Currículo de ${name} foi parseado com sucesso.`;
+      case 'resume_optimized': return `Currículo de ${name} otimizado por inteligência artificial.`;
+      case 'match_generated': return `Compatibilidade (Match) calculada para ${name}.`;
+      case 'match_opened': return `Usuário ${name} abriu detalhes de compatibilidade.`;
+      case 'job_saved': return `Vaga adicionada aos favoritos por ${name}.`;
+      case 'job_applied': return `Candidatura enviada para acompanhamento por ${name}.`;
+      case 'interview_started': return `Simulação de entrevista iniciada por ${name}.`;
+      case 'interview_finished': return `Simulação de entrevista concluída por ${name}.`;
+      case 'coach_message': return `Mensagem enviada por ${name} ao Coach IA.`;
+      case 'subscription_started': return `Assinatura Premium iniciada por ${name}.`;
+      case 'subscription_cancelled': return `Assinatura cancelada por ${name}.`;
+      case 'payment_failed': return `Falha no processamento de pagamento de ${name}.`;
+      case 'profile_updated': return `Perfil atualizado por ${name}.`;
+      case 'coach_used': return `Coach IA utilizado por ${name}.`;
+      case 'pdf_exported': return `Exportou PDF do currículo de ${name}.`;
+      default: return `Ação '${evt.event_name}' realizada por ${name}.`;
+    }
+  };
+
+  const getEventType = (evt: any) => {
+    switch (evt.event_name) {
+      case 'user_registered':
+      case 'login':
+      case 'logout':
+        return 'auth';
+      case 'resume_uploaded':
+      case 'resume_parsed':
+        return 'upload';
+      case 'resume_optimized':
+      case 'coach_message':
+      case 'coach_used':
+        return 'ia';
+      case 'match_generated':
+      case 'match_opened':
+        return 'match';
+      case 'job_saved':
+      case 'job_applied':
+        return 'apply';
+      case 'subscription_started':
+      case 'subscription_cancelled':
+      case 'payment_failed':
+        return 'billing';
+      default:
+        return 'system';
+    }
+  };
+
   return (
     <div className="space-y-6 animate-fade-in font-sans p-0 text-slate-100 max-w-7xl mx-auto mb-16">
       
@@ -1032,7 +944,7 @@ export function AdminDashboard({ userId }: AdminDashboardProps) {
         </div>
       )}
 
-      {/* Header Banner - Vercel / Supabase Style */}
+      {/* Header Banner */}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 border-b border-slate-900 pb-6">
         <div>
           <div className="flex items-center gap-2">
@@ -1087,141 +999,199 @@ export function AdminDashboard({ userId }: AdminDashboardProps) {
       {/* VIEW 1: Command Overview */}
       {activeSubTab === 'overview' && (
         <div className="space-y-6 animate-fade-in">
-          {/* KPI Cards Row */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-            <CardGlass className="p-4 flex flex-col justify-between hover:scale-[1.01] transition-all duration-300">
-              <div className="flex justify-between items-start">
-                <span className="text-[10px] text-slate-500 font-bold uppercase tracking-wider">Usuários Ativos (DAU)</span>
-                <Users size={16} className="text-brand-500" />
-              </div>
-              <div className="mt-4">
-                <span className="text-3xl font-extrabold text-slate-100 font-display">{Math.ceil(users.length * 0.15 || 8)}</span>
-                <span className="text-[9px] text-emerald-450 font-semibold flex items-center gap-0.5 mt-1">
-                  <ArrowUpRight size={12} />
-                  +14% hoje
-                </span>
-              </div>
-            </CardGlass>
+          {isLoadingOverview ? (
+            <div className="flex flex-col items-center justify-center py-24 gap-3 text-slate-400">
+              <Loader2 className="animate-spin text-brand-500" size={28} />
+              <span className="text-xs font-semibold">Consolidando métricas operacionais...</span>
+            </div>
+          ) : (
+            <>
+              {/* KPI Cards Row 1 */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                <CardGlass className="p-4 flex flex-col justify-between hover:scale-[1.01] transition-all duration-300">
+                  <div className="flex justify-between items-start">
+                    <span className="text-[10px] text-slate-500 font-bold uppercase tracking-wider">Usuários Cadastrados</span>
+                    <Users size={16} className="text-brand-500" />
+                  </div>
+                  <div className="mt-4">
+                    <span className="text-3xl font-extrabold text-slate-100 font-display">
+                      {overviewStats?.users_count ?? 0}
+                    </span>
+                    <span className="text-[9px] text-slate-550 block mt-1">Registros na tabela profiles</span>
+                  </div>
+                </CardGlass>
 
-            <CardGlass className="p-4 flex flex-col justify-between hover:scale-[1.01] transition-all duration-300">
-              <div className="flex justify-between items-start">
-                <span className="text-[10px] text-slate-500 font-bold uppercase tracking-wider">Receita Recorrente (MRR)</span>
-                <CreditCard size={16} className="text-emerald-450" />
-              </div>
-              <div className="mt-4">
-                <span className="text-3xl font-extrabold text-slate-100 font-display">
-                  {hasFinancesAccess ? `R$ ${mrr.toFixed(2)}` : 'Restrito'}
-                </span>
-                <span className="text-[9px] text-emerald-455 font-semibold flex items-center gap-0.5 mt-1">
-                  <ArrowUpRight size={12} />
-                  +8.4% este mês
-                </span>
-              </div>
-            </CardGlass>
+                <CardGlass className="p-4 flex flex-col justify-between hover:scale-[1.01] transition-all duration-300">
+                  <div className="flex justify-between items-start">
+                    <span className="text-[10px] text-slate-500 font-bold uppercase tracking-wider">Currículos Enviados</span>
+                    <FileText size={16} className="text-brand-505" />
+                  </div>
+                  <div className="mt-4">
+                    <span className="text-3xl font-extrabold text-slate-100 font-display">
+                      {overviewStats?.resumes_count ?? 0}
+                    </span>
+                    <span className="text-[9px] text-slate-550 block mt-1">Análises de arquivos no Supabase</span>
+                  </div>
+                </CardGlass>
 
-            <CardGlass className="p-4 flex flex-col justify-between hover:scale-[1.01] transition-all duration-300">
-              <div className="flex justify-between items-start">
-                <span className="text-[10px] text-slate-500 font-bold uppercase tracking-wider">Status IA</span>
-                <Activity size={16} className="text-purple-400" />
-              </div>
-              <div className="mt-4">
-                <span className="text-3xl font-extrabold text-slate-100 font-display">99.4%</span>
-                <span className="text-[9px] text-slate-550 block mt-1">Sem instabilidades no pipeline</span>
-              </div>
-            </CardGlass>
+                <CardGlass className="p-4 flex flex-col justify-between hover:scale-[1.01] transition-all duration-300">
+                  <div className="flex justify-between items-start">
+                    <span className="text-[10px] text-slate-500 font-bold uppercase tracking-wider">Vagas Analisadas</span>
+                    <Layers size={16} className="text-purple-400" />
+                  </div>
+                  <div className="mt-4">
+                    <span className="text-3xl font-extrabold text-slate-100 font-display">
+                      {overviewStats?.matches_count ?? 0}
+                    </span>
+                    <span className="text-[9px] text-slate-550 block mt-1">Matches de compatibilidade gerados</span>
+                  </div>
+                </CardGlass>
 
-            <CardGlass className="p-4 flex flex-col justify-between hover:scale-[1.01] transition-all duration-300">
-              <div className="flex justify-between items-start">
-                <span className="text-[10px] text-slate-500 font-bold uppercase tracking-wider">Alertas do Sistema</span>
-                <AlertTriangle size={16} className="text-red-500 animate-pulse" />
+                <CardGlass className="p-4 flex flex-col justify-between hover:scale-[1.01] transition-all duration-300">
+                  <div className="flex justify-between items-start">
+                    <span className="text-[10px] text-slate-500 font-bold uppercase tracking-wider">Tempo Médio IA</span>
+                    <Clock size={16} className="text-amber-400" />
+                  </div>
+                  <div className="mt-4">
+                    <span className="text-3xl font-extrabold text-slate-100 font-display">
+                      {overviewStats?.avg_processing_time ?? 0} s
+                    </span>
+                    <span className="text-[9px] text-slate-550 block mt-1">Média de processamento por vaga</span>
+                  </div>
+                </CardGlass>
               </div>
-              <div className="mt-4">
-                <span className="text-3xl font-extrabold text-slate-100 font-display">
-                  {hasTelemetryAccess ? unresolvedErrors + 1 : 'Restrito'}
-                </span>
-                <span className="text-[9px] text-red-400 font-semibold block mt-1">1 Alerta crítico pendente</span>
-              </div>
-            </CardGlass>
-          </div>
 
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            {/* Real-time Event Stream */}
-            <CardGlass className="p-5 lg:col-span-2 space-y-4">
-              <div className="flex justify-between items-center pb-2 border-b border-slate-900">
-                <div>
-                  <h3 className="text-xs font-bold text-slate-300 uppercase tracking-wider flex items-center gap-1.5">
-                    <span className="h-2 w-2 rounded-full bg-red-500 animate-ping" />
-                    Event Stream (Tempo Real)
+              {/* KPI Cards Row 2 */}
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                <CardGlass className="p-4 flex flex-col justify-between hover:scale-[1.01] transition-all duration-300">
+                  <div className="flex justify-between items-start">
+                    <span className="text-[10px] text-slate-500 font-bold uppercase tracking-wider">Tokens Gemini</span>
+                    <Bot size={16} className="text-blue-400" />
+                  </div>
+                  <div className="mt-4">
+                    <span className="text-3xl font-extrabold text-slate-100 font-display font-mono">
+                      {(overviewStats?.total_tokens ?? 0).toLocaleString()}
+                    </span>
+                    <span className="text-[9px] text-slate-550 block mt-1">Acumulado de input/output de IA</span>
+                  </div>
+                </CardGlass>
+
+                <CardGlass className="p-4 flex flex-col justify-between hover:scale-[1.01] transition-all duration-300">
+                  <div className="flex justify-between items-start">
+                    <span className="text-[10px] text-slate-500 font-bold uppercase tracking-wider">Taxa de Sucesso</span>
+                    <Activity size={16} className="text-emerald-450" />
+                  </div>
+                  <div className="mt-4">
+                    <span className="text-3xl font-extrabold text-emerald-400 font-display">
+                      {overviewStats?.success_rate ?? 100.0}%
+                    </span>
+                    <span className="text-[9px] text-slate-550 block mt-1">Conversão de parsing sem erros</span>
+                  </div>
+                </CardGlass>
+
+                <CardGlass className="p-4 flex flex-col justify-between hover:scale-[1.01] transition-all duration-300">
+                  <div className="flex justify-between items-start">
+                    <span className="text-[10px] text-slate-500 font-bold uppercase tracking-wider">Último Deploy</span>
+                    <Laptop size={16} className="text-slate-400" />
+                  </div>
+                  <div className="mt-4">
+                    <span className="text-3xl font-extrabold text-slate-100 font-display">
+                      {getDeployAge()}
+                    </span>
+                    <span className="text-[9px] text-slate-550 block mt-1">Compilação do ambiente de produção</span>
+                  </div>
+                </CardGlass>
+              </div>
+
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                {/* Event Stream Preview (6 items) */}
+                <CardGlass className="p-5 lg:col-span-2 space-y-4">
+                  <div className="flex justify-between items-center pb-2 border-b border-slate-900">
+                    <div>
+                      <h3 className="text-xs font-bold text-slate-300 uppercase tracking-wider flex items-center gap-1.5">
+                        <span className="h-2 w-2 rounded-full bg-red-500 animate-ping" />
+                        Event Stream (Atividade Recente)
+                      </h3>
+                      <p className="text-[10px] text-slate-550">Atividades reais executadas na plataforma nas últimas horas.</p>
+                    </div>
+                    <span className="text-[9px] px-2 py-0.5 bg-slate-900 text-slate-550 font-bold rounded-lg border border-slate-800">Auto-refresh 10s</span>
+                  </div>
+
+                  <div className="space-y-3 max-h-[310px] overflow-y-auto pr-1">
+                    {liveEvents.length > 0 ? (
+                      liveEvents.slice(0, 6).map((evt: any) => {
+                        const type = getEventType(evt);
+                        return (
+                          <div key={evt.id} className="p-3 rounded-xl bg-slate-950/40 border border-slate-900/60 flex justify-between items-center text-xs hover:bg-slate-950/60 transition-all">
+                            <div className="flex items-center gap-3">
+                              <div className={`p-2 rounded-lg ${
+                                type === 'auth' ? 'bg-blue-500/10 text-blue-400' :
+                                type === 'upload' ? 'bg-emerald-500/10 text-emerald-450' :
+                                type === 'ia' ? 'bg-purple-500/10 text-purple-400' :
+                                type === 'match' ? 'bg-amber-500/10 text-amber-400' :
+                                type === 'apply' ? 'bg-indigo-500/10 text-indigo-400' :
+                                type === 'billing' ? 'bg-pink-500/10 text-pink-400' :
+                                'bg-slate-500/10 text-slate-400'
+                              }`}>
+                                {type === 'auth' && <Key size={14} />}
+                                {type === 'upload' && <UploadCloud size={14} />}
+                                {type === 'ia' && <Bot size={14} />}
+                                {type === 'match' && <Activity size={14} />}
+                                {type === 'apply' && <Layers size={14} />}
+                                {type === 'billing' && <CreditCard size={14} />}
+                              </div>
+                              <div>
+                                <span className="font-semibold text-slate-200 block">{getEventMsg(evt)}</span>
+                                <span className="text-[8px] font-extrabold uppercase tracking-wider text-slate-550 mt-0.5">{evt.category}</span>
+                              </div>
+                            </div>
+                            <span className="text-[10px] text-slate-500 font-mono">
+                              {new Date(evt.created_at).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
+                            </span>
+                          </div>
+                        );
+                      })
+                    ) : (
+                      <div className="text-center py-16 text-slate-550 text-xs border border-dashed border-slate-900 rounded-xl">
+                        Nenhum evento registrado ainda no Analytics Event Engine.
+                      </div>
+                    )}
+                  </div>
+                </CardGlass>
+
+                {/* Health Overview */}
+                <CardGlass className="p-5 space-y-4 col-span-1">
+                  <h3 className="text-xs font-bold text-slate-300 uppercase tracking-wider pb-2 border-b border-slate-900 flex items-center gap-1.5">
+                    <Activity size={14} className="text-emerald-500" />
+                    Resumo de Saúde do Core
                   </h3>
-                  <p className="text-[10px] text-slate-500">Fluxo instantâneo de atividades de segurança e interações.</p>
-                </div>
-                <span className="text-[9px] px-2 py-0.5 bg-slate-900 text-slate-500 font-semibold rounded-lg">Auto-refresh ativo</span>
-              </div>
-
-              <div className="space-y-3 max-h-[300px] overflow-y-auto pr-1">
-                {liveEvents.map((evt) => (
-                  <div key={evt.id} className="p-3 rounded-xl bg-slate-950/40 border border-slate-900/60 flex justify-between items-center text-xs transition-all hover:bg-slate-950/60">
-                    <div className="flex items-center gap-3">
-                      <div className={`p-2 rounded-lg ${
-                        evt.type === 'auth' ? 'bg-blue-500/10 text-blue-400' :
-                        evt.type === 'upload' ? 'bg-emerald-500/10 text-emerald-450' :
-                        evt.type === 'ia' ? 'bg-purple-500/10 text-purple-400' :
-                        evt.type === 'match' ? 'bg-amber-500/10 text-amber-400' :
-                        evt.type === 'apply' ? 'bg-indigo-500/10 text-indigo-400' :
-                        evt.type === 'billing' ? 'bg-pink-500/10 text-pink-400' :
-                        'bg-slate-500/10 text-slate-400'
-                      }`}>
-                        {evt.type === 'auth' && <Key size={14} />}
-                        {evt.type === 'upload' && <UploadCloud size={14} />}
-                        {evt.type === 'ia' && <Bot size={14} />}
-                        {evt.type === 'match' && <Activity size={14} />}
-                        {evt.type === 'apply' && <Layers size={14} />}
-                        {evt.type === 'billing' && <CreditCard size={14} />}
-                        {evt.type === 'pdf' && <FileText size={14} />}
-                        {evt.type === 'security' && <ShieldAlert size={14} />}
+                  <div className="space-y-3">
+                    {[
+                      { name: 'Vercel Edge Functions', status: 'Operational', color: 'bg-emerald-450' },
+                      { name: 'Supabase Database', status: 'Operational', color: 'bg-emerald-450' },
+                      { name: 'Stripe Webhooks', status: 'Operational', color: 'bg-emerald-450' },
+                      { name: 'Fila de E-mails', status: 'Operational', color: 'bg-emerald-450' },
+                      { name: 'Fila de IA (Job Processing)', status: 'Operational', color: 'bg-emerald-450' }
+                    ].map((item, idx) => (
+                      <div key={idx} className="flex justify-between items-center text-xs p-2 rounded-lg bg-slate-950/20 border border-slate-900">
+                        <span className="text-slate-400 font-medium">{item.name}</span>
+                        <div className="flex items-center gap-1.5">
+                          <span className={`h-1.5 w-1.5 rounded-full ${item.color}`} />
+                          <span className="text-[10px] font-bold text-slate-355">{item.status}</span>
+                        </div>
                       </div>
-                      <div>
-                        <span className="font-semibold text-slate-200">{evt.msg}</span>
-                        <span className="text-[9px] text-slate-550 block mt-0.5 uppercase tracking-wider font-bold">{evt.type}</span>
-                      </div>
-                    </div>
-                    <span className="text-[10px] text-slate-500 font-mono">{evt.time}</span>
+                    ))}
                   </div>
-                ))}
+                  <button
+                    onClick={() => setActiveSubTab('logs')}
+                    className="w-full text-center py-2.5 rounded-xl border border-slate-900 hover:border-slate-800 text-[10px] font-bold text-slate-400 hover:text-slate-200 transition-all"
+                  >
+                    Ver Logs de Produção & Erros
+                  </button>
+                </CardGlass>
               </div>
-            </CardGlass>
-
-            {/* Health & Queue Widget */}
-            <CardGlass className="p-5 space-y-4 col-span-1">
-              <h3 className="text-xs font-bold text-slate-300 uppercase tracking-wider pb-2 border-b border-slate-900 flex items-center gap-1.5">
-                <Activity size={14} className="text-emerald-500" />
-                Resumo de Saúde do Core
-              </h3>
-              <div className="space-y-3">
-                {[
-                  { name: 'Vercel Edge Functions', status: 'Operational', color: 'bg-emerald-450' },
-                  { name: 'Supabase Database', status: 'Operational', color: 'bg-emerald-450' },
-                  { name: 'Stripe Webhooks', status: 'Operational', color: 'bg-emerald-450' },
-                  { name: 'Fila de E-mails', status: 'Operational', color: 'bg-emerald-450' },
-                  { name: 'Fila de IA (Job Processing)', status: 'Operational', color: 'bg-emerald-450' }
-                ].map((item, idx) => (
-                  <div key={idx} className="flex justify-between items-center text-xs p-2 rounded-lg bg-slate-950/20 border border-slate-900">
-                    <span className="text-slate-400 font-medium">{item.name}</span>
-                    <div className="flex items-center gap-1.5">
-                      <span className={`h-1.5 w-1.5 rounded-full ${item.color}`} />
-                      <span className="text-[10px] font-bold text-slate-350">{item.status}</span>
-                    </div>
-                  </div>
-                ))}
-              </div>
-              <button
-                onClick={() => setActiveSubTab('system_health')}
-                className="w-full text-center py-2.5 rounded-xl border border-slate-900 hover:border-slate-800 text-[10px] font-bold text-slate-400 hover:text-slate-200 transition-all"
-              >
-                Ver Telemetria Completa
-              </button>
-            </CardGlass>
-          </div>
+            </>
+          )}
         </div>
       )}
 
@@ -1260,7 +1230,7 @@ export function AdminDashboard({ userId }: AdminDashboardProps) {
                     setRoleFilter(e.target.value);
                     setUserPage(1);
                   }}
-                  className="pl-9 pr-6 py-2.5 rounded-xl bg-slate-950 border border-slate-900 focus:border-brand-500 outline-none text-xs text-slate-400 cursor-pointer appearance-none"
+                  className="pl-9 pr-6 py-2.5 rounded-xl bg-slate-955 border border-slate-900 focus:border-brand-500 outline-none text-xs text-slate-400 cursor-pointer appearance-none"
                 >
                   <option value="all">Todos os Cargos</option>
                   <option value="administrador">Administrador</option>
@@ -1370,490 +1340,115 @@ export function AdminDashboard({ userId }: AdminDashboardProps) {
         </CardGlass>
       )}
 
-      {/* VIEW 3: Career Intelligence & Funnel */}
-      {activeSubTab === 'intelligence' && hasUsersAccess && (
+      {/* VIEW 3: Logs */}
+      {activeSubTab === 'logs' && hasTelemetryAccess && (
         <div className="space-y-6 animate-fade-in">
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            
-            {/* Funil de Conversão */}
-            <CardGlass className="p-5 lg:col-span-2 space-y-4">
+          <CardGlass className="p-5 space-y-4">
+            <div className="flex justify-between items-center pb-2 border-b border-slate-900">
               <div>
-                <h3 className="text-xs font-bold text-slate-300 uppercase tracking-wider">Funil de Conversão & Onboarding (Mixpanel Style)</h3>
-                <p className="text-[10px] text-slate-550">Acompanhamento reativo de conversões e gargalos de produto calculados em tempo real.</p>
+                <h3 className="text-xs font-bold text-slate-300 uppercase tracking-wider flex items-center gap-1.5">
+                  <Terminal size={14} className="text-red-500 animate-pulse" />
+                  Analytics Event Logs
+                </h3>
+                <p className="text-[10px] text-slate-550">Lista detalhada dos últimos 40 eventos processados pelo Analytics Event Engine.</p>
               </div>
+              <button
+                onClick={() => refetchEvents()}
+                className="px-3 py-1.5 rounded-lg bg-slate-900 border border-slate-800 text-[10px] font-bold text-slate-300 flex items-center gap-1 transition-all"
+              >
+                <RefreshCw size={10} /> Sincronizar
+              </button>
+            </div>
 
-              <div className="space-y-3 pt-2">
-                {funnelData.map((step: any, idx: number) => {
-                  const prevStep = idx > 0 ? funnelData[idx - 1] : null;
-                  const drop = prevStep ? Math.max(0, Number(prevStep.percentage) - Number(step.percentage)) : 0;
+            <div className="space-y-3 max-h-[500px] overflow-y-auto pr-1">
+              {liveEvents.length > 0 ? (
+                liveEvents.map((evt: any) => {
+                  const type = getEventType(evt);
                   return (
-                    <div key={idx} className="space-y-1">
-                      <div className="flex justify-between items-center text-xs">
-                        <span className="font-semibold text-slate-200">{step.step_name}</span>
-                        <div className="text-right">
-                          <span className="font-mono text-slate-400 font-bold">{Math.ceil(step.unique_users)}</span>
-                          <span className="text-slate-550 ml-1.5">({step.percentage}%)</span>
+                    <div key={evt.id} className="p-3.5 rounded-xl bg-slate-950/40 border border-slate-900/60 flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2 text-xs hover:bg-slate-950/60 transition-all">
+                      <div className="flex items-center gap-3">
+                        <div className={`p-2 rounded-lg shrink-0 ${
+                          type === 'auth' ? 'bg-blue-500/10 text-blue-400' :
+                          type === 'upload' ? 'bg-emerald-500/10 text-emerald-450' :
+                          type === 'ia' ? 'bg-purple-500/10 text-purple-400' :
+                          type === 'match' ? 'bg-amber-500/10 text-amber-400' :
+                          type === 'apply' ? 'bg-indigo-500/10 text-indigo-400' :
+                          type === 'billing' ? 'bg-pink-500/10 text-pink-400' :
+                          'bg-slate-500/10 text-slate-400'
+                        }`}>
+                          {type === 'auth' && <Key size={14} />}
+                          {type === 'upload' && <UploadCloud size={14} />}
+                          {type === 'ia' && <Bot size={14} />}
+                          {type === 'match' && <Activity size={14} />}
+                          {type === 'apply' && <Layers size={14} />}
+                          {type === 'billing' && <CreditCard size={14} />}
+                        </div>
+                        <div>
+                          <span className="font-semibold text-slate-200 block text-[13px]">{getEventMsg(evt)}</span>
+                          <div className="flex flex-wrap gap-x-3 gap-y-1 mt-1 text-[10px] text-slate-550 font-mono">
+                            <span>Sessão: {evt.session_id ? evt.session_id.substring(0, 15) + '...' : 'N/A'}</span>
+                            <span>SO/Navegador: {evt.os} | {evt.browser}</span>
+                            <span>Local: {evt.city}, {evt.country}</span>
+                          </div>
                         </div>
                       </div>
-                      {/* Visual Bar */}
-                      <div className="h-4 w-full bg-slate-950/60 rounded-lg overflow-hidden border border-slate-900 relative">
-                        <div
-                          className="h-full bg-gradient-to-r from-brand-600 to-brand-500 rounded-lg"
-                          style={{ width: `${step.percentage}%` }}
-                        />
-                        {drop > 0 && (
-                          <span className="absolute right-3 top-0.5 text-[8px] font-extrabold text-red-400/80">
-                            Abandono: {drop.toFixed(1)}%
-                          </span>
-                        )}
-                      </div>
+                      <span className="text-[10px] text-slate-500 font-mono shrink-0">
+                        {new Date(evt.created_at).toLocaleString('pt-BR')}
+                      </span>
                     </div>
                   );
-                })}
-              </div>
-            </CardGlass>
-
-            {/* QA Career Insights */}
-            <CardGlass className="p-5 lg:col-span-1 space-y-4">
-              <h3 className="text-xs font-bold text-slate-300 uppercase tracking-wider pb-2 border-b border-slate-900">
-                AI Correlation Insights
-              </h3>
-              <div className="space-y-4 text-xs">
-                {aiInsights.map((insight: any, idx: number) => (
-                  <div key={idx} className="space-y-1 p-3 bg-slate-950/20 border border-slate-900 rounded-xl relative overflow-hidden">
-                    <div className="absolute top-0 right-0 px-2 py-0.5 bg-brand-500/10 rounded-bl text-[8px] font-extrabold text-brand-400">
-                      Impacto: {insight.impact_multiplier}x
-                    </div>
-                    <h4 className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">
-                      💡 {insight.insight_title}
-                    </h4>
-                    <p className="font-semibold text-slate-300 mt-1">{insight.insight_description}</p>
-                  </div>
-                ))}
-              </div>
-            </CardGlass>
-          </div>
-
-          {/* Comparativo de Habilidades */}
-          <CardGlass className="p-5 space-y-4">
-            <div>
-              <h3 className="text-xs font-bold text-slate-300 uppercase tracking-wider">Skills Intelligence (Gap Currículo vs. Mercado)</h3>
-              <p className="text-[10px] text-slate-500">Mapeamento em tempo real do gap de habilidades entre currículos de candidatos e vagas indexadas.</p>
-            </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-2">
-              {/* Skills in resumes */}
-              <div className="space-y-3">
-                <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block border-b border-slate-900 pb-1">
-                  Mais Frequentes nos Currículos
-                </span>
-                {skillsIntelligence.slice(0, 6).map((skill: any, idx: number) => {
-                  const maxCount = Math.max(...skillsIntelligence.map((s: any) => Number(s.user_count))) || 1;
-                  const pct = Math.round((Number(skill.user_count) * 100) / maxCount);
-                  return (
-                    <div key={idx} className="space-y-1 text-xs">
-                      <div className="flex justify-between font-medium">
-                        <span className="text-slate-300">{skill.skill_name}</span>
-                        <span className="text-slate-500">{skill.user_count} perfis</span>
-                      </div>
-                      <div className="h-2 w-full bg-slate-950 rounded-full overflow-hidden">
-                        <div className="h-full bg-brand-500 rounded-full" style={{ width: `${pct}%` }} />
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-
-              {/* Skills in jobs */}
-              <div className="space-y-3">
-                <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block border-b border-slate-900 pb-1">
-                  Mais Demandadas nas Vagas (Mercado)
-                </span>
-                {skillsIntelligence.slice(0, 6).map((skill: any, idx: number) => {
-                  const maxCount = Math.max(...skillsIntelligence.map((s: any) => Number(s.market_count))) || 1;
-                  const pct = Math.round((Number(skill.market_count) * 100) / maxCount);
-                  const isGap = skill.user_count === 0 || (Number(skill.market_count) - Number(skill.user_count)) > 5;
-                  return (
-                    <div key={idx} className="space-y-1 text-xs">
-                      <div className="flex justify-between font-medium">
-                        <span className="text-slate-300 flex items-center gap-1.5">
-                          {skill.skill_name}
-                          {isGap && <span className="text-[8px] font-bold px-1.5 py-0.2 bg-red-500/10 text-red-400 border border-red-500/20 rounded">Gap Detectado</span>}
-                        </span>
-                        <span className="text-slate-505">{skill.market_count} vagas</span>
-                      </div>
-                      <div className="h-2 w-full bg-slate-955 rounded-full overflow-hidden">
-                        <div className="h-full bg-purple-500 rounded-full" style={{ width: `${pct}%` }} />
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
+                })
+              ) : (
+                <div className="text-center py-20 text-slate-550 border border-dashed border-slate-900 rounded-xl">
+                  Nenhum log registrado. A stream de eventos está limpa.
+                </div>
+              )}
             </div>
           </CardGlass>
 
-          {/* Feature Adoption & Heatmap */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <CardGlass className="p-5 space-y-4">
-              <div>
-                <h3 className="text-xs font-bold text-slate-300 uppercase tracking-wider">Adoção de Funcionalidades (Feature Adoption)</h3>
-                <p className="text-[10px] text-slate-550">Utilização ativa das ferramentas do ecossistema Talenta.</p>
-              </div>
-              <div className="space-y-3 pt-2">
-                {featureAdoption.map((feat: any, idx: number) => (
-                  <div key={idx} className="space-y-1 text-xs">
-                    <div className="flex justify-between font-medium">
-                      <span className="text-slate-300">{feat.feature_name}</span>
-                      <span className="text-slate-500">{feat.use_count} interações ({feat.percentage}%)</span>
-                    </div>
-                    <div className="h-2.5 w-full bg-slate-950 rounded-lg overflow-hidden border border-slate-900">
-                      <div className="h-full bg-gradient-to-r from-emerald-500 to-teal-450 rounded-lg" style={{ width: `${feat.percentage}%` }} />
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </CardGlass>
-
-            <CardGlass className="p-5 space-y-4">
-              <div>
-                <h3 className="text-xs font-bold text-slate-300 uppercase tracking-wider">Heatmap de Vagas & Atuação</h3>
-                <p className="text-[10px] text-slate-550">Distribuição volumétrica das vagas processadas e analisadas.</p>
-              </div>
-              <div className="space-y-3 pt-2">
-                {heatmapJobs.map((cat: any, idx: number) => (
-                  <div key={idx} className="space-y-1 text-xs">
-                    <div className="flex justify-between font-medium">
-                      <span className="text-slate-300">{cat.category_name}</span>
-                      <span className="text-slate-500">{cat.job_count} vagas ({cat.percentage}%)</span>
-                    </div>
-                    <div className="h-2.5 w-full bg-slate-950 rounded-lg overflow-hidden border border-slate-900">
-                      <div className="h-full bg-gradient-to-r from-blue-500 to-indigo-405 rounded-lg" style={{ width: `${cat.percentage}%` }} />
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </CardGlass>
-          </div>
-
-          {/* Métricas Operacionais de Currículos & Entrevistas */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <CardGlass className="p-5 space-y-4">
-              <h3 className="text-xs font-bold text-slate-300 uppercase tracking-wider pb-2 border-b border-slate-900 flex items-center gap-1.5">
-                <FileText size={14} className="text-brand-500" />
-                Métricas de Currículos
-              </h3>
-              <div className="grid grid-cols-2 gap-3 text-xs">
-                <div className="p-3 bg-slate-950/20 border border-slate-900 rounded-xl">
-                  <span className="text-[10px] text-slate-500 font-bold uppercase block">Enviados</span>
-                  <span className="text-lg font-extrabold text-slate-200 block mt-1">{usageCounts?.resumes || 12} currículos</span>
-                </div>
-                <div className="p-3 bg-slate-950/20 border border-slate-900 rounded-xl">
-                  <span className="text-[10px] text-slate-500 font-bold uppercase block">Analisados</span>
-                  <span className="text-lg font-extrabold text-slate-200 block mt-1">{usageCounts?.resumes || 12} currículos</span>
-                </div>
-                <div className="p-3 bg-slate-950/20 border border-slate-900 rounded-xl">
-                  <span className="text-[10px] text-slate-500 font-bold uppercase block">Otimizados</span>
-                  <span className="text-lg font-extrabold text-slate-200 block mt-1">{Math.ceil((usageCounts?.resumes || 12) * 0.65)} otimizados</span>
-                </div>
-                <div className="p-3 bg-slate-950/20 border border-slate-900 rounded-xl">
-                  <span className="text-[10px] text-slate-500 font-bold uppercase block">Erros de Parsing</span>
-                  <span className="text-lg font-extrabold text-emerald-450 block mt-1">0%</span>
-                </div>
-              </div>
-            </CardGlass>
-
-            <CardGlass className="p-5 space-y-4">
-              <h3 className="text-xs font-bold text-slate-300 uppercase tracking-wider pb-2 border-b border-slate-900 flex items-center gap-1.5">
-                <Video size={14} className="text-purple-400" />
-                Métricas de Entrevistas Simuladas
-              </h3>
-              <div className="grid grid-cols-3 gap-2 text-xs">
-                <div className="p-3 bg-slate-950/20 border border-slate-900 rounded-xl">
-                  <span className="text-[9px] text-slate-550 font-bold uppercase block">Simulações</span>
-                  <span className="text-base font-extrabold text-slate-200 block mt-1">{usageCounts?.simulations || 8}</span>
-                </div>
-                <div className="p-3 bg-slate-950/20 border border-slate-900 rounded-xl">
-                  <span className="text-[9px] text-slate-550 font-bold uppercase block">Tempo Médio</span>
-                  <span className="text-base font-extrabold text-slate-200 block mt-1">12m 45s</span>
-                </div>
-                <div className="p-3 bg-slate-950/20 border border-slate-900 rounded-xl">
-                  <span className="text-[9px] text-slate-550 font-bold uppercase block">Nota Média</span>
-                  <span className="text-base font-extrabold text-slate-200 block mt-1">7.8 / 10</span>
-                </div>
-              </div>
-              <div className="p-2.5 bg-slate-950/30 border border-slate-900 rounded-xl text-[11px] leading-relaxed">
-                <span className="text-[9px] text-slate-550 font-bold uppercase block pb-1 border-b border-slate-900/40 font-semibold">Pergunta mais utilizada:</span>
-                <span className="text-slate-300 block mt-1 font-medium font-sans">"Fale sobre um momento em que lidou com um cliente difícil ou insatisfeito e como reverteu a situação."</span>
-              </div>
-            </CardGlass>
-          </div>
-        </div>
-      )}
-
-      {/* VIEW 4: Financeiro (Billing) */}
-      {activeSubTab === 'finances' && hasFinancesAccess && (
-        <div className="space-y-6 animate-fade-in">
-          {/* Revenue Breakdown */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
-            {[
-              { label: 'MRR (Recorrente Mensal)', val: `R$ ${mrr.toFixed(2)}`, desc: 'Base de assinantes Pro' },
-              { label: 'ARR (Anual Projetado)', val: `R$ ${(mrr * 12).toFixed(2)}`, desc: 'Multiplicador MRR x 12' },
-              { label: 'Receita Diária', val: `R$ ${(mrr / 30).toFixed(2)}`, desc: 'Média ponderada 30d' },
-              { label: 'Faturamento Mensal', val: `R$ ${mrr.toFixed(2)}`, desc: 'Valor total faturado' },
-              { label: 'Projeção Anual', val: `R$ ${(mrr * 12).toFixed(2)}`, desc: 'Crescimento estimado' }
-            ].map((card, idx) => (
-              <CardGlass key={idx} className="p-4 flex flex-col justify-between">
-                <span className="text-[9px] text-slate-550 font-bold uppercase tracking-wider">{card.label}</span>
-                <span className="text-lg font-extrabold text-slate-200 mt-2 font-display">{card.val}</span>
-                <span className="text-[9px] text-slate-550 mt-1">{card.desc}</span>
-              </CardGlass>
-            ))}
-          </div>
-
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            
-            {/* Payment Methods and Renewals stats */}
-            <CardGlass className="p-5 col-span-1 space-y-4">
-              <h3 className="text-xs font-bold text-slate-300 uppercase tracking-wider pb-2 border-b border-slate-900">
-                Divisão de Métodos e Conversão
-              </h3>
-              <div className="space-y-4 text-xs">
-                {/* Method ratio */}
-                <div className="space-y-2">
-                  <span className="text-slate-500 font-semibold block">Métodos de Pagamento</span>
-                  <div className="flex gap-1.5 h-6 rounded-lg overflow-hidden border border-slate-900 text-[10px] font-bold text-center">
-                    <div className="bg-emerald-500 text-emerald-950 flex items-center justify-center" style={{ width: '42%' }}>PIX (42%)</div>
-                    <div className="bg-brand-500 text-brand-950 flex items-center justify-center" style={{ width: '58%' }}>Cartão (58%)</div>
-                  </div>
-                </div>
-
-                {/* Billing Event metrics counters */}
-                <div className="space-y-3">
-                  {[
-                    { label: 'Renovações Automáticas', val: '42 concluídas', color: 'text-emerald-450' },
-                    { label: 'Falhas de Cobrança (Stripe)', val: '2 pendências', color: 'text-red-400' },
-                    { label: 'Reembolsos Concedidos', val: '1 processado', color: 'text-slate-400' },
-                    { label: 'Upgrades de Plano (Free → Pro)', val: '+5 hoje', color: 'text-brand-400' },
-                    { label: 'Downgrades de Plano', val: '0 hoje', color: 'text-slate-400' },
-                    { label: 'Cancelamentos Efetuados', val: '0 esta semana', color: 'text-slate-400' }
-                  ].map((item, idx) => (
-                    <div key={idx} className="flex justify-between items-center p-2 rounded-lg bg-slate-950/20 border border-slate-900">
-                      <span className="text-slate-450 font-medium">{item.label}</span>
-                      <span className={`font-bold ${item.color}`}>{item.val}</span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </CardGlass>
-
-            {/* Transactions detailed logs */}
-            <CardGlass className="p-5 lg:col-span-2 space-y-4">
-              <div className="flex justify-between items-center">
-                <div>
-                  <h3 className="text-xs font-bold text-slate-300 uppercase tracking-wider">Histórico de Cobrança & Logs</h3>
-                  <p className="text-[10px] text-slate-500">Transações recebidas via Stripe Webhooks.</p>
-                </div>
-                <button
-                  onClick={() => refetchFinances()}
-                  disabled={isLoadingFinances}
-                  className="px-2.5 py-1.5 rounded-lg bg-slate-900 border border-slate-800 hover:border-slate-700 text-[9px] font-bold text-slate-200 flex items-center gap-1 transition-all disabled:opacity-50"
-                >
-                  {isLoadingFinances ? <Loader2 className="animate-spin" size={10} /> : <RefreshCw size={10} />}
-                  Sincronizar
-                </button>
-              </div>
-
-              {isLoadingFinances ? (
-                <div className="flex flex-col items-center justify-center py-16 gap-2 text-slate-500">
-                  <Loader2 className="animate-spin text-brand-500" size={24} />
-                  <span className="text-xs font-medium">Buscando transações Stripe...</span>
-                </div>
-              ) : billingData?.transactions && billingData.transactions.length > 0 ? (
-                <div className="overflow-x-auto rounded-xl border border-slate-900 bg-slate-950/20">
-                  <table className="w-full border-collapse text-left text-xs text-slate-450 font-sans">
-                    <thead>
-                      <tr className="border-b border-slate-900 bg-slate-950/60 font-semibold text-slate-350">
-                        <th className="p-3">ID Transação</th>
-                        <th className="p-3">Usuário</th>
-                        <th className="p-3">Método</th>
-                        <th className="p-3">Valor</th>
-                        <th className="p-3">Status</th>
-                        <th className="p-3 text-right">Data</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-slate-900">
-                      {billingData.transactions.map((tx: any) => (
-                        <tr key={tx.id} className="hover:bg-slate-900/10">
-                          <td className="p-3 font-mono text-[10px] text-slate-400 font-semibold truncate max-w-[120px]">{tx.id}</td>
-                          <td className="p-3 font-semibold text-slate-300">{tx.user_name}</td>
-                          <td className="p-3 text-slate-500 font-semibold uppercase">{tx.payment_method}</td>
-                          <td className="p-3 font-bold text-slate-300">R$ {tx.amount.toFixed(2)}</td>
-                          <td className="p-3">
-                            <span className={`px-2 py-0.5 rounded text-[9px] font-bold uppercase tracking-wider ${
-                              tx.status === 'succeeded' ? 'bg-emerald-500/10 text-emerald-450 border border-emerald-500/15' :
-                              tx.status === 'failed' ? 'bg-red-500/10 text-red-400 border border-red-500/15' :
-                              'bg-slate-500/10 text-slate-400 border border-slate-700/15'
-                            }`}>
-                              {tx.status}
-                            </span>
-                          </td>
-                          <td className="p-3 text-right text-slate-500">
-                            {new Date(tx.created_at).toLocaleDateString('pt-BR')}
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              ) : (
-                <div className="text-center py-12 rounded-xl border border-dashed border-slate-900 text-slate-500 text-xs">
-                  Nenhuma transação Stripe recente localizada no banco de dados.
-                </div>
-              )}
-            </CardGlass>
-          </div>
-        </div>
-      )}
-
-      {/* VIEW 5: Inteligência Artificial (IA Analytics) */}
-      {activeSubTab === 'ia_analytics' && hasTelemetryAccess && (
-        <div className="space-y-6 animate-fade-in">
-          {/* Top Token/Cost Row */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-            <CardGlass className="p-4 flex flex-col justify-between">
-              <span className="text-[10px] text-slate-500 font-bold uppercase tracking-wider">Prompts Processados</span>
-              <div className="mt-4">
-                <span className="text-3xl font-extrabold text-slate-100 font-display">4,210</span>
-                <span className="text-[9px] text-emerald-450 font-semibold block mt-1">Hoje: 184 prompts enviados</span>
-              </div>
-            </CardGlass>
-
-            <CardGlass className="p-4 flex flex-col justify-between">
-              <span className="text-[10px] text-slate-500 font-bold uppercase tracking-wider">Volume de Tokens</span>
-              <div className="mt-4">
-                <span className="text-3xl font-extrabold text-slate-100 font-display">15.2M</span>
-                <span className="text-[9px] text-slate-550 block mt-1">Destaque: Coach IA (45% dos tokens)</span>
-              </div>
-            </CardGlass>
-
-            <CardGlass className="p-4 flex flex-col justify-between">
-              <span className="text-[10px] text-slate-500 font-bold uppercase tracking-wider">Custo de IA (Diário vs Total)</span>
-              <div className="mt-4">
-                <span className="text-3xl font-extrabold text-emerald-400 font-display">R$ 1.231,20</span>
-                <span className="text-[9px] text-emerald-450 font-semibold block mt-1">Diário: R$ 41,04 (Gemini R$ 28,44 | OpenAI R$ 12,60)</span>
-              </div>
-            </CardGlass>
-
-            <CardGlass className="p-4 flex flex-col justify-between">
-              <span className="text-[10px] text-slate-500 font-bold uppercase tracking-wider">Tempo Médio & Erros</span>
-              <div className="mt-4">
-                <span className="text-3xl font-extrabold text-slate-100 font-display">1.22s</span>
-                <span className="text-[9px] text-emerald-450 font-semibold block mt-1">Tempo de Resposta | Taxa de Erro: 0.05%</span>
-              </div>
-            </CardGlass>
-          </div>
-
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            
-            {/* Tool popularity */}
-            <CardGlass className="p-5 space-y-4">
-              <h3 className="text-xs font-bold text-slate-300 uppercase tracking-wider pb-2 border-b border-slate-900">
-                Uso por Ferramenta de IA
-              </h3>
-              <div className="space-y-4 pt-2">
-                {[
-                  { name: 'Coach de Carreira (Chat)', usage: '45%', count: '1,894 chamadas', color: 'bg-purple-500' },
-                  { name: 'Otimizador de Currículo', usage: '30%', count: '1,263 chamadas', color: 'bg-brand-500' },
-                  { name: 'Gerador de Carta de Apresentação', usage: '15%', count: '631 chamadas', color: 'bg-pink-500' },
-                  { name: 'Simulador de Entrevistas', usage: '10%', count: '422 chamadas', color: 'bg-blue-500' }
-                ].map((tool, idx) => (
-                  <div key={idx} className="space-y-1 text-xs">
-                    <div className="flex justify-between font-semibold">
-                      <span className="text-slate-350">{tool.name}</span>
-                      <div className="text-right">
-                        <span className="text-slate-200">{tool.usage}</span>
-                        <span className="text-slate-550 ml-1.5">({tool.count})</span>
-                      </div>
-                    </div>
-                    <div className="h-2 w-full bg-slate-950 rounded-full overflow-hidden">
-                      <div className={`h-full ${tool.color} rounded-full`} style={{ width: tool.usage }} />
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </CardGlass>
-
-            {/* Popular prompts logs */}
-            <CardGlass className="p-5 space-y-4">
-              <h3 className="text-xs font-bold text-slate-300 uppercase tracking-wider pb-2 border-b border-slate-900">
-                Prompts e Instruções Mais Frequentes
-              </h3>
-              <div className="space-y-3 text-xs">
-                {[
-                  { count: 182, prompt: '"Revisar pontos fracos do currículo para vaga de Customer Success"', category: 'Currículo' },
-                  { count: 154, prompt: '"Simular uma entrevista técnica de Engenheiro de Software na Vercel"', category: 'Entrevista' },
-                  { count: 114, prompt: '"Como explicar uma demissão recente sem prejudicar meu perfil?"', category: 'Coach IA' },
-                  { count: 98, prompt: '"Escrever e-mail de agradecimento após entrevista final"', category: 'Carta' }
-                ].map((p, idx) => (
-                  <div key={idx} className="p-3 rounded-xl bg-slate-950/20 border border-slate-900 flex justify-between items-center">
-                    <div>
-                      <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">{p.category}</span>
-                      <p className="font-semibold text-slate-200 mt-1 font-mono text-[11px]">{p.prompt}</p>
-                    </div>
-                    <span className="text-[10px] px-2 py-1 bg-slate-900 border border-slate-800 text-slate-400 font-bold rounded-lg shrink-0 ml-3">
-                      {p.count} reqs
-                    </span>
-                  </div>
-                ))}
-              </div>
-            </CardGlass>
-          </div>
-
-          {/* IA Cost Center & ROI Table */}
+          {/* Telemetry Errors Log */}
           <CardGlass className="p-5 space-y-4">
-            <div>
-              <h3 className="text-xs font-bold text-slate-300 uppercase tracking-wider">IA Cost Center & ROI por Usuário</h3>
-              <p className="text-[10px] text-slate-550">Mapeamento detalhado de consumo de tokens, custos acumulados de APIs e retorno financeiro.</p>
-            </div>
+            <h3 className="text-xs font-bold text-slate-300 uppercase tracking-wider pb-2 border-b border-slate-900 flex items-center gap-1.5">
+              <ShieldAlert size={14} className="text-red-500" />
+              Erros e Exceções de Produção
+            </h3>
             <div className="overflow-x-auto rounded-xl border border-slate-900 bg-slate-950/20">
-              <table className="w-full border-collapse text-left text-xs text-slate-400">
+              <table className="w-full border-collapse text-left text-xs text-slate-450">
                 <thead>
-                  <tr className="border-b border-slate-900 bg-slate-950/60 font-semibold text-slate-300">
-                    <th className="p-3">Usuário</th>
-                    <th className="p-3">Tokens Totais</th>
-                    <th className="p-3">Custo Est. (BRL)</th>
-                    <th className="p-3">Coach (Tkns)</th>
-                    <th className="p-3">CV (Tkns)</th>
-                    <th className="p-3">Carta (Tkns)</th>
-                    <th className="p-3">Entrevista (Tkns)</th>
-                    <th className="p-3">Plano</th>
-                    <th className="p-3 text-right">ROI (Est.)</th>
+                  <tr className="border-b border-slate-900 bg-slate-950/60 font-semibold text-slate-350">
+                    <th className="p-3">Horário</th>
+                    <th className="p-3">Componente</th>
+                    <th className="p-3">Código Erro</th>
+                    <th className="p-3">Mensagem</th>
+                    <th className="p-3">Status</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-slate-900 text-[11px]">
-                  {iaCostCenter.map((row: any, idx: number) => {
-                    const isNegative = Number(row.roi) < 0;
-                    return (
-                      <tr key={idx} className="hover:bg-slate-900/10">
-                        <td className="p-3 font-semibold text-slate-200">{row.user_name}</td>
-                        <td className="p-3 font-mono">{Number(row.total_tokens).toLocaleString()}</td>
-                        <td className="p-3 font-mono text-amber-400">R$ {Number(row.estimated_cost_brl).toFixed(2)}</td>
-                        <td className="p-3 font-mono text-slate-500">{Number(row.coach_tokens).toLocaleString()}</td>
-                        <td className="p-3 font-mono text-slate-500">{Number(row.cv_tokens).toLocaleString()}</td>
-                        <td className="p-3 font-mono text-slate-500">{Number(row.carta_tokens).toLocaleString()}</td>
-                        <td className="p-3 font-mono text-slate-500">{Number(row.interview_tokens).toLocaleString()}</td>
+                <tbody className="divide-y divide-slate-900 font-sans">
+                  {systemErrors.length > 0 ? (
+                    systemErrors.map((err: any) => (
+                      <tr key={err.id} className="hover:bg-slate-900/10">
+                        <td className="p-3 font-mono text-[10px] text-slate-500 whitespace-nowrap">
+                          {new Date(err.created_at).toLocaleString('pt-BR')}
+                        </td>
+                        <td className="p-3 font-semibold text-slate-300">{err.component || 'Global'}</td>
+                        <td className="p-3 font-bold font-mono text-red-400">{err.error_code || 'GENERIC_ERROR'}</td>
+                        <td className="p-3 text-[11px] text-slate-400 max-w-md truncate" title={err.message}>{err.message}</td>
                         <td className="p-3">
-                          <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${
-                            row.premium_status === 'active' ? 'bg-emerald-500/10 text-emerald-450 border border-emerald-500/20' : 'bg-slate-800 text-slate-400'
+                          <span className={`px-2 py-0.5 rounded text-[9px] font-bold border uppercase tracking-wider ${
+                            err.resolved ? 'bg-emerald-500/10 text-emerald-450 border-emerald-500/20' : 'bg-red-500/10 text-red-400 border-red-500/20 animate-pulse'
                           }`}>
-                            {row.premium_status === 'active' ? 'Premium' : 'Free'}
+                            {err.resolved ? 'Resolvido' : 'Ativo'}
                           </span>
                         </td>
-                        <td className={`p-3 text-right font-mono font-bold ${isNegative ? 'text-red-400' : 'text-emerald-400'}`}>
-                          R$ {Number(row.roi).toFixed(2)}
-                        </td>
                       </tr>
-                    );
-                  })}
+                    ))
+                  ) : (
+                    <tr>
+                      <td colSpan={5} className="p-8 text-center text-slate-550">
+                        Nenhum erro de produção localizado no banco. Operações normais.
+                      </td>
+                    </tr>
+                  )}
                 </tbody>
               </table>
             </div>
@@ -1861,248 +1456,160 @@ export function AdminDashboard({ userId }: AdminDashboardProps) {
         </div>
       )}
 
-      {/* VIEW 6: Observabilidade de Vagas */}
-      {activeSubTab === 'jobs_observability' && hasUsersAccess && (
-        <div className="space-y-6 animate-fade-in">
-          {/* Top Metrics Row */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-            <CardGlass className="p-4 flex flex-col justify-between">
-              <span className="text-[10px] text-slate-500 font-bold uppercase tracking-wider">Vagas Importadas</span>
-              <div className="mt-4">
-                <span className="text-3xl font-extrabold text-slate-100 font-display">12,402</span>
-                <span className="text-[9px] text-slate-550 block mt-1">LinkedIn, Adzuna, Gupy, Indeed, Catho</span>
-              </div>
-            </CardGlass>
-
-            <CardGlass className="p-4 flex flex-col justify-between">
-              <span className="text-[10px] text-slate-500 font-bold uppercase tracking-wider">Vagas Analisadas</span>
-              <div className="mt-4">
-                <span className="text-3xl font-extrabold text-slate-100 font-display">{usageCounts?.jobs || 48}</span>
-                <span className="text-[9px] text-slate-550 block mt-1">Mapeadas e avaliadas pelo motor de IA</span>
-              </div>
-            </CardGlass>
-
-            <CardGlass className="p-4 flex flex-col justify-between">
-              <span className="text-[10px] text-slate-500 font-bold uppercase tracking-wider">Matches & Performance</span>
-              <div className="mt-4">
-                <span className="text-3xl font-extrabold text-slate-100 font-display">184</span>
-                <span className="text-[9px] text-slate-450 font-semibold block mt-1">Score Médio: 74.5% | Match &gt; 80%: 42 usuários</span>
-              </div>
-            </CardGlass>
-
-            <CardGlass className="p-4 flex flex-col justify-between">
-              <span className="text-[10px] text-slate-500 font-bold uppercase tracking-wider">Velocidade do Processamento</span>
-              <div className="mt-4">
-                <span className="text-3xl font-extrabold text-emerald-450 font-display">4.2s</span>
-                <span className="text-[9px] text-emerald-450 font-semibold block mt-1">Média por análise de compatibilidade</span>
-              </div>
-            </CardGlass>
-          </div>
-
-          {/* Vacancy Sources Breakdown */}
-          <CardGlass className="p-6 space-y-4">
-            <div>
-              <h3 className="text-xs font-bold text-slate-300 uppercase tracking-wider">Fontes de Indexação de Vagas</h3>
-              <p className="text-[10px] text-slate-500">Mapeamento de feeds e portais de recrutadores ativos.</p>
+      {/* VIEW 4: IA */}
+      {activeSubTab === 'ia' && hasTelemetryAccess && (
+        <div className="space-y-6 animate-fade-in font-sans">
+          {isLoadingIaStats ? (
+            <div className="flex flex-col items-center justify-center py-24 gap-3 text-slate-400">
+              <Loader2 className="animate-spin text-brand-500" size={28} />
+              <span className="text-xs font-semibold">Buscando telemetria de Inteligência Artificial...</span>
             </div>
-            <div className="grid grid-cols-2 md:grid-cols-5 gap-4 pt-2">
-              {[
-                { source: 'Adzuna API', count: 4102, share: '33%', color: 'text-blue-400' },
-                { source: 'LinkedIn Feed', count: 3405, share: '27.4%', color: 'text-indigo-400' },
-                { source: 'Gupy Parser', count: 2801, share: '22.5%', color: 'text-purple-400' },
-                { source: 'Indeed Web', count: 1504, share: '12.1%', color: 'text-cyan-400' },
-                { source: 'Catho RSS', count: 590, share: '5%', color: 'text-pink-400' }
-              ].map((src, idx) => (
-                <div key={idx} className="p-3.5 rounded-xl bg-slate-950/40 border border-slate-900/60 flex flex-col justify-between">
-                  <span className={`text-xs font-bold ${src.color}`}>{src.source}</span>
-                  <span className="text-2xl font-extrabold text-slate-200 mt-2 font-display">{src.count.toLocaleString()}</span>
-                  <span className="text-[9px] text-slate-550 mt-1 font-semibold">Participação: {src.share}</span>
-                </div>
-              ))}
-            </div>
-          </CardGlass>
-        </div>
-      )}
-
-      {/* VIEW 7: Growth OS & Suporte */}
-      {activeSubTab === 'growth_os' && hasUsersAccess && (
-        <div className="space-y-6 animate-fade-in">
-          {/* User Risk Segmentation */}
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            <CardGlass className="p-5 lg:col-span-2 space-y-4">
-              <h3 className="text-xs font-bold text-slate-300 uppercase tracking-wider pb-2 border-b border-slate-900">
-                Segmentação de Usuários & Funil de Risco
-              </h3>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
-                {[
-                  { label: 'Cadastrados Hoje', val: '+3 cadastros', desc: 'Novos ingressantes nas últimas 24h', color: 'text-brand-400' },
-                  { label: 'Fizeram Upload de Currículo', val: '12 usuários', desc: 'Ativação inicial do perfil concluída', color: 'text-indigo-400' },
-                  { label: 'Abandonou o Onboarding', val: '4 cadastros', desc: 'Parou antes de concluir onboarding', color: 'text-amber-400' },
-                  { label: 'Nunca gerou Match', val: '3 cadastros', desc: 'Enviou CV mas não calculou matches', color: 'text-slate-400' },
-                  { label: 'Nunca usou o Coach IA', val: '6 cadastros', desc: 'Nenhum prompt enviado ao assistente', color: 'text-slate-400' },
-                  { label: 'Perto de Virar Premium', val: '9 cadastros', desc: 'Fez mais de 5 simulações/otimizações', color: 'text-emerald-400' },
-                  { label: 'Usuários em Risco de Churn', val: '8 cadastros', desc: 'Inativos há mais de 14 dias', color: 'text-red-400' },
-                  { label: 'Usuários Inativos Gerais', val: '12 cadastros', desc: 'Sem nova sessão há 30 dias', color: 'text-slate-450' }
-                ].map((seg, idx) => (
-                  <div key={idx} className="p-3 rounded-xl bg-slate-950/20 border border-slate-900 flex justify-between items-center hover:scale-[1.01] transition-transform">
-                    <div>
-                      <span className={`font-semibold ${seg.color} block`}>{seg.label}</span>
-                      <span className="text-[10px] text-slate-550 block mt-0.5">{seg.desc}</span>
-                    </div>
-                    <span className="text-[11px] font-extrabold text-slate-200 font-mono bg-slate-900 border border-slate-800 px-2.5 py-1 rounded-lg">
-                      {seg.val}
+          ) : (
+            <>
+              {/* IA operational metrics */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                <CardGlass className="p-4 flex flex-col justify-between">
+                  <span className="text-[10px] text-slate-500 font-bold uppercase tracking-wider">Prompts Processados</span>
+                  <div className="mt-4">
+                    <span className="text-3xl font-extrabold text-slate-100 font-display">
+                      {iaStats?.total_calls ?? 0}
                     </span>
+                    <span className="text-[9px] text-slate-550 block mt-1">Registros na tabela ai_usage_logs</span>
                   </div>
-                ))}
+                </CardGlass>
+
+                <CardGlass className="p-4 flex flex-col justify-between">
+                  <span className="text-[10px] text-slate-500 font-bold uppercase tracking-wider">Volume de Tokens</span>
+                  <div className="mt-4">
+                    <span className="text-3xl font-extrabold text-slate-100 font-display font-mono">
+                      {(iaStats?.total_tokens ?? 0).toLocaleString()}
+                    </span>
+                    <span className="text-[9px] text-slate-550 block mt-1">Tokens totais imputados/gerados</span>
+                  </div>
+                </CardGlass>
+
+                <CardGlass className="p-4 flex flex-col justify-between">
+                  <span className="text-[10px] text-slate-505 font-bold uppercase tracking-wider">Custo Est. IA (API)</span>
+                  <div className="mt-4">
+                    <span className="text-3xl font-extrabold text-amber-400 font-display font-mono">
+                      R$ {iaStats?.total_cost_brl ?? 0.0}
+                    </span>
+                    <span className="text-[9px] text-slate-550 block mt-1">Calculado em Dólar (Câmbio BRL: 5.40)</span>
+                  </div>
+                </CardGlass>
+
+                <CardGlass className="p-4 flex flex-col justify-between">
+                  <span className="text-[10px] text-slate-500 font-bold uppercase tracking-wider">Erros Relacionados</span>
+                  <div className="mt-4">
+                    <span className="text-3xl font-extrabold text-red-400 font-display font-mono">
+                      {iaStats?.errors_count ?? 0}
+                    </span>
+                    <span className="text-[9px] text-slate-550 block mt-1">Erros na API Gemini ou Parsing</span>
+                  </div>
+                </CardGlass>
               </div>
-            </CardGlass>
 
-            {/* Support Center & NPS */}
-            <CardGlass className="p-5 lg:col-span-1 space-y-4">
-              <h3 className="text-xs font-bold text-slate-300 uppercase tracking-wider pb-2 border-b border-slate-900">
-                Centro de Suporte & NPS Geral
-              </h3>
-              <div className="space-y-4 text-xs">
-                {/* Net Promoter Score */}
-                <div className="p-3 rounded-xl bg-slate-950/30 border border-slate-900 flex justify-between items-center">
-                  <div>
-                    <span className="text-[10px] text-slate-550 font-bold uppercase tracking-wider">NPS Geral</span>
-                    <span className="text-2xl font-extrabold text-emerald-400 font-display block mt-1">+74.2</span>
-                  </div>
-                  <span className="text-[9px] px-2 py-1 bg-emerald-500/10 text-emerald-450 border border-emerald-500/20 font-bold rounded-lg uppercase">Excelente</span>
-                </div>
+              {/* Value Metrics / ROI (Mixpanel/Linear style) */}
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                
+                {/* 1. Value Delivery KPIs */}
+                <CardGlass className="p-5 col-span-1 space-y-4">
+                  <h3 className="text-xs font-bold text-slate-300 uppercase tracking-wider pb-2 border-b border-slate-900">
+                    Entrega de Valor Real do Produto
+                  </h3>
+                  <div className="space-y-4 text-xs">
+                    <div className="p-4 rounded-xl bg-slate-950/40 border border-slate-900 flex justify-between items-center hover:scale-[1.01] transition-transform">
+                      <div>
+                        <span className="text-slate-450 font-medium block">Horas de Trabalho Economizadas</span>
+                        <span className="text-[9px] text-slate-550">Metodologia baseada em economia média</span>
+                      </div>
+                      <span className="text-2xl font-extrabold text-emerald-450 font-mono">
+                        {iaStats?.hours_saved ?? 0.0} h
+                      </span>
+                    </div>
 
-                {/* Star ratings */}
-                <div className="space-y-2">
-                  <div className="flex justify-between items-center text-slate-450">
-                    <span>Avaliação Média na App Store/Web</span>
-                    <span className="font-bold text-slate-200">4.8 / 5.0</span>
+                    <div className="p-4 rounded-xl bg-slate-950/40 border border-slate-900 flex justify-between items-center hover:scale-[1.01] transition-transform">
+                      <div>
+                        <span className="text-slate-450 font-medium block">Compatibilidade Geral Média</span>
+                        <span className="text-[9px] text-slate-550">Média geral do Match Score</span>
+                      </div>
+                      <span className="text-2xl font-extrabold text-brand-500 font-mono">
+                        {iaStats?.avg_match_score ?? 0.0}%
+                      </span>
+                    </div>
+
+                    <div className="space-y-2">
+                      <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block">Entregas IA Consolidadas</span>
+                      <div className="grid grid-cols-2 gap-2 text-[11px]">
+                        <div className="p-2.5 rounded bg-slate-900/40 border border-slate-900">
+                          <span className="text-slate-500 block">Otimizações</span>
+                          <span className="font-bold text-slate-200 block mt-0.5">{iaStats?.optimizations_count ?? 0} CVs</span>
+                        </div>
+                        <div className="p-2.5 rounded bg-slate-900/40 border border-slate-900">
+                          <span className="text-slate-500 block">Cartas Geradas</span>
+                          <span className="font-bold text-slate-200 block mt-0.5">{iaStats?.letters_count ?? 0}</span>
+                        </div>
+                        <div className="p-2.5 rounded bg-slate-900/40 border border-slate-900 col-span-2">
+                          <span className="text-slate-500 block">Entrevistas Simuladas</span>
+                          <span className="font-bold text-slate-200 block mt-0.5">{iaStats?.simulations_count ?? 0} simulações STAR</span>
+                        </div>
+                      </div>
+                    </div>
                   </div>
-                  <div className="flex justify-between items-center text-slate-450">
-                    <span>Bugs reportados pendentes</span>
-                    <span className="font-bold text-red-400">1 ticket</span>
+                </CardGlass>
+
+                {/* 2. IA Funnel of Conversion */}
+                <CardGlass className="p-5 lg:col-span-1 space-y-4">
+                  <h3 className="text-xs font-bold text-slate-300 uppercase tracking-wider pb-2 border-b border-slate-900">
+                    Funil IA & Conversão Interna
+                  </h3>
+                  <div className="space-y-3.5 pt-2">
+                    {funnelData.map((step: any, idx: number) => {
+                      const totalMatches = iaStats?.matches_count || 1;
+                      const pct = Math.round((step.count * 100) / totalMatches);
+                      return (
+                        <div key={idx} className="space-y-1 text-xs">
+                          <div className="flex justify-between font-semibold">
+                            <span className="text-slate-355 font-bold">{step.step_name}</span>
+                            <div className="text-right">
+                              <span className="text-slate-200 font-bold">{step.count}</span>
+                              <span className="text-slate-555 ml-1.5">({pct}%)</span>
+                            </div>
+                          </div>
+                          <div className="h-3 w-full bg-slate-950 rounded-lg overflow-hidden border border-slate-900">
+                            <div className="h-full bg-gradient-to-r from-brand-600 to-brand-500 rounded-lg" style={{ width: `${Math.min(100, Math.max(5, pct))}%` }} />
+                          </div>
+                        </div>
+                      );
+                    })}
                   </div>
-                  <div className="flex justify-between items-center text-slate-450">
-                    <span>Solicitações de Sugestões</span>
-                    <span className="font-bold text-slate-200">15 pendentes</span>
+                </CardGlass>
+
+                {/* 3. Adoption */}
+                <CardGlass className="p-5 lg:col-span-1 space-y-4">
+                  <h3 className="text-xs font-bold text-slate-300 uppercase tracking-wider pb-2 border-b border-slate-900">
+                    Métricas de Adoção Estimadas
+                  </h3>
+                  <div className="space-y-3.5 text-xs">
+                    {[
+                      { name: 'Otimização de Currículos', pct: '45%', desc: 'Funcionalidade primária ativa' },
+                      { name: 'Coach de Carreira (Chat)', pct: '30%', desc: 'Interação ativa e contínua' },
+                      { name: 'Gerador de Carta de Apresentação', pct: '15%', desc: 'Conversão em formulários' },
+                      { name: 'Simulador de Entrevistas STAR', pct: '10%', desc: 'Prática de conversação técnica' }
+                    ].map((feature, idx) => (
+                      <div key={idx} className="p-3 rounded-xl bg-slate-950/20 border border-slate-900">
+                        <div className="flex justify-between font-bold">
+                          <span className="text-slate-200">{feature.name}</span>
+                          <span className="text-brand-500 font-mono">{feature.pct}</span>
+                        </div>
+                        <p className="text-[10px] text-slate-550 mt-1">{feature.desc}</p>
+                      </div>
+                    ))}
                   </div>
-                </div>
+                </CardGlass>
               </div>
-            </CardGlass>
-          </div>
-
-          {/* Automatic Marketing Campaign suggestions */}
-          <CardGlass className="p-5 space-y-4">
-            <h3 className="text-xs font-bold text-slate-300 uppercase tracking-wider pb-2 border-b border-slate-900">
-              Sugestões Automáticas de Marketing (Growth Campaigns)
-            </h3>
-            <div className="space-y-3">
-              {[
-                { title: 'Enviar campanha para usuários que fizeram upload de currículo mas nunca geraram Match.', target: '15 usuários elegíveis', status: 'ready' },
-                { title: 'Oferecer 3 dias grátis de Premium para quem simulou entrevista mas está inativo no Coach.', target: '6 usuários elegíveis', status: 'ready' },
-                { title: 'Enviar lembrete de onboarding pendente para novos cadastros sem currículo nas últimas 48h.', target: '4 usuários elegíveis', status: 'ready' }
-              ].map((cam, idx) => (
-                <div key={idx} className="p-3.5 rounded-xl bg-slate-950/20 border border-slate-900 flex flex-col sm:flex-row justify-between sm:items-center gap-3">
-                  <div>
-                    <h4 className="text-xs font-semibold text-slate-200">{cam.title}</h4>
-                    <span className="text-[10px] text-slate-550 mt-0.5 block">Segmento: {cam.target}</span>
-                  </div>
-                  <button
-                    onClick={() => showToast('Disparando e-mails da campanha com sucesso!', 'success')}
-                    className="px-3.5 py-2 rounded-xl bg-brand-500 hover:bg-brand-600 text-[10px] font-bold text-brand-950 transition-all cursor-pointer shrink-0 self-start sm:self-center"
-                  >
-                    Disparar Campanha
-                  </button>
-                </div>
-              ))}
-            </div>
-          </CardGlass>
-        </div>
-      )}
-
-      {/* VIEW 8: Saúde do Sistema */}
-      {activeSubTab === 'system_health' && hasTelemetryAccess && (
-        <div className="space-y-6 animate-fade-in">
-          {/* Status Indicators Datadog Style */}
-          <CardGlass className="p-5 space-y-4">
-            <div>
-              <h3 className="text-xs font-bold text-slate-300 uppercase tracking-wider">Status das Operações do Sistema</h3>
-              <p className="text-[10px] text-slate-500">Monitoramento ativo das portas de API, Banco e Filas de Mensageria.</p>
-            </div>
-            <div className="grid grid-cols-2 md:grid-cols-5 gap-3 pt-2">
-              {[
-                { service: 'Vercel Edge Functions', status: 'Operational', color: 'bg-emerald-450' },
-                { service: 'Supabase Database', status: 'Operational', color: 'bg-emerald-450' },
-                { service: 'Auth Service (Go)', status: 'Operational', color: 'bg-emerald-450' },
-                { service: 'Supabase Storage', status: 'Operational', color: 'bg-emerald-450' },
-                { service: 'Realtime WebSocket', status: 'Operational', color: 'bg-emerald-450' },
-                { service: 'Cron Jobs (Scheduler)', status: 'Operational', color: 'bg-emerald-450' },
-                { service: 'Background Workers', status: 'Operational', color: 'bg-emerald-450' },
-                { service: 'Fila IA (Gemini API)', status: 'Operational', color: 'bg-emerald-450' },
-                { service: 'Fila de E-mails', status: 'Operational', color: 'bg-emerald-450' },
-                { service: 'Fila de Notificações', status: 'Operational', color: 'bg-emerald-450' }
-              ].map((serv, idx) => (
-                <div key={idx} className="p-3 rounded-xl bg-slate-950/40 border border-slate-900/60 flex flex-col justify-between">
-                  <span className="text-[10px] text-slate-500 font-bold uppercase tracking-wider leading-relaxed">{serv.service}</span>
-                  <div className="flex items-center gap-1.5 mt-3">
-                    <span className={`h-1.5 w-1.5 rounded-full ${serv.color}`} />
-                    <span className="text-[10px] font-extrabold text-slate-200">{serv.status}</span>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </CardGlass>
-
-          {/* Performance Gauges */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <CardGlass className="p-4 flex flex-col justify-between">
-              <span className="text-[10px] text-slate-500 font-bold uppercase tracking-wider">Latência Média Global</span>
-              <div className="mt-4">
-                <span className="text-3xl font-extrabold text-slate-100 font-display">142ms</span>
-                <span className="text-[9px] text-emerald-450 font-semibold block mt-1">99% de requisições &lt; 250ms</span>
-              </div>
-            </CardGlass>
-
-            <CardGlass className="p-4 flex flex-col justify-between">
-              <span className="text-[10px] text-slate-500 font-bold uppercase tracking-wider">Uso de CPU</span>
-              <div className="mt-4">
-                <span className="text-3xl font-extrabold text-slate-100 font-display">22%</span>
-                <span className="text-[9px] text-slate-550 block mt-1">Limite alocado: 8 CPU vcores</span>
-              </div>
-            </CardGlass>
-
-            <CardGlass className="p-4 flex flex-col justify-between">
-              <span className="text-[10px] text-slate-500 font-bold uppercase tracking-wider">Uso de Memória RAM</span>
-              <div className="mt-4">
-                <span className="text-3xl font-extrabold text-slate-100 font-display">45%</span>
-                <span className="text-[9px] text-slate-550 block mt-1">1.8GB consumido de 4.0GB alocados</span>
-              </div>
-            </CardGlass>
-          </div>
-
-          {/* Alert Logs */}
-          <CardGlass className="p-5 space-y-4">
-            <h3 className="text-xs font-bold text-slate-300 uppercase tracking-wider pb-2 border-b border-slate-900">
-              Histórico de Alertas de Produção (Event Log)
-            </h3>
-            <div className="space-y-3">
-              {[
-                { time: '14:23', msg: 'Erro de Autenticação - 3 tentativas inválidas consecutivas de login de rafox@talenta.ai', status: 'Ativo', color: 'text-red-400', badge: 'bg-red-500/10 text-red-400 border-red-500/20' },
-                { time: 'Ontem', msg: 'Webhook Stripe falhou - Retransmissão da API de assinaturas falhou na primeira tentativa', status: 'Resolvido', color: 'text-slate-400', badge: 'bg-slate-900 text-slate-500 border-slate-800' },
-                { time: 'Ontem', msg: 'Edge Function timeout - match-job demorou mais de 10s para responder para usuário 1845', status: 'Resolvido', color: 'text-slate-400', badge: 'bg-slate-900 text-slate-500 border-slate-800' }
-              ].map((alert, idx) => (
-                <div key={idx} className="p-3 rounded-xl bg-slate-950/20 border border-slate-900 flex justify-between items-center text-xs">
-                  <div>
-                    <span className="text-[10px] text-slate-500 font-mono block">{alert.time}</span>
-                    <span className="font-semibold text-slate-200 mt-0.5 block">{alert.msg}</span>
-                  </div>
-                  <span className={`px-2 py-0.5 rounded text-[9px] font-bold border uppercase tracking-wider shrink-0 ml-3 ${alert.badge}`}>
-                    {alert.status}
-                  </span>
-                </div>
-              ))}
-            </div>
-          </CardGlass>
+            </>
+          )}
         </div>
       )}
     </div>

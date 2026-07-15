@@ -1032,10 +1032,15 @@ export function Settings({
             initial={{ opacity: 0, y: 30, scale: 0.95 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 20, scale: 0.95 }}
-            className="fixed bottom-6 right-6 z-[100] bg-slate-900/95 border border-brand-500/30 text-slate-100 px-4 py-3 rounded-xl shadow-2xl flex items-center gap-3 backdrop-blur-md text-xs font-semibold select-none"
+            className="fixed bottom-6 right-6 z-[100] border px-4 py-3 rounded-xl shadow-2xl flex items-center gap-3 backdrop-blur-md text-xs font-semibold select-none"
+            style={{
+              backgroundColor: '#0f172a',
+              color: '#ffffff',
+              borderColor: toast.type === 'success' ? '#10b981' : '#ef4444',
+            }}
           >
-            {toast.type === 'success' ? '✅' : '❌'}
-            <span>{toast.message}</span>
+            <span>{toast.type === 'success' ? '✅' : '❌'}</span>
+            <span style={{ color: '#ffffff' }}>{toast.message}</span>
           </motion.div>
         )}
       </AnimatePresence>

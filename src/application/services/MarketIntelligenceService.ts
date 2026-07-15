@@ -19,12 +19,7 @@ export class MarketIntelligenceService {
           type: 'skill'
         }));
       }
-      return [
-        { keyword: 'Gestão', percentage: 65, type: 'skill' },
-        { keyword: 'Planejamento', percentage: 42, type: 'skill' },
-        { keyword: 'Liderança', percentage: 38, type: 'skill' },
-        { keyword: 'Comunicação', percentage: 30, type: 'skill' }
-      ];
+      return [];
     }
 
     const total = jobs.length;
@@ -51,12 +46,7 @@ export class MarketIntelligenceService {
 
     if (results.length > 0) return results.slice(0, 6);
 
-    return [
-      { keyword: 'Gestão', percentage: 65, type: 'skill' },
-      { keyword: 'Planejamento', percentage: 42, type: 'skill' },
-      { keyword: 'Liderança', percentage: 38, type: 'skill' },
-      { keyword: 'Comunicação', percentage: 30, type: 'skill' }
-    ];
+    return [];
   }
 }
 

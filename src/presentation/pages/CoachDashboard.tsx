@@ -564,26 +564,32 @@ export function CoachDashboard({
               <Award size={18} className="text-emerald-500" />
               Diagnóstico Consolidado
             </h3>
-            <div className="space-y-3 text-xs">
-              <div className="space-y-1">
-                <span className="text-[10px] text-slate-500 uppercase font-bold block">Forças</span>
-                <p className="text-slate-300">
-                  {careerProfileNew?.ats_keywords?.existing_keywords && careerProfileNew.ats_keywords.existing_keywords.length > 0
-                    ? careerProfileNew.ats_keywords.existing_keywords.slice(0, 5).join(', ')
-                    : careerProfileNew?.skills && careerProfileNew.skills.length > 0
-                      ? careerProfileNew.skills.slice(0, 5).map(s => s.name).join(', ')
-                      : 'Liderança, Gestão de Projetos, Comunicação e Organização.'}
-                </p>
+            {!careerProfileNew ? (
+              <p className="text-xs text-slate-400 italic">
+                Nenhum currículo ativo cadastrado. Faça o upload na aba "Perfil & Currículo" para gerar o diagnóstico de IA.
+              </p>
+            ) : (
+              <div className="space-y-3 text-xs">
+                <div className="space-y-1">
+                  <span className="text-[10px] text-slate-500 uppercase font-bold block">Forças</span>
+                  <p className="text-slate-300">
+                    {careerProfileNew?.ats_keywords?.existing_keywords && careerProfileNew.ats_keywords.existing_keywords.length > 0
+                      ? careerProfileNew.ats_keywords.existing_keywords.slice(0, 5).join(', ')
+                      : careerProfileNew?.skills && careerProfileNew.skills.length > 0
+                        ? careerProfileNew.skills.slice(0, 5).map(s => s.name).join(', ')
+                        : 'Nenhuma força mapeada no currículo.'}
+                  </p>
+                </div>
+                <div className="space-y-1">
+                  <span className="text-[10px] text-slate-500 uppercase font-bold block">Gaps Recomendados</span>
+                  <p className="text-slate-300">
+                    {careerProfileNew?.ats_keywords?.missing_keywords && careerProfileNew.ats_keywords.missing_keywords.length > 0
+                      ? `Recomenda-se focar em: ${careerProfileNew.ats_keywords.missing_keywords.slice(0, 4).join(', ')}.`
+                      : 'Nenhum gap crítico identificado no momento. Continue atualizando seu perfil.'}
+                  </p>
+                </div>
               </div>
-              <div className="space-y-1">
-                <span className="text-[10px] text-slate-500 uppercase font-bold block">Gaps Recomendados</span>
-                <p className="text-slate-300">
-                  {careerProfileNew?.ats_keywords?.missing_keywords && careerProfileNew.ats_keywords.missing_keywords.length > 0
-                    ? `Recomenda-se focar em: ${careerProfileNew.ats_keywords.missing_keywords.slice(0, 4).join(', ')}.`
-                    : 'Nenhum gap crítico identificado no momento. Continue atualizando seu perfil.'}
-                </p>
-              </div>
-            </div>
+            )}
           </CardGlass>
 
           <CardGlass className="p-6 space-y-4">
@@ -592,19 +598,25 @@ export function CoachDashboard({
               Monitor de Demanda Real
             </h3>
             <p className="text-[10px] text-slate-500">Habilidades mais exigidas nas vagas monitoradas.</p>
-            <div className="space-y-3">
-              {marketTrends.slice(0, 4).map((trend, i) => (
-                <div key={i} className="space-y-1">
-                  <div className="flex justify-between items-center text-xs">
-                    <span className="text-slate-300 font-semibold">{trend.keyword}</span>
-                    <span className="text-slate-500 text-[10px]">{trend.percentage}% das vagas</span>
+            {marketTrends.length === 0 ? (
+              <p className="text-xs text-slate-400 italic">
+                Nenhuma vaga monitorada no momento. Busque e salve vagas na aba "Vagas & Match" para gerar estatísticas de demanda real.
+              </p>
+            ) : (
+              <div className="space-y-3">
+                {marketTrends.slice(0, 4).map((trend, i) => (
+                  <div key={i} className="space-y-1">
+                    <div className="flex justify-between items-center text-xs">
+                      <span className="text-slate-300 font-semibold">{trend.keyword}</span>
+                      <span className="text-slate-500 text-[10px]">{trend.percentage}% das vagas</span>
+                    </div>
+                    <div className="w-full h-1.5 rounded bg-slate-900 overflow-hidden">
+                      <div className="h-full bg-gradient-to-r from-brand-600 to-indigo-500" style={{ width: `${trend.percentage}%` }} />
+                    </div>
                   </div>
-                  <div className="w-full h-1.5 rounded bg-slate-900 overflow-hidden">
-                    <div className="h-full bg-gradient-to-r from-brand-600 to-indigo-500" style={{ width: `${trend.percentage}%` }} />
-                  </div>
-                </div>
-              ))}
-            </div>
+                ))}
+              </div>
+            )}
           </CardGlass>
         </div>
       </div>

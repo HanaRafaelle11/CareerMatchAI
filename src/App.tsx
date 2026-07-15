@@ -184,7 +184,7 @@ function App() {
     }
   }, [loading, profile]);
 
-  const { resumes, uploadResume, deleteResume, isUploading, pipelineSteps, selectActiveResume } = useResumes(profile?.id);
+  const { resumes, uploadResume, deleteResume, isUploading, pipelineSteps, selectActiveResume } = useResumes(user?.id);
   
   // Sincronizar o currículo/versão selecionado
   const [selectedResumeVersionId, setSelectedResumeVersionId] = useState<string | null>(null);
@@ -210,8 +210,8 @@ function App() {
       setSelectedResumeVersionId(versionId);
       try {
         await selectActiveResume(selected.id);
-        queryClient.invalidateQueries({ queryKey: ['my-profile-ai', profile?.id, versionId] });
-        queryClient.invalidateQueries({ queryKey: ['matches', profile?.id, selected.id] });
+        queryClient.invalidateQueries({ queryKey: ['my-profile-ai', user?.id, versionId] });
+        queryClient.invalidateQueries({ queryKey: ['matches', user?.id, selected.id] });
       } catch (err) {
         console.error('Erro ao alternar currículo ativo:', err);
       }
@@ -221,12 +221,12 @@ function App() {
   const selectedResume = resumes.find(r => r.resumeVersionId === selectedResumeVersionId) || resumes[0];
   const selectedResumeId = selectedResume?.id || null;
 
-  const { jobs, createJob, isCreating, deleteJob } = useJobs(profile?.id);
-  const { matches, calculateMatch, isCalculating, getMatchDetails } = useMatches(profile?.id, selectedResumeId);
-  const { careerProfile, updateCareerProfile, isUpdating: isSavingProfile } = useCareerProfile(profile?.id, selectedResumeVersionId);
+  const { jobs, createJob, isCreating, deleteJob } = useJobs(user?.id);
+  const { matches, calculateMatch, isCalculating, getMatchDetails } = useMatches(user?.id, selectedResumeId);
+  const { careerProfile, updateCareerProfile, isUpdating: isSavingProfile } = useCareerProfile(user?.id, selectedResumeVersionId);
 
   // ── Fonte única de verdade: career_profiles + career_insights ──
-  const { data: myProfileData } = useMyProfileAi(profile?.id, selectedResumeVersionId);
+  const { data: myProfileData } = useMyProfileAi(user?.id, selectedResumeVersionId);
   const careerProfileNew = myProfileData?.profile ?? null;
   const careerInsights = myProfileData?.insights ?? null;
 
@@ -238,7 +238,7 @@ function App() {
     getStagesQuery,
     addStage,
     deleteStage
-  } = useApplications(profile?.id, selectedResumeVersionId);
+  } = useApplications(user?.id, selectedResumeVersionId);
 
   const { 
     startSimulation, 
@@ -251,7 +251,7 @@ function App() {
     markAllNotificationsAsRead,
     getPostLogQuery,
     savePostLog
-  } = useCoach(profile?.id);
+  } = useCoach(user?.id);
 
   const {
     companyProfiles,
@@ -262,7 +262,7 @@ function App() {
     getWeeklyGoalQuery,
     saveWeeklyGoal,
     careerGoals
-  } = useRoadmapServices(profile?.id);
+  } = useRoadmapServices(user?.id);
 
   if (loading) {
     return (
@@ -435,7 +435,7 @@ function App() {
         {activeTab === 'strategy' && (
           <Suspense fallback={<LazyFallback />}>
             <StrategyPage
-              userId={profile?.id}
+              userId={user?.id}
               careerProfile={careerProfile}
               careerProfileNew={careerProfileNew}
               resumes={resumes}
@@ -468,7 +468,7 @@ function App() {
         {activeTab === 'match' && (
           <Suspense fallback={<LazyFallback />}>
             <JobMatchHub
-              userId={profile?.id}
+              userId={user?.id}
               resumes={resumes}
               jobs={jobs}
               onDeleteJob={deleteJob}
@@ -525,7 +525,7 @@ function App() {
 
         {activeTab === 'admin' && isAdmin && (
           <Suspense fallback={<LazyFallback />}>
-            <AdminDashboard userId={profile?.id} />
+            <AdminDashboard userId={user?.id} />
           </Suspense>
         )}
 

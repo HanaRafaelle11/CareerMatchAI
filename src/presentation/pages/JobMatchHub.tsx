@@ -8,11 +8,13 @@ import { CareerCoachService } from '../../application/services/CareerCoachServic
 import { MatchingEngine } from '../../application/services/matchingEngine';
 import type { Job, Resume, Match, CareerProfile } from '../../domain/models/types';
 import type { CareerProfileNew } from '../../application/hooks/useMyProfileAi';
-import { Play, Clipboard, Award, CheckCircle, AlertTriangle, AlertCircle, X, ChevronRight, BookOpen, Plus, Search, MapPin, Loader2, ArrowUpRight, Flame, Sparkles, Trash2, Briefcase, Heart, DollarSign, Building } from 'lucide-react';
+import { Play, Clipboard, Award, CheckCircle, AlertTriangle, AlertCircle, X, ChevronRight, BookOpen, Plus, Search, MapPin, Loader2, ArrowUpRight, Flame, Sparkles, Trash2, Briefcase, Heart, DollarSign, Building, FileText } from 'lucide-react';
 import { isSupabaseConfigured, supabase } from '../../infrastructure/api/supabaseClient';
 import { AppError } from '../../application/errors/AppError';
 import { ErrorState, EmptyState, ProcessingState } from '../components/ErrorVisuals';
 import { ProgressRing } from '../components/ds';
+import { jobIngestionService } from '../../application/services/JobIngestionService';
+import type { IngestionResult } from '../../application/services/parsers/BaseJobParser';
 
 interface JobMatchHubProps {
   userId: string | undefined;
@@ -22,7 +24,20 @@ interface JobMatchHubProps {
   matches: Match[];
   careerProfile: CareerProfile | null;
   careerProfileNew: CareerProfileNew | null;
-  onCreateJob: (data: { title: string; description: string; requirements: string[] }) => Promise<any>;
+  onCreateJob: (data: { 
+    title: string; 
+    description: string; 
+    requirements: string[]; 
+    companyName?: string;
+    location?: string;
+    workMode?: string;
+    seniority?: string;
+    salary?: string;
+    salaryNumeric?: number;
+    benefits?: string[];
+    sourceUrl?: string;
+    sourcePlatform?: string;
+  }) => Promise<any>;
   onCalculateMatch: (data: { resume: Resume; job: Job; consolidatedProfile?: CareerProfileNew | null }) => Promise<any>;
   getMatchDetails: (matchId: string) => { data: any; isLoading: boolean };
   isCreating: boolean;
@@ -643,9 +658,39 @@ export function JobMatchHub({
   
   // States para colagem manual de vaga
   const [title, setTitle] = useState('');
+  const [companyName, setCompanyName] = useState('');
   const [description, setDescription] = useState('');
   const [requirementsInput, setRequirementsInput] = useState('');
   const [errorMsg, setErrorMsg] = useState('');
+
+  // States para Job Ingestion Engine
+  const [ingestionTab, setIngestionTab] = useState<'text' | 'url' | 'pdf' | 'greenhouse'>('text');
+  const [ingestionUrl, setIngestionUrl] = useState('');
+  const [ingestionFile, setIngestionFile] = useState<File | null>(null);
+  const [greenhouseUrl, setGreenhouseUrl] = useState('');
+  const [isIngesting, setIsIngesting] = useState(false);
+  const [ingestionStep, setIngestionStep] = useState<'idle' | 'preparing' | 'extracting' | 'normalizing' | 'completed' | 'error'>('idle');
+  const [ingestionStepText, setIngestionStepText] = useState('');
+  const [restrictedPlatformMsg, setRestrictedPlatformMsg] = useState(false);
+  
+  // Preview / Editor States
+  const [previewData, setPreviewData] = useState<IngestionResult | null>(null);
+
+  const resetIngestionStates = () => {
+    setTitle('');
+    setCompanyName('');
+    setDescription('');
+    setRequirementsInput('');
+    setIngestionUrl('');
+    setIngestionFile(null);
+    setGreenhouseUrl('');
+    setIsIngesting(false);
+    setIngestionStep('idle');
+    setIngestionStepText('');
+    setRestrictedPlatformMsg(false);
+    setPreviewData(null);
+    setErrorMsg('');
+  };
 
   // States para a descoberta de vagas baseada no Career Profile ou fallback
   const pref = (careerProfileNew?.personal as any)?.preferences || {};
@@ -822,7 +867,7 @@ export function JobMatchHub({
     page: searchPage
   }, careerProfileNew);
 
-  const handleAddJob = async (e: FormEvent) => {
+  const handleIngestManual = async (e: FormEvent) => {
     e.preventDefault();
     setErrorMsg('');
 
@@ -831,57 +876,150 @@ export function JobMatchHub({
       return;
     }
 
-    let reqs = requirementsInput
-      .split(',')
-      .map(r => r.trim())
-      .filter(Boolean);
-
-    if (reqs.length === 0) {
-      // Extrair dinamicamente palavras-chave conhecidas do escopo para não forçar React/TS/Node por padrão
-      const possibleReqs = [
-        'React', 'TypeScript', 'Node.js', 'PostgreSQL', 'Docker', 'AWS', 
-        'JavaScript', 'CSS', 'Figma', 'Git', 'Customer Success', 'Salesforce', 
-        'SQL', 'SaaS', 'NPS', 'Churn', 'Onboarding', 'CSAT', 'Retention',
-        'Scrum', 'Agile', 'Kanban', 'Liderança', 'Gestão',
-        'Farmácia', 'Estética', 'Cosméticos', 'Saúde', 'Dermocosméticos',
-        'Vendas', 'Atendimento', 'Clínica', 'Biologia', 'Química', 'Marketing'
-      ];
-      reqs = possibleReqs.filter(req => 
-        new RegExp(`\\b${req}\\b`, 'i').test(title + ' ' + description)
-      );
-      if (reqs.length === 0) {
-        let defaultReq = 'Geral';
-        const titleDesc = (title + ' ' + description).toLowerCase();
-        if (/\b(farmac|estet|saude|saúde|cosmet|medico|médica|psicol|hospitalar|clinica|clínica)\b/i.test(titleDesc)) {
-          defaultReq = 'Saúde';
-        } else if (/\b(venda|sales|comercial|negoc|comercio|comércio|telemarketing|atendimento)\b/i.test(titleDesc)) {
-          defaultReq = 'Vendas';
-        } else if (/\b(react|typescript|ts|node|nodejs|developer|desenvolvedor|programador|software|engineer|engenheiro|tech|ti|it|tecnologia|computa|sistemas|front|back|fullstack)\b/i.test(titleDesc)) {
-          defaultReq = 'Tecnologia';
-        }
-        reqs = [defaultReq];
-      }
+    try {
+      const result = await jobIngestionService.ingestText({
+        title,
+        companyName,
+        description,
+        requirementsInput
+      });
+      setPreviewData(result);
+    } catch (err: any) {
+      setErrorMsg(err.message || 'Erro ao processar a vaga.');
     }
+  };
+
+  const handleIngestUrl = async (e: FormEvent) => {
+    e.preventDefault();
+    if (!ingestionUrl.trim()) return;
+
+    setIsIngesting(true);
+    setIngestionStep('preparing');
+    setIngestionStepText('Analisando link da vaga...');
+    setRestrictedPlatformMsg(false);
 
     try {
+      setIngestionStep('extracting');
+      setIngestionStepText('Limpando HTML (removendo scripts, menus e rodapés)...');
+      
+      const result = await jobIngestionService.ingestUrl(ingestionUrl.trim());
+      
+      setIngestionStep('normalizing');
+      setIngestionStepText('Extraindo requisitos e qualificações com IA...');
+      
+      await new Promise(resolve => setTimeout(resolve, 800));
+      
+      setPreviewData(result);
+      setIngestionStep('completed');
+    } catch (err: any) {
+      if (err.message === 'RESTRICTED_PLATFORM') {
+        setRestrictedPlatformMsg(true);
+        setIngestionStep('idle');
+      } else {
+        setIngestionStep('error');
+        setIngestionStepText(err.message || 'Erro ao processar o link.');
+      }
+    } finally {
+      setIsIngesting(false);
+    }
+  };
+
+  const handleIngestPdf = async (e: FormEvent) => {
+    e.preventDefault();
+    if (!ingestionFile) return;
+
+    setIsIngesting(true);
+    setIngestionStep('preparing');
+    setIngestionStepText('Enviando documento PDF...');
+
+    try {
+      setIngestionStep('extracting');
+      setIngestionStepText('Executando extração de texto (e OCR se necessário)...');
+
+      const result = await jobIngestionService.ingestPdf(ingestionFile);
+
+      setIngestionStep('normalizing');
+      setIngestionStepText('Estruturando descrição, competências e benefícios com IA...');
+
+      await new Promise(resolve => setTimeout(resolve, 800));
+
+      setPreviewData(result);
+      setIngestionStep('completed');
+    } catch (err: any) {
+      setIngestionStep('error');
+      setIngestionStepText(err.message || 'Erro ao analisar o PDF.');
+    } finally {
+      setIsIngesting(false);
+    }
+  };
+
+  const handleIngestGreenhouse = async (e: FormEvent) => {
+    e.preventDefault();
+    if (!greenhouseUrl.trim()) return;
+
+    setIsIngesting(true);
+    setIngestionStep('preparing');
+    setIngestionStepText('Conectando à API do Greenhouse...');
+
+    try {
+      setIngestionStep('extracting');
+      setIngestionStepText('Buscando payload estruturado da vaga...');
+
+      const result = await jobIngestionService.ingestUrl(greenhouseUrl.trim());
+
+      setIngestionStep('normalizing');
+      setIngestionStepText('Normalizando tipos de vaga e localização...');
+
+      await new Promise(resolve => setTimeout(resolve, 800));
+
+      setPreviewData(result);
+      setIngestionStep('completed');
+    } catch (err: any) {
+      setIngestionStep('error');
+      setIngestionStepText(err.message || 'Erro ao carregar dados do Greenhouse.');
+    } finally {
+      setIsIngesting(false);
+    }
+  };
+
+  const handleConfirmSaveIngestedJob = async () => {
+    if (!previewData) return;
+
+    try {
+      // Garantir requisitos mínimos
+      let reqs = previewData.requirements;
+      if (!reqs || reqs.length === 0) {
+        reqs = ['Geral'];
+      }
+
       const newJob = await onCreateJob({
-        title,
-        description,
-        requirements: reqs
+        title: previewData.title,
+        companyName: previewData.companyName,
+        description: previewData.description,
+        requirements: reqs,
+        location: previewData.location,
+        workMode: previewData.workMode,
+        seniority: previewData.seniority,
+        salary: previewData.salary,
+        salaryNumeric: previewData.salaryNumeric,
+        benefits: previewData.benefits,
+        sourceUrl: previewData.sourceUrl,
+        sourcePlatform: previewData.sourcePlatform
       });
+
       if (newJob && newJob.id) {
         setSelectedJobId(newJob.id);
-        setTitle('');
-        setDescription('');
-        setRequirementsInput('');
+        resetIngestionStates();
         setShowAddForm(false);
+        // Disparar o match da vaga adicionada automaticamente para agilizar o fluxo do usuário
+        handleTriggerMatch(newJob);
       } else {
         throw new Error('Não foi possível obter o ID da vaga criada.');
       }
     } catch (err: any) {
       const formatted = AppError.from(err);
       setAppError(formatted);
-      AppError.logError(err, supabase, 'JobMatchHub.handleAddJob', userId);
+      AppError.logError(err, supabase, 'JobMatchHub.handleConfirmSaveIngestedJob', userId);
     }
   };
 
@@ -1110,77 +1248,529 @@ export function JobMatchHub({
         />
       ) : null}
 
-      {/* Modal de colagem de vaga manual */}
+      {/* Modal de colagem de vaga manual / Job Ingestion Engine */}
       {showAddForm && (
-        <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <CardGlass className="w-full max-w-lg min-w-[320px] sm:min-w-[400px] space-y-6 relative border border-slate-800">
+        <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 flex items-center justify-center p-4 overflow-y-auto">
+          <CardGlass className="w-full max-w-2xl min-w-[320px] sm:min-w-[400px] space-y-6 relative border border-slate-800 my-8">
             <button
-              onClick={() => setShowAddForm(false)}
+              onClick={() => {
+                resetIngestionStates();
+                setShowAddForm(false);
+              }}
               className="absolute top-4 right-4 text-slate-500 hover:text-slate-300"
             >
               <X size={18} />
             </button>
-            <div>
-              <h3 className="font-display font-bold text-lg text-slate-200">
-                Colar Nova Vaga de Emprego
-              </h3>
-              <p className="text-xs text-slate-500 mt-1">
-                Insira as especificações abaixo para a IA mapear.
-              </p>
-            </div>
-            <form onSubmit={handleAddJob} className="space-y-4">
-              <div className="space-y-1">
-                <label className="text-xs font-semibold text-slate-400">Título do Cargo</label>
-                <input
-                  type="text"
-                  placeholder="Ex: Senior Frontend Engineer"
-                  value={title}
-                  onChange={e => setTitle(e.target.value)}
-                  className="w-full px-4 py-3 rounded-xl bg-slate-900/50 border border-slate-800 focus:border-brand-500 outline-none text-sm text-slate-200"
-                  required
-                />
-              </div>
 
-              <div className="space-y-1">
-                <label className="text-xs font-semibold text-slate-400">Descrição / Escopo da Vaga</label>
-                <textarea
-                  placeholder="Cole aqui a descrição completa da vaga..."
-                  rows={6}
-                  value={description}
-                  onChange={e => setDescription(e.target.value)}
-                  className="w-full px-4 py-3 rounded-xl bg-slate-900/50 border border-slate-800 focus:border-brand-500 outline-none text-sm text-slate-200 resize-none"
-                  required
-                />
-              </div>
+            {previewData ? (
+              // STEP 2: PREVIEW / VALIDATION EDITOR
+              <div className="space-y-4">
+                <div>
+                  <div className="flex items-center gap-2 text-brand-400 font-semibold text-xs uppercase tracking-wider">
+                    <Sparkles size={14} />
+                    <span>Dados Normalizados pela IA</span>
+                  </div>
+                  <h3 className="font-display font-bold text-lg text-slate-200 mt-1">
+                    Validar e Confirmar Vaga
+                  </h3>
+                  <p className="text-[10px] text-slate-500">
+                    Por favor, revise as informações identificadas pela IA antes de salvar e gerar o Match.
+                  </p>
+                </div>
 
-              <div className="space-y-1">
-                <label className="text-xs font-semibold text-slate-400">Stacks / Requisitos Principais (Separados por vírgula)</label>
-                <input
-                  type="text"
-                  placeholder="Ex: React, Next.js, Node.js, GraphQL"
-                  value={requirementsInput}
-                  onChange={e => setRequirementsInput(e.target.value)}
-                  className="w-full px-4 py-3 rounded-xl bg-slate-900/50 border border-slate-800 focus:border-brand-500 outline-none text-sm text-slate-200"
-                />
-              </div>
+                <div className="space-y-4 max-h-[50vh] overflow-y-auto pr-1">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div className="space-y-1">
+                      <label className="text-xs font-semibold text-slate-400">Título do Cargo</label>
+                      <input
+                        type="text"
+                        value={previewData.title}
+                        onChange={e => setPreviewData({ ...previewData, title: e.target.value })}
+                        className="w-full px-3 py-2 rounded-xl bg-slate-900/50 border border-slate-800 focus:border-brand-500 outline-none text-xs text-slate-200"
+                        required
+                      />
+                    </div>
 
-              <div className="flex gap-3 justify-end pt-2">
-                <button
-                  type="button"
-                  onClick={() => setShowAddForm(false)}
-                  className="px-4 py-2 text-xs font-semibold text-slate-400 hover:text-slate-200"
-                >
-                  Cancelar
-                </button>
-                <button
-                  type="submit"
-                  disabled={isCreating}
-                  className="px-4 py-2 rounded-xl bg-brand-600 hover:bg-brand-500 text-white font-semibold text-xs shadow-lg shadow-brand-500/10 disabled:opacity-50"
-                >
-                  {isCreating ? 'Salvando...' : 'Salvar Vaga'}
-                </button>
+                    <div className="space-y-1">
+                      <label className="text-xs font-semibold text-slate-400">Nome da Empresa</label>
+                      <input
+                        type="text"
+                        value={previewData.companyName}
+                        onChange={e => setPreviewData({ ...previewData, companyName: e.target.value })}
+                        className="w-full px-3 py-2 rounded-xl bg-slate-900/50 border border-slate-800 focus:border-brand-500 outline-none text-xs text-slate-200"
+                        required
+                      />
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                    <div className="space-y-1">
+                      <label className="text-xs font-semibold text-slate-400">Localização</label>
+                      <input
+                        type="text"
+                        value={previewData.location}
+                        onChange={e => setPreviewData({ ...previewData, location: e.target.value })}
+                        className="w-full px-3 py-2 rounded-xl bg-slate-900/50 border border-slate-800 focus:border-brand-500 outline-none text-xs text-slate-200"
+                      />
+                    </div>
+
+                    <div className="space-y-1">
+                      <label className="text-xs font-semibold text-slate-400">Modelo de Trabalho</label>
+                      <select
+                        value={previewData.workMode}
+                        onChange={e => setPreviewData({ ...previewData, workMode: e.target.value as any })}
+                        className="w-full px-3 py-2 rounded-xl bg-slate-900 border border-slate-800 text-xs text-slate-200 outline-none focus:border-brand-500"
+                      >
+                        <option value="remote">Remoto (Remote)</option>
+                        <option value="hybrid">Híbrido (Hybrid)</option>
+                        <option value="onsite">Presencial (Onsite)</option>
+                      </select>
+                    </div>
+
+                    <div className="space-y-1">
+                      <label className="text-xs font-semibold text-slate-400">Senioridade</label>
+                      <select
+                        value={previewData.seniority}
+                        onChange={e => setPreviewData({ ...previewData, seniority: e.target.value as any })}
+                        className="w-full px-3 py-2 rounded-xl bg-slate-900 border border-slate-800 text-xs text-slate-200 outline-none focus:border-brand-500"
+                      >
+                        <option value="junior">Júnior (Junior)</option>
+                        <option value="pleno">Pleno (Pleno)</option>
+                        <option value="senior">Sênior (Senior)</option>
+                        <option value="lead">Lead (Lead)</option>
+                        <option value="director">Diretor (Director)</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div className="space-y-1">
+                      <label className="text-xs font-semibold text-slate-400">Salário / Remuneração</label>
+                      <input
+                        type="text"
+                        value={previewData.salary || ''}
+                        onChange={e => setPreviewData({ ...previewData, salary: e.target.value })}
+                        placeholder="Ex: R$ 12.000 - R$ 15.000 ou A combinar"
+                        className="w-full px-3 py-2 rounded-xl bg-slate-900/50 border border-slate-800 focus:border-brand-500 outline-none text-xs text-slate-200"
+                      />
+                    </div>
+
+                    <div className="space-y-1">
+                      <label className="text-xs font-semibold text-slate-400">URL de Origem (Opcional)</label>
+                      <input
+                        type="text"
+                        value={previewData.sourceUrl || ''}
+                        onChange={e => setPreviewData({ ...previewData, sourceUrl: e.target.value })}
+                        className="w-full px-3 py-2 rounded-xl bg-slate-900/50 border border-slate-800 focus:border-brand-500 outline-none text-xs text-slate-200"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="space-y-1">
+                    <label className="text-xs font-semibold text-slate-400">Descrição / Escopo da Vaga</label>
+                    <textarea
+                      value={previewData.description}
+                      onChange={e => setPreviewData({ ...previewData, description: e.target.value })}
+                      rows={5}
+                      className="w-full px-3 py-2 rounded-xl bg-slate-900/50 border border-slate-800 focus:border-brand-500 outline-none text-xs text-slate-200 resize-none"
+                    />
+                  </div>
+
+                  <div className="space-y-1">
+                    <label className="text-xs font-semibold text-slate-400">Requisitos Técnicos (Separados por vírgula)</label>
+                    <input
+                      type="text"
+                      value={previewData.requirements.join(', ')}
+                      onChange={e => setPreviewData({
+                        ...previewData,
+                        requirements: e.target.value.split(',').map(r => r.trim()).filter(Boolean)
+                      })}
+                      className="w-full px-3 py-2 rounded-xl bg-slate-900/50 border border-slate-800 focus:border-brand-500 outline-none text-xs text-slate-200"
+                    />
+                  </div>
+
+                  <div className="space-y-1">
+                    <label className="text-xs font-semibold text-slate-400">Benefícios (Separados por vírgula)</label>
+                    <input
+                      type="text"
+                      value={(previewData.benefits || []).join(', ')}
+                      onChange={e => setPreviewData({
+                        ...previewData,
+                        benefits: e.target.value.split(',').map(b => b.trim()).filter(Boolean)
+                      })}
+                      className="w-full px-3 py-2 rounded-xl bg-slate-900/50 border border-slate-800 focus:border-brand-500 outline-none text-xs text-slate-200"
+                    />
+                  </div>
+                </div>
+
+                <div className="flex justify-between items-center pt-4 border-t border-slate-900">
+                  <button
+                    type="button"
+                    onClick={() => setPreviewData(null)}
+                    className="text-xs text-slate-400 hover:text-slate-200 flex items-center gap-1 transition"
+                  >
+                    ← Voltar
+                  </button>
+                  <div className="flex gap-2">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        resetIngestionStates();
+                        setShowAddForm(false);
+                      }}
+                      className="px-4 py-2 text-xs font-semibold text-slate-400 hover:text-slate-200"
+                    >
+                      Cancelar
+                    </button>
+                    <button
+                      type="button"
+                      onClick={handleConfirmSaveIngestedJob}
+                      disabled={isCreating}
+                      className="px-4 py-2 rounded-xl bg-brand-600 hover:bg-brand-500 text-white font-semibold text-xs shadow-lg shadow-brand-500/10 disabled:opacity-50"
+                    >
+                      {isCreating ? 'Salvando...' : 'Confirmar e Salvar'}
+                    </button>
+                  </div>
+                </div>
               </div>
-            </form>
+            ) : (
+              // STEP 1: SELECT IMPORT METHOD
+              <div className="space-y-4">
+                <div>
+                  <h3 className="font-display font-bold text-lg text-slate-200">
+                    Adicionar Nova Vaga
+                  </h3>
+                  <p className="text-xs text-slate-500 mt-1">
+                    Selecione o melhor método para importar a vaga. O Talenta extrairá os requisitos automaticamente.
+                  </p>
+                </div>
+
+                {/* TABS SWITCHER */}
+                <div className="flex border-b border-slate-800 gap-4 text-xs font-semibold">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setIngestionTab('text');
+                      setRestrictedPlatformMsg(false);
+                    }}
+                    className={`pb-2 transition ${ingestionTab === 'text' ? 'text-brand-400 border-b-2 border-brand-400' : 'text-slate-500 hover:text-slate-300'}`}
+                  >
+                    Colar Descrição
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setIngestionTab('url');
+                      setRestrictedPlatformMsg(false);
+                    }}
+                    className={`pb-2 transition ${ingestionTab === 'url' ? 'text-brand-400 border-b-2 border-brand-400' : 'text-slate-500 hover:text-slate-300'}`}
+                  >
+                    Link da Vaga
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setIngestionTab('pdf');
+                      setRestrictedPlatformMsg(false);
+                    }}
+                    className={`pb-2 transition ${ingestionTab === 'pdf' ? 'text-brand-400 border-b-2 border-brand-400' : 'text-slate-500 hover:text-slate-300'}`}
+                  >
+                    Upload de PDF
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setIngestionTab('greenhouse');
+                      setRestrictedPlatformMsg(false);
+                    }}
+                    className={`pb-2 transition ${ingestionTab === 'greenhouse' ? 'text-brand-400 border-b-2 border-brand-400' : 'text-slate-500 hover:text-slate-300'}`}
+                  >
+                    Greenhouse
+                  </button>
+                </div>
+
+                {isIngesting ? (
+                  // LOADER / PROGRESSIVE TRACKER
+                  <div className="space-y-4 py-8 text-center bg-slate-900/10 rounded-2xl border border-slate-900">
+                    <Loader2 size={32} className="animate-spin text-brand-500 mx-auto" />
+                    <p className="text-xs font-medium text-slate-200 mt-2">{ingestionStepText}</p>
+                    <div className="max-w-xs mx-auto text-left mt-6 space-y-3 p-4 rounded-xl bg-slate-950/40 border border-slate-900">
+                      <div className="flex items-center gap-2.5 text-[10px]">
+                        <span>{ingestionStep === 'preparing' ? '⚡' : (ingestionStep === 'error' ? '❌' : '✅')}</span>
+                        <span className={ingestionStep === 'preparing' ? 'text-slate-200 font-semibold' : 'text-slate-500'}>
+                          Iniciando e abrindo conexões...
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-2.5 text-[10px]">
+                        <span>{ingestionStep === 'extracting' ? '⚡' : (ingestionStep === 'preparing' ? '⚪' : (ingestionStep === 'error' ? '❌' : '✅'))}</span>
+                        <span className={ingestionStep === 'extracting' ? 'text-slate-200 font-semibold' : 'text-slate-500'}>
+                          Removendo cabeçalhos e scripts inúteis...
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-2.5 text-[10px]">
+                        <span>{ingestionStep === 'normalizing' ? '⚡' : (ingestionStep === 'completed' ? '✅' : (ingestionStep === 'error' ? '❌' : '⚪'))}</span>
+                        <span className={ingestionStep === 'normalizing' ? 'text-slate-200 font-semibold' : 'text-slate-500'}>
+                          Mapeando stacks e qualificando cargo...
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                ) : restrictedPlatformMsg ? (
+                  // RESTRICTED PLATFORM FALLBACK VIEW
+                  <div className="p-5 rounded-2xl border border-yellow-900/30 bg-yellow-950/15 space-y-4">
+                    <div className="flex gap-2.5 items-start">
+                      <AlertTriangle className="text-yellow-500 shrink-0 mt-0.5" size={16} />
+                      <div className="space-y-1">
+                        <h4 className="font-semibold text-xs text-yellow-500">Restrição de Extração</h4>
+                        <p className="text-[11px] leading-relaxed text-slate-400">
+                          Esta vaga está hospedada em uma plataforma que restringe a extração automatizada de conteúdo em seus Termos de Uso (como LinkedIn ou Gupy). Para respeitar essas regras, o Talenta não realiza a importação automática dessa página.
+                        </p>
+                      </div>
+                    </div>
+                    <div className="flex gap-2 pt-2 border-t border-slate-900">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setRestrictedPlatformMsg(false);
+                          setIngestionTab('text');
+                        }}
+                        className="px-3 py-1.5 rounded-lg bg-slate-900 hover:bg-slate-800 text-[11px] font-bold text-slate-200 transition"
+                      >
+                        ✏️ Colar a Descrição
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setRestrictedPlatformMsg(false);
+                          setIngestionTab('pdf');
+                        }}
+                        className="px-3 py-1.5 rounded-lg bg-slate-900 hover:bg-slate-800 text-[11px] font-bold text-slate-200 transition"
+                      >
+                        📄 Importar PDF
+                      </button>
+                    </div>
+                  </div>
+                ) : ingestionStep === 'error' ? (
+                  // ERROR STATE FOR PIPELINE
+                  <div className="p-4 rounded-xl border border-red-950/30 bg-red-950/10 text-center space-y-3">
+                    <AlertCircle className="text-red-500 mx-auto" size={24} />
+                    <p className="text-xs text-slate-300 font-semibold">{ingestionStepText}</p>
+                    <button
+                      type="button"
+                      onClick={() => setIngestionStep('idle')}
+                      className="px-3 py-1 rounded bg-slate-900 hover:bg-slate-800 text-[10px] text-slate-400 font-semibold"
+                    >
+                      Tentar Novamente
+                    </button>
+                  </div>
+                ) : (
+                  // ACTIVE TAB PANEL
+                  <div className="min-h-[220px]">
+                    {ingestionTab === 'text' && (
+                      <form onSubmit={handleIngestManual} className="space-y-4">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                          <div className="space-y-1">
+                            <label className="text-xs font-semibold text-slate-400">Título do Cargo</label>
+                            <input
+                              type="text"
+                              placeholder="Ex: Senior Frontend Engineer"
+                              value={title}
+                              onChange={e => setTitle(e.target.value)}
+                              className="w-full px-4 py-2.5 rounded-xl bg-slate-900/50 border border-slate-800 focus:border-brand-500 outline-none text-xs text-slate-200"
+                              required
+                            />
+                          </div>
+                          <div className="space-y-1">
+                            <label className="text-xs font-semibold text-slate-400">Empresa</label>
+                            <input
+                              type="text"
+                              placeholder="Ex: Talenta"
+                              value={companyName}
+                              onChange={e => setCompanyName(e.target.value)}
+                              className="w-full px-4 py-2.5 rounded-xl bg-slate-900/50 border border-slate-800 focus:border-brand-500 outline-none text-xs text-slate-200"
+                            />
+                          </div>
+                        </div>
+
+                        <div className="space-y-1">
+                          <label className="text-xs font-semibold text-slate-400">Descrição / Escopo da Vaga</label>
+                          <textarea
+                            placeholder="Cole aqui a descrição completa da vaga..."
+                            rows={5}
+                            value={description}
+                            onChange={e => setDescription(e.target.value)}
+                            className="w-full px-4 py-2.5 rounded-xl bg-slate-900/50 border border-slate-800 focus:border-brand-500 outline-none text-xs text-slate-200 resize-none text-slate-350"
+                            required
+                          />
+                        </div>
+
+                        <div className="space-y-1">
+                          <label className="text-xs font-semibold text-slate-400">Stacks / Requisitos Principais (Separados por vírgula)</label>
+                          <input
+                            type="text"
+                            placeholder="Ex: React, Next.js, Node.js, GraphQL"
+                            value={requirementsInput}
+                            onChange={e => setRequirementsInput(e.target.value)}
+                            className="w-full px-4 py-2.5 rounded-xl bg-slate-900/50 border border-slate-800 focus:border-brand-500 outline-none text-xs text-slate-200"
+                          />
+                        </div>
+
+                        <div className="flex gap-3 justify-end pt-2">
+                          <button
+                            type="button"
+                            onClick={() => {
+                              resetIngestionStates();
+                              setShowAddForm(false);
+                            }}
+                            className="px-4 py-2 text-xs font-semibold text-slate-400 hover:text-slate-200"
+                          >
+                            Cancelar
+                          </button>
+                          <button
+                            type="submit"
+                            className="px-4 py-2 rounded-xl bg-brand-600 hover:bg-brand-500 text-white font-semibold text-xs shadow-lg shadow-brand-500/10"
+                          >
+                            Analisar e Avançar
+                          </button>
+                        </div>
+                      </form>
+                    )}
+
+                    {ingestionTab === 'url' && (
+                      <form onSubmit={handleIngestUrl} className="space-y-4 pt-4">
+                        <div className="space-y-1">
+                          <label className="text-xs font-semibold text-slate-400">URL / Link da Vaga</label>
+                          <input
+                            type="url"
+                            placeholder="Ex: https://jobs.lever.co/stripe/425678 ou https://company.ashbyhq.com/..."
+                            value={ingestionUrl}
+                            onChange={e => setIngestionUrl(e.target.value)}
+                            className="w-full px-4 py-3 rounded-xl bg-slate-900/50 border border-slate-800 focus:border-brand-500 outline-none text-xs text-slate-200"
+                            required
+                          />
+                        </div>
+
+                        <p className="text-[10px] text-slate-500 leading-relaxed">
+                          O Talenta baixará o HTML e estruturará os requisitos de forma inteligente, limpando anúncios e scripts de layout.
+                        </p>
+
+                        <div className="flex gap-3 justify-end pt-4">
+                          <button
+                            type="button"
+                            onClick={() => {
+                              resetIngestionStates();
+                              setShowAddForm(false);
+                            }}
+                            className="px-4 py-2 text-xs font-semibold text-slate-400 hover:text-slate-200"
+                          >
+                            Cancelar
+                          </button>
+                          <button
+                            type="submit"
+                            className="px-4 py-2 rounded-xl bg-brand-600 hover:bg-brand-500 text-white font-semibold text-xs shadow-lg shadow-brand-500/10"
+                          >
+                            Importar e Mapear
+                          </button>
+                        </div>
+                      </form>
+                    )}
+
+                    {ingestionTab === 'pdf' && (
+                      <form onSubmit={handleIngestPdf} className="space-y-4 pt-2">
+                        <div className="space-y-1">
+                          <label className="text-xs font-semibold text-slate-400">Upload de Arquivo PDF</label>
+                          
+                          <div className="border border-dashed border-slate-800 hover:border-brand-500 rounded-2xl p-8 text-center cursor-pointer transition relative bg-slate-900/10">
+                            <input
+                              type="file"
+                              accept=".pdf"
+                              onChange={(e) => {
+                                if (e.target.files && e.target.files[0]) {
+                                  setIngestionFile(e.target.files[0]);
+                                }
+                              }}
+                              className="absolute inset-0 opacity-0 cursor-pointer"
+                            />
+                            {ingestionFile ? (
+                              <div className="space-y-2">
+                                <FileText className="mx-auto text-brand-400" size={32} />
+                                <p className="text-xs font-semibold text-slate-200">{ingestionFile.name}</p>
+                                <p className="text-[9px] text-slate-500">{(ingestionFile.size / 1024 / 1024).toFixed(2)} MB</p>
+                              </div>
+                            ) : (
+                              <div className="space-y-2">
+                                <ArrowUpRight className="mx-auto text-slate-500" size={32} />
+                                <p className="text-xs font-semibold text-slate-350">Arraste ou clique para selecionar o PDF da vaga</p>
+                                <p className="text-[9px] text-slate-500">Tamanho máximo: 10MB</p>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+
+                        <div className="flex gap-3 justify-end pt-2">
+                          <button
+                            type="button"
+                            onClick={() => {
+                              resetIngestionStates();
+                              setShowAddForm(false);
+                            }}
+                            className="px-4 py-2 text-xs font-semibold text-slate-400 hover:text-slate-200"
+                          >
+                            Cancelar
+                          </button>
+                          <button
+                            type="submit"
+                            disabled={!ingestionFile}
+                            className="px-4 py-2 rounded-xl bg-brand-600 hover:bg-brand-500 text-white font-semibold text-xs shadow-lg shadow-brand-500/10 disabled:opacity-50"
+                          >
+                            Analisar PDF
+                          </button>
+                        </div>
+                      </form>
+                    )}
+
+                    {ingestionTab === 'greenhouse' && (
+                      <form onSubmit={handleIngestGreenhouse} className="space-y-4 pt-4">
+                        <div className="space-y-1">
+                          <label className="text-xs font-semibold text-slate-400">Link da Vaga no Greenhouse</label>
+                          <input
+                            type="url"
+                            placeholder="Ex: https://boards.greenhouse.io/stripe/jobs/4256721"
+                            value={greenhouseUrl}
+                            onChange={e => setGreenhouseUrl(e.target.value)}
+                            className="w-full px-4 py-3 rounded-xl bg-slate-900/50 border border-slate-800 focus:border-brand-500 outline-none text-xs text-slate-200"
+                            required
+                          />
+                        </div>
+
+                        <p className="text-[10px] text-slate-500 leading-relaxed">
+                          A API pública e oficial do Greenhouse será consultada de forma transparente para importar a vaga de maneira limpa e rápida.
+                        </p>
+
+                        <div className="flex gap-3 justify-end pt-4">
+                          <button
+                            type="button"
+                            onClick={() => {
+                              resetIngestionStates();
+                              setShowAddForm(false);
+                            }}
+                            className="px-4 py-2 text-xs font-semibold text-slate-400 hover:text-slate-200"
+                          >
+                            Cancelar
+                          </button>
+                          <button
+                            type="submit"
+                            className="px-4 py-2 rounded-xl bg-brand-600 hover:bg-brand-500 text-white font-semibold text-xs shadow-lg shadow-brand-500/10"
+                          >
+                            Conectar e Buscar
+                          </button>
+                        </div>
+                      </form>
+                    )}
+                  </div>
+                )}
+              </div>
+            )}
           </CardGlass>
         </div>
       )}

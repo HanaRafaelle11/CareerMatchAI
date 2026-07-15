@@ -646,13 +646,14 @@ export function useJobs(userId: string | undefined) {
           description: j.description,
           requirements: j.requirements || [],
           location: j.location || 'Remoto',
-          workMode: j.work_mode || 'remote',
-          seniority: 'senior',
+          workMode: (j.work_mode || 'remote') as any,
+          seniority: (j.seniority || 'senior') as any,
           currency: 'BRL',
           isActive: true,
           createdAt: j.created_at,
           updatedAt: j.updated_at || j.created_at,
           sourceUrl: j.source_url || undefined,
+          sourcePlatform: j.source_platform || 'manual',
           salary: j.salary || undefined,
           salaryNumeric: j.salary_numeric || undefined,
           benefits: j.benefits || []
@@ -665,7 +666,20 @@ export function useJobs(userId: string | undefined) {
   });
 
   const createJobMutation = useMutation({
-    mutationFn: async ({ title, description, requirements, sourceUrl, companyName }: { title: string, description: string, requirements: string[], sourceUrl?: string, companyName?: string }) => {
+    mutationFn: async (args: { 
+      title: string;
+      description: string;
+      requirements: string[];
+      sourceUrl?: string;
+      companyName?: string;
+      location?: string;
+      workMode?: string;
+      seniority?: string;
+      salary?: string;
+      salaryNumeric?: number;
+      benefits?: string[];
+      sourcePlatform?: string;
+    }) => {
       if (!userId) throw new Error('Usuário não autenticado.');
 
       if (isSupabaseConfigured && supabase) {
@@ -673,11 +687,18 @@ export function useJobs(userId: string | undefined) {
           .from('jobs')
           .insert({
             user_id: userId,
-            title,
-            description,
-            requirements,
-            source_url: sourceUrl,
-            company_name: companyName || 'Inserida Manualmente'
+            title: args.title,
+            description: args.description,
+            requirements: args.requirements,
+            source_url: args.sourceUrl,
+            company_name: args.companyName || 'Inserida Manualmente',
+            location: args.location || 'Remoto',
+            work_mode: args.workMode || 'remote',
+            seniority: args.seniority || 'senior',
+            salary: args.salary || undefined,
+            salary_numeric: args.salaryNumeric || undefined,
+            benefits: args.benefits || [],
+            source_platform: args.sourcePlatform || 'manual'
           })
           .select()
           .single();
@@ -688,16 +709,20 @@ export function useJobs(userId: string | undefined) {
         const newJob: Job = {
           id: `job-${Date.now()}`,
           companyId: 'manual',
-          companyName: companyName || 'Vaga Manual',
-          title,
-          description,
-          requirements,
-          location: 'Remoto',
-          workMode: 'remote',
-          seniority: 'senior',
+          companyName: args.companyName || 'Vaga Manual',
+          title: args.title,
+          description: args.description,
+          requirements: args.requirements,
+          location: args.location || 'Remoto',
+          workMode: (args.workMode || 'remote') as any,
+          seniority: (args.seniority || 'senior') as any,
           isActive: true,
           currency: 'BRL',
-          sourceUrl,
+          sourceUrl: args.sourceUrl,
+          sourcePlatform: args.sourcePlatform || 'manual',
+          salary: args.salary,
+          salaryNumeric: args.salaryNumeric,
+          benefits: args.benefits || [],
           createdAt: new Date().toISOString(),
           updatedAt: new Date().toISOString()
         };

@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { CardGlass } from '../components/CardGlass';
 import { isSupabaseConfigured, supabase } from '../../infrastructure/api/supabaseClient';
+import { localDB } from '../../infrastructure/storage/localDatabase';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { 
   Activity, Loader2, ShieldAlert, RefreshCw, 
@@ -397,6 +398,97 @@ export function AdminDashboard({ userId }: AdminDashboardProps) {
     enabled: !!selectedUser
   });
 
+  // ── 9. BUSCAR RPCs DE ANALYTICS REAL-TIME ──
+  const { data: funnelData = [], refetch: refetchFunnel } = useQuery({
+    queryKey: ['admin-funnel-analytics'],
+    queryFn: async () => {
+      if (!isSupabaseConfigured || !supabase) {
+        return localDB.getMockAnalyticsData('get_funnel_analytics');
+      }
+      const { data, error } = await supabase.rpc('get_funnel_analytics');
+      if (error) {
+        console.error('Error fetching funnel RPC:', error);
+        return localDB.getMockAnalyticsData('get_funnel_analytics');
+      }
+      return data;
+    }
+  });
+
+  const { data: featureAdoption = [], refetch: refetchAdoption } = useQuery({
+    queryKey: ['admin-feature-adoption'],
+    queryFn: async () => {
+      if (!isSupabaseConfigured || !supabase) {
+        return localDB.getMockAnalyticsData('get_feature_adoption');
+      }
+      const { data, error } = await supabase.rpc('get_feature_adoption');
+      if (error) {
+        console.error('Error fetching feature adoption RPC:', error);
+        return localDB.getMockAnalyticsData('get_feature_adoption');
+      }
+      return data;
+    }
+  });
+
+  const { data: iaCostCenter = [], refetch: refetchCosts } = useQuery({
+    queryKey: ['admin-ia-cost-center'],
+    queryFn: async () => {
+      if (!isSupabaseConfigured || !supabase) {
+        return localDB.getMockAnalyticsData('get_ia_cost_center');
+      }
+      const { data, error } = await supabase.rpc('get_ia_cost_center');
+      if (error) {
+        console.error('Error fetching ia cost center RPC:', error);
+        return localDB.getMockAnalyticsData('get_ia_cost_center');
+      }
+      return data;
+    }
+  });
+
+  const { data: skillsIntelligence = [], refetch: refetchSkills } = useQuery({
+    queryKey: ['admin-skills-intelligence'],
+    queryFn: async () => {
+      if (!isSupabaseConfigured || !supabase) {
+        return localDB.getMockAnalyticsData('get_skills_intelligence');
+      }
+      const { data, error } = await supabase.rpc('get_skills_intelligence');
+      if (error) {
+        console.error('Error fetching skills gap RPC:', error);
+        return localDB.getMockAnalyticsData('get_skills_intelligence');
+      }
+      return data;
+    }
+  });
+
+  const { data: heatmapJobs = [], refetch: refetchHeatmap } = useQuery({
+    queryKey: ['admin-heatmap-jobs'],
+    queryFn: async () => {
+      if (!isSupabaseConfigured || !supabase) {
+        return localDB.getMockAnalyticsData('get_heatmap_jobs');
+      }
+      const { data, error } = await supabase.rpc('get_heatmap_jobs');
+      if (error) {
+        console.error('Error fetching heatmap RPC:', error);
+        return localDB.getMockAnalyticsData('get_heatmap_jobs');
+      }
+      return data;
+    }
+  });
+
+  const { data: aiInsights = [], refetch: refetchInsights } = useQuery({
+    queryKey: ['admin-ai-insights'],
+    queryFn: async () => {
+      if (!isSupabaseConfigured || !supabase) {
+        return localDB.getMockAnalyticsData('get_ai_insights');
+      }
+      const { data, error } = await supabase.rpc('get_ai_insights');
+      if (error) {
+        console.error('Error fetching AI insights RPC:', error);
+        return localDB.getMockAnalyticsData('get_ai_insights');
+      }
+      return data;
+    }
+  });
+
   // Filtrar e Paginar Usuários na aba de Usuários
   const filteredUsers = users.filter((user: any) => {
     const matchesSearch = (user.full_name || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -416,6 +508,12 @@ export function AdminDashboard({ userId }: AdminDashboardProps) {
     if (hasTelemetryAccess) refetchTelemetry();
     if (hasFinancesAccess) refetchFinances();
     refetchUsage();
+    refetchFunnel();
+    refetchAdoption();
+    refetchCosts();
+    refetchSkills();
+    refetchHeatmap();
+    refetchInsights();
     showToast('Dados administrativos atualizados!', 'success');
   };
 
@@ -444,7 +542,6 @@ export function AdminDashboard({ userId }: AdminDashboardProps) {
   }
 
   // Estatísticas de Faturamento e Telemetria para o Overview
-  const activeSubs = billingData?.subscriptionsCount?.active || 0;
   const succeededTx = billingData?.transactions?.filter(t => t.status === 'succeeded') || [];
   const mrr = succeededTx.reduce((acc, t) => acc + (t.amount || 0), 0);
   const unresolvedErrors = systemErrors.filter((e: any) => !e.resolved).length;
@@ -1281,64 +1378,56 @@ export function AdminDashboard({ userId }: AdminDashboardProps) {
             {/* Funil de Conversão */}
             <CardGlass className="p-5 lg:col-span-2 space-y-4">
               <div>
-                <h3 className="text-xs font-bold text-slate-300 uppercase tracking-wider">Funil de Conversão & Onboarding</h3>
-                <p className="text-[10px] text-slate-550">Acompanhamento de conversões e gargalos de produto.</p>
+                <h3 className="text-xs font-bold text-slate-300 uppercase tracking-wider">Funil de Conversão & Onboarding (Mixpanel Style)</h3>
+                <p className="text-[10px] text-slate-550">Acompanhamento reativo de conversões e gargalos de produto calculados em tempo real.</p>
               </div>
 
-              {/* SVG Funnel Visualizer */}
               <div className="space-y-3 pt-2">
-                {[
-                  { label: '1. Cadastro Inicial', count: users.length * 2.2, pct: 100, drop: 0 },
-                  { label: '2. Upload de Currículo', count: users.length * 1.8, pct: 82, drop: 18 },
-                  { label: '3. Primeiro Match', count: users.length * 1.5, pct: 68, drop: 14 },
-                  { label: '4. Primeira Candidatura', count: users.length * 0.9, pct: 41, drop: 27 },
-                  { label: '5. Primeira Entrevista', count: users.length * 0.4, pct: 18, drop: 23 },
-                  { label: '6. Premium (Upgrade)', count: activeSubs, pct: 12, drop: 6 },
-                  { label: '7. Retenção (Recorrência)', count: Math.ceil(activeSubs * 0.7), pct: 8, drop: 4 }
-                ].map((step, idx) => (
-                  <div key={idx} className="space-y-1">
-                    <div className="flex justify-between items-center text-xs">
-                      <span className="font-semibold text-slate-200">{step.label}</span>
-                      <div className="text-right">
-                        <span className="font-mono text-slate-400 font-bold">{Math.ceil(step.count)}</span>
-                        <span className="text-slate-550 ml-1.5">({step.pct}%)</span>
+                {funnelData.map((step: any, idx: number) => {
+                  const prevStep = idx > 0 ? funnelData[idx - 1] : null;
+                  const drop = prevStep ? Math.max(0, Number(prevStep.percentage) - Number(step.percentage)) : 0;
+                  return (
+                    <div key={idx} className="space-y-1">
+                      <div className="flex justify-between items-center text-xs">
+                        <span className="font-semibold text-slate-200">{step.step_name}</span>
+                        <div className="text-right">
+                          <span className="font-mono text-slate-400 font-bold">{Math.ceil(step.unique_users)}</span>
+                          <span className="text-slate-550 ml-1.5">({step.percentage}%)</span>
+                        </div>
+                      </div>
+                      {/* Visual Bar */}
+                      <div className="h-4 w-full bg-slate-950/60 rounded-lg overflow-hidden border border-slate-900 relative">
+                        <div
+                          className="h-full bg-gradient-to-r from-brand-600 to-brand-500 rounded-lg"
+                          style={{ width: `${step.percentage}%` }}
+                        />
+                        {drop > 0 && (
+                          <span className="absolute right-3 top-0.5 text-[8px] font-extrabold text-red-400/80">
+                            Abandono: {drop.toFixed(1)}%
+                          </span>
+                        )}
                       </div>
                     </div>
-                    {/* Visual Bar */}
-                    <div className="h-4 w-full bg-slate-950/60 rounded-lg overflow-hidden border border-slate-900 relative">
-                      <div
-                        className="h-full bg-gradient-to-r from-brand-600 to-brand-500 rounded-lg"
-                        style={{ width: `${step.pct}%` }}
-                      />
-                      {step.drop > 0 && (
-                        <span className="absolute right-3 top-0 text-[9px] font-bold text-red-400/80">
-                          Abandono: {step.drop}%
-                        </span>
-                      )}
-                    </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             </CardGlass>
 
             {/* QA Career Insights */}
             <CardGlass className="p-5 lg:col-span-1 space-y-4">
               <h3 className="text-xs font-bold text-slate-300 uppercase tracking-wider pb-2 border-b border-slate-900">
-                Career Intelligence Insights
+                AI Correlation Insights
               </h3>
               <div className="space-y-4 text-xs">
-                {[
-                  { q: 'Abandono de Onboarding', a: '41% dos usuários abandonaram o onboarding antes de enviar o currículo.', detail: 'Gargalo principal na ativação inicial.' },
-                  { q: 'Conversão Premium', a: 'Usuários que utilizam o Coach IA convertem 3,2× mais para o Premium.', detail: 'Interações com IA são os maiores atratores de receita.' },
-                  { q: 'Comportamento de Currículos', a: 'Currículos com mais de 3 páginas têm 22% menos Match.', detail: 'Recomendação de sintetização automática pelo Coach.' },
-                  { q: 'Tendências do Mercado', a: 'As vagas de Customer Success tiveram aumento de 17% esta semana.', detail: 'Seguido por Engenharia de Software (+12%).' },
-                  { q: 'Habilidade mais Procurada', a: 'React continua sendo a habilidade mais procurada nas vagas.', detail: 'Presente em 88% das vagas de tecnologia analisadas.' },
-                  { q: 'Recomendação de IA', a: 'Melhorar o onboarding na etapa "Upload de Currículo".', detail: 'Foco em arrastar/soltar e importação direta do LinkedIn.' }
-                ].map((item, idx) => (
-                  <div key={idx} className="space-y-1 p-2 bg-slate-950/20 border border-slate-900 rounded-xl">
-                    <h4 className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">{item.q}</h4>
-                    <p className="font-semibold text-slate-200 mt-1">{item.a}</p>
-                    <p className="text-[10px] text-slate-550">{item.detail}</p>
+                {aiInsights.map((insight: any, idx: number) => (
+                  <div key={idx} className="space-y-1 p-3 bg-slate-950/20 border border-slate-900 rounded-xl relative overflow-hidden">
+                    <div className="absolute top-0 right-0 px-2 py-0.5 bg-brand-500/10 rounded-bl text-[8px] font-extrabold text-brand-400">
+                      Impacto: {insight.impact_multiplier}x
+                    </div>
+                    <h4 className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">
+                      💡 {insight.insight_title}
+                    </h4>
+                    <p className="font-semibold text-slate-300 mt-1">{insight.insight_description}</p>
                   </div>
                 ))}
               </div>
@@ -1348,59 +1437,102 @@ export function AdminDashboard({ userId }: AdminDashboardProps) {
           {/* Comparativo de Habilidades */}
           <CardGlass className="p-5 space-y-4">
             <div>
-              <h3 className="text-xs font-bold text-slate-300 uppercase tracking-wider">Habilidades nos Currículos vs. Demandadas nas Vagas</h3>
-              <p className="text-[10px] text-slate-500">Mapeamento e pareamento de competências para otimização de curadoria.</p>
+              <h3 className="text-xs font-bold text-slate-300 uppercase tracking-wider">Skills Intelligence (Gap Currículo vs. Mercado)</h3>
+              <p className="text-[10px] text-slate-500">Mapeamento em tempo real do gap de habilidades entre currículos de candidatos e vagas indexadas.</p>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-2">
               {/* Skills in resumes */}
               <div className="space-y-3">
                 <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block border-b border-slate-900 pb-1">
-                  Encontradas nos Currículos
+                  Mais Frequentes nos Currículos
                 </span>
-                {[
-                  { name: 'JavaScript / TypeScript', count: '82%', width: 'w-[82%]' },
-                  { name: 'React.js / Next.js', count: '74%', width: 'w-[74%]' },
-                  { name: 'Python & Análise de Dados', count: '55%', width: 'w-[55%]' },
-                  { name: 'SQL / PostgreSQL', count: '48%', width: 'w-[48%]' },
-                  { name: 'Node.js / REST APIs', count: '45%', width: 'w-[45%]' }
-                ].map((skill, idx) => (
-                  <div key={idx} className="space-y-1 text-xs">
-                    <div className="flex justify-between font-medium">
-                      <span className="text-slate-300">{skill.name}</span>
-                      <span className="text-slate-500">{skill.count}</span>
+                {skillsIntelligence.slice(0, 6).map((skill: any, idx: number) => {
+                  const maxCount = Math.max(...skillsIntelligence.map((s: any) => Number(s.user_count))) || 1;
+                  const pct = Math.round((Number(skill.user_count) * 100) / maxCount);
+                  return (
+                    <div key={idx} className="space-y-1 text-xs">
+                      <div className="flex justify-between font-medium">
+                        <span className="text-slate-300">{skill.skill_name}</span>
+                        <span className="text-slate-500">{skill.user_count} perfis</span>
+                      </div>
+                      <div className="h-2 w-full bg-slate-950 rounded-full overflow-hidden">
+                        <div className="h-full bg-brand-500 rounded-full" style={{ width: `${pct}%` }} />
+                      </div>
                     </div>
-                    <div className="h-2 w-full bg-slate-950 rounded-full overflow-hidden">
-                      <div className={`h-full bg-brand-500 rounded-full ${skill.width}`} />
-                    </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
 
               {/* Skills in jobs */}
               <div className="space-y-3">
                 <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block border-b border-slate-900 pb-1">
-                  Requeridas pelas Vagas do Mercado
+                  Mais Demandadas nas Vagas (Mercado)
                 </span>
-                {[
-                  { name: 'React.js / Next.js', count: '88%', width: 'w-[88%]' },
-                  { name: 'TypeScript / Node.js', count: '80%', width: 'w-[80%]' },
-                  { name: 'Cloud AWS / Docker', count: '70%', width: 'w-[70%]' },
-                  { name: 'PostgreSQL / Prisma', count: '65%', width: 'w-[65%]' },
-                  { name: 'Python / Engenharia IA', count: '42%', width: 'w-[42%]' }
-                ].map((skill, idx) => (
+                {skillsIntelligence.slice(0, 6).map((skill: any, idx: number) => {
+                  const maxCount = Math.max(...skillsIntelligence.map((s: any) => Number(s.market_count))) || 1;
+                  const pct = Math.round((Number(skill.market_count) * 100) / maxCount);
+                  const isGap = skill.user_count === 0 || (Number(skill.market_count) - Number(skill.user_count)) > 5;
+                  return (
+                    <div key={idx} className="space-y-1 text-xs">
+                      <div className="flex justify-between font-medium">
+                        <span className="text-slate-300 flex items-center gap-1.5">
+                          {skill.skill_name}
+                          {isGap && <span className="text-[8px] font-bold px-1.5 py-0.2 bg-red-500/10 text-red-400 border border-red-500/20 rounded">Gap Detectado</span>}
+                        </span>
+                        <span className="text-slate-505">{skill.market_count} vagas</span>
+                      </div>
+                      <div className="h-2 w-full bg-slate-955 rounded-full overflow-hidden">
+                        <div className="h-full bg-purple-500 rounded-full" style={{ width: `${pct}%` }} />
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          </CardGlass>
+
+          {/* Feature Adoption & Heatmap */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <CardGlass className="p-5 space-y-4">
+              <div>
+                <h3 className="text-xs font-bold text-slate-300 uppercase tracking-wider">Adoção de Funcionalidades (Feature Adoption)</h3>
+                <p className="text-[10px] text-slate-550">Utilização ativa das ferramentas do ecossistema Talenta.</p>
+              </div>
+              <div className="space-y-3 pt-2">
+                {featureAdoption.map((feat: any, idx: number) => (
                   <div key={idx} className="space-y-1 text-xs">
                     <div className="flex justify-between font-medium">
-                      <span className="text-slate-300">{skill.name}</span>
-                      <span className="text-slate-505">{skill.count}</span>
+                      <span className="text-slate-300">{feat.feature_name}</span>
+                      <span className="text-slate-500">{feat.use_count} interações ({feat.percentage}%)</span>
                     </div>
-                    <div className="h-2 w-full bg-slate-955 rounded-full overflow-hidden">
-                      <div className={`h-full bg-purple-500 rounded-full ${skill.width}`} />
+                    <div className="h-2.5 w-full bg-slate-950 rounded-lg overflow-hidden border border-slate-900">
+                      <div className="h-full bg-gradient-to-r from-emerald-500 to-teal-450 rounded-lg" style={{ width: `${feat.percentage}%` }} />
                     </div>
                   </div>
                 ))}
               </div>
-            </div>
-          </CardGlass>
+            </CardGlass>
+
+            <CardGlass className="p-5 space-y-4">
+              <div>
+                <h3 className="text-xs font-bold text-slate-300 uppercase tracking-wider">Heatmap de Vagas & Atuação</h3>
+                <p className="text-[10px] text-slate-550">Distribuição volumétrica das vagas processadas e analisadas.</p>
+              </div>
+              <div className="space-y-3 pt-2">
+                {heatmapJobs.map((cat: any, idx: number) => (
+                  <div key={idx} className="space-y-1 text-xs">
+                    <div className="flex justify-between font-medium">
+                      <span className="text-slate-300">{cat.category_name}</span>
+                      <span className="text-slate-500">{cat.job_count} vagas ({cat.percentage}%)</span>
+                    </div>
+                    <div className="h-2.5 w-full bg-slate-950 rounded-lg overflow-hidden border border-slate-900">
+                      <div className="h-full bg-gradient-to-r from-blue-500 to-indigo-405 rounded-lg" style={{ width: `${cat.percentage}%` }} />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </CardGlass>
+          </div>
 
           {/* Métricas Operacionais de Currículos & Entrevistas */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -1675,6 +1807,57 @@ export function AdminDashboard({ userId }: AdminDashboardProps) {
               </div>
             </CardGlass>
           </div>
+
+          {/* IA Cost Center & ROI Table */}
+          <CardGlass className="p-5 space-y-4">
+            <div>
+              <h3 className="text-xs font-bold text-slate-300 uppercase tracking-wider">IA Cost Center & ROI por Usuário</h3>
+              <p className="text-[10px] text-slate-550">Mapeamento detalhado de consumo de tokens, custos acumulados de APIs e retorno financeiro.</p>
+            </div>
+            <div className="overflow-x-auto rounded-xl border border-slate-900 bg-slate-950/20">
+              <table className="w-full border-collapse text-left text-xs text-slate-400">
+                <thead>
+                  <tr className="border-b border-slate-900 bg-slate-950/60 font-semibold text-slate-300">
+                    <th className="p-3">Usuário</th>
+                    <th className="p-3">Tokens Totais</th>
+                    <th className="p-3">Custo Est. (BRL)</th>
+                    <th className="p-3">Coach (Tkns)</th>
+                    <th className="p-3">CV (Tkns)</th>
+                    <th className="p-3">Carta (Tkns)</th>
+                    <th className="p-3">Entrevista (Tkns)</th>
+                    <th className="p-3">Plano</th>
+                    <th className="p-3 text-right">ROI (Est.)</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-900 text-[11px]">
+                  {iaCostCenter.map((row: any, idx: number) => {
+                    const isNegative = Number(row.roi) < 0;
+                    return (
+                      <tr key={idx} className="hover:bg-slate-900/10">
+                        <td className="p-3 font-semibold text-slate-200">{row.user_name}</td>
+                        <td className="p-3 font-mono">{Number(row.total_tokens).toLocaleString()}</td>
+                        <td className="p-3 font-mono text-amber-400">R$ {Number(row.estimated_cost_brl).toFixed(2)}</td>
+                        <td className="p-3 font-mono text-slate-500">{Number(row.coach_tokens).toLocaleString()}</td>
+                        <td className="p-3 font-mono text-slate-500">{Number(row.cv_tokens).toLocaleString()}</td>
+                        <td className="p-3 font-mono text-slate-500">{Number(row.carta_tokens).toLocaleString()}</td>
+                        <td className="p-3 font-mono text-slate-500">{Number(row.interview_tokens).toLocaleString()}</td>
+                        <td className="p-3">
+                          <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${
+                            row.premium_status === 'active' ? 'bg-emerald-500/10 text-emerald-450 border border-emerald-500/20' : 'bg-slate-800 text-slate-400'
+                          }`}>
+                            {row.premium_status === 'active' ? 'Premium' : 'Free'}
+                          </span>
+                        </td>
+                        <td className={`p-3 text-right font-mono font-bold ${isNegative ? 'text-red-400' : 'text-emerald-400'}`}>
+                          R$ {Number(row.roi).toFixed(2)}
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          </CardGlass>
         </div>
       )}
 

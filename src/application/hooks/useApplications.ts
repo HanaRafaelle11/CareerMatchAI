@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { isSupabaseConfigured, supabase } from '../../infrastructure/api/supabaseClient';
 import { localDB } from '../../infrastructure/storage/localDatabase';
+import { tracker } from '../../infrastructure/analytics/tracker';
 import { applicationTrackerService } from '../services/ApplicationTrackerService';
 import type { Application, ApplicationStage } from '../../domain/models/types';
 
@@ -161,8 +162,13 @@ export function useApplications(userId: string | undefined, resumeVersionId?: st
         return saved;
       }
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ['applications', userId] });
+      if (data.status === '📨 Me candidatei') {
+        tracker.track('job_applied', 'applications');
+      } else {
+        tracker.track('job_saved', 'applications');
+      }
     }
   });
 
@@ -198,8 +204,11 @@ export function useApplications(userId: string | undefined, resumeVersionId?: st
         return saved;
       }
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ['applications', userId] });
+      if (data.status === '📨 Me candidatei') {
+        tracker.track('job_applied', 'applications');
+      }
     }
   });
 

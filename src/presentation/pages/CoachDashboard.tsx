@@ -4,6 +4,7 @@ import { MarketIntelligenceService } from '../../application/services/MarketInte
 import type { Application, CareerProfile, Job } from '../../domain/models/types';
 import type { CareerProfileNew } from '../../application/hooks/useMyProfileAi';
 import { calcYearsFromExperiences } from '../../application/services/matchingEngine';
+import { tracker } from '../../infrastructure/analytics/tracker';
 import { 
   Award, Play, MessageSquare, Send, 
   RefreshCcw, Star, UserCheck, Loader2, BarChart3
@@ -142,6 +143,7 @@ export function CoachDashboard({
     const newChat = [...recruiterChat, { role: 'candidate' as const, text: userText }];
     setRecruiterChat(newChat);
     setRecruiterInput('');
+    tracker.track('coach_message', 'coach', { query: userText });
 
     // Responsive advisor feedback
     setTimeout(() => {

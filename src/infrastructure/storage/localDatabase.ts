@@ -884,9 +884,76 @@ class LocalDatabase {
   }
 
   deleteCareerGoal(id: string): void {
-    const all = JSON.parse(localStorage.getItem(KEYS.CAREER_GOALS) || '[]') as CareerGoal[];
-    const filtered = all.filter(g => g.id !== id);
+    const all = JSON.parse(localStorage.getItem(KEYS.CAREER_GOALS) || '[]');
+    const filtered = all.filter((g: any) => g.id !== id);
     localStorage.setItem(KEYS.CAREER_GOALS, JSON.stringify(filtered));
+  }
+
+  // Analytics Events API
+  saveAnalyticsEvent(event: any): void {
+    const all = JSON.parse(localStorage.getItem('careermatch_analytics_events') || '[]');
+    all.push({ ...event, id: event.id || Math.random().toString(36).substring(2, 9) });
+    localStorage.setItem('careermatch_analytics_events', JSON.stringify(all));
+  }
+
+  getAnalyticsEvents(): any[] {
+    return JSON.parse(localStorage.getItem('careermatch_analytics_events') || '[]');
+  }
+
+  getMockAnalyticsData(rpcName: string): any {
+    switch (rpcName) {
+      case 'get_funnel_analytics':
+        return [
+          { step_name: '1. Cadastro', unique_users: 1000, percentage: 100 },
+          { step_name: '2. Upload de Currículo', unique_users: 200, percentage: 20 },
+          { step_name: '3. Primeiro Match', unique_users: 120, percentage: 12 },
+          { step_name: '4. Primeira Vaga Salva', unique_users: 95, percentage: 9.5 },
+          { step_name: '5. Primeira Candidatura', unique_users: 40, percentage: 4 },
+          { step_name: '6. Coach IA', unique_users: 15, percentage: 1.5 },
+          { step_name: '7. Premium (Upgrade)', unique_users: 6, percentage: 0.6 }
+        ];
+      case 'get_feature_adoption':
+        return [
+          { feature_name: 'Coach IA', use_count: 830, percentage: 83 },
+          { feature_name: 'Match', use_count: 610, percentage: 61 },
+          { feature_name: 'Entrevista', use_count: 420, percentage: 42 },
+          { feature_name: 'Carta', use_count: 180, percentage: 18 },
+          { feature_name: 'Kanban', use_count: 90, percentage: 9 }
+        ];
+      case 'get_ia_cost_center':
+        return [
+          { user_id: 'u-1', user_name: 'Alexandre Silva', total_tokens: 150000, estimated_cost_brl: 12.15, coach_tokens: 65000, cv_tokens: 45000, carta_tokens: 20000, interview_tokens: 20000, premium_status: 'active', roi: 16.85 },
+          { user_id: 'u-2', user_name: 'Maria Santos', total_tokens: 125000, estimated_cost_brl: 10.12, coach_tokens: 50000, cv_tokens: 35000, carta_tokens: 20000, interview_tokens: 20000, premium_status: 'active', roi: 18.88 },
+          { user_id: 'u-3', user_name: 'Bruno Lima', total_tokens: 95000, estimated_cost_brl: 7.69, coach_tokens: 40000, cv_tokens: 25000, carta_tokens: 15000, interview_tokens: 15000, premium_status: 'free', roi: -7.69 }
+        ];
+      case 'get_skills_intelligence':
+        return [
+          { skill_name: 'React', user_count: 12, market_count: 15, type: 'present' },
+          { skill_name: 'Docker', user_count: 2, market_count: 11, type: 'missing' },
+          { skill_name: 'AWS', user_count: 1, market_count: 9, type: 'missing' },
+          { skill_name: 'Kubernetes', user_count: 0, market_count: 8, type: 'missing' },
+          { skill_name: 'Node.js', user_count: 9, market_count: 7, type: 'present' },
+          { skill_name: 'TypeScript', user_count: 10, market_count: 7, type: 'present' },
+          { skill_name: 'HTML/CSS', user_count: 12, market_count: 3, type: 'present' },
+          { skill_name: 'Git', user_count: 11, market_count: 2, type: 'present' }
+        ];
+      case 'get_heatmap_jobs':
+        return [
+          { category_name: 'Customer Success', job_count: 45, percentage: 45.0 },
+          { category_name: 'Produto', job_count: 25, percentage: 25.0 },
+          { category_name: 'Marketing', job_count: 15, percentage: 15.0 },
+          { category_name: 'RH', job_count: 10, percentage: 10.0 },
+          { category_name: 'Dados', job_count: 5, percentage: 5.0 }
+        ];
+      case 'get_ai_insights':
+        return [
+          { insight_title: 'Velocidade de Onboarding', insight_description: 'Usuários que fazem upload do currículo em até 10 minutos convertem 4x mais para Premium.', impact_multiplier: 4.0 },
+          { insight_title: 'Engajamento com Coach', insight_description: 'Coach IA gera retenção 38% maior e mais engajamento semanal.', impact_multiplier: 1.38 },
+          { insight_title: 'Qualidade de Matches', insight_description: 'Usuários que possuem Match acima de 80% fazem 3 vezes mais candidaturas.', impact_multiplier: 3.0 }
+        ];
+      default:
+        return [];
+    }
   }
 }
 

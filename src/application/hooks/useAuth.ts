@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { isSupabaseConfigured, supabase } from '../../infrastructure/api/supabaseClient';
 import { localDB } from '../../infrastructure/storage/localDatabase';
+import { tracker } from '../../infrastructure/analytics/tracker';
 import type { Profile } from '../../domain/models/types';
 
 export function useAuth() {
@@ -148,6 +149,7 @@ export function useAuth() {
         setLoading(false);
         throw error;
       }
+      tracker.track('login', 'auth');
     } else {
       // Simulação local
       await new Promise(resolve => setTimeout(resolve, 800));
@@ -156,6 +158,7 @@ export function useAuth() {
       localStorage.setItem('careermatch_auth_user', JSON.stringify(mockUserObj));
       setUser(mockUserObj);
       setProfile(localDB.getProfile());
+      tracker.track('login', 'auth');
       setLoading(false);
     }
   };
@@ -185,6 +188,7 @@ export function useAuth() {
             updated_at: new Date().toISOString(),
           });
         if (profileError) console.error(profileError);
+        tracker.track('user_registered', 'auth');
       }
     } else {
       // Simulação local
@@ -195,6 +199,7 @@ export function useAuth() {
       localDB.updateProfile({ fullName, headline: 'Novo Usuário | Talenta' });
       setUser(mockUserObj);
       setProfile(localDB.getProfile());
+      tracker.track('user_registered', 'auth');
       setLoading(false);
     }
   };
@@ -214,6 +219,7 @@ export function useAuth() {
       });
       setUser(mockUserObj);
       setProfile(localDB.getProfile());
+      tracker.track('login', 'auth');
     };
 
     if (isSupabaseConfigured && supabase) {
@@ -227,6 +233,8 @@ export function useAuth() {
         if (error) {
           console.warn(`OAuth sign-in returned error, triggering simulated fallback:`, error);
           await triggerLocalFallback();
+        } else {
+          tracker.track('login', 'auth');
         }
       } catch (err) {
         console.warn(`OAuth sign-in threw error, triggering simulated fallback:`, err);
@@ -247,10 +255,12 @@ export function useAuth() {
     setLoading(true);
     if (isSupabaseConfigured && supabase) {
       await supabase.auth.signOut();
+      tracker.track('logout', 'auth');
     } else {
       localStorage.removeItem('careermatch_auth_user');
       setUser(null);
       setProfile(null);
+      tracker.track('logout', 'auth');
     }
     setLoading(false);
   };

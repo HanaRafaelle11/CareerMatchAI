@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { isSupabaseConfigured, supabase } from '../../infrastructure/api/supabaseClient';
 import { localDB } from '../../infrastructure/storage/localDatabase';
+import { tracker } from '../../infrastructure/analytics/tracker';
 import { ResumeOptimizationService } from '../services/ResumeOptimizationService';
 import { InterviewPreparationService } from '../services/InterviewPreparationService';
 import { InterviewSimulationService } from '../services/InterviewSimulationService';
@@ -97,6 +98,7 @@ export function useCoach(userId: string | undefined) {
         });
       }
       queryClient.invalidateQueries({ queryKey: ['resume-optimization', variables.resumeId, variables.jobId] });
+      tracker.track('resume_optimized', 'cv');
     }
   });
 
@@ -180,6 +182,7 @@ export function useCoach(userId: string | undefined) {
         });
       }
       queryClient.invalidateQueries({ queryKey: ['cover-letter', variables.applicationId] });
+      tracker.track('resume_optimized', 'letter', { type: 'cover_letter' });
     }
   });
 
@@ -388,6 +391,7 @@ export function useCoach(userId: string | undefined) {
       if (appId) {
         queryClient.invalidateQueries({ queryKey: ['simulation', appId] });
       }
+      tracker.track('interview_started', 'interviews');
     }
   });
 
@@ -510,6 +514,9 @@ export function useCoach(userId: string | undefined) {
     },
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ['simulation', data.applicationId] });
+      if (data.evaluations) {
+        tracker.track('interview_finished', 'interviews', { scores: data.evaluations });
+      }
     }
   });
 

@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { isSupabaseConfigured, supabase } from '../../infrastructure/api/supabaseClient';
 import { localDB } from '../../infrastructure/storage/localDatabase';
+import { tracker } from '../../infrastructure/analytics/tracker';
 import { MatchingEngine } from '../services/matchingEngine';
 import { sanitizeFileName } from '../utils/fileUtils';
 import { AppError } from '../errors/AppError';
@@ -144,6 +145,8 @@ export function useResumes(userId: string | undefined) {
           yearsOfExperience: 0
         };
         localDB.saveResume(newResume);
+        tracker.track('resume_uploaded', 'resumes');
+        tracker.track('resume_parsed', 'resumes');
 
         if (isSupabaseConfigured && supabase) {
           try {
@@ -227,6 +230,7 @@ export function useResumes(userId: string | undefined) {
               throw new Error('Erro ao fazer upload do currículo. Por favor, tente novamente.');
             }
             console.log(`[PIPELINE] 2. Upload concluído para o Storage. Caminho: ${filePath}`);
+            tracker.track('resume_uploaded', 'resumes');
             setPipelineSteps(prev => prev.map(s => 
               s.id === 'reading_resume' ? { ...s, status: 'running' } : s
             ));
@@ -393,6 +397,7 @@ export function useResumes(userId: string | undefined) {
 
             const duration = Date.now() - pipelineStartTime;
             console.log(`[PIPELINE] 8. Pipeline concluído com sucesso via polling. Tempo total: ${duration}ms`);
+            tracker.track('resume_parsed', 'resumes');
             
             // Gravar tempo de processamento real no banco de dados
             await supabase
@@ -828,10 +833,11 @@ export function useMatches(userId: string | undefined, resumeId?: string | null)
         return result.match;
       }
     },
-    onSuccess: () => {
+    onSuccess: (data: any) => {
       queryClient.invalidateQueries({ queryKey: ['matches'] });
       queryClient.invalidateQueries({ queryKey: ['match-details'] });
       queryClient.invalidateQueries({ queryKey: ['resume-optimization'] });
+      tracker.track('match_generated', 'matching', { score: data?.score_overall || data?.scoreOverall });
       queryClient.invalidateQueries({ queryKey: ['interview-prep'] });
       queryClient.invalidateQueries({ queryKey: ['cover-letter'] });
     }

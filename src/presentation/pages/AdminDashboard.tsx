@@ -1328,11 +1328,12 @@ export function AdminDashboard({ userId }: AdminDashboardProps) {
               </h3>
               <div className="space-y-4 text-xs">
                 {[
-                  { q: 'Match acima de 80% esta semana?', a: '42 candidatos atingiram compatibilidade ideal.', detail: 'Foco em Engenharia e Vendas.' },
-                  { q: 'Gargalo principal de desistência?', a: 'Primeira Candidatura (27% abandono).', detail: 'Usuários demoram para achar vagas.' },
-                  { q: 'Prompt de IA com melhor avaliação?', a: '"Simular entrevista comportamental"', detail: 'Satisfação de 98.2% do Coach.' },
-                  { q: 'Custo médio por usuário ativo?', a: 'R$ 0,12 / usuário por dia (Tokens IA)', detail: 'Margem saudável Pro/Enterprise.' },
-                  { q: 'Melhor fonte de conversão?', a: 'LinkedIn Integration (15.4% conversão)', detail: 'Seguido por Adzuna com 11.2%.' }
+                  { q: 'Abandono de Onboarding', a: '41% dos usuários abandonaram o onboarding antes de enviar o currículo.', detail: 'Gargalo principal na ativação inicial.' },
+                  { q: 'Conversão Premium', a: 'Usuários que utilizam o Coach IA convertem 3,2× mais para o Premium.', detail: 'Interações com IA são os maiores atratores de receita.' },
+                  { q: 'Comportamento de Currículos', a: 'Currículos com mais de 3 páginas têm 22% menos Match.', detail: 'Recomendação de sintetização automática pelo Coach.' },
+                  { q: 'Tendências do Mercado', a: 'As vagas de Customer Success tiveram aumento de 17% esta semana.', detail: 'Seguido por Engenharia de Software (+12%).' },
+                  { q: 'Habilidade mais Procurada', a: 'React continua sendo a habilidade mais procurada nas vagas.', detail: 'Presente em 88% das vagas de tecnologia analisadas.' },
+                  { q: 'Recomendação de IA', a: 'Melhorar o onboarding na etapa "Upload de Currículo".', detail: 'Foco em arrastar/soltar e importação direta do LinkedIn.' }
                 ].map((item, idx) => (
                   <div key={idx} className="space-y-1 p-2 bg-slate-950/20 border border-slate-900 rounded-xl">
                     <h4 className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">{item.q}</h4>
@@ -1400,6 +1401,59 @@ export function AdminDashboard({ userId }: AdminDashboardProps) {
               </div>
             </div>
           </CardGlass>
+
+          {/* Métricas Operacionais de Currículos & Entrevistas */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <CardGlass className="p-5 space-y-4">
+              <h3 className="text-xs font-bold text-slate-300 uppercase tracking-wider pb-2 border-b border-slate-900 flex items-center gap-1.5">
+                <FileText size={14} className="text-brand-500" />
+                Métricas de Currículos
+              </h3>
+              <div className="grid grid-cols-2 gap-3 text-xs">
+                <div className="p-3 bg-slate-950/20 border border-slate-900 rounded-xl">
+                  <span className="text-[10px] text-slate-500 font-bold uppercase block">Enviados</span>
+                  <span className="text-lg font-extrabold text-slate-200 block mt-1">{usageCounts?.resumes || 12} currículos</span>
+                </div>
+                <div className="p-3 bg-slate-950/20 border border-slate-900 rounded-xl">
+                  <span className="text-[10px] text-slate-500 font-bold uppercase block">Analisados</span>
+                  <span className="text-lg font-extrabold text-slate-200 block mt-1">{usageCounts?.resumes || 12} currículos</span>
+                </div>
+                <div className="p-3 bg-slate-950/20 border border-slate-900 rounded-xl">
+                  <span className="text-[10px] text-slate-500 font-bold uppercase block">Otimizados</span>
+                  <span className="text-lg font-extrabold text-slate-200 block mt-1">{Math.ceil((usageCounts?.resumes || 12) * 0.65)} otimizados</span>
+                </div>
+                <div className="p-3 bg-slate-950/20 border border-slate-900 rounded-xl">
+                  <span className="text-[10px] text-slate-500 font-bold uppercase block">Erros de Parsing</span>
+                  <span className="text-lg font-extrabold text-emerald-450 block mt-1">0%</span>
+                </div>
+              </div>
+            </CardGlass>
+
+            <CardGlass className="p-5 space-y-4">
+              <h3 className="text-xs font-bold text-slate-300 uppercase tracking-wider pb-2 border-b border-slate-900 flex items-center gap-1.5">
+                <Video size={14} className="text-purple-400" />
+                Métricas de Entrevistas Simuladas
+              </h3>
+              <div className="grid grid-cols-3 gap-2 text-xs">
+                <div className="p-3 bg-slate-950/20 border border-slate-900 rounded-xl">
+                  <span className="text-[9px] text-slate-550 font-bold uppercase block">Simulações</span>
+                  <span className="text-base font-extrabold text-slate-200 block mt-1">{usageCounts?.simulations || 8}</span>
+                </div>
+                <div className="p-3 bg-slate-950/20 border border-slate-900 rounded-xl">
+                  <span className="text-[9px] text-slate-550 font-bold uppercase block">Tempo Médio</span>
+                  <span className="text-base font-extrabold text-slate-200 block mt-1">12m 45s</span>
+                </div>
+                <div className="p-3 bg-slate-950/20 border border-slate-900 rounded-xl">
+                  <span className="text-[9px] text-slate-550 font-bold uppercase block">Nota Média</span>
+                  <span className="text-base font-extrabold text-slate-200 block mt-1">7.8 / 10</span>
+                </div>
+              </div>
+              <div className="p-2.5 bg-slate-950/30 border border-slate-900 rounded-xl text-[11px] leading-relaxed">
+                <span className="text-[9px] text-slate-550 font-bold uppercase block pb-1 border-b border-slate-900/40 font-semibold">Pergunta mais utilizada:</span>
+                <span className="text-slate-300 block mt-1 font-medium font-sans">"Fale sobre um momento em que lidou com um cliente difícil ou insatisfeito e como reverteu a situação."</span>
+              </div>
+            </CardGlass>
+          </div>
         </div>
       )}
 
@@ -1534,10 +1588,10 @@ export function AdminDashboard({ userId }: AdminDashboardProps) {
           {/* Top Token/Cost Row */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
             <CardGlass className="p-4 flex flex-col justify-between">
-              <span className="text-[10px] text-slate-500 font-bold uppercase tracking-wider">Total de Prompts Processados</span>
+              <span className="text-[10px] text-slate-500 font-bold uppercase tracking-wider">Prompts Processados</span>
               <div className="mt-4">
                 <span className="text-3xl font-extrabold text-slate-100 font-display">4,210</span>
-                <span className="text-[9px] text-slate-550 block mt-1">Simulações, Coach e Cartas</span>
+                <span className="text-[9px] text-emerald-450 font-semibold block mt-1">Hoje: 184 prompts enviados</span>
               </div>
             </CardGlass>
 
@@ -1545,23 +1599,23 @@ export function AdminDashboard({ userId }: AdminDashboardProps) {
               <span className="text-[10px] text-slate-500 font-bold uppercase tracking-wider">Volume de Tokens</span>
               <div className="mt-4">
                 <span className="text-3xl font-extrabold text-slate-100 font-display">15.2M</span>
-                <span className="text-[9px] text-slate-550 block mt-1">Avg 3,600 tkn por requisição</span>
+                <span className="text-[9px] text-slate-550 block mt-1">Destaque: Coach IA (45% dos tokens)</span>
               </div>
             </CardGlass>
 
             <CardGlass className="p-4 flex flex-col justify-between">
-              <span className="text-[10px] text-slate-500 font-bold uppercase tracking-wider">Custos Estimados da Operação</span>
+              <span className="text-[10px] text-slate-500 font-bold uppercase tracking-wider">Custo de IA (Diário vs Total)</span>
               <div className="mt-4">
-                <span className="text-3xl font-extrabold text-emerald-400 font-display">R$ 1,231.20</span>
-                <span className="text-[9px] text-emerald-450 font-semibold block mt-1">OpenAI: R$ 380 | Gemini: R$ 851</span>
+                <span className="text-3xl font-extrabold text-emerald-400 font-display">R$ 1.231,20</span>
+                <span className="text-[9px] text-emerald-450 font-semibold block mt-1">Diário: R$ 41,04 (Gemini R$ 28,44 | OpenAI R$ 12,60)</span>
               </div>
             </CardGlass>
 
             <CardGlass className="p-4 flex flex-col justify-between">
-              <span className="text-[10px] text-slate-500 font-bold uppercase tracking-wider">Tempo Médio & Falhas</span>
+              <span className="text-[10px] text-slate-500 font-bold uppercase tracking-wider">Tempo Médio & Erros</span>
               <div className="mt-4">
                 <span className="text-3xl font-extrabold text-slate-100 font-display">1.22s</span>
-                <span className="text-[9px] text-emerald-450 font-semibold block mt-1">0 timeouts ou falhas críticas</span>
+                <span className="text-[9px] text-emerald-450 font-semibold block mt-1">Tempo de Resposta | Taxa de Erro: 0.05%</span>
               </div>
             </CardGlass>
           </div>
@@ -1628,28 +1682,36 @@ export function AdminDashboard({ userId }: AdminDashboardProps) {
       {activeSubTab === 'jobs_observability' && hasUsersAccess && (
         <div className="space-y-6 animate-fade-in">
           {/* Top Metrics Row */}
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
             <CardGlass className="p-4 flex flex-col justify-between">
-              <span className="text-[10px] text-slate-500 font-bold uppercase tracking-wider">Quantidade de Vagas Importadas</span>
+              <span className="text-[10px] text-slate-500 font-bold uppercase tracking-wider">Vagas Importadas</span>
               <div className="mt-4">
                 <span className="text-3xl font-extrabold text-slate-100 font-display">12,402</span>
-                <span className="text-[9px] text-slate-550 block mt-1">Total de indexações gerais</span>
+                <span className="text-[9px] text-slate-550 block mt-1">LinkedIn, Adzuna, Gupy, Indeed, Catho</span>
               </div>
             </CardGlass>
 
             <CardGlass className="p-4 flex flex-col justify-between">
-              <span className="text-[10px] text-slate-500 font-bold uppercase tracking-wider">Quantidade de Vagas Analisadas</span>
+              <span className="text-[10px] text-slate-500 font-bold uppercase tracking-wider">Vagas Analisadas</span>
               <div className="mt-4">
                 <span className="text-3xl font-extrabold text-slate-100 font-display">{usageCounts?.jobs || 48}</span>
-                <span className="text-[9px] text-slate-550 block mt-1">Vagas mapeadas e integradas com CVs</span>
+                <span className="text-[9px] text-slate-550 block mt-1">Mapeadas e avaliadas pelo motor de IA</span>
               </div>
             </CardGlass>
 
             <CardGlass className="p-4 flex flex-col justify-between">
-              <span className="text-[10px] text-slate-500 font-bold uppercase tracking-wider">Tempo Médio de Análise de Match</span>
+              <span className="text-[10px] text-slate-500 font-bold uppercase tracking-wider">Matches & Performance</span>
               <div className="mt-4">
-                <span className="text-3xl font-extrabold text-slate-100 font-display">4.2s</span>
-                <span className="text-[9px] text-emerald-450 font-semibold block mt-1">Otimizado com cache e embeddings</span>
+                <span className="text-3xl font-extrabold text-slate-100 font-display">184</span>
+                <span className="text-[9px] text-slate-450 font-semibold block mt-1">Score Médio: 74.5% | Match &gt; 80%: 42 usuários</span>
+              </div>
+            </CardGlass>
+
+            <CardGlass className="p-4 flex flex-col justify-between">
+              <span className="text-[10px] text-slate-500 font-bold uppercase tracking-wider">Velocidade do Processamento</span>
+              <div className="mt-4">
+                <span className="text-3xl font-extrabold text-emerald-450 font-display">4.2s</span>
+                <span className="text-[9px] text-emerald-450 font-semibold block mt-1">Média por análise de compatibilidade</span>
               </div>
             </CardGlass>
           </div>
@@ -1690,13 +1752,14 @@ export function AdminDashboard({ userId }: AdminDashboardProps) {
               </h3>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
                 {[
-                  { label: 'Usuários em Risco de Churn', val: '8 cadastros', desc: 'Inativos há 14 dias', color: 'text-red-400' },
-                  { label: 'Usuários Inativos gerais', val: '12 cadastros', desc: 'Sem sessão há 30 dias', color: 'text-slate-400' },
-                  { label: 'Abandonou o Onboarding', val: '4 cadastros', desc: 'Parou na etapa de perfil', color: 'text-amber-400' },
-                  { label: 'Nunca enviou Currículo', val: '15 cadastros', desc: 'Conta criada sem upload', color: 'text-slate-400' },
-                  { label: 'Nunca gerou Match', val: '3 cadastros', desc: 'Enviou CV mas não buscou vagas', color: 'text-slate-400' },
-                  { label: 'Nunca usou o Coach IA', val: '6 cadastros', desc: 'Foco exclusivo em vagas', color: 'text-slate-400' },
-                  { label: 'Perto de Virar Premium', val: '9 cadastros', desc: 'Fez mais de 5 simulações', color: 'text-emerald-400' }
+                  { label: 'Cadastrados Hoje', val: '+3 cadastros', desc: 'Novos ingressantes nas últimas 24h', color: 'text-brand-400' },
+                  { label: 'Fizeram Upload de Currículo', val: '12 usuários', desc: 'Ativação inicial do perfil concluída', color: 'text-indigo-400' },
+                  { label: 'Abandonou o Onboarding', val: '4 cadastros', desc: 'Parou antes de concluir onboarding', color: 'text-amber-400' },
+                  { label: 'Nunca gerou Match', val: '3 cadastros', desc: 'Enviou CV mas não calculou matches', color: 'text-slate-400' },
+                  { label: 'Nunca usou o Coach IA', val: '6 cadastros', desc: 'Nenhum prompt enviado ao assistente', color: 'text-slate-400' },
+                  { label: 'Perto de Virar Premium', val: '9 cadastros', desc: 'Fez mais de 5 simulações/otimizações', color: 'text-emerald-400' },
+                  { label: 'Usuários em Risco de Churn', val: '8 cadastros', desc: 'Inativos há mais de 14 dias', color: 'text-red-400' },
+                  { label: 'Usuários Inativos Gerais', val: '12 cadastros', desc: 'Sem nova sessão há 30 dias', color: 'text-slate-450' }
                 ].map((seg, idx) => (
                   <div key={idx} className="p-3 rounded-xl bg-slate-950/20 border border-slate-900 flex justify-between items-center hover:scale-[1.01] transition-transform">
                     <div>

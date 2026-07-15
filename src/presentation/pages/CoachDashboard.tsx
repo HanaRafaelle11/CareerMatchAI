@@ -434,7 +434,7 @@ export function CoachDashboard({
                         <select
                           value={selectedAppId}
                           onChange={e => setSelectedAppId(e.target.value)}
-                          className="w-full bg-slate-900/80 border border-slate-800 text-slate-350 text-xs rounded-xl p-2 outline-none focus:border-brand-500"
+                          className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300 text-xs rounded-xl p-2 outline-none focus:border-brand-500 font-semibold"
                         >
                           {activeApps.map(app => (
                             <option key={app.id} value={app.id} className="truncate">{app.jobTitle} em {app.companyName}</option>

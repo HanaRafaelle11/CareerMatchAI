@@ -1330,7 +1330,7 @@ export function JobMatchHub({
                                   handleGenerateOptimization();
                                 }
                               }}
-                              className="w-full py-2 rounded-xl bg-brand-500/10 hover:bg-brand-500/20 border border-brand-500/20 text-brand-400 text-[10px] font-bold tracking-wider uppercase transition font-display flex items-center justify-center gap-1"
+                              className="w-full py-2 rounded-xl bg-brand-50 dark:bg-brand-500/10 hover:bg-brand-100 dark:hover:bg-brand-500/20 border border-brand-200 dark:border-brand-500/20 text-brand-700 dark:text-brand-400 text-[10px] font-bold tracking-wider uppercase transition font-display flex items-center justify-center gap-1"
                             >
                               <Sparkles size={11} />
                               Melhorar meu currículo para essa vaga
@@ -1339,7 +1339,7 @@ export function JobMatchHub({
                                <button
                                  onClick={handleDeleteSelectedAnalysis}
                                  disabled={isDeletingAnalyses}
-                                 className="flex-1 py-2 rounded-xl bg-red-950/20 hover:bg-red-950/40 border border-red-900/30 text-red-400 text-[10px] font-bold tracking-wider uppercase transition font-display flex items-center justify-center gap-1 disabled:opacity-50"
+                                 className="flex-1 py-2 rounded-xl bg-red-50 dark:bg-red-950/20 hover:bg-red-100 dark:hover:bg-red-950/40 border border-red-200 dark:border-red-900/30 text-red-650 dark:text-red-400 text-[10px] font-bold tracking-wider uppercase transition font-display flex items-center justify-center gap-1 disabled:opacity-50"
                                >
                                  {isDeletingAnalyses ? (
                                    <Loader2 size={11} className="animate-spin" />
@@ -1358,7 +1358,7 @@ export function JobMatchHub({
                                      }
                                    }
                                  }}
-                                 className="flex-1 py-2 rounded-xl bg-red-600/10 hover:bg-red-600/20 border border-red-500/20 text-red-400 text-[10px] font-bold tracking-wider uppercase transition font-display flex items-center justify-center gap-1"
+                                 className="flex-1 py-2 rounded-xl bg-red-50 dark:bg-red-600/10 hover:bg-red-100 dark:hover:bg-red-600/20 border border-red-200 dark:border-red-500/20 text-red-650 dark:text-red-400 text-[10px] font-bold tracking-wider uppercase transition font-display flex items-center justify-center gap-1"
                                >
                                  <Trash2 size={11} />
                                  Excluir esta vaga
@@ -1377,11 +1377,11 @@ export function JobMatchHub({
                                   ) : (
                                     <>
                                       <div className="flex items-center justify-between gap-2 px-1">
-                                        <span className="text-[10px] text-slate-500 font-semibold">Coluna Kanban:</span>
+                                        <span className="text-[10px] text-slate-500 font-semibold font-sans">Coluna Kanban:</span>
                                         <select
                                           value={manualStrategyStatus}
                                           onChange={(e) => setManualStrategyStatus(e.target.value)}
-                                          className="bg-slate-900/80 border border-slate-800 text-slate-300 text-[10px] rounded-lg px-2 py-0.5 outline-none focus:border-brand-500"
+                                          className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300 text-[10px] rounded-lg px-2 py-0.5 outline-none focus:border-brand-500 font-semibold"
                                         >
                                           <option value="auto">Automático (Score)</option>
                                           <option value="🎯 Alta Prioridade">🎯 Alta Prioridade</option>
@@ -1394,7 +1394,7 @@ export function JobMatchHub({
                                         type="button"
                                         onClick={handleAddToStrategy}
                                         disabled={isAddingToStrategy}
-                                        className="w-full py-2 rounded-xl bg-indigo-600/20 hover:bg-indigo-600/30 border border-indigo-500/30 text-indigo-400 text-[10px] font-bold tracking-wider uppercase transition font-display flex items-center justify-center gap-1 disabled:opacity-50"
+                                        className="w-full py-2 rounded-xl bg-indigo-50 dark:bg-indigo-600/20 hover:bg-indigo-100 dark:hover:bg-indigo-600/30 border border-indigo-200 dark:border-indigo-500/30 text-indigo-700 dark:text-indigo-400 text-[10px] font-bold tracking-wider uppercase transition font-display flex items-center justify-center gap-1 disabled:opacity-50"
                                       >
                                         {isAddingToStrategy ? (
                                           <Loader2 size={11} className="animate-spin" />
@@ -1409,7 +1409,7 @@ export function JobMatchHub({
                                     <button
                                       type="button"
                                       onClick={() => onStartSimulation(selectedJob)}
-                                      className="w-full py-2 rounded-xl bg-brand-500/10 hover:bg-brand-500/20 border border-brand-500/30 text-brand-400 text-[10px] font-bold tracking-wider uppercase transition font-display flex items-center justify-center gap-1"
+                                      className="w-full py-2 rounded-xl bg-brand-50 dark:bg-brand-500/10 hover:bg-brand-100 dark:hover:bg-brand-500/20 border border-brand-200 dark:border-brand-500/30 text-brand-700 dark:text-brand-400 text-[10px] font-bold tracking-wider uppercase transition font-display flex items-center justify-center gap-1"
                                     >
                                       🎤 Simular entrevista
                                     </button>

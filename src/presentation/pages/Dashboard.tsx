@@ -8,6 +8,9 @@ import {
 } from 'lucide-react';
 import { Badge, StatCard } from '../components/ds';
 import { VocentroLogo } from '../components/ds/MyCareerIcons';
+import { useQuery } from '@tanstack/react-query';
+import { isSupabaseConfigured, supabase } from '../../infrastructure/api/supabaseClient';
+import { AiCreditsWidget } from '../components/AiCreditsWidget';
 
 interface DashboardProps {
   profile: Profile | null;
@@ -37,6 +40,41 @@ export function Dashboard({
   setSelectedJobId
 }: DashboardProps) {
   const unreadNotifications = notifications.filter(n => !n.isRead);
+
+  // ── BUSCAR EVENTOS REAIS DE ATIVIDADE DO USUÁRIO (HEATMAP) ──
+  const { data: userActivities = [] } = useQuery({
+    queryKey: ['user-activities-heatmap', profile?.id],
+    queryFn: async () => {
+      if (!profile?.id) return [];
+      
+      const localKey = 'vocentro_activity_logs';
+      const localRaw = localStorage.getItem(localKey);
+      let localLogs = [];
+      if (localRaw) {
+        try {
+          localLogs = JSON.parse(localRaw);
+        } catch (_) {}
+      }
+
+      if (!isSupabaseConfigured || !supabase) {
+        return localLogs;
+      }
+
+      try {
+        const { data, error } = await supabase
+          .from('activity_logs')
+          .select('event_type, created_at')
+          .eq('user_id', profile.id)
+          .gte('created_at', new Date(Date.now() - 35 * 24 * 60 * 60 * 1000).toISOString());
+        if (error) throw error;
+        return data || [];
+      } catch (err) {
+        console.error('[Dashboard] Error querying activity logs, falling back to local.', err);
+        return localLogs;
+      }
+    },
+    enabled: !!profile?.id
+  });
 
   // Filter interviews
   const interviews = applications.filter(a => 
@@ -145,44 +183,37 @@ export function Dashboard({
   }
 
   // Activity heatmap/grid generator (Stripe / GitHub style)
-  const heatmapWeeks = 18;
+  const heatmapWeeks = 5;
   const heatmapDaysPerWeek = 7;
   const totalDays = heatmapWeeks * heatmapDaysPerWeek;
   
-  const activityData: number[] = Array.from({ length: totalDays }, (_, i) => {
-    // Generate organic low-intensity search scan baseline (mostly 0s, some 1s)
-    const seed = Math.sin(i * 0.15) * Math.cos(i * 0.05);
-    if (seed > 0.8) return 1;
-    return 0;
-  });
+  const activityData: number[] = Array.from({ length: totalDays }, () => 0);
 
-  // Highlight days with actual candidate actions
-  const primaryResume = resumes.find(r => r.isPrimary) || resumes[0];
-  const activeDates: string[] = [];
-  if (primaryResume?.createdAt) activeDates.push(primaryResume.createdAt);
-  if (primaryResume?.updatedAt) activeDates.push(primaryResume.updatedAt);
-  
-  resumes.forEach(r => {
-    if (r.createdAt) activeDates.push(r.createdAt);
-  });
-  
-  applications.forEach(app => {
-    if (app.createdAt) activeDates.push(app.createdAt);
-    if (app.updatedAt) activeDates.push(app.updatedAt);
-  });
-  
-  matches.forEach(m => {
-    if (m.createdAt) activeDates.push(m.createdAt);
-  });
-
-  activeDates.forEach(dateStr => {
+  userActivities.forEach((act: any) => {
     try {
+      const dateStr = act.created_at || act.timestamp;
+      if (!dateStr) return;
       const d = new Date(dateStr);
       if (isNaN(d.getTime())) return;
+      
       const diffDays = Math.floor((Date.now() - d.getTime()) / (1000 * 60 * 60 * 24));
       if (diffDays >= 0 && diffDays < totalDays) {
         const idx = (totalDays - 1) - diffDays;
-        activityData[idx] = Math.min(activityData[idx] + 3, 3);
+        
+        let weight = 1;
+        const type = (act.event_type || '').toLowerCase();
+        
+        if (['profile_updated', 'preferences_updated'].includes(type)) {
+          weight = 1;
+        } else if (['resume_uploaded', 'resume_created', 'optimization_requested', 'strategy_created'].includes(type)) {
+          weight = 2;
+        } else if (['application_created', 'simulation_started', 'match_found', 'job_added'].includes(type)) {
+          weight = 3;
+        }
+        
+        if (weight > activityData[idx]) {
+          activityData[idx] = weight;
+        }
       }
     } catch (_) {}
   });
@@ -211,9 +242,9 @@ export function Dashboard({
       <header className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h2 className="text-xl font-bold text-on-surface tracking-tight font-display">Olá, {userName}! Sua carreira, você no centro.</h2>
-          <p className="text-xs text-on-surface-variant mt-0.5 flex items-center gap-1.5" title="Rank calculado comparando a completude e dados do seu perfil com os critérios médios de vagas de mercado">
+          <p className="text-xs text-on-surface-variant mt-0.5 flex items-center gap-1.5" title="Rank estimado com base na taxa de preenchimento do seu currículo e perfil (completo = Elite Candidate)">
             <ShieldCheck size={14} className="text-brand-accent" />
-            <span>Seu perfil está classificado como <strong className="text-brand-accent font-semibold">{levelName}</strong> (entre os {rankPercentile}% mais preparados).</span>
+            <span>Seu perfil está classificado como <strong className="text-brand-accent font-semibold">{levelName}</strong> (entre os {rankPercentile}% mais preparados - calculado com base no preenchimento do perfil).</span>
           </p>
         </div>
 
@@ -233,12 +264,12 @@ export function Dashboard({
           </div>
         </div>
       </header>
-
+ 
       {/* Main Grid: Bento Cards */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-md">
         
         {/* Journey/Funnel Card */}
-        <section className="lg:col-span-8 premium-card rounded-[20px] p-5 flex flex-col justify-between">
+        <section className="lg:col-span-6 premium-card rounded-[20px] p-5 flex flex-col justify-between">
           <div className="space-y-4">
             <div className="flex items-center justify-between">
               <div>
@@ -253,7 +284,7 @@ export function Dashboard({
               {[
                 { label: 'CV Mapeado', value: '100%', icon: <CheckCircle size={16} />, color: 'text-brand-accent bg-brand-accent/10 border-brand-accent/20', tabId: 'profile' },
                 { label: 'Vagas & Match', value: `${matches.length} vagas`, icon: <Search size={16} />, color: 'text-primary bg-primary/10 border-primary/20', tabId: 'match' },
-                { label: 'Candidaturas', value: `${applications.length} ativas`, icon: <Send size={16} />, color: 'text-primary bg-primary/10 border-primary/20', tabId: 'strategy' },
+                { label: 'Candidaturas', value: `${applications.length} ativas`, icon: <Send size={16} />, color: 'text-primary bg-primary/10 border-primary/20', tabId: 'pipeline' },
                 { label: 'Entrevistas', value: `${interviewsCount} marcadas`, icon: <MessageSquareText size={16} />, color: 'text-brand-accent bg-brand-accent/10 border-brand-accent/20', tabId: 'coach' },
               ].map((step, idx) => (
                 <div 
@@ -293,7 +324,7 @@ export function Dashboard({
         </section>
 
         {/* AI Advisor Insight (Interactive CTA) */}
-        <section className="lg:col-span-4 bg-slate-900 border border-slate-800 rounded-[20px] p-5 flex flex-col justify-between relative overflow-hidden shadow-lg">
+        <section className="lg:col-span-3 bg-slate-900 border border-slate-800 rounded-[20px] p-5 flex flex-col justify-between relative overflow-hidden shadow-lg">
           <div className="absolute -right-12 -top-12 w-36 h-36 bg-brand-accent/5 rounded-full blur-3xl pointer-events-none" />
           <div className="space-y-3">
             <div className="flex items-center gap-1.5 text-brand-accent">
@@ -306,11 +337,16 @@ export function Dashboard({
           
           <button 
             onClick={() => setActiveTab(insight.tab)}
-            className="w-full mt-5 py-3 bg-brand-accent hover:opacity-90 text-slate-950 font-bold rounded-[14px] shadow-sm transition-all flex items-center justify-center gap-1.5 text-xs cursor-pointer hover:scale-[1.01]"
+            className="w-full mt-5 py-3 bg-brand-accent hover:opacity-90 text-slate-955 font-bold rounded-[14px] shadow-sm transition-all flex items-center justify-center gap-1.5 text-xs cursor-pointer hover:scale-[1.01]"
           >
             <span>{insight.actionLabel}</span>
             <ArrowRight size={14} />
           </button>
+        </section>
+
+        {/* AI Credits & Limits Widget */}
+        <section className="lg:col-span-3 flex flex-col">
+          <AiCreditsWidget className="flex-1" userId={profile?.id} />
         </section>
       </div>
 
@@ -359,7 +395,7 @@ export function Dashboard({
               <h3 className="text-sm font-bold text-on-surface">Histórico de Atividade</h3>
               <p className="text-[11px] text-on-surface-variant">Sua consistência na busca de emprego</p>
             </div>
-            <span className="text-[10px] font-bold text-on-surface-variant bg-surface-container-high px-2 py-0.5 rounded-full border border-outline-variant/10">Últimas 18 semanas</span>
+            <span className="text-[10px] font-bold text-on-surface-variant bg-surface-container-high px-2 py-0.5 rounded-full border border-outline-variant/10">Últimos 30 dias</span>
           </div>
 
           <div className="flex flex-col gap-2 pt-1.5 overflow-x-auto">
@@ -452,7 +488,7 @@ export function Dashboard({
                 onClick={() => {
                   markNotificationAsRead(n.id);
                   if (n.type === 'job_alert' || n.title.toLowerCase().includes('vaga') || n.message.toLowerCase().includes('vaga')) {
-                    const relatedJob = jobs.find(j => 
+                    const relatedJob = jobs?.find(j => 
                       n.message.toLowerCase().includes(j.companyName.toLowerCase()) || 
                       n.title.toLowerCase().includes(j.companyName.toLowerCase())
                     );
@@ -484,36 +520,94 @@ export function Dashboard({
                 </button>
               </div>
             ))
-          ) : (
-            <div className="space-y-2">
-              <div 
-                onClick={() => setActiveTab('profile')}
-                className="flex items-center gap-3 p-3 rounded-xl hover:bg-surface-container-high/60 border border-transparent hover:border-outline-variant/10 transition-all cursor-pointer"
-              >
-                <div className="w-8 h-8 rounded-lg bg-primary/10 text-primary flex items-center justify-center shrink-0">
-                  <FileText size={16} />
+          ) : (() => {
+            const formatRelativeTime = (dateStr: string) => {
+              try {
+                const d = new Date(dateStr);
+                if (isNaN(d.getTime())) return '';
+                const diffMs = Date.now() - d.getTime();
+                const diffMin = Math.floor(diffMs / 60000);
+                if (diffMin < 1) return 'Agora';
+                if (diffMin < 60) return `${diffMin}m atrás`;
+                const diffHours = Math.floor(diffMin / 60);
+                if (diffHours < 24) return `${diffHours}h atrás`;
+                const diffDays = Math.floor(diffHours / 24);
+                if (diffDays === 1) return 'Ontem';
+                return `${diffDays}d atrás`;
+              } catch {
+                return '';
+              }
+            };
+ 
+            const realEvents: Array<{
+              id: string;
+              title: string;
+              message: string;
+              timestamp: string;
+              icon: React.ReactNode;
+              colorClass: string;
+              onClick: () => void;
+            }> = [];
+ 
+            resumes.forEach((r) => {
+              if (r.createdAt) {
+                realEvents.push({
+                  id: `resume-${r.id}`,
+                  title: "Análise de IA concluída",
+                  message: `O currículo "${r.fileName || 'Curriculo.pdf'}" foi estruturado e as palavras-chave ATS foram mapeadas.`,
+                  timestamp: r.createdAt,
+                  icon: <FileText size={16} />,
+                  colorClass: "bg-primary/10 text-primary",
+                  onClick: () => setActiveTab('profile')
+                });
+              }
+            });
+ 
+            matches.forEach((m) => {
+              if (m.createdAt) {
+                realEvents.push({
+                  id: `match-${m.id}`,
+                  title: "Vaga analisada por IA",
+                  message: `Aderência de ${m.scoreOverall}% calculada para ${m.jobTitle} na ${m.companyName}.`,
+                  timestamp: m.createdAt,
+                  icon: <Search size={16} />,
+                  colorClass: "bg-amber-500/10 text-amber-500",
+                  onClick: () => setActiveTab('match')
+                });
+              }
+            });
+ 
+            const sortedRealEvents = realEvents
+              .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
+              .slice(0, 3);
+ 
+            if (sortedRealEvents.length > 0) {
+              return sortedRealEvents.map(evt => (
+                <div 
+                  key={evt.id} 
+                  onClick={evt.onClick}
+                  className="flex items-center gap-3 p-3 rounded-xl hover:bg-surface-container-high/60 border border-transparent hover:border-outline-variant/10 transition-all cursor-pointer animate-fade-in"
+                >
+                  <div className={`w-8 h-8 rounded-lg ${evt.colorClass} flex items-center justify-center shrink-0`}>
+                    {evt.icon}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-xs font-semibold text-on-surface truncate">{evt.title}</p>
+                    <p className="text-[11px] text-on-surface-variant truncate">{evt.message}</p>
+                  </div>
+                  <span className="text-[10px] text-on-surface-variant shrink-0 font-medium">
+                    {formatRelativeTime(evt.timestamp)}
+                  </span>
                 </div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-xs font-semibold text-on-surface">Análise de IA concluída</p>
-                  <p className="text-[11px] text-on-surface-variant">Sua experiência foi estruturada e as palavras-chave ATS mapeadas.</p>
-                </div>
-                <span className="text-[10px] text-on-surface-variant shrink-0">Agora</span>
+              ));
+            }
+ 
+            return (
+              <div className="text-center py-6 text-on-surface-variant text-xs border border-dashed border-outline-variant/20 rounded-xl">
+                Nenhuma atividade ou notificação recente registrada. Comece enviando seu currículo!
               </div>
-              <div 
-                onClick={() => setActiveTab('match')}
-                className="flex items-center gap-3 p-3 rounded-xl hover:bg-surface-container-high/60 border border-transparent hover:border-outline-variant/10 transition-all cursor-pointer"
-              >
-                <div className="w-8 h-8 rounded-lg bg-secondary/10 text-secondary flex items-center justify-center shrink-0">
-                  <Search size={16} />
-                </div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-xs font-semibold text-on-surface">Vagas prontas para avaliação</p>
-                  <p className="text-[11px] text-on-surface-variant">Selecione vagas e confira o diagnóstico semântico de aderência.</p>
-                </div>
-                <span className="text-[10px] text-on-surface-variant shrink-0">1h atrás</span>
-              </div>
-            </div>
-          )}
+            );
+          })()}
         </div>
       </section>
     </div>

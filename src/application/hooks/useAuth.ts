@@ -2,12 +2,24 @@ import { useState, useEffect } from 'react';
 import { isSupabaseConfigured, supabase } from '../../infrastructure/api/supabaseClient';
 import { localDB } from '../../infrastructure/storage/localDatabase';
 import { tracker } from '../../infrastructure/analytics/tracker';
+import { eventBus } from '../../infrastructure/analytics/eventBus';
 import type { Profile } from '../../domain/models/types';
 
 export function useAuth() {
   const [user, setUser] = useState<any>(null);
   const [profile, setProfile] = useState<Profile | null>(null);
   const [loading, setLoading] = useState(true);
+
+  const registerSessionOnce = async (userId: string) => {
+    const activeSessionId = sessionStorage.getItem('vocentro_active_db_session_id');
+    if (!activeSessionId) {
+      const newSessionId = await eventBus.logSession(userId);
+      if (newSessionId) {
+        sessionStorage.setItem('vocentro_active_db_session_id', newSessionId);
+        eventBus.logActivity(userId, 'Login', 'profiles', userId, { detail: 'Sessão de usuário iniciada.' });
+      }
+    }
+  };
 
   useEffect(() => {
     if (isSupabaseConfigured && supabase) {
@@ -42,6 +54,7 @@ export function useAuth() {
         const parsedUser = JSON.parse(mockUser);
         setUser(parsedUser);
         setProfile(localDB.getProfile());
+        registerSessionOnce(parsedUser.id);
       }
       setLoading(false);
     }
@@ -97,6 +110,7 @@ export function useAuth() {
           createdAt: data.created_at,
           updatedAt: data.updated_at,
         });
+        registerSessionOnce(data.id);
       } else {
         console.warn(`[AUTH] Perfil não encontrado para id ${userId}. Criando perfil padrão...`);
         const userSession = (await supabase.auth.getUser()).data.user;
@@ -253,6 +267,16 @@ export function useAuth() {
 
   const logout = async () => {
     setLoading(true);
+    const activeSessionId = sessionStorage.getItem('vocentro_active_db_session_id');
+    const currentUserId = profile?.id;
+    if (activeSessionId) {
+      await eventBus.updateSessionActivity(activeSessionId, 'logged_out');
+      sessionStorage.removeItem('vocentro_active_db_session_id');
+    }
+    if (currentUserId) {
+      await eventBus.logActivity(currentUserId, 'Logout', 'profiles', currentUserId, { detail: 'Sessão encerrada pelo usuário.' });
+    }
+
     if (isSupabaseConfigured && supabase) {
       await supabase.auth.signOut();
       tracker.track('logout', 'auth');

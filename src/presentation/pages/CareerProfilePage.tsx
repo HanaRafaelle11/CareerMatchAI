@@ -4,6 +4,7 @@ import type { CareerProfile } from '../../domain/models/types';
 import { Save, Plus, X, Award, CheckCircle, AlertCircle, ShieldAlert, ArrowRight } from 'lucide-react';
 
 import type { CareerProfileNew } from '../../application/hooks/useMyProfileAi';
+import { AiCreditsWidget } from '../components/AiCreditsWidget';
 
 interface CareerProfilePageProps {
   careerProfile: CareerProfile | null;
@@ -522,6 +523,9 @@ export function CareerProfilePage({
                   </div>
                 </div>
               </CardGlass>
+              
+              {/* AI Credits & Limits Widget */}
+              <AiCreditsWidget userId={careerProfile?.userId} />
             </div>
           </div>
 

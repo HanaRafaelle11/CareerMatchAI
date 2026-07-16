@@ -30,6 +30,8 @@ interface StrategyPageProps {
   deleteStage: (args: { appId: string, stageId: string }) => Promise<any>;
   setActiveTab: (tab: string) => void;
   userId?: string;
+  preferences?: any;
+  updatePreferences?: (newUpdates: any) => Promise<void>;
   // Roadmap services
   companyProfiles: CompanyProfile[];
   saveCompanyProfile: (profile: CompanyProfile) => Promise<any>;
@@ -60,6 +62,8 @@ export function StrategyPage({
   deleteStage,
   setActiveTab,
   userId,
+  preferences,
+  updatePreferences,
   companyProfiles,
   saveCompanyProfile,
   deleteCompanyProfile,
@@ -89,6 +93,23 @@ export function StrategyPage({
 
   // Local overrides for job metrics (ROI calculation)
   const [jobMetricsOverride, setJobMetricsOverride] = useState<Record<string, { stagesCount: number, caseHours: number }>>({});
+
+  const [columnOverrides, setColumnOverrides] = useState<Record<string, 'hot' | 'warm' | 'cold'>>({});
+
+  // Sync preferences column overrides on load/change
+  useEffect(() => {
+    if (preferences?.strategy_column_overrides) {
+      setColumnOverrides(preferences.strategy_column_overrides);
+    }
+  }, [preferences?.strategy_column_overrides]);
+
+  const handleMoveJobColumn = (jobId: string, targetCol: 'hot' | 'warm' | 'cold') => {
+    const updated = { ...columnOverrides, [jobId]: targetCol };
+    setColumnOverrides(updated);
+    if (updatePreferences) {
+      updatePreferences({ strategy_column_overrides: updated });
+    }
+  };
 
   // Fetch planner and goals queries
   const { data: planner } = getWeeklyPlannerQuery(currentWeekNumber);
@@ -211,6 +232,27 @@ export function StrategyPage({
   });
 
   const grouped = CandidateStrategyService.groupJobs(primaryResume, mappedJobs, careerProfile, careerProfileNew);
+
+  const finalGrouped = {
+    hot: [...grouped.hot],
+    warm: [...grouped.warm],
+    cold: [...grouped.cold]
+  };
+
+  Object.entries(columnOverrides).forEach(([jobId, targetCol]) => {
+    let foundRec: any = null;
+    for (const colKey of ['hot', 'warm', 'cold'] as const) {
+      const idx = finalGrouped[colKey].findIndex(rec => (rec.job as any).id === jobId);
+      if (idx !== -1) {
+        foundRec = finalGrouped[colKey][idx];
+        finalGrouped[colKey].splice(idx, 1);
+        break;
+      }
+    }
+    if (foundRec && targetCol) {
+      finalGrouped[targetCol].push(foundRec);
+    }
+  });
 
   const handleUpdateJobMetrics = (jobId: string, stages: number, hours: number) => {
     setJobMetricsOverride(prev => ({
@@ -707,14 +749,26 @@ export function StrategyPage({
 
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
             {/* Hot priorities */}
-            <div className="space-y-4">
+            <div 
+              className="space-y-4 rounded-2xl p-2 min-h-[550px] bg-slate-900/10 border border-transparent transition-all hover:border-slate-850/50"
+              onDragOver={(e) => e.preventDefault()}
+              onDrop={(e) => {
+                const jobId = e.dataTransfer.getData('text/plain');
+                if (jobId) handleMoveJobColumn(jobId, 'hot');
+              }}
+            >
               <div className="flex items-center gap-2 px-2 pb-1 border-b border-slate-900">
                 <Flame size={16} className="text-emerald-500 fill-emerald-500" />
-                <h3 className="font-bold text-sm text-slate-200">Alta Prioridade ({grouped.hot.length})</h3>
+                <h3 className="font-bold text-sm text-slate-200">Alta Prioridade ({finalGrouped.hot.length})</h3>
               </div>
 
-              {grouped.hot.map((rec, idx) => (
-                <CardGlass key={idx} className="p-4 space-y-4 hover:border-slate-800">
+              {finalGrouped.hot.map((rec, idx) => (
+                <CardGlass 
+                  key={idx} 
+                  className="p-4 space-y-4 hover:border-slate-800 cursor-grab active:cursor-grabbing"
+                  draggable
+                  onDragStart={(e) => e.dataTransfer.setData('text/plain', (rec.job as any).id)}
+                >
                   <div className="flex justify-between items-start gap-2">
                     <div>
                       <h4 className="font-bold text-sm text-slate-100 truncate max-w-[150px]">{rec.job.title}</h4>
@@ -742,7 +796,7 @@ export function StrategyPage({
                         max="10" 
                         value={rec.job.stagesCount || 3} 
                         onChange={e => handleUpdateJobMetrics((rec.job as any).id, parseInt(e.target.value) || 3, rec.job.caseHours || 0)}
-                        className="w-8 bg-slate-950 border border-slate-800 text-center text-slate-100 rounded"
+                        className="w-8 bg-slate-955 border border-slate-905 text-center text-slate-100 rounded"
                       />
                     </div>
                     <div className="flex items-center gap-1">
@@ -753,7 +807,7 @@ export function StrategyPage({
                         max="50" 
                         value={rec.job.caseHours || 0} 
                         onChange={e => handleUpdateJobMetrics((rec.job as any).id, rec.job.stagesCount || 3, parseInt(e.target.value) || 0)}
-                        className="w-10 bg-slate-950 border border-slate-800 text-center text-slate-100 rounded"
+                        className="w-10 bg-slate-955 border border-slate-905 text-center text-slate-100 rounded"
                       />
                     </div>
                   </div>
@@ -809,14 +863,26 @@ export function StrategyPage({
             </div>
 
             {/* Warm priorities */}
-            <div className="space-y-4">
+            <div 
+              className="space-y-4 rounded-2xl p-2 min-h-[550px] bg-slate-900/10 border border-transparent transition-all hover:border-slate-850/50"
+              onDragOver={(e) => e.preventDefault()}
+              onDrop={(e) => {
+                const jobId = e.dataTransfer.getData('text/plain');
+                if (jobId) handleMoveJobColumn(jobId, 'warm');
+              }}
+            >
               <div className="flex items-center gap-2 px-2 pb-1 border-b border-slate-900">
                 <Sparkles size={16} className="text-amber-500" />
-                <h3 className="font-bold text-sm text-slate-200">Ajustar antes ({grouped.warm.length})</h3>
+                <h3 className="font-bold text-sm text-slate-200">Ajustar antes ({finalGrouped.warm.length})</h3>
               </div>
 
-              {grouped.warm.map((rec, idx) => (
-                <CardGlass key={idx} className="p-4 space-y-4 hover:border-slate-800">
+              {finalGrouped.warm.map((rec, idx) => (
+                <CardGlass 
+                  key={idx} 
+                  className="p-4 space-y-4 hover:border-slate-800 cursor-grab active:cursor-grabbing"
+                  draggable
+                  onDragStart={(e) => e.dataTransfer.setData('text/plain', (rec.job as any).id)}
+                >
                   <div className="flex justify-between items-start gap-2">
                     <div>
                       <h4 className="font-bold text-sm text-slate-100 truncate max-w-[150px]">{rec.job.title}</h4>
@@ -872,17 +938,26 @@ export function StrategyPage({
             </div>
 
             {/* Cold priorities */}
-            <div className="space-y-4">
+            <div 
+              className="space-y-4 rounded-2xl p-2 min-h-[550px] bg-slate-900/10 border border-transparent transition-all hover:border-slate-850/50"
+              onDragOver={(e) => e.preventDefault()}
+              onDrop={(e) => {
+                const jobId = e.dataTransfer.getData('text/plain');
+                if (jobId) handleMoveJobColumn(jobId, 'cold');
+              }}
+            >
               <div className="flex items-center gap-2 px-2 pb-1 border-b border-slate-900">
                 <AlertCircle size={16} className="text-slate-500" />
-                <h3 className="font-bold text-sm text-slate-200">Baixa Aderência ({grouped.cold.length})</h3>
+                <h3 className="font-bold text-sm text-slate-200">Baixa Aderência ({finalGrouped.cold.length})</h3>
               </div>
 
               <div className="space-y-3 max-h-[500px] overflow-y-auto pr-1">
-                {grouped.cold.map((rec, idx) => (
+                {finalGrouped.cold.map((rec, idx) => (
                   <div
                     key={idx}
-                    className="p-3.5 rounded-xl bg-slate-900/10 border border-slate-900 flex justify-between items-center text-xs gap-3 hover:border-slate-800"
+                    draggable
+                    onDragStart={(e) => e.dataTransfer.setData('text/plain', (rec.job as any).id)}
+                    className="p-3.5 rounded-xl bg-slate-900/10 border border-slate-900 flex justify-between items-center text-xs gap-3 hover:border-slate-800 cursor-grab active:cursor-grabbing"
                   >
                     <div className="truncate flex-1">
                       <h4 className="font-bold text-slate-300 truncate">{rec.job.title}</h4>

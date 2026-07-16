@@ -516,7 +516,7 @@ export function LandingPage({ onNavigateToAuth }: LandingPageProps) {
                   className="space-y-3 text-xs"
                 >
                   <div className="flex items-center justify-between border-b border-slate-900 light:border-slate-200 pb-2">
-                    <span className="font-bold text-slate-100 dark:text-white light:text-slate-900">Mentor IA Vocentro</span>
+                    <span className="font-bold text-slate-100 dark:text-white light:text-slate-900">Recrutadora Mariana</span>
                     <div className="flex items-center gap-1 text-[8px] text-brand-accent font-mono">
                       <span className="w-1.5 h-1.5 rounded-full bg-brand-accent animate-ping" />
                       Simulação em tempo real
@@ -606,7 +606,7 @@ export function LandingPage({ onNavigateToAuth }: LandingPageProps) {
             {
               step: '06',
               title: 'Treino de Entrevista',
-              desc: 'Simule entrevistas reais da vaga com nosso Mentor IA Vocentro e obtenha feedbacks imediatos de postura e profundidade.',
+              desc: 'Simule entrevistas reais da vaga com a Recrutadora Mariana e obtenha feedbacks imediatos de postura e profundidade.',
               icon: <MessageSquare className="w-5 h-5 text-brand-accent" />
             },
             {
@@ -793,7 +793,7 @@ export function LandingPage({ onNavigateToAuth }: LandingPageProps) {
               {
                 step: '05',
                 title: 'Treina suas entrevistas',
-                desc: 'Simula processos seletivos reais por voz ou chat conduzidos pelo Mentor IA Vocentro com notas instantâneas.',
+                desc: 'Simula processos seletivos reais por voz ou chat conduzidos pela Recrutadora Mariana com notas instantâneas.',
                 icon: '💬'
               },
               {
@@ -858,7 +858,7 @@ export function LandingPage({ onNavigateToAuth }: LandingPageProps) {
           {[
             { metric: '2.300+', label: 'Perfis Analisados', detail: 'IA de alta precisão semântica', emoji: '👤' },
             { metric: '11.000+', label: 'Vagas Processadas', detail: 'Mapeamento contínuo de mercado', emoji: '📄' },
-            { metric: '8.400+', label: 'Simulações Concluídas', detail: 'Entrevistas STAR com Mentor IA', emoji: '🎯' },
+            { metric: '8.400+', label: 'Simulações Concluídas', detail: 'Entrevistas STAR com Recrutadora IA', emoji: '🎯' },
             { metric: '94%', label: 'Taxa de Satisfação', detail: 'Profissionais em evolução ativa', emoji: '⭐' }
           ].map((stat, idx) => (
             <div key={idx} className="p-6 rounded-[20px] bg-slate-900/30 dark:bg-slate-900/30 light:bg-white border border-slate-850 dark:border-slate-850 light:border-slate-200 hover:border-slate-800 dark:hover:border-slate-700 light:hover:border-slate-300 transition-all shadow-sm">
@@ -881,7 +881,7 @@ export function LandingPage({ onNavigateToAuth }: LandingPageProps) {
           <div className="space-y-2">
             <h3 className="text-sm font-bold text-slate-100 dark:text-white light:text-slate-900 uppercase tracking-wider">Privacidade absoluta do candidato</h3>
             <p className="text-slate-400 dark:text-slate-400 light:text-slate-655 text-xs leading-relaxed max-w-xl mx-auto font-normal">
-              Seus dados de currículo, feedbacks do Mentor IA e vagas mapeadas pertencem estritamente a você. Não compartilhamos nenhuma informação com recrutadores externos sem sua aprovação explícita. Todo processamento de dados atende às regulamentações da LGPD.
+              Seus dados de currículo, feedbacks da Recrutadora IA e vagas mapeadas pertencem estritamente a você. Não compartilhamos nenhuma informação com recrutadores externos sem sua aprovação explícita. Todo processamento de dados atende às regulamentações da LGPD.
             </p>
           </div>
 
@@ -922,7 +922,7 @@ export function LandingPage({ onNavigateToAuth }: LandingPageProps) {
                   <Check size={12} className="text-brand-accent" /> Match Score simplificado
                 </li>
                 <li className="flex items-center gap-2.5">
-                  <Check size={12} className="text-brand-accent" /> Acesso limitado ao Mentor IA
+                  <Check size={12} className="text-brand-accent" /> Acesso limitado à Recrutadora IA
                 </li>
               </ul>
             </div>
@@ -955,7 +955,7 @@ export function LandingPage({ onNavigateToAuth }: LandingPageProps) {
 
               <ul className="space-y-3 text-xs text-slate-200 dark:text-slate-200 light:text-slate-800 leading-relaxed font-medium">
                 <li className="flex items-center gap-2.5">
-                  <Check size={12} className="text-brand-accent shrink-0 font-bold" /> Simulações ilimitadas com Mentor IA
+                  <Check size={12} className="text-brand-accent shrink-0 font-bold" /> Simulações ilimitadas com Recrutadora IA
                 </li>
                 <li className="flex items-center gap-2.5">
                   <Check size={12} className="text-brand-accent shrink-0 font-bold" /> Otimizador ATS ilimitado de currículo

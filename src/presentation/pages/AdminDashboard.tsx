@@ -174,13 +174,13 @@ export function AdminDashboard({ userId }: AdminDashboardProps) {
     queryFn: async () => {
       if (!isSupabaseConfigured || !supabase) {
         return {
-          users_count: 0,
-          resumes_count: 0,
-          jobs_count: 0,
-          matches_count: 0,
-          avg_processing_time: 0,
-          total_tokens: 0,
-          success_rate: 100.0
+          users_count: 142,
+          resumes_count: 230,
+          jobs_count: 85,
+          matches_count: 946,
+          avg_processing_time: 2.45,
+          total_tokens: 3450000,
+          success_rate: 98.8
         };
       }
       const { data, error } = await supabase.rpc('get_admin_dashboard_overview');
@@ -196,17 +196,17 @@ export function AdminDashboard({ userId }: AdminDashboardProps) {
     queryFn: async () => {
       if (!isSupabaseConfigured || !supabase) {
         return {
-          total_calls: 0,
-          total_tokens: 0,
-          total_cost_brl: 0.0,
-          avg_processing_time: 0.0,
-          errors_count: 0,
-          optimizations_count: 0,
-          letters_count: 0,
-          simulations_count: 0,
-          matches_count: 0,
-          avg_match_score: 0.0,
-          hours_saved: 0.0
+          total_calls: 312,
+          total_tokens: 3450000,
+          total_cost_brl: 278.40,
+          avg_processing_time: 2.45,
+          errors_count: 4,
+          optimizations_count: 86,
+          letters_count: 42,
+          simulations_count: 114,
+          matches_count: 946,
+          avg_match_score: 72.8,
+          hours_saved: 410.5
         };
       }
       const { data, error } = await supabase.rpc('get_admin_ia_analytics');
@@ -221,7 +221,11 @@ export function AdminDashboard({ userId }: AdminDashboardProps) {
     queryKey: ['admin-live-events'],
     queryFn: async () => {
       if (!isSupabaseConfigured || !supabase) {
-        return [];
+        return [
+          { id: 'ev-1', created_at: new Date().toISOString(), event_name: 'resume_uploaded', user_id: 'usr-5', profiles: { full_name: 'Thiago Oliveira', email: 'thiago@gmail.com' }, details: 'Otimização com 86% match' },
+          { id: 'ev-2', created_at: new Date(Date.now() - 3600000).toISOString(), event_name: 'coach_message', user_id: 'usr-6', profiles: { full_name: 'Juliana Melo', email: 'juliana@yahoo.com' }, details: 'Simulação STAR (Mariana)' },
+          { id: 'ev-3', created_at: new Date(Date.now() - 7200000).toISOString(), event_name: 'subscription_started', user_id: 'usr-5', profiles: { full_name: 'Thiago Oliveira', email: 'thiago@gmail.com' }, details: 'Premium Copilot - Mensal' }
+        ];
       }
       const { data, error } = await supabase
         .from('analytics_events')
@@ -264,16 +268,17 @@ export function AdminDashboard({ userId }: AdminDashboardProps) {
         return getMockUserDetails(selectedUser);
       }
       try {
-        const [resumesRes, jobsRes, appsRes, simsRes, logsRes, errorsRes, eventsRes, subRes, txRes] = await Promise.all([
+        const [resumesRes, jobsRes, appsRes, simsRes, logsRes, errorsRes, eventsRes, subRes, txRes, sessionsRes] = await Promise.all([
           supabase.from('resumes').select('*').eq('user_id', selectedUser.id),
           supabase.from('jobs').select('*').eq('user_id', selectedUser.id),
           supabase.from('applications').select('*').eq('user_id', selectedUser.id),
           supabase.from('interview_simulations').select('*, applications!inner(user_id, job_title, company_name)').eq('applications.user_id', selectedUser.id),
           supabase.from('ai_usage_logs').select('*').eq('user_id', selectedUser.id),
           supabase.from('application_errors').select('*').eq('user_id', selectedUser.id),
-          supabase.from('analytics_events').select('*').eq('user_id', selectedUser.id).order('created_at', { ascending: false }).limit(20),
+          supabase.from('activity_logs').select('*').eq('user_id', selectedUser.id).order('created_at', { ascending: false }).limit(40),
           supabase.from('billing_subscriptions').select('*').eq('user_id', selectedUser.id).maybeSingle(),
-          supabase.from('billing_transactions').select('*').eq('user_id', selectedUser.id)
+          supabase.from('billing_transactions').select('*').eq('user_id', selectedUser.id),
+          supabase.from('admin_user_sessions').select('*').eq('user_id', selectedUser.id).order('login_at', { ascending: false })
         ]);
 
         const resumes = resumesRes.data || [];
@@ -291,9 +296,13 @@ export function AdminDashboard({ userId }: AdminDashboardProps) {
         const estimatedCostUSD = totalTokens * 0.000015;
         const estimatedCostBRL = estimatedCostUSD * 5.4;
 
-        const sessions = [
-          { id: 'ss-1', ip_address: '191.185.12.84', device: 'Chrome / Windows', location: 'São Paulo, BR', last_active: new Date().toISOString() }
-        ];
+        const sessions = (sessionsRes.data || []).map((s: any) => ({
+          id: s.id,
+          ip_address: s.ip || '127.0.0.1',
+          device: `${s.browser || 'Browser'} / ${s.os || 'OS'} (${s.device || 'Desktop'})`,
+          location: `${s.city || 'São Paulo'}, ${s.country || 'BR'}`,
+          last_active: s.last_activity || s.login_at
+        }));
         const resumeVersions = [
           { id: 'ver-1.0', version_number: 1, version_label: 'Versão Original', created_at: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString() }
         ];
@@ -309,8 +318,8 @@ export function AdminDashboard({ userId }: AdminDashboardProps) {
           errors,
           events: events.map((e: any) => ({
             id: e.id,
-            event_name: e.event_name,
-            details: `Ação na categoria ${e.category}`,
+            event_name: e.event_type,
+            details: e.metadata?.detail || `Ação: ${e.event_type} na entidade ${e.entity || 'sistema'}`,
             created_at: e.created_at
           })),
           subscription,
@@ -801,15 +810,21 @@ export function AdminDashboard({ userId }: AdminDashboardProps) {
                       Dispositivos & Sessões Ativas
                     </h3>
                     <div className="space-y-3 text-xs">
-                      {userDetails.sessions.map((ss: any) => (
-                        <div key={ss.id} className="p-3 rounded-xl bg-slate-950/40 border border-slate-900 flex flex-col gap-1">
-                          <div className="flex justify-between items-center">
-                            <span className="font-semibold text-slate-200">{ss.device}</span>
-                            <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" />
+                      {userDetails.sessions.length > 0 ? (
+                        userDetails.sessions.map((ss: any) => (
+                          <div key={ss.id} className="p-3 rounded-xl bg-slate-950/40 border border-slate-900 flex flex-col gap-1 text-on-surface">
+                            <div className="flex justify-between items-center">
+                              <span className="font-semibold text-slate-200">{ss.device}</span>
+                              <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" />
+                            </div>
+                            <span className="text-[10px] text-slate-500 font-mono">{ss.ip_address} ({ss.location})</span>
                           </div>
-                          <span className="text-[10px] text-slate-500 font-mono">{ss.ip_address} ({ss.location})</span>
+                        ))
+                      ) : (
+                        <div className="text-center py-6 rounded-xl border border-dashed border-slate-900 text-slate-500 text-xs">
+                          Nenhuma sessão ativa registrada.
                         </div>
-                      ))}
+                      )}
                     </div>
                   </CardGlass>
 
@@ -1029,7 +1044,12 @@ export function AdminDashboard({ userId }: AdminDashboardProps) {
                   </div>
                 </CardGlass>
 
-                <CardGlass className="p-4 flex flex-col justify-between hover:scale-[1.01] transition-all duration-300">
+                <CardGlass 
+                  onClick={() => {
+                    setActiveSubTab('logs');
+                  }}
+                  className="p-4 flex flex-col justify-between hover:scale-[1.01] transition-all duration-300 cursor-pointer"
+                >
                   <div className="flex justify-between items-start">
                     <span className="text-[10px] text-slate-500 font-bold uppercase tracking-wider">Currículos Enviados</span>
                     <FileText size={16} className="text-brand-505" />
@@ -1038,7 +1058,7 @@ export function AdminDashboard({ userId }: AdminDashboardProps) {
                     <span className="text-3xl font-extrabold text-slate-100 font-display">
                       {overviewStats?.resumes_count ?? 0}
                     </span>
-                    <span className="text-[9px] text-slate-550 block mt-1">Análises de arquivos no Supabase</span>
+                    <span className="text-[9px] text-slate-550 block mt-1">Análises de arquivos no Supabase (clique para ver logs)</span>
                   </div>
                 </CardGlass>
 
@@ -1060,7 +1080,12 @@ export function AdminDashboard({ userId }: AdminDashboardProps) {
                   </div>
                 </CardGlass>
 
-                <CardGlass className="p-4 flex flex-col justify-between hover:scale-[1.01] transition-all duration-300">
+                <CardGlass 
+                  onClick={() => {
+                    setActiveSubTab('ia');
+                  }}
+                  className="p-4 flex flex-col justify-between hover:scale-[1.01] transition-all duration-300 cursor-pointer"
+                >
                   <div className="flex justify-between items-start">
                     <span className="text-[10px] text-slate-500 font-bold uppercase tracking-wider">Tempo Médio IA</span>
                     <Clock size={16} className="text-amber-400" />
@@ -1069,7 +1094,7 @@ export function AdminDashboard({ userId }: AdminDashboardProps) {
                     <span className="text-3xl font-extrabold text-slate-100 font-display">
                       {overviewStats?.avg_processing_time ?? 0} s
                     </span>
-                    <span className="text-[9px] text-slate-550 block mt-1">Média de processamento por vaga</span>
+                    <span className="text-[9px] text-slate-550 block mt-1">Média de processamento por vaga (clique para ver IA)</span>
                   </div>
                 </CardGlass>
               </div>
@@ -1094,7 +1119,12 @@ export function AdminDashboard({ userId }: AdminDashboardProps) {
                   </div>
                 </CardGlass>
 
-                <CardGlass className="p-4 flex flex-col justify-between hover:scale-[1.01] transition-all duration-300">
+                <CardGlass 
+                  onClick={() => {
+                    setActiveSubTab('logs');
+                  }}
+                  className="p-4 flex flex-col justify-between hover:scale-[1.01] transition-all duration-300 cursor-pointer"
+                >
                   <div className="flex justify-between items-start">
                     <span className="text-[10px] text-slate-500 font-bold uppercase tracking-wider">Taxa de Sucesso</span>
                     <Activity size={16} className="text-emerald-450" />
@@ -1103,7 +1133,7 @@ export function AdminDashboard({ userId }: AdminDashboardProps) {
                     <span className="text-3xl font-extrabold text-emerald-400 font-display">
                       {overviewStats?.success_rate ?? 100.0}%
                     </span>
-                    <span className="text-[9px] text-slate-550 block mt-1">Conversão de parsing sem erros</span>
+                    <span className="text-[9px] text-slate-550 block mt-1">Conversão de parsing sem erros (clique para ver logs)</span>
                   </div>
                 </CardGlass>
 

@@ -261,6 +261,71 @@ body.light {
   background-color: rgba(255, 255, 255, 0.98) !important;
 }
 
+/* Non-standard slate shades — Light mode overrides */
+.light .text-slate-305 {
+  color: #334155 !important;
+}
+
+.light .text-slate-350 {
+  color: #334155 !important;
+}
+
+.light .text-slate-355 {
+  color: #475569 !important;
+}
+
+.light .text-slate-450 {
+  color: #475569 !important;
+}
+
+.light .text-slate-505 {
+  color: #64748b !important;
+}
+
+.light .text-slate-550 {
+  color: #64748b !important;
+}
+
+.light .text-slate-650 {
+  color: #94a3b8 !important;
+}
+
+.light .bg-slate-955 {
+  background-color: #f8fafc !important;
+}
+
+.light .bg-slate-955\/20,
+.light .bg-slate-955\/40 {
+  background-color: rgba(248, 250, 252, 0.95) !important;
+}
+
+.light .bg-slate-905 {
+  background-color: #ffffff !important;
+}
+
+.light .border-slate-905 {
+  border-color: #e2e8f0 !important;
+}
+
+.light .border-slate-805 {
+  border-color: #e2e8f0 !important;
+}
+
+/* Emerald non-standard shades for light mode */
+.light .text-emerald-450 {
+  color: #059669 !important;
+}
+
+.light .bg-emerald-450 {
+  background-color: #059669 !important;
+}
+
+/* Brand-400 shade in light */
+.light .text-brand-400 {
+  color: #163E8C !important;
+}
+
+
 /* Kinetic Precision Typography and Layout Classes */
 .font-headline-xl {
   font-family: 'Sora', sans-serif;

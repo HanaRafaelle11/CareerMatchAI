@@ -6,6 +6,7 @@ import { useMyProfileAi } from './application/hooks/useMyProfileAi';
 import { useApplications } from './application/hooks/useApplications';
 import { useCoach } from './application/hooks/useCoach';
 import { useRoadmapServices } from './application/hooks/useRoadmapServices';
+import { useUserPreferences } from './application/hooks/useUserPreferences';
 import { Navbar } from './presentation/components/Navbar';
 import { CompactHeader } from './presentation/components/ds/CompactHeader';
 import { Login } from './presentation/pages/Login';
@@ -50,10 +51,12 @@ function App() {
   const [settingsInitialSubTab, setSettingsInitialSubTab] = useState<'account' | 'resumes' | 'preferences' | 'notifications' | 'appearance' | 'privacy' | 'billing'>('account');
   const [strategyInitialSubTab, setStrategyInitialSubTab] = useState<'strategy' | 'planner' | 'pipeline' | 'journal'>('strategy');
 
-  // Synchronize visual theme on mount and on 'theme-change' events
+  const { preferences, updatePreferences } = useUserPreferences(user?.id);
+
+  // Synchronize visual theme on mount and on 'theme-change' / preferences update
   useEffect(() => {
     const applyTheme = () => {
-      const savedTheme = localStorage.getItem('theme') || 'dark';
+      const savedTheme = preferences.theme || localStorage.getItem('theme') || 'dark';
       if (savedTheme === 'light') {
         document.documentElement.classList.add('light');
         document.body.classList.add('light');
@@ -74,7 +77,7 @@ function App() {
     applyTheme();
     window.addEventListener('theme-change', applyTheme);
     return () => window.removeEventListener('theme-change', applyTheme);
-  }, []);
+  }, [preferences.theme]);
 
   const handleSetActiveTab = (tab: string) => {
     if (tab === 'admin') {
@@ -436,6 +439,8 @@ function App() {
           <Suspense fallback={<LazyFallback />}>
             <StrategyPage
               userId={user?.id}
+              preferences={preferences}
+              updatePreferences={updatePreferences}
               careerProfile={careerProfile}
               careerProfileNew={careerProfileNew}
               resumes={resumes}
@@ -540,6 +545,8 @@ function App() {
               onLogout={logout}
               onUpdateProfileState={updateProfile}
               initialTab={settingsInitialSubTab}
+              preferences={preferences}
+              updatePreferences={updatePreferences}
             />
           </Suspense>
         )}

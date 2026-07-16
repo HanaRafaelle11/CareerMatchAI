@@ -21,6 +21,8 @@ interface SettingsProps {
   onLogout: () => void;
   onUpdateProfileState?: (profile: Partial<Profile>) => void;
   initialTab?: SettingsTab;
+  preferences?: any;
+  updatePreferences?: (newUpdates: any) => Promise<void>;
 }
 
 type SettingsTab = 'account' | 'resumes' | 'preferences' | 'notifications' | 'appearance' | 'privacy' | 'billing';
@@ -33,7 +35,9 @@ export function Settings({
   onDeleteResume,
   onLogout,
   onUpdateProfileState,
-  initialTab
+  initialTab,
+  preferences,
+  updatePreferences
 }: SettingsProps) {
   const queryClient = useQueryClient();
   const [activeSubTab, setActiveSubTab] = useState<SettingsTab>('account');
@@ -143,13 +147,16 @@ export function Settings({
 
   // Load saved theme on mount
   useEffect(() => {
-    const saved = localStorage.getItem('theme') as 'light' | 'dark' | 'system';
+    const saved = preferences?.theme || localStorage.getItem('theme') as 'light' | 'dark' | 'system' || 'dark';
     if (saved) setTheme(saved);
-  }, []);
+  }, [preferences?.theme]);
 
   const handleApplyTheme = (newTheme: 'light' | 'dark' | 'system') => {
     setTheme(newTheme);
     localStorage.setItem('theme', newTheme);
+    if (updatePreferences) {
+      updatePreferences({ theme: newTheme });
+    }
     window.dispatchEvent(new Event('theme-change'));
   };
 

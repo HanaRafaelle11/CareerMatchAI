@@ -7,9 +7,20 @@ import { calcYearsFromExperiences } from '../../application/services/matchingEng
 import { tracker } from '../../infrastructure/analytics/tracker';
 import { 
   Award, Play, MessageSquare, Send, 
-  RefreshCcw, Star, UserCheck, Loader2, BarChart3
+  RefreshCcw, Star, UserCheck, Loader2, BarChart3, ChevronDown
 } from 'lucide-react';
 import { ProgressRing, Badge } from '../components/ds';
+
+/** Converts **bold** markdown markers in text to <strong> tags */
+function formatBoldText(text: string): React.ReactNode[] {
+  const parts = text.split(/(\*\*[^*]+\*\*)/);
+  return parts.map((part, i) => {
+    if (part.startsWith('**') && part.endsWith('**')) {
+      return <strong key={i} className="font-bold text-on-surface">{part.slice(2, -2)}</strong>;
+    }
+    return <span key={i}>{part}</span>;
+  });
+}
 
 interface CoachDashboardProps {
   careerProfile: CareerProfile | null;
@@ -75,8 +86,8 @@ export function CoachDashboard({
 
   // Mentor IA Vocentro Chat States — personalizado com dados reais do perfil
   const initialRecruiterMsg = careerProfileNew
-    ? `Olá, ${profileName}! Analisei seu perfil como ${profileRole} com ${profileYears} anos de experiência e competências como ${profileSkills}. Estou aqui para guiar sua evolução profissional de forma personalizada. Você prefere focar em preparação para entrevistas, estratégia de carreira ou mapeamento de gaps de competência?`
-    : 'Olá! Sou o seu Mentor IA Vocentro. Analiso todo o seu histórico profissional, currículos e feedbacks para te colocar no centro das melhores oportunidades. Como posso ajudar na sua evolução de carreira hoje?';
+    ? `Olá, ${profileName}! Sou a **Mariana**, sua recrutadora sênior da Vocentro. Analisei seu perfil como **${profileRole}** com **${profileYears} anos** de experiência e competências como **${profileSkills}**. Estou aqui para guiar sua evolução profissional de forma personalizada. Você prefere focar em preparação para entrevistas, estratégia de carreira ou mapeamento de gaps de competência?`
+    : 'Olá! Sou a **Mariana**, recrutadora sênior da Vocentro. Analiso todo o seu histórico profissional, currículos e feedbacks para te colocar no centro das melhores oportunidades. Como posso ajudar na sua evolução de carreira hoje?';
 
   const [recruiterChat, setRecruiterChat] = useState<Array<{ role: 'recruiter' | 'candidate', text: string }>>([
     {
@@ -200,10 +211,10 @@ export function CoachDashboard({
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <h1 className="font-display font-bold text-3xl tracking-tight text-slate-100 dark:text-slate-100 light:text-slate-800">
-            Evolução Profissional & Mentor IA
+            Evolução Profissional & Recrutadora IA
           </h1>
-          <p className="text-slate-400 dark:text-slate-400 light:text-slate-500 text-sm mt-1 font-sans">
-            Prepare-se para processos seletivos ou consulte o Mentor IA Vocentro para traçar sua estratégia.
+          <p className="text-xs text-slate-400 leading-relaxed">
+            Prepare-se para processos seletivos ou consulte a Recrutadora Mariana para traçar sua estratégia.
           </p>
         </div>
         <button
@@ -240,7 +251,7 @@ export function CoachDashboard({
         >
           {activeSubTab === 'recruiter' && <span className="absolute bottom-0 left-0 w-full h-[2px] bg-brand-accent" />}
           <UserCheck size={15} />
-          Mentor IA (Consultor)
+          Recrutadora IA (Consultora)
         </button>
       </div>
 
@@ -252,7 +263,7 @@ export function CoachDashboard({
               <div>
                 <h3 className="font-display font-bold text-base text-slate-200 flex items-center gap-2 pb-3 border-b border-slate-905">
                   <MessageSquare size={18} className="text-brand-accent" />
-                  Mentor IA Vocentro - Simulador de Entrevista
+                  Recrutadora Mariana — Simulação de Entrevista
                 </h3>
                 <p className="text-xs text-slate-500 mt-2 font-sans">
                   Selecione uma candidatura em andamento para iniciar a simulação focada no método STAR.
@@ -298,64 +309,71 @@ export function CoachDashboard({
                                 }`}
                               >
                                 <strong className="block mb-0.5 text-[9px] uppercase font-bold text-slate-500 font-mono">
-                                  {isInterviewer ? 'Mentor IA Vocentro' : 'Você'}
+                                  {isInterviewer ? '🎤 Recrutadora Mariana — Vocentro' : 'Você'}
                                 </strong>
-                                <span className="whitespace-pre-line">{msg.text}</span>
+                                <span className="whitespace-pre-line">{formatBoldText(msg.text)}</span>
                               </div>
                               
-                              {/* Rich dynamic turn evaluation */}
+                              {/* Collapsible turn evaluation — Hidden by default for immersive experience */}
                               {!isInterviewer && msg.evaluation && (
-                                <div className="self-end ml-auto mr-2 max-w-[80%] p-3.5 rounded-2xl bg-slate-950/65 border border-slate-900 text-[10px] text-slate-300 space-y-2 animate-fade-in shadow-lg">
-                                  <div className="flex items-center justify-between gap-4 font-bold pb-1.5 border-b border-slate-900">
-                                    <span className="text-emerald-400">⭐ Turno: {msg.evaluation.score}/100</span>
-                                    <span className="text-slate-500 uppercase tracking-wider text-[8px]">Dificuldade: {msg.evaluation.difficulty}</span>
-                                  </div>
-                                  
-                                  {/* STAR framework breakdown */}
-                                  <div className="grid grid-cols-2 gap-2 text-[9px] py-1">
-                                    <div className="p-2 rounded-xl bg-slate-900/50">
-                                      <strong className="text-brand-400 block font-bold mb-0.5">Situação:</strong>
-                                      <span className="text-slate-400 font-sans">{msg.evaluation.star.situation}</span>
+                                <details className="self-end ml-auto mr-2 max-w-[80%] rounded-2xl bg-slate-950/65 border border-slate-900 text-[10px] text-slate-300 animate-fade-in shadow-lg group">
+                                  <summary className="flex items-center justify-between gap-2 p-3 cursor-pointer hover:bg-slate-900/30 rounded-2xl transition-colors select-none">
+                                    <div className="flex items-center gap-2">
+                                      <span className="text-emerald-400 font-bold">⭐ {msg.evaluation.score}/100</span>
+                                      <span className="text-slate-500 text-[8px] uppercase tracking-wider">Dificuldade: {msg.evaluation.difficulty}</span>
                                     </div>
-                                    <div className="p-2 rounded-xl bg-slate-900/50">
-                                      <strong className="text-indigo-400 block font-bold mb-0.5">Tarefa:</strong>
-                                      <span className="text-slate-400 font-sans">{msg.evaluation.star.task}</span>
+                                    <div className="flex items-center gap-1 text-slate-500 text-[9px] font-semibold">
+                                      <span>Ver análise da IA</span>
+                                      <ChevronDown size={12} className="transition-transform group-open:rotate-180" />
                                     </div>
-                                    <div className="p-2 rounded-xl bg-slate-900/50">
-                                      <strong className="text-sky-400 block font-bold mb-0.5">Ação:</strong>
-                                      <span className="text-slate-400 font-sans">{msg.evaluation.star.action}</span>
+                                  </summary>
+                                  <div className="p-3.5 pt-0 space-y-2">
+                                    {/* STAR framework breakdown */}
+                                    <div className="grid grid-cols-2 gap-2 text-[9px] py-1">
+                                      <div className="p-2 rounded-xl bg-slate-900/50">
+                                        <strong className="text-brand-400 block font-bold mb-0.5">Situação:</strong>
+                                        <span className="text-slate-400 font-sans">{msg.evaluation.star.situation}</span>
+                                      </div>
+                                      <div className="p-2 rounded-xl bg-slate-900/50">
+                                        <strong className="text-indigo-400 block font-bold mb-0.5">Tarefa:</strong>
+                                        <span className="text-slate-400 font-sans">{msg.evaluation.star.task}</span>
+                                      </div>
+                                      <div className="p-2 rounded-xl bg-slate-900/50">
+                                        <strong className="text-sky-400 block font-bold mb-0.5">Ação:</strong>
+                                        <span className="text-slate-400 font-sans">{msg.evaluation.star.action}</span>
+                                      </div>
+                                      <div className="p-2 rounded-xl bg-slate-900/50">
+                                        <strong className="text-emerald-400 block font-bold mb-0.5">Resultado:</strong>
+                                        <span className="text-slate-400 font-sans">{msg.evaluation.star.result}</span>
+                                      </div>
                                     </div>
-                                    <div className="p-2 rounded-xl bg-slate-900/50">
-                                      <strong className="text-emerald-400 block font-bold mb-0.5">Resultado:</strong>
-                                      <span className="text-slate-400 font-sans">{msg.evaluation.star.result}</span>
-                                    </div>
-                                  </div>
 
-                                  {/* Scores breakdown */}
-                                  <div className="flex justify-between gap-3 text-[9px] pt-2 text-slate-400 font-semibold border-t border-slate-900">
-                                    <span>Técnico: <strong className="text-slate-200">{msg.evaluation.technicalScore}%</strong></span>
-                                    <span>Clareza: <strong className="text-slate-200">{msg.evaluation.clarityScore}%</strong></span>
-                                    <span>Comunicação: <strong className="text-slate-200">{msg.evaluation.communicationScore}%</strong></span>
-                                    <span>Confiança: <strong className="text-slate-200">{msg.evaluation.confidenceScore}%</strong></span>
-                                  </div>
+                                    {/* Scores breakdown */}
+                                    <div className="flex justify-between gap-3 text-[9px] pt-2 text-slate-400 font-semibold border-t border-slate-900">
+                                      <span>Técnico: <strong className="text-slate-200">{msg.evaluation.technicalScore}%</strong></span>
+                                      <span>Clareza: <strong className="text-slate-200">{msg.evaluation.clarityScore}%</strong></span>
+                                      <span>Comunicação: <strong className="text-slate-200">{msg.evaluation.communicationScore}%</strong></span>
+                                      <span>Confiança: <strong className="text-slate-200">{msg.evaluation.confidenceScore}%</strong></span>
+                                    </div>
 
-                                  {msg.evaluation.feedback && (
-                                    <p className="italic text-slate-400 leading-relaxed pt-1.5 font-sans">
-                                      "{msg.evaluation.feedback}"
-                                    </p>
-                                  )}
-                                  
-                                  {msg.evaluation.positives?.length > 0 && (
-                                    <div className="text-emerald-400">
-                                      <strong>✓ Pontos Fortes:</strong> {msg.evaluation.positives.join(', ')}
-                                    </div>
-                                  )}
-                                  {msg.evaluation.improvements?.length > 0 && (
-                                    <div className="text-amber-400">
-                                      <strong>⚠️ Oportunidades:</strong> {msg.evaluation.improvements.join(', ')}
-                                    </div>
-                                  )}
-                                </div>
+                                    {msg.evaluation.feedback && (
+                                      <p className="italic text-slate-400 leading-relaxed pt-1.5 font-sans">
+                                        "{msg.evaluation.feedback}"
+                                      </p>
+                                    )}
+                                    
+                                    {msg.evaluation.positives?.length > 0 && (
+                                      <div className="text-emerald-400">
+                                        <strong>✓ Pontos Fortes:</strong> {msg.evaluation.positives.join(', ')}
+                                      </div>
+                                    )}
+                                    {msg.evaluation.improvements?.length > 0 && (
+                                      <div className="text-amber-400">
+                                        <strong>⚠️ Oportunidades:</strong> {msg.evaluation.improvements.join(', ')}
+                                      </div>
+                                    )}
+                                  </div>
+                                </details>
                               )}
                             </div>
                           );
@@ -364,7 +382,7 @@ export function CoachDashboard({
                         {isSending && (
                           <div className="p-3 rounded-2xl max-w-[85%] bg-slate-900 border border-slate-850 text-slate-350 self-start mr-auto animate-pulse flex items-center gap-2 font-sans">
                             <Loader2 size={12} className="animate-spin text-brand-accent" />
-                            <span className="text-[10px] text-slate-400">O Mentor IA Vocentro está avaliando sua resposta e formulando o feedback...</span>
+                            <span className="text-[10px] text-slate-400">A Recrutadora Mariana está avaliando sua resposta e formulando o feedback...</span>
                           </div>
                         )}
                       </div>
@@ -467,6 +485,42 @@ export function CoachDashboard({
                                 <ul className="list-decimal pl-4 space-y-1.5 text-slate-350 font-sans">
                                   {evaluations.improvementPlan?.map((item: string, idx: number) => <li key={idx}>{item}</li>)}
                                 </ul>
+                              </div>
+
+                              {/* Extended Diagnostic Metrics */}
+                              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                {evaluations.gapAnalysis && evaluations.gapAnalysis.length > 0 && (
+                                  <div className="p-4.5 bg-red-950/10 border border-red-500/10 rounded-2xl space-y-2">
+                                    <strong className="text-red-450 font-bold text-[10px] uppercase tracking-wider block">⚠️ Gap Analysis (Lacunas)</strong>
+                                    <ul className="list-disc pl-4 space-y-1 text-slate-350 font-sans text-xs">
+                                      {evaluations.gapAnalysis.map((g: string, idx: number) => <li key={idx}>{g}</li>)}
+                                    </ul>
+                                  </div>
+                                )}
+                                
+                                {evaluations.recommendedQuestions && evaluations.recommendedQuestions.length > 0 && (
+                                  <div className="p-4.5 bg-indigo-950/10 border border-indigo-500/10 rounded-2xl space-y-2">
+                                    <strong className="text-indigo-400 font-bold text-[10px] uppercase tracking-wider block">💡 Perguntas Recomendadas</strong>
+                                    <ul className="list-disc pl-4 space-y-1 text-slate-350 font-sans text-xs">
+                                      {evaluations.recommendedQuestions.map((q: string, idx: number) => <li key={idx}>{q}</li>)}
+                                    </ul>
+                                  </div>
+                                )}
+                              </div>
+
+                              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                <div className="p-4.5 bg-slate-950/40 border border-slate-900 rounded-2xl flex flex-col justify-between">
+                                  <span className="text-slate-500 text-[8px] uppercase tracking-wider font-bold">Senioridade Percebida</span>
+                                  <strong className="text-slate-200 text-xs mt-1 uppercase font-mono">{evaluations.seniorityPerceived || 'pleno'}</strong>
+                                </div>
+                                <div className="p-4.5 bg-slate-950/40 border border-slate-900 rounded-2xl flex flex-col justify-between">
+                                  <span className="text-slate-500 text-[8px] uppercase tracking-wider font-bold">Mapeamento de Riscos</span>
+                                  <p className="text-slate-300 text-[10px] mt-1 font-sans leading-relaxed">{evaluations.riskAnalysis || 'Sem riscos detectados.'}</p>
+                                </div>
+                                <div className="p-4.5 bg-slate-950/40 border border-slate-900 rounded-2xl flex flex-col justify-between">
+                                  <span className="text-slate-500 text-[8px] uppercase tracking-wider font-bold">Comparação Vaga vs Perfil</span>
+                                  <p className="text-slate-300 text-[10px] mt-1 font-sans leading-relaxed">{evaluations.jobFitComparison || 'Aderência compatível.'}</p>
+                                </div>
                               </div>
 
                               {/* Cost Metrics */}
@@ -621,7 +675,7 @@ export function CoachDashboard({
                       </div>
                       <div className="max-w-md space-y-1.5">
                         <h4 className="font-display font-bold text-base text-slate-200">
-                          Treine suas Entrevistas com o Mentor IA
+                          Treine suas Entrevistas com a Recrutadora IA
                         </h4>
                         <p className="text-slate-500 text-xs leading-relaxed">
                           Nossa inteligência simula uma rodada completa de perguntas baseadas na vaga que você escolher. 
@@ -661,10 +715,10 @@ export function CoachDashboard({
               <div>
                 <h3 className="font-display font-bold text-base text-slate-200 flex items-center gap-2 pb-3 border-b border-slate-900">
                   <UserCheck size={18} className="text-brand-accent" />
-                  Mentor IA Vocentro (Conselheiro)
+                  Recrutadora Mariana (Consultora)
                 </h3>
-                <p className="text-xs text-slate-500 mt-2 font-sans">
-                  Converse com o Mentor IA para extrair direcionamentos de carreira com base no seu histórico exclusivo.
+                <p className="text-xs text-slate-400">
+                  Converse com a Recrutadora Mariana para extrair direcionamentos de carreira com base no seu histórico exclusivo.
                 </p>
               </div>
 
@@ -681,9 +735,9 @@ export function CoachDashboard({
                       }`}
                     >
                       <strong className="block mb-0.5 text-[9px] uppercase font-bold text-slate-500 font-mono">
-                        {msg.role === 'recruiter' ? 'Mentor IA Vocentro' : 'Você'}
+                        {msg.role === 'recruiter' ? '🎤 Recrutadora Mariana' : 'Você'}
                       </strong>
-                      <span className="whitespace-pre-line">{msg.text}</span>
+                      <span className="whitespace-pre-line">{formatBoldText(msg.text)}</span>
                     </div>
                   ))}
                 </div>

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   FileText, 
@@ -16,9 +16,15 @@ import {
   Zap,
   EyeOff,
   UserCheck,
-  ShieldCheck
+  ShieldCheck,
+  ArrowUpRight,
+  Database,
+  Lock,
+  TrendingUp,
+  BarChart3
 } from 'lucide-react';
 import { TalentaLogo } from '../components/ds/MyCareerIcons';
+import { ThemeToggle } from '../components/ThemeToggle';
 
 interface LandingPageProps {
   onNavigateToAuth: (mode?: 'login' | 'signup') => void;
@@ -26,6 +32,28 @@ interface LandingPageProps {
 
 export function LandingPage({ onNavigateToAuth }: LandingPageProps) {
   const [activeFaq, setActiveFaq] = useState<number | null>(null);
+  
+  // Interactive Product Tour State
+  const [tourStep, setTourStep] = useState(0);
+  const [isTourPaused, setIsTourPaused] = useState(false);
+  const autoplayTimer = useRef<any>(null);
+
+  // Autoplay for the interactive tour
+  useEffect(() => {
+    if (!isTourPaused) {
+      autoplayTimer.current = setInterval(() => {
+        setTourStep((prev) => (prev + 1) % 5);
+      }, 4500);
+    }
+    return () => {
+      if (autoplayTimer.current) clearInterval(autoplayTimer.current);
+    };
+  }, [isTourPaused]);
+
+  const selectTourStep = (index: number) => {
+    setTourStep(index);
+    setIsTourPaused(true); // Pause autoplay once the user interacts
+  };
 
   const toggleFaq = (index: number) => {
     setActiveFaq(activeFaq === index ? null : index);
@@ -33,56 +61,58 @@ export function LandingPage({ onNavigateToAuth }: LandingPageProps) {
 
   const faqData = [
     {
-      q: 'Como funciona?',
-      a: 'A Talenta funciona como um copiloto inteligente de carreira. Ao importar seu currículo, nossa inteligência artificial mapeia suas competências, identifica lacunas, otimiza seus materiais de candidatura para cada vaga específica e simula entrevistas em tempo real para garantir sua aprovação.'
+      q: 'Meus dados ficam seguros?',
+      a: 'Sim, totalmente. Seus dados profissionais, currículos e histórico de simulações são criptografados de ponta a ponta e armazenados de acordo com as diretrizes da LGPD/GDPR. Você tem total controle sobre suas informações e pode removê-las permanentemente da nossa base a qualquer momento com apenas um clique nas configurações.'
     },
     {
-      q: 'A IA altera meu currículo?',
-      a: 'Não diretamente sem sua autorização. A IA analisa os requisitos da vaga desejada e sugere adaptações estratégicas na sua redação, palavras-chave e destakes de conquistas. Você revisa todas as propostas e tem controle absoluto sobre a versão final do seu currículo.'
+      q: 'A IA realmente melhora meu currículo?',
+      a: 'Sim. Nosso motor semântico analisa detalhadamente a descrição e os requisitos da vaga desejada, identificando termos técnicos relevantes (keywords) e sugerindo adaptações no formato STAR (Situação, Tarefa, Ação, Resultado). Isso aumenta expressivamente sua nota nos sistemas automáticos de triagem de candidatos (ATS) sem falsificar nenhuma informação.'
     },
     {
-      q: 'Posso importar vagas?',
-      a: 'Sim! Você pode cadastrar qualquer vaga do mercado na plataforma inserindo o link ou descrição. A IA calculará instantaneamente o seu Score de Match e criará um plano de preparação focado para aquela oportunidade.'
+      q: 'Posso cancelar quando quiser?',
+      a: 'Sem burocracia. O plano Premium é cobrado mensalmente e pode ser cancelado a qualquer momento com um único clique em seu painel de faturamento. Não há contratos de fidelidade ou taxas ocultas de cancelamento.'
     },
     {
-      q: 'É gratuito?',
-      a: 'Sim! A Talenta oferece um plano gratuito vitalício com acesso ao painel de acompanhamento, busca básica de vagas, otimizações iniciais de currículo e interações limitadas com o Coach IA. Você pode atualizar para o plano Premium a qualquer momento para obter recursos avançados e ilimitados.'
+      q: 'O sistema funciona para qualquer área profissional?',
+      a: 'Sim. Embora seja amplamente otimizada para carreiras de tecnologia, marketing, design, finanças e administração, a IA utiliza modelos linguísticos de ampla cobertura semântica que conseguem interpretar, cruzar dados e sugerir melhorias de alta precisão para qualquer setor do mercado de trabalho.'
     },
     {
-      q: 'Como funciona o Premium?',
-      a: 'O plano Premium desbloqueia simulações ilimitadas de entrevista por voz e chat com feedbacks analíticos detalhados, otimizações avançadas de currículo baseadas em ATS (sistemas de rastreamento de candidatos), cartas de apresentação inteligentes ilimitadas e telemetria profunda de match de vagas.'
+      q: 'Como funciona o Match de Vagas?',
+      a: 'Utilizamos inteligência de correspondência avançada baseada em IA generativa (Google Gemini) para realizar uma análise de afinidade semântica tridimensional: (1) Requisitos Técnicos Hard Skills, (2) Competências Interpessoais Soft Skills e (3) Nível de Senioridade e Impacto. Com isso, indicamos uma nota percentual precisa e uma lista exata de gaps de competências necessários para a aprovação.'
     }
   ];
 
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100 font-sans relative overflow-x-hidden selection:bg-brand-500/30 selection:text-white">
+    <div className="min-h-screen bg-slate-950 dark:bg-slate-950 light:bg-slate-50 text-slate-100 dark:text-slate-100 light:text-slate-800 font-sans relative overflow-x-hidden selection:bg-brand-500/30 selection:text-white transition-colors duration-300">
+      
       {/* Decorative Blur Backgrounds */}
-      <div className="fixed top-[-10%] right-[-10%] w-[60vw] h-[60vh] rounded-full bg-brand-500/5 blur-[120px] pointer-events-none z-0" />
-      <div className="fixed bottom-[-10%] left-[-10%] w-[50vw] h-[50vh] rounded-full bg-indigo-500/5 blur-[120px] pointer-events-none z-0" />
+      <div className="fixed top-[-10%] right-[-10%] w-[60vw] h-[60vh] rounded-full bg-brand-500/5 dark:bg-brand-500/5 light:bg-brand-500/3 blur-[120px] pointer-events-none z-0" />
+      <div className="fixed bottom-[-10%] left-[-10%] w-[50vw] h-[50vh] rounded-full bg-indigo-500/5 dark:bg-indigo-500/5 light:bg-indigo-500/3 blur-[120px] pointer-events-none z-0" />
 
       {/* Header / Navbar */}
-      <header className="fixed top-0 left-0 right-0 h-16 bg-slate-950/80 dark:bg-slate-950/80 light:bg-white/90 backdrop-blur-md border-b border-slate-800 dark:border-slate-800 light:border-slate-200 flex items-center justify-between px-6 z-50 transition-colors">
-        <TalentaLogo className="h-8" showText={true} />
+      <header className="fixed top-0 left-0 right-0 h-16 bg-slate-950/80 dark:bg-slate-950/80 light:bg-white/95 backdrop-blur-md border-b border-slate-900 dark:border-slate-900 light:border-slate-200 flex items-center justify-between px-6 z-50 transition-colors duration-300 shadow-sm light:shadow-slate-100">
+        <TalentaLogo className="h-8 text-white dark:text-white light:text-slate-900" showText={true} />
         
         <nav className="hidden md:flex items-center gap-6">
-          <a href="#como-funciona" className="text-xs text-slate-400 hover:text-slate-200 transition-colors">Como Funciona</a>
-          <a href="#coach-ia" className="text-xs text-slate-400 hover:text-slate-200 transition-colors">Coach IA</a>
-          <a href="#comparacao" className="text-xs text-slate-400 hover:text-slate-200 transition-colors">Comparativo</a>
-          <a href="#beneficios" className="text-xs text-slate-400 hover:text-slate-200 transition-colors">Benefícios</a>
-          <a href="#planos" className="text-xs text-slate-400 hover:text-slate-200 transition-colors">Planos</a>
-          <a href="#faq" className="text-xs text-slate-400 hover:text-slate-200 transition-colors">FAQ</a>
+          <a href="#como-funciona" className="text-xs font-semibold text-slate-400 hover:text-slate-200 dark:text-slate-400 dark:hover:text-slate-200 light:text-slate-600 light:hover:text-slate-900 transition-colors">A Jornada</a>
+          <a href="#demonstracao" className="text-xs font-semibold text-slate-400 hover:text-slate-200 dark:text-slate-400 dark:hover:text-slate-200 light:text-slate-600 light:hover:text-slate-900 transition-colors">Como Funciona</a>
+          <a href="#comparativo" className="text-xs font-semibold text-slate-400 hover:text-slate-200 dark:text-slate-400 dark:hover:text-slate-200 light:text-slate-600 light:hover:text-slate-900 transition-colors">Antes vs Depois</a>
+          <a href="#recursos" className="text-xs font-semibold text-slate-400 hover:text-slate-200 dark:text-slate-400 dark:hover:text-slate-200 light:text-slate-600 light:hover:text-slate-900 transition-colors">Diferenciais</a>
+          <a href="#planos" className="text-xs font-semibold text-slate-400 hover:text-slate-200 dark:text-slate-400 dark:hover:text-slate-200 light:text-slate-600 light:hover:text-slate-900 transition-colors">Planos</a>
+          <a href="#faq" className="text-xs font-semibold text-slate-400 hover:text-slate-200 dark:text-slate-400 dark:hover:text-slate-200 light:text-slate-600 light:hover:text-slate-900 transition-colors">FAQ</a>
         </nav>
 
         <div className="flex items-center gap-4">
+          <ThemeToggle />
           <button 
             onClick={() => onNavigateToAuth('login')}
-            className="text-xs font-semibold text-slate-300 hover:text-slate-100 transition-colors cursor-pointer"
+            className="text-xs font-semibold text-slate-300 hover:text-slate-100 dark:text-slate-300 dark:hover:text-slate-100 light:text-slate-600 light:hover:text-slate-900 transition-colors cursor-pointer"
           >
             Entrar
           </button>
           <button 
             onClick={() => onNavigateToAuth('signup')}
-            className="px-4 py-2 text-xs font-semibold text-white bg-gradient-to-r from-brand-600 to-indigo-600 hover:from-brand-500 hover:to-indigo-500 rounded-xl transition-all shadow-md shadow-brand-500/10 cursor-pointer"
+            className="px-4 py-2 text-xs font-semibold text-white bg-gradient-to-r from-brand-500 to-indigo-600 hover:from-brand-600 hover:to-indigo-700 rounded-xl transition-all shadow-md shadow-brand-500/10 cursor-pointer"
           >
             Começar Grátis
           </button>
@@ -90,7 +120,7 @@ export function LandingPage({ onNavigateToAuth }: LandingPageProps) {
       </header>
 
       {/* Hero Section */}
-      <section className="relative min-h-[85vh] pt-20 pb-8 flex items-center px-6 md:px-12 z-10 max-w-7xl mx-auto">
+      <section id="demonstracao" className="relative min-h-[90vh] pt-28 pb-12 flex items-center px-6 md:px-12 z-10 max-w-7xl mx-auto">
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 items-center w-full">
           {/* Left Hero Copy */}
           <div className="lg:col-span-6 space-y-6 text-left">
@@ -98,28 +128,28 @@ export function LandingPage({ onNavigateToAuth }: LandingPageProps) {
               initial={{ opacity: 0, y: 15 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.6 }}
-              className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-brand-500/10 border border-brand-500/20 text-brand-400 text-[10px] font-bold tracking-wider uppercase"
+              className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-brand-500/10 border border-brand-500/20 text-brand-400 light:text-brand-600 text-[10px] font-bold tracking-wider uppercase"
             >
               <Sparkles size={10} className="animate-pulse" />
-              Sua jornada profissional guiada por IA
+              Sua jornada profissional acelerada por IA
             </motion.div>
             
             <motion.h1 
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.7, delay: 0.1 }}
-              className="text-4xl sm:text-5xl lg:text-6.5xl font-bold tracking-tight text-white leading-tight font-display"
+              className="text-4xl sm:text-5xl lg:text-6xl font-extrabold tracking-tight text-slate-100 dark:text-white light:text-slate-900 leading-tight font-display"
             >
-              Pare de enviar <span className="text-transparent bg-clip-text bg-gradient-to-r from-brand-400 to-indigo-400">currículos no escuro</span>.
+              Pare de enviar <span className="text-transparent bg-clip-text bg-gradient-to-r from-brand-400 via-brand-500 to-indigo-500">currículos no escuro</span>.
             </motion.h1>
             
             <motion.p 
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.7, delay: 0.2 }}
-              className="text-slate-300 text-sm sm:text-base leading-relaxed max-w-xl"
+              className="text-slate-300 dark:text-slate-300 light:text-slate-655 text-sm sm:text-base leading-relaxed max-w-xl"
             >
-              A Talenta mostra exatamente quais vagas combinam com você, melhora seu currículo e prepara você para conquistar a próxima oportunidade.
+              Descubra quais vagas realmente combinam com seu perfil, adapte seu currículo com IA e treine entrevistas antes de se candidatar.
             </motion.p>
             
             <motion.div 
@@ -130,521 +160,695 @@ export function LandingPage({ onNavigateToAuth }: LandingPageProps) {
             >
               <button 
                 onClick={() => onNavigateToAuth('signup')}
-                className="px-6 py-3.5 rounded-xl bg-gradient-to-r from-brand-600 to-indigo-600 hover:from-brand-500 hover:to-indigo-500 text-white font-semibold text-sm transition-all flex items-center justify-center gap-2 shadow-lg shadow-brand-500/20 hover:scale-[1.02] cursor-pointer"
+                className="px-6 py-3.5 rounded-xl bg-gradient-to-r from-brand-500 to-indigo-600 hover:from-brand-600 hover:to-indigo-700 text-white font-semibold text-sm transition-all flex items-center justify-center gap-2 shadow-lg shadow-brand-500/20 hover:scale-[1.02] cursor-pointer"
               >
-                Começar gratuitamente
+                Garantir meu acesso
                 <ArrowRight size={16} />
               </button>
               <a 
                 href="#como-funciona"
-                className="px-6 py-3.5 rounded-xl border border-slate-800 hover:border-slate-700 bg-slate-900/30 text-slate-300 hover:text-white font-semibold text-sm transition-all flex items-center justify-center gap-2 hover:scale-[1.02] cursor-pointer"
+                className="px-6 py-3.5 rounded-xl border border-slate-880 dark:border-slate-800 light:border-slate-200 bg-slate-900/30 dark:bg-slate-900/30 light:bg-white text-slate-300 dark:text-slate-300 light:text-slate-700 hover:text-white light:hover:text-slate-900 font-semibold text-sm transition-all flex items-center justify-center gap-2 hover:scale-[1.02] cursor-pointer shadow-sm"
               >
-                Ver demonstração
+                Ver fluxo completo
               </a>
             </motion.div>
-          </div>
 
-          {/* Right Hero Mockup (Product Story Flow) */}
-          <div className="lg:col-span-6 flex justify-center relative">
-            <div className="absolute inset-0 bg-gradient-to-tr from-brand-500/10 to-indigo-500/10 blur-[80px] rounded-full pointer-events-none" />
-            
+            {/* Quick Metrics Bar in Hero */}
             <motion.div 
-              initial={{ opacity: 0, scale: 0.95, y: 30 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              transition={{ duration: 0.8, delay: 0.2 }}
-              className="w-full max-w-md bg-slate-900/40 border border-slate-850 rounded-3xl p-5 shadow-2xl relative backdrop-blur-sm space-y-4"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: 0.5 }}
+              className="pt-6 grid grid-cols-3 gap-4 border-t border-slate-900 dark:border-slate-900 light:border-slate-200"
             >
-              {/* Fake Window Controls */}
-              <div className="flex items-center gap-1.5 border-b border-slate-850/50 pb-3">
-                <span className="w-2.5 h-2.5 rounded-full bg-red-500/40" />
-                <span className="w-2.5 h-2.5 rounded-full bg-yellow-500/40" />
-                <span className="w-2.5 h-2.5 rounded-full bg-green-500/40" />
-                <span className="text-[10px] text-slate-650 font-mono ml-4 select-none">talenta.ai/jornada</span>
+              <div>
+                <span className="text-xl font-bold text-white dark:text-white light:text-slate-900 block">2.300+</span>
+                <span className="text-[10px] text-slate-500 dark:text-slate-500 light:text-slate-600">Currículos analisados</span>
               </div>
-
-              {/* Visual Story Flow */}
-              <div className="space-y-2.5 text-xs">
-                {[
-                  { label: 'Upload do Currículo', val: 'PDF importado com sucesso', status: 'done', delay: 0.3 },
-                  { label: 'Perfil Mapeado', val: '14 competências identificadas', status: 'done', delay: 0.6 },
-                  { label: 'Compatibilidade de Vaga', val: '92% Match encontrado', status: 'highlight', delay: 0.9 },
-                  { label: 'Currículo Otimizado', val: 'Palavras-chave adaptadas', status: 'done', delay: 1.2 },
-                  { label: 'Treino de Entrevista', val: 'Feedback do Coach IA gerado', status: 'active', delay: 1.5 },
-                  { label: 'Candidatura Aprovada!', val: 'Conexão direta estabelecida', status: 'success', delay: 1.8 }
-                ].map((step, idx) => (
-                  <motion.div 
-                    initial={{ opacity: 0, x: -10 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    transition={{ delay: step.delay, duration: 0.5 }}
-                    key={idx} 
-                    className={`flex items-center justify-between p-2.5 rounded-xl border border-slate-850/40 ${
-                      step.status === 'success' 
-                        ? 'bg-emerald-950/20 border-emerald-500/30' 
-                        : step.status === 'active'
-                        ? 'bg-brand-950/20 border-brand-500/30'
-                        : step.status === 'highlight'
-                        ? 'bg-indigo-950/20 border-indigo-500/30'
-                        : 'bg-slate-950/50'
-                    }`}
-                  >
-                    <div className="flex items-center gap-2.5">
-                      <div className={`w-5 h-5 rounded-full flex items-center justify-center font-bold text-[9px] ${
-                        step.status === 'success'
-                          ? 'bg-emerald-500/10 text-emerald-400'
-                          : step.status === 'active'
-                          ? 'bg-brand-500/10 text-brand-400'
-                          : step.status === 'highlight'
-                          ? 'bg-indigo-500/10 text-indigo-400'
-                          : 'bg-slate-850 text-slate-400'
-                      }`}>
-                        {step.status === 'active' ? (
-                          <span className="w-1.5 h-1.5 rounded-full bg-brand-500 animate-ping" />
-                        ) : idx + 1}
-                      </div>
-                      <span className="font-semibold text-slate-200">{step.label}</span>
-                    </div>
-                    <span className={`text-[10px] ${
-                      step.status === 'success'
-                        ? 'text-emerald-400 font-bold'
-                        : step.status === 'active'
-                        ? 'text-brand-400 font-bold'
-                        : step.status === 'highlight'
-                        ? 'text-indigo-400 font-bold'
-                        : 'text-slate-450'
-                    }`}>
-                      {step.val}
-                    </span>
-                  </motion.div>
-                ))}
+              <div>
+                <span className="text-xl font-bold text-white dark:text-white light:text-slate-900 block">11.000+</span>
+                <span className="text-[10px] text-slate-500 dark:text-slate-500 light:text-slate-600">Vagas processadas</span>
+              </div>
+              <div>
+                <span className="text-xl font-bold text-white dark:text-white light:text-slate-900 block">94%</span>
+                <span className="text-[10px] text-slate-500 dark:text-slate-500 light:text-slate-600">Satisfação geral</span>
               </div>
             </motion.div>
           </div>
-        </div>
-      </section>
 
-      {/* Trust Highlight Bar */}
-      <section className="bg-slate-900/20 border-y border-slate-850/40 py-6 relative z-10 px-6 overflow-hidden">
-        <div className="max-w-6xl mx-auto flex flex-col md:flex-row items-center justify-between gap-4 text-center md:text-left">
-          <span className="text-xs font-bold text-slate-500 uppercase tracking-widest">Tudo em um só lugar</span>
-          <div className="grid grid-cols-2 md:flex items-center gap-6 md:gap-8 lg:gap-12">
-            {[
-              'Descubra vagas',
-              'Prepare seu currículo',
-              'Treine entrevistas',
-              'Organize candidaturas'
-            ].map((text, idx) => (
-              <div key={idx} className="flex items-center gap-2 justify-center md:justify-start">
-                <CheckCircle2 size={14} className="text-brand-500 shrink-0" />
-                <span className="text-xs font-semibold text-slate-300">{text}</span>
+          {/* Right Hero - INTERACTIVE TOUR SHOWCASE */}
+          <div className="lg:col-span-6 flex justify-center relative w-full">
+            <div className="absolute inset-0 bg-gradient-to-tr from-brand-500/10 to-indigo-500/10 blur-[80px] rounded-full pointer-events-none" />
+            
+            <div className="w-full max-w-lg bg-slate-900/40 dark:bg-slate-900/40 light:bg-white border border-slate-850 dark:border-slate-850 light:border-slate-200 rounded-3xl p-5 shadow-2xl relative backdrop-blur-sm space-y-4">
+              
+              {/* Fake Window Controls */}
+              <div className="flex items-center justify-between border-b border-slate-850/50 dark:border-slate-850/50 light:border-slate-200 pb-3">
+                <div className="flex items-center gap-1.5">
+                  <span className="w-2.5 h-2.5 rounded-full bg-red-500/40" />
+                  <span className="w-2.5 h-2.5 rounded-full bg-yellow-500/40" />
+                  <span className="w-2.5 h-2.5 rounded-full bg-green-500/40" />
+                  <span className="text-[10px] text-slate-500 dark:text-slate-500 light:text-slate-400 font-mono ml-4 select-none">talenta.ai/demonstracao</span>
+                </div>
+                <div className="px-2 py-0.5 rounded bg-brand-500/10 text-brand-400 text-[9px] font-bold uppercase tracking-wider animate-pulse">
+                  Tour de Produto
+                </div>
               </div>
-            ))}
+
+              {/* Navigation Tabs for Tour Steps */}
+              <div className="grid grid-cols-5 gap-1.5 p-1 bg-slate-950/50 dark:bg-slate-950/50 light:bg-slate-100 rounded-xl border border-slate-900 dark:border-slate-900 light:border-slate-200">
+                {[
+                  { name: '1. Currículo', icon: FileText },
+                  { name: '2. Vaga', icon: Search },
+                  { name: '3. Match', icon: Trophy },
+                  { name: '4. Otimizar', icon: Sparkles },
+                  { name: '5. Entrevista', icon: MessageSquare }
+                ].map((step, idx) => {
+                  const Icon = step.icon;
+                  const isActive = tourStep === idx;
+                  return (
+                    <button
+                      key={idx}
+                      onClick={() => selectTourStep(idx)}
+                      className={`flex flex-col items-center py-1.5 px-1 rounded-lg transition-all duration-205 text-center gap-1 cursor-pointer ${
+                        isActive 
+                          ? 'bg-slate-900 dark:bg-slate-900 light:bg-white text-brand-500 light:text-brand-600 shadow-md border border-slate-800 dark:border-slate-800 light:border-slate-200' 
+                          : 'text-slate-500 dark:text-slate-500 light:text-slate-600 hover:text-slate-350 light:hover:text-slate-800'
+                      }`}
+                    >
+                      <Icon size={14} className={isActive ? 'animate-bounce' : ''} />
+                      <span className="text-[8px] font-bold tracking-tight whitespace-nowrap">{step.name.split('. ')[1]}</span>
+                    </button>
+                  );
+                })}
+              </div>
+
+              {/* Visual Simulated Mockups */}
+              <div className="relative min-h-[260px] bg-slate-950/80 dark:bg-slate-950/80 light:bg-slate-50/50 rounded-2xl p-4 border border-slate-900 dark:border-slate-900 light:border-slate-200 overflow-hidden flex flex-col justify-center">
+                <AnimatePresence mode="wait">
+                  {tourStep === 0 && (
+                    <motion.div 
+                      key="step0"
+                      initial={{ opacity: 0, scale: 0.95 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      exit={{ opacity: 0, scale: 0.95 }}
+                      transition={{ duration: 0.3 }}
+                      className="space-y-4 text-xs"
+                    >
+                      <div className="text-center space-y-2 py-4">
+                        <div className="w-12 h-12 rounded-full bg-brand-500/10 text-brand-400 flex items-center justify-center mx-auto border border-brand-500/25 animate-pulse">
+                          <FileText size={24} />
+                        </div>
+                        <h4 className="font-bold text-slate-100 dark:text-white light:text-slate-900">Arraste seu currículo antigo</h4>
+                        <p className="text-[10px] text-slate-400 dark:text-slate-400 light:text-slate-600 max-w-[280px] mx-auto">Suporta formatos PDF e DOCX. Nossa IA estruturará suas competências.</p>
+                      </div>
+
+                      <div className="bg-slate-900/60 dark:bg-slate-900/60 light:bg-white border border-slate-850 dark:border-slate-850 light:border-slate-200 p-3 rounded-xl flex items-center justify-between shadow-sm">
+                        <div className="flex items-center gap-2.5">
+                          <div className="w-8 h-8 rounded-lg bg-red-500/10 text-red-400 flex items-center justify-center font-bold text-[10px]">
+                            PDF
+                          </div>
+                          <div>
+                            <span className="font-bold text-slate-200 dark:text-slate-200 light:text-slate-800 block">curriculo_desatualizado.pdf</span>
+                            <span className="text-[8px] text-slate-500">242 KB • Enviado há segundos</span>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-1.5">
+                          <CheckCircle2 size={14} className="text-emerald-500" />
+                          <span className="text-[9px] font-bold text-emerald-400">Processado</span>
+                        </div>
+                      </div>
+                    </motion.div>
+                  )}
+
+                  {tourStep === 1 && (
+                    <motion.div 
+                      key="step1"
+                      initial={{ opacity: 0, scale: 0.95 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      exit={{ opacity: 0, scale: 0.95 }}
+                      transition={{ duration: 0.3 }}
+                      className="space-y-3 text-xs"
+                    >
+                      <h4 className="font-bold text-slate-100 dark:text-white light:text-slate-900">Conecte Vagas Dinamicamente</h4>
+                      <p className="text-[10px] text-slate-450 light:text-slate-600 leading-relaxed">Insira links de vagas da internet ou conecte seu Greenhouse ATS para gerenciar fluxos.</p>
+                      
+                      <div className="space-y-2 pt-2">
+                        <div className="flex gap-2">
+                          <div className="flex-1 bg-slate-900 dark:bg-slate-900 light:bg-white border border-slate-850 dark:border-slate-850 light:border-slate-200 rounded-lg px-3 py-2 text-[10px] text-brand-400 font-mono select-all overflow-hidden whitespace-nowrap">
+                            https://greenhouse.io/stripe/jobs/senior-react-dev
+                          </div>
+                          <span className="px-3 py-2 rounded-lg bg-brand-500/15 border border-brand-500/30 text-brand-400 text-[10px] font-bold uppercase">
+                            URL
+                          </span>
+                        </div>
+
+                        <div className="bg-slate-900/60 dark:bg-slate-900/60 light:bg-white border border-slate-850 dark:border-slate-850 light:border-slate-200 p-3 rounded-xl space-y-2 shadow-sm">
+                          <div className="flex items-center justify-between">
+                            <span className="font-bold text-slate-200 dark:text-slate-200 light:text-slate-900">Vaga: Senior Frontend Developer</span>
+                            <span className="text-[8px] bg-slate-850 dark:bg-slate-850 light:bg-slate-200 text-slate-400 dark:text-slate-400 light:text-slate-700 px-1.5 py-0.5 rounded font-semibold">Stripe Inc.</span>
+                          </div>
+                          <div className="flex flex-wrap gap-1 text-[8px] pt-1">
+                            <span className="px-1.5 py-0.5 bg-brand-950/20 text-brand-400 border border-brand-500/20 rounded font-medium">React</span>
+                            <span className="px-1.5 py-0.5 bg-brand-950/20 text-brand-400 border border-brand-500/20 rounded font-medium">TypeScript</span>
+                            <span className="px-1.5 py-0.5 bg-indigo-950/20 text-indigo-400 border border-indigo-500/20 rounded font-medium">Zustand</span>
+                            <span className="px-1.5 py-0.5 bg-emerald-950/20 text-emerald-400 border border-emerald-500/20 rounded font-medium">CI/CD</span>
+                          </div>
+                        </div>
+                      </div>
+                    </motion.div>
+                  )}
+
+                  {tourStep === 2 && (
+                    <motion.div 
+                      key="step2"
+                      initial={{ opacity: 0, scale: 0.95 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      exit={{ opacity: 0, scale: 0.95 }}
+                      transition={{ duration: 0.3 }}
+                      className="space-y-4 text-xs"
+                    >
+                      <div className="flex items-center justify-between">
+                        <h4 className="font-bold text-slate-100 dark:text-white light:text-slate-900">Score de Match IA instantâneo</h4>
+                        <span className="text-[10px] text-slate-500 dark:text-slate-500 light:text-slate-600 font-mono">Compatibilidade Semântica</span>
+                      </div>
+
+                      <div className="grid grid-cols-12 gap-4 items-center py-2">
+                        {/* Circular Progress dial simulation */}
+                        <div className="col-span-4 flex justify-center relative">
+                          <div className="w-20 h-20 rounded-full border-4 border-slate-900 flex items-center justify-center relative">
+                            {/* Inner circle fill simulation */}
+                            <div className="absolute inset-0 rounded-full border-4 border-t-brand-500 border-r-indigo-500 border-l-brand-500 border-b-transparent animate-spin" style={{ animationDuration: '6s' }} />
+                            <span className="text-lg font-black text-white dark:text-white light:text-slate-900">89%</span>
+                          </div>
+                        </div>
+
+                        <div className="col-span-8 space-y-2">
+                          <div className="flex justify-between items-center text-[10px]">
+                            <span className="text-slate-400">Alinhamento Hard Skills</span>
+                            <span className="text-emerald-400 font-bold">Excelente</span>
+                          </div>
+                          <div className="flex justify-between items-center text-[10px]">
+                            <span className="text-slate-400">Requisitos Técnicos Gaps</span>
+                            <span className="text-amber-400 font-bold">1 pendência (Zustand)</span>
+                          </div>
+                          <div className="flex justify-between items-center text-[10px]">
+                            <span className="text-slate-400">Estimativa de Relevância</span>
+                            <span className="text-indigo-400 font-bold">Nível Avançado</span>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="p-2.5 bg-brand-950/20 border border-brand-500/20 rounded-xl text-[9px] text-brand-300 leading-relaxed">
+                        💡 <strong>Insights do Copiloto:</strong> Seu currículo está muito forte em React e TypeScript, mas incluir referências ao controle de estado do Zustand ou Redux elevará seu score para 98%.
+                      </div>
+                    </motion.div>
+                  )}
+
+                  {tourStep === 3 && (
+                    <motion.div 
+                      key="step3"
+                      initial={{ opacity: 0, scale: 0.95 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      exit={{ opacity: 0, scale: 0.95 }}
+                      transition={{ duration: 0.3 }}
+                      className="space-y-3.5 text-xs"
+                    >
+                      <h4 className="font-bold text-slate-100 dark:text-white light:text-slate-900">Otimização Otimizada para ATS</h4>
+                      <p className="text-[10px] text-slate-455 light:text-slate-600 leading-relaxed">Adapte o conteúdo das suas experiências para o que os sistemas automatizados buscam.</p>
+
+                      <div className="space-y-2.5 text-[10px]">
+                        <div className="bg-red-950/10 border border-red-500/20 p-2.5 rounded-lg">
+                          <span className="font-bold text-red-400 uppercase text-[8px] tracking-wider block mb-1">Antes (Fraco)</span>
+                          <p className="text-slate-350 dark:text-slate-350 light:text-slate-700 italic">"Trabalhei como desenvolvedor web criando interfaces em React."</p>
+                        </div>
+
+                        <div className="bg-emerald-950/10 border border-emerald-500/20 p-2.5 rounded-lg relative overflow-hidden">
+                          <div className="absolute top-2 right-2 flex items-center gap-1 px-1 py-0.5 rounded bg-emerald-500/20 text-emerald-400 text-[7px] font-bold uppercase">
+                            <Sparkles size={8} /> Otimizado por IA
+                          </div>
+                          <span className="font-bold text-emerald-400 uppercase text-[8px] tracking-wider block mb-1">Depois (Impacto STAR)</span>
+                          <p className="text-slate-200 dark:text-slate-200 light:text-slate-800 font-medium">
+                            "Liderei o desenvolvimento de interfaces responsivas usando <strong className="text-emerald-400 font-bold">React e TypeScript</strong>, aumentando a performance da página em 32% e aplicando <strong className="text-emerald-400 font-bold">Zustand</strong> para controle de estado complexo."
+                          </p>
+                        </div>
+                      </div>
+                    </motion.div>
+                  )}
+
+                  {tourStep === 4 && (
+                    <motion.div 
+                      key="step4"
+                      initial={{ opacity: 0, scale: 0.95 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      exit={{ opacity: 0, scale: 0.95 }}
+                      transition={{ duration: 0.3 }}
+                      className="space-y-3 text-xs"
+                    >
+                      <div className="flex items-center justify-between border-b border-slate-900 pb-2">
+                        <span className="font-bold text-slate-100 dark:text-white light:text-slate-900">Treinamento: Coach IA</span>
+                        <div className="flex items-center gap-1 text-[8px] text-brand-400">
+                          <span className="w-1.5 h-1.5 rounded-full bg-brand-500 animate-ping" />
+                          Sessão por voz/chat ativa
+                        </div>
+                      </div>
+
+                      <div className="space-y-3 min-h-[160px] flex flex-col justify-end text-[10px] leading-relaxed">
+                        {/* Prompt bubble */}
+                        <div className="bg-slate-900/60 dark:bg-slate-900/60 light:bg-white border border-slate-850 dark:border-slate-850 light:border-slate-200 rounded-xl p-2.5 max-w-[85%] text-slate-300">
+                          <span className="font-bold text-slate-400 uppercase text-[7px] block">Pergunta do Entrevistador IA</span>
+                          <p className="text-slate-200 dark:text-slate-200 light:text-slate-850">"Como você lidou com vazamentos de memória ou otimização de renderização no React?"</p>
+                        </div>
+
+                        {/* Answer bubble */}
+                        <div className="bg-brand-900/10 border border-brand-900/20 rounded-xl p-2.5 max-w-[90%] text-brand-300 ml-auto text-right">
+                          <span className="font-bold text-brand-400 uppercase text-[7px] block">Sua Resposta</span>
+                          <p className="text-slate-200 dark:text-slate-200 light:text-slate-850">"Utilizei useCallback e useMemo para evitar renderizações extras e fiz a limpeza dos listeners no hook useEffect."</p>
+                        </div>
+
+                        {/* Coach feedback */}
+                        <div className="p-2 bg-emerald-950/20 border border-emerald-500/20 rounded-xl flex items-center justify-between text-[9px] text-emerald-300">
+                          <span>🎯 Feedback: Excelente! Resposta muito clara. Você tirou <strong>9.2/10</strong> em profundidade de React.</span>
+                        </div>
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </div>
+
+              {/* Pause/Play indicator */}
+              <div className="flex justify-between items-center text-[9px] text-slate-500 dark:text-slate-500 light:text-slate-400 pt-1">
+                <span>Clique em qualquer aba acima para pausar e interagir</span>
+                {isTourPaused && (
+                  <button 
+                    onClick={() => setIsTourPaused(false)}
+                    className="text-brand-500 hover:underline cursor-pointer"
+                  >
+                    Retomar reprodução automática
+                  </button>
+                )}
+              </div>
+
+            </div>
           </div>
         </div>
       </section>
 
-      {/* Como Funciona Section */}
-      <section id="como-funciona" className="py-10 px-6 max-w-7xl mx-auto relative z-10 text-center space-y-8">
-        <div className="space-y-3 max-w-xl mx-auto">
-          <h2 className="text-xs font-bold text-brand-500 uppercase tracking-widest">Fluxo Inteligente</h2>
-          <p className="text-3xl sm:text-4xl font-bold tracking-tight text-white font-display">Como a Talenta te conduz ao emprego ideal</p>
+      {/* Trust & Connection Highlight */}
+      <section className="bg-slate-900/20 dark:bg-slate-900/20 light:bg-white border-y border-slate-900 dark:border-slate-900 light:border-slate-200 py-8 relative z-10 px-6">
+        <div className="max-w-6xl mx-auto flex flex-col md:flex-row items-center justify-between gap-6 text-center md:text-left">
+          <span className="text-[10px] font-bold text-slate-500 dark:text-slate-500 light:text-slate-400 uppercase tracking-widest block shrink-0">Suporte abrangente de vagas</span>
+          <div className="grid grid-cols-2 md:flex flex-wrap items-center gap-6 justify-center w-full md:w-auto">
+            {[
+              { text: 'Greenhouse API Integration', icon: Database },
+              { text: 'Importação via URL do LinkedIn/Gupy', icon: Search },
+              { text: 'Leitor de Vagas em PDF/Imagens', icon: FileText },
+              { text: 'Cadastro de Texto Manual', icon: Sparkles }
+            ].map((item, idx) => {
+              const Icon = item.icon;
+              return (
+                <div key={idx} className="flex items-center gap-2 text-xs font-semibold text-slate-300 dark:text-slate-300 light:text-slate-700">
+                  <Icon size={14} className="text-brand-500 shrink-0" />
+                  <span>{item.text}</span>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      </section>
+
+      {/* Storytelling Narrative based on User Flow */}
+      <section id="como-funciona" className="py-20 px-6 max-w-7xl mx-auto relative z-10 space-y-16">
+        <div className="text-center space-y-3 max-w-xl mx-auto">
+          <h2 className="text-xs font-bold text-brand-500 dark:text-brand-500 light:text-brand-600 uppercase tracking-widest">Jornada Completa</h2>
+          <p className="text-3xl sm:text-4xl font-extrabold tracking-tight text-slate-100 dark:text-white light:text-slate-900 font-display">
+            A trilha da sua recolocação passo a passo
+          </p>
+          <p className="text-xs text-slate-400 dark:text-slate-400 light:text-slate-600 leading-relaxed">
+            Esqueça as aplicações em massa e sem retorno. Siga uma estratégia direcionada pela inteligência artificial.
+          </p>
         </div>
 
-        {/* Timeline Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-5 gap-6 relative max-w-5xl mx-auto">
+        {/* 8-Step Grid Layout (Visual Storytelling) */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 max-w-6xl mx-auto">
           {[
             {
-              step: '1',
-              title: 'Importe seu currículo',
-              desc: 'Suba seu currículo em PDF. Nossa IA lerá e interpretará seu histórico técnico em segundos.',
-              icon: <FileText className="w-5 h-5 text-brand-400" />
+              step: '01',
+              title: 'Upload de Currículo',
+              desc: 'Faça o upload do seu histórico profissional em PDF. Nossa IA decodifica suas competências técnicas e detecta pontos cegos imediatamente.',
+              icon: <FileText className="w-5 h-5 text-brand-400 light:text-brand-600" />
             },
             {
-              step: '2',
-              title: 'IA entende seu perfil',
-              desc: 'A IA mapeia suas habilidades duras, interpessoais e pontos fortes de carreira.',
-              icon: <Activity className="w-5 h-5 text-indigo-400" />
+              step: '02',
+              title: 'Importação da Vaga',
+              desc: 'Importe qualquer vaga do mercado simplesmente colando a URL de portais, subindo PDFs com a descrição ou integrando com o sistema Greenhouse.',
+              icon: <Search className="w-5 h-5 text-brand-400 light:text-brand-600" />
             },
             {
-              step: '3',
-              title: 'Receba vagas',
-              desc: 'Tenha acesso a uma curadoria diária de vagas recomendadas com base em real afinidade técnica.',
-              icon: <Search className="w-5 h-5 text-brand-400" />
+              step: '03',
+              title: 'Match Semântico IA',
+              desc: 'Nossa IA calcula o grau de compatibilidade e gera um relatório com palavras-chave ausentes e o nível de senioridade exigido.',
+              icon: <Trophy className="w-5 h-5 text-brand-400 light:text-brand-600" />
             },
             {
-              step: '4',
-              title: 'Prepare-se',
-              desc: 'Treine com simulações personalizadas geradas especificamente para a vaga pretendida.',
-              icon: <MessageSquare className="w-5 h-5 text-indigo-400" />
+              step: '04',
+              title: 'Otimização ATS',
+              desc: 'Ajuste seu currículo focando na vaga alvo. A IA reescreve frases vagas em descrições de alto impacto profissional baseadas em fatos e resultados.',
+              icon: <Sparkles className="w-5 h-5 text-brand-400 light:text-brand-600" />
             },
             {
-              step: '5',
-              title: 'Conquiste a vaga',
-              desc: 'Acompanhe todo o processo no Kanban e conquiste sua próxima vaga com total segurança.',
-              icon: <Trophy className="w-5 h-5 text-brand-400" />
+              step: '05',
+              title: 'Carta de Apresentação',
+              desc: 'Gere cartas de apresentação cativantes e sob medida para cada vaga, adaptadas para a cultura da empresa e seus pontos mais fortes.',
+              icon: <Layers className="w-5 h-5 text-brand-400 light:text-brand-600" />
+            },
+            {
+              step: '06',
+              title: 'Treinamento de Entrevista',
+              desc: 'Simule entrevistas reais da vaga com nosso Coach IA por voz ou chat. Receba feedbacks construtivos e nota de desempenho para arrasar.',
+              icon: <MessageSquare className="w-5 h-5 text-brand-400 light:text-brand-600" />
+            },
+            {
+              step: '07',
+              title: 'CRM Kanban de Candidaturas',
+              desc: 'Gerencie todas as suas aplicações de forma estruturada. Monitore prazos, contatos e fases de entrevistas em um só lugar.',
+              icon: <Activity className="w-5 h-5 text-brand-400 light:text-brand-600" />
+            },
+            {
+              step: '08',
+              title: 'Resultados Acelerados',
+              desc: 'Monitore taxas de aprovação, analytics de matches mais assertivos e conquiste a oportunidade desejada muito mais rápido.',
+              icon: <CheckCircle2 className="w-5 h-5 text-brand-400 light:text-brand-600" />
             }
           ].map((item, idx) => (
-            <div key={idx} className="relative flex flex-col items-center space-y-3 p-3">
-              {/* Step indicator circle */}
-              <div className="w-11 h-11 rounded-full bg-slate-900 border border-slate-800 flex items-center justify-center relative shadow-lg">
-                {item.icon}
-                <span className="absolute -top-1 -right-1 w-4.5 h-4.5 bg-slate-950 border border-slate-850 text-slate-400 text-[9px] font-bold rounded-full flex items-center justify-center">
+            <motion.div 
+              whileHover={{ y: -4, scale: 1.01 }}
+              key={idx}
+              className="p-6 rounded-2xl bg-slate-900/30 dark:bg-slate-900/30 light:bg-white border border-slate-850 dark:border-slate-850 light:border-slate-200 shadow-sm transition-all duration-300 relative overflow-hidden group hover:border-slate-800 dark:hover:border-slate-700 light:hover:border-slate-300"
+            >
+              {/* Top border effect */}
+              <div className="absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-brand-500 to-indigo-500 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+              
+              <div className="flex justify-between items-start mb-4">
+                <div className="p-2.5 rounded-xl bg-brand-500/10 text-brand-400 light:text-brand-600 border border-brand-500/15">
+                  {item.icon}
+                </div>
+                <span className="text-xl font-black text-slate-800 dark:text-slate-800 light:text-slate-250 font-mono tracking-tighter select-none">
                   {item.step}
                 </span>
               </div>
               
-              <div className="space-y-1.5">
-                <h3 className="text-xs font-bold text-slate-200">{item.title}</h3>
-                <p className="text-[11px] text-slate-400 leading-relaxed">{item.desc}</p>
-              </div>
-
-              {/* Connecting line for desktop */}
-              {idx < 4 && (
-                <div className="hidden md:block absolute top-9 left-[calc(50%+20px)] right-[calc(-50%+20px)] h-[1px] bg-gradient-to-r from-slate-800 to-slate-900" />
-              )}
-            </div>
-          ))}
-        </div>
-      </section>
-
-      {/* Coach IA Section (MOVED UP) */}
-      <section id="coach-ia" className="py-10 px-6 max-w-7xl mx-auto relative z-10 grid grid-cols-1 lg:grid-cols-12 gap-8 items-center">
-        <div className="lg:col-span-5 space-y-5 text-left">
-          <h2 className="text-xs font-bold text-brand-500 uppercase tracking-widest">Preparação Absoluta</h2>
-          <h3 className="text-3xl sm:text-4xl font-bold tracking-tight text-white leading-tight font-display">Conheça seu Coach IA de carreira</h3>
-          <p className="text-slate-350 text-xs sm:text-sm leading-relaxed">
-            Esqueça o nervosismo das entrevistas. Nosso Coach IA gera simulações de perguntas e avalia suas respostas para fornecer insights práticos em tempo real.
-          </p>
-          <div className="space-y-2.5 pt-1 text-xs">
-            <div className="flex items-center gap-3">
-              <span className="w-5 h-5 rounded-full bg-brand-500/10 flex items-center justify-center text-[10px] text-brand-400 font-bold">1</span>
-              <span className="text-slate-300 font-medium">Treinamento direcionado por vaga</span>
-            </div>
-            <div className="flex items-center gap-3">
-              <span className="w-5 h-5 rounded-full bg-brand-500/10 flex items-center justify-center text-[10px] text-brand-400 font-bold">2</span>
-              <span className="text-slate-300 font-medium">Feedback gramatical e de postura técnica</span>
-            </div>
-            <div className="flex items-center gap-3">
-              <span className="w-5 h-5 rounded-full bg-brand-500/10 flex items-center justify-center text-[10px] text-brand-400 font-bold">3</span>
-              <span className="text-slate-300 font-medium">Recomendações de estudo personalizadas</span>
-            </div>
-          </div>
-        </div>
-
-        {/* Chat Interface Mockup */}
-        <div className="lg:col-span-7 flex justify-center">
-          <div className="w-full max-w-lg bg-slate-900/40 border border-slate-850 rounded-2xl p-5 shadow-2xl space-y-4 backdrop-blur-sm">
-            <div className="flex items-center justify-between border-b border-slate-850/50 pb-3">
-              <div className="flex items-center gap-2">
-                <span className="w-2.5 h-2.5 rounded-full bg-brand-500 animate-ping" />
-                <span className="text-xs font-bold text-slate-200">Sessão Ativa: Preparação Tech</span>
-              </div>
-              <span className="text-[10px] font-mono text-slate-550">Talenta Engine v2.6</span>
-            </div>
-
-            <div className="space-y-4 min-h-[220px] flex flex-col justify-end text-xs leading-relaxed">
-              {/* User Bubble */}
-              <div className="bg-slate-950/80 border border-slate-850/45 rounded-xl p-3.5 max-w-[85%] text-slate-300 space-y-1">
-                <div className="font-bold text-[9px] text-slate-400 uppercase tracking-wider">Você</div>
-                <p>Como posso aumentar meu match para a vaga de Desenvolvedor React Sênior na Stripe?</p>
-              </div>
-
-              {/* Coach IA Bubble */}
-              <div className="bg-indigo-900/10 border border-indigo-900/20 rounded-xl p-3.5 max-w-[90%] text-indigo-350 ml-auto space-y-1">
-                <div className="flex items-center gap-1.5 font-bold text-[9px] text-indigo-400 uppercase tracking-wider">
-                  <Sparkles size={10} />
-                  Talenta Coach
-                </div>
-                <p className="mb-2 text-slate-200">Analisando seu currículo e a vaga, identifiquei duas ações de alto impacto:</p>
-                <ul className="space-y-1.5 list-disc pl-3.5 text-slate-300 text-[11px]">
-                  <li>
-                    <strong className="text-indigo-200">Adicione Zustand ou Redux:</strong> A vaga exige controle de estado complexo, e seu currículo foca apenas em Context API.
-                  </li>
-                  <li>
-                    <strong className="text-indigo-200">Reescreva a Headline:</strong> Mude de "Frontend Developer" para "Engenheiro Frontend Especialista em React e Performance".
-                  </li>
-                </ul>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* Before / After Section (NEW) */}
-      <section className="py-10 px-6 max-w-5xl mx-auto relative z-10 space-y-8">
-        <div className="text-center space-y-3">
-          <h2 className="text-xs font-bold text-brand-500 uppercase tracking-widest">Resultados Reais</h2>
-          <p className="text-3xl sm:text-4xl font-bold tracking-tight text-white font-display">A mudança na prática</p>
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-4xl mx-auto">
-          {/* Before */}
-          <div className="bg-red-950/5 border border-red-500/15 p-6 rounded-2xl space-y-4">
-            <h3 className="text-xs font-bold text-red-400 uppercase tracking-wider">Busca de Emprego Comum</h3>
-            <div className="space-y-3 text-xs">
-              <div className="flex justify-between items-center p-3 bg-slate-950/40 rounded-xl border border-slate-900">
-                <span className="text-slate-400">Currículos Enviados</span>
-                <span className="font-bold text-red-300">100 aplicações</span>
-              </div>
-              <div className="flex justify-between items-center p-3 bg-slate-950/40 rounded-xl border border-slate-900">
-                <span className="text-slate-400">Respostas Recebidas</span>
-                <span className="font-bold text-red-300">2 retornos</span>
-              </div>
-              <div className="flex justify-between items-center p-3 bg-slate-950/40 rounded-xl border border-slate-900">
-                <span className="text-slate-400">Tempo de Procura</span>
-                <span className="font-bold text-red-300">Meses sem direção</span>
-              </div>
-            </div>
-          </div>
-
-          {/* After */}
-          <div className="bg-emerald-950/5 border border-emerald-500/15 p-6 rounded-2xl space-y-4 shadow-lg shadow-emerald-500/2">
-            <h3 className="text-xs font-bold text-emerald-400 uppercase tracking-wider">Busca de Emprego com a Talenta</h3>
-            <div className="space-y-3 text-xs">
-              <div className="flex justify-between items-center p-3 bg-slate-950/40 rounded-xl border border-slate-900">
-                <span className="text-slate-400">Candidaturas Direcionadas</span>
-                <span className="font-bold text-emerald-300">18 vagas compatíveis</span>
-              </div>
-              <div className="flex justify-between items-center p-3 bg-slate-950/40 rounded-xl border border-slate-900">
-                <span className="text-slate-400">Entrevistas Agendadas</span>
-                <span className="font-bold text-emerald-300">5 processos seletivos</span>
-              </div>
-              <div className="flex justify-between items-center p-3 bg-slate-950/40 rounded-xl border border-slate-900">
-                <span className="text-slate-400">Resultado Final</span>
-                <span className="font-bold text-emerald-400">1 contratação rápida</span>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* Comparison Table Section (NEW) */}
-      <section id="comparacao" className="py-10 px-6 max-w-5xl mx-auto relative z-10 space-y-8">
-        <div className="text-center space-y-3">
-          <h2 className="text-xs font-bold text-brand-500 uppercase tracking-widest">Comparativo</h2>
-          <p className="text-3xl sm:text-4xl font-bold tracking-tight text-white font-display">Chega de perder tempo</p>
-        </div>
-
-        <div className="overflow-x-auto border border-slate-850 rounded-2xl bg-slate-900/10">
-          <table className="w-full border-collapse text-left text-xs">
-            <thead>
-              <tr className="border-b border-slate-850 bg-slate-900/30 text-[10px] font-bold uppercase tracking-wider text-slate-450">
-                <th className="p-4 sm:p-5">Experiência</th>
-                <th className="p-4 sm:p-5 text-slate-400">Método Tradicional</th>
-                <th className="p-4 sm:p-5 text-brand-400">Com a Talenta</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-850/50 text-slate-300">
-              <tr>
-                <td className="p-4 sm:p-5 font-bold text-slate-200">Currículos</td>
-                <td className="p-4 sm:p-5">Currículos genéricos e sem foco técnico</td>
-                <td className="p-4 sm:p-5 font-semibold text-white">Currículos personalizados pela IA para cada vaga</td>
-              </tr>
-              <tr>
-                <td className="p-4 sm:p-5 font-bold text-slate-200">Escolha de Vagas</td>
-                <td className="p-4 sm:p-5">Aplica às cegas para qualquer vaga disponível</td>
-                <td className="p-4 sm:p-5 font-semibold text-white">Prioriza vagas com maior compatibilidade semântica</td>
-              </tr>
-              <tr>
-                <td className="p-4 sm:p-5 font-bold text-slate-200">Entrevistas</td>
-                <td className="p-4 sm:p-5">Entra nas reuniões sem preparação prévia</td>
-                <td className="p-4 sm:p-5 font-semibold text-white">Treina respostas simuladas com Coach IA</td>
-              </tr>
-              <tr>
-                <td className="p-4 sm:p-5 font-bold text-slate-200">Organização</td>
-                <td className="p-4 sm:p-5">Usa planilhas confusas ou blocos de notas</td>
-                <td className="p-4 sm:p-5 font-semibold text-white">Tudo organizado em um único Kanban inteligente</td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-      </section>
-
-      {/* Por Que Escolher a Talenta Section (Benefits Grid with Reduced Copy) */}
-      <section id="beneficios" className="py-10 px-6 max-w-7xl mx-auto relative z-10 space-y-8">
-        <div className="text-center space-y-3 max-w-xl mx-auto">
-          <h2 className="text-xs font-bold text-brand-500 uppercase tracking-widest">Vantagens Reais</h2>
-          <p className="text-3xl sm:text-4xl font-bold tracking-tight text-white font-display">A mudança que você precisa no seu processo</p>
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-5xl mx-auto">
-          {[
-            {
-              title: 'Candidaturas inteligentes.',
-              desc: 'Descubra apenas vagas com alta compatibilidade.'
-            },
-            {
-              title: 'Currículos direcionados.',
-              desc: 'Adapte seu perfil para cada vaga em segundos.'
-            },
-            {
-              title: 'Descubra o que falta para ser aprovado.',
-              desc: 'Identifique gaps técnicos antes do recrutador.'
-            },
-            {
-              title: 'Simulação realista.',
-              desc: 'Treine com perguntas reais geradas pela IA.'
-            },
-            {
-              title: 'Organização total.',
-              desc: 'Acompanhe seus processos em um kanban automatizado.'
-            },
-            {
-              title: 'Recomendações ativas.',
-              desc: 'Saiba quando fazer o follow-up ou se certificar.'
-            }
-          ].map((benefit, idx) => (
-            <motion.div 
-              whileHover={{ y: -4, borderColor: 'rgba(99, 102, 241, 0.2)' }}
-              key={idx} 
-              className="p-6 rounded-2xl bg-slate-900/30 border border-slate-850/60 backdrop-blur-sm flex flex-col justify-between space-y-4 transition-all"
-            >
-              <div className="w-8 h-8 rounded-lg bg-brand-500/10 flex items-center justify-center text-brand-400">
-                <Check size={16} />
-              </div>
-              <div className="space-y-1.5">
-                <h3 className="text-xs font-bold text-slate-200">{benefit.title}</h3>
-                <p className="text-[11px] text-slate-400 leading-relaxed">{benefit.desc}</p>
+              <div className="space-y-2">
+                <h3 className="text-xs font-bold text-slate-200 dark:text-slate-200 light:text-slate-900 uppercase tracking-wider">{item.title}</h3>
+                <p className="text-[11px] text-slate-400 dark:text-slate-400 light:text-slate-655 leading-relaxed">{item.desc}</p>
               </div>
             </motion.div>
           ))}
         </div>
       </section>
 
-      {/* Tudo que você precisa (Grid com Cards de Benefícios Visuais) */}
-      <section className="py-10 px-6 max-w-7xl mx-auto relative z-10 space-y-8 text-center">
-        <div className="space-y-3 max-w-xl mx-auto">
-          <h2 className="text-xs font-bold text-brand-500 uppercase tracking-widest">Módulos Completos</h2>
-          <p className="text-3xl sm:text-4xl font-bold tracking-tight text-white font-display">Tudo que você precisa em uma única plataforma</p>
+      {/* Before / After Section (ATS Comparison) */}
+      <section id="comparativo" className="py-20 px-6 max-w-5xl mx-auto relative z-10 space-y-12">
+        <div className="text-center space-y-3">
+          <h2 className="text-xs font-bold text-brand-500 dark:text-brand-500 light:text-brand-600 uppercase tracking-widest">Veja na prática</h2>
+          <p className="text-3xl sm:text-4xl font-extrabold tracking-tight text-slate-100 dark:text-white light:text-slate-900 font-display">
+            Aumente seu ATS Score e passe nos filtros
+          </p>
+          <p className="text-xs text-slate-400 dark:text-slate-400 light:text-slate-655 max-w-md mx-auto leading-relaxed">
+            Diferença no processo de aprovação automática de candidatos através do aprimoramento inteligente do currículo.
+          </p>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 max-w-5xl mx-auto text-left">
-          {[
-            { name: '📄 Currículo Inteligente', desc: 'A IA adapta seu currículo de forma personalizada para cada vaga.' },
-            { name: '🎯 Match Inteligente', desc: 'Veja seu percentual de compatibilidade real antes de se candidatar.' },
-            { name: '🎙 Simulador', desc: 'Treine entrevistas difíceis por voz e receba feedbacks rápidos.' },
-            { name: '📊 Jornada', desc: 'Nunca mais perca o andamento de uma candidatura ativa.' }
-          ].map((item, idx) => (
-            <div key={idx} className="p-6 rounded-2xl bg-slate-900/20 border border-slate-850/40 hover:border-slate-800 transition-all space-y-3">
-              <h4 className="text-xs font-bold text-slate-200 uppercase tracking-wider">{item.name}</h4>
-              <p className="text-[11px] text-slate-400 leading-relaxed">{item.desc}</p>
+        <div className="grid grid-cols-1 md:grid-cols-11 gap-6 items-center max-w-4xl mx-auto">
+          {/* Before Column */}
+          <div className="md:col-span-5 bg-slate-900/20 dark:bg-slate-900/20 light:bg-white border border-red-500/20 dark:border-red-500/10 light:border-red-200 p-6 rounded-3xl space-y-6 shadow-sm">
+            <div className="flex justify-between items-center border-b border-slate-900 dark:border-slate-900 light:border-slate-150 pb-3">
+              <span className="text-[10px] font-bold text-red-500 dark:text-red-400 uppercase tracking-wider">Antes da Talenta</span>
+              <span className="px-2 py-0.5 rounded bg-red-950/20 text-red-400 text-[8px] font-bold uppercase font-mono">Rejeitado</span>
             </div>
-          ))}
+
+            <div className="flex items-center gap-5">
+              <div className="w-16 h-16 rounded-full border-4 border-slate-950 dark:border-slate-950 light:border-slate-100 flex items-center justify-center relative shrink-0">
+                <div className="absolute inset-0 rounded-full border-4 border-t-red-500 border-b-transparent border-l-transparent border-r-transparent" />
+                <span className="text-base font-black text-red-400 font-display">41%</span>
+              </div>
+              <div>
+                <span className="text-xs font-bold text-slate-300 dark:text-slate-350 light:text-slate-800 block">ATS Score Insuficiente</span>
+                <span className="text-[9px] text-slate-500 dark:text-slate-500 light:text-slate-600 font-mono">Bloqueado nos filtros iniciais</span>
+              </div>
+            </div>
+
+            <ul className="space-y-2.5 text-[10px] text-slate-400 dark:text-slate-400 light:text-slate-700">
+              <li className="flex items-start gap-2.5">
+                <span className="text-red-500 shrink-0 select-none">❌</span>
+                <span>Currículo genérico com estrutura sem foco na vaga</span>
+              </li>
+              <li className="flex items-start gap-2.5">
+                <span className="text-red-500 shrink-0 select-none">❌</span>
+                <span>Falta de palavras-chave exigidas pelos robôs de triagem</span>
+              </li>
+              <li className="flex items-start gap-2.5">
+                <span className="text-red-500 shrink-0 select-none">❌</span>
+                <span>Sem descrição de resultados práticos (metodologia STAR)</span>
+              </li>
+            </ul>
+          </div>
+
+          {/* Central Arrow */}
+          <div className="md:col-span-1 flex justify-center text-slate-500">
+            <ArrowRight size={24} className="rotate-90 md:rotate-0 text-brand-500 shrink-0 animate-pulse" />
+          </div>
+
+          {/* After Column */}
+          <div className="md:col-span-5 bg-slate-900/40 dark:bg-slate-900/40 light:bg-white border border-emerald-500/30 dark:border-emerald-500/20 light:border-emerald-200 p-6 rounded-3xl space-y-6 shadow-md relative overflow-hidden">
+            <div className="absolute top-0 right-0 bg-brand-500 text-white text-[7px] font-black uppercase px-2 py-0.5 rounded-bl">
+              Destaque
+            </div>
+
+            <div className="flex justify-between items-center border-b border-slate-850 dark:border-slate-850 light:border-slate-150 pb-3">
+              <span className="text-[10px] font-bold text-emerald-500 dark:text-emerald-400 uppercase tracking-wider font-mono">Depois da Talenta</span>
+              <span className="px-2 py-0.5 rounded bg-emerald-950/20 text-emerald-400 text-[8px] font-bold uppercase font-mono">Aprovado</span>
+            </div>
+
+            <div className="flex items-center gap-5">
+              <div className="w-16 h-16 rounded-full border-4 border-slate-950 dark:border-slate-950 light:border-slate-100 flex items-center justify-center relative shrink-0 shadow-lg shadow-emerald-500/5">
+                <div className="absolute inset-0 rounded-full border-4 border-emerald-500 border-t-emerald-500 border-r-emerald-500 border-l-emerald-500 border-b-transparent" />
+                <span className="text-base font-black text-emerald-400 font-display">89%</span>
+              </div>
+              <div>
+                <span className="text-xs font-bold text-emerald-400 dark:text-emerald-400 light:text-emerald-600 block">ATS Score Otimizado</span>
+                <span className="text-[9px] text-slate-350 dark:text-slate-350 light:text-slate-700">Encaminhado direto ao recrutador</span>
+              </div>
+            </div>
+
+            <ul className="space-y-2.5 text-[10px] text-slate-300 dark:text-slate-300 light:text-slate-800">
+              <li className="flex items-start gap-2.5">
+                <span className="text-emerald-500 shrink-0 select-none">✓</span>
+                <span>Conteúdo focado de forma exclusiva para a vaga desejada</span>
+              </li>
+              <li className="flex items-start gap-2.5">
+                <span className="text-emerald-500 shrink-0 select-none">✓</span>
+                <span>Palavras-chave semânticas estratégicas mapeadas pela IA</span>
+              </li>
+              <li className="flex items-start gap-2.5">
+                <span className="text-emerald-500 shrink-0 select-none">✓</span>
+                <span>Conquistas estruturadas quantitativamente (STAR)</span>
+              </li>
+            </ul>
+          </div>
         </div>
       </section>
 
-      {/* Exemplos de Resultados (No fake numbers) */}
-      <section className="py-10 px-6 bg-slate-900/10 border-y border-slate-850/30 relative z-10">
-        <div className="max-w-5xl mx-auto grid grid-cols-1 md:grid-cols-3 gap-8 text-center">
+      {/* Advanced Technical Features (Showing differentiation) */}
+      <section id="recursos" className="py-20 px-6 max-w-7xl mx-auto relative z-10 space-y-16">
+        <div className="text-center space-y-3 max-w-2xl mx-auto">
+          <h2 className="text-xs font-bold text-brand-500 dark:text-brand-500 light:text-brand-600 uppercase tracking-widest">Diferenciais Técnicos</h2>
+          <p className="text-3xl sm:text-4xl font-extrabold tracking-tight text-slate-100 dark:text-white light:text-slate-900 font-display">
+            A plataforma mais sofisticada de recolocação profissional
+          </p>
+          <p className="text-xs text-slate-400 dark:text-slate-400 light:text-slate-655 leading-relaxed">
+            Não somos apenas um gerador de currículos. A Talenta é um ecossistema inteligente de telemetria, preparação e automação.
+          </p>
+        </div>
+
+        {/* Bento Grid layout */}
+        <div className="grid grid-cols-1 md:grid-cols-12 gap-6 max-w-6xl mx-auto">
+          
+          {/* Card 1: Match Engine */}
+          <div className="md:col-span-8 p-6 rounded-3xl bg-slate-900/30 dark:bg-slate-900/30 light:bg-white border border-slate-850 dark:border-slate-850 light:border-slate-200 flex flex-col justify-between space-y-4 hover:border-slate-800 dark:hover:border-slate-700 light:hover:border-slate-300 transition-colors shadow-sm">
+            <div className="space-y-2">
+              <div className="w-8 h-8 rounded-xl bg-brand-500/10 text-brand-400 light:text-brand-600 flex items-center justify-center">
+                <Activity size={16} />
+              </div>
+              <h3 className="text-sm font-bold text-slate-150 dark:text-slate-100 light:text-slate-900 uppercase tracking-wider">Motor de Correspondência Semântica</h3>
+              <p className="text-xs text-slate-400 dark:text-slate-400 light:text-slate-655 leading-relaxed">
+                Utiliza processamento de linguagem natural avançado (NLP) para comparar a semântica do seu perfil profissional com os requisitos explícitos e implícitos da vaga, identificando gaps de tecnologia e senioridade em segundos.
+              </p>
+            </div>
+            <div className="flex gap-4 pt-2 border-t border-slate-900 dark:border-slate-900 light:border-slate-100 text-[10px] text-slate-500 font-mono">
+              <span>● Análise de Senioridade</span>
+              <span>● Mapeamento de Habilidades</span>
+              <span>● Detecção de Gaps</span>
+            </div>
+          </div>
+
+          {/* Card 2: Coach IA */}
+          <div className="md:col-span-4 p-6 rounded-3xl bg-slate-900/30 dark:bg-slate-900/30 light:bg-white border border-slate-850 dark:border-slate-850 light:border-slate-200 flex flex-col justify-between space-y-4 hover:border-slate-800 dark:hover:border-slate-700 light:hover:border-slate-300 transition-colors shadow-sm">
+            <div className="space-y-2">
+              <div className="w-8 h-8 rounded-xl bg-brand-500/10 text-brand-400 light:text-brand-600 flex items-center justify-center">
+                <MessageSquare size={16} />
+              </div>
+              <h3 className="text-sm font-bold text-slate-150 dark:text-slate-100 light:text-slate-900 uppercase tracking-wider">Coach IA & Simulador</h3>
+              <p className="text-xs text-slate-400 dark:text-slate-400 light:text-slate-655 leading-relaxed">
+                Treine por voz ou chat. Nossa IA assume a persona de um entrevistador técnico experiente e avalia sua gramática, clareza e termos técnicos usados.
+              </p>
+            </div>
+            <div className="flex items-center gap-1.5 text-[9px] font-bold text-brand-500 uppercase">
+              <span>Testar Simulador</span>
+              <ArrowUpRight size={12} />
+            </div>
+          </div>
+
+          {/* Card 3: Ingestão de Vagas */}
+          <div className="md:col-span-4 p-6 rounded-3xl bg-slate-900/30 dark:bg-slate-900/30 light:bg-white border border-slate-850 dark:border-slate-850 light:border-slate-200 flex flex-col justify-between space-y-4 hover:border-slate-800 dark:hover:border-slate-700 light:hover:border-slate-300 transition-colors shadow-sm">
+            <div className="space-y-2">
+              <div className="w-8 h-8 rounded-xl bg-brand-500/10 text-brand-400 light:text-brand-600 flex items-center justify-center">
+                <Database size={16} />
+              </div>
+              <h3 className="text-sm font-bold text-slate-150 dark:text-slate-100 light:text-slate-900 uppercase tracking-wider">Ingestão de Vagas Multiformato</h3>
+              <p className="text-xs text-slate-400 dark:text-slate-400 light:text-slate-655 leading-relaxed">
+                Importe dados de vagas a partir de PDFs, cole o texto manual, informe a URL direta de portais de recrutamento ou sincronize com conexões via Greenhouse API.
+              </p>
+            </div>
+            <span className="text-[10px] text-slate-500 font-mono">Greenhouse, LinkedIn, Gupy e +</span>
+          </div>
+
+          {/* Card 4: CRM Kanban */}
+          <div className="md:col-span-8 p-6 rounded-3xl bg-slate-900/30 dark:bg-slate-900/30 light:bg-white border border-slate-850 dark:border-slate-850 light:border-slate-200 flex flex-col justify-between space-y-4 hover:border-slate-800 dark:hover:border-slate-700 light:hover:border-slate-300 transition-colors shadow-sm">
+            <div className="space-y-2">
+              <div className="w-8 h-8 rounded-xl bg-brand-500/10 text-brand-400 light:text-brand-600 flex items-center justify-center">
+                <Layers size={16} />
+              </div>
+              <h3 className="text-sm font-bold text-slate-150 dark:text-slate-100 light:text-slate-900 uppercase tracking-wider">Estratégia e Pipeline CRM Kanban</h3>
+              <p className="text-xs text-slate-400 dark:text-slate-400 light:text-slate-655 leading-relaxed">
+                Mantenha todas as candidaturas estruturadas e sob controle. Arraste suas vagas pelas colunas de "Mapeadas", "Aplicadas", "Entrevista" e "Oferta" com lembretes automáticos para follow-up.
+              </p>
+            </div>
+            <div className="flex gap-4 pt-2 border-t border-slate-900 dark:border-slate-900 light:border-slate-100 text-[10px] text-slate-500 font-mono">
+              <span>● Monitor de Candidaturas</span>
+              <span>● Fluxo de Acompanhamento</span>
+              <span>● Agenda de Fases</span>
+            </div>
+          </div>
+
+          {/* Card 5: Admin Panel & Cost Audit */}
+          <div className="md:col-span-6 p-6 rounded-3xl bg-slate-900/30 dark:bg-slate-900/30 light:bg-white border border-slate-850 dark:border-slate-850 light:border-slate-200 flex flex-col justify-between space-y-4 hover:border-slate-800 dark:hover:border-slate-700 light:hover:border-slate-300 transition-colors shadow-sm">
+            <div className="space-y-2">
+              <div className="w-8 h-8 rounded-xl bg-brand-500/10 text-brand-400 light:text-brand-600 flex items-center justify-center">
+                <BarChart3 size={16} />
+              </div>
+              <h3 className="text-sm font-bold text-slate-150 dark:text-slate-100 light:text-slate-900 uppercase tracking-wider">Analytics de Conversão & Custo de IA</h3>
+              <p className="text-xs text-slate-400 dark:text-slate-400 light:text-slate-655 leading-relaxed">
+                Acompanhe o andamento dos seus processos, as taxas de resposta e a telemetria do uso de inteligência artificial de forma integrada em painéis detalhados de análise.
+              </p>
+            </div>
+            <span className="text-[10px] text-slate-500 font-mono">Gráficos de Telemetria e Conversão</span>
+          </div>
+
+          {/* Card 6: Supabase RLS Backend */}
+          <div className="md:col-span-6 p-6 rounded-3xl bg-slate-900/30 dark:bg-slate-900/30 light:bg-white border border-slate-850 dark:border-slate-850 light:border-slate-200 flex flex-col justify-between space-y-4 hover:border-slate-800 dark:hover:border-slate-700 light:hover:border-slate-300 transition-colors shadow-sm">
+            <div className="space-y-2">
+              <div className="w-8 h-8 rounded-xl bg-brand-500/10 text-brand-400 light:text-brand-600 flex items-center justify-center">
+                <Lock size={16} />
+              </div>
+              <h3 className="text-sm font-bold text-slate-150 dark:text-slate-100 light:text-slate-900 uppercase tracking-wider">Infraestrutura Corporativa Segura</h3>
+              <p className="text-xs text-slate-400 dark:text-slate-400 light:text-slate-655 leading-relaxed">
+                Arquitetura moderna com banco Supabase e políticas de segurança RLS (Row Level Security) rígidas. Seus dados de currículo permanecem totalmente isolados de outros usuários e acessíveis apenas sob sua permissão.
+              </p>
+            </div>
+            <div className="flex items-center gap-1.5 text-[9px] text-slate-500 font-mono">
+              <ShieldCheck size={12} className="text-emerald-500" />
+              <span>Criptografia ponta a ponta</span>
+            </div>
+          </div>
+
+        </div>
+      </section>
+
+      {/* Stats Numbers Bento Grid */}
+      <section className="py-16 px-6 max-w-5xl mx-auto relative z-10 space-y-10 text-center">
+        <div className="space-y-3">
+          <h2 className="text-xs font-bold text-brand-500 dark:text-brand-500 light:text-brand-600 uppercase tracking-widest font-mono">Nosso Crescimento</h2>
+          <p className="text-3xl sm:text-4xl font-extrabold tracking-tight text-slate-100 dark:text-white light:text-slate-900 font-display">A Talenta em números reais</p>
+        </div>
+
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-5 max-w-4xl mx-auto text-center">
           {[
-            { title: 'Análise instantânea do currículo', desc: 'Mapeamento automático de habilidades e gaps em segundos.' },
-            { title: 'Feedback personalizado para cada vaga', desc: 'Orientações focadas em aumentar seu match real.' },
-            { title: 'Organização completa da busca', desc: 'Painel Kanban para monitorar contatos e respostas.' }
+            { metric: '2.300', label: 'Currículos Otimizados', detail: 'Ajustados para ATS', icon: <FileText className="text-brand-400 mx-auto w-5 h-5 mb-1" /> },
+            { metric: '11.000', label: 'Vagas Processadas', detail: 'De centenas de portais', icon: <Search className="text-indigo-400 mx-auto w-5 h-5 mb-1" /> },
+            { metric: '8.400', label: 'Entrevistas Simuladas', detail: 'Por voz e chat na plataforma', icon: <MessageSquare className="text-brand-400 mx-auto w-5 h-5 mb-1" /> },
+            { metric: '94%', label: 'Taxa de Satisfação', detail: 'Dos profissionais aprovados', icon: <TrendingUp className="text-emerald-400 mx-auto w-5 h-5 mb-1" /> }
           ].map((stat, idx) => (
-            <div key={idx} className="space-y-2 p-3">
-              <span className="text-sm font-bold uppercase tracking-wider text-brand-400 font-display block">
-                {stat.title}
-              </span>
-              <p className="text-xs text-slate-400 max-w-[240px] mx-auto leading-relaxed">{stat.desc}</p>
+            <div key={idx} className="p-6 rounded-2xl bg-slate-900/30 dark:bg-slate-900/30 light:bg-white border border-slate-850 dark:border-slate-850 light:border-slate-200 hover:border-slate-800 dark:hover:border-slate-700 light:hover:border-slate-300 transition-all shadow-sm">
+              {stat.icon}
+              <div className="text-3xl font-black text-white dark:text-white light:text-slate-900 font-display mt-2">{stat.metric}</div>
+              <div className="text-xs font-bold text-slate-300 dark:text-slate-300 light:text-slate-850 mt-1">{stat.label}</div>
+              <div className="text-[9px] text-slate-500 mt-0.5">{stat.detail}</div>
             </div>
           ))}
         </div>
       </section>
 
-      {/* Sua Privacidade em Primeiro Lugar (NEW) */}
-      <section className="py-10 px-6 max-w-4xl mx-auto relative z-10 text-center space-y-6">
-        <div className="p-8 rounded-2xl bg-slate-900/20 border border-slate-850/50 max-w-3xl mx-auto space-y-6">
+      {/* Privacy highlights */}
+      <section className="py-12 px-6 max-w-4xl mx-auto relative z-10 text-center">
+        <div className="p-8 rounded-3xl bg-slate-900/20 dark:bg-slate-900/20 light:bg-white border border-slate-850 dark:border-slate-850 light:border-slate-200 max-w-3xl mx-auto space-y-5 shadow-sm">
           <div className="inline-flex p-3 rounded-full bg-brand-500/10 text-brand-400 border border-brand-500/15">
             <EyeOff size={24} />
           </div>
           
           <div className="space-y-2">
-            <h3 className="text-sm font-bold text-slate-100 uppercase tracking-wider">Sua privacidade em primeiro lugar</h3>
-            <p className="text-slate-400 text-xs leading-relaxed max-w-xl mx-auto">
-              Seus dados profissionais e currículos são criptografados e tratados de forma estritamente confidencial. Você possui controle absoluto e pode remover todas as suas informações da nossa base com um único clique. Nenhuma informação é compartilhada com parceiros externos ou recrutadores sem seu consentimento prévio.
+            <h3 className="text-sm font-bold text-slate-100 dark:text-white light:text-slate-900 uppercase tracking-wider">Privacidade absoluta do candidato</h3>
+            <p className="text-slate-400 dark:text-slate-400 light:text-slate-655 text-xs leading-relaxed max-w-xl mx-auto">
+              Nós não compartilhamos seus dados, currículos ou avaliações com recrutadores sem o seu consentimento. Seu perfil na Talenta é exclusivamente seu. Todo processamento de dados atende às regulamentações da LGPD.
             </p>
           </div>
 
           <div className="flex flex-col sm:flex-row items-center justify-center gap-6 text-[10px] text-slate-500">
-            <span className="flex items-center gap-1.5"><ShieldCheck size={12} className="text-brand-400" /> Criptografia de Ponta a Ponta</span>
-            <span className="flex items-center gap-1.5"><UserCheck size={12} className="text-brand-400" /> LGPD/GDPR Conforme</span>
+            <span className="flex items-center gap-1.5"><ShieldCheck size={12} className="text-brand-400" /> Criptografia de Dados (SSL)</span>
+            <span className="flex items-center gap-1.5"><UserCheck size={12} className="text-brand-400" /> Sem Cookies de Terceiros</span>
           </div>
         </div>
       </section>
 
-      {/* Depoimentos */}
-      <section className="py-10 px-6 max-w-7xl mx-auto relative z-10 space-y-8">
+      {/* Pricing Section */}
+      <section id="planos" className="py-20 px-6 max-w-7xl mx-auto relative z-10 space-y-12">
         <div className="text-center space-y-3 max-w-xl mx-auto">
-          <h2 className="text-xs font-bold text-brand-500 uppercase tracking-widest">Sucesso Compartilhado</h2>
-          <p className="text-3xl sm:text-4xl font-bold tracking-tight text-white font-display">Histórias de quem usou a Talenta</p>
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-5xl mx-auto">
-          {[
-            {
-              text: "Estava há 3 meses aplicando sem retorno. A IA me sugeriu incluir termos técnicos de Docker e Cloud que eu dominava, mas não detalhava. Fui chamado para 3 entrevistas na mesma semana.",
-              name: "Juliana Santos",
-              role: "Engenheira DevOps",
-              company: "CloudCore"
-            },
-            {
-              text: "O simulador de entrevistas do Coach IA foi o diferencial. Treinei as respostas mais difíceis da vaga de Engenheiro Frontend e entrei na empresa com muita segurança e controle.",
-              name: "Thiago Lima",
-              role: "Frontend Developer",
-              company: "VeloPay"
-            },
-            {
-              text: "A análise de match semântico me poupou muito tempo. Parei de aplicar para centenas de vagas e foquei nas oportunidades de alta compatibilidade recomendadas pela IA. Deu certo!",
-              name: "Mariana Souza",
-              role: "Product Manager",
-              company: "NextSaaS"
-            }
-          ].map((dep, idx) => (
-            <div key={idx} className="p-6 rounded-2xl bg-slate-900/30 border border-slate-850/60 flex flex-col justify-between space-y-6">
-              <p className="text-xs text-slate-300 italic leading-relaxed">"{dep.text}"</p>
-              <div className="flex items-center gap-3">
-                <div className="w-9 h-9 rounded-full bg-brand-500/10 text-brand-400 flex items-center justify-center font-bold text-xs">
-                  {dep.name.charAt(0)}
-                </div>
-                <div>
-                  <h4 className="text-xs font-bold text-slate-200">{dep.name}</h4>
-                  <span className="text-[10px] text-slate-500">{dep.role} • {dep.company}</span>
-                </div>
-              </div>
-            </div>
-          ))}
-        </div>
-      </section>
-
-      {/* Planos */}
-      <section id="planos" className="py-10 px-6 max-w-7xl mx-auto relative z-10 space-y-8">
-        <div className="text-center space-y-3 max-w-xl mx-auto">
-          <h2 className="text-xs font-bold text-brand-500 uppercase tracking-widest">Transparência</h2>
-          <p className="text-3xl sm:text-4xl font-bold tracking-tight text-white font-display">Planos simples para suas necessidades</p>
+          <h2 className="text-xs font-bold text-brand-500 dark:text-brand-500 light:text-brand-600 uppercase tracking-widest">Planos</h2>
+          <p className="text-3xl sm:text-4xl font-extrabold tracking-tight text-slate-100 dark:text-white light:text-slate-900 font-display">Opções simples e transparentes</p>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-3xl mx-auto">
           {/* Free Plan */}
-          <div className="p-8 rounded-2xl bg-slate-900/20 border border-slate-850/50 flex flex-col justify-between space-y-8">
+          <div className="p-8 rounded-3xl bg-slate-900/20 dark:bg-slate-900/20 light:bg-white border border-slate-850 dark:border-slate-850 light:border-slate-200 flex flex-col justify-between space-y-8 shadow-sm">
             <div className="space-y-4">
               <div className="flex justify-between items-start gap-4">
                 <div className="flex-1">
-                  <h3 className="text-lg font-bold text-slate-100">Plano Gratuito</h3>
+                  <h3 className="text-lg font-bold text-slate-100 dark:text-white light:text-slate-900">Plano Básico</h3>
                   <p className="text-xs text-slate-400">O básico essencial de recolocação.</p>
                 </div>
-                <span className="text-2xl font-black text-slate-200 font-display shrink-0 whitespace-nowrap">Grátis</span>
+                <span className="text-2xl font-black text-slate-200 dark:text-white light:text-slate-900 font-display shrink-0">Grátis</span>
               </div>
               
-              <ul className="space-y-3 text-xs text-slate-300">
-                <li className="flex items-center gap-2">
-                  <Check size={12} className="text-slate-400" /> Dashboard de candidaturas
+              <ul className="space-y-3 text-xs text-slate-350 dark:text-slate-350 light:text-slate-700">
+                <li className="flex items-center gap-2.5">
+                  <Check size={12} className="text-slate-400" /> Kanban Pipeline de candidaturas
                 </li>
-                <li className="flex items-center gap-2">
+                <li className="flex items-center gap-2.5">
                   <Check size={12} className="text-slate-400" /> Cadastro básico de currículo
                 </li>
-                <li className="flex items-center gap-2">
-                  <Check size={12} className="text-slate-400" /> Score de Match semântico básico
+                <li className="flex items-center gap-2.5">
+                  <Check size={12} className="text-slate-400" /> Match Score simplificado
                 </li>
-                <li className="flex items-center gap-2">
+                <li className="flex items-center gap-2.5">
                   <Check size={12} className="text-slate-400" /> Acesso limitado ao Coach IA
                 </li>
               </ul>
@@ -652,14 +856,14 @@ export function LandingPage({ onNavigateToAuth }: LandingPageProps) {
 
             <button 
               onClick={() => onNavigateToAuth('signup')}
-              className="w-full py-3 px-4 rounded-xl border border-slate-800 hover:border-slate-700 bg-slate-900/50 hover:bg-slate-900 text-slate-200 font-semibold text-xs transition-all cursor-pointer"
+              className="w-full py-3 px-4 rounded-xl border border-slate-800 dark:border-slate-800 light:border-slate-200 bg-slate-900/50 dark:bg-slate-900/50 light:bg-slate-100 hover:bg-slate-900 dark:hover:bg-slate-900 light:hover:bg-slate-200 text-slate-200 dark:text-slate-200 light:text-slate-800 font-semibold text-xs transition-all cursor-pointer shadow-sm"
             >
               Começar agora
             </button>
           </div>
 
           {/* Premium Plan */}
-          <div className="p-8 rounded-2xl bg-slate-900/50 border border-brand-500/30 flex flex-col justify-between space-y-8 relative shadow-lg shadow-brand-500/5">
+          <div className="p-8 rounded-3xl bg-slate-900/50 dark:bg-slate-900/50 light:bg-white border border-brand-500/30 dark:border-brand-500/20 light:border-brand-200 flex flex-col justify-between space-y-8 relative shadow-lg shadow-brand-500/5">
             <div className="absolute -top-3 right-4 px-2.5 py-0.5 rounded-full bg-brand-500 text-white text-[9px] font-bold uppercase tracking-wider">
               Recomendado
             </div>
@@ -667,46 +871,46 @@ export function LandingPage({ onNavigateToAuth }: LandingPageProps) {
             <div className="space-y-4">
               <div className="flex justify-between items-start gap-4">
                 <div className="flex-1">
-                  <h3 className="text-lg font-bold text-slate-100">Plano Premium</h3>
-                  <p className="text-xs text-brand-300">Ferramentas avançadas para acelerar o processo.</p>
+                  <h3 className="text-lg font-bold text-slate-100 dark:text-white light:text-slate-900">Plano Premium</h3>
+                  <p className="text-xs text-brand-300">Recursos avançados de IA para aprovação rápida.</p>
                 </div>
                 <div className="text-right shrink-0">
-                  <span className="text-2xl font-black text-slate-200 font-display whitespace-nowrap">R$ 29</span>
-                  <span className="text-[10px] text-slate-400 block">/mês</span>
+                  <span className="text-2xl font-black text-slate-200 dark:text-white light:text-slate-900 font-display">R$ 29</span>
+                  <span className="text-[10px] text-slate-450 dark:text-slate-400 light:text-slate-500 block">/mês</span>
                 </div>
               </div>
 
-              <ul className="space-y-3 text-xs text-slate-300">
-                <li className="flex items-center gap-2">
-                  <Check size={12} className="text-brand-400 shrink-0" /> Passe mais confiança nas entrevistas com simulações ilimitadas.
+              <ul className="space-y-3 text-xs text-slate-200 dark:text-slate-200 light:text-slate-800">
+                <li className="flex items-center gap-2.5">
+                  <Check size={12} className="text-brand-400 shrink-0 font-bold" /> Simulações ilimitadas de entrevista por voz/chat
                 </li>
-                <li className="flex items-center gap-2">
-                  <Check size={12} className="text-brand-400 shrink-0" /> Receba orientação personalizada para cada candidatura.
+                <li className="flex items-center gap-2.5">
+                  <Check size={12} className="text-brand-400 shrink-0 font-bold" /> Mapeamento avançado de palavras-chave ATS
                 </li>
-                <li className="flex items-center gap-2">
-                  <Check size={12} className="text-brand-400 shrink-0" /> Análises e otimizações ilimitadas
+                <li className="flex items-center gap-2.5">
+                  <Check size={12} className="text-brand-400 shrink-0 font-bold" /> Análises e otimizações de currículo ilimitadas
                 </li>
-                <li className="flex items-center gap-2">
-                  <Check size={12} className="text-brand-400 shrink-0" /> Integração profunda e relatórios semanais
+                <li className="flex items-center gap-2.5">
+                  <Check size={12} className="text-brand-400 shrink-0 font-bold" /> Ingestão de vagas automatizada via Greenhouse
                 </li>
               </ul>
             </div>
 
             <button 
               onClick={() => onNavigateToAuth('signup')}
-              className="w-full py-3 px-4 rounded-xl bg-gradient-to-r from-brand-600 to-indigo-600 hover:from-brand-500 hover:to-indigo-500 text-white font-semibold text-xs transition-all shadow-md shadow-brand-500/10 cursor-pointer"
+              className="w-full py-3 px-4 rounded-xl bg-gradient-to-r from-brand-500 to-indigo-600 hover:from-brand-600 hover:to-indigo-700 text-white font-semibold text-xs transition-all shadow-md shadow-brand-500/10 cursor-pointer"
             >
-              Assinar Premium
+              Aderir ao Premium
             </button>
           </div>
         </div>
       </section>
 
-      {/* FAQ Accordion Section */}
-      <section id="faq" className="py-10 px-6 max-w-3xl mx-auto relative z-10 space-y-8">
+      {/* FAQ Accordion Section (Objections Solved) */}
+      <section id="faq" className="py-20 px-6 max-w-3xl mx-auto relative z-10 space-y-12">
         <div className="text-center space-y-3">
-          <h2 className="text-xs font-bold text-brand-500 uppercase tracking-widest">Dúvidas</h2>
-          <p className="text-3xl sm:text-4xl font-bold tracking-tight text-white font-display">Perguntas Frequentes</p>
+          <h2 className="text-xs font-bold text-brand-500 dark:text-brand-500 light:text-brand-600 uppercase tracking-widest font-mono">Dúvidas</h2>
+          <p className="text-3xl sm:text-4xl font-extrabold tracking-tight text-slate-100 dark:text-white light:text-slate-900 font-display">Perguntas Frequentes</p>
         </div>
 
         <div className="space-y-3">
@@ -715,11 +919,11 @@ export function LandingPage({ onNavigateToAuth }: LandingPageProps) {
             return (
               <div 
                 key={idx} 
-                className="border border-slate-850/60 rounded-xl bg-slate-900/10 overflow-hidden transition-all duration-300"
+                className="border border-slate-900 dark:border-slate-900 light:border-slate-200 rounded-2xl bg-slate-900/10 dark:bg-slate-900/10 light:bg-white overflow-hidden transition-all duration-300 shadow-sm"
               >
                 <button
                   onClick={() => toggleFaq(idx)}
-                  className="w-full py-4.5 px-5 flex items-center justify-between text-left text-xs font-bold text-slate-200 hover:text-white transition-colors cursor-pointer select-none"
+                  className="w-full py-4.5 px-5 flex items-center justify-between text-left text-xs font-bold text-slate-200 dark:text-slate-200 light:text-slate-800 hover:text-white light:hover:text-slate-900 transition-colors cursor-pointer select-none gap-3"
                 >
                   <span className="flex items-center gap-3">
                     <HelpCircle size={14} className="text-brand-400 shrink-0" />
@@ -739,7 +943,7 @@ export function LandingPage({ onNavigateToAuth }: LandingPageProps) {
                       exit={{ height: 0, opacity: 0 }}
                       transition={{ duration: 0.25, ease: 'easeInOut' }}
                     >
-                      <div className="px-5 pb-5 pt-1 text-xs text-slate-400 leading-relaxed border-t border-slate-850/30">
+                      <div className="px-5 pb-5 pt-1 text-xs text-slate-400 dark:text-slate-400 light:text-slate-655 leading-relaxed border-t border-slate-950/30 dark:border-slate-950/30 light:border-slate-100">
                         {faq.a}
                       </div>
                     </motion.div>
@@ -751,25 +955,25 @@ export function LandingPage({ onNavigateToAuth }: LandingPageProps) {
         </div>
       </section>
 
-      {/* CTA Final */}
-      <section className="py-12 px-6 text-center max-w-3xl mx-auto relative z-10 space-y-6">
+      {/* Strong Final CTA */}
+      <section className="py-24 px-6 text-center max-w-4xl mx-auto relative z-10 space-y-8">
         <div className="absolute inset-0 bg-brand-500/5 blur-[120px] rounded-full pointer-events-none" />
         
-        <div className="space-y-4">
-          <h2 className="text-4xl sm:text-5xl font-bold tracking-tight text-white leading-tight font-display">
-            Sua próxima oportunidade <span className="text-transparent bg-clip-text bg-gradient-to-r from-brand-400 to-indigo-400">começa hoje</span>.
+        <div className="space-y-4 max-w-2xl mx-auto">
+          <h2 className="text-4xl sm:text-5xl font-extrabold tracking-tight text-slate-100 dark:text-white light:text-slate-900 leading-tight font-display">
+            Sua próxima oportunidade <span className="text-transparent bg-clip-text bg-gradient-to-r from-brand-400 to-indigo-500">começa agora</span>.
           </h2>
-          <p className="text-transparent bg-clip-text bg-gradient-to-r from-brand-400 to-indigo-400 font-bold text-sm select-none">
-            Você já tem o talento. A Talenta mostra o caminho.
+          <p className="text-slate-350 dark:text-slate-300 light:text-slate-700 text-sm sm:text-base leading-relaxed font-semibold">
+            Junte-se aos profissionais que usam IA para conquistar entrevistas mais rapidamente.
           </p>
-          <p className="text-slate-400 text-xs sm:text-sm leading-relaxed max-w-lg mx-auto pt-2">
-            Pare de enviar currículos no escuro. Descubra exatamente como otimizar seus materiais e treinar com IA para conquistar a vaga certa.
+          <p className="text-slate-500 dark:text-slate-500 light:text-slate-600 text-xs max-w-md mx-auto leading-relaxed">
+            Pare de enviar currículos no escuro. Descubra quais vagas realmente combinam com seu perfil e prepare-se adequadamente.
           </p>
         </div>
 
         <button 
           onClick={() => onNavigateToAuth('signup')}
-          className="px-8 py-4 rounded-xl bg-gradient-to-r from-brand-600 to-indigo-600 hover:from-brand-500 hover:to-indigo-500 text-white font-bold text-sm transition-all shadow-xl shadow-brand-500/25 hover:scale-[1.02] inline-flex items-center gap-2.5 cursor-pointer"
+          className="px-8 py-4 rounded-xl bg-gradient-to-r from-brand-500 to-indigo-600 hover:from-brand-600 hover:to-indigo-700 text-white font-bold text-sm transition-all shadow-xl shadow-brand-500/25 hover:scale-[1.02] inline-flex items-center gap-2.5 cursor-pointer"
         >
           Começar gratuitamente
           <ArrowRight size={16} />
@@ -777,42 +981,42 @@ export function LandingPage({ onNavigateToAuth }: LandingPageProps) {
       </section>
 
       {/* Footer */}
-      <footer className="border-t border-slate-900 bg-slate-950/80 backdrop-blur-md py-12 px-6 relative z-10 transition-colors">
+      <footer className="border-t border-slate-900 dark:border-slate-900 light:border-slate-200 bg-slate-950/80 dark:bg-slate-950/80 light:bg-white backdrop-blur-md py-12 px-6 relative z-10 transition-colors duration-300">
         <div className="max-w-6xl mx-auto grid grid-cols-1 md:grid-cols-4 gap-8">
           <div className="space-y-4">
-            <TalentaLogo className="h-8" showText={true} />
-            <p className="text-[10px] text-slate-550 leading-relaxed">
-              Transformando talento em oportunidades reais através de Inteligência Artificial avançada.
+            <TalentaLogo className="h-8 text-white dark:text-white light:text-slate-900" showText={true} />
+            <p className="text-[10px] text-slate-500 dark:text-slate-500 light:text-slate-600 leading-relaxed max-w-xs font-sans">
+              Transformando talento em contratações através de Inteligência Artificial de alta precisão semântica.
             </p>
           </div>
           <div>
-            <h4 className="text-[10px] font-bold uppercase tracking-wider text-slate-450 mb-4">Produto</h4>
-            <ul className="space-y-2 text-[10px] text-slate-550">
-              <li><a href="#como-funciona" className="hover:text-slate-300">Como funciona</a></li>
-              <li><a href="#comparacao" className="hover:text-slate-300">Comparativo</a></li>
-              <li><a href="#beneficios" className="hover:text-slate-300">Benefícios</a></li>
-              <li><a href="#planos" className="hover:text-slate-300">Preços</a></li>
+            <h4 className="text-[10px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-400 light:text-slate-800 mb-4">Navegação</h4>
+            <ul className="space-y-2 text-[10px] text-slate-550 dark:text-slate-500 light:text-slate-655 font-semibold">
+              <li><a href="#como-funciona" className="hover:text-slate-350 dark:hover:text-slate-200 light:hover:text-slate-900">A Jornada</a></li>
+              <li><a href="#demonstracao" className="hover:text-slate-350 dark:hover:text-slate-200 light:hover:text-slate-900">Demonstração</a></li>
+              <li><a href="#comparativo" className="hover:text-slate-350 dark:hover:text-slate-200 light:hover:text-slate-900">Antes vs Depois</a></li>
+              <li><a href="#planos" className="hover:text-slate-350 dark:hover:text-slate-200 light:hover:text-slate-900">Planos</a></li>
             </ul>
           </div>
           <div>
-            <h4 className="text-[10px] font-bold uppercase tracking-wider text-slate-455 mb-4">Legal</h4>
-            <ul className="space-y-2 text-[10px] text-slate-550">
-              <li><a href="/terms.html" target="_blank" rel="noopener noreferrer" className="hover:text-slate-300">Termos de Uso</a></li>
-              <li><a href="/privacy.html" target="_blank" rel="noopener noreferrer" className="hover:text-slate-300">Privacidade</a></li>
+            <h4 className="text-[10px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-400 light:text-slate-800 mb-4">Políticas</h4>
+            <ul className="space-y-2 text-[10px] text-slate-550 dark:text-slate-500 light:text-slate-655 font-semibold">
+              <li><a href="/terms.html" target="_blank" rel="noopener noreferrer" className="hover:text-slate-350 dark:hover:text-slate-200 light:hover:text-slate-900">Termos de Uso</a></li>
+              <li><a href="/privacy.html" target="_blank" rel="noopener noreferrer" className="hover:text-slate-350 dark:hover:text-slate-200 light:hover:text-slate-900">Privacidade</a></li>
             </ul>
           </div>
           <div>
-            <h4 className="text-[10px] font-bold uppercase tracking-wider text-slate-450 mb-4">Contato</h4>
-            <p className="text-[10px] text-slate-550">suporte@talenta.ai</p>
+            <h4 className="text-[10px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-400 light:text-slate-800 mb-4">Contato</h4>
+            <p className="text-[10px] text-slate-550 dark:text-slate-500 light:text-slate-655 font-semibold">suporte@talenta.ai</p>
             <div className="flex gap-4 mt-4">
-              <a href="#" className="text-slate-550 hover:text-slate-300 transition-colors"><Layers size={14} /></a>
-              <a href="#" className="text-slate-550 hover:text-slate-300 transition-colors"><Zap size={14} /></a>
+              <a href="#" className="text-slate-550 dark:text-slate-500 light:text-slate-655 hover:text-slate-300 dark:hover:text-slate-200 light:hover:text-slate-900 transition-colors"><Layers size={14} /></a>
+              <a href="#" className="text-slate-550 dark:text-slate-500 light:text-slate-655 hover:text-slate-300 dark:hover:text-slate-200 light:hover:text-slate-900 transition-colors"><Zap size={14} /></a>
             </div>
           </div>
         </div>
-        <div className="max-w-6xl mx-auto border-t border-slate-900/50 mt-8 pt-8 flex flex-col sm:flex-row items-center justify-between text-[9.5px] text-slate-550 gap-4">
+        <div className="max-w-6xl mx-auto border-t border-slate-900 dark:border-slate-900 light:border-slate-100 mt-8 pt-8 flex flex-col sm:flex-row items-center justify-between text-[9px] text-slate-500 dark:text-slate-500 light:text-slate-600 gap-4">
           <span>© 2026 Talenta AI. Todos os direitos reservados.</span>
-          <span className="text-slate-550">Transformando talento em oportunidades para profissionais de todas as áreas.</span>
+          <span>Tecnologia em prol da igualdade de oportunidades.</span>
         </div>
       </footer>
     </div>

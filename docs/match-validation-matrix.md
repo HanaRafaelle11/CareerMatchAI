@@ -1,4 +1,4 @@
-# 🎯 Matriz de Validação de Match — CareerMatch AI
+# 🎯 Matriz de Validação de Match — Vocentro
 
 ## Objetivo
 

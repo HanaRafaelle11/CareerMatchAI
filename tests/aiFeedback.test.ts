@@ -5,7 +5,7 @@ console.log("====================================================");
 console.log("🧪 RUNNING AI POLLING INTERMEDIATE STATES MAPPING TESTS");
 console.log("====================================================\n");
 
-// Função mockada do useCareerMatch para converter logs de banco em PipelineStep[]
+// Função mockada do useVocentro para converter logs de banco em PipelineStep[]
 function mapLogsToSteps(logs: any[]): PipelineStep[] {
   const hasExtractStarted = logs.some(l => l.step === 'extracting_text');
   const hasExtractCompleted = logs.some(l => l.step === 'extracting_text' && l.status === 'completed');

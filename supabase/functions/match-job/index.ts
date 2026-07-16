@@ -315,7 +315,7 @@ class JobMatchingEngine {
     const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${geminiApiKey}`;
 
     const prompt = `
-      Você é o motor de match semântico e recrutador automatizado do CareerMatch AI.
+      Você é o motor de match semântico e recrutador automatizado do Vocentro.
       Sua tarefa é analisar a compatibilidade (Match) entre o Perfil de Carreira (CareerProfile) do candidato e os requisitos da vaga (Job Description).
       
       INSTRUÇÕES IMPORTANTES:

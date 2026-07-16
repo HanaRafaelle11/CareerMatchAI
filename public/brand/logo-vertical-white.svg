@@ -1,41 +1,41 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 200" fill="none">
   <defs>
     <style>
-      @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;700&amp;display=swap');
+      @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;700&amp;display=swap');
       .brand-text {
-        font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+        font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
         font-weight: 700;
-        font-size: 34px;
+        font-size: 30px;
         fill: #FFFFFF;
         letter-spacing: -0.04em;
-        text-anchor: middle;
       }
       .tagline-text {
-        font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-        font-weight: 400;
-        font-size: 10.5px;
-        fill: #FFFFFF;
-        opacity: 0.8;
+        font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+        font-weight: 500;
+        font-size: 11px;
+        fill: #94A3B8;
         text-anchor: middle;
       }
     </style>
   </defs>
 
-  <!-- Brand Symbol (White) -->
-  <g transform="translate(72, 10)">
-    <!-- Stem of T -->
-    <path d="M 40 56 H 56 V 76 A 8 8 0 0 1 40 76 Z" fill="#FFFFFF" />
-    <!-- Top Bar of T -->
-    <rect x="16" y="40" width="64" height="16" rx="8" ry="8" fill="#FFFFFF" />
-    <!-- Sparkle Star -->
-    <path d="M 48 12 Q 48 20 56 20 Q 48 20 48 28 Q 48 20 40 20 Q 48 20 48 12" fill="#FFFFFF" />
+  <!-- Large Symbol on Top -->
+  <g transform="translate(88, 15)">
+    <circle cx="32" cy="32" r="24" stroke="#FFFFFF" stroke-width="7" fill="none" />
+    <circle cx="32" cy="32" r="8" fill="#57E389" />
   </g>
 
-  <!-- Typography -->
-  <text x="120" y="145" class="brand-text">Talenta</text>
+  <!-- Typography vocentro below -->
+  <g transform="translate(48, 115)">
+    <text x="10" y="24" class="brand-text">vocentr</text>
+    <g transform="translate(122, 3)">
+      <circle cx="10" cy="10" r="7.5" stroke="#FFFFFF" stroke-width="2.5" fill="none" />
+      <circle cx="10" cy="10" r="2.5" fill="#57E389" />
+    </g>
+  </g>
   
   <!-- Tagline -->
-  <text x="120" y="176" class="tagline-text">
-    Transformando talento em oportunidades.
+  <text x="120" y="172" class="tagline-text">
+    Sua carreira. <tspan fill="#57E389" font-weight="700">Você</tspan> no centro.
   </text>
 </svg>

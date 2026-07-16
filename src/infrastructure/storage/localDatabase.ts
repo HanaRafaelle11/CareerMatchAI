@@ -5,32 +5,32 @@ import { isSupabaseConfigured } from '../api/supabaseClient';
 
 // Chaves do localStorage
 const KEYS = {
-  PROFILE: 'careermatch_profile',
-  RESUMES: 'careermatch_resumes',
-  JOBS: 'careermatch_jobs',
-  MATCHES: 'careermatch_matches',
-  GAPS: 'careermatch_gaps',
-  LETTERS: 'careermatch_letters',
-  PREPS: 'careermatch_preps',
-  APPLICATIONS: 'careermatch_applications',
-  CAREER_PROFILE: 'careermatch_career_profile',
-  STAGES: 'careermatch_application_stages',
-  OPTIMIZATIONS: 'careermatch_resume_optimizations',
-  LETTERS_V2: 'careermatch_cover_letters_v2',
-  PREPARATIONS: 'careermatch_interview_preparations',
-  SIMULATIONS: 'careermatch_interview_simulations',
-  POST_LOGS: 'careermatch_post_interview_logs',
-  NOTIFICATIONS: 'careermatch_notifications',
-  COMPANY_PROFILES: 'careermatch_company_profiles',
-  WEEKLY_PLANNERS: 'careermatch_weekly_planners',
-  WEEKLY_GOALS: 'careermatch_weekly_goals',
-  CAREER_GOALS: 'careermatch_career_goals',
+  PROFILE: 'vocentro_profile',
+  RESUMES: 'vocentro_resumes',
+  JOBS: 'vocentro_jobs',
+  MATCHES: 'vocentro_matches',
+  GAPS: 'vocentro_gaps',
+  LETTERS: 'vocentro_letters',
+  PREPS: 'vocentro_preps',
+  APPLICATIONS: 'vocentro_applications',
+  CAREER_PROFILE: 'vocentro_career_profile',
+  STAGES: 'vocentro_application_stages',
+  OPTIMIZATIONS: 'vocentro_resume_optimizations',
+  LETTERS_V2: 'vocentro_cover_letters_v2',
+  PREPARATIONS: 'vocentro_interview_preparations',
+  SIMULATIONS: 'vocentro_interview_simulations',
+  POST_LOGS: 'vocentro_post_interview_logs',
+  NOTIFICATIONS: 'vocentro_notifications',
+  COMPANY_PROFILES: 'vocentro_company_profiles',
+  WEEKLY_PLANNERS: 'vocentro_weekly_planners',
+  WEEKLY_GOALS: 'vocentro_weekly_goals',
+  CAREER_GOALS: 'vocentro_career_goals',
 };
 
 class LocalDatabase {
   private getActiveUserId(): string {
     try {
-      const stored = localStorage.getItem('careermatch_auth_user');
+      const stored = localStorage.getItem('vocentro_auth_user');
       if (stored) {
         const u = JSON.parse(stored);
         if (u && u.id) return u.id;
@@ -544,7 +544,7 @@ class LocalDatabase {
       return { profile: null, insights: null };
     }
 
-    const key = `careermatch_my_profile_ai_${resumeVersionId || 'default'}`;
+    const key = `vocentro_my_profile_ai_${resumeVersionId || 'default'}`;
     const raw = localStorage.getItem(key);
     if (raw) {
       try {
@@ -891,13 +891,13 @@ class LocalDatabase {
 
   // Analytics Events API
   saveAnalyticsEvent(event: any): void {
-    const all = JSON.parse(localStorage.getItem('careermatch_analytics_events') || '[]');
+    const all = JSON.parse(localStorage.getItem('vocentro_analytics_events') || '[]');
     all.push({ ...event, id: event.id || Math.random().toString(36).substring(2, 9) });
-    localStorage.setItem('careermatch_analytics_events', JSON.stringify(all));
+    localStorage.setItem('vocentro_analytics_events', JSON.stringify(all));
   }
 
   getAnalyticsEvents(): any[] {
-    return JSON.parse(localStorage.getItem('careermatch_analytics_events') || '[]');
+    return JSON.parse(localStorage.getItem('vocentro_analytics_events') || '[]');
   }
 
   getMockAnalyticsData(rpcName: string): any {

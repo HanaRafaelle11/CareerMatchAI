@@ -15,7 +15,7 @@ if (!fs.existsSync(brandDir)) {
   fs.mkdirSync(brandDir, { recursive: true });
 }
 
-console.log('--- Talenta Asset Generator ---');
+console.log('--- Vocentro Asset Generator ---');
 
 async function generate() {
   try {

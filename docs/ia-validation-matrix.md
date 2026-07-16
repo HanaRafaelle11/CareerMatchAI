@@ -1,4 +1,4 @@
-# 🧠 Matriz de Validação de Qualidade da IA — CareerMatch AI
+# 🧠 Matriz de Validação de Qualidade da IA — Vocentro
 
 ## Objetivo
 
@@ -148,7 +148,7 @@ Para cada perfil, o resultado da IA deve:
 ## Instruções para Execução
 
 1. Para cada perfil acima, criar um arquivo `.txt` com um currículo fictício (ou usar um real anonimizado).
-2. Fazer upload via interface do CareerMatch AI.
+2. Fazer upload via interface do Vocentro.
 3. Aguardar processamento do pipeline.
 4. Comparar o resultado da IA com os critérios esperados.
 5. Preencher coluna **Resultado** com o que foi efetivamente gerado.

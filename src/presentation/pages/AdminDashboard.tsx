@@ -1008,7 +1008,15 @@ export function AdminDashboard({ userId }: AdminDashboardProps) {
             <>
               {/* KPI Cards Row 1 */}
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                <CardGlass className="p-4 flex flex-col justify-between hover:scale-[1.01] transition-all duration-300">
+                <CardGlass 
+                  onClick={() => {
+                    if (hasUsersAccess) {
+                      setActiveSubTab('users');
+                      setUserPage(1);
+                    }
+                  }}
+                  className={`p-4 flex flex-col justify-between hover:scale-[1.01] transition-all duration-300 ${hasUsersAccess ? 'cursor-pointer' : ''}`}
+                >
                   <div className="flex justify-between items-start">
                     <span className="text-[10px] text-slate-500 font-bold uppercase tracking-wider">Usuários Cadastrados</span>
                     <Users size={16} className="text-brand-500" />
@@ -1017,7 +1025,7 @@ export function AdminDashboard({ userId }: AdminDashboardProps) {
                     <span className="text-3xl font-extrabold text-slate-100 font-display">
                       {overviewStats?.users_count ?? 0}
                     </span>
-                    <span className="text-[9px] text-slate-550 block mt-1">Registros na tabela profiles</span>
+                    <span className="text-[9px] text-slate-550 block mt-1">Registros na tabela profiles (clique para ver a lista)</span>
                   </div>
                 </CardGlass>
 
@@ -1034,7 +1042,12 @@ export function AdminDashboard({ userId }: AdminDashboardProps) {
                   </div>
                 </CardGlass>
 
-                <CardGlass className="p-4 flex flex-col justify-between hover:scale-[1.01] transition-all duration-300">
+                <CardGlass 
+                  onClick={() => {
+                    setActiveSubTab('ia');
+                  }}
+                  className="p-4 flex flex-col justify-between hover:scale-[1.01] transition-all duration-300 cursor-pointer"
+                >
                   <div className="flex justify-between items-start">
                     <span className="text-[10px] text-slate-500 font-bold uppercase tracking-wider">Vagas Analisadas</span>
                     <Layers size={16} className="text-purple-400" />
@@ -1043,7 +1056,7 @@ export function AdminDashboard({ userId }: AdminDashboardProps) {
                     <span className="text-3xl font-extrabold text-slate-100 font-display">
                       {overviewStats?.matches_count ?? 0}
                     </span>
-                    <span className="text-[9px] text-slate-550 block mt-1">Matches de compatibilidade gerados</span>
+                    <span className="text-[9px] text-slate-550 block mt-1">Matches de compatibilidade (clique para ver IA)</span>
                   </div>
                 </CardGlass>
 
@@ -1063,7 +1076,12 @@ export function AdminDashboard({ userId }: AdminDashboardProps) {
 
               {/* KPI Cards Row 2 */}
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                <CardGlass className="p-4 flex flex-col justify-between hover:scale-[1.01] transition-all duration-300">
+                <CardGlass 
+                  onClick={() => {
+                    setActiveSubTab('ia');
+                  }}
+                  className="p-4 flex flex-col justify-between hover:scale-[1.01] transition-all duration-300 cursor-pointer"
+                >
                   <div className="flex justify-between items-start">
                     <span className="text-[10px] text-slate-500 font-bold uppercase tracking-wider">Tokens Gemini</span>
                     <Bot size={16} className="text-blue-400" />
@@ -1072,7 +1090,7 @@ export function AdminDashboard({ userId }: AdminDashboardProps) {
                     <span className="text-3xl font-extrabold text-slate-100 font-display font-mono">
                       {(overviewStats?.total_tokens ?? 0).toLocaleString()}
                     </span>
-                    <span className="text-[9px] text-slate-550 block mt-1">Acumulado de input/output de IA</span>
+                    <span className="text-[9px] text-slate-550 block mt-1">Acumulado de input/output de IA (clique para ver)</span>
                   </div>
                 </CardGlass>
 
@@ -1089,16 +1107,21 @@ export function AdminDashboard({ userId }: AdminDashboardProps) {
                   </div>
                 </CardGlass>
 
-                <CardGlass className="p-4 flex flex-col justify-between hover:scale-[1.01] transition-all duration-300">
+                <CardGlass 
+                  onClick={() => {
+                    setActiveSubTab('logs');
+                  }}
+                  className="p-4 flex flex-col justify-between hover:scale-[1.01] transition-all duration-300 cursor-pointer"
+                >
                   <div className="flex justify-between items-start">
-                    <span className="text-[10px] text-slate-500 font-bold uppercase tracking-wider">Último Deploy</span>
+                    <span className="text-[10px] text-slate-550 font-bold uppercase tracking-wider">Último Deploy</span>
                     <Laptop size={16} className="text-slate-400" />
                   </div>
                   <div className="mt-4">
                     <span className="text-3xl font-extrabold text-slate-100 font-display">
                       {getDeployAge()}
                     </span>
-                    <span className="text-[9px] text-slate-550 block mt-1">Compilação do ambiente de produção</span>
+                    <span className="text-[9px] text-slate-550 block mt-1">Compilação do ambiente (clique para ver logs)</span>
                   </div>
                 </CardGlass>
               </div>

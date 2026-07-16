@@ -273,12 +273,12 @@ export function Settings({
       } else {
         // Mock local save
         const savedProfile = { ...profile, fullName, headline, avatarUrl, skillsSummary };
-        localStorage.setItem('careermatch_profile', JSON.stringify(savedProfile));
+        localStorage.setItem('vocentro_profile', JSON.stringify(savedProfile));
 
         // Sincronizar todos os perfis de IA mockados
         const resumesLocal = localDB.getResumes();
         resumesLocal.forEach(r => {
-          const cpNewKey = `careermatch_my_profile_ai_${r.resumeVersionId || 'default'}`;
+          const cpNewKey = `vocentro_my_profile_ai_${r.resumeVersionId || 'default'}`;
           const mockCpRaw = localStorage.getItem(cpNewKey);
           if (mockCpRaw) {
             try {
@@ -296,7 +296,7 @@ export function Settings({
           }
         });
 
-        const mockCpRawDefault = localStorage.getItem('careermatch_my_profile_ai_default');
+        const mockCpRawDefault = localStorage.getItem('vocentro_my_profile_ai_default');
         let parsed: any = {};
         if (mockCpRawDefault) {
           try {
@@ -323,16 +323,16 @@ export function Settings({
           headline: headline,
           linkedin: linkedin
         };
-        localStorage.setItem('careermatch_my_profile_ai_default', JSON.stringify(parsed));
+        localStorage.setItem('vocentro_my_profile_ai_default', JSON.stringify(parsed));
       }
 
-        const localCpRaw = localStorage.getItem('careermatch_career_profile');
+        const localCpRaw = localStorage.getItem('vocentro_career_profile');
         if (localCpRaw) {
           try {
             const cp = JSON.parse(localCpRaw);
             cp.fullName = fullName;
             cp.headline = headline;
-            localStorage.setItem('careermatch_career_profile', JSON.stringify(cp));
+            localStorage.setItem('vocentro_career_profile', JSON.stringify(cp));
           } catch (err) { console.error(err); }
         }
 
@@ -341,12 +341,12 @@ export function Settings({
 
       // Backup save to localStorage to survive schema/session overrides
       const backupProfile = { ...profile, fullName, headline, avatarUrl, skillsSummary };
-      localStorage.setItem('careermatch_profile', JSON.stringify(backupProfile));
+      localStorage.setItem('vocentro_profile', JSON.stringify(backupProfile));
       if (profile?.id) {
         if (avatarUrl) {
-          localStorage.setItem(`careermatch_avatar_${profile.id}`, avatarUrl);
+          localStorage.setItem(`vocentro_avatar_${profile.id}`, avatarUrl);
         } else {
-          localStorage.removeItem(`careermatch_avatar_${profile.id}`);
+          localStorage.removeItem(`vocentro_avatar_${profile.id}`);
         }
       }
 
@@ -472,7 +472,7 @@ export function Settings({
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `careermatch_data_${profile?.id || 'export'}.json`;
+    a.download = `vocentro_data_${profile?.id || 'export'}.json`;
     a.click();
     URL.revokeObjectURL(url);
   };

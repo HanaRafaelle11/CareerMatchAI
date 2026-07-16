@@ -591,14 +591,14 @@ export function useResumes(userId: string | undefined) {
         if (setError) throw setError;
       } else {
         // Local mode
-        const allResumes = JSON.parse(localStorage.getItem('careermatch_resumes') || '[]');
+        const allResumes = JSON.parse(localStorage.getItem('vocentro_resumes') || '[]');
         const updated = allResumes.map((r: any) => {
           if (r.userId === userId) {
             return { ...r, isPrimary: r.id === resumeId };
           }
           return r;
         });
-        localStorage.setItem('careermatch_resumes', JSON.stringify(updated));
+        localStorage.setItem('vocentro_resumes', JSON.stringify(updated));
       }
       return resumeId;
     },

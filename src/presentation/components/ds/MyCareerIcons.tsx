@@ -127,10 +127,6 @@ export function VocentroLogo({
   );
 }
 
-// Aliases for backward compatibility
-export { VocentroLogo as TalentaLogo };
-export { VocentroLogo as MyCareerLogo };
-
 // 👤 User Profile: Ícone de usuário com uma engrenagem de configuração
 export function UserProfileIcon({ className = "w-5 h-5" }: IconProps) {
   return (

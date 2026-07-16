@@ -1,4 +1,4 @@
-project_id = "careermatch-ai-mvp"
+project_id = "vocentro-ai-mvp"
 
 [api]
 port = 54321

@@ -1,6 +1,6 @@
-# Catálogo de Erros de Produção — CareerMatch AI
+# Catálogo de Erros de Produção — Vocentro
 
-Este catálogo lista as exceções tratadas de forma humana pelo frontend do CareerMatch AI, mapeando códigos internos para as respectivas interfaces visuais e eventos de telemetria correspondentes.
+Este catálogo lista as exceções tratadas de forma humana pelo frontend do Vocentro, mapeando códigos internos para as respectivas interfaces visuais e eventos de telemetria correspondentes.
 
 ---
 

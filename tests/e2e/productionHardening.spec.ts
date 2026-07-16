@@ -58,7 +58,7 @@ async function navigateSidebar(page: any, tabLabel: string) {
   await tabButton.click();
 }
 
-test.describe('Sprint Production Hardening E2E — CareerMatch AI', () => {
+test.describe('Sprint Production Hardening E2E — Vocentro', () => {
   test.beforeEach(async ({ page }) => {
     await ensureAuthenticated(page);
   });

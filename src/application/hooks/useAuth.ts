@@ -37,7 +37,7 @@ export function useAuth() {
       };
     } else {
       // Autenticação local mockada
-      const mockUser = localStorage.getItem('careermatch_auth_user');
+      const mockUser = localStorage.getItem('vocentro_auth_user');
       if (mockUser) {
         const parsedUser = JSON.parse(mockUser);
         setUser(parsedUser);
@@ -75,7 +75,7 @@ export function useAuth() {
 
       if (data) {
         console.log('[AUTH] Perfil carregado com sucesso:', data);
-        const localProfileRaw = localStorage.getItem('careermatch_profile');
+        const localProfileRaw = localStorage.getItem('vocentro_profile');
         let localProfile: any = {};
         if (localProfileRaw) {
           try {
@@ -85,7 +85,7 @@ export function useAuth() {
             }
           } catch (_) {}
         }
-        const localAvatar = localStorage.getItem(`careermatch_avatar_${userId}`) || undefined;
+        const localAvatar = localStorage.getItem(`vocentro_avatar_${userId}`) || undefined;
 
         setProfile({
           id: data.id,
@@ -155,7 +155,7 @@ export function useAuth() {
       await new Promise(resolve => setTimeout(resolve, 800));
       const mockUserId = btoa(email).replace(/[^a-zA-Z0-9]/g, '').slice(0, 12);
       const mockUserObj = { id: mockUserId, email };
-      localStorage.setItem('careermatch_auth_user', JSON.stringify(mockUserObj));
+      localStorage.setItem('vocentro_auth_user', JSON.stringify(mockUserObj));
       setUser(mockUserObj);
       setProfile(localDB.getProfile());
       tracker.track('login', 'auth');
@@ -195,7 +195,7 @@ export function useAuth() {
       await new Promise(resolve => setTimeout(resolve, 1000));
       const mockUserId = btoa(email).replace(/[^a-zA-Z0-9]/g, '').slice(0, 12);
       const mockUserObj = { id: mockUserId, email };
-      localStorage.setItem('careermatch_auth_user', JSON.stringify(mockUserObj));
+      localStorage.setItem('vocentro_auth_user', JSON.stringify(mockUserObj));
       localDB.updateProfile({ fullName, headline: 'Novo Usuário | Vocentro' });
       setUser(mockUserObj);
       setProfile(localDB.getProfile());
@@ -211,7 +211,7 @@ export function useAuth() {
       const email = `${provider}_user@example.com`;
       const mockUserId = btoa(email).replace(/[^a-zA-Z0-9]/g, '').slice(0, 12);
       const mockUserObj = { id: mockUserId, email };
-      localStorage.setItem('careermatch_auth_user', JSON.stringify(mockUserObj));
+      localStorage.setItem('vocentro_auth_user', JSON.stringify(mockUserObj));
       localDB.updateProfile({
         fullName: provider === 'google' ? 'Google Candidate User' : 'GitHub Developer User',
         avatarUrl: provider === 'github' ? 'https://github.com/github.png' : undefined,
@@ -257,7 +257,7 @@ export function useAuth() {
       await supabase.auth.signOut();
       tracker.track('logout', 'auth');
     } else {
-      localStorage.removeItem('careermatch_auth_user');
+      localStorage.removeItem('vocentro_auth_user');
       setUser(null);
       setProfile(null);
       tracker.track('logout', 'auth');
@@ -269,12 +269,12 @@ export function useAuth() {
     setProfile(prev => {
       const newVal = prev ? { ...prev, ...updated } : null;
       if (newVal) {
-        localStorage.setItem('careermatch_profile', JSON.stringify(newVal));
+        localStorage.setItem('vocentro_profile', JSON.stringify(newVal));
         if (newVal.id) {
           if (newVal.avatarUrl) {
-            localStorage.setItem(`careermatch_avatar_${newVal.id}`, newVal.avatarUrl);
+            localStorage.setItem(`vocentro_avatar_${newVal.id}`, newVal.avatarUrl);
           } else {
-            localStorage.removeItem(`careermatch_avatar_${newVal.id}`);
+            localStorage.removeItem(`vocentro_avatar_${newVal.id}`);
           }
         }
       }

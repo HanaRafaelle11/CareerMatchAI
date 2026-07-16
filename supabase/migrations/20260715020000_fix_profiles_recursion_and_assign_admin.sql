@@ -24,7 +24,7 @@ CREATE POLICY "Administradores podem gerenciar todos os perfis" ON public.profil
 UPDATE public.profiles p
 SET role = 'administrador'
 FROM auth.users u
-WHERE p.id = u.id AND (u.email = 'hanarafaelle11@gmail.com' OR u.email = 'hana@talenta.ai');
+WHERE p.id = u.id AND (u.email = 'hanarafaelle11@gmail.com' OR u.email = 'hana@vocentro.ai');
 
 -- Also auto-assign other admin roles from existing users if they match
 UPDATE public.profiles p

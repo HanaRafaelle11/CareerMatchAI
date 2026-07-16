@@ -375,41 +375,41 @@ export function JobMatchHub({
         // MODO LOCAL / MOCK
         // 1. Apagar matches locais
         try {
-          const matchesRaw = localStorage.getItem('careermatch_matches');
+          const matchesRaw = localStorage.getItem('vocentro_matches');
           if (matchesRaw) {
             const list = JSON.parse(matchesRaw);
             const filtered = list.filter((m: any) => m.resumeId !== currentResume.id && m.resume_id !== currentResume.id);
-            localStorage.setItem('careermatch_matches', JSON.stringify(filtered));
+            localStorage.setItem('vocentro_matches', JSON.stringify(filtered));
           }
         } catch (e) { console.error(e); }
 
         // 2. Apagar otimizações locais
         try {
-          const optRaw = localStorage.getItem('careermatch_resume_optimizations');
+          const optRaw = localStorage.getItem('vocentro_resume_optimizations');
           if (optRaw) {
             const list = JSON.parse(optRaw);
             const filtered = list.filter((o: any) => o.resumeId !== currentResume.id && o.resume_id !== currentResume.id);
-            localStorage.setItem('careermatch_resume_optimizations', JSON.stringify(filtered));
+            localStorage.setItem('vocentro_resume_optimizations', JSON.stringify(filtered));
           }
         } catch (e) { console.error(e); }
 
         // 3. Apagar cover letters locais
         try {
-          const letterRaw = localStorage.getItem('careermatch_cover_letters_v2');
+          const letterRaw = localStorage.getItem('vocentro_cover_letters_v2');
           if (letterRaw) {
             const list = JSON.parse(letterRaw);
             const filtered = list.filter((l: any) => l.resumeVersionId !== currentResume.resumeVersionId && l.resume_version_id !== currentResume.resumeVersionId);
-            localStorage.setItem('careermatch_cover_letters_v2', JSON.stringify(filtered));
+            localStorage.setItem('vocentro_cover_letters_v2', JSON.stringify(filtered));
           }
         } catch (e) { console.error(e); }
 
         // 4. Apagar prep locais
         try {
-          const prepRaw = localStorage.getItem('careermatch_interview_preparations');
+          const prepRaw = localStorage.getItem('vocentro_interview_preparations');
           if (prepRaw) {
             const list = JSON.parse(prepRaw);
             const filtered = list.filter((p: any) => p.resumeVersionId !== currentResume.resumeVersionId && p.resume_version_id !== currentResume.resumeVersionId);
-            localStorage.setItem('careermatch_interview_preparations', JSON.stringify(filtered));
+            localStorage.setItem('vocentro_interview_preparations', JSON.stringify(filtered));
           }
         } catch (e) { console.error(e); }
       }
@@ -524,38 +524,38 @@ export function JobMatchHub({
         const mockAppId = mockApp?.id || 'mock-app-id';
 
         try {
-          const matchesRaw = localStorage.getItem('careermatch_matches');
+          const matchesRaw = localStorage.getItem('vocentro_matches');
           if (matchesRaw) {
             const list = JSON.parse(matchesRaw);
             const filtered = list.filter((m: any) => !(String(m.jobId) === String(selectedJob.id) && (String(m.resumeId || m.resume_id) === String(matchResumeId))));
-            localStorage.setItem('careermatch_matches', JSON.stringify(filtered));
+            localStorage.setItem('vocentro_matches', JSON.stringify(filtered));
           }
         } catch (e) { console.error(e); }
 
         try {
-          const optRaw = localStorage.getItem('careermatch_resume_optimizations');
+          const optRaw = localStorage.getItem('vocentro_resume_optimizations');
           if (optRaw) {
             const list = JSON.parse(optRaw);
             const filtered = list.filter((o: any) => !(String(o.jobId) === String(selectedJob.id) && (String(o.resumeId || o.resume_id) === String(matchResumeId))));
-            localStorage.setItem('careermatch_resume_optimizations', JSON.stringify(filtered));
+            localStorage.setItem('vocentro_resume_optimizations', JSON.stringify(filtered));
           }
         } catch (e) { console.error(e); }
 
         try {
-          const letterRaw = localStorage.getItem('careermatch_cover_letters_v2');
+          const letterRaw = localStorage.getItem('vocentro_cover_letters_v2');
           if (letterRaw) {
             const list = JSON.parse(letterRaw);
             const filtered = list.filter((l: any) => !(String(l.applicationId || l.application_id) === String(mockAppId)));
-            localStorage.setItem('careermatch_cover_letters_v2', JSON.stringify(filtered));
+            localStorage.setItem('vocentro_cover_letters_v2', JSON.stringify(filtered));
           }
         } catch (e) { console.error(e); }
 
         try {
-          const prepRaw = localStorage.getItem('careermatch_interview_preparations');
+          const prepRaw = localStorage.getItem('vocentro_interview_preparations');
           if (prepRaw) {
             const list = JSON.parse(prepRaw);
             const filtered = list.filter((p: any) => !(String(p.jobId) === String(selectedJob.id)));
-            localStorage.setItem('careermatch_interview_preparations', JSON.stringify(filtered));
+            localStorage.setItem('vocentro_interview_preparations', JSON.stringify(filtered));
           }
         } catch (e) { console.error(e); }
       }
@@ -741,10 +741,10 @@ export function JobMatchHub({
 
   // Gatilho de redirecionamento automático do Dashboard
   useEffect(() => {
-    const trigger = localStorage.getItem('careermatch_trigger_discovery');
+    const trigger = localStorage.getItem('vocentro_trigger_discovery');
     const activeProf = careerProfileNew || careerProfile;
     if (trigger === 'true' && activeProf) {
-      localStorage.removeItem('careermatch_trigger_discovery');
+      localStorage.removeItem('vocentro_trigger_discovery');
       setSubTab('discover');
       
       const preferences = (careerProfileNew?.personal as any)?.preferences || {};

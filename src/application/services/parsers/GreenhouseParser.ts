@@ -27,10 +27,23 @@ export class GreenhouseParser extends BaseJobParser {
 
     const data = await response.json();
     
-    // Strip HTML tags from description
+    // Strip HTML tags and entities from description
     const cleanContent = (html: string) => {
       if (!html) return '';
-      return html.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim();
+      let text = html
+        .replace(/<\/p>/gi, '\n')
+        .replace(/<br\s*\/?>/gi, '\n')
+        .replace(/<\/li>/gi, '\n')
+        .replace(/<\/h[1-6]>/gi, '\n\n');
+      text = text.replace(/<[^>]+>/g, ' ');
+      text = text
+        .replace(/&nbsp;/g, ' ')
+        .replace(/&amp;/g, '&')
+        .replace(/&lt;/g, '<')
+        .replace(/&gt;/g, '>')
+        .replace(/&quot;/g, '"')
+        .replace(/&#39;/g, "'");
+      return text.replace(/[ \t]+/g, ' ').replace(/\n\s*\n+/g, '\n\n').trim();
     };
 
     const description = data.content || '';

@@ -405,7 +405,10 @@ export function useResumes(userId: string | undefined) {
               .update({ processing_time_ms: duration })
               .eq('id', resumeVersionId);
 
-            return resumeData;
+            return {
+              ...resumeData,
+              resumeVersionId
+            };
           } catch (supaError) {
             console.warn('[PIPELINE] Falha no fluxo Supabase. Iniciando fallback para modo Local...', supaError);
             return await runMockPipeline();

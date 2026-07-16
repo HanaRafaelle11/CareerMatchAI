@@ -5,6 +5,7 @@ export interface JobSearchFilters {
   keywords?: string[]; // Múltiplas palavras-chave de busca geradas em paralelo
   location?: string;
   remoteOnly?: boolean;
+  workModes?: string[]; // Modalidades selecionadas: remote, hybrid, onsite
   page?: number; // Suporte à paginação
 }
 

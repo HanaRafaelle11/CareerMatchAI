@@ -21,6 +21,7 @@ export function useJobDiscovery(
       filters.keyword, 
       filters.location, 
       filters.remoteOnly, 
+      filters.workModes,
       filters.page,
       careerProfileNew?.id
     ],
@@ -120,6 +121,13 @@ export function useJobDiscovery(
           if (preferredWorkModes.length > 0) {
             if (preferredWorkModes.includes('remote') && !preferredWorkModes.includes('onsite') && job.workMode === 'onsite') {
               if (filters.remoteOnly) return false;
+            }
+          }
+
+          if (filters.workModes && filters.workModes.length > 0) {
+            const jobMode = job.workMode || 'onsite';
+            if (!filters.workModes.includes(jobMode)) {
+              return false;
             }
           }
 

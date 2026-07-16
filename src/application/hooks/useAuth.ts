@@ -119,6 +119,7 @@ export function useAuth() {
         const newProfile = {
           id: userId,
           full_name: initialName,
+          email: userSession?.email || null,
           headline: 'Profissional | Vocentro',
           role: 'user',
           created_at: new Date().toISOString(),
@@ -128,7 +129,7 @@ export function useAuth() {
         const { data: inserted, error: insertError } = await supabase
           .from('profiles')
           .insert(newProfile)
-          .select('id, full_name, headline, role, created_at, updated_at')
+          .select('id, full_name, email, headline, role, created_at, updated_at')
           .maybeSingle();
 
         if (insertError) {

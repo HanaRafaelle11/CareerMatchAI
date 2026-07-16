@@ -91,19 +91,19 @@ export class AdzunaConnector extends BaseJobConnector {
           }
 
           return {
-            companyId: 'adzuna',
-            companyName: result.company?.display_name || 'Empresa Confidencial',
+            companyId: result.companyId || 'adzuna',
+            companyName: result.companyName || result.company?.display_name || 'Empresa Confidencial',
             title: title,
             description: description,
-            requirements: requirements.length > 0 ? requirements : [defaultReq],
-            location: result.location?.display_name || 'Brasil',
-            workMode: workMode,
-            seniority: seniority,
-            salaryMin: result.salary_min || undefined,
-            salaryMax: result.salary_max || undefined,
-            currency: 'BRL',
-            sourceUrl: result.redirect_url,
-            sourcePlatform: this.platformName,
+            requirements: result.requirements || (requirements.length > 0 ? requirements : [defaultReq]),
+            location: typeof result.location === 'object' ? result.location?.display_name : (result.location || 'Brasil'),
+            workMode: result.workMode || workMode,
+            seniority: result.seniority || seniority,
+            salaryMin: result.salaryMin || result.salary_min || undefined,
+            salaryMax: result.salaryMax || result.salary_max || undefined,
+            currency: result.currency || 'BRL',
+            sourceUrl: result.sourceUrl || result.redirect_url,
+            sourcePlatform: result.sourcePlatform || this.platformName,
             isActive: true
           };
         });

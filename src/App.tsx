@@ -50,6 +50,7 @@ function App() {
   const [activeProfileTab, setActiveProfileTab] = useState<'profile' | 'ai-profile' | 'transparency'>('profile');
   const [settingsInitialSubTab, setSettingsInitialSubTab] = useState<'account' | 'resumes' | 'preferences' | 'notifications' | 'appearance' | 'privacy' | 'billing'>('account');
   const [strategyInitialSubTab, setStrategyInitialSubTab] = useState<'strategy' | 'planner' | 'pipeline' | 'journal'>('strategy');
+  const [matchHubInitialSubTab, setMatchHubInitialSubTab] = useState<'my-jobs' | 'discover'>('discover');
 
   const { preferences, updatePreferences } = useUserPreferences(user?.id);
 
@@ -106,6 +107,12 @@ function App() {
     } else if (tab === 'journal') {
       setStrategyInitialSubTab('journal');
       setActiveTab('strategy');
+    } else if (tab === 'match') {
+      setMatchHubInitialSubTab('my-jobs');
+      setActiveTab('match');
+    } else if (tab === 'discover') {
+      setMatchHubInitialSubTab('discover');
+      setActiveTab('match');
     } else {
       setActiveTab(tab);
     }
@@ -246,6 +253,7 @@ function App() {
   const { 
     startSimulation, 
     sendMessage, 
+    finalizeSimulation,
     getSimulationQuery, 
     triggerDailyChecks,
     notifications,
@@ -375,7 +383,14 @@ function App() {
               setSettingsInitialSubTab('resumes');
               handleSetActiveTab('settings');
             }}
-            onReanalyze={() => handleSetActiveTab('profile')}
+            onReanalyze={async () => {
+              try {
+                await triggerDailyChecks();
+                handleSetActiveTab('discover');
+              } catch (err) {
+                console.error(err);
+              }
+            }}
             className="mb-4 border-b border-outline-variant/10 pb-3"
           />
         )}
@@ -407,7 +422,16 @@ function App() {
               resumes={resumes}
               careerProfileNew={careerProfileNew}
               careerInsights={careerInsights}
-              onUploadResume={(file, rawText) => uploadResume({ file, rawText })}
+              onUploadResume={async (file, rawText) => {
+                try {
+                  const result = await uploadResume({ file, rawText });
+                  if (result && (result as any).resumeVersionId) {
+                    handleSelectResumeVersion((result as any).resumeVersionId);
+                  }
+                } catch (err) {
+                  console.error(err);
+                }
+              }}
               onDeleteResume={deleteResume}
               isUploading={isUploading}
               applications={applications}
@@ -492,6 +516,7 @@ function App() {
               selectedJobId={selectedJobId}
               onSelectJob={setSelectedJobId}
               onStartSimulation={handleStartSimulation}
+              initialSubTab={matchHubInitialSubTab}
             />
           </Suspense>
         )}
@@ -506,10 +531,12 @@ function App() {
               matches={matches}
               startSimulation={(appId, reset) => startSimulation({ applicationId: appId, reset })}
               sendMessage={sendMessage}
+              finalizeSimulation={finalizeSimulation}
               getSimulationQuery={getSimulationQuery}
               triggerDailyChecks={triggerDailyChecks}
               initialSelectedAppId={activeSimulationAppId}
               onClearInitialSelectedAppId={() => setActiveSimulationAppId(null)}
+              setActiveTab={handleSetActiveTab}
             />
           </Suspense>
         )}

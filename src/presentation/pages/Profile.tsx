@@ -9,6 +9,7 @@ import { isSupabaseConfigured } from '../../infrastructure/api/supabaseClient';
 import { ProcessingState, ErrorState } from '../components/ErrorVisuals';
 import { AppError } from '../../application/errors/AppError';
 import { ProgressRing, SkillChip } from '../components/ds';
+import { printElementHtml } from '../../application/utils/pdfExport';
 
 interface ProfileProps {
   profile: UserProfile | null;
@@ -225,6 +226,85 @@ export function Profile({
   const displaySoftSkills = careerProfileNew?.soft_skills || [];
   const displayLanguages = careerProfileNew?.languages || [];
   const displayExperience = careerProfileNew?.experience || primaryResume?.experiences || [];
+
+  const handleExportPDF = () => {
+    if (!careerProfileNew) {
+      alert("Não há dados estruturados de perfil para exportar. Por favor, aguarde o processamento do currículo.");
+      return;
+    }
+
+    const { personal, experience = [], skills = [], education = [], summary = "" } = careerProfileNew;
+    
+    const skillsList = skills.map(s => `<span class="badge" style="margin-right: 5px; margin-bottom: 5px;">${s.name}</span>`).join(' ');
+    
+    const experienceHtml = experience.map(exp => `
+      <div class="experience-item">
+        <div class="experience-header">
+          <span class="experience-role">${exp.role || ''}</span>
+          <span class="experience-meta">${exp.startDate || ''} - ${exp.isCurrent ? 'Presente' : (exp.endDate || '')}</span>
+        </div>
+        <div style="font-weight: 500; font-size: 9.5pt; color: #4f46e5; margin-bottom: 4px;">${exp.companyName || ''}</div>
+        <p style="font-size: 10pt; color: #334155; white-space: pre-line;">${exp.description || ''}</p>
+      </div>
+    `).join('');
+
+    const educationHtml = education.map(edu => `
+      <div class="experience-item" style="border-bottom: none; margin-bottom: 8px; padding-bottom: 8px;">
+        <div class="experience-header">
+          <span class="experience-role">${edu.fieldOfStudy || edu.degree || ''}</span>
+          <span class="experience-meta">${edu.startDate || ''} - ${edu.endDate || ''}</span>
+        </div>
+        <div style="font-size: 9.5pt; color: #64748b;">${edu.institution || ''}</div>
+      </div>
+    `).join('');
+
+    const emailStr = personal?.email || '';
+    const phoneStr = personal?.phone || '';
+    const locationStr = personal?.location || '';
+
+    const htmlContent = `
+      <table class="header-table">
+        <tr>
+          <td>
+            <h1 style="border-bottom: none; margin-bottom: 4px; padding-bottom: 0;">${personal?.fullName || profile?.fullName || 'Profissional Vocentro'}</h1>
+            <div style="font-size: 12pt; color: #4f46e5; font-weight: 600;">${personal?.headline || ''}</div>
+          </td>
+          <td class="header-info">
+            ${emailStr ? `<div>Email: ${emailStr}</div>` : ''}
+            ${phoneStr ? `<div>Telefone: ${phoneStr}</div>` : ''}
+            ${locationStr ? `<div>Localização: ${locationStr}</div>` : ''}
+          </td>
+        </tr>
+      </table>
+
+      ${summary ? `
+        <h2>Resumo Profissional</h2>
+        <p style="font-size: 10.5pt; color: #334155; line-height: 1.6; text-align: justify;">${summary}</p>
+      ` : ''}
+
+      ${experience.length > 0 ? `
+        <h2>Experiência Profissional</h2>
+        <div>${experienceHtml}</div>
+      ` : ''}
+
+      <div class="grid-2" style="margin-top: 20px;">
+        ${skills.length > 0 ? `
+          <div class="grid-col" style="width: 50%;">
+            <h2>Competências</h2>
+            <div style="margin-top: 10px;">${skillsList}</div>
+          </div>
+        ` : ''}
+        ${education.length > 0 ? `
+          <div class="grid-col" style="width: 50%;">
+            <h2>Educação / Formação</h2>
+            <div style="margin-top: 10px;">${educationHtml}</div>
+          </div>
+        ` : ''}
+      </div>
+    `;
+
+    printElementHtml(`${personal?.fullName || 'Curriculo'}_Vocentro_CV`, htmlContent);
+  };
 
   const handleDrag = (e: React.DragEvent) => {
     e.preventDefault();
@@ -719,38 +799,48 @@ export function Profile({
           {primaryResume ? (
             <div className="space-y-6">
               {/* Navegação por Abas (Fase 9) */}
-              <div className="flex flex-wrap gap-2 p-1 rounded-xl bg-slate-950 border border-slate-900 w-full select-none">
+              <div className="flex flex-wrap gap-2 p-1 rounded-xl bg-slate-950 border border-slate-900 w-full select-none items-center justify-between">
+                <div className="flex flex-wrap gap-2">
+                  <button
+                    onClick={() => setActiveProfileTab('profile')}
+                    className={`px-4 py-2 rounded-lg text-xs font-semibold tracking-wide transition-all ${
+                      activeProfileTab === 'profile'
+                        ? 'bg-brand-500 text-white shadow-md shadow-brand-500/10'
+                        : 'text-slate-400 hover:text-slate-200'
+                    }`}
+                  >
+                    Currículo Original
+                  </button>
+                  <button
+                    onClick={() => setActiveProfileTab('ai-profile')}
+                    className={`px-4 py-2 rounded-lg text-xs font-semibold tracking-wide transition-all flex items-center gap-1.5 ${
+                      activeProfileTab === 'ai-profile'
+                        ? 'bg-brand-500 text-white shadow-md shadow-brand-500/10'
+                        : 'text-slate-400 hover:text-slate-200'
+                    }`}
+                  >
+                    <Sparkles size={12} />
+                    Meu Perfil IA
+                  </button>
+                  <button
+                    onClick={() => setActiveProfileTab('transparency')}
+                    className={`px-4 py-2 rounded-lg text-xs font-semibold tracking-wide transition-all flex items-center gap-1.5 ${
+                      activeProfileTab === 'transparency'
+                        ? 'bg-brand-500 text-white shadow-md shadow-brand-500/10'
+                        : 'text-slate-400 hover:text-slate-200'
+                    }`}
+                  >
+                    <Activity size={12} />
+                    Como a IA Concluiu?
+                  </button>
+                </div>
                 <button
-                  onClick={() => setActiveProfileTab('profile')}
-                  className={`px-4 py-2 rounded-lg text-xs font-semibold tracking-wide transition-all ${
-                    activeProfileTab === 'profile'
-                      ? 'bg-brand-500 text-white shadow-md shadow-brand-500/10'
-                      : 'text-slate-400 hover:text-slate-200'
-                  }`}
+                  type="button"
+                  onClick={handleExportPDF}
+                  className="mr-1 px-3 py-1.5 rounded-lg bg-slate-900 hover:bg-slate-800 text-slate-300 hover:text-white border border-slate-800 text-[10px] font-bold flex items-center gap-1.5 transition cursor-pointer"
                 >
-                  Currículo Original
-                </button>
-                <button
-                  onClick={() => setActiveProfileTab('ai-profile')}
-                  className={`px-4 py-2 rounded-lg text-xs font-semibold tracking-wide transition-all flex items-center gap-1.5 ${
-                    activeProfileTab === 'ai-profile'
-                      ? 'bg-brand-500 text-white shadow-md shadow-brand-500/10'
-                      : 'text-slate-400 hover:text-slate-200'
-                  }`}
-                >
-                  <Sparkles size={12} />
-                  Meu Perfil IA
-                </button>
-                <button
-                  onClick={() => setActiveProfileTab('transparency')}
-                  className={`px-4 py-2 rounded-lg text-xs font-semibold tracking-wide transition-all flex items-center gap-1.5 ${
-                    activeProfileTab === 'transparency'
-                      ? 'bg-brand-500 text-white shadow-md shadow-brand-500/10'
-                      : 'text-slate-400 hover:text-slate-200'
-                  }`}
-                >
-                  <Activity size={12} />
-                  Como a IA Concluiu?
+                  <FileText size={12} />
+                  Exportar PDF
                 </button>
               </div>
 

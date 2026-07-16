@@ -764,6 +764,81 @@ export function useCoach(userId: string | undefined) {
     }
   });
 
+  const finalizeSimulationMutation = useMutation({
+    mutationFn: async ({ sim }: { sim: InterviewSimulation }) => {
+      const isMock = sim.applicationId.includes('mock') || !isValidUUID(sim.applicationId);
+      let updated: InterviewSimulation;
+
+      if (isSupabaseConfigured && supabase && !isMock) {
+        try {
+          const { data: reportData, error: reportError } = await supabase.functions.invoke('simulate-interview', {
+            body: {
+              action: 'finalize',
+              applicationId: sim.applicationId,
+              simulationId: sim.id,
+              chatHistory: sim.chatHistory
+            }
+          });
+
+          if (reportError || !reportData) {
+            throw new Error(reportError?.message || 'Falha ao compilar relatório final da entrevista.');
+          }
+
+          const { data: updatedSim, error: dbError } = await supabase
+            .from('interview_simulations')
+            .update({
+              evaluations: reportData
+            })
+            .eq('id', sim.id)
+            .select()
+            .single();
+
+          if (dbError) throw dbError;
+
+          updated = {
+            id: updatedSim.id,
+            applicationId: updatedSim.application_id,
+            chatHistory: updatedSim.chat_history,
+            evaluations: updatedSim.evaluations,
+            createdAt: updatedSim.created_at,
+            tokens_used: updatedSim.tokens_used,
+            estimated_cost: updatedSim.estimated_cost,
+            duration_seconds: updatedSim.duration_seconds
+          };
+        } catch (err: any) {
+          console.error('[FINALIZE SIMULATION ERROR]', err);
+          throw err;
+        }
+      } else {
+        const updatedHistory = [...sim.chatHistory];
+        if (updatedHistory.filter(h => h.role === 'candidate').length < 2) {
+          updatedHistory.push({ role: 'candidate', text: 'Quero encerrar a simulação e receber feedback.' });
+        }
+        const finalized = {
+          ...sim,
+          chatHistory: updatedHistory,
+          evaluations: {
+            clarity: 82,
+            objectivity: 78,
+            adherence: 85,
+            strengths: ["Demonstrou clareza na resposta", "Focou no resultado principal"],
+            improvements: ["Poderia detalhar melhor as métricas do resultado", "Organizar a resposta no formato STAR mais rígido"],
+            feedback: "Boa demonstração de competências. A resposta foi clara e focada, mas faltaram dados específicos de ROI.",
+            gapAnalysis: "Ótima aderência aos requisitos principais da vaga. Recomenda-se treinar mais respostas sob pressão.",
+            studyPlan: "1. Praticar exercícios de storytelling STAR\n2. Mapear métricas de resultado de projetos anteriores"
+          }
+        };
+        localDB.saveInterviewSimulation(finalized);
+        updated = finalized;
+      }
+      return updated;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['interview-simulation'] });
+      tracker.track('interview_finalized', 'interviews');
+    }
+  });
+
   return {
     getResumeOptimizationQuery,
     generateResumeOptimization: generateResumeOptimizationMutation.mutateAsync,
@@ -777,6 +852,7 @@ export function useCoach(userId: string | undefined) {
     getSimulationQuery,
     startSimulation: startSimulationMutation.mutateAsync,
     sendMessage: sendMessageMutation.mutateAsync,
+    finalizeSimulation: finalizeSimulationMutation.mutateAsync,
     getPostLogQuery,
     savePostLog: savePostLogMutation.mutateAsync,
     notifications: notificationsQuery.data || [],

@@ -16,6 +16,60 @@ import { ProgressRing } from '../components/ds';
 import { jobIngestionService } from '../../application/services/JobIngestionService';
 import type { IngestionResult } from '../../application/services/parsers/BaseJobParser';
 
+const BRAZILIAN_LOCATIONS = [
+  "São Paulo, SP",
+  "Rio de Janeiro, RJ",
+  "Belo Horizonte, MG",
+  "Brasília, DF",
+  "Salvador, BA",
+  "Fortaleza, CE",
+  "Recife, PE",
+  "Porto Alegre, RS",
+  "Curitiba, PR",
+  "Manaus, AM",
+  "Belém, PA",
+  "Goiânia, GO",
+  "Florianópolis, SC",
+  "Campinas, SP",
+  "Guarulhos, SP",
+  "São Bernardo do Campo, SP",
+  "Santo André, SP",
+  "Osasco, SP",
+  "Niterói, RJ",
+  "São Gonçalo, RJ",
+  "Duque de Caxias, RJ",
+  "Porto Velho, RO",
+  "Rio Branco, AC",
+  "Macapá, AP",
+  "Boa Vista, RR",
+  "Palmas, TO",
+  "Cuiabá, MT",
+  "Campo Grande, MS",
+  "Teresina, PI",
+  "São Luís, MA",
+  "Natal, RN",
+  "João Pessoa, PB",
+  "Maceió, AL",
+  "Aracaju, SE",
+  "Vitória, ES",
+  "Santos, SP",
+  "Joinville, SC",
+  "Londrina, PR",
+  "Caxias do Sul, RS",
+  "Uberlândia, MG",
+  "Juiz de Fora, MG",
+  "Ribeirão Preto, SP",
+  "São José dos Campos, SP",
+  "Sorocaba, SP",
+  "Feira de Santana, BA",
+  "Vitória da Conquista, BA",
+  "Caruaru, PE",
+  "Campina Grande, PB",
+  "Remoto",
+  "Híbrido",
+  "Presencial"
+];
+
 interface JobMatchHubProps {
   userId: string | undefined;
   resumes: Resume[];
@@ -49,6 +103,7 @@ interface JobMatchHubProps {
   selectedJobId?: string | null;
   onSelectJob?: (id: string | null) => void;
   onStartSimulation?: (target: Job | string) => void;
+  initialSubTab?: 'my-jobs' | 'discover';
 }
 
 export function JobMatchHub({
@@ -70,10 +125,18 @@ export function JobMatchHub({
   setActiveTab,
   selectedJobId: propSelectedJobId,
   onSelectJob: propOnSelectJob,
-  onStartSimulation
+  onStartSimulation,
+  initialSubTab
 }: JobMatchHubProps) {
   const queryClient = useQueryClient();
-  const [subTab, setSubTab] = useState<'my-jobs' | 'discover'>('discover');
+  const [subTab, setSubTab] = useState<'my-jobs' | 'discover'>(initialSubTab || 'discover');
+  
+  useEffect(() => {
+    if (initialSubTab) {
+      setSubTab(initialSubTab);
+    }
+  }, [initialSubTab]);
+
   const [coachTab, setCoachTab] = useState<'coach-evaluation' | 'optimize-cv' | 'cover-letter' | 'interview-questions'>('coach-evaluation');
   const [isDeletingAnalyses, setIsDeletingAnalyses] = useState(false);
   const [letterStyle, setLetterStyle] = useState<'formal' | 'direct' | 'executive'>('formal');
@@ -157,7 +220,8 @@ export function JobMatchHub({
       setActiveFilters({
         keyword: newKeyword,
         location: newLocation,
-        remoteOnly: newRemote
+        remoteOnly: newRemote,
+        workModes: ['remote']
       });
       setErrorMsg('');
       setAppError(null);
@@ -712,11 +776,17 @@ export function JobMatchHub({
   const [searchLocation, setSearchLocation] = useState(initialInputLocation);
   const [searchRemoteOnly, setSearchRemoteOnly] = useState(initialInputRemote);
   const [searchPage, setSearchPage] = useState(initialPage);
+
+  const [showLocationDropdown, setShowLocationDropdown] = useState(false);
+  const storedWorkModes = sessionStorage.getItem('job_search_work_modes');
+  const initialWorkModes = storedWorkModes ? JSON.parse(storedWorkModes) : ['remote', 'hybrid', 'onsite'];
+  const [searchWorkModes, setSearchWorkModes] = useState<string[]>(initialWorkModes);
   
   const [activeFilters, setActiveFilters] = useState({
     keyword: initialKeyword,
     location: initialLocation,
-    remoteOnly: initialRemote
+    remoteOnly: initialRemote,
+    workModes: initialWorkModes as string[]
   });
 
   // Salvar entradas do usuário e filtros ativos na sessionStorage para manter o estado ao navegar
@@ -724,6 +794,7 @@ export function JobMatchHub({
     sessionStorage.setItem('job_search_keyword', activeFilters.keyword);
     sessionStorage.setItem('job_search_location', activeFilters.location);
     sessionStorage.setItem('job_search_remote', String(activeFilters.remoteOnly));
+    sessionStorage.setItem('job_search_work_modes', JSON.stringify(activeFilters.workModes));
     sessionStorage.setItem('job_search_page', String(searchPage));
   }, [activeFilters, searchPage]);
 
@@ -739,6 +810,10 @@ export function JobMatchHub({
     sessionStorage.setItem('job_search_input_remote', String(searchRemoteOnly));
   }, [searchRemoteOnly]);
 
+  useEffect(() => {
+    sessionStorage.setItem('job_search_input_work_modes', JSON.stringify(searchWorkModes));
+  }, [searchWorkModes]);
+
   // Gatilho de redirecionamento automático do Dashboard
   useEffect(() => {
     const trigger = localStorage.getItem('vocentro_trigger_discovery');
@@ -751,15 +826,18 @@ export function JobMatchHub({
       const keyword = preferences.searchKeywords?.[0] || (careerProfile as any)?.searchKeywords?.[0] || 'React';
       const loc = preferences.preferredLocations?.[0] || (careerProfile as any)?.preferredLocations?.[0] || 'Brasil';
       const isRemote = preferences.preferredWorkModes ? preferences.preferredWorkModes.includes('remote') : ((careerProfile as any)?.preferredWorkModes?.includes('remote') ?? true);
+      const preferredModes = preferences.preferredWorkModes || (careerProfile as any)?.preferredWorkModes || ['remote'];
       
       setSearchKeyword(keyword);
       setSearchLocation(loc);
       setSearchRemoteOnly(isRemote);
+      setSearchWorkModes(preferredModes);
       
       setActiveFilters({
         keyword,
         location: loc,
-        remoteOnly: isRemote
+        remoteOnly: isRemote,
+        workModes: preferredModes
       });
     }
   }, [careerProfile, careerProfileNew]);
@@ -1068,7 +1146,8 @@ export function JobMatchHub({
     setActiveFilters({
       keyword: searchKeyword,
       location: searchLocation,
-      remoteOnly: searchRemoteOnly
+      remoteOnly: searchWorkModes.includes('remote') && searchWorkModes.length === 1,
+      workModes: searchWorkModes
     });
   };
 
@@ -1292,13 +1371,12 @@ export function JobMatchHub({
                     </div>
 
                     <div className="space-y-1">
-                      <label className="text-xs font-semibold text-slate-400">Nome da Empresa</label>
+                      <label className="text-xs font-semibold text-slate-400">Nome da Empresa (Opcional)</label>
                       <input
                         type="text"
                         value={previewData.companyName}
                         onChange={e => setPreviewData({ ...previewData, companyName: e.target.value })}
                         className="w-full px-3 py-2 rounded-xl bg-slate-900/50 border border-slate-800 focus:border-brand-500 outline-none text-xs text-slate-200"
-                        required
                       />
                     </div>
                   </div>
@@ -2653,31 +2731,72 @@ export function JobMatchHub({
                       />
                     </div>
 
-                    <div className="space-y-1">
+                    <div className="space-y-1 relative">
                       <label className="text-xs font-semibold text-slate-400 flex items-center gap-1.5">
                         <MapPin size={12} />
                         Localidade
                       </label>
                       <input
                         type="text"
-                        placeholder="Ex: Brasil, Remoto"
+                        placeholder="Ex: São Paulo, SP ou Remoto"
                         value={searchLocation}
-                        onChange={e => setSearchLocation(e.target.value)}
+                        onChange={e => {
+                          setSearchLocation(e.target.value);
+                          setShowLocationDropdown(true);
+                        }}
+                        onFocus={() => setShowLocationDropdown(true)}
+                        onBlur={() => setTimeout(() => setShowLocationDropdown(false), 200)}
                         className="w-full px-4 py-2.5 rounded-xl bg-slate-900/50 border border-slate-800 focus:border-brand-500 outline-none text-xs text-slate-200"
                       />
+                      {showLocationDropdown && searchLocation.trim().length >= 1 && (
+                        <div className="absolute left-0 right-0 top-full mt-1.5 max-h-48 overflow-y-auto bg-slate-950 border border-slate-800 rounded-xl z-50 shadow-2xl divide-y divide-slate-900/50">
+                          {BRAZILIAN_LOCATIONS.filter(loc => 
+                            loc.toLowerCase().includes(searchLocation.toLowerCase())
+                          ).map(loc => (
+                            <button
+                              key={loc}
+                              type="button"
+                              onClick={() => {
+                                setSearchLocation(loc);
+                                setShowLocationDropdown(false);
+                              }}
+                              className="w-full text-left px-4 py-2 text-xs text-slate-300 hover:bg-brand-500/10 hover:text-brand-400 transition-colors"
+                            >
+                              {loc}
+                            </button>
+                          ))}
+                        </div>
+                      )}
                     </div>
 
-                    <div className="flex items-center gap-2 h-10 px-2 select-none">
-                      <input
-                        type="checkbox"
-                        id="remote-only"
-                        checked={searchRemoteOnly}
-                        onChange={e => setSearchRemoteOnly(e.target.checked)}
-                        className="h-4 w-4 accent-brand-500 rounded bg-slate-900 border-slate-800 cursor-pointer"
-                      />
-                      <label htmlFor="remote-only" className="text-xs font-semibold text-slate-400 cursor-pointer">
-                        Apenas Remoto
-                      </label>
+                    <div className="space-y-1 min-w-[140px]">
+                      <label className="text-xs font-semibold text-slate-400 block mb-1">Modelo de Trabalho</label>
+                      <div className="flex flex-wrap gap-2 py-1.5">
+                        {[
+                          { id: 'remoto', label: 'Remoto', val: 'remote' },
+                          { id: 'hibrido', label: 'Híbrido', val: 'hybrid' },
+                          { id: 'presencial', label: 'Presencial', val: 'onsite' }
+                        ].map(mode => {
+                          const isChecked = searchWorkModes.includes(mode.val);
+                          return (
+                            <label key={mode.id} className="flex items-center gap-1.5 text-xs text-slate-350 cursor-pointer select-none">
+                              <input
+                                type="checkbox"
+                                checked={isChecked}
+                                onChange={() => {
+                                  if (isChecked) {
+                                    setSearchWorkModes(searchWorkModes.filter(m => m !== mode.val));
+                                  } else {
+                                    setSearchWorkModes([...searchWorkModes, mode.val]);
+                                  }
+                                }}
+                                className="h-3.5 w-3.5 accent-brand-500 rounded bg-slate-900 border-slate-800"
+                              />
+                              {mode.label}
+                            </label>
+                          );
+                        })}
+                      </div>
                     </div>
 
                     <button
@@ -2858,7 +2977,8 @@ export function JobMatchHub({
                       setActiveFilters({
                         keyword: initialKeyword,
                         location: initialLocation,
-                        remoteOnly: initialRemote
+                        remoteOnly: initialRemote,
+                        workModes: initialRemote ? ['remote'] : ['remote', 'hybrid', 'onsite']
                       });
                     }}
                   />

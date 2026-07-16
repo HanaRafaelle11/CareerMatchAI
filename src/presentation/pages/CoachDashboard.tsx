@@ -7,9 +7,10 @@ import { calcYearsFromExperiences } from '../../application/services/matchingEng
 import { tracker } from '../../infrastructure/analytics/tracker';
 import { 
   Award, Play, MessageSquare, Send, 
-  RefreshCcw, Star, UserCheck, Loader2, BarChart3, ChevronDown
+  RefreshCcw, Star, UserCheck, Loader2, BarChart3, ChevronDown, Sparkles
 } from 'lucide-react';
 import { ProgressRing, Badge } from '../components/ds';
+import { printElementHtml } from '../../application/utils/pdfExport';
 
 /** Converts **bold** markdown markers in text to <strong> tags */
 function formatBoldText(text: string): React.ReactNode[] {
@@ -30,10 +31,12 @@ interface CoachDashboardProps {
   matches?: any[];
   startSimulation: (appId: string, reset?: boolean) => Promise<any>;
   sendMessage: (args: { sim: any; role: 'interviewer' | 'candidate'; text: string }) => Promise<any>;
+  finalizeSimulation: (args: { sim: any }) => Promise<any>;
   getSimulationQuery: (appId: string) => any;
   triggerDailyChecks: () => Promise<any>;
   initialSelectedAppId?: string | null;
   onClearInitialSelectedAppId?: () => void;
+  setActiveTab?: (tab: string) => void;
 }
 
 export function CoachDashboard({
@@ -44,10 +47,12 @@ export function CoachDashboard({
   matches,
   startSimulation,
   sendMessage,
+  finalizeSimulation,
   getSimulationQuery,
   triggerDailyChecks,
   initialSelectedAppId,
-  onClearInitialSelectedAppId
+  onClearInitialSelectedAppId,
+  setActiveTab
 }: CoachDashboardProps) {
   const [activeSubTab, setActiveSubTab] = useState<'simulator' | 'recruiter'>('simulator');
   const [isCheckingVagas, setIsCheckingVagas] = useState(false);
@@ -58,6 +63,116 @@ export function CoachDashboard({
   const profileYears = careerProfileNew ? calcYearsFromExperiences(careerProfileNew.experience) : 0;
   const profileSkills = careerProfileNew?.skills.slice(0, 5).map(s => s.name).join(', ') || 'suas competências principais';
   const profileRole = careerProfileNew?.experience?.[0]?.role || profileHeadline;
+
+  const handleExportSimulationPDF = () => {
+    if (!simulation || !simulation.evaluations) {
+      alert("Não há diagnóstico de simulação disponível para exportar.");
+      return;
+    }
+
+    const evaluations = simulation.evaluations as any;
+    const isNewSchema = evaluations.scoreOverall !== undefined;
+    const targetJob = jobs.find(j => j.id === simulation.applicationId) || jobs[0];
+
+    let htmlContent = '';
+
+    if (isNewSchema) {
+      const strengthsList = (evaluations.strengths || []).map((s: string) => `<li>${s}</li>`).join('');
+      const weaknessesList = (evaluations.weaknesses || []).map((s: string) => `<li>${s}</li>`).join('');
+
+      htmlContent = `
+        <h1 style="border-bottom: none; margin-bottom: 4px;">Relatório de Diagnóstico de Entrevista</h1>
+        <div style="font-size: 11pt; color: #64748b; margin-bottom: 25px; border-bottom: 2px solid #6366f1; padding-bottom: 10px;">
+          Candidato: <strong>${profileName}</strong> | Vaga: <strong>${targetJob?.title || 'Simulação'}</strong> | Empresa: <strong>${targetJob?.companyName || 'Vocentro'}</strong>
+        </div>
+
+        <div class="score-grid">
+          <div class="score-card">
+            <div class="score-val">${evaluations.scoreOverall || 0}%</div>
+            <div class="score-label">Nota Geral</div>
+          </div>
+          <div class="score-card">
+            <div class="score-val">${evaluations.jobAdherence || 0}%</div>
+            <div class="score-label">Aderência à Vaga</div>
+          </div>
+          <div class="score-card">
+            <div class="score-val">${evaluations.approvalProbability || 0}%</div>
+            <div class="score-label">Probabilidade de Aprovação</div>
+          </div>
+        </div>
+
+        <h2>Diagnóstico de Resposta (Método STAR)</h2>
+        <p style="font-size: 10.5pt; color: #334155; line-height: 1.6;">${evaluations.starAnalysis || ''}</p>
+
+        <h2>Adequação Técnica</h2>
+        <p style="font-size: 10.5pt; color: #334155; line-height: 1.6;">${evaluations.technicalAnalysis || ''}</p>
+
+        <div class="grid-2">
+          <div class="grid-col">
+            <h2>Comunicação & Expressão</h2>
+            <p style="font-size: 10pt; color: #334155; line-height: 1.6;">${evaluations.communicationAnalysis || ''}</p>
+            <p style="font-size: 9pt; color: #64748b; font-style: italic; margin-top: 5px;">${evaluations.postureAnalysis || ''}</p>
+          </div>
+          <div class="grid-col">
+            <h2>Clareza & Segurança</h2>
+            <p style="font-size: 10pt; color: #334155; line-height: 1.6;">${evaluations.clarityAnalysis || ''}</p>
+          </div>
+        </div>
+
+        <div class="grid-2">
+          <div class="grid-col">
+            <h2 style="color: #10b981;">✓ Pontos Fortes</h2>
+            <ul>${strengthsList}</ul>
+          </div>
+          <div class="grid-col">
+            <h2 style="color: #f59e0b;">⚠️ Oportunidades de Melhoria</h2>
+            <ul>${weaknessesList}</ul>
+          </div>
+        </div>
+
+        <h2>Plano de Ação e Preparação</h2>
+        <ol style="padding-left: 20px; font-size: 10.5pt; color: #334155; line-height: 1.6;">
+          ${(evaluations.improvementPlan || []).map((item: string) => `<li style="margin-bottom: 8px;">${item}</li>`).join('')}
+        </ol>
+      `;
+    } else {
+      const strengthsList = (evaluations.strengths || []).map((s: string) => `<li>${s}</li>`).join('');
+      const improvementsList = (evaluations.improvements || []).map((s: string) => `<li>${s}</li>`).join('');
+
+      htmlContent = `
+        <h1 style="border-bottom: none; margin-bottom: 4px;">Relatório de Diagnóstico de Entrevista</h1>
+        <div style="font-size: 11pt; color: #64748b; margin-bottom: 25px; border-bottom: 2px solid #6366f1; padding-bottom: 10px;">
+          Candidato: <strong>${profileName}</strong> | Vaga: <strong>${targetJob?.title || 'Simulação'}</strong> | Empresa: <strong>${targetJob?.companyName || 'Vocentro'}</strong>
+        </div>
+
+        <div class="score-grid">
+          <div class="score-card" style="width: 100%;">
+            <div class="score-val">${Math.round(((evaluations.clarity || 0) + (evaluations.objectivity || 0) + (evaluations.adherence || 0)) / 3)}%</div>
+            <div class="score-label">Aderência Geral</div>
+          </div>
+        </div>
+
+        <h2>Avaliação de Competências</h2>
+        <p style="font-size: 10.5pt; color: #334155; line-height: 1.6;">${evaluations.feedback || ''}</p>
+
+        <div class="grid-2">
+          <div class="grid-col">
+            <h2 style="color: #10b981;">✓ Pontos Fortes</h2>
+            <ul>${strengthsList}</ul>
+          </div>
+          <div class="grid-col">
+            <h2 style="color: #f59e0b;">⚠️ Oportunidades de Melhoria</h2>
+            <ul>${improvementsList}</ul>
+          </div>
+        </div>
+
+        <h2>Plano de Estudo Recomendado</h2>
+        <p style="font-size: 10.5pt; color: #334155; line-height: 1.6; white-space: pre-line;">${evaluations.studyPlan || ''}</p>
+      `;
+    }
+
+    printElementHtml(`Diagnostico_Entrevista_${profileName}_Vocentro`, htmlContent);
+  };
   
   // 1. Processo seletivo ativo para simular
   const activeApps = applications.filter(a => 
@@ -196,7 +311,8 @@ export function CoachDashboard({
     try {
       setIsCheckingVagas(true);
       await triggerDailyChecks();
-      alert('Vagas verificadas com sucesso!');
+      alert('Vagas verificadas com sucesso! Redirecionando para descoberta de vagas.');
+      setActiveTab?.('match');
     } catch (err) {
       console.error(err);
       alert('Erro ao verificar novas vagas.');
@@ -253,6 +369,19 @@ export function CoachDashboard({
           <UserCheck size={15} />
           Recrutadora IA (Consultora)
         </button>
+      </div>
+
+      {/* Premium Explanation Banner */}
+      <div className="p-4 rounded-2xl bg-gradient-to-r from-brand-900/10 via-slate-900/40 to-slate-900/10 border border-brand-500/10 text-xs flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div className="space-y-1">
+          <div className="flex items-center gap-1.5 font-bold text-slate-200">
+            <Sparkles size={14} className="text-brand-accent animate-pulse" />
+            <span>Qual a diferença entre as ferramentas?</span>
+          </div>
+          <p className="text-slate-400 leading-relaxed max-w-4xl text-[11px]">
+            O <strong>Simulador de Entrevista STAR</strong> é estruturado para praticar respostas baseadas em uma vaga e empresa específicas. A <strong>Recrutadora IA (Mariana)</strong> é uma consultoria aberta onde você pode tirar dúvidas de carreira, revisar currículo ou negociar salário livremente.
+          </p>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
@@ -533,7 +662,7 @@ export function CoachDashboard({
                               <div className="flex gap-3 pt-2">
                                 <button
                                   onClick={handleRestartSim}
-                                  className="flex-1 py-2.5 rounded-xl border border-slate-800 hover:bg-slate-900 text-slate-300 font-bold text-xs transition-all cursor-pointer"
+                                  className="flex-1 py-2.5 rounded-xl border border-slate-800 hover:bg-slate-900 text-slate-350 font-bold text-xs transition-all cursor-pointer"
                                 >
                                   Treinar Novamente
                                 </button>
@@ -549,9 +678,15 @@ export function CoachDashboard({
                                     downloadAnchor.click();
                                     downloadAnchor.remove();
                                   }}
-                                  className="flex-1 py-2.5 bg-brand-650 hover:bg-brand-600 rounded-xl text-white font-bold text-xs transition-all cursor-pointer"
+                                  className="flex-1 py-2.5 bg-slate-900 hover:bg-slate-850 border border-slate-800 rounded-xl text-slate-300 font-bold text-xs transition-all cursor-pointer"
                                 >
-                                  Exportar Feedback
+                                  Exportar JSON
+                                </button>
+                                <button
+                                  onClick={handleExportSimulationPDF}
+                                  className="flex-1 py-2.5 bg-brand-600 hover:bg-brand-500 rounded-xl text-white font-bold text-xs transition-all cursor-pointer"
+                                >
+                                  Exportar PDF
                                 </button>
                               </div>
                             </div>
@@ -644,28 +779,69 @@ export function CoachDashboard({
                                 </div>
                               )}
                             </div>
+
+                            {/* Action Buttons */}
+                            <div className="flex gap-3 pt-2">
+                              <button
+                                type="button"
+                                onClick={handleRestartSim}
+                                className="flex-1 py-2 rounded-xl border border-slate-800 hover:bg-slate-900 text-slate-350 font-bold text-xs transition-all cursor-pointer"
+                              >
+                                Treinar Novamente
+                              </button>
+                              <button
+                                type="button"
+                                onClick={handleExportSimulationPDF}
+                                className="flex-1 py-2 bg-brand-600 hover:bg-brand-500 rounded-xl text-white font-bold text-xs transition-all cursor-pointer"
+                              >
+                                Exportar PDF
+                              </button>
+                            </div>
                           </div>
                         );
                       })()}
 
                       {/* Reply Input Form */}
                       {!simulation.evaluations && (
-                        <form onSubmit={handleSendResponse} className="flex gap-2">
-                          <input
-                            type="text"
-                            placeholder="Sua resposta..."
-                            value={candidateResponse}
-                            onChange={e => setCandidateResponse(e.target.value)}
-                            className="flex-1 px-4 py-2.5 rounded-xl bg-slate-900/50 border border-slate-800 focus:border-brand-500 outline-none text-xs text-slate-200"
-                          />
-                          <button
-                            type="submit"
-                            disabled={!candidateResponse.trim() || isSending}
-                            className="px-4 rounded-xl bg-brand-600 hover:bg-brand-500 text-white font-bold text-xs"
-                          >
-                            <Send size={14} />
-                          </button>
-                        </form>
+                        <div className="space-y-2">
+                          <form onSubmit={handleSendResponse} className="flex gap-2">
+                            <input
+                              type="text"
+                              placeholder="Sua resposta..."
+                              value={candidateResponse}
+                              onChange={e => setCandidateResponse(e.target.value)}
+                              className="flex-1 px-4 py-2.5 rounded-xl bg-slate-900/50 border border-slate-800 focus:border-brand-500 outline-none text-xs text-slate-200"
+                            />
+                            <button
+                              type="submit"
+                              disabled={!candidateResponse.trim() || isSending}
+                              className="px-4 rounded-xl bg-brand-600 hover:bg-brand-500 text-white font-bold text-xs"
+                            >
+                              <Send size={14} />
+                            </button>
+                          </form>
+                          <div className="flex justify-end">
+                            <button
+                              type="button"
+                              disabled={isSending}
+                              onClick={async () => {
+                                const confirm = window.confirm("Deseja realmente encerrar a simulação e gerar seu relatório de avaliação com base nas respostas fornecidas até agora?");
+                                if (!confirm) return;
+                                setIsSending(true);
+                                try {
+                                  await finalizeSimulation({ sim: simulation });
+                                } catch (err: any) {
+                                  alert("Erro ao encerrar a simulação: " + err.message);
+                                } finally {
+                                  setIsSending(false);
+                                }
+                              }}
+                              className="px-3 py-1.5 rounded-xl bg-red-950/20 border border-red-500/30 text-red-400 hover:bg-red-950/40 text-[10px] font-bold tracking-wide transition cursor-pointer flex items-center gap-1"
+                            >
+                              Encerrar Treinamento & Gerar Relatório
+                            </button>
+                          </div>
+                        </div>
                       )}
                     </div>
                   ) : (

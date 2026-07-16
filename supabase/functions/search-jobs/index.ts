@@ -1,50 +1,88 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.8"
 
+// Import Connectors
+import { AdzunaConnector } from "./connectors/AdzunaConnector.ts";
+import { RemotiveConnector } from "./connectors/RemotiveConnector.ts";
+import { RemoteOkConnector } from "./connectors/RemoteOkConnector.ts";
+import { ArbeitnowConnector } from "./connectors/ArbeitnowConnector.ts";
+import { GreenhouseConnector } from "./connectors/GreenhouseConnector.ts";
+import { LeverConnector } from "./connectors/LeverConnector.ts";
+import { AshbyConnector } from "./connectors/AshbyConnector.ts";
+import { SmartRecruitersConnector } from "./connectors/SmartRecruitersConnector.ts";
+import { WorkableConnector } from "./connectors/WorkableConnector.ts";
+import { RecruiteeConnector } from "./connectors/RecruiteeConnector.ts";
+import { TeamtailorConnector } from "./connectors/TeamtailorConnector.ts";
+import { BambooHRConnector } from "./connectors/BambooHRConnector.ts";
+import { ComeetConnector } from "./connectors/ComeetConnector.ts";
+import { GupyConnector } from "./connectors/GupyConnector.ts";
+import { 
+  ProgramathorConnector, 
+  TramposConnector, 
+  GeekHunterConnector, 
+  ReveloConnector, 
+  AblerConnector 
+} from "./connectors/BrazilianConnectors.ts";
+
+import { aggregateAndNormalizeJobs } from "./aggregator.ts";
+
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
   'Access-Control-Allow-Methods': 'POST, GET, OPTIONS',
 }
 
-async function fetchWithRetry(url: string, options: any, maxRetries = 3): Promise<Response> {
-  const delays = [2000, 5000, 10000];
-  for (let attempt = 1; attempt <= maxRetries; attempt++) {
-    try {
-      const response = await fetch(url, options);
-      if (response.ok) return response;
-      
-      if (response.status === 429 || response.status >= 500) {
-        console.warn(`[ADZUNA RETRY] Tentativa ${attempt} falhou com status ${response.status}. Aguardando ${delays[attempt - 1] || 10000}ms...`);
-        await new Promise(resolve => setTimeout(resolve, delays[attempt - 1] || 10000));
-        continue;
-      }
-      return response;
-    } catch (err) {
-      if (attempt === maxRetries) throw err;
-      console.warn(`[ADZUNA RETRY] Tentativa ${attempt} falhou com erro: ${err.message}. Aguardando ${delays[attempt - 1] || 10000}ms...`);
-      await new Promise(resolve => setTimeout(resolve, delays[attempt - 1] || 10000));
-    }
-  }
-  throw new Error(`Falha ao conectar à API do Adzuna após ${maxRetries} tentativas.`);
-}
-
-async function logApplicationEvent(supabaseClient: any, userId: string | null, eventName: string, service: string, status: string, metadata = {}) {
+// Global logger helper for analytics_events
+async function logAnalyticsEvent(
+  supabaseClient: any, 
+  userId: string | null, 
+  eventName: string, 
+  provider: string, 
+  status: string, 
+  metadata = {}
+) {
   if (!supabaseClient) return;
   try {
     await supabaseClient
-      .from('application_events')
+      .from('analytics_events')
       .insert({
         user_id: userId || null,
         event_name: eventName,
-        service,
-        status,
-        metadata
+        category: 'job_search',
+        metadata: {
+          ...metadata,
+          service: provider,
+          status,
+          timestamp: new Date().toISOString()
+        }
       });
   } catch (err) {
     console.error(`[EVENT LOG] Erro ao gravar evento ${eventName}:`, err.message);
   }
 }
+
+// List of all active connectors
+const ACTIVE_CONNECTORS = [
+  new AdzunaConnector(),
+  new RemotiveConnector(),
+  new RemoteOkConnector(),
+  new ArbeitnowConnector(),
+  new GreenhouseConnector(),
+  new LeverConnector(),
+  new AshbyConnector(),
+  new SmartRecruitersConnector(),
+  new WorkableConnector(),
+  new RecruiteeConnector(),
+  new TeamtailorConnector(),
+  new BambooHRConnector(),
+  new ComeetConnector(),
+  new GupyConnector(),
+  new ProgramathorConnector(),
+  new TramposConnector(),
+  new GeekHunterConnector(),
+  new ReveloConnector(),
+  new AblerConnector()
+];
 
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
@@ -57,17 +95,16 @@ serve(async (req) => {
 
   try {
     const { keyword, location, pageNum = 1, userId } = await req.json();
+    const searchKeyword = keyword || 'React';
+    const searchLocation = location || 'Brasil';
 
-    const appId = Deno.env.get('ADZUNA_APP_ID');
-    const appKey = Deno.env.get('ADZUNA_APP_KEY');
-    
-    const supabaseUrl = Deno.env.get('SUPABASE_URL') || ''
-    const supabaseAnonKey = Deno.env.get('SUPABASE_ANON_KEY') || ''
-    const authHeader = req.headers.get('Authorization') || ''
+    const supabaseUrl = Deno.env.get('SUPABASE_URL') || '';
+    const supabaseAnonKey = Deno.env.get('SUPABASE_ANON_KEY') || '';
+    const authHeader = req.headers.get('Authorization') || '';
 
     supabaseClient = createClient(supabaseUrl, supabaseAnonKey, {
       global: { headers: { Authorization: authHeader } }
-    })
+    });
 
     resolvedUserId = userId || null;
     if (!resolvedUserId && authHeader) {
@@ -79,117 +116,119 @@ serve(async (req) => {
       }
     }
 
-    if (!appId || !appKey) {
-      console.error("[JOB SEARCH] Erro: ADZUNA_APP_ID ou ADZUNA_APP_KEY não configurada.");
-      
-      await logApplicationEvent(supabaseClient, resolvedUserId, 'job_search_failed', 'Adzuna', 'failed', { error: 'API_NOT_CONFIGURED', duration_ms: Date.now() - requestStartTime });
+    const queryKey = `${searchKeyword.toLowerCase().trim()}|${searchLocation.toLowerCase().trim()}|${pageNum}`;
 
-      const msg = "O provedor de busca de vagas Adzuna não está configurado. Configure as credenciais no cofre do Supabase para ativar as buscas.";
+    // ── 1. VERIFICAR CACHE (TTL: 5 minutos) ──
+    const fiveMinutesAgo = new Date(Date.now() - 5 * 60 * 1000).toISOString();
+    const { data: cached } = await supabaseClient
+      .from('job_search_cache')
+      .select('results, created_at')
+      .eq('query_key', queryKey)
+      .gt('created_at', fiveMinutesAgo)
+      .maybeSingle();
+
+    if (cached && cached.results) {
+      console.log(`[JOB SEARCH CACHE HIT] key: ${queryKey}`);
+      await logAnalyticsEvent(supabaseClient, resolvedUserId, 'cache_hit', 'Cache', 'completed', { queryKey });
       return new Response(
-        JSON.stringify({ 
-          success: false, 
-          error: msg, 
-          errorDetails: { 
-            code: "API_NOT_CONFIGURED", 
-            userMessage: msg, 
-            retryable: false 
-          } 
-        }),
-        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        JSON.stringify(cached.results),
+        { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
-    const searchKeyword = keyword || 'React';
-    const searchLocation = location || 'Brasil';
+    await logAnalyticsEvent(supabaseClient, resolvedUserId, 'cache_miss', 'Cache', 'completed', { queryKey });
 
-    // Registrar início do request de vagas
-    await logApplicationEvent(supabaseClient, resolvedUserId, 'job_search_started', 'Adzuna', 'started', { searchKeyword, searchLocation });
+    // ── 2. INICIAR BUSCA PARALELA EM PROVEDORES ──
+    let rawJobsList: any[] = [];
 
-    const url = `https://api.adzuna.com/v1/api/jobs/br/search/${pageNum}?app_id=${appId}&app_key=${appKey}&results_per_page=15&what=${encodeURIComponent(searchKeyword)}&where=${encodeURIComponent(searchLocation)}`;
+    const promises = ACTIVE_CONNECTORS.map(async (connector) => {
+      const start = Date.now();
+      await logAnalyticsEvent(supabaseClient, resolvedUserId, 'provider_started', connector.platformName, 'started', { keyword: searchKeyword });
 
-    const response = await fetchWithRetry(url, { method: 'GET' });
-    if (!response.ok) {
-      throw new Error(`Falha ao consultar API do Adzuna com status: ${response.status}`);
+      try {
+        // Timeout de 3 segundos por conector para evitar travamentos
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 3000);
+
+        const connectorResult = await connector.searchJobs(searchKeyword, searchLocation, pageNum);
+        clearTimeout(timeoutId);
+
+        const duration = Date.now() - start;
+        await logAnalyticsEvent(supabaseClient, resolvedUserId, 'provider_finished', connector.platformName, 'completed', {
+          count: connectorResult.length,
+          duration_ms: duration
+        });
+
+        return { name: connector.platformName, jobs: connectorResult, success: true };
+      } catch (err) {
+        const duration = Date.now() - start;
+        console.error(`[Aggregator] Falha no conector ${connector.platformName}:`, err.message);
+        await logAnalyticsEvent(supabaseClient, resolvedUserId, 'provider_failed', connector.platformName, 'failed', {
+          error: err.message,
+          duration_ms: duration
+        });
+        return { name: connector.platformName, jobs: [], success: false, error: err.message };
+      }
+    });
+
+    const settledResults = await Promise.allSettled(promises);
+    
+    let totalCount = 0;
+    settledResults.forEach((r) => {
+      if (r.status === 'fulfilled') {
+        rawJobsList = [...rawJobsList, ...r.value.jobs];
+        totalCount += r.value.jobs.length;
+      }
+    });
+
+    // ── 3. AGREGADOR INTELIGENTE (NORMALIZAÇÃO, DEDUPLICAÇÃO & SCORING) ──
+    const normalizedJobs = aggregateAndNormalizeJobs(rawJobsList);
+    const duplicatesRemoved = totalCount - normalizedJobs.length;
+
+    // Log stats
+    await logAnalyticsEvent(supabaseClient, resolvedUserId, 'jobs_normalized', 'Aggregator', 'completed', { count: totalCount });
+    await logAnalyticsEvent(supabaseClient, resolvedUserId, 'jobs_deduplicated', 'Aggregator', 'completed', { duplicates_count: duplicatesRemoved });
+    await logAnalyticsEvent(supabaseClient, resolvedUserId, 'jobs_ranked', 'Aggregator', 'completed', { ranked_count: normalizedJobs.length });
+
+    const finalResponse = {
+      count: normalizedJobs.length,
+      results: normalizedJobs
+    };
+
+    // ── 4. GRAVAR EM CACHE ──
+    try {
+      await supabaseClient
+        .from('job_search_cache')
+        .upsert({
+          query_key: queryKey,
+          results: finalResponse,
+          created_at: new Date().toISOString()
+        });
+    } catch (dbErr) {
+      console.error('[CACHE SAVE ERROR]', dbErr.message);
     }
 
-    const data = await response.json();
-    const resultsCount = data.results?.length || 0;
-
-    console.log(`[JOB SEARCH SUCCESS] query: ${searchKeyword} | results: ${resultsCount}`);
-
-    const durationMs = Date.now() - requestStartTime;
-    // Registrar sucesso da busca de vagas
-    await logApplicationEvent(supabaseClient, resolvedUserId, 'job_search_completed', 'Adzuna', 'completed', { searchKeyword, searchLocation, resultsCount, duration_ms: durationMs });
-
     return new Response(
-      JSON.stringify(data),
+      JSON.stringify(finalResponse),
       { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   } catch (error) {
-    console.error("[JOB SEARCH] Exceção na busca de vagas:", error);
-
+    console.error("[JOB SEARCH AGGREGATOR ERROR]", error);
     const durationMs = Date.now() - requestStartTime;
-
-    // Estruturar metadados de falha com as 6 propriedades essenciais
-    const failureMetadata = {
-      endpoint: 'api.adzuna.com/v1/api/jobs/br/search',
-      status: error.message?.match(/status:\s*(\d+)/)?.[1] || 'unknown',
-      message: error.message || String(error),
-      latency_ms: durationMs,
-      payload_summary: `keyword=${(error as any).keyword || 'N/A'}, location=${(error as any).location || 'N/A'}`,
-      reason: error.message?.includes('timeout') || error.message?.includes('fetch')
-        ? 'NETWORK_TIMEOUT'
-        : error.message?.includes('429') || error.message?.includes('Rate')
-          ? 'RATE_LIMIT'
-          : error.message?.includes('tentativas')
-            ? 'MAX_RETRIES_EXCEEDED'
-            : 'GENERIC_ERROR',
-      duration_ms: durationMs
-    };
-
-    // Registrar falha nos eventos
     if (supabaseClient) {
-      await logApplicationEvent(supabaseClient, resolvedUserId, 'job_search_failed', 'Adzuna', 'failed', failureMetadata);
-
-      // Persistir erro estruturado na tabela application_errors para diagnóstico
-      try {
-        await supabaseClient
-          .from('application_errors')
-          .insert({
-            user_id: resolvedUserId || null,
-            service: 'Adzuna',
-            error_code: failureMetadata.reason,
-            error_message: failureMetadata.message,
-            metadata: failureMetadata
-          });
-      } catch (dbErr) {
-        console.error('[ERROR LOG] Erro ao gravar em application_errors:', dbErr.message);
-      }
+      await logAnalyticsEvent(supabaseClient, resolvedUserId, 'job_search_failed', 'Aggregator', 'failed', { error: error.message, duration_ms: durationMs });
     }
-
-    let code = "JOB_SEARCH_UNAVAILABLE";
-    let userMessage = "O serviço de busca de vagas está temporariamente fora de serviço. Tente novamente mais tarde.";
-
-    if (error.message?.includes('timeout') || error.message?.includes('fetch') || error.message?.includes('network')) {
-      code = "ADZUNA_TIMEOUT";
-      userMessage = "A busca de vagas no Adzuna expirou por lentidão da rede. Tente novamente.";
-    } else if (error.message?.includes('429') || error.message?.includes('limite') || error.message?.includes('Rate')) {
-      code = "ADZUNA_RATE_LIMIT";
-      userMessage = "O limite de consultas na API do Adzuna foi atingido. Aguarde alguns instantes.";
-    }
-
     return new Response(
       JSON.stringify({ 
         success: false, 
-        error: userMessage, 
+        error: error.message || "Erro na agregação de vagas públicas.",
         errorDetails: { 
-          code, 
-          userMessage, 
-          retryable: true,
-          details: error.message 
+          code: "JOB_SEARCH_FAILED", 
+          userMessage: "Erro ao unificar buscas de vagas.",
+          retryable: true 
         } 
       }),
       { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   }
-})
+});

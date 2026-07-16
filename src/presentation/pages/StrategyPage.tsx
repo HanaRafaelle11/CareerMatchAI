@@ -735,11 +735,11 @@ export function StrategyPage({
             <div>
               <span className="text-[10px] px-2 py-0.5 bg-brand-500/10 text-brand-500 font-extrabold uppercase rounded-lg">Candidacy ROI Engine</span>
               <p className="text-xs text-slate-300 mt-2">
-                Analisamos as vagas e calculamos o **ROI (Retorno sobre Tempo)** para você focar no que realmente importa.
+                Analisamos as vagas e calculamos o <strong className="font-bold text-slate-200">ROI (Retorno sobre Tempo)</strong> para você focar no que realmente importa.
               </p>
             </div>
             <button
-              onClick={() => setActiveTab('match')}
+              onClick={() => setActiveTab && setActiveTab('discover')}
               className="px-4 py-2 text-xs font-bold text-slate-200 bg-slate-900 border border-slate-800 hover:border-slate-700 rounded-xl flex items-center gap-1.5 transition-all shrink-0"
             >
               <Compass size={14} />

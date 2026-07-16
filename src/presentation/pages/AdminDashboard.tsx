@@ -16,10 +16,10 @@ interface AdminDashboardProps {
 
 // Mock inicial para quando a conexão com Supabase estiver em fallback/offline
 const defaultMockUsers = [
-  { id: 'usr-1', full_name: 'Hana Rafaelle', email: 'hana@talenta.ai', role: 'administrador', headline: 'CEO | Founder', created_at: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString() },
-  { id: 'usr-2', full_name: 'Carlos Estevão', email: 'carlos@talenta.ai', role: 'suporte', headline: 'Customer Experience Lead', created_at: new Date(Date.now() - 25 * 24 * 60 * 60 * 1000).toISOString() },
-  { id: 'usr-3', full_name: 'Mariana Costa', email: 'mariana@talenta.ai', role: 'financeiro', headline: 'Financial Controller', created_at: new Date(Date.now() - 20 * 24 * 60 * 60 * 1000).toISOString() },
-  { id: 'usr-4', full_name: 'Davi Silva', email: 'davi@talenta.ai', role: 'somente_leitura', headline: 'Product Manager', created_at: new Date(Date.now() - 15 * 24 * 60 * 60 * 1000).toISOString() },
+  { id: 'usr-1', full_name: 'Hana Rafaelle', email: 'hana@vocentro.com', role: 'administrador', headline: 'CEO | Founder', created_at: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString() },
+  { id: 'usr-2', full_name: 'Carlos Estevão', email: 'carlos@vocentro.com', role: 'suporte', headline: 'Customer Experience Lead', created_at: new Date(Date.now() - 25 * 24 * 60 * 60 * 1000).toISOString() },
+  { id: 'usr-3', full_name: 'Mariana Costa', email: 'mariana@vocentro.com', role: 'financeiro', headline: 'Financial Controller', created_at: new Date(Date.now() - 20 * 24 * 60 * 60 * 1000).toISOString() },
+  { id: 'usr-4', full_name: 'Davi Silva', email: 'davi@vocentro.com', role: 'somente_leitura', headline: 'Product Manager', created_at: new Date(Date.now() - 15 * 24 * 60 * 60 * 1000).toISOString() },
   { id: 'usr-5', full_name: 'Thiago Oliveira', email: 'thiago@gmail.com', role: 'user', headline: 'React Frontend Developer', created_at: new Date(Date.now() - 10 * 24 * 60 * 60 * 1000).toISOString() },
   { id: 'usr-6', full_name: 'Juliana Melo', email: 'juliana@yahoo.com', role: 'user', headline: 'Customer Success Analyst', created_at: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString() }
 ];
@@ -376,7 +376,7 @@ export function AdminDashboard({ userId }: AdminDashboardProps) {
         </div>
         <h2 className="font-display font-extrabold text-xl text-slate-100">Acesso Restrito</h2>
         <p className="text-slate-400 text-xs leading-relaxed">
-          Esta área é destinada exclusivamente a administradores e pessoal autorizado da Talenta. Seu perfil não possui permissões RBAC de acesso.
+          Esta área é destinada exclusivamente a administradores e pessoal autorizado da Vocentro. Seu perfil não possui permissões RBAC de acesso.
         </p>
       </div>
     );
@@ -542,7 +542,7 @@ export function AdminDashboard({ userId }: AdminDashboardProps) {
                     </div>
                     <div>
                       <span className="text-slate-500 font-medium block">Cargo / Headline</span>
-                      <span className="text-slate-200 font-semibold">{selectedUser.headline || 'Candidato | Talenta'}</span>
+                      <span className="text-slate-200 font-semibold">{selectedUser.headline || 'Profissional | Vocentro'}</span>
                     </div>
                     <div>
                       <span className="text-slate-500 font-medium block">Data de Criação</span>
@@ -948,13 +948,13 @@ export function AdminDashboard({ userId }: AdminDashboardProps) {
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 border-b border-slate-900 pb-6">
         <div>
           <div className="flex items-center gap-2">
-            <span className="text-[9px] px-2 py-0.5 bg-brand-500/10 text-brand-400 border border-brand-500/20 font-bold uppercase rounded-lg">Talenta Cloud</span>
+            <span className="text-[9px] px-2 py-0.5 bg-brand-500/10 text-brand-400 border border-brand-500/20 font-bold uppercase rounded-lg">Vocentro Cloud</span>
             <span className="text-[9px] px-2 py-0.5 bg-slate-900 text-slate-400 border border-slate-800 font-bold uppercase rounded-lg">
               Role: {currentUserRole}
             </span>
           </div>
           <h1 className="font-display font-extrabold text-2xl tracking-tight text-slate-100 mt-2 flex items-center gap-2">
-            Talenta Command Center
+            Vocentro Command Center
           </h1>
           <p className="text-slate-400 text-xs mt-1">
             Painel administrativo unificado de telemetria, permissões (RBAC) e faturamento integrado.

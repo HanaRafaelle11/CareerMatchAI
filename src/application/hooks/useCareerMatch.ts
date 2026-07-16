@@ -151,7 +151,7 @@ export function useResumes(userId: string | undefined) {
         if (isSupabaseConfigured && supabase) {
           try {
             const versionId = newResume.resumeVersionId;
-            let userFullName = "Profissional Talenta";
+            let userFullName = "Profissional Vocentro";
             const { data: profData } = await supabase.from('profiles').select('full_name').eq('id', userId).maybeSingle();
             if (profData?.full_name) {
               userFullName = profData.full_name;

@@ -73,10 +73,10 @@ export function CoachDashboard({
   const activeJobs = jobs.filter(j => matchedJobIds.has(j.id));
   const marketTrends = MarketIntelligenceService.getMarketTrends(activeJobs, careerProfileNew);
 
-  // AI Recruiter Chat States — personalizado com dados reais do perfil
+  // Mentor IA Vocentro Chat States — personalizado com dados reais do perfil
   const initialRecruiterMsg = careerProfileNew
-    ? `Olá, ${profileName}! Analisei seu perfil como ${profileRole} com ${profileYears} anos de experiência e competências como ${profileSkills}. Estou aqui para orientar sua busca de forma personalizada. Você prefere focar em vagas sênior/lead, preparação para entrevistas ou estratégia de candidatura?`
-    : 'Olá! Sou o seu AI Recruiter. Analiso todo o seu histórico de candidaturas, currículos e feedback de empresas para atuar como seu consultor de carreira pessoal. Como posso guiar sua busca hoje?';
+    ? `Olá, ${profileName}! Analisei seu perfil como ${profileRole} com ${profileYears} anos de experiência e competências como ${profileSkills}. Estou aqui para guiar sua evolução profissional de forma personalizada. Você prefere focar em preparação para entrevistas, estratégia de carreira ou mapeamento de gaps de competência?`
+    : 'Olá! Sou o seu Mentor IA Vocentro. Analiso todo o seu histórico profissional, currículos e feedbacks para te colocar no centro das melhores oportunidades. Como posso ajudar na sua evolução de carreira hoje?';
 
   const [recruiterChat, setRecruiterChat] = useState<Array<{ role: 'recruiter' | 'candidate', text: string }>>([
     {
@@ -200,19 +200,19 @@ export function CoachDashboard({
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <h1 className="font-display font-bold text-3xl tracking-tight text-slate-100 dark:text-slate-100 light:text-slate-800">
-            Desenvolvimento & Coach de Carreira
+            Evolução Profissional & Mentor IA
           </h1>
-          <p className="text-slate-400 dark:text-slate-400 light:text-slate-500 text-sm mt-1">
-            Prepare-se para entrevistas ou consulte o AI Recruiter baseado no seu histórico real.
+          <p className="text-slate-400 dark:text-slate-400 light:text-slate-500 text-sm mt-1 font-sans">
+            Prepare-se para processos seletivos ou consulte o Mentor IA Vocentro para traçar sua estratégia.
           </p>
         </div>
         <button
           onClick={handleVerificarVagas}
           disabled={isCheckingVagas}
-          className="px-4 py-2.5 rounded-xl bg-slate-900 border border-slate-800 hover:border-slate-700 text-xs font-bold text-slate-200 flex items-center gap-1.5 transition-all disabled:opacity-50"
+          className="px-4 py-2.5 rounded-[14px] bg-slate-900 border border-slate-800 hover:border-slate-700 text-xs font-bold text-slate-200 flex items-center gap-1.5 transition-all disabled:opacity-50 cursor-pointer font-sans"
         >
           {isCheckingVagas ? (
-            <Loader2 size={14} className="animate-spin text-brand-500" />
+            <Loader2 size={14} className="animate-spin text-brand-accent" />
           ) : (
             <RefreshCcw size={14} />
           )}
@@ -224,23 +224,23 @@ export function CoachDashboard({
       <div className="flex border-b border-slate-800 dark:border-slate-800 light:border-slate-200 gap-6">
         <button
           onClick={() => setActiveSubTab('simulator')}
-          className={`pb-3 font-semibold text-sm transition-all relative flex items-center gap-1.5 ${
-            activeSubTab === 'simulator' ? 'text-brand-500 font-bold' : 'text-slate-400 hover:text-slate-200'
+          className={`pb-3 font-semibold text-sm transition-all relative flex items-center gap-1.5 cursor-pointer font-sans ${
+            activeSubTab === 'simulator' ? 'text-brand-accent font-bold' : 'text-slate-400 hover:text-slate-200'
           }`}
         >
-          {activeSubTab === 'simulator' && <span className="absolute bottom-0 left-0 w-full h-[2px] bg-brand-500" />}
+          {activeSubTab === 'simulator' && <span className="absolute bottom-0 left-0 w-full h-[2px] bg-brand-accent" />}
           <MessageSquare size={15} />
           Simulador de Entrevista
         </button>
         <button
           onClick={() => setActiveSubTab('recruiter')}
-          className={`pb-3 font-semibold text-sm transition-all relative flex items-center gap-1.5 ${
-            activeSubTab === 'recruiter' ? 'text-brand-500 font-bold' : 'text-slate-400 hover:text-slate-200'
+          className={`pb-3 font-semibold text-sm transition-all relative flex items-center gap-1.5 cursor-pointer font-sans ${
+            activeSubTab === 'recruiter' ? 'text-brand-accent font-bold' : 'text-slate-400 hover:text-slate-200'
           }`}
         >
-          {activeSubTab === 'recruiter' && <span className="absolute bottom-0 left-0 w-full h-[2px] bg-brand-500" />}
+          {activeSubTab === 'recruiter' && <span className="absolute bottom-0 left-0 w-full h-[2px] bg-brand-accent" />}
           <UserCheck size={15} />
-          AI Recruiter (Consultor)
+          Mentor IA (Consultor)
         </button>
       </div>
 
@@ -250,27 +250,27 @@ export function CoachDashboard({
           {activeSubTab === 'simulator' && (
             <CardGlass className="p-6 space-y-6 flex flex-col min-h-[480px] animate-slide-in">
               <div>
-                <h3 className="font-display font-bold text-base text-slate-200 flex items-center gap-2 pb-3 border-b border-slate-900">
-                  <MessageSquare size={18} className="text-brand-500" />
-                  Simulador de Entrevista por IA
+                <h3 className="font-display font-bold text-base text-slate-200 flex items-center gap-2 pb-3 border-b border-slate-905">
+                  <MessageSquare size={18} className="text-brand-accent" />
+                  Mentor IA Vocentro - Simulador de Entrevista
                 </h3>
-                <p className="text-xs text-slate-500 mt-2">
-                  Selecione uma candidatura em andamento para iniciar a sabatina simulada baseada em técnicas STAR.
+                <p className="text-xs text-slate-500 mt-2 font-sans">
+                  Selecione uma candidatura em andamento para iniciar a simulação focada no método STAR.
                 </p>
               </div>
 
               {activeApps.length === 0 ? (
-                <div className="flex-1 py-16 flex flex-col items-center justify-center border border-dashed border-slate-800 rounded-xl text-xs text-slate-500 text-center space-y-2">
+                <div className="flex-1 py-16 flex flex-col items-center justify-center border border-dashed border-slate-800 rounded-[14px] text-xs text-slate-500 text-center space-y-2 font-sans">
                   <span>Nenhuma candidatura ativa registrada para simular.</span>
                 </div>
               ) : (
                 <div className="flex-1 flex flex-col min-h-[420px]">
                   {simulation ? (
-                    <div className="flex-1 flex flex-col gap-4">
+                    <div className="flex-1 flex flex-col gap-4 font-sans">
                       {/* Active simulation header */}
-                      <div className="flex items-center justify-between p-3 rounded-xl bg-slate-950/30 border border-slate-900 text-xs">
+                      <div className="flex items-center justify-between p-3 rounded-[14px] bg-slate-950/30 border border-slate-900 text-xs">
                         <div className="min-w-0">
-                          <span className="text-[10px] text-brand-500 font-bold uppercase tracking-wider block">Sabatina Ativa</span>
+                          <span className="text-[10px] text-brand-accent font-bold uppercase tracking-wider block font-mono">Simulação Ativa</span>
                           <span className="text-slate-350 font-semibold truncate block max-w-xs md:max-w-md">
                             {activeApps.find(app => app.id === selectedAppId)?.jobTitle} em {activeApps.find(app => app.id === selectedAppId)?.companyName}
                           </span>
@@ -297,8 +297,8 @@ export function CoachDashboard({
                                     : 'bg-brand-500/15 border border-brand-500/20 text-brand-400 self-end ml-auto'
                                 }`}
                               >
-                                <strong className="block mb-0.5 text-[9px] uppercase font-bold text-slate-500">
-                                  {isInterviewer ? 'Recrutador IA' : 'Você'}
+                                <strong className="block mb-0.5 text-[9px] uppercase font-bold text-slate-500 font-mono">
+                                  {isInterviewer ? 'Mentor IA Vocentro' : 'Você'}
                                 </strong>
                                 <span className="whitespace-pre-line">{msg.text}</span>
                               </div>
@@ -362,9 +362,9 @@ export function CoachDashboard({
                         })}
 
                         {isSending && (
-                          <div className="p-3 rounded-2xl max-w-[85%] bg-slate-900 border border-slate-850 text-slate-350 self-start mr-auto animate-pulse flex items-center gap-2">
-                            <Loader2 size={12} className="animate-spin text-brand-500" />
-                            <span className="text-[10px] text-slate-400">O Recrutador IA está avaliando sua resposta e elaborando a próxima pergunta...</span>
+                          <div className="p-3 rounded-2xl max-w-[85%] bg-slate-900 border border-slate-850 text-slate-350 self-start mr-auto animate-pulse flex items-center gap-2 font-sans">
+                            <Loader2 size={12} className="animate-spin text-brand-accent" />
+                            <span className="text-[10px] text-slate-400">O Mentor IA Vocentro está avaliando sua resposta e formulando o feedback...</span>
                           </div>
                         )}
                       </div>
@@ -615,25 +615,25 @@ export function CoachDashboard({
                       )}
                     </div>
                   ) : (
-                    <div className="flex-grow flex flex-col justify-center items-center text-center py-4 px-2 space-y-4">
-                      <div className="w-12 h-12 rounded-full bg-brand-500/10 border border-brand-500/20 flex items-center justify-center text-brand-400 shrink-0">
+                    <div className="flex-grow flex flex-col justify-center items-center text-center py-4 px-2 space-y-4 font-sans">
+                      <div className="w-12 h-12 rounded-full bg-brand-accent/10 border border-brand-accent/20 flex items-center justify-center text-brand-accent shrink-0">
                         <MessageSquare size={24} />
                       </div>
                       <div className="max-w-md space-y-1.5">
-                        <h4 className="font-display font-bold text-base text-slate-205">
-                          Treine suas Entrevistas com a IA
+                        <h4 className="font-display font-bold text-base text-slate-200">
+                          Treine suas Entrevistas com o Mentor IA
                         </h4>
                         <p className="text-slate-500 text-xs leading-relaxed">
                           Nossa inteligência simula uma rodada completa de perguntas baseadas na vaga que você escolher. 
                           Suas respostas serão avaliadas segundo o método **STAR** (Situação, Tarefa, Ação e Resultado).
                         </p>
                       </div>
-                      <div className="w-full max-w-sm p-3.5 rounded-xl bg-slate-950/40 border border-slate-900 text-left space-y-2">
-                        <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block">Escolha a vaga para simular:</label>
+                      <div className="w-full max-w-sm p-3.5 rounded-[14px] bg-slate-950/40 border border-slate-900 text-left space-y-2">
+                        <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block font-mono">Escolha a vaga para simular:</label>
                         <select
                           value={selectedAppId}
                           onChange={e => setSelectedAppId(e.target.value)}
-                          className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300 text-xs rounded-xl p-2 outline-none focus:border-brand-500 font-semibold"
+                          className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300 text-xs rounded-xl p-2 outline-none focus:border-brand-accent font-semibold"
                         >
                           {activeApps.map(app => (
                             <option key={app.id} value={app.id} className="truncate">{app.jobTitle} em {app.companyName}</option>
@@ -643,7 +643,7 @@ export function CoachDashboard({
                       <button
                         onClick={handleStartSim}
                         disabled={loadingSim}
-                        className="px-8 py-2.5 rounded-xl bg-brand-600 hover:bg-brand-500 text-white font-bold text-xs flex items-center justify-center gap-2 shadow-lg shadow-brand-500/20 w-full max-w-sm transition-all transform active:scale-95 disabled:opacity-50 cursor-pointer"
+                        className="px-8 py-3 rounded-[14px] bg-brand-500 hover:bg-brand-600 text-white font-bold text-xs flex items-center justify-center gap-2 shadow-md w-full max-w-sm transition-all transform active:scale-95 disabled:opacity-50 cursor-pointer"
                       >
                         {loadingSim ? <Loader2 size={14} className="animate-spin" /> : <Play size={14} />}
                         Iniciar Simulação
@@ -660,28 +660,28 @@ export function CoachDashboard({
             <CardGlass className="p-6 space-y-6 flex flex-col min-h-[480px] animate-slide-in">
               <div>
                 <h3 className="font-display font-bold text-base text-slate-200 flex items-center gap-2 pb-3 border-b border-slate-900">
-                  <UserCheck size={18} className="text-brand-500" />
-                  AI Recruiter Console (Beta)
+                  <UserCheck size={18} className="text-brand-accent" />
+                  Mentor IA Vocentro (Conselheiro)
                 </h3>
-                <p className="text-xs text-slate-500 mt-2">
-                  Converse com o sistema para extrair direcionamentos de carreira com base no seu histórico exclusivo.
+                <p className="text-xs text-slate-500 mt-2 font-sans">
+                  Converse com o Mentor IA para extrair direcionamentos de carreira com base no seu histórico exclusivo.
                 </p>
               </div>
 
               {/* Chat Recruiter log */}
-              <div className="flex-1 flex flex-col gap-4">
-                <div className="flex-grow max-h-[300px] overflow-y-auto space-y-3 p-3 rounded-xl bg-slate-900/30 border border-slate-900/60 text-xs flex flex-col">
+              <div className="flex-1 flex flex-col gap-4 font-sans">
+                <div className="flex-grow max-h-[300px] overflow-y-auto space-y-3 p-3 rounded-[14px] bg-slate-900/30 border border-slate-900/60 text-xs flex flex-col">
                   {recruiterChat.map((msg, i) => (
                     <div
                       key={i}
-                      className={`p-3 rounded-xl max-w-[85%] leading-relaxed ${
+                      className={`p-3 rounded-[14px] max-w-[85%] leading-relaxed ${
                         msg.role === 'recruiter'
                           ? 'bg-slate-900 border border-slate-850 text-slate-300 self-start mr-auto'
                           : 'bg-brand-500/10 border border-brand-500/20 text-brand-400 self-end ml-auto'
                       }`}
                     >
-                      <strong className="block mb-0.5 text-[9px] uppercase font-bold text-slate-500">
-                        {msg.role === 'recruiter' ? 'AI Recruiter Advisor' : 'Você'}
+                      <strong className="block mb-0.5 text-[9px] uppercase font-bold text-slate-500 font-mono">
+                        {msg.role === 'recruiter' ? 'Mentor IA Vocentro' : 'Você'}
                       </strong>
                       <span className="whitespace-pre-line">{msg.text}</span>
                     </div>
@@ -693,7 +693,7 @@ export function CoachDashboard({
                   <button 
                     onClick={() => handleSendRecruiterMessage(undefined, `Quero vaga de ${profileRole} remoto pagando +15k`)}
                     type="button"
-                    className="px-2.5 py-1.5 bg-slate-900 hover:bg-slate-800 text-slate-300 border border-slate-800 rounded-xl cursor-pointer"
+                    className="px-2.5 py-1.5 bg-slate-900 hover:bg-slate-800 text-slate-300 border border-slate-800 rounded-xl cursor-pointer font-sans"
                   >
                     🔍 Vagas de {profileRole} remoto &gt; 15k?
                   </button>
@@ -702,7 +702,7 @@ export function CoachDashboard({
                       setRecruiterInput(`Diagnóstico de mercado e tendências para ${profileRole}`);
                     }}
                     type="button"
-                    className="px-2.5 py-1.5 bg-slate-900 hover:bg-slate-800 text-slate-300 border border-slate-800 rounded-xl cursor-pointer"
+                    className="px-2.5 py-1.5 bg-slate-900 hover:bg-slate-800 text-slate-300 border border-slate-800 rounded-xl cursor-pointer font-sans"
                   >
                     📊 Diagnóstico de {profileRole}
                   </button>
@@ -714,12 +714,12 @@ export function CoachDashboard({
                     placeholder="Digite sua dúvida de carreira (Ex: CS remoto, gaps técnicos...)"
                     value={recruiterInput}
                     onChange={e => setRecruiterInput(e.target.value)}
-                    className="flex-1 px-4 py-2.5 rounded-xl bg-slate-900/50 border border-slate-800 focus:border-brand-500 outline-none text-xs text-slate-200"
+                    className="flex-1 px-4 py-2.5 rounded-[14px] bg-slate-900/50 border border-slate-800 focus:border-brand-accent outline-none text-xs text-slate-200"
                   />
                   <button
                     type="submit"
                     disabled={!recruiterInput.trim()}
-                    className="px-4.5 rounded-xl bg-brand-600 hover:bg-brand-500 text-white font-bold text-xs flex items-center"
+                    className="px-4.5 rounded-[14px] bg-brand-500 hover:bg-brand-600 text-white font-bold text-xs flex items-center cursor-pointer"
                   >
                     <Send size={14} />
                   </button>
@@ -809,8 +809,8 @@ export function CoachDashboard({
                       <span className="text-slate-300 font-semibold">{trend.keyword}</span>
                       <span className="text-slate-500 text-[10px]">{trend.percentage}% das vagas</span>
                     </div>
-                    <div className="w-full h-1.5 rounded bg-slate-900 overflow-hidden">
-                      <div className="h-full bg-gradient-to-r from-brand-600 to-indigo-500" style={{ width: `${trend.percentage}%` }} />
+                    <div className="w-full h-1.5 rounded bg-slate-950 overflow-hidden">
+                      <div className="h-full bg-brand-accent" style={{ width: `${trend.percentage}%` }} />
                     </div>
                   </div>
                 ))}

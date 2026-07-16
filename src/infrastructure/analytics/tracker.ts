@@ -28,10 +28,10 @@ class AnalyticsTracker {
 
   private getOrCreateSessionId(): string {
     try {
-      let sid = sessionStorage.getItem('talenta_session_id');
+      let sid = sessionStorage.getItem('vocentro_session_id');
       if (!sid) {
         sid = 'sess_' + Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
-        sessionStorage.setItem('talenta_session_id', sid);
+        sessionStorage.setItem('vocentro_session_id', sid);
       }
       return sid;
     } catch {

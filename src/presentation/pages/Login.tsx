@@ -3,7 +3,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { loginSchema, signUpSchema } from '../../domain/validators/schemas';
 import { Mail, Lock, User, AlertCircle, ArrowRight } from 'lucide-react';
-import { TalentaLogo } from '../components/ds/MyCareerIcons';
+import { VocentroLogo } from '../components/ds/MyCareerIcons';
 
 interface LoginProps {
   onLogin: (email: string, password: string) => Promise<void>;
@@ -66,30 +66,30 @@ export function Login({ onLogin, onSignUp, onOAuth, onBack }: LoginProps) {
   return (
     <div className="min-h-screen w-full flex flex-col items-center justify-center bg-slate-950 text-slate-100 p-6 relative overflow-hidden font-sans">
       {/* Luzes decorativas de fundo */}
-      <div className="absolute top-[-20%] left-[-10%] w-[50%] h-[60%] rounded-full bg-brand-500/10 blur-[120px] pointer-events-none" />
-      <div className="absolute bottom-[-20%] right-[-10%] w-[50%] h-[60%] rounded-full bg-indigo-500/10 blur-[120px] pointer-events-none" />
+      <div className="absolute top-[-20%] left-[-10%] w-[50%] h-[60%] rounded-full bg-brand-500/5 blur-[120px] pointer-events-none" />
+      <div className="absolute bottom-[-20%] right-[-10%] w-[50%] h-[60%] rounded-full bg-indigo-500/5 blur-[120px] pointer-events-none" />
 
       <div className="w-full sm:w-[420px] max-w-full z-10 flex flex-col gap-6">
         {onBack && (
           <button 
             onClick={onBack}
-            className="self-start text-[10.5px] font-semibold text-slate-450 hover:text-slate-300 flex items-center gap-1 transition-colors -mb-3 cursor-pointer select-none"
+            className="self-start text-[10.5px] font-semibold text-slate-400 hover:text-slate-200 flex items-center gap-1 transition-colors -mb-3 cursor-pointer select-none"
           >
             ← Voltar para o início
           </button>
         )}
         {/* Cabeçalho */}
         <div className="text-center flex flex-col items-center">
-          <TalentaLogo className="mb-3" showText={true} variant="vertical" />
+          <VocentroLogo className="mb-3" showText={true} variant="vertical" />
           <p className="text-xs text-slate-400 mt-3 max-w-[320px] leading-relaxed">
-            Conectando pessoas e oportunidades através da inteligência artificial
+            Sua carreira. Você no centro das melhores oportunidades do mercado profissional.
           </p>
         </div>
 
         {/* Card Principal */}
-        <div className="glass-panel p-8 rounded-3xl shadow-2xl relative w-full flex flex-col gap-5">
+        <div className="premium-card p-8 rounded-[20px] relative w-full flex flex-col gap-5 bg-slate-900 border border-slate-800">
           {errorMsg && (
-            <div className="p-4 rounded-xl bg-red-500/10 border border-red-500/20 flex items-start gap-3 text-red-400 text-xs">
+            <div className="p-4 rounded-[14px] bg-red-500/10 border border-red-500/20 flex items-start gap-3 text-red-400 text-xs">
               <AlertCircle size={16} className="shrink-0 mt-0.5" />
               <span>{errorMsg}</span>
             </div>
@@ -106,7 +106,7 @@ export function Login({ onLogin, onSignUp, onOAuth, onBack }: LoginProps) {
                     type="text"
                     placeholder="João da Silva"
                     {...signUpForm.register('fullName')}
-                    className="w-full pl-11 pr-4 py-3 rounded-xl bg-slate-900/50 border border-slate-800 focus:border-brand-500 focus:ring-1 focus:ring-brand-500 outline-none text-sm transition-all"
+                    className="w-full pl-11 pr-4 py-3 rounded-[14px] bg-slate-950/50 border border-slate-800 focus:border-brand-accent outline-none text-sm transition-all"
                   />
                 </div>
                 {signUpForm.formState.errors.fullName && (
@@ -122,7 +122,7 @@ export function Login({ onLogin, onSignUp, onOAuth, onBack }: LoginProps) {
                     type="email"
                     placeholder="voce@exemplo.com"
                     {...signUpForm.register('email')}
-                    className="w-full pl-11 pr-4 py-3 rounded-xl bg-slate-900/50 border border-slate-800 focus:border-brand-500 focus:ring-1 focus:ring-brand-500 outline-none text-sm transition-all"
+                    className="w-full pl-11 pr-4 py-3 rounded-[14px] bg-slate-950/50 border border-slate-800 focus:border-brand-accent outline-none text-sm transition-all"
                   />
                 </div>
                 {signUpForm.formState.errors.email && (
@@ -138,7 +138,7 @@ export function Login({ onLogin, onSignUp, onOAuth, onBack }: LoginProps) {
                     type="password"
                     placeholder="••••••••"
                     {...signUpForm.register('password')}
-                    className="w-full pl-11 pr-4 py-3 rounded-xl bg-slate-900/50 border border-slate-800 focus:border-brand-500 focus:ring-1 focus:ring-brand-500 outline-none text-sm transition-all"
+                    className="w-full pl-11 pr-4 py-3 rounded-[14px] bg-slate-950/50 border border-slate-800 focus:border-brand-accent outline-none text-sm transition-all"
                   />
                 </div>
                 {signUpForm.formState.errors.password && (
@@ -154,7 +154,7 @@ export function Login({ onLogin, onSignUp, onOAuth, onBack }: LoginProps) {
                     type="password"
                     placeholder="••••••••"
                     {...signUpForm.register('confirmPassword')}
-                    className="w-full pl-11 pr-4 py-3 rounded-xl bg-slate-900/50 border border-slate-800 focus:border-brand-500 focus:ring-1 focus:ring-brand-500 outline-none text-sm transition-all"
+                    className="w-full pl-11 pr-4 py-3 rounded-[14px] bg-slate-950/50 border border-slate-800 focus:border-brand-accent outline-none text-sm transition-all"
                   />
                 </div>
                 {signUpForm.formState.errors.confirmPassword && (
@@ -165,10 +165,10 @@ export function Login({ onLogin, onSignUp, onOAuth, onBack }: LoginProps) {
               <button
                 type="submit"
                 disabled={loading}
-                className="w-full py-3 px-4 rounded-xl bg-gradient-to-r from-brand-600 to-indigo-600 hover:from-brand-500 hover:to-indigo-500 text-white font-semibold text-sm transition-all flex items-center justify-center gap-2 shadow-lg shadow-brand-500/20 disabled:opacity-50 cursor-pointer mt-2"
+                className="w-full py-3.5 px-4 rounded-[14px] bg-brand-500 hover:bg-brand-600 text-white font-semibold text-xs transition-all flex items-center justify-center gap-2 shadow-sm disabled:opacity-50 cursor-pointer mt-2"
               >
                 {loading ? 'Criando conta...' : 'Cadastrar'}
-                <ArrowRight size={16} />
+                <ArrowRight size={14} />
               </button>
             </form>
           ) : (
@@ -182,7 +182,7 @@ export function Login({ onLogin, onSignUp, onOAuth, onBack }: LoginProps) {
                     type="email"
                     placeholder="voce@exemplo.com"
                     {...loginForm.register('email')}
-                    className="w-full pl-11 pr-4 py-3 rounded-xl bg-slate-900/50 border border-slate-800 focus:border-brand-500 focus:ring-1 focus:ring-brand-500 outline-none text-sm transition-all"
+                    className="w-full pl-11 pr-4 py-3 rounded-[14px] bg-slate-950/50 border border-slate-800 focus:border-brand-accent outline-none text-sm transition-all"
                   />
                 </div>
                 {loginForm.formState.errors.email && (
@@ -193,7 +193,7 @@ export function Login({ onLogin, onSignUp, onOAuth, onBack }: LoginProps) {
               <div className="flex flex-col gap-1.5 w-full">
                 <div className="flex justify-between items-center w-full">
                   <label className="text-xs font-semibold text-slate-400">Senha</label>
-                  <a href="#" className="text-[10px] text-brand-500 hover:underline">Esqueceu a senha?</a>
+                  <a href="#" className="text-[10px] text-brand-accent hover:underline">Esqueceu a senha?</a>
                 </div>
                 <div className="relative w-full">
                   <Lock size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500" />
@@ -201,7 +201,7 @@ export function Login({ onLogin, onSignUp, onOAuth, onBack }: LoginProps) {
                     type="password"
                     placeholder="••••••••"
                     {...loginForm.register('password')}
-                    className="w-full pl-11 pr-4 py-3 rounded-xl bg-slate-900/50 border border-slate-800 focus:border-brand-500 focus:ring-1 focus:ring-brand-500 outline-none text-sm transition-all"
+                    className="w-full pl-11 pr-4 py-3 rounded-[14px] bg-slate-950/50 border border-slate-800 focus:border-brand-accent outline-none text-sm transition-all"
                   />
                 </div>
                 {loginForm.formState.errors.password && (
@@ -212,10 +212,10 @@ export function Login({ onLogin, onSignUp, onOAuth, onBack }: LoginProps) {
               <button
                 type="submit"
                 disabled={loading}
-                className="w-full py-3 px-4 rounded-xl bg-gradient-to-r from-brand-600 to-indigo-600 hover:from-brand-500 hover:to-indigo-500 text-white font-semibold text-sm transition-all flex items-center justify-center gap-2 shadow-lg shadow-brand-500/20 disabled:opacity-50 cursor-pointer mt-2"
+                className="w-full py-3.5 px-4 rounded-[14px] bg-brand-500 hover:bg-brand-600 text-white font-semibold text-xs transition-all flex items-center justify-center gap-2 shadow-sm disabled:opacity-50 cursor-pointer mt-2"
               >
                 {loading ? 'Acessando...' : 'Entrar'}
-                <ArrowRight size={16} />
+                <ArrowRight size={14} />
               </button>
             </form>
           )}
@@ -223,7 +223,7 @@ export function Login({ onLogin, onSignUp, onOAuth, onBack }: LoginProps) {
           {/* Divisor */}
           <div className="relative flex items-center justify-center w-full my-2">
             <span className="absolute w-full h-[1px] bg-slate-800" />
-            <span className="relative px-3 text-[10px] uppercase font-bold text-slate-500 bg-[#1c1b1d] rounded-full select-none">
+            <span className="relative px-3 text-[10px] uppercase font-bold text-slate-500 bg-slate-900 rounded-full select-none font-mono">
               Ou continue com
             </span>
           </div>
@@ -234,7 +234,7 @@ export function Login({ onLogin, onSignUp, onOAuth, onBack }: LoginProps) {
               type="button"
               onClick={() => handleOAuthClick('google')}
               disabled={loading}
-              className="flex items-center justify-center gap-2 py-3 px-4 w-full rounded-xl bg-slate-900/40 hover:bg-slate-900 border border-slate-800 hover:border-slate-700 text-slate-300 text-xs font-semibold transition-all disabled:opacity-50 cursor-pointer"
+              className="flex items-center justify-center gap-2 py-3.5 px-4 w-full rounded-[14px] bg-slate-950/50 hover:bg-slate-900 border border-slate-800 hover:border-slate-700 text-slate-300 text-xs font-semibold transition-all disabled:opacity-50 cursor-pointer"
             >
               <svg className="h-4 w-4 shrink-0" viewBox="0 0 24 24" fill="currentColor">
                 <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
@@ -248,14 +248,14 @@ export function Login({ onLogin, onSignUp, onOAuth, onBack }: LoginProps) {
         </div>
 
         {/* Footer Link */}
-        <p className="text-center text-xs text-slate-500 mt-2">
+        <p className="text-center text-xs text-slate-500 mt-2 font-sans">
           {isSignUp ? 'Já tem uma conta?' : 'Não possui uma conta?'}
           <button
             onClick={() => {
               setIsSignUp(!isSignUp);
               setErrorMsg('');
             }}
-            className="text-brand-500 hover:underline font-semibold ml-1.5 focus:outline-none cursor-pointer"
+            className="text-brand-accent hover:underline font-semibold ml-1.5 focus:outline-none cursor-pointer"
           >
             {isSignUp ? 'Faça login' : 'Cadastre-se agora'}
           </button>

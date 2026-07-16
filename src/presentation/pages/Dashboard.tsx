@@ -4,9 +4,10 @@ import careerInsightsGraph from '../../assets/career_insights_graph.png';
 import { 
   Sparkles, Award, ArrowRight, Search, Briefcase, 
   ChevronRight, Zap, ShieldCheck, CheckCircle, Send, MessageSquareText,
-  Rocket, Plus, Megaphone, FileText
+  Plus, Megaphone, FileText
 } from 'lucide-react';
 import { Badge, StatCard } from '../components/ds';
+import { VocentroLogo } from '../components/ds/MyCareerIcons';
 
 interface DashboardProps {
   profile: Profile | null;
@@ -117,27 +118,25 @@ export function Dashboard({
   // If no resume is uploaded, show the new premium Empty State
   if (resumes.length === 0) {
     return (
-      <div className="space-y-lg p-2 max-w-5xl mx-auto animate-fade-in">
+      <div className="space-y-lg p-2 max-w-5xl mx-auto animate-fade-in font-sans">
         <header className="flex items-center justify-between gap-md mb-xl">
           <div>
-            <h2 className="text-xl font-bold text-on-surface tracking-tight">Olá, {userName} 👋</h2>
-            <p className="text-xs text-on-surface-variant mt-1">Seu copiloto inteligente de recolocação está pronto para te guiar.</p>
+            <h2 className="text-xl font-bold text-on-surface tracking-tight">Olá, {userName}! Sua carreira, você no centro.</h2>
+            <p className="text-xs text-on-surface-variant mt-1">A plataforma inteligente de evolução profissional está pronta para guiar sua jornada.</p>
           </div>
         </header>
 
-        <div className="premium-card rounded-2xl p-xl max-w-lg mx-auto text-center flex flex-col items-center justify-center border border-outline-variant/30 bg-surface-container/20">
-          <div className="w-14 h-14 rounded-2xl bg-primary/10 text-primary flex items-center justify-center mb-5 animate-pulse">
-            <Rocket size={32} />
-          </div>
-          <h3 className="text-lg font-bold text-on-surface mb-2">Primeiro passo da sua jornada</h3>
+        <div className="premium-card rounded-[20px] p-xl max-w-lg mx-auto text-center flex flex-col items-center justify-center border border-outline-variant/30 bg-surface-container/20">
+          <VocentroLogo variant="symbol" className="h-16 w-16 mb-5" />
+          <h3 className="text-lg font-bold text-on-surface mb-2 font-display">Primeiro passo da sua jornada</h3>
           <p className="text-xs text-on-surface-variant leading-relaxed max-w-sm mb-6">
-            Importe seu currículo em PDF para mapearmos suas competências principais, calcular matches semânticos e iniciar o preparo para as entrevistas.
+            Importe seu currículo em PDF para mapearmos suas competências principais, analisar vagas compatíveis e simular entrevistas.
           </p>
           <button
             onClick={() => setActiveTab('profile')}
-            className="px-6 py-2.5 bg-primary hover:bg-primary-container text-white font-semibold rounded-xl shadow-lg hover:scale-[1.02] active:scale-[0.98] transition-all flex items-center gap-2 cursor-pointer text-sm"
+            className="px-6 py-3 bg-brand-500 hover:bg-brand-600 text-white font-semibold rounded-[14px] shadow-md hover:scale-[1.01] active:scale-[0.99] transition-all flex items-center gap-2 cursor-pointer text-xs"
           >
-            <Plus size={18} />
+            <Plus size={16} />
             Importar Currículo
           </button>
         </div>
@@ -200,27 +199,27 @@ export function Dashboard({
   } else if (completeness >= 50) {
     rankPercentile = 35;
     levelName = 'Altamente Competitivo';
-  } else if (completeness >= 30) {
-    rankPercentile = 60;
-    levelName = 'Em Evolução';
+  } else {
+    rankPercentile = 85;
+    levelName = 'Iniciante';
   }
 
   return (
-    <div className="space-y-lg p-1 max-w-7xl mx-auto mb-16 animate-fade-in">
+    <div className="space-y-lg p-1 max-w-7xl mx-auto mb-16 animate-fade-in font-sans">
       
       {/* Header / Top Dashboard Banner */}
       <header className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h2 className="text-xl font-bold text-on-surface tracking-tight">Olá, {userName} 👋</h2>
+          <h2 className="text-xl font-bold text-on-surface tracking-tight font-display">Olá, {userName}! Sua carreira, você no centro.</h2>
           <p className="text-xs text-on-surface-variant mt-0.5 flex items-center gap-1.5" title="Rank calculado comparando a completude e dados do seu perfil com os critérios médios de vagas de mercado">
-            <ShieldCheck size={14} className="text-emerald-400" />
-            <span>Seu perfil está classificado como <strong className="text-primary">{levelName}</strong> (entre os {rankPercentile}% mais preparados).</span>
+            <ShieldCheck size={14} className="text-brand-accent" />
+            <span>Seu perfil está classificado como <strong className="text-brand-accent font-semibold">{levelName}</strong> (entre os {rankPercentile}% mais preparados).</span>
           </p>
         </div>
 
         {/* Gamification / XP Box */}
-        <div className="flex items-center gap-3 p-2 px-3 rounded-xl bg-surface-container-high/40 border border-outline-variant/15 shrink-0 max-w-xs">
-          <div className="w-8 h-8 rounded-lg bg-gradient-to-tr from-brand-500 to-indigo-600 flex items-center justify-center text-white text-xs font-bold shadow-md shrink-0">
+        <div className="flex items-center gap-3 p-2 px-3 rounded-[14px] bg-slate-900/60 dark:bg-slate-900/60 light:bg-white border border-outline-variant/15 shrink-0 max-w-xs">
+          <div className="w-8 h-8 rounded-lg bg-brand-500 flex items-center justify-center text-white text-xs font-bold shadow-md shrink-0">
             Lvl {level}
           </div>
           <div className="flex-1 min-w-[120px]">
@@ -228,8 +227,8 @@ export function Dashboard({
               <span>Nível do Candidato</span>
               <span>{xpInCurrentLevel}/500 XP</span>
             </div>
-            <div className="w-full h-1.5 bg-surface-container-highest rounded-full overflow-hidden">
-              <div className="h-full bg-gradient-to-r from-brand-500 to-indigo-500 rounded-full transition-all duration-500" style={{ width: `${xpPercentage}%` }} />
+            <div className="w-full h-1.5 bg-slate-950 dark:bg-slate-950 light:bg-slate-200 rounded-full overflow-hidden">
+              <div className="h-full bg-brand-accent rounded-full transition-all duration-500" style={{ width: `${xpPercentage}%` }} />
             </div>
           </div>
         </div>
@@ -239,11 +238,11 @@ export function Dashboard({
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-md">
         
         {/* Journey/Funnel Card */}
-        <section className="lg:col-span-8 premium-card rounded-2xl p-5 flex flex-col justify-between">
+        <section className="lg:col-span-8 premium-card rounded-[20px] p-5 flex flex-col justify-between">
           <div className="space-y-4">
             <div className="flex items-center justify-between">
               <div>
-                <h3 className="text-sm font-bold text-on-surface">Funil da sua Recolocação</h3>
+                <h3 className="text-sm font-bold text-on-surface font-display">Funil da sua Recolocação</h3>
                 <p className="text-[11px] text-on-surface-variant">Taxa de conversão das suas candidaturas</p>
               </div>
               <Badge variant="premium" size="sm">Meta: Conseguir Emprego</Badge>
@@ -252,17 +251,17 @@ export function Dashboard({
             {/* Visual Funnel Indicator */}
             <div className="grid grid-cols-4 gap-3 pt-2">
               {[
-                { label: 'CV Mapeado', value: '100%', icon: <CheckCircle size={16} />, color: 'text-emerald-400 bg-emerald-500/10 border-emerald-500/20 light:text-emerald-600', tabId: 'profile' },
+                { label: 'CV Mapeado', value: '100%', icon: <CheckCircle size={16} />, color: 'text-brand-accent bg-brand-accent/10 border-brand-accent/20', tabId: 'profile' },
                 { label: 'Vagas & Match', value: `${matches.length} vagas`, icon: <Search size={16} />, color: 'text-primary bg-primary/10 border-primary/20', tabId: 'match' },
-                { label: 'Candidaturas', value: `${applications.length} ativas`, icon: <Send size={16} />, color: 'text-amber-400 bg-amber-500/10 border-amber-500/20 light:text-amber-700', tabId: 'strategy' },
-                { label: 'Entrevistas', value: `${interviewsCount} marcadas`, icon: <MessageSquareText size={16} />, color: 'text-secondary bg-secondary/10 border-secondary/20', tabId: 'coach' },
+                { label: 'Candidaturas', value: `${applications.length} ativas`, icon: <Send size={16} />, color: 'text-primary bg-primary/10 border-primary/20', tabId: 'strategy' },
+                { label: 'Entrevistas', value: `${interviewsCount} marcadas`, icon: <MessageSquareText size={16} />, color: 'text-brand-accent bg-brand-accent/10 border-brand-accent/20', tabId: 'coach' },
               ].map((step, idx) => (
                 <div 
                   key={idx} 
                   onClick={() => setActiveTab(step.tabId)}
-                  className="flex flex-col items-center text-center p-3 rounded-2xl bg-surface-container-high/30 border border-outline-variant/10 hover:scale-[1.02] hover:border-outline-variant/35 hover:bg-surface-container-high/50 cursor-pointer active:scale-[0.99] transition-all duration-300"
+                  className="flex flex-col items-center text-center p-3 rounded-[16px] bg-slate-900/40 dark:bg-slate-900/40 light:bg-slate-50 border border-outline-variant/10 hover:scale-[1.01] hover:border-outline-variant/35 hover:bg-slate-900/60 cursor-pointer active:scale-[0.99] transition-all duration-300"
                 >
-                  <div className={`w-9 h-9 rounded-xl flex items-center justify-center mb-2 ${step.color} border shadow-sm`}>
+                  <div className={`w-9 h-9 rounded-[10px] flex items-center justify-center mb-2 ${step.color} border shadow-sm`}>
                     {step.icon}
                   </div>
                   <span className="text-[10px] font-medium text-on-surface-variant block leading-tight truncate w-full">{step.label}</span>
@@ -277,7 +276,7 @@ export function Dashboard({
               <span className="text-[10px] text-on-surface-variant uppercase tracking-wider block mb-0.5">Completude</span>
               <div className="flex items-center gap-1.5">
                 <span className="text-sm font-bold text-on-surface">{completeness}%</span>
-                <span className="text-[9px] text-emerald-400 font-semibold">{completeness === 100 ? 'Máxima' : 'Em progresso'}</span>
+                <span className="text-[9px] text-brand-accent font-semibold">{completeness === 100 ? 'Máxima' : 'Em progresso'}</span>
               </div>
             </div>
             <div>
@@ -293,21 +292,21 @@ export function Dashboard({
           </div>
         </section>
 
-        {/* AI Copilot Advisor Insight (Interactive CTA) */}
-        <section className="lg:col-span-4 bg-gradient-to-br from-brand-600 to-indigo-900 rounded-2xl p-5 text-white flex flex-col justify-between relative overflow-hidden shadow-lg border border-primary/20">
-          <div className="absolute -right-12 -top-12 w-36 h-36 bg-white/5 rounded-full blur-3xl pointer-events-none" />
+        {/* AI Advisor Insight (Interactive CTA) */}
+        <section className="lg:col-span-4 bg-slate-900 border border-slate-800 rounded-[20px] p-5 flex flex-col justify-between relative overflow-hidden shadow-lg">
+          <div className="absolute -right-12 -top-12 w-36 h-36 bg-brand-accent/5 rounded-full blur-3xl pointer-events-none" />
           <div className="space-y-3">
-            <div className="flex items-center gap-1.5 text-white/80">
+            <div className="flex items-center gap-1.5 text-brand-accent">
               <Sparkles size={14} className="animate-pulse" />
-              <span className="text-[10px] font-bold uppercase tracking-widest">Recomendação da IA</span>
+              <span className="text-[10px] font-bold uppercase tracking-widest font-mono">Recomendação IA</span>
             </div>
-            <h3 className="text-base font-bold text-white leading-snug">{insight.title}</h3>
-            <p className="text-xs text-white/85 leading-relaxed font-normal">{insight.text}</p>
+            <h3 className="text-base font-bold text-on-surface leading-snug font-display">{insight.title}</h3>
+            <p className="text-xs text-on-surface-variant leading-relaxed font-normal">{insight.text}</p>
           </div>
           
           <button 
             onClick={() => setActiveTab(insight.tab)}
-            className="w-full mt-5 py-2.5 bg-white hover:bg-slate-100 text-brand-blue hover:text-brand-700 font-bold rounded-xl shadow-md transition-all flex items-center justify-center gap-1.5 text-xs cursor-pointer hover:scale-[1.01]"
+            className="w-full mt-5 py-3 bg-brand-accent hover:opacity-90 text-slate-950 font-bold rounded-[14px] shadow-sm transition-all flex items-center justify-center gap-1.5 text-xs cursor-pointer hover:scale-[1.01]"
           >
             <span>{insight.actionLabel}</span>
             <ArrowRight size={14} />
@@ -440,7 +439,7 @@ export function Dashboard({
         <div className="flex items-center justify-between mb-4">
           <div>
             <h3 className="text-sm font-bold text-on-surface">Eventos Recentes</h3>
-            <p className="text-[11px] text-on-surface-variant">Últimas notificações e alertas do seu copiloto</p>
+            <p className="text-[11px] text-on-surface-variant">Últimas notificações e alertas do Vocentro</p>
           </div>
           <button className="text-xs text-primary font-bold hover:underline cursor-pointer" onClick={() => setActiveTab('notifications')}>Ver todas</button>
         </div>

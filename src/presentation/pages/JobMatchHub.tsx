@@ -1441,7 +1441,7 @@ export function JobMatchHub({
                     Adicionar Nova Vaga
                   </h3>
                   <p className="text-xs text-slate-500 mt-1">
-                    Selecione o melhor método para importar a vaga. O Talenta extrairá os requisitos automaticamente.
+                    Selecione o melhor método para importar a vaga. O Vocentro extrairá os requisitos automaticamente.
                   </p>
                 </div>
 
@@ -1523,7 +1523,7 @@ export function JobMatchHub({
                       <div className="space-y-1">
                         <h4 className="font-semibold text-xs text-yellow-500">Restrição de Extração</h4>
                         <p className="text-[11px] leading-relaxed text-slate-400">
-                          Esta vaga está hospedada em uma plataforma que restringe a extração automatizada de conteúdo em seus Termos de Uso (como LinkedIn ou Gupy). Para respeitar essas regras, o Talenta não realiza a importação automática dessa página.
+                          Esta vaga está hospedada em uma plataforma que restringe a extração automatizada de conteúdo em seus Termos de Uso (como LinkedIn ou Gupy). Para respeitar essas regras, o Vocentro não realiza a importação automática dessa página.
                         </p>
                       </div>
                     </div>
@@ -1584,7 +1584,7 @@ export function JobMatchHub({
                             <label className="text-xs font-semibold text-slate-400">Empresa</label>
                             <input
                               type="text"
-                              placeholder="Ex: Talenta"
+                              placeholder="Ex: Vocentro"
                               value={companyName}
                               onChange={e => setCompanyName(e.target.value)}
                               className="w-full px-4 py-2.5 rounded-xl bg-slate-900/50 border border-slate-800 focus:border-brand-500 outline-none text-xs text-slate-200"
@@ -1651,7 +1651,7 @@ export function JobMatchHub({
                         </div>
 
                         <p className="text-[10px] text-slate-500 leading-relaxed">
-                          O Talenta baixará o HTML e estruturará os requisitos de forma inteligente, limpando anúncios e scripts de layout.
+                          O Vocentro baixará o HTML e estruturará os requisitos de forma inteligente, limpando anúncios e scripts de layout.
                         </p>
 
                         <div className="flex gap-3 justify-end pt-4">

@@ -1,7 +1,7 @@
 import type { Profile } from '../../domain/models/types';
 import { useEffect } from 'react';
 import { ProgressRing } from './ds/ProgressRing';
-import { TalentaLogo } from './ds/MyCareerIcons';
+import { VocentroLogo } from './ds/MyCareerIcons';
 import { 
   LayoutDashboard, 
   User, 
@@ -154,7 +154,7 @@ export function Navbar({
         <div className="flex-1 flex flex-col">
           {/* Brand */}
           <div className="flex items-center justify-between gap-sm px-5 pt-5 pb-4">
-            <TalentaLogo className="h-9" showText={true} />
+            <VocentroLogo className="h-9" showText={true} />
             <button
               onClick={onClose}
               className="md:hidden p-1 rounded-lg hover:bg-surface-container-high text-on-surface-variant hover:text-on-surface transition-colors"

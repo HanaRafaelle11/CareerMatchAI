@@ -105,7 +105,7 @@ export function useAuth() {
         const newProfile = {
           id: userId,
           full_name: initialName,
-          headline: 'Candidato | Talenta',
+          headline: 'Profissional | Vocentro',
           role: 'user',
           created_at: new Date().toISOString(),
           updated_at: new Date().toISOString()
@@ -196,7 +196,7 @@ export function useAuth() {
       const mockUserId = btoa(email).replace(/[^a-zA-Z0-9]/g, '').slice(0, 12);
       const mockUserObj = { id: mockUserId, email };
       localStorage.setItem('careermatch_auth_user', JSON.stringify(mockUserObj));
-      localDB.updateProfile({ fullName, headline: 'Novo Usuário | Talenta' });
+      localDB.updateProfile({ fullName, headline: 'Novo Usuário | Vocentro' });
       setUser(mockUserObj);
       setProfile(localDB.getProfile());
       tracker.track('user_registered', 'auth');

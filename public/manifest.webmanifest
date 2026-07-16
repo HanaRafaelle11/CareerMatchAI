@@ -1,6 +1,6 @@
 {
-  "short_name": "Talenta",
-  "name": "Talenta - Seu Copiloto de Carreira",
+  "short_name": "Vocentro",
+  "name": "Vocentro - Sua Carreira, Você no Centro",
   "icons": [
     {
       "src": "/pwa-icon-192.png",
@@ -28,8 +28,8 @@
     }
   ],
   "start_url": "/",
-  "background_color": "#0F172A",
+  "background_color": "#08162E",
   "display": "standalone",
-  "theme_color": "#0F172A",
+  "theme_color": "#08162E",
   "orientation": "portrait"
 }

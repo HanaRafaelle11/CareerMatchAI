@@ -182,7 +182,7 @@ serve(async (req) => {
     if (action === 'start') {
       // PROMPT DE ABERTURA
       const prompt = `
-        Você é o entrevistador inteligente do Talenta.
+        Você é o entrevistador inteligente do Vocentro.
         Sua tarefa é iniciar uma entrevista simulada personalizada no formato STAR.
         
         Vaga de interesse:
@@ -228,7 +228,7 @@ serve(async (req) => {
     } else if (action === 'next') {
       // PROMPT DE AVALIAÇÃO DE TURNO + PRÓXIMA PERGUNTA
       const prompt = `
-        Você é o entrevistador inteligente do Talenta conduzindo uma entrevista simulada.
+        Você é o entrevistador inteligente do Vocentro conduzindo uma entrevista simulada.
         O candidato acabou de responder à pergunta anterior. Sua missão é:
         1. Avaliar a resposta do candidato no formato STAR (Situação, Tarefa, Ação e Resultado).
         2. Gerar pontuações numéricas honestas de 0 a 100 de conformidade técnica, comunicação, confiança e clareza.
@@ -321,7 +321,7 @@ serve(async (req) => {
     } else if (action === 'finalize') {
       // PROMPT DE CONSOLIDAÇÃO / RELATÓRIO FINAL
       const prompt = `
-        Você é o entrevistador inteligente do Talenta.
+        Você é o entrevistador inteligente do Vocentro.
         A simulação de entrevista terminou. Sua tarefa é analisar todo o histórico e compilar um relatório final completo.
         
         Vaga:

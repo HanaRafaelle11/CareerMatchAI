@@ -1,59 +1,61 @@
-@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Sora:wght@300;400;500;600;700;800&family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap');
 
 @import "tailwindcss";
 
 @custom-variant light (.light &);
 
 @theme {
-  --color-slate-950: #0F172A;
+  --color-slate-900: #10284E;
+  --color-slate-950: #08162E;
   --color-brand-50: #eff6ff;
-  --color-brand-100: #dbeafe;
-  --color-brand-500: #2563EB;
-  --color-brand-600: #1E40AF;
-  --color-brand-700: #1d4ed8;
-  --color-brand-violet: #8B5CF6;
-  --color-brand-blue: #2563EB;
-  --color-brand-dark: #0F172A;
-  --color-brand-card: #1E293B;
-  --color-brand-border: #334155;
+  --color-brand-100: #d6dce8;
+  --color-brand-500: #163E8C;
+  --color-brand-600: #081C3A;
+  --color-brand-700: #163E8C;
+  --color-brand-accent: #57E389;
+  --color-brand-violet: #163E8C;
+  --color-brand-blue: #163E8C;
+  --color-brand-dark: #08162E;
+  --color-brand-card: #10284E;
+  --color-brand-border: rgba(255, 255, 255, 0.08);
 
   /* Kinetic Precision Dark theme colors */
-  --color-surface: #0F172A;
-  --color-surface-dim: #0F172A;
-  --color-surface-bright: #334155;
-  --color-surface-container-lowest: #020617;
-  --color-surface-container-low: #0F172A;
-  --color-surface-container: #1E293B;
-  --color-surface-container-high: #1E293B;
-  --color-surface-container-highest: #334155;
+  --color-surface: #08162E;
+  --color-surface-dim: #08162E;
+  --color-surface-bright: #163E8C;
+  --color-surface-container-lowest: #08162E;
+  --color-surface-container-low: #08162E;
+  --color-surface-container: #10284E;
+  --color-surface-container-high: #10284E;
+  --color-surface-container-highest: #163E8C;
   
-  --color-on-surface: #F8FAFC;
-  --color-on-surface-variant: #94A3B8;
-  --color-outline: #475569;
-  --color-outline-variant: #1E293B;
+  --color-on-surface: #F7F9FC;
+  --color-on-surface-variant: #D6DCE8;
+  --color-outline: rgba(255, 255, 255, 0.08);
+  --color-outline-variant: #10284E;
   
-  --color-primary: #2563EB;
-  --color-on-primary: #ffffff;
-  --color-primary-container: #1E40AF;
-  --color-on-primary-container: #ffffff;
+  --color-primary: #163E8C;
+  --color-on-primary: #F7F9FC;
+  --color-primary-container: #081C3A;
+  --color-on-primary-container: #F7F9FC;
   
-  --color-secondary: #1E40AF;
-  --color-on-secondary: #ffffff;
-  --color-secondary-container: #0F172A;
-  --color-on-secondary-container: #F8FAFC;
+  --color-secondary: #081C3A;
+  --color-on-secondary: #F7F9FC;
+  --color-secondary-container: #10284E;
+  --color-on-secondary-container: #D6DCE8;
   
-  --color-tertiary: #F59E0B;
-  --color-on-tertiary: #ffffff;
-  --color-tertiary-container: #78350F;
-  --color-on-tertiary-container: #FEF3C7;
+  --color-tertiary: #57E389;
+  --color-on-tertiary: #08162E;
+  --color-tertiary-container: rgba(87, 227, 137, 0.1);
+  --color-on-tertiary-container: #57E389;
   
   --color-error: #EF4444;
   --color-on-error: #ffffff;
   --color-error-container: #7F1D1D;
   --color-on-error-container: #FEE2E2;
 
-  --font-sans: 'Poppins', sans-serif;
-  --font-display: 'Poppins', sans-serif;
+  --font-sans: 'Sora', 'Plus Jakarta Sans', 'Manrope', 'Inter', sans-serif;
+  --font-display: 'Sora', 'Plus Jakarta Sans', 'Manrope', 'Inter', sans-serif;
 
   --radius-sm: 0.125rem;
   --radius-default: 0.25rem;
@@ -172,31 +174,31 @@ body.light {
   --color-surface-container-low: #f1f5f9;
   --color-surface-container: #ffffff;
   --color-surface-container-high: #f1f5f9;
-  --color-surface-container-highest: #e2e8f0;
+  --color-surface-container-highest: #cbd5e1;
 
   /* On-surface */
   --color-on-surface: #0f172a;
   --color-on-surface-variant: #475569;
-  --color-outline: #64748b;
-  --color-outline-variant: #e2e8f0;
+  --color-outline: #e2e8f0;
+  --color-outline-variant: #cbd5e1;
 
   /* Primary */
-  --color-primary: #2563EB;
+  --color-primary: #163E8C;
   --color-on-primary: #ffffff;
   --color-primary-container: #dbeafe;
-  --color-on-primary-container: #1e40af;
+  --color-on-primary-container: #163E8C;
 
   /* Secondary */
-  --color-secondary: #1E40AF;
+  --color-secondary: #081C3A;
   --color-on-secondary: #ffffff;
   --color-secondary-container: #dbeafe;
-  --color-on-secondary-container: #1e40af;
+  --color-on-secondary-container: #163E8C;
 
   /* Tertiary */
-  --color-tertiary: #F59E0B;
-  --color-on-tertiary: #ffffff;
-  --color-tertiary-container: #fef3c7;
-  --color-on-tertiary-container: #b45309;
+  --color-tertiary: #57E389;
+  --color-on-tertiary: #08162E;
+  --color-tertiary-container: rgba(87, 227, 137, 0.1);
+  --color-on-tertiary-container: #57E389;
 
   /* Error */
   --color-error: #EF4444;
@@ -206,9 +208,10 @@ body.light {
 
   /* Brand overrides */
   --color-slate-950: #f8fafc;
+  --color-slate-900: #ffffff;
   --color-brand-card: #ffffff;
-  --color-brand-dark: #f8fafc;
   --color-brand-border: #e2e8f0;
+  --color-brand-dark: #f8fafc;
 
   background-color: #f8fafc;
   color: #0f172a;
@@ -236,9 +239,12 @@ body.light {
   border-color: #e2e8f0 !important;
 }
 
-.light .bg-slate-900,
-.light .bg-slate-950 {
+.light .bg-slate-900 {
   background-color: #ffffff !important;
+}
+
+.light .bg-slate-950 {
+  background-color: #f8fafc !important;
 }
 
 .light .bg-slate-900\/10,
@@ -257,52 +263,52 @@ body.light {
 
 /* Kinetic Precision Typography and Layout Classes */
 .font-headline-xl {
-  font-family: 'Inter', sans-serif;
+  font-family: 'Sora', sans-serif;
   font-size: 48px;
   line-height: 1.1;
   letter-spacing: -0.02em;
   font-weight: 700;
 }
 .font-headline-lg {
-  font-family: 'Inter', sans-serif;
+  font-family: 'Sora', sans-serif;
   font-size: 32px;
   line-height: 1.2;
   letter-spacing: -0.01em;
   font-weight: 600;
 }
 .font-headline-md {
-  font-family: 'Inter', sans-serif;
+  font-family: 'Sora', sans-serif;
   font-size: 24px;
   line-height: 1.3;
   font-weight: 600;
 }
 .font-body-lg {
-  font-family: 'Inter', sans-serif;
+  font-family: 'Sora', sans-serif;
   font-size: 18px;
   line-height: 1.6;
   font-weight: 400;
 }
 .font-body-md {
-  font-family: 'Inter', sans-serif;
+  font-family: 'Sora', sans-serif;
   font-size: 16px;
   line-height: 1.5;
   font-weight: 400;
 }
 .font-body-sm {
-  font-family: 'Inter', sans-serif;
+  font-family: 'Sora', sans-serif;
   font-size: 14px;
   line-height: 1.5;
   font-weight: 400;
 }
 .font-label-md {
-  font-family: 'Inter', sans-serif;
+  font-family: 'Sora', sans-serif;
   font-size: 14px;
   line-height: 1.2;
   letter-spacing: 0.05em;
   font-weight: 600;
 }
 .font-label-sm {
-  font-family: 'Inter', sans-serif;
+  font-family: 'Sora', sans-serif;
   font-size: 12px;
   line-height: 1.2;
   font-weight: 500;
@@ -310,29 +316,31 @@ body.light {
 
 /* Components */
 .premium-card {
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.03) 0%, rgba(255, 255, 255, 0.01) 100%), #16161a;
-  border: 1px solid rgba(255, 255, 255, 0.14);
-  box-shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.7);
-  transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1), border-color 0.3s ease, box-shadow 0.3s ease;
+  background: #10284E;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 20px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+  backdrop-filter: blur(8px);
+  transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1), border-color 0.25s ease, box-shadow 0.25s ease;
 }
 .premium-card:hover {
-  transform: translateY(-4px);
-  border-color: rgba(51, 119, 255, 0.45);
-  box-shadow: 0 20px 40px -15px rgba(0, 0, 0, 0.9), 0 0 20px 1px rgba(51, 119, 255, 0.1);
+  transform: translateY(-2px);
+  border-color: rgba(87, 227, 137, 0.25);
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.25), 0 0 15px rgba(87, 227, 137, 0.05);
 }
 
 .light .premium-card {
   background: #ffffff;
   border: 1px solid #e2e8f0;
-  box-shadow: 0 4px 16px -4px rgba(0, 0, 0, 0.08);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.03);
 }
 .light .premium-card:hover {
-  border-color: rgba(37, 99, 235, 0.4);
-  box-shadow: 0 8px 24px -8px rgba(0, 0, 0, 0.12), 0 0 12px 1px rgba(37, 99, 235, 0.08);
+  border-color: rgba(87, 227, 137, 0.3);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.06);
 }
 
 .ai-gradient {
-  background: linear-gradient(135deg, var(--color-primary, #0035c5) 0%, var(--color-secondary, #5a00c6) 100%);
+  background: linear-gradient(135deg, var(--color-primary, #163E8C) 0%, var(--color-brand-accent, #57E389) 100%);
 }
 
 .material-symbols-outlined {

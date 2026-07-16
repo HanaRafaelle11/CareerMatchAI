@@ -9,96 +9,127 @@ interface LogoProps {
   colorMode?: 'default' | 'white' | 'black' | 'monochrome';
 }
 
-export function TalentaLogo({ 
+export function VocentroLogo({ 
   className = "h-8", 
-  showText = true, 
+  showText: _showText = true, 
   variant = 'horizontal', 
   colorMode = 'default' 
 }: LogoProps) {
-  
-  let fillGradient = colorMode === 'default';
-  let topFill = "url(#logo-t-top-grad)";
-  let stemFill = "url(#logo-t-stem-grad)";
-  let starFill = "url(#logo-star-grad)";
-  let textClassPrimary = "text-on-surface";
-
-  if (colorMode === 'white') {
-    topFill = "#FFFFFF";
-    stemFill = "#FFFFFF";
-    starFill = "#FFFFFF";
-    textClassPrimary = "text-white";
-  } else if (colorMode === 'black') {
-    topFill = "#000000";
-    stemFill = "#000000";
-    starFill = "#000000";
-    textClassPrimary = "text-black";
-  } else if (colorMode === 'monochrome') {
-    topFill = "currentColor";
-    stemFill = "currentColor";
-    starFill = "currentColor";
-    textClassPrimary = "text-current";
-  }
-
   const isVertical = variant === 'vertical';
   const isSymbolOnly = variant === 'symbol';
+  
+  let textColorClass = "text-slate-100 dark:text-slate-100 light:text-slate-900";
+  if (colorMode === 'white') textColorClass = "text-white";
+  if (colorMode === 'black') textColorClass = "text-black";
+
+  // Símbolo do Vocentro: Círculo com um ponto verde no centro
+  const symbolSvg = (
+    <svg 
+      viewBox="0 0 96 96" 
+      fill="none" 
+      xmlns="http://www.w3.org/2000/svg" 
+      className={`${isVertical ? 'h-16 w-16 mb-2' : 'h-full aspect-square'} shrink-0`}
+    >
+      {/* Círculo externo (você) */}
+      <circle 
+        cx="48" 
+        cy="48" 
+        r="32" 
+        stroke="currentColor" 
+        strokeWidth="9" 
+        fill="none" 
+      />
+      {/* Ponto verde centralizado */}
+      <circle 
+        cx="48" 
+        cy="48" 
+        r="11" 
+        fill="#57E389" 
+      />
+    </svg>
+  );
+
+  if (isSymbolOnly) {
+    return <div className={`flex items-center justify-center ${className}`}>{symbolSvg}</div>;
+  }
 
   return (
-    <div className={`flex ${isVertical ? 'flex-col text-center' : 'flex-row'} items-center gap-2.5 select-none ${className}`}>
-      <svg 
-        viewBox="0 0 96 96" 
-        fill="none" 
-        xmlns="http://www.w3.org/2000/svg" 
-        className={`${isVertical ? 'h-16 w-16 mb-2' : 'h-full aspect-square'} shrink-0`}
-      >
-        {fillGradient && (
-          <defs>
-            <linearGradient id="logo-t-top-grad" x1="16" y1="48" x2="80" y2="48" gradientUnits="userSpaceOnUse">
-              <stop offset="0%" stopColor="#4F46E5" />
-              <stop offset="100%" stopColor="#7C3AED" />
-            </linearGradient>
-            <linearGradient id="logo-t-stem-grad" x1="48" y1="84" x2="48" y2="56" gradientUnits="userSpaceOnUse">
-              <stop offset="0%" stopColor="#0F172A" />
-              <stop offset="100%" stopColor="#4F46E5" />
-            </linearGradient>
-            <linearGradient id="logo-star-grad" x1="40" y1="28" x2="56" y2="12" gradientUnits="userSpaceOnUse">
-              <stop offset="0%" stopColor="#3B82F6" />
-              <stop offset="100%" stopColor="#7C3AED" />
-            </linearGradient>
-          </defs>
-        )}
-        
-        {/* Stem of T (Rounded bottom) */}
-        <path d="M 40 56 H 56 V 76 A 8 8 0 0 1 40 76 Z" fill={stemFill} />
-
-        {/* Top Bar of T (Rounded Capsule) */}
-        <rect x="16" y="40" width="64" height="16" rx="8" ry="8" fill={topFill} />
-
-        {/* Sparkle Star */}
-        <path d="M 48 12 Q 48 20 56 20 Q 48 20 48 28 Q 48 20 40 20 Q 48 20 48 12" fill={starFill} />
-      </svg>
-      
-      {showText && !isSymbolOnly && (
-        <div className={`flex flex-col ${isVertical ? 'items-center text-center' : 'items-start'} leading-none`}>
-          <span className={`font-display ${isVertical ? 'text-2xl' : 'text-lg'} font-bold tracking-tight select-none ${textClassPrimary}`}>
-            Talenta
+    <div className={`flex ${isVertical ? 'flex-col text-center' : 'flex-row'} items-center gap-2 select-none ${className} ${textColorClass}`}>
+      {!isVertical ? (
+        // Versão horizontal: texto vocentr + símbolo "o"
+        <div className="flex items-center leading-none">
+          <span className="font-display text-lg font-bold tracking-tight select-none lowercase">
+            vocentr
           </span>
-          {isVertical ? (
-            <span className="text-[9px] font-medium tracking-[0.05em] text-slate-400 dark:text-slate-500 mt-1.5 max-w-[200px]">
-              Transformando <span className="text-blue-500 font-semibold">talento</span> em <span className="text-purple-500 font-semibold">oportunidades</span>
-            </span>
-          ) : (
-            <span className="text-[7px] font-semibold tracking-[0.15em] text-slate-400 dark:text-slate-500 uppercase mt-1">
-              Inteligência Artificial
-            </span>
-          )}
+          {/* O símbolo final representando o "o" de Vocentro */}
+          <svg 
+            viewBox="0 0 96 96" 
+            fill="none" 
+            xmlns="http://www.w3.org/2000/svg" 
+            className="h-[18px] w-[18px] ml-[2px] self-center shrink-0"
+            style={{ transform: 'translateY(1px)' }}
+          >
+            <circle 
+              cx="48" 
+              cy="48" 
+              r="34" 
+              stroke="currentColor" 
+              strokeWidth="11" 
+              fill="none" 
+            />
+            <circle 
+              cx="48" 
+              cy="48" 
+              r="12" 
+              fill="#57E389" 
+            />
+          </svg>
         </div>
+      ) : (
+        // Versão vertical: Símbolo em cima e texto vocentro em baixo
+        <>
+          {symbolSvg}
+          <div className="flex flex-col items-center leading-none">
+            <div className="flex items-center">
+              <span className="font-display text-xl font-bold tracking-tight select-none lowercase">
+                vocentr
+              </span>
+              <svg 
+                viewBox="0 0 96 96" 
+                fill="none" 
+                xmlns="http://www.w3.org/2000/svg" 
+                className="h-[20px] w-[20px] ml-[2.5px] shrink-0"
+                style={{ transform: 'translateY(1px)' }}
+              >
+                <circle 
+                  cx="48" 
+                  cy="48" 
+                  r="34" 
+                  stroke="currentColor" 
+                  strokeWidth="11" 
+                  fill="none" 
+                />
+                <circle 
+                  cx="48" 
+                  cy="48" 
+                  r="12" 
+                  fill="#57E389" 
+                />
+              </svg>
+            </div>
+            <span className="text-[9px] font-medium tracking-[0.05em] text-slate-400 dark:text-slate-500 mt-2 max-w-[200px]">
+              Sua carreira, <span className="text-brand-accent font-semibold">você</span> no centro
+            </span>
+          </div>
+        </>
       )}
     </div>
   );
 }
 
-// Alias for backward compatibility
-export { TalentaLogo as MyCareerLogo };
+// Aliases for backward compatibility
+export { VocentroLogo as TalentaLogo };
+export { VocentroLogo as MyCareerLogo };
 
 // 👤 User Profile: Ícone de usuário com uma engrenagem de configuração
 export function UserProfileIcon({ className = "w-5 h-5" }: IconProps) {

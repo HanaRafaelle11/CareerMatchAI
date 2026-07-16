@@ -680,7 +680,7 @@ serve(async (req) => {
       parsedData = {
         career_profile: {
           personal: {
-            fullName: "Profissional Talenta",
+            fullName: "Profissional Vocentro",
             headline: "Especialista em Tecnologia",
             email: null,
             phone: null,

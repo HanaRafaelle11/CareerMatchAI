@@ -11,7 +11,7 @@ import { CompactHeader } from './presentation/components/ds/CompactHeader';
 import { Login } from './presentation/pages/Login';
 import { LandingPage } from './presentation/pages/LandingPage';
 import { Menu, Loader2 } from 'lucide-react';
-import { TalentaLogo } from './presentation/components/ds/MyCareerIcons';
+import { VocentroLogo } from './presentation/components/ds/MyCareerIcons';
 import { isSupabaseConfigured, supabase } from './infrastructure/api/supabaseClient';
 import type { Job } from './domain/models/types';
 
@@ -270,17 +270,17 @@ function App() {
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(99,102,241,0.05)_0%,transparent_70%)]" />
         <div className="max-w-md w-full p-8 mx-4 rounded-3xl bg-slate-900/30 border border-slate-850 backdrop-blur-md flex flex-col items-center text-center space-y-6 relative">
           <div className="relative flex flex-col items-center">
-            <div className="absolute inset-0 rounded-full bg-brand-500/15 blur-2xl animate-pulse" />
-            <div className="p-5 rounded-full bg-slate-950 border border-slate-800 text-brand-500 shadow-2xl relative z-10 flex items-center justify-center">
-              <TalentaLogo className="h-12 w-12 animate-pulse" showText={false} variant="symbol" />
+            <div className="absolute inset-0 rounded-full bg-brand-accent/15 blur-2xl animate-pulse" />
+            <div className="p-5 rounded-full bg-slate-950 border border-slate-800 text-brand-accent shadow-2xl relative z-10 flex items-center justify-center">
+              <VocentroLogo className="h-12 w-12 animate-pulse" showText={false} variant="symbol" />
             </div>
           </div>
-          <div className="space-y-2">
-            <h3 className="font-display font-bold text-lg text-slate-200">Iniciando Talenta</h3>
+          <div className="space-y-2 font-sans">
+            <h3 className="font-display font-bold text-lg text-slate-200">Iniciando Vocentro</h3>
             <p className="text-xs text-slate-500">Conectando ao banco de dados e autenticando sessão de usuário...</p>
           </div>
           <div className="w-full max-w-[200px] h-1 bg-slate-950 border border-slate-850 rounded-full overflow-hidden">
-            <div className="h-full bg-brand-500 rounded-full animate-progress-loading" />
+            <div className="h-full bg-brand-accent rounded-full animate-progress-loading" />
           </div>
         </div>
       </div>
@@ -320,7 +320,7 @@ function App() {
           >
             <Menu size={24} />
           </button>
-          <TalentaLogo className="h-7" showText={false} />
+          <VocentroLogo className="h-7" showText={false} />
         </div>
         <div className="flex items-center gap-2">
           {profile?.avatarUrl ? (

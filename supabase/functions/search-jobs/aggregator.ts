@@ -55,6 +55,12 @@ interface SearchMetrics {
   geminiUsed: boolean;
   latencyMs: number;
   topFeatures: string[];
+  retrieverHits: {
+    title: number;
+    alias: number;
+    skills: number;
+    description: number;
+  };
 }
 function logSearchTelemetry(m: SearchMetrics) {
   console.log("=== SEARCH METRICS ===");
@@ -68,6 +74,10 @@ function logSearchTelemetry(m: SearchMetrics) {
   console.log(`- gemini_used: ${m.geminiUsed}`);
   console.log(`- latency_ms: ${m.latencyMs}ms`);
   console.log(`- leading_signals: ${m.topFeatures.join(', ')}`);
+  console.log(`- retriever_hits_title: ${m.retrieverHits.title}`);
+  console.log(`- retriever_hits_alias: ${m.retrieverHits.alias}`);
+  console.log(`- retriever_hits_skills: ${m.retrieverHits.skills}`);
+  console.log(`- retriever_hits_description: ${m.retrieverHits.description}`);
   console.log("======================");
 }
 
@@ -343,8 +353,12 @@ export function aggregateAndNormalizeJobs(
   }
 
   const initialCount = parsedJobs.length;
+  let hitsTitle = 0;
+  let hitsAlias = 0;
+  let hitsSkills = 0;
+  let hitsDescription = 0;
 
-  // Phase 3: Candidate recall pool generation com expansão ponderada de Grafo
+  // Phase 3: Candidate recall pool generation com expansão ponderada de Grafo (Decoupled Multi-Retriever Union)
   const candidates: NormalizedJob[] = [];
   let rejectedByTitle = 0;
 
@@ -380,7 +394,7 @@ export function aggregateAndNormalizeJobs(
       (j as any)._titleSim = maxWeightedSim;
       (j as any)._matchedCanonicalKey = bestExpandedKey;
 
-      // 2. Critérios extremamente amplos de Gating para Recall Máximo (title OR alias OR skill OR description OR department)
+      // 2. Critérios extremamente amplos de Gating para Recall Máximo (title OR alias OR skill OR description)
       const titleLower = j.title.toLowerCase();
       const descLower = j.description.toLowerCase();
 
@@ -417,27 +431,41 @@ export function aggregateAndNormalizeJobs(
       const titleSimFeature = FEATURE_REGISTRY.find(f => f.key === "TitleSimilarity");
       const skillsFeature = FEATURE_REGISTRY.find(f => f.key === "SkillsCoverage");
       const descFeature = FEATURE_REGISTRY.find(f => f.key === "DescriptionRelevance");
-      const deptFeature = FEATURE_REGISTRY.find(f => f.key === "DepartmentSimilarity");
 
       const titleSim = titleSimFeature ? titleSimFeature.calculate(j, domainIntent as any) : 0.0;
       const skillsSim = skillsFeature ? skillsFeature.calculate(j, domainIntent as any) : 0.0;
       const descRelevance = descFeature ? descFeature.calculate(j, domainIntent as any) : 0.0;
-      const deptSim = deptFeature ? deptFeature.calculate(j, domainIntent as any) : 0.0;
 
-      const isAcceptedCandidate = 
-        (titleSim > 0.0) || 
-        (skillsSim > 0.0) || 
-        (descRelevance > 0.0) || 
-        (deptSim > 0.0) || 
-        hasAnyAlias;
+      // Cada retriever opera independentemente (DepartmentSimilarity foi removido da recuperação)
+      const isRetrievedByTitle = titleSim > 0.0;
+      const isRetrievedByAlias = hasAnyAlias;
+      const isRetrievedBySkills = hasAnySkill;
+      const isRetrievedByDescription = descRelevance > 0.0;
+
+      const isAcceptedCandidate = isRetrievedByTitle || isRetrievedByAlias || isRetrievedBySkills || isRetrievedByDescription;
 
       if (!isAcceptedCandidate) {
         rejectedByTitle++;
         if (debug) {
-          console.log(`[Phase 3 Recall Rejected] "${j.title}" (Company: ${j.companyName}) - titleSim: ${titleSim.toFixed(3)}, skillsSim: ${skillsSim.toFixed(3)}, descRelevance: ${descRelevance.toFixed(3)}, deptSim: ${deptSim.toFixed(3)}, hasAnyAlias: ${hasAnyAlias}`);
+          console.log(`[Phase 3 Recall Rejected] "${j.title}" (Company: ${j.companyName}) - titleSim: ${titleSim.toFixed(3)}, hasAnySkill: ${hasAnySkill}, descRelevance: ${descRelevance.toFixed(3)}, hasAnyAlias: ${hasAnyAlias}`);
         }
         continue;
       }
+
+      // Incrementar contadores de telemetria do retriever correspondente
+      if (isRetrievedByTitle) hitsTitle++;
+      if (isRetrievedByAlias) hitsAlias++;
+      if (isRetrievedBySkills) hitsSkills++;
+      if (isRetrievedByDescription) hitsDescription++;
+
+      // Guardar evidências de recuperação e sinalizadores temporários no objeto
+      (j as any)._retrievalEvidence = {
+        title: isRetrievedByTitle,
+        alias: isRetrievedByAlias,
+        skills: isRetrievedBySkills,
+        description: isRetrievedByDescription
+      };
+
       candidates.push(j);
     }
   } else {
@@ -644,7 +672,8 @@ export function aggregateAndNormalizeJobs(
       boosts,
       penalties: penaltiesList,
       ranking_reason: rankingReasonStr,
-      explanation_ptBR: explanationPtBRStr
+      explanation_ptBR: explanationPtBRStr,
+      retrievalEvidence: (j as any)._retrievalEvidence || { title: false, alias: false, skills: false, description: false }
     };
   }
 
@@ -689,7 +718,13 @@ export function aggregateAndNormalizeJobs(
     threshold: thresholdApplied,
     geminiUsed,
     latencyMs: durationMs,
-    topFeatures
+    topFeatures,
+    retrieverHits: {
+      title: hitsTitle,
+      alias: hitsAlias,
+      skills: hitsSkills,
+      description: hitsDescription
+    }
   });
 
   return finalJobs;

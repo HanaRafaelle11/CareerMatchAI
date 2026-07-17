@@ -16,6 +16,7 @@ export interface RawJob {
 }
 
 export interface JobIntent {
+  canonical_key?: string;
   family: string;
   primary_titles: string[];
   secondary_titles: string[];
@@ -25,6 +26,7 @@ export interface JobIntent {
   negative_keywords: string[];
   industry: string;
   department?: string;
+  raw_query?: string;
 }
 
 export abstract class BaseJobConnector {

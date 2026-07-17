@@ -18,6 +18,7 @@ export interface JobIntent {
   industry: string;
   department?: string;
   target_location?: string;
+  raw_query?: string;
 }
 
 // ── LRU Cache em Memória ──

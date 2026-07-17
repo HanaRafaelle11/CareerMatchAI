@@ -76,7 +76,8 @@ export const TitleSimilarityFeature: Feature = {
     // Consumir alvos pré-normalizados do intent para performance
     const primaryTargets = intent._normalizedPrimary || [intent.canonical_key.replace(/_/g, " "), ...intent.primary_titles].map(t => normalizeQuery(t)).filter(Boolean);
     const secondaryTargets = intent._normalizedSecondary || intent.secondary_titles.map(t => normalizeQuery(t)).filter(Boolean);
-    const targets = [...primaryTargets, ...secondaryTargets];
+    const rawQueryTarget = (intent as any).raw_query ? [normalizeQuery((intent as any).raw_query)] : [];
+    const targets = [...primaryTargets, ...secondaryTargets, ...rawQueryTarget];
 
     for (const normTarget of targets) {
       const cosine = calculateCosineSimilarity(normJobTitle, normTarget);

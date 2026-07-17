@@ -364,6 +364,7 @@ export function aggregateAndNormalizeJobs(
           canonical_key: expandedNode.id,
           primary_titles: expandedNode.primary_titles,
           secondary_titles: expandedNode.secondary_titles,
+          raw_query: intent.raw_query,
           _normalizedPrimary: [expandedNode.id.replace(/_/g, " "), ...expandedNode.primary_titles].map(t => normalizeQuery(t)).filter(Boolean),
           _normalizedSecondary: expandedNode.secondary_titles.map(t => normalizeQuery(t)).filter(Boolean)
         };

@@ -142,6 +142,10 @@ serve(async (req) => {
     const geminiApiKey = Deno.env.get('GEMINI_API_KEY') || undefined;
     const { intent, geminiUsed } = await resolveSearchIntent(searchKeyword, geminiApiKey);
 
+    if (intent) {
+      intent.raw_query = searchKeyword;
+    }
+
     // ── 3. CONSULTA PARALELA AOS CONECTORES DE VAGAS ──
     let rawJobsList: any[] = [];
 
@@ -153,7 +157,13 @@ serve(async (req) => {
         const controller = new AbortController();
         const timeoutId = setTimeout(() => controller.abort(), 3500);
 
-        const connectorResult = await connector.searchJobs(searchKeyword, searchLocation, pageNum);
+        // Broaden the search keyword passed to connectors to maximize initial recall
+        let apiQuery = searchKeyword;
+        if (intent) {
+          apiQuery = intent.primary_titles[0] || intent.canonical_key.replace(/_/g, " ");
+        }
+
+        const connectorResult = await connector.searchJobs(apiQuery, searchLocation, pageNum);
         clearTimeout(timeoutId);
 
         const duration = Date.now() - start;

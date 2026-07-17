@@ -95,14 +95,14 @@ serve(async (req) => {
 
     const queryKey = `${searchKeyword.toLowerCase().trim()}|${searchLocation.toLowerCase().trim()}|${pageNum}`;
 
-    // ── 1. VERIFICAR CACHE CENTRAL DE CONSULTAS (TTL: 5 minutos) ──
+    // ── 1. VERIFICAR CACHE CENTRAL DE CONSULTAS (TTL: 5 minutos) — Somente se não for modo debug ──
     const fiveMinutesAgo = new Date(Date.now() - 5 * 60 * 1000).toISOString();
-    const { data: cached } = await supabaseClient
+    const { data: cached } = !debug ? await supabaseClient
       .from('job_search_cache')
       .select('results, created_at')
       .eq('query_key', queryKey)
       .gt('created_at', fiveMinutesAgo)
-      .maybeSingle();
+      .maybeSingle() : { data: null };
 
     if (cached && cached.results) {
       console.log(`[JOB SEARCH CACHE HIT] key: ${queryKey}`);
@@ -161,10 +161,22 @@ serve(async (req) => {
     const settledResults = await Promise.allSettled(promises);
     
     let totalCount = 0;
+    const connectorLogs: any[] = [];
     settledResults.forEach((r) => {
       if (r.status === 'fulfilled') {
         rawJobsList = [...rawJobsList, ...r.value.jobs];
         totalCount += r.value.jobs.length;
+        connectorLogs.push({
+          name: r.value.name,
+          success: r.value.success,
+          count: r.value.jobs.length,
+          error: r.value.error || null
+        });
+      } else {
+        connectorLogs.push({
+          status: 'rejected',
+          reason: String(r.reason)
+        });
       }
     });
 
@@ -180,20 +192,23 @@ serve(async (req) => {
 
     const finalResponse = {
       count: normalizedJobs.length,
-      results: normalizedJobs
+      results: normalizedJobs,
+      ...(debug ? { connectorLogs, rawCount: totalCount } : {})
     };
 
-    // ── 6. PERSISTIR EM CACHE ──
-    try {
-      await supabaseClient
-        .from('job_search_cache')
-        .upsert({
-          query_key: queryKey,
-          results: finalResponse,
-          created_at: new Date().toISOString()
-        });
-    } catch (dbErr) {
-      console.error('[CACHE SAVE ERROR]', dbErr.message);
+    // ── 6. PERSISTIR EM CACHE (Somente se não for debug) ──
+    if (!debug) {
+      try {
+        await supabaseClient
+          .from('job_search_cache')
+          .upsert({
+            query_key: queryKey,
+            results: finalResponse,
+            created_at: new Date().toISOString()
+          });
+      } catch (dbErr) {
+        console.error('[CACHE SAVE ERROR]', dbErr.message);
+      }
     }
 
     return new Response(

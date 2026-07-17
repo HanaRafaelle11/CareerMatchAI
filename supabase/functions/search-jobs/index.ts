@@ -94,7 +94,7 @@ serve(async (req) => {
   let supabaseClient: any = null;
 
   try {
-    const { keyword, location, pageNum = 1, userId } = await req.json();
+    const { keyword, location, pageNum = 1, userId, debug = false } = await req.json();
     const searchKeyword = keyword || 'React';
     const searchLocation = location || 'Brasil';
 
@@ -185,7 +185,7 @@ serve(async (req) => {
     });
 
     // ── 4. ORQUESTRADOR CENTRAL DE PIPELINE (NORMALIZAÇÃO, FILTROS, RANKING E METRICAS) ──
-    const normalizedJobs = aggregateAndNormalizeJobs(rawJobsList, intent, searchLocation, searchKeyword, geminiUsed);
+    const normalizedJobs = aggregateAndNormalizeJobs(rawJobsList, intent, searchLocation, searchKeyword, geminiUsed, debug);
     const duplicatesRemoved = totalCount - normalizedJobs.length;
 
     // Gravar telemetria analítica no banco Supabase

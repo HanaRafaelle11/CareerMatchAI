@@ -276,7 +276,8 @@ export function aggregateAndNormalizeJobs(
   intent?: JobIntent,
   location?: string,
   rawQuery?: string,
-  geminiUsed = false
+  geminiUsed = false,
+  debug = false
 ): NormalizedJob[] {
   const startTime = Date.now();
   const parsedJobs: NormalizedJob[] = [];
@@ -398,10 +399,13 @@ export function aggregateAndNormalizeJobs(
         return normAlias && (titleLower.includes(normAlias) || descLower.includes(normAlias));
       });
 
-      const isAcceptedCandidate = (maxWeightedSim >= GATING_THRESHOLDS.TitleSimilarity) || hasAnySkill || hasAnyAlias;
+      const isAcceptedCandidate = (maxWeightedSim > 0.0) || hasAnySkill || hasAnyAlias;
 
       if (!isAcceptedCandidate) {
         rejectedByTitle++;
+        if (debug) {
+          console.log(`[Phase 3 Recall Rejected] "${j.title}" (Company: ${j.companyName}) - maxWeightedSim: ${maxWeightedSim.toFixed(3)}, hasAnySkill: ${hasAnySkill}, hasAnyAlias: ${hasAnyAlias}`);
+        }
         continue;
       }
       candidates.push(j);
@@ -554,92 +558,21 @@ export function aggregateAndNormalizeJobs(
       }
     }
 
-    // ── 2. Calcular Boosts Explícitos ──
+    // ── 2. Calcular Score LTR Linear Simples ──
     const boosts: string[] = [];
     const penaltiesList: string[] = [];
-    let boostSum = 0;
 
-    // +12: Título exatamente igual à query
-    const rawQueryClean = normalizeQuery(rawQuery || "");
-    if (rawQueryClean && j._normalizedTitle === rawQueryClean) {
-      boostSum += 12;
-      boosts.push("Título correspondente exato (+12)");
-    }
+    let overallScore = Math.max(0, Math.min(100, Math.round(weightedSum * 100)));
 
-    // +8: Alias exato
-    const nodeAliases = matchedNode ? [...(matchedNode.aliases || []), ...(matchedNode.primary_titles || []), ...(matchedNode.secondary_titles || [])] : [];
-    const isAliasExact = nodeAliases.map(a => normalizeQuery(a)).includes(j._normalizedTitle);
-    if (isAliasExact) {
-      boostSum += 8;
-      boosts.push("Alias correspondente exato (+8)");
-    }
-
-    // +6: Forte alinhamento de competências (skills >= 4)
-    if (matchedSkillsList.length >= 4) {
-      boostSum += 6;
-      boosts.push("Forte alinhamento de competências (+6)");
-    }
-
-    // +5: Descrição rica (DescriptionRelevance >= 0.70)
-    const descRelevance = featuresScore["DescriptionRelevance"] || 0.0;
-    if (descRelevance >= 0.70) {
-      boostSum += 5;
-      boosts.push("Descrição técnica altamente rica (+5)");
-    }
-
-    // +4: Origem confiável / Conexão direta ATS
-    if (["greenhouse", "lever", "ashby", "smartrecruiters"].includes(j.sourcePlatform.toLowerCase())) {
-      boostSum += 4;
-      boosts.push("Conexão direta ATS (+4)");
-    }
-
-    // +3: Recente (ageDays <= 3)
-    if (j.publishedAt) {
-      const ageMs = Date.now() - new Date(j.publishedAt).getTime();
-      const ageDays = ageMs / (1000 * 60 * 60 * 24);
-      if (ageDays <= 3) {
-        boostSum += 3;
-        boosts.push("Publicação recente (+3)");
-      }
-    }
-
-    if (matchedNegatives.length > 0) {
-      penaltiesList.push(`Presença de termos negativos na descrição: ${matchedNegatives.join(', ')}`);
-    }
-    if (titleNegativePenalty > 0) {
-      penaltiesList.push("Incompatibilidade parcial de título (-15 pontos)");
-    }
-
-    // Aplicar limite de saturação (Cap) nos boosts lineares (máximo de 20 pontos)
-    const cappedBoost = Math.min(20, boostSum);
-    if (boostSum > 20) {
-      boosts.push(`Boost acumulado limitado a 20 pontos (saturado de ${boostSum})`);
-    }
-
-    // ── 3. Aplicar Decaimento Topológico como Boost (GraphDistance) ──
+    // ── 3. Aplicar Multiplicador Leve do Grafo (GraphDistance) ──
     const graphWeight = expandedIntents[bestExpandedKey] || 1.0;
-    const graphBoost = Math.round(graphWeight * 10);
-    boosts.push(`Afinidade topológica do Grafo de Conhecimento (+${graphBoost})`);
+    overallScore = Math.round(overallScore * (0.9 + graphWeight * 0.1));
 
-    let overallScore = Math.max(0, Math.min(100, Math.round(weightedSum * 100 - negativePenalty - titleNegativePenalty) + cappedBoost + graphBoost));
-
-    // Penalidade para cargos adjacentes com match fraco de título (ex: expansão de grafo de peso baixo)
-    if (titleSim < 0.55) {
-      overallScore = Math.max(0, overallScore - 20);
-    }
-
-    // ── 4. Calcular Confidence Factor (0.0 - 1.0) Baseado em Múltiplos Sinais ──
-    const hasAliasMatch = isAliasExact ? 1.0 : 0.0;
-    const titleConfidence = Math.max(titleSim, hasAliasMatch);
-    const contentConfidence = (skillsSim * 0.6 + descRelevance * 0.4);
-    const graphConfidence = graphWeight;
-
-    const confidenceFactor = (titleConfidence * 0.45) + (contentConfidence * 0.30) + (graphConfidence * 0.25);
-
+    // ── 4. Calibrar Confiança Baseada em Regras Simples ──
     let confidence: 'high' | 'medium' | 'low' = 'low';
-    if (confidenceFactor >= 0.75) {
+    if (titleSim > 0.75 && skillsSim > 0.60) {
       confidence = 'high';
-    } else if (confidenceFactor >= 0.45) {
+    } else if (titleSim > 0.45 || skillsSim > 0.40) {
       confidence = 'medium';
     }
 
@@ -654,19 +587,21 @@ export function aggregateAndNormalizeJobs(
     }
 
     const matchedDepartmentStr = intent.department || "Não especificado na intenção";
-    const rankingReasonStr = `Título similar a '${matchedTitleStr}' com pontuação total de ${overallScore}/100. Confiança de matching de ${Math.round(confidenceFactor * 100)}% (${confidence.toUpperCase()}).`;
+    const rankingReasonStr = `Título similar a '${matchedTitleStr}' com pontuação total de ${overallScore}/100. Confiança classificada como ${confidence.toUpperCase()}.`;
     const explanationPtBRStr = `Vaga encontrada por similaridade de título (${Math.round(titleSim * 100)}%). ` +
       `Encontradas ${matchedSkillsList.length} competências (${matchedSkillsList.slice(0, 3).join(', ')}). ` +
-      `Confiança de matching: ${confidence === 'high' ? 'Alta' : confidence === 'medium' ? 'Média' : 'Parcial'} (${Math.round(confidenceFactor * 100)}%).`;
+      `Nível de correspondência: ${confidence === 'high' ? 'Alta' : confidence === 'medium' ? 'Boa' : 'Parcial'}.`;
+
+    const descRelevance = featuresScore["DescriptionRelevance"] || 0.0;
 
     j.scores.overall = overallScore;
     j.scores.confidence = confidence;
     j.scores.breakdown = {
-      title: Math.round(titleSim * 30),
+      title: Math.round(titleSim * 35),
       skills: Math.round(skillsSim * 30),
-      description: Math.round(descRelevance * 25),
-      industry: Math.round((featuresScore["DepartmentSimilarity"] || 0) * 5),
-      company: Math.round((featuresScore["CompanyQuality"] || 0) * 5),
+      description: Math.round(descRelevance * 20),
+      industry: Math.round((featuresScore["DepartmentSimilarity"] || 0) * 10),
+      company: 0,
       freshness: Math.round((featuresScore["Freshness"] || 0) * 5)
     };
     j.scores.explainability = {

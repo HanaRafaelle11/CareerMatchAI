@@ -1,11 +1,10 @@
 // ranking-config.ts
 
 export const FEATURE_WEIGHTS: Record<string, number> = {
-  TitleSimilarity: 0.30,
+  TitleSimilarity: 0.35,
   SkillsCoverage: 0.30,
-  DescriptionRelevance: 0.25,
-  DepartmentSimilarity: 0.05,
-  CompanyQuality: 0.05,
+  DescriptionRelevance: 0.20,
+  DepartmentSimilarity: 0.10,
   Freshness: 0.05
 };
 

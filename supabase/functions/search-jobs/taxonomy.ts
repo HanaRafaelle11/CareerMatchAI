@@ -262,10 +262,11 @@ export const LOCAL_TAXONOMY: Record<string, TaxonomyNode> = {
       "customer onboarding specialist", "implementation consultant", "customer success engineer",
       "analista de customer success", "gerente de customer success", "especialista em cs",
       "customer experience", "client success", "client experience", "customer operations",
-      "customer onboarding", "client success representative", "customer experience manager"
+      "customer onboarding", "client success representative", "customer experience manager",
+      "relationship manager", "relationship specialist", "merchant success"
     ],
     primary_titles: ["customer success manager", "customer success specialist", "csm", "analista de customer success", "customer experience", "client success"],
-    secondary_titles: ["client success manager", "customer experience specialist", "cx", "gerente de customer success", "especialista em cs", "client experience", "customer operations", "customer onboarding"],
+    secondary_titles: ["client success manager", "customer experience specialist", "cx", "gerente de customer success", "especialista em cs", "client experience", "customer operations", "customer onboarding", "relationship manager", "relationship specialist", "merchant success"],
     related_titles: ["technical_support", "sales_representative"],
     negative_titles: ["cold calling", "active sales", "telemarketing", "vendas ativas", "developer", "programmer", "designer", "engineer", "desenvolvedor", "desenvolvedora", "dev", "fullstack"],
     required_skills: ["crm", "nps", "csat", "retention", "churn management", "zendesk", "customer relationship"],

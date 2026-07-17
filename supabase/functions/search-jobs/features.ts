@@ -11,6 +11,53 @@ export interface Feature {
   calculate(job: NormalizedJob, intent: JobIntent): number;
 }
 
+const SEMANTIC_TARGET_WEIGHTS: Record<string, number> = {
+  // Customer Success sub-roles (embedding representation)
+  "customer success manager": 1.0,
+  "customer success specialist": 1.0,
+  "csm": 1.0,
+  "analista de customer success": 1.0,
+  "gerente de customer success": 1.0,
+  "especialista em cs": 1.0,
+  "client success": 0.98,
+  "client success manager": 0.98,
+  "client success representative": 0.98,
+  "customer experience": 0.95,
+  "customer experience specialist": 0.95,
+  "customer experience manager": 0.95,
+  "cx": 0.95,
+  "client experience": 0.95,
+  "relationship manager": 0.85,
+  "relationship specialist": 0.85,
+  "merchant success": 0.85,
+  "account manager": 0.80,
+  "account management": 0.80,
+  "implementation consultant": 0.75,
+  "customer onboarding": 0.75,
+  "customer onboarding specialist": 0.75,
+  
+  // Product Manager sub-roles
+  "product manager": 1.0,
+  "senior product manager": 1.0,
+  "product owner": 0.95,
+  "po": 0.95,
+  "program manager": 0.75,
+  "project manager": 0.65,
+  
+  // Frontend Engineer sub-roles
+  "frontend engineer": 1.0,
+  "react developer": 0.98,
+  "ui engineer": 0.92,
+  "javascript developer": 0.90,
+  
+  // DevOps / SRE sub-roles
+  "devops engineer": 1.0,
+  "sre": 0.98,
+  "site reliability engineer": 0.98,
+  "cloud engineer": 0.95,
+  "sysadmin": 0.75
+};
+
 // ── 1. Title Similarity Feature ──
 export const TitleSimilarityFeature: Feature = {
   name: "Title Similarity",
@@ -59,6 +106,10 @@ export const TitleSimilarityFeature: Feature = {
           combined = combined * 0.2;
         }
       }
+
+      // Emular similaridade de embeddings da taxonomia escalando pelo peso semântico do target
+      const targetWeight = SEMANTIC_TARGET_WEIGHTS[normTarget] || 1.0;
+      combined = combined * targetWeight;
 
       if (combined > maxSim) {
         maxSim = combined;

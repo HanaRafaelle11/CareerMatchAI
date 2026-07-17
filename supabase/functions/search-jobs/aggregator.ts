@@ -379,7 +379,7 @@ export function aggregateAndNormalizeJobs(
       (j as any)._titleSim = maxWeightedSim;
       (j as any)._matchedCanonicalKey = bestExpandedKey;
 
-      // 2. Critérios amplos de Gating para Recall Máximo (title OR aliases OR skills)
+      // 2. Critérios extremamente amplos de Gating para Recall Máximo (title OR alias OR skill OR description OR department)
       const titleLower = j.title.toLowerCase();
       const descLower = j.description.toLowerCase();
 
@@ -399,12 +399,41 @@ export function aggregateAndNormalizeJobs(
         return normAlias && (titleLower.includes(normAlias) || descLower.includes(normAlias));
       });
 
-      const isAcceptedCandidate = (maxWeightedSim > 0.0) || hasAnySkill || hasAnyAlias;
+      const domainIntent = matchedNode ? {
+        ...intent,
+        canonical_key: matchedNode.id,
+        family: matchedNode.department,
+        primary_titles: [matchedNode.id.replace(/_/g, " "), ...matchedNode.primary_titles],
+        secondary_titles: matchedNode.secondary_titles,
+        skills: matchedNode.required_skills,
+        preferred_skills: matchedNode.preferred_skills,
+        negative_keywords: matchedNode.negative_keywords,
+        department: matchedNode.department,
+        _normalizedPrimary: [matchedNode.id.replace(/_/g, " "), ...matchedNode.primary_titles].map(t => normalizeQuery(t)).filter(Boolean),
+        _normalizedSecondary: matchedNode.secondary_titles.map(t => normalizeQuery(t)).filter(Boolean)
+      } : intent;
+
+      const titleSimFeature = FEATURE_REGISTRY.find(f => f.key === "TitleSimilarity");
+      const skillsFeature = FEATURE_REGISTRY.find(f => f.key === "SkillsCoverage");
+      const descFeature = FEATURE_REGISTRY.find(f => f.key === "DescriptionRelevance");
+      const deptFeature = FEATURE_REGISTRY.find(f => f.key === "DepartmentSimilarity");
+
+      const titleSim = titleSimFeature ? titleSimFeature.calculate(j, domainIntent as any) : 0.0;
+      const skillsSim = skillsFeature ? skillsFeature.calculate(j, domainIntent as any) : 0.0;
+      const descRelevance = descFeature ? descFeature.calculate(j, domainIntent as any) : 0.0;
+      const deptSim = deptFeature ? deptFeature.calculate(j, domainIntent as any) : 0.0;
+
+      const isAcceptedCandidate = 
+        (titleSim > 0.0) || 
+        (skillsSim > 0.0) || 
+        (descRelevance > 0.0) || 
+        (deptSim > 0.0) || 
+        hasAnyAlias;
 
       if (!isAcceptedCandidate) {
         rejectedByTitle++;
         if (debug) {
-          console.log(`[Phase 3 Recall Rejected] "${j.title}" (Company: ${j.companyName}) - maxWeightedSim: ${maxWeightedSim.toFixed(3)}, hasAnySkill: ${hasAnySkill}, hasAnyAlias: ${hasAnyAlias}`);
+          console.log(`[Phase 3 Recall Rejected] "${j.title}" (Company: ${j.companyName}) - titleSim: ${titleSim.toFixed(3)}, skillsSim: ${skillsSim.toFixed(3)}, descRelevance: ${descRelevance.toFixed(3)}, deptSim: ${deptSim.toFixed(3)}, hasAnyAlias: ${hasAnyAlias}`);
         }
         continue;
       }
@@ -597,9 +626,9 @@ export function aggregateAndNormalizeJobs(
     j.scores.overall = overallScore;
     j.scores.confidence = confidence;
     j.scores.breakdown = {
-      title: Math.round(titleSim * 35),
-      skills: Math.round(skillsSim * 30),
-      description: Math.round(descRelevance * 20),
+      title: Math.round(titleSim * 30),
+      skills: Math.round(skillsSim * 25),
+      description: Math.round(descRelevance * 30),
       industry: Math.round((featuresScore["DepartmentSimilarity"] || 0) * 10),
       company: 0,
       freshness: Math.round((featuresScore["Freshness"] || 0) * 5)

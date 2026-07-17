@@ -25,11 +25,113 @@ import {
 } from "./connectors/BrazilianConnectors.ts";
 
 import { aggregateAndNormalizeJobs } from "./aggregator.ts";
+import { type JobIntent } from "./connectors/BaseJobConnector.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
   'Access-Control-Allow-Methods': 'POST, GET, OPTIONS',
+}
+
+// Resilient fetch with exponential backoff
+async function fetchWithRetry(url: string, options: any, maxRetries = 3): Promise<Response> {
+  const delays = [2000, 4000, 8000];
+  for (let attempt = 1; attempt <= maxRetries; attempt++) {
+    try {
+      const response = await fetch(url, options);
+      if (response.ok) return response;
+      
+      if (response.status === 429 || response.status >= 500) {
+        console.warn(`[GEMINI RETRY] Attempt ${attempt} failed with status ${response.status}. Waiting...`);
+        await new Promise(resolve => setTimeout(resolve, delays[attempt - 1] || 5000));
+        continue;
+      }
+      return response;
+    } catch (err) {
+      if (attempt === maxRetries) throw err;
+      console.warn(`[GEMINI RETRY] Attempt ${attempt} failed with network error: ${err.message}. Waiting...`);
+      await new Promise(resolve => setTimeout(resolve, delays[attempt - 1] || 5000));
+    }
+  }
+  throw new Error(`Failed to contact Gemini API after ${maxRetries} attempts.`);
+}
+
+// Classify query intent using Gemini
+async function classifyIntentWithGemini(
+  keyword: string,
+  geminiApiKey: string
+): Promise<JobIntent> {
+  const systemPrompt = `You are a career search intent parser. Analyze the user's search query and output a JSON object classifying the intent.
+The response must be valid JSON matching this schema:
+{
+  "canonicalRole": "Standardized job title (e.g., 'Customer Success Manager')",
+  "aliases": ["Alternative titles, synonyms, or abbreviations (e.g., ['CSM', 'Client Success Specialist', 'Customer Experience'])"],
+  "excludedRoles": ["Similar-sounding but completely different roles to exclude (e.g., ['Software Engineer', 'Sales Representative'])"],
+  "skills": ["Key skills, tools, or terms associated with this role (e.g., ['nps', 'churn', 'onboarding', 'retention'])"],
+  "department": "Department category (e.g., 'Customer Success')"
+}
+Do not include any explanation, backticks, or markdown formatting, just the raw JSON.`;
+
+  const prompt = `${systemPrompt}\n\nQuery: "${keyword}"\nOutput JSON:`;
+
+  const modelsToTry = [
+    'gemini-1.5-flash',
+    'gemini-1.5-flash-latest',
+    'gemini-2.5-flash',
+    'gemini-2.0-flash'
+  ];
+
+  let lastError: any = null;
+  for (const model of modelsToTry) {
+    try {
+      console.log(`[INTENT GEMINI] Trying model: ${model}...`);
+      const targetUrl = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${geminiApiKey}`;
+      
+      const response = await fetchWithRetry(targetUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          contents: [{
+            parts: [{ text: prompt }]
+          }],
+          generationConfig: {
+            responseMimeType: "application/json"
+          }
+        })
+      });
+
+      if (!response.ok) {
+        const errText = await response.text();
+        throw new Error(`Gemini API error (${response.status}): ${errText}`);
+      }
+
+      const resJson = await response.json();
+      const text = resJson.candidates?.[0]?.content?.parts?.[0]?.text;
+      if (!text) throw new Error("Empty response from Gemini");
+
+      const intent: JobIntent = JSON.parse(text.trim());
+      console.log(`[INTENT GEMINI] Resolved canonical role: ${intent.canonicalRole}`);
+      return intent;
+    } catch (err: any) {
+      console.warn(`[INTENT GEMINI] Model ${model} failed:`, err.message || err);
+      lastError = err;
+    }
+  }
+
+  throw new Error(`Failed to classify intent with Gemini: ${lastError?.message || lastError}`);
+}
+
+// Fallback classifier in case of Gemini failures
+function getFallbackIntent(keyword: string): JobIntent {
+  return {
+    canonicalRole: keyword,
+    aliases: [keyword],
+    excludedRoles: [],
+    skills: [],
+    department: keyword
+  };
 }
 
 // Global logger helper for analytics_events
@@ -138,6 +240,21 @@ serve(async (req) => {
 
     await logAnalyticsEvent(supabaseClient, resolvedUserId, 'cache_miss', 'Cache', 'completed', { queryKey });
 
+    // ── 1.5. ENVIAR KEYWORD AO GEMINI PARA MAPEAMENTO DE INTENÇÃO SEMÂNTICA ──
+    let intent: JobIntent;
+    const geminiApiKey = Deno.env.get('GEMINI_API_KEY');
+    if (!geminiApiKey) {
+      console.warn("[search-jobs] GEMINI_API_KEY is not set. Falling back to simple keyword matching.");
+      intent = getFallbackIntent(searchKeyword);
+    } else {
+      try {
+        intent = await classifyIntentWithGemini(searchKeyword, geminiApiKey);
+      } catch (geminiErr) {
+        console.error("[search-jobs] Gemini classification failed:", geminiErr.message);
+        intent = getFallbackIntent(searchKeyword);
+      }
+    }
+
     // ── 2. INICIAR BUSCA PARALELA EM PROVEDORES ──
     let rawJobsList: any[] = [];
 
@@ -146,9 +263,8 @@ serve(async (req) => {
       await logAnalyticsEvent(supabaseClient, resolvedUserId, 'provider_started', connector.platformName, 'started', { keyword: searchKeyword });
 
       try {
-        // Timeout de 3 segundos por conector para evitar travamentos
         const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 3000);
+        const timeoutId = setTimeout(() => controller.abort(), 3500);
 
         const connectorResult = await connector.searchJobs(searchKeyword, searchLocation, pageNum);
         clearTimeout(timeoutId);
@@ -181,57 +297,20 @@ serve(async (req) => {
       }
     });
 
-    // ── 3. AGREGADOR INTELIGENTE (NORMALIZAÇÃO, DEDUPLICAÇÃO & SCORING) ──
-    const normalizedJobs = aggregateAndNormalizeJobs(rawJobsList);
+    // ── 3. AGREGADOR INTELIGENTE (NORMALIZAÇÃO, DEDUPLICAÇÃO & SCORING SEMÂNTICO) ──
+    const normalizedJobs = aggregateAndNormalizeJobs(rawJobsList, intent, searchLocation);
     const duplicatesRemoved = totalCount - normalizedJobs.length;
 
-    // ── 3.5. FILTRO DE RELEVÂNCIA POR KEYWORD ──
-    // APIs externas fazem busca full-text e podem retornar vagas irrelevantes.
-    // Filtra para que o keyword apareça no título OU nos primeiros 500 chars da descrição.
-    const keywordLower = searchKeyword.toLowerCase().trim();
-    const keywordTokens = keywordLower.split(/\s+/).filter(t => t.length >= 3);
-    
-    let relevantJobs = normalizedJobs;
-    if (keywordTokens.length > 0) {
-      relevantJobs = normalizedJobs.filter(job => {
-        const titleLower = job.title.toLowerCase();
-        const descLower = job.description.substring(0, 500).toLowerCase();
-        const combined = titleLower + ' ' + descLower;
-        
-        // Pelo menos metade dos tokens do keyword devem aparecer no título+descrição
-        const matchCount = keywordTokens.filter(token => combined.includes(token)).length;
-        return matchCount >= Math.ceil(keywordTokens.length / 2);
-      });
-
-      // Se após o filtro restam poucas vagas (<3), relaxa para apenas 1 token match
-      if (relevantJobs.length < 3) {
-        relevantJobs = normalizedJobs.filter(job => {
-          const titleLower = job.title.toLowerCase();
-          const descLower = job.description.substring(0, 500).toLowerCase();
-          const combined = titleLower + ' ' + descLower;
-          return keywordTokens.some(token => combined.includes(token));
-        });
-      }
-
-      // Ordenar por relevância: título match > descrição match
-      relevantJobs.sort((a, b) => {
-        const aTitleMatch = keywordTokens.filter(t => a.title.toLowerCase().includes(t)).length;
-        const bTitleMatch = keywordTokens.filter(t => b.title.toLowerCase().includes(t)).length;
-        if (bTitleMatch !== aTitleMatch) return bTitleMatch - aTitleMatch;
-        return b.scores.overall - a.scores.overall;
-      });
-    }
-
-    // ── 3.6. FILTRO GEOGRÁFICO — Priorizar Brasil quando localização brasileira ──
+    // ── 3.5. FILTRO GEOGRÁFICO — Priorizar Brasil quando localização brasileira ──
     const locLower = searchLocation.toLowerCase();
     const isBrazilianSearch = /brasil|brazil|br|são paulo|rio de janeiro|belo horizonte|curitiba|porto alegre|recife|salvador|fortaleza|brasília|campinas|goiânia|manaus|belém|florianópolis|sp|rj|mg|pr|rs|sc|ba|pe|ce|df|go|am|pa/i.test(locLower);
     
-    let filteredJobs = relevantJobs;
+    let filteredJobs = normalizedJobs;
     if (isBrazilianSearch) {
       const nonBrazilPatterns = /\b(germany|deutschland|austria|österreich|schweiz|switzerland|canada|united states|usa|uk|united kingdom|france|spain|netherlands|ireland|australia|india|japan|china|singapore|dubai|qatar|münchen|munich|berlin|hamburg|frankfurt|london|paris|amsterdam|dublin|toronto|vancouver|montreal|new york|san francisco|seattle|chicago|los angeles|sydney|melbourne)\b/i;
       const foreignLangPatterns = /\b(projektmanager|sachbearbeiter|mitarbeiter|leiter|berater|ingénieur|développeur|responsable|gestionnaire|chargé)\b/i;
 
-      filteredJobs = relevantJobs.filter(job => {
+      filteredJobs = normalizedJobs.filter(job => {
         const jobLoc = (job.locationNormalized || job.location || '').toLowerCase();
         const jobTitle = job.title.toLowerCase();
         const jobDesc = job.description.substring(0, 300).toLowerCase();
@@ -252,8 +331,8 @@ serve(async (req) => {
     // Log stats
     await logAnalyticsEvent(supabaseClient, resolvedUserId, 'jobs_normalized', 'Aggregator', 'completed', { count: totalCount });
     await logAnalyticsEvent(supabaseClient, resolvedUserId, 'jobs_deduplicated', 'Aggregator', 'completed', { duplicates_count: duplicatesRemoved });
-    await logAnalyticsEvent(supabaseClient, resolvedUserId, 'jobs_keyword_filtered', 'Aggregator', 'completed', { before: normalizedJobs.length, after: relevantJobs.length, keyword: searchKeyword });
-    await logAnalyticsEvent(supabaseClient, resolvedUserId, 'jobs_geo_filtered', 'Aggregator', 'completed', { before: relevantJobs.length, after: filteredJobs.length, location: searchLocation });
+    await logAnalyticsEvent(supabaseClient, resolvedUserId, 'jobs_intent_classified', 'Aggregator', 'completed', { canonicalRole: intent.canonicalRole, department: intent.department });
+    await logAnalyticsEvent(supabaseClient, resolvedUserId, 'jobs_geo_filtered', 'Aggregator', 'completed', { before: normalizedJobs.length, after: filteredJobs.length, location: searchLocation });
     await logAnalyticsEvent(supabaseClient, resolvedUserId, 'jobs_ranked', 'Aggregator', 'completed', { ranked_count: filteredJobs.length });
 
     const finalResponse = {

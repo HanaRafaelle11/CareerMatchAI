@@ -15,6 +15,14 @@ export interface RawJob {
   publishedAt?: string;
 }
 
+export interface JobIntent {
+  canonicalRole: string;
+  aliases: string[];
+  excludedRoles: string[];
+  skills: string[];
+  department: string;
+}
+
 export abstract class BaseJobConnector {
   abstract readonly platformName: string;
   abstract searchJobs(keyword: string, location: string, pageNum: number): Promise<RawJob[]>;

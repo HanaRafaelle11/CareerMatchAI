@@ -1,4 +1,4 @@
-import { type RawJob } from "./connectors/BaseJobConnector.ts";
+import { type RawJob, type JobIntent } from "./connectors/BaseJobConnector.ts";
 
 export interface NormalizedJob extends RawJob {
   companyNameNormalized: string;
@@ -19,6 +19,120 @@ export interface NormalizedJob extends RawJob {
     remoteConfidence: number;
     overall: number;
   };
+}
+
+// ── Calculate Semantic Similarity Score ──
+function calculateSemanticScore(
+  j: RawJob,
+  intent: JobIntent,
+  workMode: 'remote' | 'hybrid' | 'onsite',
+  seniority: 'junior' | 'pleno' | 'senior' | 'lead' | 'director',
+  location: string,
+  baseScores: any
+): number {
+  const titleClean = j.title.replace(/<\/?[^>]+(>|$)/g, "").trim();
+  const titleLower = titleClean.toLowerCase();
+  const descLower = j.description.toLowerCase();
+  const combinedText = `${titleLower} ${descLower}`;
+
+  // 1. Título (40%)
+  let titleScore = 0;
+  
+  const isExcluded = intent.excludedRoles.some(ex => {
+    if (!ex) return false;
+    const rx = new RegExp(`\\b${ex.toLowerCase()}\\b`, 'i');
+    return rx.test(titleLower);
+  });
+  if (isExcluded) {
+    return 0;
+  }
+
+  const canonicalLower = intent.canonicalRole.toLowerCase();
+  if (titleLower.includes(canonicalLower)) {
+    titleScore = 100;
+  } else {
+    let bestAliasMatch = 0;
+    for (const alias of intent.aliases) {
+      if (!alias) continue;
+      const aliasLower = alias.toLowerCase();
+      if (titleLower.includes(aliasLower)) {
+        bestAliasMatch = 100;
+        break;
+      } else {
+        const tokens = aliasLower.split(/\s+/).filter(t => t.length > 2);
+        if (tokens.length > 0) {
+          const matchCount = tokens.filter(t => titleLower.includes(t)).length;
+          const pct = matchCount / tokens.length;
+          if (pct > bestAliasMatch) {
+            bestAliasMatch = pct * 80;
+          }
+        }
+      }
+    }
+    titleScore = bestAliasMatch;
+  }
+
+  // 2. Departamento (20%)
+  let deptScore = 0;
+  const deptLower = intent.department.toLowerCase();
+  if (titleLower.includes(deptLower)) {
+    deptScore = 100;
+  } else if (descLower.includes(deptLower)) {
+    deptScore = 70;
+  } else {
+    const deptTokens = deptLower.split(/\s+/).filter(t => t.length > 2);
+    if (deptTokens.length > 0) {
+      const matchCount = deptTokens.filter(t => combinedText.includes(t)).length;
+      deptScore = (matchCount / deptTokens.length) * 60;
+    }
+  }
+
+  // 3. Skills (15%)
+  let skillScore = 0;
+  if (intent.skills && intent.skills.length > 0) {
+    const matchedSkills = intent.skills.filter(skill => {
+      if (!skill) return false;
+      const rx = new RegExp(`\\b${skill.toLowerCase()}\\b`, 'i');
+      return rx.test(combinedText);
+    });
+    skillScore = (matchedSkills.length / intent.skills.length) * 100;
+    if (skillScore > 100) skillScore = 100;
+  } else {
+    skillScore = 80;
+  }
+
+  // 4. Senioridade (10%)
+  const seniorityScore = 80;
+
+  // 5. Empresa (5%)
+  const companyScore = baseScores.companyTrust;
+
+  // 6. Descrição (5%)
+  const descScore = baseScores.descriptionCompleteness;
+
+  // 7. Localização (5%)
+  let locScore = 100;
+  if (location && location.toLowerCase() !== 'brasil' && location.toLowerCase() !== 'brazil') {
+    const jobLoc = j.location.toLowerCase();
+    const targetLoc = location.toLowerCase();
+    if (jobLoc.includes(targetLoc) || targetLoc.includes(jobLoc)) {
+      locScore = 100;
+    } else {
+      locScore = 40;
+    }
+  }
+
+  const finalScore = Math.round(
+    (titleScore * 0.40) +
+    (deptScore * 0.20) +
+    (skillScore * 0.15) +
+    (seniorityScore * 0.10) +
+    (companyScore * 0.05) +
+    (descScore * 0.05) +
+    (locScore * 0.05)
+  );
+
+  return finalScore;
 }
 
 // ── Normalize Company Names ──
@@ -59,25 +173,30 @@ function normalizeLocation(loc: string): string {
 function normalizeSalary(j: RawJob): { min?: number; max?: number } {
   let min = j.salaryMin;
   let max = j.salaryMax;
-  const currency = j.currency || "BRL";
-  
-  let rate = 1.0;
-  if (currency === "USD") rate = 5.4;
-  else if (currency === "EUR") rate = 5.9;
-  else if (currency === "GBP") rate = 6.9;
+  if (!min && !max) return {};
 
-  if (min) min = Math.round(min * rate);
-  if (max) max = Math.round(max * rate);
+  const curr = (j.currency || "USD").toUpperCase();
+  let rate = 1;
+  if (curr === "USD") rate = 5.0;
+  else if (curr === "EUR") rate = 5.4;
+  else if (curr === "GBP") rate = 6.2;
 
-  return { min, max };
+  return {
+    min: min ? Math.round(min * rate) : undefined,
+    max: max ? Math.round(max * rate) : undefined
+  };
 }
 
 // ── Normalize Work Mode ──
 function normalizeWorkMode(j: RawJob): 'remote' | 'hybrid' | 'onsite' {
   if (j.workMode) return j.workMode;
   const text = (j.title + " " + j.description).toLowerCase();
-  if (text.includes("hibrid") || text.includes("híbrid")) return "hybrid";
-  if (text.includes("remot") || text.includes("remote") || text.includes("home office") || text.includes("anywhere")) return "remote";
+  if (text.includes("remot") || text.includes("anywhere") || text.includes("home office") || text.includes("teletrabalho") || text.includes("distância")) {
+    return "remote";
+  }
+  if (text.includes("hybrid") || text.includes("híbrido") || text.includes("presencial e remoto")) {
+    return "hybrid";
+  }
   return "onsite";
 }
 
@@ -85,16 +204,16 @@ function normalizeWorkMode(j: RawJob): 'remote' | 'hybrid' | 'onsite' {
 function normalizeSeniority(j: RawJob): 'junior' | 'pleno' | 'senior' | 'lead' | 'director' {
   if (j.seniority) return j.seniority;
   const title = j.title.toLowerCase();
-  if (title.includes("junior") || title.includes("júnior") || title.includes("jr") || title.includes("estagio") || title.includes("estágio")) {
+  if (title.includes("junior") || title.includes("júnior") || title.includes("jr") || title.includes("estágio") || title.includes("estagiário") || title.includes("trainee")) {
     return "junior";
   }
-  if (title.includes("senior") || title.includes("sênior") || title.includes("sr") || title.includes("staff") || title.includes("principal")) {
-    return "senior";
+  if (title.includes("senior") || title.includes("sênior") || title.includes("sr") || title.includes("pleno") || title.includes("pl")) {
+    return title.includes("senior") || title.includes("sênior") || title.includes("sr") ? "senior" : "pleno";
   }
-  if (title.includes("lead") || title.includes("lider") || title.includes("coordenador") || title.includes("gerente")) {
+  if (title.includes("lead") || title.includes("lider") || title.includes("líder") || title.includes("coordenador") || title.includes("coordinator")) {
     return "lead";
   }
-  if (title.includes("diretor") || title.includes("director") || title.includes("vp") || title.includes("head")) {
+  if (title.includes("director") || title.includes("diretor") || title.includes("gerente") || title.includes("manager") || title.includes("head") || title.includes("vp")) {
     return "director";
   }
   return "pleno";
@@ -138,7 +257,6 @@ function normalizeBenefits(j: RawJob): string[] {
 // ── Detect Language ──
 function detectLanguage(description: string): 'pt' | 'en' | 'es' {
   const text = description.toLowerCase();
-  // Count common trigger words
   const ptCount = (text.match(/\b(o|a|e|da|do|em|para|com|vaga|requisitos)\b/g) || []).length;
   const enCount = (text.match(/\b(the|and|of|in|to|with|job|requirements|skills)\b/g) || []).length;
   const esCount = (text.match(/\b(el|la|y|de|en|para|con|trabajo|requisitos)\b/g) || []).length;
@@ -154,15 +272,13 @@ function calculateScores(
   workMode: 'remote' | 'hybrid' | 'onsite',
   salMinBRL?: number
 ) {
-  // 1. Provider Quality Score
   let providerQuality = 70;
   const platform = j.sourcePlatform.toLowerCase();
   if (["greenhouse", "lever", "ashby", "smartrecruiters"].includes(platform)) providerQuality = 95;
   else if (["adzuna", "remotive", "remoteok"].includes(platform)) providerQuality = 85;
   else if (["gupy", "abler"].includes(platform)) providerQuality = 90;
 
-  // 2. Freshness Score
-  let freshness = 90; // Default
+  let freshness = 90;
   if (j.publishedAt) {
     const ageMs = Date.now() - new Date(j.publishedAt).getTime();
     const ageDays = ageMs / (1000 * 60 * 60 * 24);
@@ -173,33 +289,28 @@ function calculateScores(
     else freshness = 20;
   }
 
-  // 3. Company Trust Score
   const cName = j.companyName.toLowerCase();
   let companyTrust = 90;
   if (cName.includes("confidencial") || cName.includes("empresa") || cName.length < 3) {
     companyTrust = 40;
   }
 
-  // 4. Salary Confidence Score
-  let salaryConfidence = 20; // Default if not provided
+  let salaryConfidence = 20;
   if (salMinBRL) {
     salaryConfidence = j.salaryMin && j.salaryMax ? 100 : 80;
   }
 
-  // 5. Description Completeness Score
   const descLen = j.description.length;
   let descriptionCompleteness = 30;
   if (descLen > 1500) descriptionCompleteness = 100;
   else if (descLen > 800) descriptionCompleteness = 80;
   else if (descLen > 400) descriptionCompleteness = 60;
 
-  // 6. Remote Confidence Score
   let remoteConfidence = 50;
   if (workMode === "remote") remoteConfidence = 100;
   else if (workMode === "hybrid") remoteConfidence = 80;
   else remoteConfidence = 70;
 
-  // 7. Overall Weighted Score
   const overall = Math.round(
     (providerQuality * 0.25) +
     (freshness * 0.15) +
@@ -220,12 +331,15 @@ function calculateScores(
   };
 }
 
-export function aggregateAndNormalizeJobs(jobs: RawJob[]): NormalizedJob[] {
+export function aggregateAndNormalizeJobs(
+  jobs: RawJob[],
+  intent?: JobIntent,
+  location?: string
+): NormalizedJob[] {
   const normalizedList: NormalizedJob[] = [];
   const seen = new Set<string>();
 
   for (const j of jobs) {
-    // Basic deduplication
     const companyNormalized = normalizeCompany(j.companyName);
     const titleClean = j.title.replace(/<\/?[^>]+(>|$)/g, "").trim();
     const key = `${titleClean.toLowerCase()}|${companyNormalized.toLowerCase()}`;
@@ -241,9 +355,8 @@ export function aggregateAndNormalizeJobs(jobs: RawJob[]): NormalizedJob[] {
     const benefits = normalizeBenefits(j);
     const lang = detectLanguage(j.description);
 
-    const scores = calculateScores(j, mode, salaries.min);
+    const baseScores = calculateScores(j, mode, salaries.min);
 
-    // Clean html from description
     const descClean = j.description
       .replace(/<\/p>/gi, '\n')
       .replace(/<br\s*\/?>/gi, '\n')
@@ -252,6 +365,15 @@ export function aggregateAndNormalizeJobs(jobs: RawJob[]): NormalizedJob[] {
       .replace(/&amp;/g, '&')
       .replace(/\s+/g, ' ')
       .trim();
+
+    let finalOverallScore = baseScores.overall;
+    if (intent) {
+      finalOverallScore = calculateSemanticScore(j, intent, mode, seniority, location || '', baseScores);
+      
+      if (finalOverallScore < 60) {
+        continue;
+      }
+    }
 
     normalizedList.push({
       ...j,
@@ -266,10 +388,12 @@ export function aggregateAndNormalizeJobs(jobs: RawJob[]): NormalizedJob[] {
       requirementsNormalized: reqs,
       benefitsNormalized: benefits,
       languageNormalized: lang,
-      scores
+      scores: {
+        ...baseScores,
+        overall: finalOverallScore
+      }
     });
   }
 
-  // Sort descending by Overall Quality Score
   return normalizedList.sort((a, b) => b.scores.overall - a.scores.overall);
 }

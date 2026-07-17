@@ -1,7 +1,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.8"
 
-// Import Connectors
+// Importar Conectores de Origem
 import { AdzunaConnector } from "./connectors/AdzunaConnector.ts";
 import { RemotiveConnector } from "./connectors/RemotiveConnector.ts";
 import { RemoteOkConnector } from "./connectors/RemoteOkConnector.ts";
@@ -25,7 +25,7 @@ import {
 } from "./connectors/BrazilianConnectors.ts";
 
 import { aggregateAndNormalizeJobs } from "./aggregator.ts";
-import { type JobIntent } from "./connectors/BaseJobConnector.ts";
+import { resolveSearchIntent } from "./intent-resolver.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -33,112 +33,7 @@ const corsHeaders = {
   'Access-Control-Allow-Methods': 'POST, GET, OPTIONS',
 }
 
-// Resilient fetch with exponential backoff
-async function fetchWithRetry(url: string, options: any, maxRetries = 3): Promise<Response> {
-  const delays = [2000, 4000, 8000];
-  for (let attempt = 1; attempt <= maxRetries; attempt++) {
-    try {
-      const response = await fetch(url, options);
-      if (response.ok) return response;
-      
-      if (response.status === 429 || response.status >= 500) {
-        console.warn(`[GEMINI RETRY] Attempt ${attempt} failed with status ${response.status}. Waiting...`);
-        await new Promise(resolve => setTimeout(resolve, delays[attempt - 1] || 5000));
-        continue;
-      }
-      return response;
-    } catch (err) {
-      if (attempt === maxRetries) throw err;
-      console.warn(`[GEMINI RETRY] Attempt ${attempt} failed with network error: ${err.message}. Waiting...`);
-      await new Promise(resolve => setTimeout(resolve, delays[attempt - 1] || 5000));
-    }
-  }
-  throw new Error(`Failed to contact Gemini API after ${maxRetries} attempts.`);
-}
-
-// Classify query intent using Gemini
-async function classifyIntentWithGemini(
-  keyword: string,
-  geminiApiKey: string
-): Promise<JobIntent> {
-  const systemPrompt = `You are a career search intent parser. Analyze the user's search query and output a JSON object classifying the intent.
-The response must be valid JSON matching this schema:
-{
-  "family": "The job family or category name (e.g., 'Customer Success', 'Software Engineering')",
-  "primary_titles": ["The most common/standard exact titles for this role (e.g., ['Customer Success Manager', 'Customer Success Specialist'])"],
-  "secondary_titles": ["Alternative titles, synonyms, related roles, abbreviations, or specialized variants (e.g., ['CSM', 'Client Success', 'Onboarding Specialist', 'Implementation Consultant', 'Customer Success Engineer'])"],
-  "negative_titles": ["Unrelated roles that might share words or overlap but are completely different professions and should be explicitly excluded (e.g., ['Software Engineer', 'Sales Representative', 'Product Manager'])"],
-  "skills": ["Key required technical/functional skills, tags, tools, or methodologies associated with this role (e.g., ['CRM', 'NPS', 'CSAT', 'Retention', 'Onboarding'])"],
-  "preferred_skills": ["Secondary, optional, or preferred skills that are nice to have but not required (e.g., ['Zendesk', 'SQL', 'SaaS experience'])"],
-  "negative_keywords": ["Keywords or warning signs in the job posting that indicate the role is a mismatch (e.g., ['quota', 'cold calling', 'sales target' for relationship CS roles])"]
-}
-Do not include any explanation, backticks, or markdown formatting, just the raw JSON.`;
-
-  const prompt = `${systemPrompt}\n\nQuery: "${keyword}"\nOutput JSON:`;
-
-  const modelsToTry = [
-    'gemini-1.5-flash',
-    'gemini-1.5-flash-latest',
-    'gemini-2.5-flash',
-    'gemini-2.0-flash'
-  ];
-
-  let lastError: any = null;
-  for (const model of modelsToTry) {
-    try {
-      console.log(`[INTENT GEMINI] Trying model: ${model}...`);
-      const targetUrl = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${geminiApiKey}`;
-      
-      const response = await fetchWithRetry(targetUrl, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          contents: [{
-            parts: [{ text: prompt }]
-          }],
-          generationConfig: {
-            responseMimeType: "application/json"
-          }
-        })
-      });
-
-      if (!response.ok) {
-        const errText = await response.text();
-        throw new Error(`Gemini API error (${response.status}): ${errText}`);
-      }
-
-      const resJson = await response.json();
-      const text = resJson.candidates?.[0]?.content?.parts?.[0]?.text;
-      if (!text) throw new Error("Empty response from Gemini");
-
-      const intent: JobIntent = JSON.parse(text.trim());
-      console.log(`[INTENT GEMINI] Resolved job family: ${intent.family}`);
-      return intent;
-    } catch (err: any) {
-      console.warn(`[INTENT GEMINI] Model ${model} failed:`, err.message || err);
-      lastError = err;
-    }
-  }
-
-  throw new Error(`Failed to classify intent with Gemini: ${lastError?.message || lastError}`);
-}
-
-// Fallback classifier in case of Gemini failures
-function getFallbackIntent(keyword: string): JobIntent {
-  return {
-    family: keyword,
-    primary_titles: [keyword],
-    secondary_titles: [],
-    negative_titles: [],
-    skills: [],
-    preferred_skills: [],
-    negative_keywords: []
-  };
-}
-
-// Global logger helper for analytics_events
+// Helper global para gravação de telemetria analítica no Supabase
 async function logAnalyticsEvent(
   supabaseClient: any, 
   userId: string | null, 
@@ -167,7 +62,6 @@ async function logAnalyticsEvent(
   }
 }
 
-// List of all active connectors
 const ACTIVE_CONNECTORS = [
   new AdzunaConnector(),
   new RemotiveConnector(),
@@ -224,7 +118,7 @@ serve(async (req) => {
 
     const queryKey = `${searchKeyword.toLowerCase().trim()}|${searchLocation.toLowerCase().trim()}|${pageNum}`;
 
-    // ── 1. VERIFICAR CACHE (TTL: 5 minutos) ──
+    // ── 1. VERIFICAR CACHE CENTRAL DE CONSULTAS (TTL: 5 minutos) ──
     const fiveMinutesAgo = new Date(Date.now() - 5 * 60 * 1000).toISOString();
     const { data: cached } = await supabaseClient
       .from('job_search_cache')
@@ -244,22 +138,11 @@ serve(async (req) => {
 
     await logAnalyticsEvent(supabaseClient, resolvedUserId, 'cache_miss', 'Cache', 'completed', { queryKey });
 
-    // ── 1.5. ENVIAR KEYWORD AO GEMINI PARA MAPEAMENTO DE INTENÇÃO SEMÂNTICA ──
-    let intent: JobIntent;
-    const geminiApiKey = Deno.env.get('GEMINI_API_KEY');
-    if (!geminiApiKey) {
-      console.warn("[search-jobs] GEMINI_API_KEY is not set. Falling back to simple keyword matching.");
-      intent = getFallbackIntent(searchKeyword);
-    } else {
-      try {
-        intent = await classifyIntentWithGemini(searchKeyword, geminiApiKey);
-      } catch (geminiErr) {
-        console.error("[search-jobs] Gemini classification failed:", geminiErr.message);
-        intent = getFallbackIntent(searchKeyword);
-      }
-    }
+    // ── 2. EXTRAÇÃO DE INTENÇÃO DA BUSCA (RESOLVER ADAPTER E RETRIEVERS COORDENADOS) ──
+    const geminiApiKey = Deno.env.get('GEMINI_API_KEY') || undefined;
+    const { intent, geminiUsed } = await resolveSearchIntent(searchKeyword, geminiApiKey);
 
-    // ── 2. INICIAR BUSCA PARALELA EM PROVEDORES ──
+    // ── 3. CONSULTA PARALELA AOS CONECTORES DE VAGAS ──
     let rawJobsList: any[] = [];
 
     const promises = ACTIVE_CONNECTORS.map(async (connector) => {
@@ -301,50 +184,22 @@ serve(async (req) => {
       }
     });
 
-    // ── 3. AGREGADOR INTELIGENTE (NORMALIZAÇÃO, DEDUPLICAÇÃO & SCORING SEMÂNTICO) ──
-    const normalizedJobs = aggregateAndNormalizeJobs(rawJobsList, intent, searchLocation);
+    // ── 4. ORQUESTRADOR CENTRAL DE PIPELINE (NORMALIZAÇÃO, FILTROS, RANKING E METRICAS) ──
+    const normalizedJobs = aggregateAndNormalizeJobs(rawJobsList, intent, searchLocation, searchKeyword, geminiUsed);
     const duplicatesRemoved = totalCount - normalizedJobs.length;
 
-    // ── 3.5. FILTRO GEOGRÁFICO — Priorizar Brasil quando localização brasileira ──
-    const locLower = searchLocation.toLowerCase();
-    const isBrazilianSearch = /brasil|brazil|br|são paulo|rio de janeiro|belo horizonte|curitiba|porto alegre|recife|salvador|fortaleza|brasília|campinas|goiânia|manaus|belém|florianópolis|sp|rj|mg|pr|rs|sc|ba|pe|ce|df|go|am|pa/i.test(locLower);
-    
-    let filteredJobs = normalizedJobs;
-    if (isBrazilianSearch) {
-      const nonBrazilPatterns = /\b(germany|deutschland|austria|österreich|schweiz|switzerland|canada|united states|usa|uk|united kingdom|france|spain|netherlands|ireland|australia|india|japan|china|singapore|dubai|qatar|münchen|munich|berlin|hamburg|frankfurt|london|paris|amsterdam|dublin|toronto|vancouver|montreal|new york|san francisco|seattle|chicago|los angeles|sydney|melbourne)\b/i;
-      const foreignLangPatterns = /\b(projektmanager|sachbearbeiter|mitarbeiter|leiter|berater|ingénieur|développeur|responsable|gestionnaire|chargé)\b/i;
-
-      filteredJobs = normalizedJobs.filter(job => {
-        const jobLoc = (job.locationNormalized || job.location || '').toLowerCase();
-        const jobTitle = job.title.toLowerCase();
-        const jobDesc = job.description.substring(0, 300).toLowerCase();
-        
-        if (jobLoc.includes('remot') || jobLoc === '' || jobLoc === 'remote' || jobLoc.includes('anywhere') || jobLoc.includes('worldwide')) {
-          return true;
-        }
-        if (nonBrazilPatterns.test(jobLoc) || nonBrazilPatterns.test(jobDesc)) {
-          return false;
-        }
-        if (foreignLangPatterns.test(jobTitle)) {
-          return false;
-        }
-        return true;
-      });
-    }
-
-    // Log stats
+    // Gravar telemetria analítica no banco Supabase
     await logAnalyticsEvent(supabaseClient, resolvedUserId, 'jobs_normalized', 'Aggregator', 'completed', { count: totalCount });
     await logAnalyticsEvent(supabaseClient, resolvedUserId, 'jobs_deduplicated', 'Aggregator', 'completed', { duplicates_count: duplicatesRemoved });
     await logAnalyticsEvent(supabaseClient, resolvedUserId, 'jobs_intent_classified', 'Aggregator', 'completed', { family: intent.family });
-    await logAnalyticsEvent(supabaseClient, resolvedUserId, 'jobs_geo_filtered', 'Aggregator', 'completed', { before: normalizedJobs.length, after: filteredJobs.length, location: searchLocation });
-    await logAnalyticsEvent(supabaseClient, resolvedUserId, 'jobs_ranked', 'Aggregator', 'completed', { ranked_count: filteredJobs.length });
+    await logAnalyticsEvent(supabaseClient, resolvedUserId, 'jobs_ranked', 'Aggregator', 'completed', { ranked_count: normalizedJobs.length });
 
     const finalResponse = {
-      count: filteredJobs.length,
-      results: filteredJobs
+      count: normalizedJobs.length,
+      results: normalizedJobs
     };
 
-    // ── 4. GRAVAR EM CACHE ──
+    // ── 6. PERSISTIR EM CACHE ──
     try {
       await supabaseClient
         .from('job_search_cache')

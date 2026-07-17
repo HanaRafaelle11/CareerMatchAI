@@ -1,8 +1,14 @@
 import { type RawJob, type JobIntent } from "./connectors/BaseJobConnector.ts";
+import { normalizeQuery } from "./query-normalizer.ts";
+import { FEATURE_REGISTRY, TitleSimilarityFeature } from "./features.ts";
+import { FEATURE_WEIGHTS, GATING_THRESHOLDS, PENALTIES } from "./ranking-config.ts";
+import { LOCAL_TAXONOMY } from "./taxonomy.ts";
+import { expandIntent } from "./intent-resolver.ts";
 
 export interface NormalizedJob extends RawJob {
   companyNameNormalized: string;
   locationNormalized: string;
+  _normalizedTitle: string; // Título normalizado para cache de similaridade
   salaryMinBRL?: number;
   salaryMaxBRL?: number;
   workModeNormalized: 'remote' | 'hybrid' | 'onsite';
@@ -18,193 +24,66 @@ export interface NormalizedJob extends RawJob {
     descriptionCompleteness: number;
     remoteConfidence: number;
     overall: number;
-    breakdown?: { title: number; skills: number; context: number };
+    breakdown?: { title: number; skills: number; industry: number; company: number; freshness: number };
     adjustments?: { boosts: string[]; penalties: string[] };
     explanation?: string;
     confidence?: 'high' | 'medium' | 'low';
+    explainability?: {
+      overall_score: number;
+      confidence: 'high' | 'medium' | 'low';
+      matched_titles: string[];
+      matched_skills: string[];
+      matched_department: string;
+      feature_breakdown: Record<string, { score: number; contribution: number }>;
+      boosts: string[];
+      penalties: string[];
+      ranking_reason: string;
+      explanation_ptBR: string;
+    };
   };
 }
 
-// ── Calculate Semantic Similarity Score ──
-function calculateSemanticScore(
-  j: RawJob,
-  intent: JobIntent,
-  workMode: 'remote' | 'hybrid' | 'onsite',
-  seniority: 'junior' | 'pleno' | 'senior' | 'lead' | 'director',
-  location: string,
-  baseScores: any
-): {
-  overall: number;
-  breakdown: { title: number; skills: number; context: number };
-  adjustments: { boosts: string[]; penalties: string[] };
-  explanation: string;
-  confidence: 'high' | 'medium' | 'low';
-} {
-  const titleClean = j.title.replace(/<\/?[^>]+(>|$)/g, "").trim();
-  const titleLower = titleClean.toLowerCase();
-  const descLower = j.description.toLowerCase();
-  const combinedText = `${titleLower} ${descLower}`;
-
-  let titleScore = 0;
-  let titleMatchDetail = "";
-
-  // 1. Título (60 pts)
-  const matchedPrimary = intent.primary_titles.some(t => {
-    const tLower = t.toLowerCase();
-    return titleLower.includes(tLower) || tLower.includes(titleLower);
-  });
-
-  if (matchedPrimary) {
-    titleScore = 60;
-    titleMatchDetail = "título primário";
-  } else {
-    const matchedSecondary = intent.secondary_titles.some(t => {
-      const tLower = t.toLowerCase();
-      return titleLower.includes(tLower) || tLower.includes(titleLower);
-    });
-
-    if (matchedSecondary) {
-      titleScore = 40;
-      titleMatchDetail = "título secundário";
-    } else {
-      const tokensToMatch = new Set<string>();
-      intent.primary_titles.forEach(t => t.toLowerCase().split(/\s+/).forEach(w => {
-        const cleaned = w.replace(/[^\w]/g, "");
-        if (cleaned.length >= 2) tokensToMatch.add(cleaned);
-      }));
-      intent.secondary_titles.forEach(t => t.toLowerCase().split(/\s+/).forEach(w => {
-        const cleaned = w.replace(/[^\w]/g, "");
-        if (cleaned.length >= 2) tokensToMatch.add(cleaned);
-      }));
-
-      const titleWords = titleLower.split(/\s+/).map(w => w.replace(/[^\w]/g, "")).filter(w => w.length >= 2);
-      const overlapCount = titleWords.filter(w => tokensToMatch.has(w)).length;
-      if (overlapCount > 0) {
-        titleScore = 20;
-        titleMatchDetail = "sobreposição parcial de cargo";
-      } else {
-        titleMatchDetail = "sem correspondência clara de título";
-      }
-    }
-  }
-
-  // 2. Skills (20 pts)
-  let skillScore = 0;
-  const matchedSkillsList: string[] = [];
-  if (intent.skills && intent.skills.length > 0) {
-    const matchedSkills = intent.skills.filter(skill => {
-      if (!skill) return false;
-      const rx = new RegExp(`\\b${skill.toLowerCase()}\\b`, 'i');
-      return rx.test(combinedText);
-    });
-    matchedSkills.forEach(s => matchedSkillsList.push(s));
-    skillScore = Math.round((matchedSkills.length / intent.skills.length) * 20);
-  }
-
-  // 3. Contexto (20 pts)
-  // Descrição (10 pts)
-  let descScore = 3;
-  if (j.description.length > 1000) {
-    descScore = 10;
-  } else if (j.description.length > 500) {
-    descScore = 6;
-  }
-  // Família/Categoria (5 pts)
-  let familyScore = 2;
-  const familyLower = intent.family.toLowerCase();
-  if (titleLower.includes(familyLower) || descLower.includes(familyLower)) {
-    familyScore = 5;
-  }
-  // Empresa (5 pts)
-  const companyScore = Math.round((baseScores.companyTrust / 100) * 5);
-  const contextScore = descScore + familyScore + companyScore;
-
-  // 4. Ajustes (Boosts & Penalties)
-  const boosts: string[] = [];
-  const penalties: string[] = [];
-  let adjustmentsSum = 0;
-
-  // Boost: Preferred Skills (+1 pt cada, máx +5)
-  if (intent.preferred_skills && intent.preferred_skills.length > 0) {
-    const matchedPreferred = intent.preferred_skills.filter(skill => {
-      if (!skill) return false;
-      const rx = new RegExp(`\\b${skill.toLowerCase()}\\b`, 'i');
-      return rx.test(combinedText);
-    });
-    if (matchedPreferred.length > 0) {
-      const pBoost = Math.min(5, matchedPreferred.length);
-      boosts.push(`Competência opcional: +${pBoost} pts (${matchedPreferred.join(', ')})`);
-      adjustmentsSum += pBoost;
-    }
-  }
-
-  // Boost: Vaga recente (postada nas últimas 24h) (+5 pts)
-  if (j.publishedAt) {
-    const ageMs = Date.now() - new Date(j.publishedAt).getTime();
-    const ageHours = ageMs / (1000 * 60 * 60);
-    if (ageHours <= 24) {
-      boosts.push("Vaga muito recente: +5 pts");
-      adjustmentsSum += 5;
-    }
-  }
-
-  // Boost: Recrutador confiável (ATS direta) (+5 pts)
-  const platform = j.sourcePlatform.toLowerCase();
-  if (["greenhouse", "lever", "ashby", "smartrecruiters"].includes(platform)) {
-    boosts.push("Conexão direta ATS: +5 pts");
-    adjustmentsSum += 5;
-  }
-
-  // Penalty: Palavras-chave negativas (-15 pts)
-  if (intent.negative_keywords && intent.negative_keywords.length > 0) {
-    const matchedNegative = intent.negative_keywords.filter(word => {
-      if (!word) return false;
-      const rx = new RegExp(`\\b${word.toLowerCase()}\\b`, 'i');
-      return rx.test(combinedText);
-    });
-    if (matchedNegative.length > 0) {
-      penalties.push(`Sinalizador negativo: -15 pts (${matchedNegative.join(', ')})`);
-      adjustmentsSum -= 15;
-    }
-  }
-
-  // Score total calibrado
-  const overall = Math.max(0, Math.min(100, Math.round(titleScore + skillScore + contextScore + adjustmentsSum)));
-
-  // Nível de confiança
-  let confidence: 'high' | 'medium' | 'low' = 'low';
-  if (overall >= 80) confidence = 'high';
-  else if (overall >= 60) confidence = 'medium';
-
-  // Gerar explicação em Português
-  const explanationParts = [
-    `+${titleScore} título (${titleMatchDetail})`,
-    `+${skillScore} competências`
-  ];
-  if (matchedSkillsList.length > 0) {
-    explanationParts[1] += ` (${matchedSkillsList.slice(0, 3).join(', ')})`;
-  }
-  explanationParts.push(`+${contextScore} contexto (desc: +${descScore}, cat: +${familyScore}, trust: +${companyScore})`);
-
-  if (boosts.length > 0) {
-    explanationParts.push(`bônus: +${adjustmentsSum > 0 ? adjustmentsSum : 0}`);
-  }
-  if (penalties.length > 0) {
-    explanationParts.push(`penalidades: -15`);
-  }
-
-  const explanation = explanationParts.join(', ');
-
-  return {
-    overall,
-    breakdown: { title: titleScore, skills: skillScore, context: contextScore },
-    adjustments: { boosts, penalties },
-    explanation,
-    confidence
-  };
+// ── 1. Telemetry Logger ──
+interface SearchMetrics {
+  candidatesGenerated: number;
+  candidatesFiltered: number;
+  rejectedByTitle: number;
+  rejectedByLocation: number;
+  rejectedBySeniority: number;
+  averageScore: number;
+  threshold: number;
+  geminiUsed: boolean;
+  latencyMs: number;
+  topFeatures: string[];
+}
+function logSearchTelemetry(m: SearchMetrics) {
+  console.log("=== SEARCH METRICS ===");
+  console.log(`- recall_pool_initial: ${m.candidatesGenerated}`);
+  console.log(`- recall_pool_final: ${m.candidatesFiltered}`);
+  console.log(`- rejected_by_title: ${m.rejectedByTitle}`);
+  console.log(`- rejected_by_location: ${m.rejectedByLocation}`);
+  console.log(`- rejected_by_seniority: ${m.rejectedBySeniority}`);
+  console.log(`- avg_score: ${m.averageScore.toFixed(2)}`);
+  console.log(`- threshold_applied: ${m.threshold.toFixed(2)}`);
+  console.log(`- gemini_used: ${m.geminiUsed}`);
+  console.log(`- latency_ms: ${m.latencyMs}ms`);
+  console.log(`- leading_signals: ${m.topFeatures.join(', ')}`);
+  console.log("======================");
 }
 
-// ── Normalize Company Names ──
+// ── 2. Local Seniority Normalizer ──
+export function extractQuerySeniority(query: string): ('junior' | 'pleno' | 'senior' | 'lead' | 'director')[] {
+  const q = query.toLowerCase();
+  const levels: ('junior' | 'pleno' | 'senior' | 'lead' | 'director')[] = [];
+  if (/\b(junior|júnior|jr|estágio|estagiário|intern|trainee|assistente)\b/i.test(q)) levels.push('junior');
+  if (/\b(pleno|pl)\b/i.test(q)) levels.push('pleno');
+  if (/\b(senior|sênior|sr)\b/i.test(q)) levels.push('senior');
+  if (/\b(lead|lider|líder|principal|staff)\b/i.test(q)) levels.push('lead');
+  if (/\b(director|diretor|head|vp)\b/i.test(q)) levels.push('director');
+  return levels;
+}
+
+// ── 3. Base formatting normalizers ──
 function normalizeCompany(name: string): string {
   if (!name) return "Empresa Confidencial";
   return name
@@ -213,7 +92,6 @@ function normalizeCompany(name: string): string {
     .trim();
 }
 
-// ── Normalize Locations ──
 function normalizeLocation(loc: string): string {
   if (!loc) return "Brasil";
   const l = loc.toLowerCase();
@@ -238,7 +116,6 @@ function normalizeLocation(loc: string): string {
   return loc.trim();
 }
 
-// ── Convert Salary to BRL ──
 function normalizeSalary(j: RawJob): { min?: number; max?: number } {
   let min = j.salaryMin;
   let max = j.salaryMax;
@@ -256,7 +133,6 @@ function normalizeSalary(j: RawJob): { min?: number; max?: number } {
   };
 }
 
-// ── Normalize Work Mode ──
 function normalizeWorkMode(j: RawJob): 'remote' | 'hybrid' | 'onsite' {
   if (j.workMode) return j.workMode;
   const text = (j.title + " " + j.description).toLowerCase();
@@ -269,7 +145,6 @@ function normalizeWorkMode(j: RawJob): 'remote' | 'hybrid' | 'onsite' {
   return "onsite";
 }
 
-// ── Normalize Seniority ──
 function normalizeSeniority(j: RawJob): 'junior' | 'pleno' | 'senior' | 'lead' | 'director' {
   if (j.seniority) return j.seniority;
   const title = j.title.toLowerCase();
@@ -288,7 +163,6 @@ function normalizeSeniority(j: RawJob): 'junior' | 'pleno' | 'senior' | 'lead' |
   return "pleno";
 }
 
-// ── Extract Tech Stack Tags ──
 const KNOWN_STACKS = [
   "React", "TypeScript", "Node.js", "Docker", "AWS", "Python", "Java",
   "PostgreSQL", "CSS", "HTML", "Vite", "GraphQL", "Figma", "Salesforce",
@@ -303,7 +177,6 @@ function normalizeRequirements(j: RawJob): string[] {
   return reqs.length > 0 ? reqs : ["Geral"];
 }
 
-// ── Extract Benefits ──
 const KNOWN_BENEFITS = [
   { term: /vale refeição|vale-refeição|\bvr\b/i, normalized: "Vale Refeição" },
   { term: /vale alimentação|vale-alimentação|\bva\b/i, normalized: "Vale Alimentação" },
@@ -323,7 +196,6 @@ function normalizeBenefits(j: RawJob): string[] {
   return benefits;
 }
 
-// ── Detect Language ──
 function detectLanguage(description: string): 'pt' | 'en' | 'es' {
   const text = description.toLowerCase();
   const ptCount = (text.match(/\b(o|a|e|da|do|em|para|com|vaga|requisitos)\b/g) || []).length;
@@ -335,7 +207,6 @@ function detectLanguage(description: string): 'pt' | 'en' | 'es' {
   return "pt";
 }
 
-// ── Calculate Quality Scores ──
 function calculateScores(
   j: RawJob, 
   workMode: 'remote' | 'hybrid' | 'onsite',
@@ -403,57 +274,28 @@ function calculateScores(
 export function aggregateAndNormalizeJobs(
   jobs: RawJob[],
   intent?: JobIntent,
-  location?: string
+  location?: string,
+  rawQuery?: string,
+  geminiUsed = false
 ): NormalizedJob[] {
-  const normalizedList: NormalizedJob[] = [];
+  const startTime = Date.now();
+  const parsedJobs: NormalizedJob[] = [];
   const seen = new Set<string>();
 
+  // Passar localização buscada no intent para processamento de LocationFeature
+  if (intent && location) {
+    intent.target_location = location;
+  }
+
+  // Phase 0 & 1: Parse, Normalização Básica e Deduplicação
   for (const j of jobs) {
-    const companyNormalized = normalizeCompany(j.companyName);
+    // Resetar estado temporário para evitar vazamento em execuções concorrentes ou consecutivas
+    delete (j as any)._titleSim;
+
     const titleClean = j.title.replace(/<\/?[^>]+(>|$)/g, "").trim();
-    
-    // Phase 1: Title Pre-filter & Exclusion Check
-    if (intent) {
-      const titleLower = titleClean.toLowerCase();
-
-      // A. Discard instantly if job title matches any negative_titles
-      const isNegativeMatch = intent.negative_titles.some(nt => {
-        if (!nt) return false;
-        const rx = new RegExp(`\\b${nt.toLowerCase()}\\b`, 'i');
-        return rx.test(titleLower);
-      });
-      if (isNegativeMatch) {
-        continue;
-      }
-
-      // B. Token positive match check
-      const tokensToMatch = new Set<string>();
-      intent.family.toLowerCase().split(/\s+/).forEach(w => {
-        const cleaned = w.replace(/[^\w]/g, "");
-        if (cleaned.length >= 2) tokensToMatch.add(cleaned);
-      });
-      intent.primary_titles.forEach(t => {
-        t.toLowerCase().split(/\s+/).forEach(w => {
-          const cleaned = w.replace(/[^\w]/g, "");
-          if (cleaned.length >= 2) tokensToMatch.add(cleaned);
-        });
-      });
-      intent.secondary_titles.forEach(t => {
-        t.toLowerCase().split(/\s+/).forEach(w => {
-          const cleaned = w.replace(/[^\w]/g, "");
-          if (cleaned.length >= 2) tokensToMatch.add(cleaned);
-        });
-      });
-
-      const titleWords = titleLower.split(/\s+/).map(w => w.replace(/[^\w]/g, "")).filter(w => w.length >= 2);
-      const passesPreFilter = titleWords.some(word => tokensToMatch.has(word));
-      if (!passesPreFilter) {
-        continue;
-      }
-    }
+    const companyNormalized = normalizeCompany(j.companyName);
 
     const key = `${titleClean.toLowerCase()}|${companyNormalized.toLowerCase()}`;
-
     if (seen.has(key)) continue;
     seen.add(key);
 
@@ -464,7 +306,6 @@ export function aggregateAndNormalizeJobs(
     const reqs = normalizeRequirements(j);
     const benefits = normalizeBenefits(j);
     const lang = detectLanguage(j.description);
-
     const baseScores = calculateScores(j, mode, salaries.min);
 
     const descClean = j.description
@@ -476,24 +317,13 @@ export function aggregateAndNormalizeJobs(
       .replace(/\s+/g, ' ')
       .trim();
 
-    // Compute semantic match score if intent is provided
-    let finalOverallScore = baseScores.overall;
-    let semanticDetails: any = null;
+    const normalizedTitle = normalizeQuery(titleClean);
 
-    if (intent) {
-      semanticDetails = calculateSemanticScore(j, intent, mode, seniority, location || '', baseScores);
-      finalOverallScore = semanticDetails.overall;
-      
-      // Keep jobs with overall score >= 60 (threshold filter)
-      if (finalOverallScore < 60) {
-        continue;
-      }
-    }
-
-    normalizedList.push({
+    parsedJobs.push({
       ...j,
       title: titleClean,
       description: descClean,
+      _normalizedTitle: normalizedTitle, // Pré-normalizado uma única vez
       companyNameNormalized: companyNormalized,
       locationNormalized: locNormalized,
       salaryMinBRL: salaries.min,
@@ -505,17 +335,328 @@ export function aggregateAndNormalizeJobs(
       languageNormalized: lang,
       scores: {
         ...baseScores,
-        overall: finalOverallScore,
-        ...(semanticDetails ? {
-          breakdown: semanticDetails.breakdown,
-          adjustments: semanticDetails.adjustments,
-          explanation: semanticDetails.explanation,
-          confidence: semanticDetails.confidence
-        } : {})
+        overall: baseScores.overall,
+        confidence: 'low'
       }
     });
   }
 
-  // Sort descending by Overall score
-  return normalizedList.sort((a, b) => b.scores.overall - a.scores.overall);
+  const initialCount = parsedJobs.length;
+
+  // Phase 3: Candidate recall pool generation com expansão ponderada de Grafo
+  const candidates: NormalizedJob[] = [];
+  let rejectedByTitle = 0;
+
+  if (intent) {
+    const expandedIntents = expandIntent(intent.canonical_key);
+    const titleNegativeKeywords = intent.negative_titles || [];
+
+    for (const j of parsedJobs) {
+      const titleLower = j.title.toLowerCase();
+
+      // 1. Filtrar títulos negativos blocklist
+      let hasNegativeMatch = false;
+      for (const kw of titleNegativeKeywords) {
+        if (!kw) continue;
+        const escaped = kw.toLowerCase().replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+        const rx = new RegExp(`\\b${escaped}\\b`, 'i');
+        if (rx.test(titleLower)) {
+          hasNegativeMatch = true;
+          break;
+        }
+      }
+
+      if (hasNegativeMatch) {
+        rejectedByTitle++;
+        continue;
+      }
+
+      // 2. Buscar a similaridade de título máxima expandida no Grafo direcionado
+      let maxWeightedSim = 0.0;
+      let bestExpandedKey = intent.canonical_key;
+
+      for (const [expandedKey, expansionWeight] of Object.entries(expandedIntents)) {
+        const expandedNode = LOCAL_TAXONOMY[expandedKey];
+        if (!expandedNode) continue;
+
+        const tempIntent = {
+          canonical_key: expandedNode.id,
+          primary_titles: expandedNode.primary_titles,
+          secondary_titles: expandedNode.secondary_titles,
+          _normalizedPrimary: [expandedNode.id.replace(/_/g, " "), ...expandedNode.primary_titles].map(t => normalizeQuery(t)).filter(Boolean),
+          _normalizedSecondary: expandedNode.secondary_titles.map(t => normalizeQuery(t)).filter(Boolean)
+        };
+        const sim = TitleSimilarityFeature.calculate(j, tempIntent as any);
+        const weightedSim = sim * expansionWeight;
+        if (weightedSim > maxWeightedSim) {
+          maxWeightedSim = weightedSim;
+          bestExpandedKey = expandedKey;
+        }
+      }
+
+      // Salvar similaridade ponderada e nó correspondente de match no objeto temporário
+      (j as any)._titleSim = maxWeightedSim;
+      (j as any)._matchedCanonicalKey = bestExpandedKey;
+
+      if (maxWeightedSim < GATING_THRESHOLDS.TitleSimilarity) {
+        rejectedByTitle++;
+        continue;
+      }
+      candidates.push(j);
+    }
+  } else {
+    candidates.push(...parsedJobs);
+  }
+
+  // Phase 4: L2 Hard Filters (Seniority, Location e Geográfico Internacional)
+  const querySeniorities = rawQuery ? extractQuerySeniority(rawQuery) : [];
+  const filteredJobs: NormalizedJob[] = [];
+  let rejectedByLocation = 0;
+  let rejectedBySeniority = 0;
+
+  const locLower = location ? location.toLowerCase() : "";
+  const isBrazilianSearch = /brasil|brazil|br|são paulo|rio de janeiro|belo horizonte|curitiba|porto alegre|recife|salvador|fortaleza|brasília|campinas|goiânia|manaus|belém|florianópolis|sp|rj|mg|pr|rs|sc|ba|pe|ce|df|go|am|pa/i.test(locLower);
+  
+  const nonBrazilPatterns = /\b(germany|deutschland|austria|österreich|schweiz|switzerland|canada|united states|usa|uk|united kingdom|france|spain|netherlands|ireland|australia|india|japan|china|singapore|dubai|qatar|münchen|munich|berlin|hamburg|frankfurt|london|paris|amsterdam|dublin|toronto|vancouver|montreal|new york|san francisco|seattle|chicago|los angeles|sydney|melbourne)\b/i;
+  const foreignLangPatterns = /\b(projektmanager|sachbearbeiter|mitarbeiter|leiter|berater|ingénieur|développeur|responsable|gestionnaire|chargé)\b/i;
+
+  for (const j of candidates) {
+    // 1. Filtro de Senioridade
+    if (querySeniorities.length > 0 && !querySeniorities.includes(j.seniorityNormalized)) {
+      rejectedBySeniority++;
+      continue;
+    }
+
+    // 2. Filtro Geográfico Internacional (se busca no Brasil)
+    if (isBrazilianSearch) {
+      const jobLoc = (j.locationNormalized || j.location || '').toLowerCase();
+      const jobTitle = j.title.toLowerCase();
+      const jobDesc = j.description.substring(0, 300).toLowerCase();
+
+      const isRemoteKeyword = jobLoc.includes('remot') || jobLoc === '' || jobLoc === 'remote' || jobLoc.includes('anywhere') || jobLoc.includes('worldwide');
+      
+      if (!isRemoteKeyword) {
+        if (nonBrazilPatterns.test(jobLoc) || nonBrazilPatterns.test(jobDesc) || foreignLangPatterns.test(jobTitle)) {
+          rejectedByLocation++;
+          continue;
+        }
+      }
+    }
+
+    // 3. Filtro Geográfico Local (se especificado um local que não seja remoto)
+    if (location && j.workModeNormalized !== 'remote') {
+      const targetLoc = location.toLowerCase().replace(/[^\w]/g, "");
+      const jobLoc = j.locationNormalized.toLowerCase().replace(/[^\w]/g, "");
+      
+      const isMatch = jobLoc.includes(targetLoc) || targetLoc.includes(jobLoc) || 
+                      (targetLoc === 'sp' && jobLoc.includes('saopaulo')) ||
+                      (jobLoc === 'sp' && targetLoc === 'saopaulo');
+      if (!isMatch) {
+        rejectedByLocation++;
+        continue;
+      }
+    }
+
+    filteredJobs.push(j);
+  }
+
+  // Phase 5, 6, 7 & 8: Extração de Features, LTR Ranker e Explainability Engine
+  const matchedTitleStr = intent ? (intent.primary_titles[0] || "") : "";
+  const allIntentSkills = intent ? [...(intent.skills || []), ...(intent.preferred_skills || [])].filter(Boolean) : [];
+
+  for (const j of filteredJobs) {
+    if (!intent) continue;
+
+    const matchedKey = (j as any)._matchedCanonicalKey || intent.canonical_key;
+    const matchedNode = LOCAL_TAXONOMY[matchedKey] || LOCAL_TAXONOMY[intent.canonical_key];
+
+    // Criar o contexto de intenção mapeado no grafo (evitando double penalty de competências)
+    const domainIntent = matchedNode ? {
+      ...intent,
+      canonical_key: matchedNode.id,
+      family: matchedNode.department,
+      primary_titles: [matchedNode.id.replace(/_/g, " "), ...matchedNode.primary_titles],
+      secondary_titles: matchedNode.secondary_titles,
+      skills: matchedNode.required_skills,
+      preferred_skills: matchedNode.preferred_skills,
+      negative_keywords: matchedNode.negative_keywords,
+      department: matchedNode.department,
+      _normalizedPrimary: [matchedNode.id.replace(/_/g, " "), ...matchedNode.primary_titles].map(t => normalizeQuery(t)).filter(Boolean),
+      _normalizedSecondary: matchedNode.secondary_titles.map(t => normalizeQuery(t)).filter(Boolean)
+    } : intent;
+
+    const featuresScore: Record<string, number> = {};
+    for (const feature of FEATURE_REGISTRY) {
+      if (feature.key === "TitleSimilarity" && (j as any)._titleSim !== undefined) {
+        featuresScore[feature.key] = (j as any)._titleSim;
+      } else {
+        featuresScore[feature.key] = feature.calculate(j, domainIntent as any);
+      }
+    }
+
+    // LTR Linear Score Composition
+    let weightedSum = 0.0;
+    for (const [key, weight] of Object.entries(FEATURE_WEIGHTS)) {
+      const score = featuresScore[key] || 0.0;
+      weightedSum += score * weight;
+    }
+
+    const titleSim = featuresScore["TitleSimilarity"] || 0.0;
+
+    // Penalidade por palavras-chave negativas na descrição
+    const negativeKeywords = intent.negative_keywords || [];
+    const normDesc = normalizeQuery(j.description);
+    const matchedNegatives: string[] = [];
+    for (const kw of negativeKeywords) {
+      const normKw = normalizeQuery(kw);
+      if (!normKw) continue;
+      const escaped = normKw.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      const rx = new RegExp(`\\b${escaped}\\b`, 'i');
+      if (rx.test(normDesc)) {
+        matchedNegatives.push(kw);
+      }
+    }
+    const negativeSignalsScore = Math.min(1.0, matchedNegatives.length * 0.5);
+    // Se o título tem alta compatibilidade, mitigar a penalidade de descrição
+    let negativePenalty = negativeSignalsScore * PENALTIES.NegativeSignalsWeight;
+    if (titleSim >= 0.60) {
+      negativePenalty = negativePenalty * 0.5;
+    }
+
+    let overallScore = Math.max(0, Math.min(100, Math.round(weightedSum * 100 - negativePenalty)));
+
+    // Penalidade para cargos adjacentes com match fraco de título (ex: expansão de grafo de peso baixo)
+    if (titleSim < 0.55) {
+      overallScore = Math.max(0, overallScore - 20);
+    }
+
+    // Calibração do Nível de Confiança
+    let confidence: 'high' | 'medium' | 'low' = 'low';
+    const skillsSim = featuresScore["SkillsCoverage"] || 0.0;
+    const companyTrust = featuresScore["CompanyQuality"] || 0.0;
+    if (titleSim >= 0.60 && skillsSim >= 0.20 && companyTrust >= 0.70) {
+      confidence = 'high';
+    } else if (titleSim >= 0.45 && skillsSim >= 0.10) {
+      confidence = 'medium';
+    }
+
+    // Skills correspondidas para a explicação
+    const normText = normalizeQuery(`${j.title} ${j.description}`);
+    const matchedSkillsList: string[] = [];
+    for (const skill of allIntentSkills) {
+      const normSkill = normalizeQuery(skill);
+      if (!normSkill) continue;
+      const escaped = normSkill.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      const rx = new RegExp(`\\b${escaped}\\b`, 'i');
+      if (rx.test(normText)) {
+        matchedSkillsList.push(skill);
+      }
+    }
+
+    // Formatação de Explainability Payload
+    const featureBreakdown: Record<string, { score: number; contribution: number }> = {};
+    for (const [key, score] of Object.entries(featuresScore)) {
+      const weight = FEATURE_WEIGHTS[key] || 0.0;
+      featureBreakdown[key] = {
+        score: score,
+        contribution: Math.round(weight * 100)
+      };
+    }
+
+    const boosts: string[] = [];
+    const penaltiesList: string[] = [];
+
+    if (["greenhouse", "lever", "ashby", "smartrecruiters"].includes(j.sourcePlatform.toLowerCase())) {
+      boosts.push("Conexão direta ATS (+5 relevância implícita)");
+    }
+    if (matchedSkillsList.length >= 4) {
+      boosts.push("Forte alinhamento de competências técnicas");
+    }
+    if (matchedNegatives.length > 0) {
+      penaltiesList.push(`Presença de termos negativos na descrição: ${matchedNegatives.join(', ')}`);
+    }
+
+    const matchedDepartmentStr = intent.department || "Não especificado na intenção";
+    const rankingReasonStr = `Título similar a '${matchedTitleStr}' com pontuação total de ${overallScore}/100. Confiança classificada como ${confidence.toUpperCase()}.`;
+    const explanationPtBRStr = `Vaga encontrada por similaridade de título (${Math.round(titleSim * 100)}%). ` +
+      `Encontradas ${matchedSkillsList.length} competências (${matchedSkillsList.slice(0, 3).join(', ')}). ` +
+      `Localização normalizada: ${j.locationNormalized}.`;
+
+    j.scores.overall = overallScore;
+    j.scores.confidence = confidence;
+    j.scores.breakdown = {
+      title: Math.round(titleSim * 60),
+      skills: Math.round(skillsSim * 20),
+      industry: Math.round((featuresScore["DepartmentSimilarity"] || 0) * 10),
+      company: Math.round(companyTrust * 5),
+      freshness: Math.round((featuresScore["Freshness"] || 0) * 5)
+    };
+    j.scores.explainability = {
+      overall_score: overallScore,
+      confidence,
+      matched_titles: [matchedTitleStr],
+      matched_skills: matchedSkillsList,
+      matched_department: matchedDepartmentStr,
+      feature_breakdown: featureBreakdown,
+      boosts,
+      penalties: penaltiesList,
+      ranking_reason: rankingReasonStr,
+      explanation_ptBR: explanationPtBRStr
+    };
+  }
+
+  // Phase 9: Dynamic Percentile Thresholding (P70)
+  let finalJobs: NormalizedJob[] = [];
+  let thresholdApplied = 45.0;
+
+  if (filteredJobs.length < 5) {
+    finalJobs = filteredJobs.filter(item => item.scores.overall >= 45.0);
+  } else {
+    const scores = filteredJobs.map(item => item.scores.overall).sort((a, b) => a - b);
+    const mean = scores.reduce((sum, s) => sum + s, 0) / scores.length;
+    const variance = scores.reduce((sum, s) => sum + Math.pow(s - mean, 2), 0) / scores.length;
+    const stddev = Math.sqrt(variance);
+    const statThreshold = mean - 0.5 * stddev;
+
+    if (scores.length >= 10) {
+      const percentileIndex = Math.floor(scores.length * 0.70);
+      const p70Score = scores[percentileIndex];
+      thresholdApplied = Math.max(45, Math.max(p70Score, statThreshold));
+    } else {
+      // Listas médias (5 a 9 candidatos): usar P50 (Mediana) para evitar cortes excessivos
+      const percentileIndex = Math.floor(scores.length * 0.50);
+      const p50Score = scores[percentileIndex];
+      thresholdApplied = Math.max(45, Math.max(p50Score, statThreshold));
+    }
+    
+    finalJobs = filteredJobs.filter(item => item.scores.overall >= thresholdApplied);
+  }
+
+  finalJobs.sort((a, b) => b.scores.overall - a.scores.overall);
+
+  const durationMs = Date.now() - startTime;
+
+  // Extrair leading signals para analítica
+  const topFeatures = finalJobs.length > 0
+    ? Object.keys(finalJobs[0].scores.explainability?.feature_breakdown || {}).slice(0, 3)
+    : [];
+
+  const avgScore = finalJobs.length > 0
+    ? finalJobs.reduce((sum, j) => sum + j.scores.overall, 0) / finalJobs.length
+    : 0.0;
+
+  logSearchTelemetry({
+    candidatesGenerated: initialCount,
+    candidatesFiltered: finalJobs.length,
+    rejectedByTitle,
+    rejectedByLocation,
+    rejectedBySeniority,
+    averageScore: avgScore,
+    threshold: thresholdApplied,
+    geminiUsed,
+    latencyMs: durationMs,
+    topFeatures
+  });
+
+  return finalJobs;
 }

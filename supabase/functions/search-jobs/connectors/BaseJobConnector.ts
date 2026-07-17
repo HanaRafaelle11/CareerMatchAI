@@ -23,6 +23,8 @@ export interface JobIntent {
   skills: string[];
   preferred_skills: string[];
   negative_keywords: string[];
+  industry: string;
+  department?: string;
 }
 
 export abstract class BaseJobConnector {

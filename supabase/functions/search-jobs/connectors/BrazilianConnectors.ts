@@ -33,20 +33,17 @@ export class ProgramathorConnector extends BaseJobConnector {
       
       const xml = await res.text();
       const items = parseRssXml(xml);
-      const kw = keyword.toLowerCase();
 
       items.forEach((item) => {
-        if (item.title.toLowerCase().includes(kw) || item.description.toLowerCase().includes(kw)) {
-          jobs.push({
-            title: item.title,
-            description: item.description,
-            companyName: item.company || "Parceiro ProgramaThor",
-            location: "Brasil",
-            sourceUrl: item.link,
-            sourcePlatform: this.platformName,
-            publishedAt: item.pubDate ? new Date(item.pubDate).toISOString() : undefined
-          });
-        }
+        jobs.push({
+          title: item.title,
+          description: item.description,
+          companyName: item.company || "Parceiro ProgramaThor",
+          location: "Brasil",
+          sourceUrl: item.link,
+          sourcePlatform: this.platformName,
+          publishedAt: item.pubDate ? new Date(item.pubDate).toISOString() : undefined
+        });
       });
     } catch (err) {
       console.error("[ProgramathorConnector] Erro ao carregar feed:", err.message);
@@ -102,20 +99,17 @@ export class GeekHunterConnector extends BaseJobConnector {
       if (!res.ok) return [];
       const xml = await res.text();
       const items = parseRssXml(xml);
-      const kw = keyword.toLowerCase();
 
       items.forEach((item) => {
-        if (item.title.toLowerCase().includes(kw) || item.description.toLowerCase().includes(kw)) {
-          jobs.push({
-            title: item.title,
-            description: item.description,
-            companyName: item.company || "Parceiro GeekHunter",
-            location: "Brasil",
-            sourceUrl: item.link,
-            sourcePlatform: this.platformName,
-            publishedAt: item.pubDate
-          });
-        }
+        jobs.push({
+          title: item.title,
+          description: item.description,
+          companyName: item.company || "Parceiro GeekHunter",
+          location: "Brasil",
+          sourceUrl: item.link,
+          sourcePlatform: this.platformName,
+          publishedAt: item.pubDate
+        });
       });
     } catch (err) {
       console.error("[GeekHunterConnector] Erro ao carregar feed:", err.message);
@@ -137,20 +131,17 @@ export class ReveloConnector extends BaseJobConnector {
       if (!res.ok) return [];
       const xml = await res.text();
       const items = parseRssXml(xml);
-      const kw = keyword.toLowerCase();
 
       items.forEach((item) => {
-        if (item.title.toLowerCase().includes(kw) || item.description.toLowerCase().includes(kw)) {
-          jobs.push({
-            title: item.title,
-            description: item.description,
-            companyName: item.company || "Parceiro Revelo",
-            location: "Brasil",
-            sourceUrl: item.link,
-            sourcePlatform: this.platformName,
-            publishedAt: item.pubDate
-          });
-        }
+        jobs.push({
+          title: item.title,
+          description: item.description,
+          companyName: item.company || "Parceiro Revelo",
+          location: "Brasil",
+          sourceUrl: item.link,
+          sourcePlatform: this.platformName,
+          publishedAt: item.pubDate
+        });
       });
     } catch (err) {
       console.warn("[ReveloConnector] Feeds públicos offline. Retornando lista vazia.");

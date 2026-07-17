@@ -290,7 +290,7 @@ export const LOCAL_TAXONOMY: Record<string, TaxonomyNode> = {
     career_path: ["cs associate", "customer success manager", "senior csm", "head of customer success"],
     similar_roles: ["technical_support", "sales_representative"],
     edges: {
-      "technical_support": 0.5,
+      "technical_support": 0.45,
       "sales_representative": 0.4
     }
   },

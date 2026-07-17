@@ -193,7 +193,7 @@ serve(async (req) => {
     const finalResponse = {
       count: normalizedJobs.length,
       results: normalizedJobs,
-      ...(debug ? { connectorLogs, rawCount: totalCount } : {})
+      ...(debug ? { connectorLogs, rawCount: totalCount, rawJobsList } : {})
     };
 
     // ── 6. PERSISTIR EM CACHE (Somente se não for debug) ──

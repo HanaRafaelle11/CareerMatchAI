@@ -138,15 +138,8 @@ export function retrieveCandidates(
     const skillsConfidence = skillsSim;
     const descriptionConfidence = descRelevance;
 
-    const isAcceptedCandidate = (titleConfidence > 0.0) || (aliasConfidence > 0.0) || (skillsConfidence > 0.0) || (descriptionConfidence > 0.0);
-
-    if (!isAcceptedCandidate) {
-      rejectedByTitleCount++;
-      if (debug) {
-        console.log(`[Phase 3 Recall Rejected] "${j.title}" (Company: ${j.companyName}) - titleSim: ${titleSim.toFixed(3)}, hasAnySkill: ${hasAnySkill}, descRelevance: ${descRelevance.toFixed(3)}, hasAnyAlias: ${hasAnyAlias}`);
-      }
-      continue;
-    }
+    // Always accept candidates returned from connector search to avoid recall restrictions
+    const isAcceptedCandidate = true;
 
     if (titleConfidence > 0.0) hitsTitle++;
     if (aliasConfidence > 0.0) hitsAlias++;

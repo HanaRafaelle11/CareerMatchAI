@@ -6,6 +6,7 @@ export interface JobSearchFilters {
   location?: string;
   remoteOnly?: boolean;
   workModes?: string[]; // Modalidades selecionadas: remote, hybrid, onsite
+  minSalary?: number;
   page?: number; // Suporte à paginação
 }
 

@@ -221,7 +221,8 @@ export function JobMatchHub({
         keyword: newKeyword,
         location: newLocation,
         remoteOnly: newRemote,
-        workModes: ['remote']
+        workModes: ['remote'],
+        minSalary: 0
       });
       setErrorMsg('');
       setAppError(null);
@@ -861,7 +862,8 @@ export function JobMatchHub({
         keyword,
         location: loc,
         remoteOnly: isRemote,
-        workModes: preferredModes
+        workModes: preferredModes,
+        minSalary: 0
       });
     }
   }, [careerProfile, careerProfileNew]);
@@ -1173,7 +1175,8 @@ export function JobMatchHub({
       keyword: searchKeyword,
       location: searchLocation,
       remoteOnly: searchWorkModes.includes('remote') && searchWorkModes.length === 1,
-      workModes: searchWorkModes
+      workModes: searchWorkModes,
+      minSalary: Number(searchMinSalary) || 0
     });
   };
 
@@ -3035,7 +3038,8 @@ export function JobMatchHub({
                         keyword: initialKeyword,
                         location: initialLocation,
                         remoteOnly: initialRemote,
-                        workModes: initialRemote ? ['remote'] : ['remote', 'hybrid', 'onsite']
+                        workModes: initialRemote ? ['remote'] : ['remote', 'hybrid', 'onsite'],
+                        minSalary: 0
                       });
                     }}
                   />

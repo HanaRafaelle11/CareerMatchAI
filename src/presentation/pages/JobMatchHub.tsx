@@ -478,6 +478,20 @@ export function JobMatchHub({
         } catch (e) { console.error(e); }
       }
 
+      // ── APAGAR VAGAS IMPORTADAS DO USUÁRIO ──
+      if (isSupabaseConfigured && supabase) {
+        await supabase.from('jobs').delete().eq('user_id', userId);
+      } else {
+        try {
+          const jobsRaw = localStorage.getItem('vocentro_jobs');
+          if (jobsRaw) {
+            const list = JSON.parse(jobsRaw);
+            const filtered = list.filter((j: any) => j.userId !== userId && j.user_id !== userId);
+            localStorage.setItem('vocentro_jobs', JSON.stringify(filtered));
+          }
+        } catch (e) { console.error(e); }
+      }
+
       // Invalida todos os caches no frontend para refletir a remoção imediatamente de forma reativa
       queryClient.invalidateQueries({ queryKey: ['matches'] });
       queryClient.invalidateQueries({ queryKey: ['match-details'] });
@@ -485,8 +499,9 @@ export function JobMatchHub({
       queryClient.invalidateQueries({ queryKey: ['cover-letter'] });
       queryClient.invalidateQueries({ queryKey: ['interview-prep'] });
       queryClient.invalidateQueries({ queryKey: ['career-insights'] });
+      queryClient.invalidateQueries({ queryKey: ['jobs'] });
 
-      alert("Análises deste currículo apagadas com sucesso! Você pode recalcular compatibilidades.");
+      alert("Análises e vagas importadas apagadas com sucesso! Você pode recalcular compatibilidades.");
     } catch (err: any) {
       console.error("Erro ao apagar análises:", err);
       const formatted = AppError.from(err);

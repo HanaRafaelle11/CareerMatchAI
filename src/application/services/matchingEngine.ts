@@ -15,18 +15,20 @@ export function calcYearsFromExperiences(
 ): number {
   if (!experiences || experiences.length === 0) return 0;
 
-  // Coleta todos os intervalos [startMs, endMs]
-  const intervals: [number, number][] = experiences.map(exp => {
-    let start = exp.startDate ? new Date(exp.startDate).getTime() : new Date('2000-01-01').getTime();
-    if (isNaN(start)) {
-      start = new Date('2000-01-01').getTime();
-    }
+  // Coleta todos os intervalos [startMs, endMs] — ignora experiências sem data válida
+  const intervals: [number, number][] = [];
+  for (const exp of experiences) {
+    if (!exp.startDate) continue; // Sem data de início → não contabiliza
+    const start = new Date(exp.startDate).getTime();
+    if (isNaN(start)) continue; // Data inválida → não contabiliza
+    
     let end = exp.isCurrent || !exp.endDate ? Date.now() : new Date(exp.endDate).getTime();
-    if (isNaN(end)) {
-      end = Date.now();
-    }
-    return [Math.min(start, end), Math.max(start, end)];
-  });
+    if (isNaN(end)) end = Date.now();
+    
+    intervals.push([Math.min(start, end), Math.max(start, end)]);
+  }
+
+  if (intervals.length === 0) return 0;
 
   // Ordena e mescla intervalos para evitar dupla contagem
   intervals.sort((a, b) => a[0] - b[0]);

@@ -16,11 +16,10 @@ export interface RawJob {
 }
 
 export interface JobIntent {
-  canonicalRole: string;
-  aliases: string[];
-  excludedRoles: string[];
+  family: string;
+  primary_titles: string[];
+  secondary_titles: string[];
   skills: string[];
-  department: string;
 }
 
 export abstract class BaseJobConnector {

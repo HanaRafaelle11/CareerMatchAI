@@ -35,59 +35,47 @@ function calculateSemanticScore(
   const descLower = j.description.toLowerCase();
   const combinedText = `${titleLower} ${descLower}`;
 
-  // 1. Título (40%)
+  // 1. Título (60%)
   let titleScore = 0;
   
-  const isExcluded = intent.excludedRoles.some(ex => {
-    if (!ex) return false;
-    const rx = new RegExp(`\\b${ex.toLowerCase()}\\b`, 'i');
-    return rx.test(titleLower);
+  // Exact or substring match in primary_titles
+  const matchedPrimary = intent.primary_titles.some(t => {
+    const tLower = t.toLowerCase();
+    return titleLower.includes(tLower) || tLower.includes(titleLower);
   });
-  if (isExcluded) {
-    return 0;
-  }
 
-  const canonicalLower = intent.canonicalRole.toLowerCase();
-  if (titleLower.includes(canonicalLower)) {
-    titleScore = 100;
+  if (matchedPrimary) {
+    titleScore = 60;
   } else {
-    let bestAliasMatch = 0;
-    for (const alias of intent.aliases) {
-      if (!alias) continue;
-      const aliasLower = alias.toLowerCase();
-      if (titleLower.includes(aliasLower)) {
-        bestAliasMatch = 100;
-        break;
-      } else {
-        const tokens = aliasLower.split(/\s+/).filter(t => t.length > 2);
-        if (tokens.length > 0) {
-          const matchCount = tokens.filter(t => titleLower.includes(t)).length;
-          const pct = matchCount / tokens.length;
-          if (pct > bestAliasMatch) {
-            bestAliasMatch = pct * 80;
-          }
-        }
+    // Exact or substring match in secondary_titles
+    const matchedSecondary = intent.secondary_titles.some(t => {
+      const tLower = t.toLowerCase();
+      return titleLower.includes(tLower) || tLower.includes(titleLower);
+    });
+
+    if (matchedSecondary) {
+      titleScore = 40;
+    } else {
+      // Check word overlap
+      const tokensToMatch = new Set<string>();
+      intent.primary_titles.forEach(t => t.toLowerCase().split(/\s+/).forEach(w => {
+        const cleaned = w.replace(/[^\w]/g, "");
+        if (cleaned.length >= 2) tokensToMatch.add(cleaned);
+      }));
+      intent.secondary_titles.forEach(t => t.toLowerCase().split(/\s+/).forEach(w => {
+        const cleaned = w.replace(/[^\w]/g, "");
+        if (cleaned.length >= 2) tokensToMatch.add(cleaned);
+      }));
+
+      const titleWords = titleLower.split(/\s+/).map(w => w.replace(/[^\w]/g, "")).filter(w => w.length >= 2);
+      const overlapCount = titleWords.filter(w => tokensToMatch.has(w)).length;
+      if (overlapCount > 0) {
+        titleScore = 20;
       }
     }
-    titleScore = bestAliasMatch;
   }
 
-  // 2. Departamento (20%)
-  let deptScore = 0;
-  const deptLower = intent.department.toLowerCase();
-  if (titleLower.includes(deptLower)) {
-    deptScore = 100;
-  } else if (descLower.includes(deptLower)) {
-    deptScore = 70;
-  } else {
-    const deptTokens = deptLower.split(/\s+/).filter(t => t.length > 2);
-    if (deptTokens.length > 0) {
-      const matchCount = deptTokens.filter(t => combinedText.includes(t)).length;
-      deptScore = (matchCount / deptTokens.length) * 60;
-    }
-  }
-
-  // 3. Skills (15%)
+  // 2. Skills (20%)
   let skillScore = 0;
   if (intent.skills && intent.skills.length > 0) {
     const matchedSkills = intent.skills.filter(skill => {
@@ -95,43 +83,29 @@ function calculateSemanticScore(
       const rx = new RegExp(`\\b${skill.toLowerCase()}\\b`, 'i');
       return rx.test(combinedText);
     });
-    skillScore = (matchedSkills.length / intent.skills.length) * 100;
-    if (skillScore > 100) skillScore = 100;
-  } else {
-    skillScore = 80;
+    // Max 20 points
+    skillScore = (matchedSkills.length / intent.skills.length) * 20;
   }
 
-  // 4. Senioridade (10%)
-  const seniorityScore = 80;
+  // 3. Descrição (10%)
+  let descScore = 3;
+  if (j.description.length > 1000) {
+    descScore = 10;
+  } else if (j.description.length > 500) {
+    descScore = 6;
+  }
+
+  // 4. Departamento / Family (5%)
+  let familyScore = 2;
+  const familyLower = intent.family.toLowerCase();
+  if (titleLower.includes(familyLower) || descLower.includes(familyLower)) {
+    familyScore = 5;
+  }
 
   // 5. Empresa (5%)
-  const companyScore = baseScores.companyTrust;
+  const companyScore = (baseScores.companyTrust / 100) * 5;
 
-  // 6. Descrição (5%)
-  const descScore = baseScores.descriptionCompleteness;
-
-  // 7. Localização (5%)
-  let locScore = 100;
-  if (location && location.toLowerCase() !== 'brasil' && location.toLowerCase() !== 'brazil') {
-    const jobLoc = j.location.toLowerCase();
-    const targetLoc = location.toLowerCase();
-    if (jobLoc.includes(targetLoc) || targetLoc.includes(jobLoc)) {
-      locScore = 100;
-    } else {
-      locScore = 40;
-    }
-  }
-
-  const finalScore = Math.round(
-    (titleScore * 0.40) +
-    (deptScore * 0.20) +
-    (skillScore * 0.15) +
-    (seniorityScore * 0.10) +
-    (companyScore * 0.05) +
-    (descScore * 0.05) +
-    (locScore * 0.05)
-  );
-
+  const finalScore = Math.round(titleScore + skillScore + descScore + familyScore + companyScore);
   return finalScore;
 }
 
@@ -342,6 +316,36 @@ export function aggregateAndNormalizeJobs(
   for (const j of jobs) {
     const companyNormalized = normalizeCompany(j.companyName);
     const titleClean = j.title.replace(/<\/?[^>]+(>|$)/g, "").trim();
+    
+    // Phase 1: Title Pre-filter
+    if (intent) {
+      const titleLower = titleClean.toLowerCase();
+      const tokensToMatch = new Set<string>();
+      
+      intent.family.toLowerCase().split(/\s+/).forEach(w => {
+        const cleaned = w.replace(/[^\w]/g, "");
+        if (cleaned.length >= 2) tokensToMatch.add(cleaned);
+      });
+      intent.primary_titles.forEach(t => {
+        t.toLowerCase().split(/\s+/).forEach(w => {
+          const cleaned = w.replace(/[^\w]/g, "");
+          if (cleaned.length >= 2) tokensToMatch.add(cleaned);
+        });
+      });
+      intent.secondary_titles.forEach(t => {
+        t.toLowerCase().split(/\s+/).forEach(w => {
+          const cleaned = w.replace(/[^\w]/g, "");
+          if (cleaned.length >= 2) tokensToMatch.add(cleaned);
+        });
+      });
+
+      const titleWords = titleLower.split(/\s+/).map(w => w.replace(/[^\w]/g, "")).filter(w => w.length >= 2);
+      const passesPreFilter = titleWords.some(word => tokensToMatch.has(word));
+      if (!passesPreFilter) {
+        continue;
+      }
+    }
+
     const key = `${titleClean.toLowerCase()}|${companyNormalized.toLowerCase()}`;
 
     if (seen.has(key)) continue;

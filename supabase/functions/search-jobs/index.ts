@@ -64,11 +64,10 @@ async function classifyIntentWithGemini(
   const systemPrompt = `You are a career search intent parser. Analyze the user's search query and output a JSON object classifying the intent.
 The response must be valid JSON matching this schema:
 {
-  "canonicalRole": "Standardized job title (e.g., 'Customer Success Manager')",
-  "aliases": ["Alternative titles, synonyms, or abbreviations (e.g., ['CSM', 'Client Success Specialist', 'Customer Experience'])"],
-  "excludedRoles": ["Similar-sounding but completely different roles to exclude (e.g., ['Software Engineer', 'Sales Representative'])"],
-  "skills": ["Key skills, tools, or terms associated with this role (e.g., ['nps', 'churn', 'onboarding', 'retention'])"],
-  "department": "Department category (e.g., 'Customer Success')"
+  "family": "The job family or category name (e.g., 'Customer Success', 'Software Engineering')",
+  "primary_titles": ["The most common/standard exact titles for this role (e.g., ['Customer Success Manager', 'Customer Success Specialist'])"],
+  "secondary_titles": ["Alternative titles, synonyms, related roles, abbreviations, or specialized variants (e.g., ['CSM', 'Client Success', 'Onboarding Specialist', 'Implementation Consultant', 'Customer Success Engineer'])"],
+  "skills": ["Key skills, tags, tools, or methodologies associated with this role (e.g., ['CRM', 'NPS', 'CSAT', 'Retention', 'Onboarding'])"]
 }
 Do not include any explanation, backticks, or markdown formatting, just the raw JSON.`;
 
@@ -112,7 +111,7 @@ Do not include any explanation, backticks, or markdown formatting, just the raw 
       if (!text) throw new Error("Empty response from Gemini");
 
       const intent: JobIntent = JSON.parse(text.trim());
-      console.log(`[INTENT GEMINI] Resolved canonical role: ${intent.canonicalRole}`);
+      console.log(`[INTENT GEMINI] Resolved job family: ${intent.family}`);
       return intent;
     } catch (err: any) {
       console.warn(`[INTENT GEMINI] Model ${model} failed:`, err.message || err);
@@ -126,11 +125,10 @@ Do not include any explanation, backticks, or markdown formatting, just the raw 
 // Fallback classifier in case of Gemini failures
 function getFallbackIntent(keyword: string): JobIntent {
   return {
-    canonicalRole: keyword,
-    aliases: [keyword],
-    excludedRoles: [],
-    skills: [],
-    department: keyword
+    family: keyword,
+    primary_titles: [keyword],
+    secondary_titles: [],
+    skills: []
   };
 }
 
@@ -331,7 +329,7 @@ serve(async (req) => {
     // Log stats
     await logAnalyticsEvent(supabaseClient, resolvedUserId, 'jobs_normalized', 'Aggregator', 'completed', { count: totalCount });
     await logAnalyticsEvent(supabaseClient, resolvedUserId, 'jobs_deduplicated', 'Aggregator', 'completed', { duplicates_count: duplicatesRemoved });
-    await logAnalyticsEvent(supabaseClient, resolvedUserId, 'jobs_intent_classified', 'Aggregator', 'completed', { canonicalRole: intent.canonicalRole, department: intent.department });
+    await logAnalyticsEvent(supabaseClient, resolvedUserId, 'jobs_intent_classified', 'Aggregator', 'completed', { family: intent.family });
     await logAnalyticsEvent(supabaseClient, resolvedUserId, 'jobs_geo_filtered', 'Aggregator', 'completed', { before: normalizedJobs.length, after: filteredJobs.length, location: searchLocation });
     await logAnalyticsEvent(supabaseClient, resolvedUserId, 'jobs_ranked', 'Aggregator', 'completed', { ranked_count: filteredJobs.length });
 

@@ -369,7 +369,7 @@ function App() {
       />
 
       {/* Container Principal */}
-      <main className="flex-1 w-full min-w-0 px-4 sm:px-6 md:pl-[276px] md:pr-8 py-6 pt-20 md:pt-6 pb-24 md:pb-6 min-h-screen overflow-x-hidden relative z-10">
+      <main className="flex-1 w-full min-w-0 px-4 sm:px-6 md:pl-[276px] md:pr-8 py-6 pt-18 md:pt-4 pb-20 md:pb-4 overflow-x-hidden relative z-10">
 
         {/* Compact Header — Currículo ativo */}
         {resumes && resumes.length > 0 && (

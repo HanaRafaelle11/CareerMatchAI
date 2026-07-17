@@ -1358,8 +1358,9 @@ export function JobMatchHub({
 
       {/* Modal de colagem de vaga manual / Job Ingestion Engine */}
       {showAddForm && (
-        <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 flex items-center justify-center p-4 overflow-y-auto">
-          <CardGlass className="w-full max-w-2xl min-w-[320px] sm:min-w-[400px] space-y-6 relative border border-slate-800 my-8">
+        <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 overflow-y-auto">
+          <div className="flex min-h-full items-center justify-center p-4 text-center">
+            <CardGlass className="w-full max-w-2xl min-w-[320px] sm:min-w-[400px] space-y-6 relative border border-slate-800 my-8 text-left">
             <button
               onClick={() => {
                 resetIngestionStates();
@@ -1880,6 +1881,7 @@ export function JobMatchHub({
             )}
           </CardGlass>
         </div>
+      </div>
       )}
 
       {/* VIEW 1: Minhas Análises */}

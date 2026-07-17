@@ -518,8 +518,9 @@ export function StrategyPage({
       {/* MODALS */}
       {/* 1. Modal: Candidatura Manual */}
       {showAddForm && (
-        <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <CardGlass className="w-full max-w-md min-w-[320px] sm:min-w-[400px] space-y-6 relative border border-slate-800">
+        <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 overflow-y-auto">
+          <div className="flex min-h-full items-center justify-center p-4 text-center">
+            <CardGlass className="w-full max-w-md min-w-[320px] sm:min-w-[400px] space-y-6 relative border border-slate-800 text-left my-8">
             <button onClick={() => setShowAddForm(false)} className="absolute top-4 right-4 text-slate-500 hover:text-slate-300">
               <X size={18} />
             </button>
@@ -598,12 +599,14 @@ export function StrategyPage({
             </form>
           </CardGlass>
         </div>
+      </div>
       )}
 
       {/* 2. Modal: Rejeição */}
       {rejectingApp && (
-        <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <CardGlass className="w-full max-w-sm min-w-[300px] sm:min-w-[360px] space-y-6 relative border border-slate-800 text-center">
+        <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 overflow-y-auto">
+          <div className="flex min-h-full items-center justify-center p-4 text-center">
+            <CardGlass className="w-full max-w-sm min-w-[300px] sm:min-w-[360px] space-y-6 relative border border-slate-800 text-center my-8">
             <div className="mx-auto w-12 h-12 rounded-full bg-red-500/10 text-red-400 flex items-center justify-center">
               <AlertTriangle size={24} />
             </div>
@@ -628,12 +631,14 @@ export function StrategyPage({
             </div>
           </CardGlass>
         </div>
+      </div>
       )}
 
       {/* 3. Modal: Timeline stages */}
       {selectedAppId && selectedApp && (
-        <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <CardGlass className="w-full max-w-xl min-w-[320px] sm:min-w-[500px] space-y-6 relative border border-slate-800 flex flex-col md:flex-row gap-6 max-h-[85vh] overflow-y-auto">
+        <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 overflow-y-auto">
+          <div className="flex min-h-full items-center justify-center p-4 text-center">
+            <CardGlass className="w-full max-w-xl min-w-[320px] sm:min-w-[500px] space-y-6 relative border border-slate-800 flex flex-col md:flex-row gap-6 text-left my-8">
             <button onClick={() => setSelectedAppId(null)} className="absolute top-4 right-4 text-slate-500 hover:text-slate-300">
               <X size={18} />
             </button>
@@ -724,6 +729,7 @@ export function StrategyPage({
             </div>
           </CardGlass>
         </div>
+      </div>
       )}
 
       {/* ==========================================
@@ -1209,8 +1215,9 @@ export function StrategyPage({
 
           {/* Form Modal for Company */}
           {showCompanyForm && (
-            <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-              <CardGlass className="w-full max-w-md min-w-[320px] sm:min-w-[400px] space-y-4 relative border border-slate-800 max-h-[85vh] overflow-y-auto">
+            <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 overflow-y-auto">
+              <div className="flex min-h-full items-center justify-center p-4 text-center">
+                <CardGlass className="w-full max-w-md min-w-[320px] sm:min-w-[400px] space-y-4 relative border border-slate-800 text-left my-8">
                 <button onClick={() => setShowCompanyForm(false)} className="absolute top-4 right-4 text-slate-500 hover:text-slate-300">
                   <X size={18} />
                 </button>
@@ -1359,6 +1366,7 @@ export function StrategyPage({
                 </form>
               </CardGlass>
             </div>
+          </div>
           )}
 
           {/* Companies List */}

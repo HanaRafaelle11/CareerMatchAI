@@ -111,41 +111,36 @@ export const DepartmentFeature: Feature = {
   }
 };
 
-// ── 4. Location Feature ──
-export const LocationFeature: Feature = {
-  name: "Location Match",
-  key: "LocationMatch",
+// ── 3. Description Relevance Feature ──
+export const DescriptionRelevanceFeature: Feature = {
+  name: "Description Relevance",
+  key: "DescriptionRelevance",
   calculate(job, intent) {
-    const targetLoc = intent.target_location;
-    if (!targetLoc) return 1.0;
+    const descLower = normalizeQuery(job.description);
+    if (!descLower) return 0.0;
 
-    const targetClean = normalizeQuery(targetLoc);
-    const jobClean = normalizeQuery(job.locationNormalized);
+    const termsToMatch = [
+      intent.canonical_key.replace(/_/g, " "),
+      ...intent.primary_titles,
+      ...intent.secondary_titles,
+      ...intent.skills,
+      ...intent.preferred_skills
+    ].map(t => normalizeQuery(t)).filter(Boolean);
 
-    if (jobClean === "remoto" || jobClean === "remote") return 1.0;
-    if (jobClean.includes(targetClean) || targetClean.includes(jobClean)) return 1.0;
+    if (termsToMatch.length === 0) return 1.0;
 
-    if ((targetClean === "sp" && jobClean.includes("sao paulo")) ||
-        (jobClean === "sp" && targetClean.includes("sao paulo"))) {
-      return 1.0;
+    let matchCount = 0;
+    for (const term of termsToMatch) {
+      if (descLower.includes(term)) {
+        matchCount++;
+      }
     }
-    return 0.0;
+
+    return Math.min(1.0, matchCount / Math.min(10, termsToMatch.length));
   }
 };
 
-// ── 5. Salary Feature ──
-export const SalaryFeature: Feature = {
-  name: "Salary Attraction",
-  key: "SalaryFeature",
-  calculate(job, intent) {
-    if (job.salaryMinBRL || job.salaryMaxBRL) {
-      return job.salaryMinBRL && job.salaryMaxBRL ? 1.0 : 0.8;
-    }
-    return 0.2;
-  }
-};
-
-// ── 6. Freshness Feature ──
+// ── 4. Freshness Feature ──
 export const FreshnessFeature: Feature = {
   name: "Job Freshness",
   key: "Freshness",
@@ -163,7 +158,7 @@ export const FreshnessFeature: Feature = {
   }
 };
 
-// ── 7. Company Trust Feature ──
+// ── 5. Company Trust Feature ──
 export const CompanyTrustFeature: Feature = {
   name: "Company Trust",
   key: "CompanyQuality",
@@ -176,25 +171,12 @@ export const CompanyTrustFeature: Feature = {
   }
 };
 
-// ── 8. Remote Feature ──
-export const RemoteFeature: Feature = {
-  name: "Remote Alignment",
-  key: "RemoteFeature",
-  calculate(job, intent) {
-    if (job.workModeNormalized === "remote") return 1.0;
-    if (job.workModeNormalized === "hybrid") return 0.8;
-    return 0.5;
-  }
-};
-
 // ── Registro de Features Ativas ──
 export const FEATURE_REGISTRY: Feature[] = [
   TitleSimilarityFeature,
   SkillsCoverageFeature,
+  DescriptionRelevanceFeature,
   DepartmentFeature,
-  LocationFeature,
-  SalaryFeature,
-  FreshnessFeature,
   CompanyTrustFeature,
-  RemoteFeature
+  FreshnessFeature
 ];

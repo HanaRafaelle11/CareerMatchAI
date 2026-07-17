@@ -260,10 +260,12 @@ export const LOCAL_TAXONOMY: Record<string, TaxonomyNode> = {
       "customer success manager", "customer success specialist", "csm",
       "client success manager", "customer experience specialist", "cx",
       "customer onboarding specialist", "implementation consultant", "customer success engineer",
-      "analista de customer success", "gerente de customer success", "especialista em cs"
+      "analista de customer success", "gerente de customer success", "especialista em cs",
+      "customer experience", "client success", "client experience", "customer operations",
+      "customer onboarding", "client success representative", "customer experience manager"
     ],
-    primary_titles: ["customer success manager", "customer success specialist", "csm", "analista de customer success"],
-    secondary_titles: ["client success manager", "customer experience specialist", "cx", "gerente de customer success", "especialista em cs"],
+    primary_titles: ["customer success manager", "customer success specialist", "csm", "analista de customer success", "customer experience", "client success"],
+    secondary_titles: ["client success manager", "customer experience specialist", "cx", "gerente de customer success", "especialista em cs", "client experience", "customer operations", "customer onboarding"],
     related_titles: ["technical_support", "sales_representative"],
     negative_titles: ["cold calling", "active sales", "telemarketing", "vendas ativas", "developer", "programmer", "designer", "engineer", "desenvolvedor", "desenvolvedora", "dev", "fullstack"],
     required_skills: ["crm", "nps", "csat", "retention", "churn management", "zendesk", "customer relationship"],
@@ -299,10 +301,11 @@ export const LOCAL_TAXONOMY: Record<string, TaxonomyNode> = {
     aliases: [
       "support analyst", "technical support specialist", "helpdesk analyst", "it support engineer",
       "analista de suporte", "analista de suporte técnico", "suporte de ti", "help desk",
-      "suporte n1", "suporte n2", "suporte n3"
+      "suporte n1", "suporte n2", "suporte n3", "customer support", "customer support agent",
+      "technical support analyst"
     ],
-    primary_titles: ["support analyst", "technical support specialist", "helpdesk analyst", "analista de suporte", "analista de suporte técnico"],
-    secondary_titles: ["it support engineer", "suporte de ti", "help desk", "suporte n1", "suporte n2", "suporte n3"],
+    primary_titles: ["support analyst", "technical support specialist", "helpdesk analyst", "analista de suporte", "analista de suporte técnico", "customer support"],
+    secondary_titles: ["it support engineer", "suporte de ti", "help desk", "suporte n1", "suporte n2", "suporte n3", "customer support agent", "technical support analyst"],
     related_titles: ["devops_engineer", "customer_success"],
     negative_titles: ["desenvolvedor", "developer", "designer", "product manager", "sales representative", "vendedor"],
     required_skills: ["helpdesk", "troubleshooting", "hardware", "software", "windows", "linux", "networks", "support"],
@@ -412,10 +415,11 @@ export const LOCAL_TAXONOMY: Record<string, TaxonomyNode> = {
     aliases: [
       "inside sales", "sales representative", "account executive", "ae",
       "sales development representative", "sdr", "business development representative", "bdr",
-      "sales manager", "consultor de vendas", "analista comercial", "executivo de contas"
+      "sales manager", "consultor de vendas", "analista comercial", "executivo de contas",
+      "account manager", "account management"
     ],
-    primary_titles: ["inside sales", "sales representative", "account executive", "ae", "sales development representative", "sdr", "consultor de vendas"],
-    secondary_titles: ["business development representative", "bdr", "sales manager", "analista comercial", "executivo de contas"],
+    primary_titles: ["inside sales", "sales representative", "account executive", "ae", "sales development representative", "sdr", "consultor de vendas", "account manager"],
+    secondary_titles: ["business development representative", "bdr", "sales manager", "analista comercial", "executivo de contas", "account management"],
     related_titles: ["customer_success", "marketing_specialist"],
     negative_titles: ["suporte técnico", "developer", "devops", "designer", "quality assurance", "programador"],
     required_skills: ["sales", "negotiation", "cold calling", "crm", "lead generation", "prospecting", "pipeline"],

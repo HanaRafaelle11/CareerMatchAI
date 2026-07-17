@@ -24,7 +24,7 @@ export interface NormalizedJob extends RawJob {
     descriptionCompleteness: number;
     remoteConfidence: number;
     overall: number;
-    breakdown?: { title: number; skills: number; industry: number; company: number; freshness: number };
+    breakdown?: { title: number; skills: number; description?: number; industry: number; company: number; freshness: number };
     adjustments?: { boosts: string[]; penalties: string[] };
     explanation?: string;
     confidence?: 'high' | 'medium' | 'low';
@@ -349,29 +349,9 @@ export function aggregateAndNormalizeJobs(
 
   if (intent) {
     const expandedIntents = expandIntent(intent.canonical_key);
-    const titleNegativeKeywords = intent.negative_titles || [];
 
     for (const j of parsedJobs) {
-      const titleLower = j.title.toLowerCase();
-
-      // 1. Filtrar títulos negativos blocklist
-      let hasNegativeMatch = false;
-      for (const kw of titleNegativeKeywords) {
-        if (!kw) continue;
-        const escaped = kw.toLowerCase().replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-        const rx = new RegExp(`\\b${escaped}\\b`, 'i');
-        if (rx.test(titleLower)) {
-          hasNegativeMatch = true;
-          break;
-        }
-      }
-
-      if (hasNegativeMatch) {
-        rejectedByTitle++;
-        continue;
-      }
-
-      // 2. Buscar a similaridade de título máxima expandida no Grafo direcionado
+      // 1. Buscar a similaridade de título máxima expandida no Grafo direcionado
       let maxWeightedSim = 0.0;
       let bestExpandedKey = intent.canonical_key;
 
@@ -398,7 +378,29 @@ export function aggregateAndNormalizeJobs(
       (j as any)._titleSim = maxWeightedSim;
       (j as any)._matchedCanonicalKey = bestExpandedKey;
 
-      if (maxWeightedSim < GATING_THRESHOLDS.TitleSimilarity) {
+      // 2. Critérios amplos de Gating para Recall Máximo (title OR aliases OR skills)
+      const titleLower = j.title.toLowerCase();
+      const descLower = j.description.toLowerCase();
+
+      const matchedNode = LOCAL_TAXONOMY[bestExpandedKey] || LOCAL_TAXONOMY[intent.canonical_key];
+      
+      // Validação de Skills
+      const nodeSkills = matchedNode ? [...(matchedNode.required_skills || []), ...(matchedNode.preferred_skills || [])] : [];
+      const hasAnySkill = nodeSkills.some(skill => {
+        const normSkill = normalizeQuery(skill);
+        return normSkill && descLower.includes(normSkill);
+      });
+
+      // Validação de Aliases/Títulos
+      const nodeAliases = matchedNode ? [...(matchedNode.aliases || []), ...(matchedNode.primary_titles || []), ...(matchedNode.secondary_titles || [])] : [];
+      const hasAnyAlias = nodeAliases.some(alias => {
+        const normAlias = normalizeQuery(alias);
+        return normAlias && (titleLower.includes(normAlias) || descLower.includes(normAlias));
+      });
+
+      const isAcceptedCandidate = (maxWeightedSim >= GATING_THRESHOLDS.TitleSimilarity) || hasAnySkill || hasAnyAlias;
+
+      if (!isAcceptedCandidate) {
         rejectedByTitle++;
         continue;
       }
@@ -523,7 +525,21 @@ export function aggregateAndNormalizeJobs(
       negativePenalty = negativePenalty * 0.5;
     }
 
-    let overallScore = Math.max(0, Math.min(100, Math.round(weightedSum * 100 - negativePenalty)));
+    // Penalidade por termos negativos de título (penalização em vez de exclusão)
+    const titleNegativeKeywords = domainIntent.negative_titles || [];
+    let titleNegativePenalty = 0.0;
+    const titleLower = j.title.toLowerCase();
+    for (const kw of titleNegativeKeywords) {
+      if (!kw) continue;
+      const escaped = kw.toLowerCase().replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      const rx = new RegExp(`\\b${escaped}\\b`, 'i');
+      if (rx.test(titleLower)) {
+        titleNegativePenalty = 15.0; // Aplica penalidade de 15 pontos em vez de exclusão
+        break;
+      }
+    }
+
+    let overallScore = Math.max(0, Math.min(100, Math.round(weightedSum * 100 - negativePenalty - titleNegativePenalty)));
 
     // Penalidade para cargos adjacentes com match fraco de título (ex: expansão de grafo de peso baixo)
     if (titleSim < 0.55) {
@@ -575,6 +591,9 @@ export function aggregateAndNormalizeJobs(
     if (matchedNegatives.length > 0) {
       penaltiesList.push(`Presença de termos negativos na descrição: ${matchedNegatives.join(', ')}`);
     }
+    if (titleNegativePenalty > 0) {
+      penaltiesList.push("Incompatibilidade parcial de título (-15 pontos)");
+    }
 
     const matchedDepartmentStr = intent.department || "Não especificado na intenção";
     const rankingReasonStr = `Título similar a '${matchedTitleStr}' com pontuação total de ${overallScore}/100. Confiança classificada como ${confidence.toUpperCase()}.`;
@@ -585,10 +604,11 @@ export function aggregateAndNormalizeJobs(
     j.scores.overall = overallScore;
     j.scores.confidence = confidence;
     j.scores.breakdown = {
-      title: Math.round(titleSim * 60),
-      skills: Math.round(skillsSim * 20),
+      title: Math.round(titleSim * 35),
+      skills: Math.round(skillsSim * 30),
+      description: Math.round((featuresScore["DescriptionRelevance"] || 0) * 15),
       industry: Math.round((featuresScore["DepartmentSimilarity"] || 0) * 10),
-      company: Math.round(companyTrust * 5),
+      company: Math.round((featuresScore["CompanyQuality"] || 0) * 5),
       freshness: Math.round((featuresScore["Freshness"] || 0) * 5)
     };
     j.scores.explainability = {
@@ -605,34 +625,17 @@ export function aggregateAndNormalizeJobs(
     };
   }
 
-  // Phase 9: Dynamic Percentile Thresholding (P70)
+  // Phase 9: Capping results at Top 100 (Ranking based Recall)
   let finalJobs: NormalizedJob[] = [];
-  let thresholdApplied = 45.0;
+  let thresholdApplied = 0.0;
 
-  if (filteredJobs.length < 5) {
-    finalJobs = filteredJobs.filter(item => item.scores.overall >= 45.0);
+  filteredJobs.sort((a, b) => b.scores.overall - a.scores.overall);
+
+  if (filteredJobs.length <= 100) {
+    finalJobs = filteredJobs;
   } else {
-    const scores = filteredJobs.map(item => item.scores.overall).sort((a, b) => a - b);
-    const mean = scores.reduce((sum, s) => sum + s, 0) / scores.length;
-    const variance = scores.reduce((sum, s) => sum + Math.pow(s - mean, 2), 0) / scores.length;
-    const stddev = Math.sqrt(variance);
-    const statThreshold = mean - 0.5 * stddev;
-
-    if (scores.length >= 10) {
-      const percentileIndex = Math.floor(scores.length * 0.70);
-      const p70Score = scores[percentileIndex];
-      thresholdApplied = Math.max(45, Math.max(p70Score, statThreshold));
-    } else {
-      // Listas médias (5 a 9 candidatos): usar P50 (Mediana) para evitar cortes excessivos
-      const percentileIndex = Math.floor(scores.length * 0.50);
-      const p50Score = scores[percentileIndex];
-      thresholdApplied = Math.max(45, Math.max(p50Score, statThreshold));
-    }
-    
-    finalJobs = filteredJobs.filter(item => item.scores.overall >= thresholdApplied);
+    finalJobs = filteredJobs.slice(0, 100);
   }
-
-  finalJobs.sort((a, b) => b.scores.overall - a.scores.overall);
 
   const durationMs = Date.now() - startTime;
 

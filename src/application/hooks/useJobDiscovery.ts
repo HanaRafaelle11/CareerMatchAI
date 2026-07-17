@@ -36,20 +36,20 @@ export function useJobDiscovery(
       if (careerProfileNew) {
         const preferences = (careerProfileNew.personal as any)?.preferences || {};
 
-        // 1. Gerar múltiplas palavras-chave/sinônimos dos cargos-alvo
-        const targetRoles = preferences.targetRoles || [];
-        const searchKeywordsPref = preferences.searchKeywords || [];
-        finalKeywords = [...searchKeywordsPref, ...targetRoles];
-
-        if (finalKeywords.length === 0) {
-          const headline = careerProfileNew.personal?.headline;
-          const lastRole = careerProfileNew.experience?.[0]?.role;
-          finalKeywords = [headline, lastRole].filter((v): v is string => !!v);
-        }
-
-        // Se o usuário digitou uma busca manual, insere como prioridade na lista
         if (filters.keyword) {
-          finalKeywords = [filters.keyword, ...finalKeywords.filter(k => k !== filters.keyword)];
+          // Se o usuário digitou uma busca manual, foca estritamente nela
+          finalKeywords = [filters.keyword];
+        } else {
+          // 1. Gerar múltiplas palavras-chave/sinônimos dos cargos-alvo
+          const targetRoles = preferences.targetRoles || [];
+          const searchKeywordsPref = preferences.searchKeywords || [];
+          finalKeywords = [...searchKeywordsPref, ...targetRoles];
+
+          if (finalKeywords.length === 0) {
+            const headline = careerProfileNew.personal?.headline;
+            const lastRole = careerProfileNew.experience?.[0]?.role;
+            finalKeywords = [headline, lastRole].filter((v): v is string => !!v);
+          }
         }
 
         // 2. Otimizar localização (cidade ou país)

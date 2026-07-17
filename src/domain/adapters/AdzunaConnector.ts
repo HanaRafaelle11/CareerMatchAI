@@ -46,63 +46,29 @@ export class AdzunaConnector extends BaseJobConnector {
         }
         
         return (data.results || []).map((result: any) => {
-          const title = result.title.replace(/<\/?[^>]+(>|$)/g, ""); // Limpar HTML
-          const description = result.description.replace(/<\/?[^>]+(>|$)/g, "");
+          const title = (result.title || '').replace(/<\/?[^>]+(>|$)/g, "");
+          const description = (result.description || '').replace(/<\/?[^>]+(>|$)/g, "");
           
-          let workMode: 'remote' | 'hybrid' | 'onsite' = 'onsite';
-          if (title.toLowerCase().includes('remoto') || title.toLowerCase().includes('remote') || description.toLowerCase().includes('remoto')) {
-            workMode = 'remote';
-          } else if (title.toLowerCase().includes('hibrido') || title.toLowerCase().includes('híbrido') || description.toLowerCase().includes('híbrido')) {
-            workMode = 'hybrid';
-          }
-
-          let seniority: 'junior' | 'pleno' | 'senior' | 'lead' | 'director' = 'pleno';
-          const titleLower = title.toLowerCase();
-          if (titleLower.includes('junior') || titleLower.includes('júnior') || titleLower.includes('jr')) {
-            seniority = 'junior';
-          } else if (titleLower.includes('senior') || titleLower.includes('sênior') || titleLower.includes('sr')) {
-            seniority = 'senior';
-          } else if (titleLower.includes('lead') || titleLower.includes('lider') || titleLower.includes('liderança')) {
-            seniority = 'lead';
-          } else if (titleLower.includes('diretor') || titleLower.includes('director')) {
-            seniority = 'director';
-          }
-
-          const possibleReqs = [
-            'React', 'TypeScript', 'Node.js', 'PostgreSQL', 'Docker', 'AWS', 
-            'JavaScript', 'CSS', 'Figma', 'Git', 'Customer Success', 'Salesforce', 
-            'SQL', 'SaaS', 'NPS', 'Churn', 'Onboarding', 'CSAT', 'Retention',
-            'Farmácia', 'Estética', 'Cosméticos', 'Saúde', 'Dermocosméticos',
-            'Vendas', 'Atendimento', 'Clínica', 'Biologia', 'Química', 'Gestão',
-            'Farmacêutico', 'Farmacêutica', 'Procedimentos', 'CRM', 'Marketing'
-          ];
-          const requirements = possibleReqs.filter(req => 
-            new RegExp(`\\b${req}\\b`, 'i').test(title + ' ' + description)
-          );
-
-          let defaultReq = 'Geral';
-          const titleDesc = (title + ' ' + description).toLowerCase();
-          if (/\b(farmac|estet|saude|saúde|cosmet|medico|médica|psicol|hospitalar|clinica|clínica)\b/i.test(titleDesc)) {
-            defaultReq = 'Saúde';
-          } else if (/\b(venda|sales|comercial|negoc|comercio|comércio|telemarketing|atendimento)\b/i.test(titleDesc)) {
-            defaultReq = 'Vendas';
-          } else if (/\b(react|typescript|ts|node|nodejs|developer|desenvolvedor|programador|software|engineer|engenheiro|tech|ti|it|tecnologia|computa|sistemas|front|back|fullstack)\b/i.test(titleDesc)) {
-            defaultReq = 'Tecnologia';
-          }
+          // Trust the aggregator's normalized fields, with client-side fallbacks
+          const workMode = result.workModeNormalized || result.workMode || 'onsite';
+          const seniority = result.seniorityNormalized || result.seniority || 'pleno';
+          const requirements = result.requirementsNormalized || result.requirements || [];
+          const location = result.locationNormalized || 
+            (typeof result.location === 'object' ? result.location?.display_name : result.location) || 'Brasil';
 
           return {
-            companyId: result.companyId || 'adzuna',
-            companyName: result.companyName || result.company?.display_name || 'Empresa Confidencial',
-            title: title,
-            description: description,
-            requirements: result.requirements || (requirements.length > 0 ? requirements : [defaultReq]),
-            location: typeof result.location === 'object' ? result.location?.display_name : (result.location || 'Brasil'),
-            workMode: result.workMode || workMode,
-            seniority: result.seniority || seniority,
-            salaryMin: result.salaryMin || result.salary_min || undefined,
-            salaryMax: result.salaryMax || result.salary_max || undefined,
+            companyId: result.companyId || result.sourcePlatform || 'aggregator',
+            companyName: result.companyNameNormalized || result.companyName || result.company?.display_name || 'Empresa Confidencial',
+            title,
+            description,
+            requirements: requirements.length > 0 ? requirements : ['Geral'],
+            location,
+            workMode,
+            seniority,
+            salaryMin: result.salaryMinBRL || result.salaryMin || result.salary_min || undefined,
+            salaryMax: result.salaryMaxBRL || result.salaryMax || result.salary_max || undefined,
             currency: result.currency || 'BRL',
-            sourceUrl: result.sourceUrl || result.redirect_url,
+            sourceUrl: result.sourceUrl || result.redirect_url || '',
             sourcePlatform: result.sourcePlatform || this.platformName,
             isActive: true
           };

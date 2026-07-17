@@ -942,6 +942,7 @@ export function JobMatchHub({
     keyword: activeFilters.keyword,
     location: activeFilters.location,
     remoteOnly: activeFilters.remoteOnly,
+    workModes: activeFilters.workModes,
     page: searchPage
   }, careerProfileNew);
 

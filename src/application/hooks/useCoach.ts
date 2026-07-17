@@ -436,6 +436,8 @@ export function useCoach(userId: string | undefined) {
     onSuccess: (data) => {
       const appId = (data as any)?.applicationId || (data as any)?.application_id;
       if (appId) {
+        // Immediately update query cache with fresh simulation data
+        queryClient.setQueryData(['simulation', appId], data);
         queryClient.invalidateQueries({ queryKey: ['simulation', appId] });
       }
       tracker.track('interview_started', 'interviews');

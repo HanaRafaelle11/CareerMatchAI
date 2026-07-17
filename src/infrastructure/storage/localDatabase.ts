@@ -25,6 +25,7 @@ const KEYS = {
   WEEKLY_PLANNERS: 'vocentro_weekly_planners',
   WEEKLY_GOALS: 'vocentro_weekly_goals',
   CAREER_GOALS: 'vocentro_career_goals',
+  PREDEFINED_GOALS: 'vocentro_predefined_goals',
 };
 
 class LocalDatabase {
@@ -265,6 +266,17 @@ class LocalDatabase {
         }
       ];
       localStorage.setItem(KEYS.CAREER_GOALS, JSON.stringify(defaultCareerGoals));
+    }
+
+    if (!localStorage.getItem(KEYS.PREDEFINED_GOALS)) {
+      const defaultTemplates = [
+        { id: 'pg-1', userId: this.getActiveUserId(), title: 'Conseguir vaga de Customer Success', createdAt: new Date().toISOString() },
+        { id: 'pg-2', userId: this.getActiveUserId(), title: 'Conseguir vaga de Desenvolvedor Frontend', createdAt: new Date().toISOString() },
+        { id: 'pg-3', userId: this.getActiveUserId(), title: 'Otimizar currículo e portfólio', createdAt: new Date().toISOString() },
+        { id: 'pg-4', userId: this.getActiveUserId(), title: 'Realizar 5 entrevistas técnicas', createdAt: new Date().toISOString() },
+        { id: 'pg-5', userId: this.getActiveUserId(), title: 'Conquistar certificação técnica', createdAt: new Date().toISOString() },
+      ];
+      localStorage.setItem(KEYS.PREDEFINED_GOALS, JSON.stringify(defaultTemplates));
     }
   }
 
@@ -887,6 +899,31 @@ class LocalDatabase {
     const all = JSON.parse(localStorage.getItem(KEYS.CAREER_GOALS) || '[]');
     const filtered = all.filter((g: any) => g.id !== id);
     localStorage.setItem(KEYS.CAREER_GOALS, JSON.stringify(filtered));
+  }
+
+  // Predefined Goals templates API
+  getPredefinedGoals(userId: string): any[] {
+    const all = JSON.parse(localStorage.getItem(KEYS.PREDEFINED_GOALS) || '[]');
+    return all.filter((g: any) => g.userId === userId);
+  }
+
+  savePredefinedGoal(userId: string, title: string): any {
+    const all = JSON.parse(localStorage.getItem(KEYS.PREDEFINED_GOALS) || '[]');
+    const newG = {
+      id: 'pg-' + Math.random().toString(36).substring(2, 9),
+      userId,
+      title,
+      createdAt: new Date().toISOString()
+    };
+    all.push(newG);
+    localStorage.setItem(KEYS.PREDEFINED_GOALS, JSON.stringify(all));
+    return newG;
+  }
+
+  deletePredefinedGoal(id: string): void {
+    const all = JSON.parse(localStorage.getItem(KEYS.PREDEFINED_GOALS) || '[]');
+    const filtered = all.filter((g: any) => g.id !== id);
+    localStorage.setItem(KEYS.PREDEFINED_GOALS, JSON.stringify(filtered));
   }
 
   // Analytics Events API

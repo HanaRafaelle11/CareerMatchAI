@@ -340,6 +340,77 @@ export function useRoadmapServices(userId: string | undefined) {
     }
   });
 
+  // ==========================================
+  // 5. PREDEFINED GOALS TEMPLATES
+  // ==========================================
+  const predefinedGoalsQuery = useQuery<any[]>({
+    queryKey: ['predefined-goals', userId],
+    queryFn: async () => {
+      if (!userId) return [];
+      if (isSupabaseConfigured && supabase) {
+        const { data, error } = await supabase
+          .from('predefined_goals')
+          .select('*')
+          .eq('user_id', userId)
+          .order('created_at', { ascending: false });
+
+        if (error) throw error;
+        return (data || []).map(d => ({
+          id: d.id,
+          userId: d.user_id,
+          title: d.title,
+          createdAt: d.created_at
+        }));
+      } else {
+        return localDB.getPredefinedGoals(userId);
+      }
+    },
+    enabled: !!userId,
+  });
+
+  const savePredefinedGoalMutation = useMutation({
+    mutationFn: async (title: string) => {
+      if (!userId) throw new Error('Usuário não autenticado.');
+      if (isSupabaseConfigured && supabase) {
+        const { data, error } = await supabase
+          .from('predefined_goals')
+          .insert({
+            user_id: userId,
+            title: title
+          })
+          .select()
+          .single();
+
+        if (error) throw error;
+        return data;
+      } else {
+        return localDB.savePredefinedGoal(userId, title);
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['predefined-goals', userId] });
+    }
+  });
+
+  const deletePredefinedGoalMutation = useMutation({
+    mutationFn: async (id: string) => {
+      if (isSupabaseConfigured && supabase) {
+        const { error } = await supabase
+          .from('predefined_goals')
+          .delete()
+          .eq('id', id);
+
+        if (error) throw error;
+      } else {
+        localDB.deletePredefinedGoal(id);
+      }
+      return id;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['predefined-goals', userId] });
+    }
+  });
+
   return {
     companyProfiles: companyProfilesQuery.data || [],
     isLoadingCompanyProfiles: companyProfilesQuery.isLoading,
@@ -355,6 +426,10 @@ export function useRoadmapServices(userId: string | undefined) {
     careerGoals: careerGoalsQuery.data || [],
     isLoadingCareerGoals: careerGoalsQuery.isLoading,
     saveCareerGoal: saveCareerGoalMutation.mutateAsync,
-    deleteCareerGoal: deleteCareerGoalMutation.mutateAsync
+    deleteCareerGoal: deleteCareerGoalMutation.mutateAsync,
+
+    predefinedGoals: predefinedGoalsQuery.data || [],
+    savePredefinedGoal: savePredefinedGoalMutation.mutateAsync,
+    deletePredefinedGoal: deletePredefinedGoalMutation.mutateAsync
   };
 }

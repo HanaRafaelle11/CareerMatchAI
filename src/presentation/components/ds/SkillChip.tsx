@@ -7,11 +7,11 @@ interface SkillChipProps {
 }
 
 const categoryStyles: Record<string, string> = {
-  hard: 'border-primary/25 bg-primary/5 text-primary',
-  soft: 'border-secondary/25 bg-secondary/5 text-secondary',
+  hard: 'border-blue-450/25 bg-blue-500/5 text-blue-400 light:border-primary/25 light:bg-primary/5 light:text-primary',
+  soft: 'border-indigo-450/25 bg-indigo-500/5 text-indigo-400 light:border-secondary/25 light:bg-secondary/5 light:text-secondary',
   tool: 'border-emerald-500/25 bg-emerald-500/5 text-emerald-400 light:text-emerald-600',
   method: 'border-amber-500/25 bg-amber-500/5 text-amber-400 light:text-amber-700',
-  language: 'border-tertiary/25 bg-tertiary/5 text-tertiary light:text-amber-700',
+  language: 'border-emerald-400/25 bg-emerald-400/5 text-emerald-400 light:text-emerald-700',
 };
 
 const levelNames: Record<number, string> = {

@@ -185,7 +185,7 @@ export const DescriptionRelevanceFeature: Feature = {
       ...intent.preferred_skills
     ].map(t => normalizeQuery(t)).filter(Boolean);
 
-    if (termsToMatch.length === 0 || intent.canonical_key === "generic_search") return 0.0;
+    if (termsToMatch.length === 0) return 0.0;
 
     let matchCount = 0;
     for (const term of termsToMatch) {

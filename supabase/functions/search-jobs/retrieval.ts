@@ -68,6 +68,22 @@ export function retrieveCandidates(
       }
     }
 
+    if (maxWeightedSim === 0.0 && (intent.canonical_key === "generic_search" || !LOCAL_TAXONOMY[intent.canonical_key])) {
+      const tempIntent = {
+        canonical_key: "generic_search",
+        primary_titles: [],
+        secondary_titles: [],
+        raw_query: intent.raw_query,
+        _normalizedPrimary: [normalizeQuery(intent.raw_query)].filter(Boolean),
+        _normalizedSecondary: []
+      };
+      // Temporary delete _titleSim so calculate doesn't return the cached 0.0 value
+      delete (j as any)._titleSim;
+      const sim = TitleSimilarityFeature.calculate(j, tempIntent as any);
+      maxWeightedSim = sim;
+      bestExpandedKey = "generic_search";
+    }
+
     // Salvar similaridade ponderada e nó correspondente de match no objeto temporário
     (j as any)._titleSim = maxWeightedSim;
     (j as any)._matchedCanonicalKey = bestExpandedKey;

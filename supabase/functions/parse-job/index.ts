@@ -119,6 +119,50 @@ function cleanHTML(html: string): string {
   return cleaned;
 }
 
+function cleanHtmlToPlainText(html: string): string {
+  if (!html) return "";
+  let text = html;
+  
+  const entities: Record<string, string> = {
+    "&nbsp;": " ",
+    "&amp;": "&",
+    "&lt;": "<",
+    "&gt;": ">",
+    "&quot;": "\"",
+    "&#39;": "'",
+    "&apos;": "'"
+  };
+  for (const [entity, value] of Object.entries(entities)) {
+    text = text.replace(new RegExp(entity, "gi"), value);
+  }
+  text = text.replace(/&#\d+;/g, (match) => {
+    const num = parseInt(match.replace(/\D/g, ""), 10);
+    return String.fromCharCode(num);
+  });
+
+  text = text
+    .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, "")
+    .replace(/<style\b[^<]*(?:(?!<\/style>)<[^<]*)*<\/style>/gi, "")
+    .replace(/<li\b[^>]*>/gi, "• ")
+    .replace(/<\/li>/gi, "\n")
+    .replace(/<br\s*\/?>/gi, "\n")
+    .replace(/<\/p>/gi, "\n\n")
+    .replace(/<p\b[^>]*>/gi, "\n")
+    .replace(/<\/h[1-6]>/gi, "\n\n")
+    .replace(/<h[1-6]\b[^>]*>/gi, "\n\n")
+    .replace(/<\/div>/gi, "\n")
+    .replace(/<div\b[^>]*>/gi, "\n");
+
+  text = text.replace(/<[^>]+>/g, " ");
+
+  text = text
+    .replace(/[ \t]+/g, " ")
+    .replace(/\n\s*\n\s*\n+/g, "\n\n")
+    .trim();
+
+  return text;
+}
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response('ok', { status: 200, headers: corsHeaders })
@@ -246,6 +290,22 @@ Retorne OBRIGATORIAMENTE um objeto JSON correspondente a esta estrutura de forma
       // Limpeza de possíveis marcadores markdown adicionais inseridos
       const cleanJsonText = resultText.replace(/```json/g, '').replace(/```/g, '').trim();
       parsedResult = JSON.parse(cleanJsonText);
+      
+      if (parsedResult) {
+        if (typeof parsedResult.description === 'string') {
+          parsedResult.description = cleanHtmlToPlainText(parsedResult.description);
+        }
+        if (Array.isArray(parsedResult.requirements)) {
+          parsedResult.requirements = parsedResult.requirements.map((req: any) => 
+            typeof req === 'string' ? cleanHtmlToPlainText(req) : req
+          );
+        }
+        if (Array.isArray(parsedResult.benefits)) {
+          parsedResult.benefits = parsedResult.benefits.map((ben: any) => 
+            typeof ben === 'string' ? cleanHtmlToPlainText(ben) : ben
+          );
+        }
+      }
     } catch (parseErr) {
       console.error("[PARSE JOB JSON ERROR] Falha ao parsear retorno do Gemini:", resultText);
       throw new Error("Falha ao estruturar a resposta do Gemini em formato JSON válido.");

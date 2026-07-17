@@ -28,6 +28,7 @@ interface NavbarProps {
   matchCount?: number;
   applicationCount?: number;
   interviewCount?: number;
+  plan?: string;
 }
 
 interface JourneyStep {
@@ -51,7 +52,8 @@ export function Navbar({
   hasProfile = false,
   matchCount = 0,
   applicationCount = 0,
-  interviewCount = 0
+  interviewCount = 0,
+  plan = 'Free'
 }: NavbarProps) {
   // Calculate journey steps
   const journeySteps: JourneyStep[] = [
@@ -297,9 +299,15 @@ export function Navbar({
                   <span className="text-[10px] text-on-surface-variant truncate max-w-[80px]">
                     {profile?.headline || 'Candidato'}
                   </span>
-                  <span className="px-1 py-0.2 bg-primary/20 text-primary text-[8px] font-extrabold rounded border border-primary/30 tracking-wider">
-                    PRO
-                  </span>
+                  {plan && plan !== 'Free' ? (
+                    <span className="px-1 py-0.2 bg-primary/20 text-primary text-[8px] font-extrabold rounded border border-primary/30 tracking-wider">
+                      {plan.toUpperCase()}
+                    </span>
+                  ) : (
+                    <span className="px-1 py-0.2 bg-slate-800 text-slate-400 text-[8px] font-bold rounded border border-slate-700 tracking-wider">
+                      FREE
+                    </span>
+                  )}
                 </div>
               </div>
             </div>

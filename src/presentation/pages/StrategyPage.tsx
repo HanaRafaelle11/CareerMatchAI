@@ -45,6 +45,12 @@ interface StrategyPageProps {
   onStartSimulation?: (target: Job | string) => void;
   setSelectedJobId?: (id: string | null) => void;
   initialSubTab?: 'strategy' | 'planner' | 'pipeline' | 'journal';
+  careerGoals?: any[];
+  onSaveCareerGoal?: (goal: any) => Promise<any>;
+  onDeleteCareerGoal?: (id: string) => Promise<any>;
+  predefinedGoals?: any[];
+  onSavePredefinedGoal?: (title: string) => Promise<any>;
+  onDeletePredefinedGoal?: (id: string) => Promise<any>;
 }
 
 export function StrategyPage({
@@ -74,7 +80,13 @@ export function StrategyPage({
   getPostLogQuery,
   savePostLog,
   onStartSimulation,
-  initialSubTab
+  initialSubTab,
+  careerGoals = [],
+  onSaveCareerGoal,
+  onDeleteCareerGoal,
+  predefinedGoals = [],
+  onSavePredefinedGoal,
+  onDeletePredefinedGoal
 }: StrategyPageProps) {
   const [subTab, setSubTab] = useState<'strategy' | 'planner' | 'pipeline' | 'journal'>(initialSubTab || 'pipeline');
 
@@ -86,6 +98,14 @@ export function StrategyPage({
 
   const [viewMode, setViewMode] = useState<'kanban' | 'list'>('kanban');
   const [intelSubTab, setIntelSubTab] = useState<'companies' | 'diary'>('companies');
+
+  // Career Goals tracking states
+  const [showGoalModal, setShowGoalModal] = useState(false);
+  const [goalTitle, setGoalTitle] = useState('');
+  const [goalDate, setGoalDate] = useState('');
+  const [goalSaveAsModel, setGoalSaveAsModel] = useState(false);
+  const [deletingGoalId, setDeletingGoalId] = useState<string | null>(null);
+  const [deletingModelId, setDeletingModelId] = useState<string | null>(null);
   const primaryResume = resumes.find(r => r.isPrimary) || resumes[0];
 
   // Week configuration (default is week 202628)
@@ -108,6 +128,52 @@ export function StrategyPage({
     setColumnOverrides(updated);
     if (updatePreferences) {
       updatePreferences({ strategy_column_overrides: updated });
+    }
+  };
+
+  const handleSaveGoal = async (e: FormEvent) => {
+    e.preventDefault();
+    if (!goalTitle.trim() || !goalDate || !onSaveCareerGoal) return;
+    try {
+      const newGoal = {
+        id: 'cg-' + Math.random().toString(36).substring(2, 9),
+        userId: userId || '',
+        title: goalTitle.trim(),
+        targetDate: goalDate,
+        isActive: true
+      };
+      await onSaveCareerGoal(newGoal);
+      
+      if (goalSaveAsModel && onSavePredefinedGoal) {
+        await onSavePredefinedGoal(goalTitle.trim());
+      }
+      
+      setGoalTitle('');
+      setGoalDate('');
+      setGoalSaveAsModel(false);
+      setShowGoalModal(false);
+    } catch (err) {
+      console.error('Erro ao salvar objetivo:', err);
+    }
+  };
+
+  const handleConfirmDeleteGoal = async () => {
+    if (!deletingGoalId || !onDeleteCareerGoal) return;
+    try {
+      await onDeleteCareerGoal(deletingGoalId);
+      setDeletingGoalId(null);
+    } catch (err) {
+      console.error('Erro ao excluir objetivo:', err);
+    }
+  };
+
+  const handleConfirmDeleteModel = async () => {
+    if (!deletingModelId || !onDeletePredefinedGoal) return;
+    try {
+      await onDeletePredefinedGoal(deletingModelId);
+      setDeletingModelId(null);
+    } catch (err) {
+      console.error('Erro ao excluir modelo:', err);
     }
   };
 
@@ -403,6 +469,26 @@ export function StrategyPage({
     }
   };
 
+  const handleDeleteTask = async (dayName: string, taskId: string) => {
+    if (!planner) return;
+    if (!window.confirm("Tem certeza que deseja excluir esta tarefa?")) return;
+
+    const updatedPlannerData = { ...planner.plannerData };
+    const dayTasks = updatedPlannerData[dayName]?.tasks || [];
+    updatedPlannerData[dayName] = {
+      tasks: dayTasks.filter((t: any) => t.id !== taskId)
+    };
+
+    try {
+      await saveWeeklyPlanner({
+        ...planner,
+        plannerData: updatedPlannerData
+      });
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
 
 
   const handleSaveCompany = async (e: FormEvent) => {
@@ -520,46 +606,46 @@ export function StrategyPage({
       {showAddForm && (
         <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 overflow-y-auto">
           <div className="flex min-h-full items-center justify-center p-4 text-center">
-            <CardGlass className="w-full max-w-md min-w-[320px] sm:min-w-[400px] space-y-6 relative border border-slate-800 text-left my-8">
+            <CardGlass className="w-full max-w-md min-w-[320px] sm:min-w-[400px] p-6 relative border border-slate-800 text-left my-8">
             <button onClick={() => setShowAddForm(false)} className="absolute top-4 right-4 text-slate-500 hover:text-slate-300">
               <X size={18} />
             </button>
-            <div>
-              <h3 className="font-display font-bold text-lg text-slate-200">Acompanhar Nova Vaga</h3>
-              <p className="text-xs text-slate-500 mt-1">Registre o status atual do processo.</p>
+            <div className="mb-4">
+              <h3 className="font-display font-bold text-base text-slate-200">Acompanhar Nova Vaga</h3>
+              <p className="text-[10px] text-slate-500 mt-0.5">Registre o status atual do processo.</p>
             </div>
             <form onSubmit={handleCreateManualApp} className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-1">
-                  <label className="text-xs font-semibold text-slate-400">Empresa</label>
+                  <label className="text-[10px] font-semibold text-slate-400">Empresa</label>
                   <input
                     type="text"
                     placeholder="Ex: Pipefy"
                     value={manualCompany}
                     onChange={e => setManualCompany(e.target.value)}
-                    className="w-full px-4 py-2 rounded-xl bg-slate-900/50 border border-slate-800 focus:border-brand-500 outline-none text-xs text-slate-200"
+                    className="w-full px-3 py-2 rounded-xl bg-slate-900/50 border border-slate-800 focus:border-brand-500 outline-none text-xs text-slate-200 h-10"
                     required
                   />
                 </div>
                 <div className="space-y-1">
-                  <label className="text-xs font-semibold text-slate-400">Cargo</label>
+                  <label className="text-[10px] font-semibold text-slate-400">Cargo</label>
                   <input
                     type="text"
                     placeholder="Ex: CSM Lead"
                     value={manualTitle}
                     onChange={e => setManualTitle(e.target.value)}
-                    className="w-full px-4 py-2 rounded-xl bg-slate-900/50 border border-slate-800 focus:border-brand-500 outline-none text-xs text-slate-200"
+                    className="w-full px-3 py-2 rounded-xl bg-slate-900/50 border border-slate-800 focus:border-brand-500 outline-none text-xs text-slate-200 h-10"
                     required
                   />
                 </div>
               </div>
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-1">
-                  <label className="text-xs font-semibold text-slate-400">Status</label>
+                  <label className="text-[10px] font-semibold text-slate-400">Status</label>
                   <select
                     value={manualStatus}
                     onChange={e => setManualStatus(e.target.value as any)}
-                    className="w-full px-3 py-2 rounded-xl bg-slate-900/50 border border-slate-800 focus:border-brand-500 outline-none text-xs text-slate-200"
+                    className="w-full px-2 py-2 rounded-xl bg-slate-900/50 border border-slate-800 focus:border-brand-500 outline-none text-xs text-slate-200 h-10"
                   >
                     <option value="🔎 Encontrada">🔎 Encontrada</option>
                     <option value="⭐ Tenho interesse">⭐ Tenho interesse</option>
@@ -569,31 +655,31 @@ export function StrategyPage({
                   </select>
                 </div>
                 <div className="space-y-1">
-                  <label className="text-xs font-semibold text-slate-400">Origem</label>
+                  <label className="text-[10px] font-semibold text-slate-400">Origem</label>
                   <input
                     type="text"
                     placeholder="Ex: LinkedIn"
                     value={manualSource}
                     onChange={e => setManualSource(e.target.value)}
-                    className="w-full px-4 py-2 rounded-xl bg-slate-900/50 border border-slate-800 focus:border-brand-500 outline-none text-xs text-slate-200"
+                    className="w-full px-3 py-2 rounded-xl bg-slate-900/50 border border-slate-800 focus:border-brand-500 outline-none text-xs text-slate-200 h-10"
                   />
                 </div>
               </div>
               <div className="space-y-1">
-                <label className="text-xs font-semibold text-slate-400">Observações</label>
+                <label className="text-[10px] font-semibold text-slate-400">Observações</label>
                 <textarea
                   placeholder="Observações..."
                   value={manualNotes}
                   onChange={e => setManualNotes(e.target.value)}
-                  className="w-full px-4 py-2 rounded-xl bg-slate-900/50 border border-slate-800 focus:border-brand-500 outline-none text-xs text-slate-200 resize-none h-20"
+                  className="w-full px-3 py-2 rounded-xl bg-slate-900/50 border border-slate-800 focus:border-brand-500 outline-none text-xs text-slate-200 resize-none h-16"
                 />
               </div>
-              <div className="flex gap-3 justify-end pt-2">
-                <button type="button" onClick={() => setShowAddForm(false)} className="px-4 py-2 text-xs font-semibold text-slate-400">
-                  Cancelar
-                </button>
-                <button type="submit" className="px-4 py-2 rounded-xl bg-brand-600 hover:bg-brand-500 text-white font-semibold text-xs shadow-lg">
+              <div className="flex flex-col gap-2 pt-2">
+                <button type="submit" className="w-full h-11 bg-brand-600 hover:bg-brand-500 text-white font-bold rounded-xl text-xs transition">
                   Confirmar Registro
+                </button>
+                <button type="button" onClick={() => setShowAddForm(false)} className="w-full text-center text-slate-500 hover:text-slate-300 transition text-[10px] py-1">
+                  Cancelar
                 </button>
               </div>
             </form>
@@ -606,13 +692,13 @@ export function StrategyPage({
       {rejectingApp && (
         <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 overflow-y-auto">
           <div className="flex min-h-full items-center justify-center p-4 text-center">
-            <CardGlass className="w-full max-w-sm min-w-[300px] sm:min-w-[360px] space-y-6 relative border border-slate-800 text-center my-8">
-            <div className="mx-auto w-12 h-12 rounded-full bg-red-500/10 text-red-400 flex items-center justify-center">
-              <AlertTriangle size={24} />
+            <CardGlass className="w-full max-w-[380px] min-w-[300px] sm:min-w-[360px] p-6 relative border border-slate-800 text-center my-8">
+            <div className="mx-auto w-10 h-10 rounded-full bg-red-500/10 text-red-400 flex items-center justify-center mb-2">
+              <AlertTriangle size={20} />
             </div>
-            <div>
-              <h3 className="font-display font-bold text-base text-slate-200">Qual foi o motivo da recusa?</h3>
-              <p className="text-xs text-slate-400 mt-1">Ajuda a IA a calibrar suas recomendações.</p>
+            <div className="mb-4">
+              <h3 className="font-display font-bold text-sm text-slate-200">Qual foi o motivo da recusa?</h3>
+              <p className="text-[10px] text-slate-500 mt-0.5">Ajuda a IA a calibrar suas recomendações.</p>
             </div>
             <div className="grid grid-cols-1 gap-2 pt-2 text-left">
               {[
@@ -628,6 +714,15 @@ export function StrategyPage({
                   {reason}
                 </button>
               ))}
+            </div>
+            <div className="mt-3">
+              <button 
+                type="button" 
+                onClick={() => setRejectingApp(null)} 
+                className="text-slate-500 hover:text-slate-300 transition text-[10px]"
+              >
+                Cancelar
+              </button>
             </div>
           </CardGlass>
         </div>
@@ -1019,13 +1114,28 @@ export function StrategyPage({
                           dayData.tasks.map((task: any) => (
                             <div 
                               key={task.id} 
-                              onClick={() => handleToggleTask(day, task.id)}
-                              className="flex gap-2 items-start text-[11px] text-slate-300 hover:text-white cursor-pointer select-none"
+                              className="flex gap-2 items-start justify-between group text-[11px] text-slate-300 hover:text-white cursor-pointer select-none"
                             >
-                              <span className="shrink-0 mt-0.5 text-brand-500">
-                                {task.completed ? <CheckSquare size={13} /> : <Square size={13} />}
-                              </span>
-                              <span className={task.completed ? 'line-through text-slate-600' : ''}>{task.text}</span>
+                              <div 
+                                onClick={() => handleToggleTask(day, task.id)}
+                                className="flex gap-2 items-start flex-1"
+                              >
+                                <span className="shrink-0 mt-0.5 text-brand-500">
+                                  {task.completed ? <CheckSquare size={13} /> : <Square size={13} />}
+                                </span>
+                                <span className={task.completed ? 'line-through text-slate-600' : ''}>{task.text}</span>
+                              </div>
+                              <button
+                                type="button"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleDeleteTask(day, task.id);
+                                }}
+                                className="text-slate-500 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity p-0.5 shrink-0"
+                                title="Excluir tarefa"
+                              >
+                                <Trash2 size={12} />
+                              </button>
                             </div>
                           ))
                         )}
@@ -1153,6 +1263,79 @@ export function StrategyPage({
               </CardGlass>
             </div>
           )}
+
+          {/* Sessão de Objetivos de Carreira (Goal Tracker) */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 pt-6 border-t border-slate-800/60 mt-6">
+            <CardGlass className="p-5 space-y-4 border border-slate-900">
+              <div className="flex justify-between items-start">
+                <div>
+                  <h4 className="font-display font-bold text-xs text-brand-400 uppercase tracking-wider">Objetivos de Carreira</h4>
+                  <p className="text-[10px] text-slate-500 mt-0.5">Defina seus objetivos estratégicos de longo prazo.</p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setShowGoalModal(true)}
+                  className="px-2.5 py-1 rounded bg-brand-600 hover:bg-brand-500 text-white font-bold text-[10px] transition-all"
+                >
+                  Novo Objetivo
+                </button>
+              </div>
+
+              <div className="space-y-3.5">
+                {careerGoals && careerGoals.length > 0 ? (
+                  careerGoals.map(g => (
+                    <div key={g.id} className="p-3.5 rounded-xl border border-slate-800 bg-slate-900/40 flex justify-between items-center group">
+                      <div>
+                        <h5 className="text-xs font-bold text-slate-200">{g.title}</h5>
+                        <span className="text-[10px] text-slate-450 mt-1 block">Meta: {new Date(g.targetDate).toLocaleDateString('pt-BR')}</span>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => setDeletingGoalId(g.id)}
+                        className="p-1 rounded bg-red-950/20 hover:bg-red-950/40 border border-red-900/30 text-red-400 hover:text-red-300 transition opacity-0 group-hover:opacity-100"
+                        title="Excluir Objetivo"
+                      >
+                        <Trash2 size={11} />
+                      </button>
+                    </div>
+                  ))
+                ) : (
+                  <div className="text-center py-6 text-[10px] text-slate-500 border border-dashed border-slate-800 rounded-xl">
+                    Nenhum objetivo de carreira cadastrado.
+                  </div>
+                )}
+              </div>
+            </CardGlass>
+
+            <CardGlass className="p-5 space-y-4 border border-slate-900">
+              <div>
+                <h4 className="font-display font-bold text-xs text-brand-400 uppercase tracking-wider">Modelos Pré-definidos</h4>
+                <p className="text-[10px] text-slate-500 mt-0.5">Modelos reutilizáveis de metas e objetivos criados por você.</p>
+              </div>
+
+              <div className="space-y-2.5">
+                {predefinedGoals && predefinedGoals.length > 0 ? (
+                  predefinedGoals.map(model => (
+                    <div key={model.id} className="p-2.5 rounded-xl border border-slate-900 bg-slate-950/40 flex justify-between items-center group/model">
+                      <span className="text-[11px] text-slate-350 font-medium">{model.title}</span>
+                      <button
+                        type="button"
+                        onClick={() => setDeletingModelId(model.id)}
+                        className="p-1 rounded bg-red-955/20 hover:bg-red-955/40 border border-red-900/30 text-red-400 hover:text-red-300 transition opacity-0 group-hover/model:opacity-100"
+                        title="Excluir Modelo"
+                      >
+                        <X size={11} />
+                      </button>
+                    </div>
+                  ))
+                ) : (
+                  <div className="text-center py-6 text-[10px] text-slate-500 border border-dashed border-slate-800 rounded-xl">
+                    Nenhum modelo pré-definido cadastrado.
+                  </div>
+                )}
+              </div>
+            </CardGlass>
+          </div>
         </div>
       )}
 
@@ -1359,14 +1542,177 @@ export function StrategyPage({
                     </div>
                   </div>
 
-                  <div className="flex gap-3 justify-end pt-2">
-                    <button type="button" onClick={() => setShowCompanyForm(false)} className="px-3 py-1.5 text-slate-400">Cancelar</button>
-                    <button type="submit" className="px-4 py-1.5 bg-brand-600 hover:bg-brand-500 text-white rounded font-bold">Salvar Avaliação</button>
+                  <div className="flex flex-col gap-2 pt-2">
+                    <button type="submit" className="w-full h-11 bg-brand-600 hover:bg-brand-500 text-white rounded-xl font-bold text-xs transition">Salvar Avaliação</button>
+                    <button type="button" onClick={() => setShowCompanyForm(false)} className="w-full text-center text-slate-500 hover:text-slate-300 transition text-[10px] py-1">Cancelar</button>
                   </div>
                 </form>
               </CardGlass>
             </div>
           </div>
+          )}
+
+          {showGoalModal && (
+            <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 overflow-y-auto">
+              <div className="flex min-h-full items-center justify-center p-4 text-center">
+                <CardGlass className="w-full max-w-[380px] p-6 space-y-4 relative border border-slate-800 text-left my-8">
+                  <button 
+                    onClick={() => {
+                      setShowGoalModal(false);
+                      setGoalTitle('');
+                      setGoalDate('');
+                      setGoalSaveAsModel(false);
+                    }} 
+                    className="absolute top-4 right-4 text-slate-500 hover:text-slate-300"
+                  >
+                    <X size={16} />
+                  </button>
+                  
+                  <div>
+                    <h3 className="text-sm font-bold text-slate-200">Novo Objetivo de Carreira</h3>
+                    <p className="text-[10px] text-slate-500 mt-0.5">Mapeie seu próximo marco de carreira.</p>
+                  </div>
+
+                  <form onSubmit={handleSaveGoal} className="space-y-4 pt-1">
+                    <div className="space-y-1">
+                      <label className="text-[10px] text-slate-400 font-semibold block">Descrição do Objetivo</label>
+                      <input 
+                        type="text" 
+                        required
+                        placeholder="Ex: Conseguir vaga de Customer Success"
+                        value={goalTitle}
+                        onChange={e => setGoalTitle(e.target.value)}
+                        className="w-full bg-slate-900 border border-slate-800 rounded-xl px-3 py-2 text-slate-200 text-xs outline-none focus:border-brand-500"
+                      />
+                    </div>
+
+                    <div className="space-y-1">
+                      <label className="text-[10px] text-slate-400 font-semibold block">Data de Conclusão</label>
+                      <input 
+                        type="date" 
+                        required
+                        value={goalDate}
+                        onChange={e => setGoalDate(e.target.value)}
+                        className="w-full bg-slate-900 border border-slate-800 rounded-xl px-3 py-2 text-slate-200 text-xs outline-none focus:border-brand-500"
+                      />
+                    </div>
+
+                    <div className="flex items-center gap-2 pt-1">
+                      <input 
+                        type="checkbox" 
+                        id="save-as-model-check"
+                        checked={goalSaveAsModel}
+                        onChange={e => setGoalSaveAsModel(e.target.checked)}
+                        className="scale-105 rounded bg-slate-900 border-slate-800"
+                      />
+                      <label htmlFor="save-as-model-check" className="text-[10px] text-slate-350 cursor-pointer font-medium">
+                        Salvar também como Modelo Pré-definido
+                      </label>
+                    </div>
+
+                    {/* Predefined models templates preview */}
+                    {predefinedGoals && predefinedGoals.length > 0 && (
+                      <div className="space-y-2 pt-1 border-t border-slate-900">
+                        <span className="text-[9px] text-slate-500 uppercase font-bold block">Escolher de um modelo:</span>
+                        <div className="max-h-[110px] overflow-y-auto space-y-1.5 pr-0.5">
+                          {predefinedGoals.map(model => (
+                            <button
+                              key={model.id}
+                              type="button"
+                              onClick={() => setGoalTitle(model.title)}
+                              className="w-full text-left p-2 rounded-lg border border-slate-850 hover:border-slate-800 bg-slate-900/40 text-[10px] text-slate-300 hover:text-white transition"
+                            >
+                              {model.title}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    <div className="flex flex-col gap-2 pt-2">
+                      <button 
+                        type="submit" 
+                        className="w-full h-11 bg-brand-600 hover:bg-brand-500 text-white rounded-xl font-bold text-xs transition"
+                      >
+                        Salvar Objetivo
+                      </button>
+                      <button 
+                        type="button" 
+                        onClick={() => {
+                          setShowGoalModal(false);
+                          setGoalTitle('');
+                          setGoalDate('');
+                          setGoalSaveAsModel(false);
+                        }} 
+                        className="w-full text-center text-slate-500 hover:text-slate-300 transition text-[10px] py-1"
+                      >
+                        Cancelar
+                      </button>
+                    </div>
+                  </form>
+                </CardGlass>
+              </div>
+            </div>
+          )}
+
+          {deletingGoalId && (
+            <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-[60] overflow-y-auto">
+              <div className="flex min-h-full items-center justify-center p-4 text-center">
+                <CardGlass className="w-full max-w-[340px] p-6 space-y-4 relative border border-slate-800 text-center my-8">
+                  <div className="mx-auto w-10 h-10 rounded-full bg-red-500/10 text-red-400 flex items-center justify-center">
+                    <AlertTriangle size={20} />
+                  </div>
+                  <div>
+                    <h3 className="text-xs font-bold text-slate-200">Excluir Objetivo</h3>
+                    <p className="text-[10px] text-slate-500 mt-1">Tem certeza que deseja remover permanentemente este objetivo?</p>
+                  </div>
+                  <div className="flex gap-2 pt-2">
+                    <button 
+                      onClick={() => setDeletingGoalId(null)}
+                      className="flex-1 py-2 text-slate-400 hover:text-slate-250 text-xs font-semibold"
+                    >
+                      Cancelar
+                    </button>
+                    <button 
+                      onClick={handleConfirmDeleteGoal}
+                      className="flex-1 py-2 bg-red-650 hover:bg-red-600 text-white font-bold rounded-lg text-xs"
+                    >
+                      Confirmar
+                    </button>
+                  </div>
+                </CardGlass>
+              </div>
+            </div>
+          )}
+
+          {deletingModelId && (
+            <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-[60] overflow-y-auto">
+              <div className="flex min-h-full items-center justify-center p-4 text-center">
+                <CardGlass className="w-full max-w-[340px] p-6 space-y-4 relative border border-slate-800 text-center my-8">
+                  <div className="mx-auto w-10 h-10 rounded-full bg-red-500/10 text-red-400 flex items-center justify-center">
+                    <AlertTriangle size={20} />
+                  </div>
+                  <div>
+                    <h3 className="text-xs font-bold text-slate-200">Excluir Modelo</h3>
+                    <p className="text-[10px] text-slate-500 mt-1">Tem certeza que deseja remover permanentemente este modelo pré-definido?</p>
+                  </div>
+                  <div className="flex gap-2 pt-2">
+                    <button 
+                      onClick={() => setDeletingModelId(null)}
+                      className="flex-1 py-2 text-slate-400 hover:text-slate-250 text-xs font-semibold"
+                    >
+                      Cancelar
+                    </button>
+                    <button 
+                      onClick={handleConfirmDeleteModel}
+                      className="flex-1 py-2 bg-red-650 hover:bg-red-600 text-white font-bold rounded-lg text-xs"
+                    >
+                      Confirmar
+                    </button>
+                  </div>
+                </CardGlass>
+              </div>
+            </div>
           )}
 
           {/* Companies List */}

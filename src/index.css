@@ -100,6 +100,11 @@
   --width-7xl: 80rem;
 
   --animate-pulse-slow: pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+  
+  --color-slate-300: #f1f5f9;
+  --color-slate-400: #cbd5e1;
+  --color-slate-500: #94a3b8;
+  --color-slate-600: #64748b;
 }
 
 @utility glass-panel {
@@ -218,6 +223,11 @@ body.light {
   --color-brand-card: #ffffff;
   --color-brand-border: #e2e8f0;
   --color-brand-dark: #f8fafc;
+  
+  --color-slate-300: #cbd5e1;
+  --color-slate-400: #94a3b8;
+  --color-slate-500: #64748b;
+  --color-slate-600: #475569;
 
   background-color: #f8fafc;
   color: #0f172a;
@@ -460,4 +470,14 @@ body.light {
 
 .animate-progress-loading {
   animation: progress-loading 2s ease-in-out infinite;
+}
+
+input::placeholder, textarea::placeholder {
+  color: #94a3b8 !important;
+  opacity: 0.85;
+}
+
+.light input::placeholder, .light textarea::placeholder {
+  color: #64748b !important;
+  opacity: 0.85;
 }

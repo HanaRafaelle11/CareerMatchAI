@@ -21,8 +21,8 @@ export class AdzunaConnector extends BaseJobConnector {
       description: j.description || "",
       companyName: j.company?.display_name || "Empresa Confidencial",
       location: j.location?.display_name || "Brasil",
-      salaryMin: j.salary_min || undefined,
-      salaryMax: j.salary_max || undefined,
+      salaryMin: j.salary_min ? Math.round(j.salary_min / 12) : undefined,
+      salaryMax: j.salary_max ? Math.round(j.salary_max / 12) : undefined,
       sourceUrl: j.redirect_url || "",
       sourcePlatform: this.platformName,
       publishedAt: j.created

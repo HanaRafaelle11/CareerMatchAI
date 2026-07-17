@@ -23,6 +23,7 @@ interface SettingsProps {
   initialTab?: SettingsTab;
   preferences?: any;
   updatePreferences?: (newUpdates: any) => Promise<void>;
+  plan?: string;
 }
 
 type SettingsTab = 'account' | 'resumes' | 'preferences' | 'notifications' | 'appearance' | 'privacy' | 'billing';
@@ -37,7 +38,8 @@ export function Settings({
   onUpdateProfileState,
   initialTab,
   preferences,
-  updatePreferences
+  updatePreferences,
+  plan = 'Free'
 }: SettingsProps) {
   const queryClient = useQueryClient();
   const [activeSubTab, setActiveSubTab] = useState<SettingsTab>('account');
@@ -52,6 +54,11 @@ export function Settings({
   const showToast = (message: string, type: 'success' | 'error' = 'success') => {
     setToast({ message, type });
     setTimeout(() => setToast(null), 3500);
+  };
+
+  const handleUpgradeToPremium = () => {
+    console.log('[Stripe Billing] Redirecting user to checkout session for plan PRO...');
+    alert('Redirecionando para o ambiente seguro do Stripe para Upgrade...');
   };
 
   // Generate billing history dynamically based on registration date to avoid showing June if they signed up in July
@@ -990,22 +997,43 @@ export function Settings({
                 <div className="flex justify-between items-start">
                   <div>
                     <span className="text-[9px] font-bold uppercase tracking-wider text-brand-400">Plano Ativo</span>
-                    <h4 className="text-lg font-extrabold text-slate-200 mt-1">Premium Copilot</h4>
-                    <p className="text-[11px] text-slate-400 mt-1 leading-snug max-w-xs">Acesso total a buscas inteligentes no Adzuna, otimizações ATS e simulados de entrevista STAR.</p>
+                    <h4 className="text-lg font-extrabold text-slate-200 mt-1">
+                      {plan !== 'Free' ? `Premium ${plan}` : 'Plano Básico (Gratuito)'}
+                    </h4>
+                    <p className="text-[11px] text-slate-400 mt-1 leading-snug max-w-xs">
+                      {plan !== 'Free' 
+                        ? 'Acesso total a buscas inteligentes no Adzuna, otimizações ATS e simulados de entrevista STAR.'
+                        : 'Recursos limitados de IA, simulações STAR básicas e limite de matches diários.'}
+                    </p>
                   </div>
-                  <span className="px-2.5 py-1 rounded-lg bg-emerald-500/10 text-emerald-400 text-[10px] font-bold border border-emerald-500/20">Ativo</span>
+                  {plan !== 'Free' ? (
+                    <span className="px-2.5 py-1 rounded-lg bg-emerald-500/10 text-emerald-400 text-[10px] font-bold border border-emerald-500/20">Ativo</span>
+                  ) : (
+                    <span className="px-2.5 py-1 rounded-lg bg-slate-850 text-slate-400 text-[10px] font-bold border border-slate-700">Gratuito</span>
+                  )}
                 </div>
                 <div className="mt-6 flex justify-between items-end border-t border-slate-800/80 pt-4">
                   <div>
                     <span className="text-[9px] text-slate-500 uppercase font-bold block">Próxima Renovação</span>
-                    <span className="text-xs font-semibold text-slate-350">{nextRenewalDateStr}</span>
+                    <span className="text-xs font-semibold text-slate-350">
+                      {plan !== 'Free' ? nextRenewalDateStr : 'Sem renovações ativas'}
+                    </span>
                   </div>
-                  <button 
-                    onClick={() => showToast('Você já está no plano Premium Copilot máximo.', 'success')}
-                    className="px-3.5 py-1.5 rounded-lg bg-brand-600 hover:bg-brand-500 text-white font-bold text-[10px] transition-all shadow shadow-brand-500/10"
-                  >
-                    Gerenciar Plano
-                  </button>
+                  {plan !== 'Free' ? (
+                    <button 
+                      onClick={() => showToast('Você já está no plano Premium Copilot máximo.', 'success')}
+                      className="px-3.5 py-1.5 rounded-lg bg-brand-600 hover:bg-brand-500 text-white font-bold text-[10px] transition-all shadow shadow-brand-500/10"
+                    >
+                      Gerenciar Plano
+                    </button>
+                  ) : (
+                    <button 
+                      onClick={handleUpgradeToPremium}
+                      className="px-3.5 py-1.5 rounded-lg bg-brand-650 hover:bg-brand-500 text-white font-bold text-[10px] transition-all shadow shadow-brand-500/10"
+                    >
+                      Fazer Upgrade Premium
+                    </button>
+                  )}
                 </div>
               </div>
 
@@ -1017,15 +1045,21 @@ export function Settings({
                     <span>Plano</span>
                     <span className="text-right">Valor</span>
                   </div>
-                  <div className="divide-y divide-slate-900/40">
-                    {billingHistory.map((item, idx) => (
-                      <div key={idx} className="grid grid-cols-3 p-3 text-slate-300">
-                        <span>{item.dateStr}</span>
-                        <span>{item.plan}</span>
-                        <span className="text-right">{item.price}</span>
-                      </div>
-                    ))}
-                  </div>
+                  {plan === 'Free' ? (
+                    <div className="text-center py-6 text-slate-500 border-t border-slate-900 bg-slate-950/20">
+                      Nenhuma transação encontrada no plano gratuito.
+                    </div>
+                  ) : (
+                    <div className="divide-y divide-slate-900/40">
+                      {billingHistory.map((item, idx) => (
+                        <div key={idx} className="grid grid-cols-3 p-3 text-slate-300">
+                          <span>{item.dateStr}</span>
+                          <span>{item.plan}</span>
+                          <span className="text-right">{item.price}</span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
               </div>
             </CardGlass>

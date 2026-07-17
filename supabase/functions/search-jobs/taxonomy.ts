@@ -485,5 +485,38 @@ export const LOCAL_TAXONOMY: Record<string, TaxonomyNode> = {
     edges: {
       "sales_representative": 0.3
     }
+  },
+  "cozinheiro": {
+    id: "cozinheiro",
+    department: "Gastronomy",
+    aliases: [
+      "cozinheira", "cozinheiro", "auxiliar de cozinha", "kitchen assistant", "cook", "chef", 
+      "cozinheiro industrial", "ajudante de cozinha", "subchef", "gastronomia", "chapeiro", 
+      "pizzaiolo", "padeiro"
+    ],
+    primary_titles: ["cozinheiro", "cozinheira", "cook", "chef", "auxiliar de cozinha"],
+    secondary_titles: ["kitchen assistant", "cozinheiro industrial", "ajudante de cozinha", "subchef", "chapeiro", "pizzaiolo", "padeiro"],
+    related_titles: [],
+    negative_titles: ["developer", "programmer", "marketing", "sales", "csm", "engineer"],
+    required_skills: ["cozinha", "preparo de alimentos", "higiene alimentar", "manipulação de alimentos", "culinária"],
+    preferred_skills: ["gastronomia", "boas práticas", "organização", "trabalho em equipe", "cardápio", "atendimento ao cliente"],
+    negative_keywords: ["developer", "programmer", "marketing", "sales", "csm", "engineer", "software"],
+    common_tools: ["fogão", "forno", "utensílios de cozinha", "facas profissional"],
+    industry_terms: ["boas práticas de fabricação", "higiene sanitária", "pré-preparo", "mise en place"],
+    seniority_aliases: {
+      "junior": ["junior", "jr", "auxiliar", "ajudante", "estagiario", "assistente"],
+      "pleno": ["pleno", "pl", "meio oficial"],
+      "senior": ["senior", "sênior", "sr", "chefe", "chef", "lider", "líder"]
+    },
+    location_aliases: {
+      "remote": ["remoto", "remote", "home office"]
+    },
+    language_variants: {
+      "en": "cook",
+      "pt": "cozinheiro"
+    },
+    career_path: ["ajudante de cozinha", "auxiliar de cozinha", "cozinheiro", "chef de cozinha"],
+    similar_roles: [],
+    edges: {}
   }
 };

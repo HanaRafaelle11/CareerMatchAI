@@ -32,6 +32,8 @@ export function stem(word: string): string {
   if (word.endsWith("s") && !word.endsWith("ss") && !word.endsWith("as") && !word.endsWith("is") && !word.endsWith("us")) return word.slice(0, -1);
   
   // Portuguese gender and plurals (e.g. desenvolvedores/desenvolvedora -> desenvolvedor)
+  if (word.endsWith("eiros") || word.endsWith("eiras")) return word.slice(0, -5) + "eir";
+  if (word.endsWith("eiro") || word.endsWith("eira")) return word.slice(0, -4) + "eir";
   if (word.endsWith("ores") || word.endsWith("oras")) return word.slice(0, -4) + "or";
   if (word.endsWith("ora") && !word.endsWith("fora")) return word.slice(0, -3) + "or";
   if (word.endsWith("istas")) return word.slice(0, -1);

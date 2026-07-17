@@ -15,6 +15,7 @@ import { ErrorState, EmptyState, ProcessingState } from '../components/ErrorVisu
 import { ProgressRing } from '../components/ds';
 import { jobIngestionService } from '../../application/services/JobIngestionService';
 import type { IngestionResult } from '../../application/services/parsers/BaseJobParser';
+import { cleanHtmlToPlainText } from '../../application/services/utils/htmlSanitizer';
 
 const BRAZILIAN_LOCATIONS = [
   "São Paulo, SP",
@@ -744,10 +745,9 @@ export function JobMatchHub({
   const [errorMsg, setErrorMsg] = useState('');
 
   // States para Job Ingestion Engine
-  const [ingestionTab, setIngestionTab] = useState<'text' | 'url' | 'pdf' | 'greenhouse'>('text');
+  const [ingestionTab, setIngestionTab] = useState<'text' | 'url' | 'pdf'>('text');
   const [ingestionUrl, setIngestionUrl] = useState('');
   const [ingestionFile, setIngestionFile] = useState<File | null>(null);
-  const [greenhouseUrl, setGreenhouseUrl] = useState('');
   const [isIngesting, setIsIngesting] = useState(false);
   const [ingestionStep, setIngestionStep] = useState<'idle' | 'preparing' | 'extracting' | 'normalizing' | 'completed' | 'error'>('idle');
   const [ingestionStepText, setIngestionStepText] = useState('');
@@ -763,7 +763,6 @@ export function JobMatchHub({
     setRequirementsInput('');
     setIngestionUrl('');
     setIngestionFile(null);
-    setGreenhouseUrl('');
     setIsIngesting(false);
     setIngestionStep('idle');
     setIngestionStepText('');
@@ -973,6 +972,16 @@ export function JobMatchHub({
     page: searchPage
   }, careerProfileNew);
 
+  const setSanitizedPreviewData = (result: IngestionResult) => {
+    if (!result) return;
+    setPreviewData({
+      ...result,
+      description: cleanHtmlToPlainText(result.description || ''),
+      requirements: (result.requirements || []).map(r => cleanHtmlToPlainText(r)),
+      benefits: (result.benefits || []).map(b => cleanHtmlToPlainText(b))
+    });
+  };
+
   const handleIngestManual = async (e: FormEvent) => {
     e.preventDefault();
     setErrorMsg('');
@@ -989,7 +998,7 @@ export function JobMatchHub({
         description,
         requirementsInput
       });
-      setPreviewData(result);
+      setSanitizedPreviewData(result);
     } catch (err: any) {
       setErrorMsg(err.message || 'Erro ao processar a vaga.');
     }
@@ -1015,7 +1024,7 @@ export function JobMatchHub({
       
       await new Promise(resolve => setTimeout(resolve, 800));
       
-      setPreviewData(result);
+      setSanitizedPreviewData(result);
       setIngestionStep('completed');
     } catch (err: any) {
       if (err.message === 'RESTRICTED_PLATFORM') {
@@ -1049,40 +1058,11 @@ export function JobMatchHub({
 
       await new Promise(resolve => setTimeout(resolve, 800));
 
-      setPreviewData(result);
+      setSanitizedPreviewData(result);
       setIngestionStep('completed');
     } catch (err: any) {
       setIngestionStep('error');
       setIngestionStepText(err.message || 'Erro ao analisar o PDF.');
-    } finally {
-      setIsIngesting(false);
-    }
-  };
-
-  const handleIngestGreenhouse = async (e: FormEvent) => {
-    e.preventDefault();
-    if (!greenhouseUrl.trim()) return;
-
-    setIsIngesting(true);
-    setIngestionStep('preparing');
-    setIngestionStepText('Conectando à API do Greenhouse...');
-
-    try {
-      setIngestionStep('extracting');
-      setIngestionStepText('Buscando payload estruturado da vaga...');
-
-      const result = await jobIngestionService.ingestUrl(greenhouseUrl.trim());
-
-      setIngestionStep('normalizing');
-      setIngestionStepText('Normalizando tipos de vaga e localização...');
-
-      await new Promise(resolve => setTimeout(resolve, 800));
-
-      setPreviewData(result);
-      setIngestionStep('completed');
-    } catch (err: any) {
-      setIngestionStep('error');
-      setIngestionStepText(err.message || 'Erro ao carregar dados do Greenhouse.');
     } finally {
       setIsIngesting(false);
     }
@@ -1223,7 +1203,14 @@ export function JobMatchHub({
         jobsWithSalaries.reduce((acc, j) => {
           const min = j.salaryMin || 0;
           const max = j.salaryMax || 0;
-          const mid = min && max ? (min + max) / 2 : (j.salaryNumeric || max || min || 0);
+          let mid = min && max ? (min + max) / 2 : (j.salaryNumeric || max || min || 0);
+          
+          if (mid > 25000) {
+            mid = mid / 12;
+          } else if (mid > 0 && mid < 150) {
+            mid = mid * 160;
+          }
+          
           return acc + mid;
         }, 0) / jobsWithSalaries.length
       )
@@ -1585,16 +1572,6 @@ export function JobMatchHub({
                   >
                     Upload de PDF
                   </button>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setIngestionTab('greenhouse');
-                      setRestrictedPlatformMsg(false);
-                    }}
-                    className={`pb-2 transition ${ingestionTab === 'greenhouse' ? 'text-brand-400 border-b-2 border-brand-400' : 'text-slate-500 hover:text-slate-300'}`}
-                  >
-                    Greenhouse
-                  </button>
                 </div>
 
                 {isIngesting ? (
@@ -1832,45 +1809,6 @@ export function JobMatchHub({
                             className="px-4 py-2 rounded-xl bg-brand-600 hover:bg-brand-500 text-white font-semibold text-xs shadow-lg shadow-brand-500/10 disabled:opacity-50"
                           >
                             Analisar PDF
-                          </button>
-                        </div>
-                      </form>
-                    )}
-
-                    {ingestionTab === 'greenhouse' && (
-                      <form onSubmit={handleIngestGreenhouse} className="space-y-4 pt-4">
-                        <div className="space-y-1">
-                          <label className="text-xs font-semibold text-slate-400">Link da Vaga no Greenhouse</label>
-                          <input
-                            type="url"
-                            placeholder="Ex: https://boards.greenhouse.io/stripe/jobs/4256721"
-                            value={greenhouseUrl}
-                            onChange={e => setGreenhouseUrl(e.target.value)}
-                            className="w-full px-4 py-3 rounded-xl bg-slate-900/50 border border-slate-800 focus:border-brand-500 outline-none text-xs text-slate-200"
-                            required
-                          />
-                        </div>
-
-                        <p className="text-[10px] text-slate-500 leading-relaxed">
-                          A API pública e oficial do Greenhouse será consultada de forma transparente para importar a vaga de maneira limpa e rápida.
-                        </p>
-
-                        <div className="flex gap-3 justify-end pt-4">
-                          <button
-                            type="button"
-                            onClick={() => {
-                              resetIngestionStates();
-                              setShowAddForm(false);
-                            }}
-                            className="px-4 py-2 text-xs font-semibold text-slate-400 hover:text-slate-200"
-                          >
-                            Cancelar
-                          </button>
-                          <button
-                            type="submit"
-                            className="px-4 py-2 rounded-xl bg-brand-600 hover:bg-brand-500 text-white font-semibold text-xs shadow-lg shadow-brand-500/10"
-                          >
-                            Conectar e Buscar
                           </button>
                         </div>
                       </form>

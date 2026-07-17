@@ -41,7 +41,7 @@ function LazyFallback() {
   );
 }
 
-import { useQueryClient } from '@tanstack/react-query';
+import { useQueryClient, useQuery } from '@tanstack/react-query';
 
 function App() {
   const { user, profile, loading, loginWithEmail, signUpWithEmail, loginWithOAuth, logout, updateProfile } = useAuth();
@@ -272,10 +272,42 @@ function App() {
     saveWeeklyPlanner,
     getWeeklyGoalQuery,
     saveWeeklyGoal,
-    careerGoals
+    careerGoals,
+    saveCareerGoal,
+    deleteCareerGoal,
+    predefinedGoals,
+    savePredefinedGoal,
+    deletePredefinedGoal
   } = useRoadmapServices(user?.id);
 
-  if (loading) {
+  // Consulta da assinatura ativa do usuário para evitar flashes de planos errados
+  const { data: subscription, isLoading: isLoadingSub } = useQuery({
+    queryKey: ['user-subscription', user?.id],
+    queryFn: async () => {
+      if (!user?.id) return null;
+      if (isSupabaseConfigured && supabase) {
+        try {
+          const { data, error } = await supabase
+            .from('billing_subscriptions')
+            .select('*')
+            .eq('user_id', user.id)
+            .maybeSingle();
+          if (error) throw error;
+          return data || { plan: 'Free', status: 'active' };
+        } catch (err) {
+          console.warn('[DATABASE] Erro ao carregar assinatura do usuário no Supabase:', err);
+          return { plan: 'Free', status: 'active' };
+        }
+      } else {
+        return { plan: 'Free', status: 'active' };
+      }
+    },
+    enabled: !!user?.id
+  });
+
+  const appLoading = loading || (!!user && isLoadingSub);
+
+  if (appLoading) {
     return (
       <div className="min-h-screen w-full flex flex-col items-center justify-center bg-slate-950 text-slate-100 font-sans relative overflow-hidden">
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(99,102,241,0.05)_0%,transparent_70%)]" />
@@ -288,7 +320,7 @@ function App() {
           </div>
           <div className="space-y-2 font-sans">
             <h3 className="font-display font-bold text-lg text-slate-200">Iniciando Vocentro</h3>
-            <p className="text-xs text-slate-500">Conectando ao banco de dados e autenticando sessão de usuário...</p>
+            <p className="text-xs text-slate-500">Conectando ao banco de dados e sincronizando faturamento da conta...</p>
           </div>
           <div className="w-full max-w-[200px] h-1 bg-slate-950 border border-slate-850 rounded-full overflow-hidden">
             <div className="h-full bg-brand-accent rounded-full animate-progress-loading" />
@@ -366,6 +398,7 @@ function App() {
         matchCount={matches.length}
         applicationCount={applications.length}
         interviewCount={applications.filter(a => ['👥 Entrevista com recrutador', '🎯 Entrevista com gestor', '🧩 Case técnico', '🤝 Fit cultural'].includes(a.status)).length}
+        plan={subscription?.plan || 'Free'}
       />
 
       {/* Container Principal */}
@@ -490,6 +523,12 @@ function App() {
               onStartSimulation={handleStartSimulation}
               setSelectedJobId={setSelectedJobId}
               initialSubTab={strategyInitialSubTab}
+              careerGoals={careerGoals}
+              onSaveCareerGoal={saveCareerGoal}
+              onDeleteCareerGoal={deleteCareerGoal}
+              predefinedGoals={predefinedGoals}
+              onSavePredefinedGoal={savePredefinedGoal}
+              onDeletePredefinedGoal={deletePredefinedGoal}
             />
           </Suspense>
         )}
@@ -574,6 +613,7 @@ function App() {
               initialTab={settingsInitialSubTab}
               preferences={preferences}
               updatePreferences={updatePreferences}
+              plan={subscription?.plan || 'Free'}
             />
           </Suspense>
         )}

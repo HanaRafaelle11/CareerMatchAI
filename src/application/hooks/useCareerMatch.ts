@@ -659,6 +659,8 @@ export function useJobs(userId: string | undefined) {
           sourcePlatform: j.source_platform || 'manual',
           salary: j.salary || undefined,
           salaryNumeric: j.salary_numeric || undefined,
+          salaryMin: j.salary_numeric || undefined,
+          salaryMax: undefined,
           benefits: j.benefits || []
         }));
       } else {

@@ -42,6 +42,7 @@ export function rankCandidates(
     // Calcular cada Feature cadastrada
     const featuresScore: Record<string, number> = {};
     let weightedSum = 0.0;
+    let sumActiveWeights = 0.0;
 
     for (const feat of FEATURE_REGISTRY) {
       const score = feat.calculate(j, domainIntent as any);
@@ -49,6 +50,12 @@ export function rankCandidates(
 
       const weight = FEATURE_WEIGHTS[feat.key] || 0.0;
       weightedSum += score * weight;
+
+      if (intent.canonical_key === "generic_search") {
+        if (feat.key === "TitleSimilarity" || feat.key === "DescriptionRelevance" || feat.key === "Freshness") {
+          sumActiveWeights += weight;
+        }
+      }
     }
 
     // Identificar metadados de correspondência de título e competências para explainability
@@ -65,7 +72,12 @@ export function rankCandidates(
     const boosts: string[] = [];
     const penaltiesList: string[] = [];
 
-    let overallScore = Math.max(0, Math.min(100, Math.round(weightedSum * 100)));
+    let overallScore = 0;
+    if (intent.canonical_key === "generic_search" && sumActiveWeights > 0) {
+      overallScore = Math.max(0, Math.min(100, Math.round((weightedSum / sumActiveWeights) * 100)));
+    } else {
+      overallScore = Math.max(0, Math.min(100, Math.round(weightedSum * 100)));
+    }
 
     // ── 3. Aplicar Multiplicador Leve do Grafo (GraphDistance) ──
     const graphWeight = expandedIntents[bestExpandedKey] || 1.0;

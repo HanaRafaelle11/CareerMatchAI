@@ -17,11 +17,6 @@ export class JobIngestionService {
   async ingestUrl(url: string): Promise<IngestionResult> {
     const lowercaseUrl = url.toLowerCase().trim();
     
-    // Detecção explícita de termos de uso de plataformas restritas
-    if (lowercaseUrl.includes('linkedin.com') || lowercaseUrl.includes('gupy.io') || lowercaseUrl.includes('gupy.com')) {
-      throw new Error('RESTRICTED_PLATFORM');
-    }
-
     if (lowercaseUrl.includes('greenhouse.io')) {
       return this.greenhouseParser.parse(url);
     }

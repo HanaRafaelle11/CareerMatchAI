@@ -1,9 +1,14 @@
 import { type RawJob, type JobIntent } from "./connectors/BaseJobConnector.ts";
 import { normalizeQuery } from "./query-normalizer.ts";
-import { FEATURE_REGISTRY, TitleSimilarityFeature } from "./features.ts";
-import { FEATURE_WEIGHTS, GATING_THRESHOLDS, PENALTIES } from "./ranking-config.ts";
-import { LOCAL_TAXONOMY } from "./taxonomy.ts";
 import { expandIntent } from "./intent-resolver.ts";
+import { retrieveCandidates } from "./retrieval.ts";
+import { rankCandidates } from "./ranking.ts";
+import {
+  logSearchTelemetry,
+  calculateMarginalUtility,
+  calculateTop20Contribution,
+  calculateDominantFeatures
+} from "./telemetry.ts";
 
 export interface NormalizedJob extends RawJob {
   companyNameNormalized: string;
@@ -39,85 +44,12 @@ export interface NormalizedJob extends RawJob {
       penalties: string[];
       ranking_reason: string;
       explanation_ptBR: string;
+      retrievalEvidence?: any;
     };
   };
 }
 
-// ── 1. Telemetry Logger ──
-interface SearchMetrics {
-  candidatesGenerated: number;
-  candidatesFiltered: number;
-  rejectedByTitle: number;
-  rejectedByLocation: number;
-  rejectedBySeniority: number;
-  averageScore: number;
-  threshold: number;
-  geminiUsed: boolean;
-  latencyMs: number;
-  topFeatures: string[];
-  retrieverHits: {
-    title: number;
-    alias: number;
-    skills: number;
-    description: number;
-  };
-  funnel: {
-    rawIngested: number;
-    rawUnion: number;
-    deduplicated: number;
-    postHardFilters: number;
-    postLtr: number;
-  };
-  marginalUtility: {
-    uniqueTitle: number;
-    uniqueAlias: number;
-    uniqueSkills: number;
-    uniqueDescription: number;
-    intersection: number;
-  };
-  top20Contribution: {
-    title: number;
-    alias: number;
-    skills: number;
-    description: number;
-  };
-}
-function logSearchTelemetry(m: SearchMetrics) {
-  console.log("================ FUNNEL OBSERVABILITY ================");
-  console.log(`Raw Ingested Jobs......: ${m.funnel.rawIngested}`);
-  const raw = Math.max(1, m.funnel.rawIngested);
-  console.log(`Title Retriever Hits...: ${m.retrieverHits.title} (yield: ${((m.retrieverHits.title / raw) * 100).toFixed(1)}%)`);
-  console.log(`Alias Retriever Hits...: ${m.retrieverHits.alias} (yield: ${((m.retrieverHits.alias / raw) * 100).toFixed(1)}%)`);
-  console.log(`Skills Retriever Hits..: ${m.retrieverHits.skills} (yield: ${((m.retrieverHits.skills / raw) * 100).toFixed(1)}%)`);
-  console.log(`Desc Retriever Hits....: ${m.retrieverHits.description} (yield: ${((m.retrieverHits.description / raw) * 100).toFixed(1)}%)`);
-  console.log(`------------------ MARGINAL UTILITY ------------------`);
-  console.log(`Unique from Title......: ${m.marginalUtility.uniqueTitle}`);
-  console.log(`Unique from Alias......: ${m.marginalUtility.uniqueAlias}`);
-  console.log(`Unique from Skills.....: ${m.marginalUtility.uniqueSkills}`);
-  console.log(`Unique from Description: ${m.marginalUtility.uniqueDescription}`);
-  console.log(`Retriever Intersections: ${m.marginalUtility.intersection}`);
-  console.log(`----------------- TOP 20 CONTRIBUTION ----------------`);
-  console.log(`Title Retriever Hits...: ${m.top20Contribution.title}`);
-  console.log(`Alias Retriever Hits...: ${m.top20Contribution.alias}`);
-  console.log(`Skills Retriever Hits..: ${m.top20Contribution.skills}`);
-  console.log(`Desc Retriever Hits....: ${m.top20Contribution.description}`);
-  console.log(`------------------------------------------------------`);
-  console.log(`Raw Union Pool Size....: ${m.funnel.rawUnion}`);
-  console.log(`Deduplicated Candidates: ${m.funnel.deduplicated}`);
-  console.log(`Rejected by Location...: -${m.rejectedByLocation}`);
-  console.log(`Rejected by Seniority..: -${m.rejectedBySeniority}`);
-  console.log(`Post Hard Filters......: ${m.funnel.postHardFilters}`);
-  console.log(`Post LTR Ranking.......: ${m.funnel.postLtr}`);
-  console.log(`Final Returned (Cap)...: ${m.candidatesFiltered}`);
-  console.log(`Avg LTR Score..........: ${m.averageScore.toFixed(2)}`);
-  console.log(`Threshold Applied......: ${m.threshold.toFixed(2)}`);
-  console.log(`Gemini Intent Used.....: ${m.geminiUsed}`);
-  console.log(`Serving Latency........: ${m.latencyMs}ms`);
-  console.log(`Leading LTR Signals....: ${m.topFeatures.join(', ')}`);
-  console.log("======================================================");
-}
-
-// ── 2. Local Seniority Normalizer ──
+// ── Local Seniority Normalizer ──
 export function extractQuerySeniority(query: string): ('junior' | 'pleno' | 'senior' | 'lead' | 'director')[] {
   const q = query.toLowerCase();
   const levels: ('junior' | 'pleno' | 'senior' | 'lead' | 'director')[] = [];
@@ -129,405 +61,66 @@ export function extractQuerySeniority(query: string): ('junior' | 'pleno' | 'sen
   return levels;
 }
 
-// ── 3. Base formatting normalizers ──
-function normalizeCompany(name: string): string {
-  if (!name) return "Empresa Confidencial";
-  return name
-    .replace(/\b(S\.?A\.?|L[tT][dD][aA]\.?|Inc\.?|Corp\.?|L[lL][cC]|GmbH|S\.?A\.?S\.?|Group|Grupo)\b/gi, "")
-    .replace(/\s+/g, " ")
-    .trim();
-}
-
-function normalizeLocation(loc: string): string {
-  if (!loc) return "Brasil";
-  const l = loc.toLowerCase();
-  if (l.includes("remot") || l.includes("anywhere") || l.includes("home office") || l.includes("teletrabalho")) {
-    return "Remoto";
-  }
-  if (l.includes("sao paulo") || l.includes("são paulo") || l.includes("sp")) {
-    return "São Paulo, SP";
-  }
-  if (l.includes("rio de janeiro") || l.includes("rj")) {
-    return "Rio de Janeiro, RJ";
-  }
-  if (l.includes("belo horizonte") || l.includes("bh") || l.includes("mg")) {
-    return "Belo Horizonte, MG";
-  }
-  if (l.includes("curitiba") || l.includes("pr")) {
-    return "Curitiba, PR";
-  }
-  if (l.includes("porto alegre") || l.includes("poa") || l.includes("rs")) {
-    return "Porto Alegre, RS";
-  }
-  return loc.trim();
-}
-
-function normalizeSalary(j: RawJob): { min?: number; max?: number } {
-  let min = j.salaryMin;
-  let max = j.salaryMax;
-  if (!min && !max) return {};
-
-  const curr = (j.currency || "USD").toUpperCase();
-  let rate = 1;
-  if (curr === "USD") rate = 5.0;
-  else if (curr === "EUR") rate = 5.4;
-  else if (curr === "GBP") rate = 6.2;
-
-  return {
-    min: min ? Math.round(min * rate) : undefined,
-    max: max ? Math.round(max * rate) : undefined
-  };
-}
-
-function normalizeWorkMode(j: RawJob): 'remote' | 'hybrid' | 'onsite' {
-  if (j.workMode) return j.workMode;
-  const text = (j.title + " " + j.description).toLowerCase();
-  if (text.includes("remot") || text.includes("anywhere") || text.includes("home office") || text.includes("teletrabalho") || text.includes("distância")) {
-    return "remote";
-  }
-  if (text.includes("hybrid") || text.includes("híbrido") || text.includes("presencial e remoto")) {
-    return "hybrid";
-  }
-  return "onsite";
-}
-
-function normalizeSeniority(j: RawJob): 'junior' | 'pleno' | 'senior' | 'lead' | 'director' {
-  if (j.seniority) return j.seniority;
-  const title = j.title.toLowerCase();
-  if (title.includes("junior") || title.includes("júnior") || title.includes("jr") || title.includes("estágio") || title.includes("estagiário") || title.includes("trainee")) {
-    return "junior";
-  }
-  if (title.includes("senior") || title.includes("sênior") || title.includes("sr") || title.includes("pleno") || title.includes("pl")) {
-    return title.includes("senior") || title.includes("sênior") || title.includes("sr") ? "senior" : "pleno";
-  }
-  if (title.includes("lead") || title.includes("lider") || title.includes("líder") || title.includes("coordenador") || title.includes("coordinator")) {
-    return "lead";
-  }
-  if (title.includes("director") || title.includes("diretor") || title.includes("gerente") || title.includes("manager") || title.includes("head") || title.includes("vp")) {
-    return "director";
-  }
-  return "pleno";
-}
-
-const KNOWN_STACKS = [
-  "React", "TypeScript", "Node.js", "Docker", "AWS", "Python", "Java",
-  "PostgreSQL", "CSS", "HTML", "Vite", "GraphQL", "Figma", "Salesforce",
-  "Git", "Kubernetes", "Next.js", "Vue", "Angular", "Go", "Ruby", "PHP"
-];
-function normalizeRequirements(j: RawJob): string[] {
-  if (j.requirements && j.requirements.length > 0) return j.requirements;
-  const text = (j.title + " " + j.description).toLowerCase();
-  const reqs = KNOWN_STACKS.filter(stack =>
-    new RegExp(`\\b${stack}\\b`, 'i').test(text)
-  );
-  return reqs.length > 0 ? reqs : ["Geral"];
-}
-
-const KNOWN_BENEFITS = [
-  { term: /vale refeição|vale-refeição|\bvr\b/i, normalized: "Vale Refeição" },
-  { term: /vale alimentação|vale-alimentação|\bva\b/i, normalized: "Vale Alimentação" },
-  { term: /plano de saúde|saúde|unimed|bradesco saúde/i, normalized: "Plano de Saúde" },
-  { term: /plano odontológico|odonto/i, normalized: "Plano Odontológico" },
-  { term: /vale transporte|vale-transporte|\bvt\b/i, normalized: "Vale Transporte" },
-  { term: /gympass|academia/i, normalized: "Gympass" },
-  { term: /participação nos lucros|\bplr\b/i, normalized: "PLR" }
-];
-function normalizeBenefits(j: RawJob): string[] {
-  if (j.benefits && j.benefits.length > 0) return j.benefits;
-  const text = j.description.toLowerCase();
-  const benefits: string[] = [];
-  KNOWN_BENEFITS.forEach(b => {
-    if (b.term.test(text)) benefits.push(b.normalized);
-  });
-  return benefits;
-}
-
-function detectLanguage(description: string): 'pt' | 'en' | 'es' {
-  const text = description.toLowerCase();
-  const ptCount = (text.match(/\b(o|a|e|da|do|em|para|com|vaga|requisitos)\b/g) || []).length;
-  const enCount = (text.match(/\b(the|and|of|in|to|with|job|requirements|skills)\b/g) || []).length;
-  const esCount = (text.match(/\b(el|la|y|de|en|para|con|trabajo|requisitos)\b/g) || []).length;
-
-  if (enCount > ptCount && enCount > esCount) return "en";
-  if (esCount > ptCount && esCount > enCount) return "es";
-  return "pt";
-}
-
-function calculateScores(
-  j: RawJob,
-  workMode: 'remote' | 'hybrid' | 'onsite',
-  salMinBRL?: number
-) {
-  let providerQuality = 70;
-  const platform = j.sourcePlatform.toLowerCase();
-  if (["greenhouse", "lever", "ashby", "smartrecruiters"].includes(platform)) providerQuality = 95;
-  else if (["adzuna", "remotive", "remoteok"].includes(platform)) providerQuality = 85;
-  else if (["gupy", "abler"].includes(platform)) providerQuality = 90;
-
-  let freshness = 90;
-  if (j.publishedAt) {
-    const ageMs = Date.now() - new Date(j.publishedAt).getTime();
-    const ageDays = ageMs / (1000 * 60 * 60 * 24);
-    if (ageDays <= 1) freshness = 100;
-    else if (ageDays <= 3) freshness = 90;
-    else if (ageDays <= 7) freshness = 70;
-    else if (ageDays <= 14) freshness = 40;
-    else freshness = 20;
-  }
-
-  const cName = j.companyName.toLowerCase();
-  let companyTrust = 90;
-  if (cName.includes("confidencial") || cName.includes("empresa") || cName.length < 3) {
-    companyTrust = 40;
-  }
-
-  let salaryConfidence = 20;
-  if (salMinBRL) {
-    salaryConfidence = j.salaryMin && j.salaryMax ? 100 : 80;
-  }
-
-  const descLen = j.description.length;
-  let descriptionCompleteness = 30;
-  if (descLen > 1500) descriptionCompleteness = 100;
-  else if (descLen > 800) descriptionCompleteness = 80;
-  else if (descLen > 400) descriptionCompleteness = 60;
-
-  let remoteConfidence = 50;
-  if (workMode === "remote") remoteConfidence = 100;
-  else if (workMode === "hybrid") remoteConfidence = 80;
-  else remoteConfidence = 70;
-
-  const overall = Math.round(
-    (providerQuality * 0.25) +
-    (freshness * 0.15) +
-    (companyTrust * 0.15) +
-    (salaryConfidence * 0.10) +
-    (descriptionCompleteness * 0.15) +
-    (remoteConfidence * 0.20)
-  );
-
-  return {
-    providerQuality,
-    freshness,
-    companyTrust,
-    salaryConfidence,
-    descriptionCompleteness,
-    remoteConfidence,
-    overall
-  };
-}
-
 export function aggregateAndNormalizeJobs(
-  jobs: RawJob[],
-  intent?: JobIntent,
+  rawJobs: RawJob[],
+  intent: JobIntent | null,
   location?: string,
   rawQuery?: string,
-  geminiUsed = false,
-  debug = false
+  geminiUsed: boolean = false,
+  debug: boolean = false
 ): NormalizedJob[] {
   const startTime = Date.now();
-  const parsedJobs: NormalizedJob[] = [];
-  const seen = new Set<string>();
+  const resolvedGeminiUsed = geminiUsed || (intent ? (intent as any).gemini_used || false : false);
 
-  // Passar localização buscada no intent para processamento de LocationFeature
-  if (intent && location) {
-    intent.target_location = location;
+  // Phase 1 & 2: Ingestão e Deduplicação Básica (pelo ID da vaga ou chave composta)
+  const uniqueJobsMap = new Map<string, RawJob>();
+  for (const r of rawJobs) {
+    const key = r.id || r.url || `${r.title}-${r.companyName}`;
+    if (key) {
+      uniqueJobsMap.set(key, r);
+    }
   }
 
-  // Phase 0 & 1: Parse, Normalização Básica e Deduplicação
-  for (const j of jobs) {
-    // Resetar estado temporário para evitar vazamento em execuções concorrentes ou consecutivas
-    delete (j as any)._titleSim;
-
-    const titleClean = j.title.replace(/<\/?[^>]+(>|$)/g, "").trim();
-    const companyNormalized = normalizeCompany(j.companyName);
-
-    const key = `${titleClean.toLowerCase()}|${companyNormalized.toLowerCase()}`;
-    if (seen.has(key)) continue;
-    seen.add(key);
-
-    const locNormalized = normalizeLocation(j.location);
-    const salaries = normalizeSalary(j);
-    const mode = normalizeWorkMode(j);
-    const seniority = normalizeSeniority(j);
-    const reqs = normalizeRequirements(j);
-    const benefits = normalizeBenefits(j);
-    const lang = detectLanguage(j.description);
-    const baseScores = calculateScores(j, mode, salaries.min);
-
-    const descClean = j.description
-      .replace(/<\/p>/gi, '\n')
-      .replace(/<br\s*\/?>/gi, '\n')
-      .replace(/<[^>]+>/g, ' ')
-      .replace(/&nbsp;/g, ' ')
-      .replace(/&amp;/g, '&')
-      .replace(/\s+/g, ' ')
-      .trim();
-
-    const normalizedTitle = normalizeQuery(titleClean);
-
-    parsedJobs.push({
-      ...j,
-      title: titleClean,
-      description: descClean,
-      _normalizedTitle: normalizedTitle, // Pré-normalizado uma única vez
-      companyNameNormalized: companyNormalized,
-      locationNormalized: locNormalized,
-      salaryMinBRL: salaries.min,
-      salaryMaxBRL: salaries.max,
-      workModeNormalized: mode,
-      seniorityNormalized: seniority,
-      requirementsNormalized: reqs,
-      benefitsNormalized: benefits,
-      languageNormalized: lang,
+  const parsedJobs: NormalizedJob[] = Array.from(uniqueJobsMap.values()).map(r => {
+    // Normalizações Operacionais Básicas
+    const workMode = r.workMode || 'onsite';
+    const seniority = r.seniority || 'pleno';
+    
+    return {
+      ...r,
+      companyNameNormalized: r.companyName ? normalizeQuery(r.companyName) : '',
+      locationNormalized: r.location ? normalizeQuery(r.location) : '',
+      _normalizedTitle: r.title ? normalizeQuery(r.title) : '',
+      workModeNormalized: workMode as any,
+      seniorityNormalized: seniority as any,
+      requirementsNormalized: r.requirements || [],
+      benefitsNormalized: r.benefits || [],
+      languageNormalized: r.language as any || 'pt',
       scores: {
-        ...baseScores,
-        overall: baseScores.overall,
-        confidence: 'low'
+        providerQuality: r.scores?.providerQuality || 50,
+        freshness: r.scores?.freshness || 50,
+        companyTrust: r.scores?.companyTrust || 50,
+        salaryConfidence: r.scores?.salaryConfidence || 50,
+        descriptionCompleteness: r.scores?.descriptionCompleteness || 50,
+        remoteConfidence: r.scores?.remoteConfidence || 50,
+        overall: 0
       }
-    });
-  }
+    };
+  });
 
   const initialCount = parsedJobs.length;
-  let hitsTitle = 0;
-  let hitsAlias = 0;
-  let hitsSkills = 0;
-  let hitsDescription = 0;
 
-  // Phase 3: Candidate recall pool generation com expansão ponderada de Grafo (Decoupled Multi-Retriever Union)
-  const candidates: NormalizedJob[] = [];
-  let rejectedByTitle = 0;
+  // Phase 3: Candidate Recall (Multi-Retriever Union de Módulos Desacoplados)
+  const {
+    candidates,
+    rejectedByTitleCount,
+    hitsTitle,
+    hitsAlias,
+    hitsSkills,
+    hitsDescription
+  } = retrieveCandidates(parsedJobs, intent, debug);
 
-  if (intent) {
-    const expandedIntents = expandIntent(intent.canonical_key);
-
-    for (const j of parsedJobs) {
-      // 1. Buscar a similaridade de título máxima expandida no Grafo direcionado
-      let maxWeightedSim = 0.0;
-      let bestExpandedKey = intent.canonical_key;
-
-      for (const [expandedKey, expansionWeight] of Object.entries(expandedIntents)) {
-        const expandedNode = LOCAL_TAXONOMY[expandedKey];
-        if (!expandedNode) continue;
-
-        const tempIntent = {
-          canonical_key: expandedNode.id,
-          primary_titles: expandedNode.primary_titles,
-          secondary_titles: expandedNode.secondary_titles,
-          raw_query: intent.raw_query,
-          _normalizedPrimary: [expandedNode.id.replace(/_/g, " "), ...expandedNode.primary_titles].map(t => normalizeQuery(t)).filter(Boolean),
-          _normalizedSecondary: expandedNode.secondary_titles.map(t => normalizeQuery(t)).filter(Boolean)
-        };
-        const sim = TitleSimilarityFeature.calculate(j, tempIntent as any);
-        const weightedSim = sim * expansionWeight;
-        if (weightedSim > maxWeightedSim) {
-          maxWeightedSim = weightedSim;
-          bestExpandedKey = expandedKey;
-        }
-      }
-
-      // Salvar similaridade ponderada e nó correspondente de match no objeto temporário
-      (j as any)._titleSim = maxWeightedSim;
-      (j as any)._matchedCanonicalKey = bestExpandedKey;
-
-      // 2. Critérios extremamente amplos de Gating para Recall Máximo (title OR alias OR skill OR description)
-      const titleLower = j.title.toLowerCase();
-      const descLower = j.description.toLowerCase();
-
-      const matchedNode = LOCAL_TAXONOMY[bestExpandedKey] || LOCAL_TAXONOMY[intent.canonical_key];
-
-      // Validação de Skills
-      const nodeSkills = matchedNode ? [...(matchedNode.required_skills || []), ...(matchedNode.preferred_skills || [])] : [];
-      let matchedSkillsCount = 0;
-      nodeSkills.forEach(skill => {
-        const normSkill = normalizeQuery(skill);
-        if (normSkill && descLower.includes(normSkill)) {
-          matchedSkillsCount++;
-        }
-      });
-      const hasAnySkill = matchedSkillsCount > 0;
-      const totalSkillsCount = nodeSkills.length;
-
-      // Validação de Aliases/Títulos
-      const nodeAliases = matchedNode ? [...(matchedNode.aliases || []), ...(matchedNode.primary_titles || []), ...(matchedNode.secondary_titles || [])] : [];
-      const hasAnyAlias = nodeAliases.some(alias => {
-        const normAlias = normalizeQuery(alias);
-        return normAlias && (titleLower.includes(normAlias) || descLower.includes(normAlias));
-      });
-
-      const domainIntent = matchedNode ? {
-        ...intent,
-        canonical_key: matchedNode.id,
-        family: matchedNode.department,
-        primary_titles: [matchedNode.id.replace(/_/g, " "), ...matchedNode.primary_titles],
-        secondary_titles: matchedNode.secondary_titles,
-        skills: matchedNode.required_skills,
-        preferred_skills: matchedNode.preferred_skills,
-        negative_keywords: matchedNode.negative_keywords,
-        department: matchedNode.department,
-        _normalizedPrimary: [matchedNode.id.replace(/_/g, " "), ...matchedNode.primary_titles].map(t => normalizeQuery(t)).filter(Boolean),
-        _normalizedSecondary: matchedNode.secondary_titles.map(t => normalizeQuery(t)).filter(Boolean)
-      } : intent;
-
-      const titleSimFeature = FEATURE_REGISTRY.find(f => f.key === "TitleSimilarity");
-      const skillsFeature = FEATURE_REGISTRY.find(f => f.key === "SkillsCoverage");
-      const descFeature = FEATURE_REGISTRY.find(f => f.key === "DescriptionRelevance");
-
-      const titleSim = titleSimFeature ? titleSimFeature.calculate(j, domainIntent as any) : 0.0;
-      const skillsSim = skillsFeature ? skillsFeature.calculate(j, domainIntent as any) : 0.0;
-      const descRelevance = descFeature ? descFeature.calculate(j, domainIntent as any) : 0.0;
-
-      // Cada retriever opera independentemente com pontuação contínua (DepartmentSimilarity foi removido da recuperação)
-      const titleConfidence = titleSim;
-      
-      let aliasConfidence = 0.0;
-      if (hasAnyAlias) {
-        const normTitle = normalizeQuery(j.title);
-        const primaryAliases = matchedNode ? matchedNode.primary_titles.map(a => normalizeQuery(a)) : [];
-        const secondaryAliases = matchedNode ? matchedNode.secondary_titles.map(a => normalizeQuery(a)) : [];
-        if (primaryAliases.some(a => normTitle.includes(a))) {
-          aliasConfidence = 1.0;
-        } else if (secondaryAliases.some(a => normTitle.includes(a))) {
-          aliasConfidence = 0.8;
-        } else {
-          aliasConfidence = 0.5;
-        }
-      }
-
-      const skillsConfidence = skillsSim;
-      const descriptionConfidence = descRelevance;
-
-      const isAcceptedCandidate = (titleConfidence > 0.0) || (aliasConfidence > 0.0) || (skillsConfidence > 0.0) || (descriptionConfidence > 0.0);
-
-      if (!isAcceptedCandidate) {
-        rejectedByTitle++;
-        if (debug) {
-          console.log(`[Phase 3 Recall Rejected] "${j.title}" (Company: ${j.companyName}) - titleSim: ${titleSim.toFixed(3)}, hasAnySkill: ${hasAnySkill}, descRelevance: ${descRelevance.toFixed(3)}, hasAnyAlias: ${hasAnyAlias}`);
-        }
-        continue;
-      }
-
-      // Incrementar contadores de telemetria do retriever correspondente se houver sinal
-      if (titleConfidence > 0.0) hitsTitle++;
-      if (aliasConfidence > 0.0) hitsAlias++;
-      if (skillsConfidence > 0.0) hitsSkills++;
-      if (descriptionConfidence > 0.0) hitsDescription++;
-
-      // Guardar evidências de recuperação e sinalizadores contínuos no objeto com metadados ricos
-      (j as any)._retrievalEvidence = {
-        title: { score: Number(titleConfidence.toFixed(2)), method: "cosine_title" },
-        alias: { score: Number(aliasConfidence.toFixed(2)), method: "taxonomy_aliases" },
-        skills: { score: Number(skillsConfidence.toFixed(2)), matched: matchedSkillsCount, total: totalSkillsCount },
-        description: { score: Number(descriptionConfidence.toFixed(2)), method: "keyword_overlap" }
-      };
-
-      candidates.push(j);
-    }
-  } else {
-    candidates.push(...parsedJobs);
-  }
-
-  // Phase 4: L2 Hard Filters (Seniority, Location e Geográfico Internacional)
+  // Phase 4: L2 Hard Filters
   const querySeniorities = rawQuery ? extractQuerySeniority(rawQuery) : [];
   const filteredJobs: NormalizedJob[] = [];
   let rejectedByLocation = 0;
@@ -579,165 +172,13 @@ export function aggregateAndNormalizeJobs(
     filteredJobs.push(j);
   }
 
-  // Phase 5, 6, 7 & 8: Extração de Features, LTR Ranker e Explainability Engine
-  const matchedTitleStr = intent ? (intent.primary_titles[0] || "") : "";
-  const allIntentSkills = intent ? [...(intent.skills || []), ...(intent.preferred_skills || [])].filter(Boolean) : [];
-  const expandedIntents = intent ? expandIntent(intent.canonical_key) : {};
-
-  for (const j of filteredJobs) {
-    if (!intent) continue;
-
-    const bestExpandedKey = (j as any)._matchedCanonicalKey || intent.canonical_key;
-    const matchedNode = LOCAL_TAXONOMY[bestExpandedKey] || LOCAL_TAXONOMY[intent.canonical_key];
-
-    // Criar o contexto de intenção mapeado no grafo (evitando double penalty de competências)
-    const domainIntent = matchedNode ? {
-      ...intent,
-      canonical_key: matchedNode.id,
-      family: matchedNode.department,
-      primary_titles: [matchedNode.id.replace(/_/g, " "), ...matchedNode.primary_titles],
-      secondary_titles: matchedNode.secondary_titles,
-      skills: matchedNode.required_skills,
-      preferred_skills: matchedNode.preferred_skills,
-      negative_keywords: matchedNode.negative_keywords,
-      department: matchedNode.department,
-      _normalizedPrimary: [matchedNode.id.replace(/_/g, " "), ...matchedNode.primary_titles].map(t => normalizeQuery(t)).filter(Boolean),
-      _normalizedSecondary: matchedNode.secondary_titles.map(t => normalizeQuery(t)).filter(Boolean)
-    } : intent;
-
-    const featuresScore: Record<string, number> = {};
-    for (const feature of FEATURE_REGISTRY) {
-      if (feature.key === "TitleSimilarity" && (j as any)._titleSim !== undefined) {
-        featuresScore[feature.key] = (j as any)._titleSim;
-      } else {
-        featuresScore[feature.key] = feature.calculate(j, domainIntent as any);
-      }
-    }
-
-    // LTR Linear Score Composition
-    let weightedSum = 0.0;
-    for (const [key, weight] of Object.entries(FEATURE_WEIGHTS)) {
-      const score = featuresScore[key] || 0.0;
-      weightedSum += score * weight;
-    }
-
-    const titleSim = featuresScore["TitleSimilarity"] || 0.0;
-    const skillsSim = featuresScore["SkillsCoverage"] || 0.0;
-
-    // ── 1. Pre-calcular Skills Correspondidas ──
-    const normText = normalizeQuery(`${j.title} ${j.description}`);
-    const matchedSkillsList: string[] = [];
-    for (const skill of allIntentSkills) {
-      const normSkill = normalizeQuery(skill);
-      if (!normSkill) continue;
-      const escaped = normSkill.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-      const rx = new RegExp(`\\b${escaped}\\b`, 'i');
-      if (rx.test(normText)) {
-        matchedSkillsList.push(skill);
-      }
-    }
-
-    // Penalidade por palavras-chave negativas na descrição
-    const negativeKeywords = intent.negative_keywords || [];
-    const normDesc = normalizeQuery(j.description);
-    const matchedNegatives: string[] = [];
-    for (const kw of negativeKeywords) {
-      const normKw = normalizeQuery(kw);
-      if (!normKw) continue;
-      const escaped = normKw.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-      const rx = new RegExp(`\\b${escaped}\\b`, 'i');
-      if (rx.test(normDesc)) {
-        matchedNegatives.push(kw);
-      }
-    }
-    const negativeSignalsScore = Math.min(1.0, matchedNegatives.length * 0.5);
-    // Se o título tem alta compatibilidade, mitigar a penalidade de descrição
-    let negativePenalty = negativeSignalsScore * PENALTIES.NegativeSignalsWeight;
-    if (titleSim >= 0.60) {
-      negativePenalty = negativePenalty * 0.5;
-    }
-
-    // Penalidade por termos negativos de título (penalização em vez de exclusão)
-    const titleNegativeKeywords = domainIntent.negative_titles || [];
-    let titleNegativePenalty = 0.0;
-    const titleLower = j.title.toLowerCase();
-    for (const kw of titleNegativeKeywords) {
-      if (!kw) continue;
-      const escaped = kw.toLowerCase().replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-      const rx = new RegExp(`\\b${escaped}\\b`, 'i');
-      if (rx.test(titleLower)) {
-        titleNegativePenalty = 15.0; // Aplica penalidade de 15 pontos em vez de exclusão
-        break;
-      }
-    }
-
-    // ── 2. Calcular Score LTR Linear Simples ──
-    const boosts: string[] = [];
-    const penaltiesList: string[] = [];
-
-    let overallScore = Math.max(0, Math.min(100, Math.round(weightedSum * 100)));
-
-    // ── 3. Aplicar Multiplicador Leve do Grafo (GraphDistance) ──
-    const graphWeight = expandedIntents[bestExpandedKey] || 1.0;
-    overallScore = Math.round(overallScore * (0.9 + graphWeight * 0.1));
-
-    // ── 4. Calibrar Confiança Baseada em Regras Simples ──
-    let confidence: 'high' | 'medium' | 'low' = 'low';
-    if (titleSim > 0.75 && skillsSim > 0.60) {
-      confidence = 'high';
-    } else if (titleSim > 0.45 || skillsSim > 0.40) {
-      confidence = 'medium';
-    }
-
-    // Formatação de Explainability Payload
-    const featureBreakdown: Record<string, { score: number; contribution: number }> = {};
-    for (const [key, score] of Object.entries(featuresScore)) {
-      const weight = FEATURE_WEIGHTS[key] || 0.0;
-      featureBreakdown[key] = {
-        score: score,
-        contribution: Math.round(weight * 100)
-      };
-    }
-
-    const matchedDepartmentStr = intent.department || "Não especificado na intenção";
-    const rankingReasonStr = `Título similar a '${matchedTitleStr}' com pontuação total de ${overallScore}/100. Confiança classificada como ${confidence.toUpperCase()}.`;
-    const explanationPtBRStr = `Vaga encontrada por similaridade de título (${Math.round(titleSim * 100)}%). ` +
-      `Encontradas ${matchedSkillsList.length} competências (${matchedSkillsList.slice(0, 3).join(', ')}). ` +
-      `Nível de correspondência: ${confidence === 'high' ? 'Alta' : confidence === 'medium' ? 'Boa' : 'Parcial'}.`;
-
-    const descRelevance = featuresScore["DescriptionRelevance"] || 0.0;
-
-    j.scores.overall = overallScore;
-    j.scores.confidence = confidence;
-    j.scores.breakdown = {
-      title: Math.round(titleSim * 30),
-      skills: Math.round(skillsSim * 25),
-      description: Math.round(descRelevance * 30),
-      industry: Math.round((featuresScore["DepartmentSimilarity"] || 0) * 10),
-      company: 0,
-      freshness: Math.round((featuresScore["Freshness"] || 0) * 5)
-    };
-    j.scores.explainability = {
-      overall_score: overallScore,
-      confidence,
-      matched_titles: [matchedTitleStr],
-      matched_skills: matchedSkillsList,
-      matched_department: matchedDepartmentStr,
-      feature_breakdown: featureBreakdown,
-      boosts,
-      penalties: penaltiesList,
-      ranking_reason: rankingReasonStr,
-      explanation_ptBR: explanationPtBRStr,
-      retrievalEvidence: (j as any)._retrievalEvidence || { title: false, alias: false, skills: false, description: false }
-    };
-  }
+  // Phase 5 LTR Ranking
+  rankCandidates(filteredJobs, intent);
 
   // Phase 9: Capping results at Top 100 & Gating Noise (Score >= 30 conditionally)
   let finalJobs: NormalizedJob[] = [];
   let thresholdApplied = 0.0;
 
-  // Filtrar apenas o ruído (vagas completamente irrelevantes que pontuaram < 30)
-  // Mas apenas se o pool inicial de candidatos for grande (>= 100 resultados)
   let candidatesPool = [...filteredJobs];
   if (filteredJobs.length >= 100) {
     thresholdApplied = 30.0;
@@ -754,7 +195,7 @@ export function aggregateAndNormalizeJobs(
 
   const durationMs = Date.now() - startTime;
 
-  // Extrair leading signals para analítica
+  // Extrair leading LTR signals para analítica
   const topFeatures = finalJobs.length > 0
     ? Object.keys(finalJobs[0].scores.explainability?.feature_breakdown || {}).slice(0, 3)
     : [];
@@ -763,56 +204,24 @@ export function aggregateAndNormalizeJobs(
     ? finalJobs.reduce((sum, j) => sum + j.scores.overall, 0) / finalJobs.length
     : 0.0;
 
-  // 1. Calcular Utilidade Marginal (Unicidade de Recuperação) no pool deduplicado (candidates)
-  let uniqueTitle = 0;
-  let uniqueAlias = 0;
-  let uniqueSkills = 0;
-  let uniqueDescription = 0;
-  let intersectionCount = 0;
+  // 1. Calcular Utilidade Marginal (Unicidade de Recuperação)
+  const marginalUtility = calculateMarginalUtility(candidates);
 
-  for (const j of candidates) {
-    const ev = (j as any)._retrievalEvidence;
-    if (!ev) continue;
-    const activeCount = (ev.title.score > 0 ? 1 : 0) +
-                        (ev.alias.score > 0 ? 1 : 0) +
-                        (ev.skills.score > 0 ? 1 : 0) +
-                        (ev.description.score > 0 ? 1 : 0);
-
-    if (activeCount > 1) {
-      intersectionCount++;
-    } else if (activeCount === 1) {
-      if (ev.title.score > 0) uniqueTitle++;
-      else if (ev.alias.score > 0) uniqueAlias++;
-      else if (ev.skills.score > 0) uniqueSkills++;
-      else if (ev.description.score > 0) uniqueDescription++;
-    }
-  }
-
-  // 2. Calcular Contribuição no Top 20 resultados finais
-  let top20Title = 0;
-  let top20Alias = 0;
-  let top20Skills = 0;
-  let top20Description = 0;
-
+  // 2. Calcular Contribuição e Features Dominantes no Top 20 resultados
   const top20Jobs = finalJobs.slice(0, 20);
-  for (const j of top20Jobs) {
-    const ev = j.scores.explainability?.retrievalEvidence;
-    if (!ev) continue;
-    if (ev.title.score > 0) top20Title++;
-    if (ev.alias.score > 0) top20Alias++;
-    if (ev.skills.score > 0) top20Skills++;
-    if (ev.description.score > 0) top20Description++;
-  }
+  const top20Contribution = calculateTop20Contribution(top20Jobs);
+  const dominantFeatures = calculateDominantFeatures(top20Jobs);
 
+  // Chamar o logger de telemetria modularizado
   logSearchTelemetry({
     candidatesGenerated: initialCount,
     candidatesFiltered: finalJobs.length,
-    rejectedByTitle,
+    rejectedByTitle: rejectedByTitleCount,
     rejectedByLocation,
     rejectedBySeniority,
     averageScore: avgScore,
     threshold: thresholdApplied,
-    geminiUsed,
+    geminiUsed: resolvedGeminiUsed,
     latencyMs: durationMs,
     topFeatures,
     retrieverHits: {
@@ -828,20 +237,10 @@ export function aggregateAndNormalizeJobs(
       postHardFilters: filteredJobs.length,
       postLtr: candidatesPool.length
     },
-    marginalUtility: {
-      uniqueTitle,
-      uniqueAlias,
-      uniqueSkills,
-      uniqueDescription,
-      intersection: intersectionCount
-    },
-    top20Contribution: {
-      title: top20Title,
-      alias: top20Alias,
-      skills: top20Skills,
-      description: top20Description
-    }
-  });
+    marginalUtility,
+    top20Contribution,
+    dominantFeatures
+  }, debug);
 
   return finalJobs;
 }

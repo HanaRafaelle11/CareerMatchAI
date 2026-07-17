@@ -157,11 +157,8 @@ serve(async (req) => {
         const controller = new AbortController();
         const timeoutId = setTimeout(() => controller.abort(), 3500);
 
-        // Broaden the search keyword passed to connectors to maximize initial recall
-        let apiQuery = searchKeyword;
-        if (intent) {
-          apiQuery = intent.primary_titles[0] || intent.canonical_key.replace(/_/g, " ");
-        }
+        // Use raw search keyword to prevent query translation losing local matches on regional platforms
+        const apiQuery = searchKeyword;
 
         const connectorResult = await connector.searchJobs(apiQuery, searchLocation, pageNum);
         clearTimeout(timeoutId);

@@ -73,6 +73,22 @@ export function extractQuerySeniority(query: string): ('junior' | 'pleno' | 'sen
   return levels;
 }
 
+const BR_STATES = new Set([
+  "ac", "al", "ap", "am", "ba", "ce", "df", "es", "go", "ma", "mt", "ms", "mg",
+  "pa", "pb", "pr", "pe", "pi", "rj", "rn", "rs", "ro", "rr", "sc", "sp", "se", "to"
+]);
+
+function cleanLocationForMatch(normalizedLoc: string): string {
+  const words = normalizedLoc.split(/\s+/);
+  if (words.length > 1) {
+    const lastWord = words[words.length - 1];
+    if (BR_STATES.has(lastWord)) {
+      return words.slice(0, -1).join(" ");
+    }
+  }
+  return normalizedLoc;
+}
+
 export function aggregateAndNormalizeJobs(
   rawJobs: RawJob[],
   intent: JobIntent | null,
@@ -195,14 +211,17 @@ export function aggregateAndNormalizeJobs(
 
     // 4. Filtro Geográfico Local — somente se a localização NÃO for um termo genérico de país
     //    (evita descartar vagas de cidades brasileiras quando o usuário busca por "Brasil")
+    //    Bypassado para Adzuna pois a API deles já filtra geograficamente com o parâmetro 'where'
     const isCountryLevelSearch = /^(brasil|brazil|br)$/i.test((location || '').trim());
-    if (location && !isCountryLevelSearch && j.workModeNormalized !== 'remote') {
-      const targetLoc = normalizeQuery(location).replace(/\s+/g, "");
+    if (location && !isCountryLevelSearch && j.workModeNormalized !== 'remote' && j.sourcePlatform !== 'Adzuna') {
+      const targetNorm = normalizeQuery(location);
+      const targetClean = cleanLocationForMatch(targetNorm).replace(/\s+/g, "");
       const jLoc = j.locationNormalized.replace(/\s+/g, "");
+      const jLocClean = cleanLocationForMatch(j.locationNormalized || '').replace(/\s+/g, "");
 
-      const isMatch = jLoc.includes(targetLoc) || targetLoc.includes(jLoc) ||
-        (targetLoc === 'sp' && jLoc.includes('saopaulo')) ||
-        (jLoc === 'sp' && targetLoc === 'saopaulo');
+      const isMatch = jLocClean.includes(targetClean) || targetClean.includes(jLocClean) ||
+        (targetClean === 'sp' && jLoc.includes('saopaulo')) ||
+        (jLoc === 'sp' && targetClean === 'saopaulo');
       if (!isMatch) {
         rejectedByLocation++;
         continue;

@@ -797,11 +797,15 @@ export function JobMatchHub({
   const initialWorkModes = storedWorkModes ? JSON.parse(storedWorkModes) : ['remote', 'hybrid', 'onsite'];
   const [searchWorkModes, setSearchWorkModes] = useState<string[]>(initialWorkModes);
   
+  const initialMinSalary = sessionStorage.getItem('job_search_input_min_salary') || '';
+  const [searchMinSalary, setSearchMinSalary] = useState(initialMinSalary);
+
   const [activeFilters, setActiveFilters] = useState({
-    keyword: initialKeyword,
-    location: initialLocation,
-    remoteOnly: initialRemote,
-    workModes: initialWorkModes as string[]
+    keyword: initialInputKeyword,
+    location: initialInputLocation,
+    remoteOnly: initialInputRemote,
+    workModes: initialWorkModes as string[],
+    minSalary: Number(sessionStorage.getItem('job_search_min_salary') || 0)
   });
 
   // Salvar entradas do usuário e filtros ativos na sessionStorage para manter o estado ao navegar
@@ -810,6 +814,7 @@ export function JobMatchHub({
     sessionStorage.setItem('job_search_location', activeFilters.location);
     sessionStorage.setItem('job_search_remote', String(activeFilters.remoteOnly));
     sessionStorage.setItem('job_search_work_modes', JSON.stringify(activeFilters.workModes));
+    sessionStorage.setItem('job_search_min_salary', String(activeFilters.minSalary || ''));
     sessionStorage.setItem('job_search_page', String(searchPage));
   }, [activeFilters, searchPage]);
 
@@ -828,6 +833,10 @@ export function JobMatchHub({
   useEffect(() => {
     sessionStorage.setItem('job_search_input_work_modes', JSON.stringify(searchWorkModes));
   }, [searchWorkModes]);
+
+  useEffect(() => {
+    sessionStorage.setItem('job_search_input_min_salary', searchMinSalary);
+  }, [searchMinSalary]);
 
   // Gatilho de redirecionamento automático do Dashboard
   useEffect(() => {
@@ -958,6 +967,7 @@ export function JobMatchHub({
     location: activeFilters.location,
     remoteOnly: activeFilters.remoteOnly,
     workModes: activeFilters.workModes,
+    minSalary: activeFilters.minSalary || undefined,
     page: searchPage
   }, careerProfileNew);
 

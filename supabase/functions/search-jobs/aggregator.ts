@@ -49,6 +49,18 @@ export interface NormalizedJob extends RawJob {
   };
 }
 
+// ── Helper de Detecção de Idioma ──
+export function detectLanguage(title: string, desc: string): 'pt' | 'en' | 'es' {
+  const text = (title + " " + desc).toLowerCase();
+  const ptCount = (text.match(/\b(o|a|e|de|do|da|em|um|uma|os|as|dos|das|no|na|para|com|ou|vaga|requisitos)\b/g) || []).length;
+  const enCount = (text.match(/\b(the|and|of|in|to|with|job|requirements|skills)\b/g) || []).length;
+  const esCount = (text.match(/\b(el|la|y|de|en|para|con|trabajo|requisitos)\b/g) || []).length;
+
+  if (enCount > ptCount && enCount > esCount) return "en";
+  if (esCount > ptCount && esCount > enCount) return "es";
+  return "pt";
+}
+
 // ── Local Seniority Normalizer ──
 export function extractQuerySeniority(query: string): ('junior' | 'pleno' | 'senior' | 'lead' | 'director')[] {
   const q = query.toLowerCase();
@@ -82,17 +94,39 @@ export function aggregateAndNormalizeJobs(
   }
 
   const parsedJobs: NormalizedJob[] = Array.from(uniqueJobsMap.values()).map(r => {
-    // Normalizações Operacionais Básicas
-    const workMode = r.workMode || 'onsite';
-    const seniority = r.seniority || 'pleno';
+    // ── Classificação automática de workMode a partir do título/descrição ──
+    let workMode: 'remote' | 'hybrid' | 'onsite' = r.workMode as any || 'onsite';
+    if (!r.workMode) {
+      const text = ((r.title || '') + ' ' + (r.description || '')).toLowerCase();
+      if (/\b(remoto|remote|trabalho remoto|home office|anywhere|worldwide)\b/i.test(text)) {
+        workMode = 'remote';
+      } else if (/\b(h[ií]brido|hybrid)\b/i.test(text)) {
+        workMode = 'hybrid';
+      }
+    }
+
+    // ── Classificação automática de senioridade a partir do título ──
+    let seniority: 'junior' | 'pleno' | 'senior' | 'lead' | 'director' = r.seniority as any || 'pleno';
+    if (!r.seniority) {
+      const titleLower = (r.title || '').toLowerCase();
+      if (/\b(junior|júnior|jr|estágio|estagiário|intern|trainee|assistente)\b/i.test(titleLower)) {
+        seniority = 'junior';
+      } else if (/\b(senior|sênior|sr|especialista)\b/i.test(titleLower)) {
+        seniority = 'senior';
+      } else if (/\b(lead|lider|líder|principal|staff)\b/i.test(titleLower)) {
+        seniority = 'lead';
+      } else if (/\b(diretor|director|head|vp|gerente|manager|coordenador)\b/i.test(titleLower)) {
+        seniority = 'director';
+      }
+    }
     
     return {
       ...r,
       companyNameNormalized: r.companyName ? normalizeQuery(r.companyName) : '',
       locationNormalized: r.location ? normalizeQuery(r.location) : '',
       _normalizedTitle: r.title ? normalizeQuery(r.title) : '',
-      workModeNormalized: workMode as any,
-      seniorityNormalized: seniority as any,
+      workModeNormalized: workMode,
+      seniorityNormalized: seniority,
       requirementsNormalized: r.requirements || [],
       benefitsNormalized: r.benefits || [],
       languageNormalized: r.language as any || 'pt',
@@ -139,30 +173,36 @@ export function aggregateAndNormalizeJobs(
       continue;
     }
 
-    // 2. Filtro Geográfico Internacional (se busca no Brasil)
-    if (isBrazilianSearch) {
-      const jobLoc = (j.locationNormalized || j.location || '').toLowerCase();
-      const jobTitle = j.title.toLowerCase();
-      const jobDesc = j.description.substring(0, 300).toLowerCase();
+    // 2. Filtro de Idioma — bloquear vagas claramente em idioma estrangeiro
+    const lang = detectLanguage(j.title, j.description);
+    if (lang !== 'pt') {
+      continue;
+    }
 
-      const isRemoteKeyword = jobLoc.includes('remot') || jobLoc === '' || jobLoc === 'remote' || jobLoc.includes('anywhere') || jobLoc.includes('worldwide');
+    const jobLoc = (j.locationNormalized || j.location || '').toLowerCase();
+    const jobTitle = j.title.toLowerCase();
+    const jobDesc = j.description.substring(0, 300).toLowerCase();
 
-      if (!isRemoteKeyword) {
-        if (nonBrazilPatterns.test(jobLoc) || nonBrazilPatterns.test(jobDesc) || foreignLangPatterns.test(jobTitle)) {
-          rejectedByLocation++;
-          continue;
-        }
+    const isRemoteKeyword = jobLoc.includes('remot') || jobLoc === '' || jobLoc === 'remote' || jobLoc.includes('anywhere') || jobLoc.includes('worldwide');
+
+    // 3. Bloquear vagas com localidade estrangeira explícita
+    if (!isRemoteKeyword) {
+      if (nonBrazilPatterns.test(jobLoc) || nonBrazilPatterns.test(jobDesc) || foreignLangPatterns.test(jobTitle)) {
+        rejectedByLocation++;
+        continue;
       }
     }
 
-    // 3. Filtro Geográfico Local (se especificado um local que não seja remoto)
-    if (location && j.workModeNormalized !== 'remote') {
+    // 4. Filtro Geográfico Local — somente se a localização NÃO for um termo genérico de país
+    //    (evita descartar vagas de cidades brasileiras quando o usuário busca por "Brasil")
+    const isCountryLevelSearch = /^(brasil|brazil|br)$/i.test((location || '').trim());
+    if (location && !isCountryLevelSearch && j.workModeNormalized !== 'remote') {
       const targetLoc = location.toLowerCase().replace(/[^\w]/g, "");
-      const jobLoc = j.locationNormalized.toLowerCase().replace(/[^\w]/g, "");
+      const jLoc = j.locationNormalized.toLowerCase().replace(/[^\w]/g, "");
 
-      const isMatch = jobLoc.includes(targetLoc) || targetLoc.includes(jobLoc) ||
-        (targetLoc === 'sp' && jobLoc.includes('saopaulo')) ||
-        (jobLoc === 'sp' && targetLoc === 'saopaulo');
+      const isMatch = jLoc.includes(targetLoc) || targetLoc.includes(jLoc) ||
+        (targetLoc === 'sp' && jLoc.includes('saopaulo')) ||
+        (jLoc === 'sp' && targetLoc === 'saopaulo');
       if (!isMatch) {
         rejectedByLocation++;
         continue;

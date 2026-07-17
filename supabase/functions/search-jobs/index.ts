@@ -1,20 +1,8 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.8"
 
-// Importar Conectores de Origem
+// Importar Conectores de Origem (somente vagas brasileiras / PT-BR)
 import { AdzunaConnector } from "./connectors/AdzunaConnector.ts";
-import { RemotiveConnector } from "./connectors/RemotiveConnector.ts";
-import { RemoteOkConnector } from "./connectors/RemoteOkConnector.ts";
-import { ArbeitnowConnector } from "./connectors/ArbeitnowConnector.ts";
-import { GreenhouseConnector } from "./connectors/GreenhouseConnector.ts";
-import { LeverConnector } from "./connectors/LeverConnector.ts";
-import { AshbyConnector } from "./connectors/AshbyConnector.ts";
-import { SmartRecruitersConnector } from "./connectors/SmartRecruitersConnector.ts";
-import { WorkableConnector } from "./connectors/WorkableConnector.ts";
-import { RecruiteeConnector } from "./connectors/RecruiteeConnector.ts";
-import { TeamtailorConnector } from "./connectors/TeamtailorConnector.ts";
-import { BambooHRConnector } from "./connectors/BambooHRConnector.ts";
-import { ComeetConnector } from "./connectors/ComeetConnector.ts";
 import { GupyConnector } from "./connectors/GupyConnector.ts";
 import { 
   ProgramathorConnector, 
@@ -62,20 +50,9 @@ async function logAnalyticsEvent(
   }
 }
 
+// Conectores ativos — somente fontes brasileiras em português
 const ACTIVE_CONNECTORS = [
   new AdzunaConnector(),
-  new RemotiveConnector(),
-  new RemoteOkConnector(),
-  new ArbeitnowConnector(),
-  new GreenhouseConnector(),
-  new LeverConnector(),
-  new AshbyConnector(),
-  new SmartRecruitersConnector(),
-  new WorkableConnector(),
-  new RecruiteeConnector(),
-  new TeamtailorConnector(),
-  new BambooHRConnector(),
-  new ComeetConnector(),
   new GupyConnector(),
   new ProgramathorConnector(),
   new TramposConnector(),

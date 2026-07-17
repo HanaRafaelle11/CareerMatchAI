@@ -79,7 +79,29 @@ export function useJobDiscovery(
         page: filters.page || 1
       });
 
-      // ── Pós-processamento inteligente e Ordenação das vagas ──
+      // 1. Filtragem Dinâmica Incondicional (Filtros de Entrada do Usuário: workModes e minSalary)
+      let finalResults = searchResult.results.filter(job => {
+        // A. Filtragem por Modalidade de Trabalho
+        if (filters.workModes && filters.workModes.length > 0) {
+          const jobMode = job.workMode || 'onsite';
+          if (!filters.workModes.includes(jobMode)) {
+            return false;
+          }
+        }
+
+        // B. Filtragem por Faixa Salarial Mínima do Input
+        if (filters.minSalary && filters.minSalary > 0) {
+          const jobMax = job.salaryMax || job.salaryMin || 0;
+          if (jobMax > 0 && jobMax < filters.minSalary) {
+            return false;
+          }
+        }
+        return true;
+      });
+
+      // 2. Otimizações de Preferências Adicionais do Perfil de Carreira
+      //    Só aplica filtros de exclusão quando NÃO é uma busca manual do usuário.
+      //    Quando o usuário digita uma busca, queremos retornar tudo que a API encontrou.
       if (careerProfileNew) {
         const preferences = (careerProfileNew.personal as any)?.preferences || {};
         const targetSeniority = preferences.seniority?.toLowerCase();
@@ -89,53 +111,51 @@ export function useJobDiscovery(
         const targetRoles = preferences.targetRoles || [];
         const industries = preferences.industries || [];
 
-        // 1. Filtrar resultados incompatíveis
-        let filteredResults = searchResult.results.filter(job => {
-          // A. Filtragem por Senioridade
-          if (targetSeniority) {
-            const jobTitleLower = job.title.toLowerCase();
-            
-            // Usuário Júnior -> descarta vagas explicitamente Sênior/Lead/Diretor
-            if (targetSeniority.includes('júnior') || targetSeniority.includes('junior')) {
-              if (jobTitleLower.includes('senior') || jobTitleLower.includes('sênior') || jobTitleLower.includes('lead') || jobTitleLower.includes('diretor') || jobTitleLower.includes('director')) {
+        const isManualSearch = !!filters.keyword;
+
+        // Filtrar por preferências do perfil consolidado — somente em buscas automáticas
+        let profileFilteredResults = finalResults;
+        if (!isManualSearch) {
+          profileFilteredResults = finalResults.filter(job => {
+            // A. Filtragem por Senioridade
+            if (targetSeniority) {
+              const jobTitleLower = job.title.toLowerCase();
+              
+              // Usuário Júnior -> descarta vagas explicitamente Sênior/Lead/Diretor
+              if (targetSeniority.includes('júnior') || targetSeniority.includes('junior')) {
+                if (jobTitleLower.includes('senior') || jobTitleLower.includes('sênior') || jobTitleLower.includes('lead') || jobTitleLower.includes('diretor') || jobTitleLower.includes('director')) {
+                  return false;
+                }
+              }
+              // Usuário Sênior/Lead -> descarta vagas Júnior/Estágio
+              if (targetSeniority.includes('sênior') || targetSeniority.includes('senior') || targetSeniority.includes('lead')) {
+                if (jobTitleLower.includes('junior') || jobTitleLower.includes('júnior') || jobTitleLower.includes('estágio') || jobTitleLower.includes('estagiário')) {
+                  return false;
+                }
+              }
+            }
+
+            // B. Filtragem por Pretensão Salarial (tolerância de 20% para flexibilidade)
+            const jobMax = job.salaryMax || job.salaryMin;
+            if (minSalary > 0 && jobMax) {
+              if (jobMax < minSalary * 0.8) {
                 return false;
               }
             }
-            // Usuário Sênior/Lead -> descarta vagas Júnior/Estágio
-            if (targetSeniority.includes('sênior') || targetSeniority.includes('senior') || targetSeniority.includes('lead')) {
-              if (jobTitleLower.includes('junior') || jobTitleLower.includes('júnior') || jobTitleLower.includes('estágio') || jobTitleLower.includes('estagiário')) {
-                return false;
+
+            // C. Filtragem por Modalidade de Trabalho (se houver preferência estrita)
+            if (preferredWorkModes.length > 0) {
+              if (preferredWorkModes.includes('remote') && !preferredWorkModes.includes('onsite') && job.workMode === 'onsite') {
+                if (filters.remoteOnly) return false;
               }
             }
-          }
 
-          // B. Filtragem por Pretensão Salarial (tolerância de 20% para flexibilidade)
-          const jobMax = job.salaryMax || job.salaryMin;
-          if (minSalary > 0 && jobMax) {
-            if (jobMax < minSalary * 0.8) {
-              return false;
-            }
-          }
+            return true;
+          });
+        }
 
-          // C. Filtragem por Modalidade de Trabalho (se houver preferência estrita e remoteOnly marcado)
-          if (preferredWorkModes.length > 0) {
-            if (preferredWorkModes.includes('remote') && !preferredWorkModes.includes('onsite') && job.workMode === 'onsite') {
-              if (filters.remoteOnly) return false;
-            }
-          }
-
-          if (filters.workModes && filters.workModes.length > 0) {
-            const jobMode = job.workMode || 'onsite';
-            if (!filters.workModes.includes(jobMode)) {
-              return false;
-            }
-          }
-
-          return true;
-        });
-
-        // 2. Ordenação/Priorização Inteligente dos Resultados baseada no Score
-        const scoredResults = filteredResults.map(job => {
+        // 3. Ordenação/Priorização Inteligente dos Resultados baseada no Score
+        const scoredResults = profileFilteredResults.map(job => {
           let score = 0;
           const jobTitleLower = job.title.toLowerCase();
           const jobDescLower = job.description.toLowerCase();
@@ -190,9 +210,10 @@ export function useJobDiscovery(
 
         // Ordenar do maior score para o menor
         scoredResults.sort((a, b) => b.score - a.score);
-        searchResult.results = scoredResults.map(item => item.job);
+        finalResults = scoredResults.map(item => item.job);
       }
 
+      searchResult.results = finalResults;
       return searchResult;
     },
     enabled: !!userId, // Habilitado sempre que o usuário estiver logado

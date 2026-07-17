@@ -610,23 +610,36 @@ export function aggregateAndNormalizeJobs(
       penaltiesList.push("Incompatibilidade parcial de título (-15 pontos)");
     }
 
-    let overallScore = Math.max(0, Math.min(100, Math.round(weightedSum * 100 - negativePenalty - titleNegativePenalty) + boostSum));
+    // Aplicar limite de saturação (Cap) nos boosts lineares (máximo de 20 pontos)
+    const cappedBoost = Math.min(20, boostSum);
+    if (boostSum > 20) {
+      boosts.push(`Boost acumulado limitado a 20 pontos (saturado de ${boostSum})`);
+    }
+
+    // ── 3. Aplicar Decaimento Topológico como Boost (GraphDistance) ──
+    const graphWeight = expandedIntents[bestExpandedKey] || 1.0;
+    const graphBoost = Math.round(graphWeight * 10);
+    boosts.push(`Afinidade topológica do Grafo de Conhecimento (+${graphBoost})`);
+
+    let overallScore = Math.max(0, Math.min(100, Math.round(weightedSum * 100 - negativePenalty - titleNegativePenalty) + cappedBoost + graphBoost));
 
     // Penalidade para cargos adjacentes com match fraco de título (ex: expansão de grafo de peso baixo)
     if (titleSim < 0.55) {
       overallScore = Math.max(0, overallScore - 20);
     }
 
-    // ── 3. Aplicar Decaimento Topológico (GraphDistance) ──
-    const graphWeight = expandedIntents[bestExpandedKey] || 1.0;
-    overallScore = Math.round(overallScore * graphWeight);
+    // ── 4. Calcular Confidence Factor (0.0 - 1.0) Baseado em Múltiplos Sinais ──
+    const hasAliasMatch = isAliasExact ? 1.0 : 0.0;
+    const titleConfidence = Math.max(titleSim, hasAliasMatch);
+    const contentConfidence = (skillsSim * 0.6 + descRelevance * 0.4);
+    const graphConfidence = graphWeight;
 
-    // Calibração do Nível de Confiança
+    const confidenceFactor = (titleConfidence * 0.45) + (contentConfidence * 0.30) + (graphConfidence * 0.25);
+
     let confidence: 'high' | 'medium' | 'low' = 'low';
-    const companyTrust = featuresScore["CompanyQuality"] || 0.0;
-    if (titleSim >= 0.60 && skillsSim >= 0.20 && companyTrust >= 0.70) {
+    if (confidenceFactor >= 0.75) {
       confidence = 'high';
-    } else if (titleSim >= 0.45 && skillsSim >= 0.10) {
+    } else if (confidenceFactor >= 0.45) {
       confidence = 'medium';
     }
 
@@ -641,10 +654,10 @@ export function aggregateAndNormalizeJobs(
     }
 
     const matchedDepartmentStr = intent.department || "Não especificado na intenção";
-    const rankingReasonStr = `Título similar a '${matchedTitleStr}' com pontuação total de ${overallScore}/100. Confiança classificada como ${confidence.toUpperCase()}.`;
+    const rankingReasonStr = `Título similar a '${matchedTitleStr}' com pontuação total de ${overallScore}/100. Confiança de matching de ${Math.round(confidenceFactor * 100)}% (${confidence.toUpperCase()}).`;
     const explanationPtBRStr = `Vaga encontrada por similaridade de título (${Math.round(titleSim * 100)}%). ` +
       `Encontradas ${matchedSkillsList.length} competências (${matchedSkillsList.slice(0, 3).join(', ')}). ` +
-      `Localização normalizada: ${j.locationNormalized}.`;
+      `Confiança de matching: ${confidence === 'high' ? 'Alta' : confidence === 'medium' ? 'Média' : 'Parcial'} (${Math.round(confidenceFactor * 100)}%).`;
 
     j.scores.overall = overallScore;
     j.scores.confidence = confidence;
@@ -670,18 +683,24 @@ export function aggregateAndNormalizeJobs(
     };
   }
 
-  // Phase 9: Capping results at Top 100 & Gating Noise (Score >= 30)
+  // Phase 9: Capping results at Top 100 & Gating Noise (Score >= 30 conditionally)
   let finalJobs: NormalizedJob[] = [];
-  let thresholdApplied = 30.0;
+  let thresholdApplied = 0.0;
 
   // Filtrar apenas o ruído (vagas completamente irrelevantes que pontuaram < 30)
-  const qualityJobs = filteredJobs.filter(item => item.scores.overall >= 30.0);
-  qualityJobs.sort((a, b) => b.scores.overall - a.scores.overall);
+  // Mas apenas se o pool inicial de candidatos for grande (>= 100 resultados)
+  let candidatesPool = [...filteredJobs];
+  if (filteredJobs.length >= 100) {
+    thresholdApplied = 30.0;
+    candidatesPool = filteredJobs.filter(item => item.scores.overall >= 30.0);
+  }
 
-  if (qualityJobs.length <= 100) {
-    finalJobs = qualityJobs;
+  candidatesPool.sort((a, b) => b.scores.overall - a.scores.overall);
+
+  if (candidatesPool.length <= 100) {
+    finalJobs = candidatesPool;
   } else {
-    finalJobs = qualityJobs.slice(0, 100);
+    finalJobs = candidatesPool.slice(0, 100);
   }
 
   const durationMs = Date.now() - startTime;

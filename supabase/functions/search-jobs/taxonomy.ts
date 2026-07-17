@@ -417,10 +417,10 @@ export const LOCAL_TAXONOMY: Record<string, TaxonomyNode> = {
       "inside sales", "sales representative", "account executive", "ae",
       "sales development representative", "sdr", "business development representative", "bdr",
       "sales manager", "consultor de vendas", "analista comercial", "executivo de contas",
-      "account manager", "account management"
+      "account manager", "account management", "vendedor", "vendedora", "vendas"
     ],
-    primary_titles: ["inside sales", "sales representative", "account executive", "ae", "sales development representative", "sdr", "consultor de vendas", "account manager"],
-    secondary_titles: ["business development representative", "bdr", "sales manager", "analista comercial", "executivo de contas", "account management"],
+    primary_titles: ["inside sales", "sales representative", "account executive", "ae", "sales development representative", "sdr", "consultor de vendas", "account manager", "vendedor", "vendedora"],
+    secondary_titles: ["business development representative", "bdr", "sales manager", "analista comercial", "executivo de contas", "account management", "vendas"],
     related_titles: ["customer_success", "marketing_specialist"],
     negative_titles: ["suporte técnico", "developer", "devops", "designer", "quality assurance", "programador"],
     required_skills: ["sales", "negotiation", "cold calling", "crm", "lead generation", "prospecting", "pipeline"],

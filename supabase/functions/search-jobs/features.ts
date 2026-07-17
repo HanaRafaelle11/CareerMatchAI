@@ -128,7 +128,7 @@ export const SkillsCoverageFeature: Feature = {
     const reqSkills = intent.skills || [];
     const prefSkills = intent.preferred_skills || [];
     const allSkills = [...reqSkills, ...prefSkills].filter(Boolean);
-    if (allSkills.length === 0) return 1.0;
+    if (allSkills.length === 0 || intent.canonical_key === "generic_search") return 0.0;
 
     const normText = normalizeQuery(`${job.title} ${job.description}`);
     let matched = 0;
@@ -152,7 +152,7 @@ export const DepartmentFeature: Feature = {
   name: "Department Similarity",
   key: "DepartmentSimilarity",
   calculate(job, intent) {
-    if (!intent.department) return 0.5;
+    if (!intent.department || intent.canonical_key === "generic_search") return 0.0;
     const normTitle = normalizeQuery(job.title);
     const normDept = normalizeQuery(intent.department);
     const normDesc = normalizeQuery(job.description);
@@ -172,14 +172,14 @@ export const DescriptionRelevanceFeature: Feature = {
     if (!descLower) return 0.0;
 
     const termsToMatch = [
-      intent.canonical_key.replace(/_/g, " "),
+      (intent as any).raw_query || intent.canonical_key.replace(/_/g, " "),
       ...intent.primary_titles,
       ...intent.secondary_titles,
       ...intent.skills,
       ...intent.preferred_skills
     ].map(t => normalizeQuery(t)).filter(Boolean);
 
-    if (termsToMatch.length === 0) return 1.0;
+    if (termsToMatch.length === 0 || intent.canonical_key === "generic_search") return 0.0;
 
     let matchCount = 0;
     for (const term of termsToMatch) {

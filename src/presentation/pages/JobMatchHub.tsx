@@ -799,7 +799,7 @@ export function JobMatchHub({
   const [searchWorkModes, setSearchWorkModes] = useState<string[]>(initialWorkModes);
   
   const initialMinSalary = sessionStorage.getItem('job_search_input_min_salary') || '';
-  const [searchMinSalary, setSearchMinSalary] = useState(initialMinSalary);
+  const [searchMinSalary] = useState(initialMinSalary);
 
   const [activeFilters, setActiveFilters] = useState({
     keyword: initialInputKeyword,

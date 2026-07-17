@@ -68,6 +68,19 @@ interface SearchMetrics {
     postHardFilters: number;
     postLtr: number;
   };
+  marginalUtility: {
+    uniqueTitle: number;
+    uniqueAlias: number;
+    uniqueSkills: number;
+    uniqueDescription: number;
+    intersection: number;
+  };
+  top20Contribution: {
+    title: number;
+    alias: number;
+    skills: number;
+    description: number;
+  };
 }
 function logSearchTelemetry(m: SearchMetrics) {
   console.log("================ FUNNEL OBSERVABILITY ================");
@@ -77,6 +90,17 @@ function logSearchTelemetry(m: SearchMetrics) {
   console.log(`Alias Retriever Hits...: ${m.retrieverHits.alias} (yield: ${((m.retrieverHits.alias / raw) * 100).toFixed(1)}%)`);
   console.log(`Skills Retriever Hits..: ${m.retrieverHits.skills} (yield: ${((m.retrieverHits.skills / raw) * 100).toFixed(1)}%)`);
   console.log(`Desc Retriever Hits....: ${m.retrieverHits.description} (yield: ${((m.retrieverHits.description / raw) * 100).toFixed(1)}%)`);
+  console.log(`------------------ MARGINAL UTILITY ------------------`);
+  console.log(`Unique from Title......: ${m.marginalUtility.uniqueTitle}`);
+  console.log(`Unique from Alias......: ${m.marginalUtility.uniqueAlias}`);
+  console.log(`Unique from Skills.....: ${m.marginalUtility.uniqueSkills}`);
+  console.log(`Unique from Description: ${m.marginalUtility.uniqueDescription}`);
+  console.log(`Retriever Intersections: ${m.marginalUtility.intersection}`);
+  console.log(`----------------- TOP 20 CONTRIBUTION ----------------`);
+  console.log(`Title Retriever Hits...: ${m.top20Contribution.title}`);
+  console.log(`Alias Retriever Hits...: ${m.top20Contribution.alias}`);
+  console.log(`Skills Retriever Hits..: ${m.top20Contribution.skills}`);
+  console.log(`Desc Retriever Hits....: ${m.top20Contribution.description}`);
   console.log(`------------------------------------------------------`);
   console.log(`Raw Union Pool Size....: ${m.funnel.rawUnion}`);
   console.log(`Deduplicated Candidates: ${m.funnel.deduplicated}`);
@@ -414,10 +438,15 @@ export function aggregateAndNormalizeJobs(
 
       // Validação de Skills
       const nodeSkills = matchedNode ? [...(matchedNode.required_skills || []), ...(matchedNode.preferred_skills || [])] : [];
-      const hasAnySkill = nodeSkills.some(skill => {
+      let matchedSkillsCount = 0;
+      nodeSkills.forEach(skill => {
         const normSkill = normalizeQuery(skill);
-        return normSkill && descLower.includes(normSkill);
+        if (normSkill && descLower.includes(normSkill)) {
+          matchedSkillsCount++;
+        }
       });
+      const hasAnySkill = matchedSkillsCount > 0;
+      const totalSkillsCount = nodeSkills.length;
 
       // Validação de Aliases/Títulos
       const nodeAliases = matchedNode ? [...(matchedNode.aliases || []), ...(matchedNode.primary_titles || []), ...(matchedNode.secondary_titles || [])] : [];
@@ -484,12 +513,12 @@ export function aggregateAndNormalizeJobs(
       if (skillsConfidence > 0.0) hitsSkills++;
       if (descriptionConfidence > 0.0) hitsDescription++;
 
-      // Guardar evidências de recuperação e sinalizadores contínuos no objeto
+      // Guardar evidências de recuperação e sinalizadores contínuos no objeto com metadados ricos
       (j as any)._retrievalEvidence = {
-        title: Number(titleConfidence.toFixed(2)),
-        alias: Number(aliasConfidence.toFixed(2)),
-        skills: Number(skillsConfidence.toFixed(2)),
-        description: Number(descriptionConfidence.toFixed(2))
+        title: { score: Number(titleConfidence.toFixed(2)), method: "cosine_title" },
+        alias: { score: Number(aliasConfidence.toFixed(2)), method: "taxonomy_aliases" },
+        skills: { score: Number(skillsConfidence.toFixed(2)), matched: matchedSkillsCount, total: totalSkillsCount },
+        description: { score: Number(descriptionConfidence.toFixed(2)), method: "keyword_overlap" }
       };
 
       candidates.push(j);
@@ -734,6 +763,47 @@ export function aggregateAndNormalizeJobs(
     ? finalJobs.reduce((sum, j) => sum + j.scores.overall, 0) / finalJobs.length
     : 0.0;
 
+  // 1. Calcular Utilidade Marginal (Unicidade de Recuperação) no pool deduplicado (candidates)
+  let uniqueTitle = 0;
+  let uniqueAlias = 0;
+  let uniqueSkills = 0;
+  let uniqueDescription = 0;
+  let intersectionCount = 0;
+
+  for (const j of candidates) {
+    const ev = (j as any)._retrievalEvidence;
+    if (!ev) continue;
+    const activeCount = (ev.title.score > 0 ? 1 : 0) +
+                        (ev.alias.score > 0 ? 1 : 0) +
+                        (ev.skills.score > 0 ? 1 : 0) +
+                        (ev.description.score > 0 ? 1 : 0);
+
+    if (activeCount > 1) {
+      intersectionCount++;
+    } else if (activeCount === 1) {
+      if (ev.title.score > 0) uniqueTitle++;
+      else if (ev.alias.score > 0) uniqueAlias++;
+      else if (ev.skills.score > 0) uniqueSkills++;
+      else if (ev.description.score > 0) uniqueDescription++;
+    }
+  }
+
+  // 2. Calcular Contribuição no Top 20 resultados finais
+  let top20Title = 0;
+  let top20Alias = 0;
+  let top20Skills = 0;
+  let top20Description = 0;
+
+  const top20Jobs = finalJobs.slice(0, 20);
+  for (const j of top20Jobs) {
+    const ev = j.scores.explainability?.retrievalEvidence;
+    if (!ev) continue;
+    if (ev.title.score > 0) top20Title++;
+    if (ev.alias.score > 0) top20Alias++;
+    if (ev.skills.score > 0) top20Skills++;
+    if (ev.description.score > 0) top20Description++;
+  }
+
   logSearchTelemetry({
     candidatesGenerated: initialCount,
     candidatesFiltered: finalJobs.length,
@@ -757,6 +827,19 @@ export function aggregateAndNormalizeJobs(
       deduplicated: candidates.length,
       postHardFilters: filteredJobs.length,
       postLtr: candidatesPool.length
+    },
+    marginalUtility: {
+      uniqueTitle,
+      uniqueAlias,
+      uniqueSkills,
+      uniqueDescription,
+      intersection: intersectionCount
+    },
+    top20Contribution: {
+      title: top20Title,
+      alias: top20Alias,
+      skills: top20Skills,
+      description: top20Description
     }
   });
 

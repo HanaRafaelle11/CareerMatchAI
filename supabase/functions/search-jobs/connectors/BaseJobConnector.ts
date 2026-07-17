@@ -19,7 +19,10 @@ export interface JobIntent {
   family: string;
   primary_titles: string[];
   secondary_titles: string[];
+  negative_titles: string[];
   skills: string[];
+  preferred_skills: string[];
+  negative_keywords: string[];
 }
 
 export abstract class BaseJobConnector {

@@ -18,6 +18,10 @@ export interface NormalizedJob extends RawJob {
     descriptionCompleteness: number;
     remoteConfidence: number;
     overall: number;
+    breakdown?: { title: number; skills: number; context: number };
+    adjustments?: { boosts: string[]; penalties: string[] };
+    explanation?: string;
+    confidence?: 'high' | 'medium' | 'low';
   };
 }
 
@@ -29,16 +33,22 @@ function calculateSemanticScore(
   seniority: 'junior' | 'pleno' | 'senior' | 'lead' | 'director',
   location: string,
   baseScores: any
-): number {
+): {
+  overall: number;
+  breakdown: { title: number; skills: number; context: number };
+  adjustments: { boosts: string[]; penalties: string[] };
+  explanation: string;
+  confidence: 'high' | 'medium' | 'low';
+} {
   const titleClean = j.title.replace(/<\/?[^>]+(>|$)/g, "").trim();
   const titleLower = titleClean.toLowerCase();
   const descLower = j.description.toLowerCase();
   const combinedText = `${titleLower} ${descLower}`;
 
-  // 1. Título (60%)
   let titleScore = 0;
-  
-  // Exact or substring match in primary_titles
+  let titleMatchDetail = "";
+
+  // 1. Título (60 pts)
   const matchedPrimary = intent.primary_titles.some(t => {
     const tLower = t.toLowerCase();
     return titleLower.includes(tLower) || tLower.includes(titleLower);
@@ -46,8 +56,8 @@ function calculateSemanticScore(
 
   if (matchedPrimary) {
     titleScore = 60;
+    titleMatchDetail = "título primário";
   } else {
-    // Exact or substring match in secondary_titles
     const matchedSecondary = intent.secondary_titles.some(t => {
       const tLower = t.toLowerCase();
       return titleLower.includes(tLower) || tLower.includes(titleLower);
@@ -55,8 +65,8 @@ function calculateSemanticScore(
 
     if (matchedSecondary) {
       titleScore = 40;
+      titleMatchDetail = "título secundário";
     } else {
-      // Check word overlap
       const tokensToMatch = new Set<string>();
       intent.primary_titles.forEach(t => t.toLowerCase().split(/\s+/).forEach(w => {
         const cleaned = w.replace(/[^\w]/g, "");
@@ -71,42 +81,127 @@ function calculateSemanticScore(
       const overlapCount = titleWords.filter(w => tokensToMatch.has(w)).length;
       if (overlapCount > 0) {
         titleScore = 20;
+        titleMatchDetail = "sobreposição parcial de cargo";
+      } else {
+        titleMatchDetail = "sem correspondência clara de título";
       }
     }
   }
 
-  // 2. Skills (20%)
+  // 2. Skills (20 pts)
   let skillScore = 0;
+  const matchedSkillsList: string[] = [];
   if (intent.skills && intent.skills.length > 0) {
     const matchedSkills = intent.skills.filter(skill => {
       if (!skill) return false;
       const rx = new RegExp(`\\b${skill.toLowerCase()}\\b`, 'i');
       return rx.test(combinedText);
     });
-    // Max 20 points
-    skillScore = (matchedSkills.length / intent.skills.length) * 20;
+    matchedSkills.forEach(s => matchedSkillsList.push(s));
+    skillScore = Math.round((matchedSkills.length / intent.skills.length) * 20);
   }
 
-  // 3. Descrição (10%)
+  // 3. Contexto (20 pts)
+  // Descrição (10 pts)
   let descScore = 3;
   if (j.description.length > 1000) {
     descScore = 10;
   } else if (j.description.length > 500) {
     descScore = 6;
   }
-
-  // 4. Departamento / Family (5%)
+  // Família/Categoria (5 pts)
   let familyScore = 2;
   const familyLower = intent.family.toLowerCase();
   if (titleLower.includes(familyLower) || descLower.includes(familyLower)) {
     familyScore = 5;
   }
+  // Empresa (5 pts)
+  const companyScore = Math.round((baseScores.companyTrust / 100) * 5);
+  const contextScore = descScore + familyScore + companyScore;
 
-  // 5. Empresa (5%)
-  const companyScore = (baseScores.companyTrust / 100) * 5;
+  // 4. Ajustes (Boosts & Penalties)
+  const boosts: string[] = [];
+  const penalties: string[] = [];
+  let adjustmentsSum = 0;
 
-  const finalScore = Math.round(titleScore + skillScore + descScore + familyScore + companyScore);
-  return finalScore;
+  // Boost: Preferred Skills (+1 pt cada, máx +5)
+  if (intent.preferred_skills && intent.preferred_skills.length > 0) {
+    const matchedPreferred = intent.preferred_skills.filter(skill => {
+      if (!skill) return false;
+      const rx = new RegExp(`\\b${skill.toLowerCase()}\\b`, 'i');
+      return rx.test(combinedText);
+    });
+    if (matchedPreferred.length > 0) {
+      const pBoost = Math.min(5, matchedPreferred.length);
+      boosts.push(`Competência opcional: +${pBoost} pts (${matchedPreferred.join(', ')})`);
+      adjustmentsSum += pBoost;
+    }
+  }
+
+  // Boost: Vaga recente (postada nas últimas 24h) (+5 pts)
+  if (j.publishedAt) {
+    const ageMs = Date.now() - new Date(j.publishedAt).getTime();
+    const ageHours = ageMs / (1000 * 60 * 60);
+    if (ageHours <= 24) {
+      boosts.push("Vaga muito recente: +5 pts");
+      adjustmentsSum += 5;
+    }
+  }
+
+  // Boost: Recrutador confiável (ATS direta) (+5 pts)
+  const platform = j.sourcePlatform.toLowerCase();
+  if (["greenhouse", "lever", "ashby", "smartrecruiters"].includes(platform)) {
+    boosts.push("Conexão direta ATS: +5 pts");
+    adjustmentsSum += 5;
+  }
+
+  // Penalty: Palavras-chave negativas (-15 pts)
+  if (intent.negative_keywords && intent.negative_keywords.length > 0) {
+    const matchedNegative = intent.negative_keywords.filter(word => {
+      if (!word) return false;
+      const rx = new RegExp(`\\b${word.toLowerCase()}\\b`, 'i');
+      return rx.test(combinedText);
+    });
+    if (matchedNegative.length > 0) {
+      penalties.push(`Sinalizador negativo: -15 pts (${matchedNegative.join(', ')})`);
+      adjustmentsSum -= 15;
+    }
+  }
+
+  // Score total calibrado
+  const overall = Math.max(0, Math.min(100, Math.round(titleScore + skillScore + contextScore + adjustmentsSum)));
+
+  // Nível de confiança
+  let confidence: 'high' | 'medium' | 'low' = 'low';
+  if (overall >= 80) confidence = 'high';
+  else if (overall >= 60) confidence = 'medium';
+
+  // Gerar explicação em Português
+  const explanationParts = [
+    `+${titleScore} título (${titleMatchDetail})`,
+    `+${skillScore} competências`
+  ];
+  if (matchedSkillsList.length > 0) {
+    explanationParts[1] += ` (${matchedSkillsList.slice(0, 3).join(', ')})`;
+  }
+  explanationParts.push(`+${contextScore} contexto (desc: +${descScore}, cat: +${familyScore}, trust: +${companyScore})`);
+
+  if (boosts.length > 0) {
+    explanationParts.push(`bônus: +${adjustmentsSum > 0 ? adjustmentsSum : 0}`);
+  }
+  if (penalties.length > 0) {
+    explanationParts.push(`penalidades: -15`);
+  }
+
+  const explanation = explanationParts.join(', ');
+
+  return {
+    overall,
+    breakdown: { title: titleScore, skills: skillScore, context: contextScore },
+    adjustments: { boosts, penalties },
+    explanation,
+    confidence
+  };
 }
 
 // ── Normalize Company Names ──
@@ -317,11 +412,22 @@ export function aggregateAndNormalizeJobs(
     const companyNormalized = normalizeCompany(j.companyName);
     const titleClean = j.title.replace(/<\/?[^>]+(>|$)/g, "").trim();
     
-    // Phase 1: Title Pre-filter
+    // Phase 1: Title Pre-filter & Exclusion Check
     if (intent) {
       const titleLower = titleClean.toLowerCase();
+
+      // A. Discard instantly if job title matches any negative_titles
+      const isNegativeMatch = intent.negative_titles.some(nt => {
+        if (!nt) return false;
+        const rx = new RegExp(`\\b${nt.toLowerCase()}\\b`, 'i');
+        return rx.test(titleLower);
+      });
+      if (isNegativeMatch) {
+        continue;
+      }
+
+      // B. Token positive match check
       const tokensToMatch = new Set<string>();
-      
       intent.family.toLowerCase().split(/\s+/).forEach(w => {
         const cleaned = w.replace(/[^\w]/g, "");
         if (cleaned.length >= 2) tokensToMatch.add(cleaned);
@@ -370,10 +476,15 @@ export function aggregateAndNormalizeJobs(
       .replace(/\s+/g, ' ')
       .trim();
 
+    // Compute semantic match score if intent is provided
     let finalOverallScore = baseScores.overall;
+    let semanticDetails: any = null;
+
     if (intent) {
-      finalOverallScore = calculateSemanticScore(j, intent, mode, seniority, location || '', baseScores);
+      semanticDetails = calculateSemanticScore(j, intent, mode, seniority, location || '', baseScores);
+      finalOverallScore = semanticDetails.overall;
       
+      // Keep jobs with overall score >= 60 (threshold filter)
       if (finalOverallScore < 60) {
         continue;
       }
@@ -394,10 +505,17 @@ export function aggregateAndNormalizeJobs(
       languageNormalized: lang,
       scores: {
         ...baseScores,
-        overall: finalOverallScore
+        overall: finalOverallScore,
+        ...(semanticDetails ? {
+          breakdown: semanticDetails.breakdown,
+          adjustments: semanticDetails.adjustments,
+          explanation: semanticDetails.explanation,
+          confidence: semanticDetails.confidence
+        } : {})
       }
     });
   }
 
+  // Sort descending by Overall score
   return normalizedList.sort((a, b) => b.scores.overall - a.scores.overall);
 }

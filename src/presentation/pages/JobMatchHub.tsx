@@ -2884,6 +2884,37 @@ export function JobMatchHub({
                               )}
                             </div>
 
+                            {/* Detalhamento de Relevância e Explainability (VSR) */}
+                            {job.scores && job.scores.explanation && (
+                              <div className="mt-2 text-[10px] text-slate-400 bg-slate-900/40 dark:bg-slate-950/40 light:bg-slate-100/50 border border-slate-800/40 dark:border-slate-800/50 light:border-slate-200 rounded-xl p-2.5 space-y-1">
+                                <div className="flex justify-between items-center text-slate-350 dark:text-slate-350 light:text-slate-700">
+                                  <span className="font-semibold flex items-center gap-1.5">
+                                    🔍 Relevância da Busca: <span className={job.scores.overall >= 80 ? 'text-emerald-400 font-bold' : job.scores.overall >= 70 ? 'text-indigo-400 font-bold' : 'text-slate-400 font-bold'}>{job.scores.overall}%</span> 
+                                    <span className="text-[8px] px-1.5 py-0.2 rounded-md bg-slate-800 text-slate-400">
+                                      {job.scores.confidence === 'high' ? 'Alta Confiança' : 'Média Confiança'}
+                                    </span>
+                                  </span>
+                                </div>
+                                <p className="text-[9px] text-slate-500 dark:text-slate-500 light:text-slate-600 italic font-mono leading-normal">{job.scores.explanation}</p>
+                                
+                                {((job.scores.adjustments?.boosts && job.scores.adjustments.boosts.length > 0) || 
+                                  (job.scores.adjustments?.penalties && job.scores.adjustments.penalties.length > 0)) && (
+                                  <div className="pt-1 flex gap-1.5 flex-wrap text-[8px] font-bold">
+                                    {job.scores.adjustments.boosts?.map((b: string, i: number) => (
+                                      <span key={i} className="text-emerald-500 dark:text-emerald-400 bg-emerald-950/20 px-1 py-0.5 rounded border border-emerald-900/30">
+                                        {b}
+                                      </span>
+                                    ))}
+                                    {job.scores.adjustments.penalties?.map((p: string, i: number) => (
+                                      <span key={i} className="text-red-500 dark:text-red-400 bg-red-950/20 px-1 py-0.5 rounded border border-red-900/30">
+                                        {p}
+                                      </span>
+                                    ))}
+                                  </div>
+                                )}
+                              </div>
+                            )}
+
                             {/* Exibição de lacunas de competências */}
                             <div className="pt-2 border-t border-slate-900/60 text-[10px] text-slate-400">
                               {job.missingSkills.length > 0 ? (

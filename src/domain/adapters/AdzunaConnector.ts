@@ -70,7 +70,8 @@ export class AdzunaConnector extends BaseJobConnector {
             currency: result.currency || 'BRL',
             sourceUrl: result.sourceUrl || result.redirect_url || '',
             sourcePlatform: result.sourcePlatform || this.platformName,
-            isActive: true
+            isActive: true,
+            scores: result.scores
           };
         });
       });

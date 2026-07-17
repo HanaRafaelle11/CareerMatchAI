@@ -41,6 +41,7 @@ export interface Job {
   stagesCount?: number;
   caseHours?: number;
   salaryNumeric?: number;
+  scores?: any;
 }
 
 export interface Resume {

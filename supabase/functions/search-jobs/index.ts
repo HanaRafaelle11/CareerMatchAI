@@ -67,7 +67,10 @@ The response must be valid JSON matching this schema:
   "family": "The job family or category name (e.g., 'Customer Success', 'Software Engineering')",
   "primary_titles": ["The most common/standard exact titles for this role (e.g., ['Customer Success Manager', 'Customer Success Specialist'])"],
   "secondary_titles": ["Alternative titles, synonyms, related roles, abbreviations, or specialized variants (e.g., ['CSM', 'Client Success', 'Onboarding Specialist', 'Implementation Consultant', 'Customer Success Engineer'])"],
-  "skills": ["Key skills, tags, tools, or methodologies associated with this role (e.g., ['CRM', 'NPS', 'CSAT', 'Retention', 'Onboarding'])"]
+  "negative_titles": ["Unrelated roles that might share words or overlap but are completely different professions and should be explicitly excluded (e.g., ['Software Engineer', 'Sales Representative', 'Product Manager'])"],
+  "skills": ["Key required technical/functional skills, tags, tools, or methodologies associated with this role (e.g., ['CRM', 'NPS', 'CSAT', 'Retention', 'Onboarding'])"],
+  "preferred_skills": ["Secondary, optional, or preferred skills that are nice to have but not required (e.g., ['Zendesk', 'SQL', 'SaaS experience'])"],
+  "negative_keywords": ["Keywords or warning signs in the job posting that indicate the role is a mismatch (e.g., ['quota', 'cold calling', 'sales target' for relationship CS roles])"]
 }
 Do not include any explanation, backticks, or markdown formatting, just the raw JSON.`;
 
@@ -128,7 +131,10 @@ function getFallbackIntent(keyword: string): JobIntent {
     family: keyword,
     primary_titles: [keyword],
     secondary_titles: [],
-    skills: []
+    negative_titles: [],
+    skills: [],
+    preferred_skills: [],
+    negative_keywords: []
   };
 }
 

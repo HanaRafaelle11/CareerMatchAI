@@ -61,24 +61,36 @@ interface SearchMetrics {
     skills: number;
     description: number;
   };
+  funnel: {
+    rawIngested: number;
+    rawUnion: number;
+    deduplicated: number;
+    postHardFilters: number;
+    postLtr: number;
+  };
 }
 function logSearchTelemetry(m: SearchMetrics) {
-  console.log("=== SEARCH METRICS ===");
-  console.log(`- recall_pool_initial: ${m.candidatesGenerated}`);
-  console.log(`- recall_pool_final: ${m.candidatesFiltered}`);
-  console.log(`- rejected_by_title: ${m.rejectedByTitle}`);
-  console.log(`- rejected_by_location: ${m.rejectedByLocation}`);
-  console.log(`- rejected_by_seniority: ${m.rejectedBySeniority}`);
-  console.log(`- avg_score: ${m.averageScore.toFixed(2)}`);
-  console.log(`- threshold_applied: ${m.threshold.toFixed(2)}`);
-  console.log(`- gemini_used: ${m.geminiUsed}`);
-  console.log(`- latency_ms: ${m.latencyMs}ms`);
-  console.log(`- leading_signals: ${m.topFeatures.join(', ')}`);
-  console.log(`- retriever_hits_title: ${m.retrieverHits.title}`);
-  console.log(`- retriever_hits_alias: ${m.retrieverHits.alias}`);
-  console.log(`- retriever_hits_skills: ${m.retrieverHits.skills}`);
-  console.log(`- retriever_hits_description: ${m.retrieverHits.description}`);
-  console.log("======================");
+  console.log("================ FUNNEL OBSERVABILITY ================");
+  console.log(`Raw Ingested Jobs......: ${m.funnel.rawIngested}`);
+  const raw = Math.max(1, m.funnel.rawIngested);
+  console.log(`Title Retriever Hits...: ${m.retrieverHits.title} (yield: ${((m.retrieverHits.title / raw) * 100).toFixed(1)}%)`);
+  console.log(`Alias Retriever Hits...: ${m.retrieverHits.alias} (yield: ${((m.retrieverHits.alias / raw) * 100).toFixed(1)}%)`);
+  console.log(`Skills Retriever Hits..: ${m.retrieverHits.skills} (yield: ${((m.retrieverHits.skills / raw) * 100).toFixed(1)}%)`);
+  console.log(`Desc Retriever Hits....: ${m.retrieverHits.description} (yield: ${((m.retrieverHits.description / raw) * 100).toFixed(1)}%)`);
+  console.log(`------------------------------------------------------`);
+  console.log(`Raw Union Pool Size....: ${m.funnel.rawUnion}`);
+  console.log(`Deduplicated Candidates: ${m.funnel.deduplicated}`);
+  console.log(`Rejected by Location...: -${m.rejectedByLocation}`);
+  console.log(`Rejected by Seniority..: -${m.rejectedBySeniority}`);
+  console.log(`Post Hard Filters......: ${m.funnel.postHardFilters}`);
+  console.log(`Post LTR Ranking.......: ${m.funnel.postLtr}`);
+  console.log(`Final Returned (Cap)...: ${m.candidatesFiltered}`);
+  console.log(`Avg LTR Score..........: ${m.averageScore.toFixed(2)}`);
+  console.log(`Threshold Applied......: ${m.threshold.toFixed(2)}`);
+  console.log(`Gemini Intent Used.....: ${m.geminiUsed}`);
+  console.log(`Serving Latency........: ${m.latencyMs}ms`);
+  console.log(`Leading LTR Signals....: ${m.topFeatures.join(', ')}`);
+  console.log("======================================================");
 }
 
 // ── 2. Local Seniority Normalizer ──
@@ -436,13 +448,27 @@ export function aggregateAndNormalizeJobs(
       const skillsSim = skillsFeature ? skillsFeature.calculate(j, domainIntent as any) : 0.0;
       const descRelevance = descFeature ? descFeature.calculate(j, domainIntent as any) : 0.0;
 
-      // Cada retriever opera independentemente (DepartmentSimilarity foi removido da recuperação)
-      const isRetrievedByTitle = titleSim > 0.0;
-      const isRetrievedByAlias = hasAnyAlias;
-      const isRetrievedBySkills = hasAnySkill;
-      const isRetrievedByDescription = descRelevance > 0.0;
+      // Cada retriever opera independentemente com pontuação contínua (DepartmentSimilarity foi removido da recuperação)
+      const titleConfidence = titleSim;
+      
+      let aliasConfidence = 0.0;
+      if (hasAnyAlias) {
+        const normTitle = normalizeQuery(j.title);
+        const primaryAliases = matchedNode ? matchedNode.primary_titles.map(a => normalizeQuery(a)) : [];
+        const secondaryAliases = matchedNode ? matchedNode.secondary_titles.map(a => normalizeQuery(a)) : [];
+        if (primaryAliases.some(a => normTitle.includes(a))) {
+          aliasConfidence = 1.0;
+        } else if (secondaryAliases.some(a => normTitle.includes(a))) {
+          aliasConfidence = 0.8;
+        } else {
+          aliasConfidence = 0.5;
+        }
+      }
 
-      const isAcceptedCandidate = isRetrievedByTitle || isRetrievedByAlias || isRetrievedBySkills || isRetrievedByDescription;
+      const skillsConfidence = skillsSim;
+      const descriptionConfidence = descRelevance;
+
+      const isAcceptedCandidate = (titleConfidence > 0.0) || (aliasConfidence > 0.0) || (skillsConfidence > 0.0) || (descriptionConfidence > 0.0);
 
       if (!isAcceptedCandidate) {
         rejectedByTitle++;
@@ -452,18 +478,18 @@ export function aggregateAndNormalizeJobs(
         continue;
       }
 
-      // Incrementar contadores de telemetria do retriever correspondente
-      if (isRetrievedByTitle) hitsTitle++;
-      if (isRetrievedByAlias) hitsAlias++;
-      if (isRetrievedBySkills) hitsSkills++;
-      if (isRetrievedByDescription) hitsDescription++;
+      // Incrementar contadores de telemetria do retriever correspondente se houver sinal
+      if (titleConfidence > 0.0) hitsTitle++;
+      if (aliasConfidence > 0.0) hitsAlias++;
+      if (skillsConfidence > 0.0) hitsSkills++;
+      if (descriptionConfidence > 0.0) hitsDescription++;
 
-      // Guardar evidências de recuperação e sinalizadores temporários no objeto
+      // Guardar evidências de recuperação e sinalizadores contínuos no objeto
       (j as any)._retrievalEvidence = {
-        title: isRetrievedByTitle,
-        alias: isRetrievedByAlias,
-        skills: isRetrievedBySkills,
-        description: isRetrievedByDescription
+        title: Number(titleConfidence.toFixed(2)),
+        alias: Number(aliasConfidence.toFixed(2)),
+        skills: Number(skillsConfidence.toFixed(2)),
+        description: Number(descriptionConfidence.toFixed(2))
       };
 
       candidates.push(j);
@@ -724,6 +750,13 @@ export function aggregateAndNormalizeJobs(
       alias: hitsAlias,
       skills: hitsSkills,
       description: hitsDescription
+    },
+    funnel: {
+      rawIngested: initialCount,
+      rawUnion: hitsTitle + hitsAlias + hitsSkills + hitsDescription,
+      deduplicated: candidates.length,
+      postHardFilters: filteredJobs.length,
+      postLtr: candidatesPool.length
     }
   });
 

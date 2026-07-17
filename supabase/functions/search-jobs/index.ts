@@ -185,38 +185,66 @@ serve(async (req) => {
     const normalizedJobs = aggregateAndNormalizeJobs(rawJobsList);
     const duplicatesRemoved = totalCount - normalizedJobs.length;
 
-    // ── 3.5. FILTRO GEOGRÁFICO — Priorizar Brasil quando localização brasileira ──
+    // ── 3.5. FILTRO DE RELEVÂNCIA POR KEYWORD ──
+    // APIs externas fazem busca full-text e podem retornar vagas irrelevantes.
+    // Filtra para que o keyword apareça no título OU nos primeiros 500 chars da descrição.
+    const keywordLower = searchKeyword.toLowerCase().trim();
+    const keywordTokens = keywordLower.split(/\s+/).filter(t => t.length >= 3);
+    
+    let relevantJobs = normalizedJobs;
+    if (keywordTokens.length > 0) {
+      relevantJobs = normalizedJobs.filter(job => {
+        const titleLower = job.title.toLowerCase();
+        const descLower = job.description.substring(0, 500).toLowerCase();
+        const combined = titleLower + ' ' + descLower;
+        
+        // Pelo menos metade dos tokens do keyword devem aparecer no título+descrição
+        const matchCount = keywordTokens.filter(token => combined.includes(token)).length;
+        return matchCount >= Math.ceil(keywordTokens.length / 2);
+      });
+
+      // Se após o filtro restam poucas vagas (<3), relaxa para apenas 1 token match
+      if (relevantJobs.length < 3) {
+        relevantJobs = normalizedJobs.filter(job => {
+          const titleLower = job.title.toLowerCase();
+          const descLower = job.description.substring(0, 500).toLowerCase();
+          const combined = titleLower + ' ' + descLower;
+          return keywordTokens.some(token => combined.includes(token));
+        });
+      }
+
+      // Ordenar por relevância: título match > descrição match
+      relevantJobs.sort((a, b) => {
+        const aTitleMatch = keywordTokens.filter(t => a.title.toLowerCase().includes(t)).length;
+        const bTitleMatch = keywordTokens.filter(t => b.title.toLowerCase().includes(t)).length;
+        if (bTitleMatch !== aTitleMatch) return bTitleMatch - aTitleMatch;
+        return b.scores.overall - a.scores.overall;
+      });
+    }
+
+    // ── 3.6. FILTRO GEOGRÁFICO — Priorizar Brasil quando localização brasileira ──
     const locLower = searchLocation.toLowerCase();
     const isBrazilianSearch = /brasil|brazil|br|são paulo|rio de janeiro|belo horizonte|curitiba|porto alegre|recife|salvador|fortaleza|brasília|campinas|goiânia|manaus|belém|florianópolis|sp|rj|mg|pr|rs|sc|ba|pe|ce|df|go|am|pa/i.test(locLower);
     
-    let filteredJobs = normalizedJobs;
+    let filteredJobs = relevantJobs;
     if (isBrazilianSearch) {
-      // Termos que identificam localidades claramente NÃO brasileiras
       const nonBrazilPatterns = /\b(germany|deutschland|austria|österreich|schweiz|switzerland|canada|united states|usa|uk|united kingdom|france|spain|netherlands|ireland|australia|india|japan|china|singapore|dubai|qatar|münchen|munich|berlin|hamburg|frankfurt|london|paris|amsterdam|dublin|toronto|vancouver|montreal|new york|san francisco|seattle|chicago|los angeles|sydney|melbourne)\b/i;
-      // Títulos claramente em alemão/francês 
       const foreignLangPatterns = /\b(projektmanager|sachbearbeiter|mitarbeiter|leiter|berater|ingénieur|développeur|responsable|gestionnaire|chargé)\b/i;
 
-      filteredJobs = normalizedJobs.filter(job => {
+      filteredJobs = relevantJobs.filter(job => {
         const jobLoc = (job.locationNormalized || job.location || '').toLowerCase();
         const jobTitle = job.title.toLowerCase();
         const jobDesc = job.description.substring(0, 300).toLowerCase();
         
-        // Permitir vagas remotas (sem localização específica ou com "remoto/remote")
         if (jobLoc.includes('remot') || jobLoc === '' || jobLoc === 'remote' || jobLoc.includes('anywhere') || jobLoc.includes('worldwide')) {
           return true;
         }
-        
-        // Bloquear vagas com localidade estrangeira explícita
         if (nonBrazilPatterns.test(jobLoc) || nonBrazilPatterns.test(jobDesc)) {
           return false;
         }
-        
-        // Bloquear vagas com título em idioma estrangeiro (alemão/francês)
         if (foreignLangPatterns.test(jobTitle)) {
           return false;
         }
-        
-        // Permitir vagas com localidades brasileiras ou genéricas
         return true;
       });
     }
@@ -224,7 +252,8 @@ serve(async (req) => {
     // Log stats
     await logAnalyticsEvent(supabaseClient, resolvedUserId, 'jobs_normalized', 'Aggregator', 'completed', { count: totalCount });
     await logAnalyticsEvent(supabaseClient, resolvedUserId, 'jobs_deduplicated', 'Aggregator', 'completed', { duplicates_count: duplicatesRemoved });
-    await logAnalyticsEvent(supabaseClient, resolvedUserId, 'jobs_geo_filtered', 'Aggregator', 'completed', { before: normalizedJobs.length, after: filteredJobs.length, location: searchLocation });
+    await logAnalyticsEvent(supabaseClient, resolvedUserId, 'jobs_keyword_filtered', 'Aggregator', 'completed', { before: normalizedJobs.length, after: relevantJobs.length, keyword: searchKeyword });
+    await logAnalyticsEvent(supabaseClient, resolvedUserId, 'jobs_geo_filtered', 'Aggregator', 'completed', { before: relevantJobs.length, after: filteredJobs.length, location: searchLocation });
     await logAnalyticsEvent(supabaseClient, resolvedUserId, 'jobs_ranked', 'Aggregator', 'completed', { ranked_count: filteredJobs.length });
 
     const finalResponse = {

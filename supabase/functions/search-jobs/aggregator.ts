@@ -242,6 +242,9 @@ export function aggregateAndNormalizeJobs(
   if (filteredJobs.length >= 100) {
     thresholdApplied = 30.0;
     candidatesPool = filteredJobs.filter(item => item.scores.overall >= 30.0);
+  } else {
+    thresholdApplied = 15.0;
+    candidatesPool = filteredJobs.filter(item => item.scores.overall >= 15.0);
   }
 
   candidatesPool.sort((a, b) => b.scores.overall - a.scores.overall);

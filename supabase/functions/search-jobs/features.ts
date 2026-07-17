@@ -98,7 +98,13 @@ export const TitleSimilarityFeature: Feature = {
         const GENERIC_SUFFIXES = new Set([
           "engineer", "developer", "manager", "specialist", "analyst",
           "assistant", "representative", "operator", "consultant", "coordinator",
-          "tech", "senior", "junior", "pleno", "sr", "jr", "pl"
+          "tech", "senior", "junior", "pleno", "sr", "jr", "pl",
+          "desenvolvedor", "desenvolvedora", "engenheiro", "engenheira", "gerente",
+          "especialista", "analista", "assistente", "representante", "operador",
+          "operadora", "consultor", "consultora", "coordenador", "coordenadora",
+          "tecnico", "tecnica", "líder", "lider", "supervisor", "supervisora",
+          "diretor", "diretora", "estagiario", "estagiaria", "estagiário", "estagiária",
+          "estagio", "estágio", "auxiliar", "trainee"
         ]);
         const hasOnlyGenericMatches = words1.length > 1 && words2.length > 1 && 
                                       commonTokens.length > 0 && 

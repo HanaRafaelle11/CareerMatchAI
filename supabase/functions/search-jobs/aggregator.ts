@@ -189,9 +189,10 @@ export function aggregateAndNormalizeJobs(
       continue;
     }
 
-    // 2. Filtro de Idioma — bloquear vagas claramente em idioma estrangeiro
+    // 2. Filtro de Idioma — bloquear vagas em idioma estrangeiro EXCETO inglês para Brasil
     const lang = detectLanguage(j.title, j.description);
-    if (lang !== 'pt') {
+    if (lang !== 'pt' && lang !== 'en') {
+      // Block Spanish, German, etc. — but allow Portuguese and English
       continue;
     }
 

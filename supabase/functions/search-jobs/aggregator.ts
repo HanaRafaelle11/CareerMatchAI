@@ -197,8 +197,8 @@ export function aggregateAndNormalizeJobs(
     //    (evita descartar vagas de cidades brasileiras quando o usuário busca por "Brasil")
     const isCountryLevelSearch = /^(brasil|brazil|br)$/i.test((location || '').trim());
     if (location && !isCountryLevelSearch && j.workModeNormalized !== 'remote') {
-      const targetLoc = location.toLowerCase().replace(/[^\w]/g, "");
-      const jLoc = j.locationNormalized.toLowerCase().replace(/[^\w]/g, "");
+      const targetLoc = normalizeQuery(location).replace(/\s+/g, "");
+      const jLoc = j.locationNormalized.replace(/\s+/g, "");
 
       const isMatch = jLoc.includes(targetLoc) || targetLoc.includes(jLoc) ||
         (targetLoc === 'sp' && jLoc.includes('saopaulo')) ||

@@ -2083,7 +2083,7 @@ export function JobMatchHub({
 
                 {/* ── FASE 1 & FASE 2: CARD "POR QUE ESSA VAGA COMBINA COM VOCÊ?" ── */}
                 {selectedJob && (
-                  <div className="bg-gradient-to-b from-[#182338] to-[#121927] border border-blue-500/20 rounded-2xl p-6 shadow-xl space-y-6 animate-fade-in">
+                  <div className="w-full max-w-full overflow-hidden bg-gradient-to-b from-[#182338] to-[#121927] border border-blue-500/20 rounded-2xl p-4 sm:p-6 shadow-xl space-y-6 animate-fade-in text-white">
                     <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-slate-800/80">
                       <div>
                         <div className="flex items-center gap-2">

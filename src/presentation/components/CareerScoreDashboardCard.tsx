@@ -46,30 +46,30 @@ export function CareerScoreDashboardCard({ resume, careerProfileNew, onExploreJo
   if (!resume && !careerProfileNew) return null;
 
   return (
-    <CardGlass className="bg-gradient-to-br from-[#1a2744] via-[#15213a] to-[#0f1a2e] border border-blue-500/30 p-6 rounded-2xl shadow-xl space-y-6 animate-fade-in">
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-4 border-b border-slate-700/60">
-        <div className="space-y-1">
+    <CardGlass className="bg-gradient-to-br from-[#1a2744] via-[#15213a] to-[#0f1a2e] border border-blue-500/30 p-6 rounded-2xl shadow-xl space-y-6 animate-fade-in text-white">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-6 pb-5 border-b border-slate-700/60">
+        <div className="space-y-1.5 max-w-lg">
           <div className="flex items-center gap-2">
             <span className="p-1.5 rounded-lg bg-blue-500/20 text-blue-300">
               <Sparkles size={16} />
             </span>
             <span className="text-xs font-bold uppercase tracking-wider text-blue-300">Primeiro Momento IA</span>
           </div>
-          <h2 className="text-xl font-bold text-white">
+          <h2 className="text-xl font-bold text-white tracking-tight">
             Seu Career Score de Mercado
           </h2>
-          <p className="text-xs text-slate-300">
+          <p className="text-xs text-blue-100/90 font-medium leading-relaxed">
             Diagnóstico instantâneo gerado a partir da análise do seu perfil e currículo.
           </p>
         </div>
 
-        <div className="flex items-center gap-3 shrink-0 self-start md:self-center">
+        <div className="flex items-center gap-3 shrink-0 self-start sm:self-center">
           <div className="text-right">
-            <span className="text-[10px] uppercase font-bold text-slate-300 block">Career Score Geral</span>
-            <span className="text-4xl font-extrabold text-blue-300 font-display">
+            <span className="text-[10px] uppercase font-bold text-blue-200/90 block tracking-wider">Career Score Geral</span>
+            <span className="text-3xl sm:text-4xl font-extrabold text-blue-300 font-display">
               {baseScore}/100
             </span>
-            <div className="text-[9px] text-slate-300 space-y-0.5 text-right mt-1.5 font-medium border-t border-slate-700/60 pt-1">
+            <div className="text-[9px] text-blue-100 space-y-0.5 text-right mt-1.5 font-medium border-t border-slate-700/60 pt-1">
               <span className="block font-bold text-blue-200">Baseado em:</span>
               <span className="block text-emerald-300">✓ Sua experiência profissional</span>
               <span className="block text-emerald-300">✓ Suas habilidades</span>
@@ -77,7 +77,7 @@ export function CareerScoreDashboardCard({ resume, careerProfileNew, onExploreJo
               <span className="block text-emerald-300">✓ Padrões de mercado</span>
             </div>
           </div>
-          <div className="w-12 h-12 rounded-full border-2 border-blue-400/50 bg-blue-500/20 flex items-center justify-center text-blue-300 self-start mt-1">
+          <div className="w-12 h-12 rounded-full border-2 border-blue-400/50 bg-blue-500/20 flex items-center justify-center text-blue-300 self-start mt-1 shrink-0">
             <Trophy size={22} />
           </div>
         </div>

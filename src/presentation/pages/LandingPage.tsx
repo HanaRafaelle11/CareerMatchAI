@@ -811,12 +811,12 @@ export function LandingPage({ onNavigateToAuth }: LandingPageProps) {
             ].map((step, idx) => {
               const isEven = idx % 2 === 0;
               return (
-                <div key={idx} className="relative flex flex-col md:flex-row items-start md:items-center font-sans">
+                <div key={idx} className="relative flex flex-col md:flex-row items-start md:items-center font-sans w-full">
                   {/* Timeline dot */}
                   <div className="absolute left-[20px] md:left-1/2 transform -translate-x-1/2 w-4 h-4 rounded-full bg-slate-950 border-4 border-brand-accent z-20 shadow-md shadow-brand-accent/20" />
                   
-                  {/* Left Spacer (only for alternating layout on desktop) */}
-                  <div className={`hidden md:block w-1/2 pr-12 text-right ${isEven ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}>
+                  {/* Left Column (Desktop Even Steps) */}
+                  <div className="hidden md:block w-1/2 pr-12 text-right">
                     {isEven && (
                       <div className="space-y-1.5 leading-relaxed font-medium">
                         <span className="text-[10px] font-bold text-brand-accent uppercase font-mono tracking-wider">Etapa {step.step}</span>
@@ -824,20 +824,20 @@ export function LandingPage({ onNavigateToAuth }: LandingPageProps) {
                           <span>{step.icon}</span>
                           <span>{step.title}</span>
                         </h4>
-                        <p className="text-xs text-slate-450 dark:text-slate-400 light:text-slate-600 font-sans font-normal">{step.desc}</p>
+                        <p className="text-xs text-slate-400 dark:text-slate-400 light:text-slate-600 font-sans font-normal">{step.desc}</p>
                       </div>
                     )}
                   </div>
                   
-                  {/* Right Content */}
-                  <div className={`w-full md:w-1/2 pl-12 md:pl-12 text-left ${!isEven ? 'opacity-100' : 'opacity-0 md:opacity-100'}`}>
+                  {/* Right Column (Desktop Odd Steps & All Mobile Steps) */}
+                  <div className="w-full md:w-1/2 pl-12 text-left">
                     <div className={`space-y-1.5 leading-relaxed font-medium ${isEven ? 'md:hidden' : ''}`}>
                       <span className="text-[10px] font-bold text-brand-accent uppercase font-mono tracking-wider">Etapa {step.step}</span>
                       <h4 className="text-sm font-bold text-slate-100 dark:text-white light:text-slate-900 font-display flex items-center gap-2">
                         <span>{step.icon}</span>
                         <span>{step.title}</span>
                       </h4>
-                      <p className="text-xs text-slate-450 dark:text-slate-400 light:text-slate-600 font-sans font-normal">{step.desc}</p>
+                      <p className="text-xs text-slate-400 dark:text-slate-400 light:text-slate-600 font-sans font-normal">{step.desc}</p>
                     </div>
                   </div>
                 </div>

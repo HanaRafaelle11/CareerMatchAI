@@ -617,13 +617,13 @@ export function Settings({
                   />
                 </div>
 
-                <div className="space-y-1">
+                <div className="space-y-1 w-full min-w-0 flex flex-col">
                   <label className="text-xs text-slate-600 dark:text-slate-400 font-semibold block">Sobre / Resumo Profissional (About)</label>
                   <textarea
                     value={skillsSummary}
                     onChange={e => setSkillsSummary(e.target.value)}
                     rows={4}
-                    className="w-full px-4 py-2.5 rounded-xl bg-white dark:bg-slate-900/50 border border-slate-300 dark:border-slate-700 focus:border-blue-500 dark:focus:border-blue-500 outline-none text-xs text-slate-900 dark:text-slate-200 placeholder-slate-400 resize-y"
+                    className="w-full min-w-0 block px-4 py-2.5 rounded-xl bg-white dark:bg-slate-900/50 border border-slate-300 dark:border-slate-700 focus:border-blue-500 dark:focus:border-blue-500 outline-none text-xs text-slate-900 dark:text-slate-200 placeholder-slate-400 resize-y whitespace-pre-wrap break-words font-sans"
                     placeholder="Conte sobre sua jornada profissional, conquistas e objetivos..."
                   />
                 </div>
@@ -646,9 +646,9 @@ export function Settings({
                 </div>
               </form>
 
-              <div className="pt-6 border-t border-slate-900/60 space-y-3">
+              <div className="pt-6 border-t border-slate-900/60 space-y-3 w-full min-w-0">
                 <span className="text-xs font-bold text-red-400 block uppercase tracking-wider">Zona de Perigo</span>
-                <p className="text-[11px] text-slate-500 max-w-md leading-relaxed">
+                <p className="text-xs text-slate-500 dark:text-slate-400 w-full max-w-xl leading-relaxed font-sans font-medium">
                   Ao excluir a sua conta, todas as suas candidaturas salvas, análises de IA, roteiros de entrevista e currículos serão deletados permanentemente.
                 </p>
                 <button

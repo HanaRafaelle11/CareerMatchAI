@@ -531,12 +531,12 @@ export function Settings({
         {/* Painel Central Reativo */}
         <div className="flex-1 min-w-0 w-full">
           {activeSubTab === 'account' && (
-            <CardGlass className="p-6 space-y-6">
-              <h3 className="text-base font-bold text-slate-900 dark:text-slate-100 pb-3 border-b border-slate-200 dark:border-slate-800 flex items-center gap-2">
+            <CardGlass className="p-6 space-y-6 w-full min-w-0 flex flex-col items-start font-sans">
+              <h3 className="text-base font-bold text-slate-900 dark:text-slate-100 pb-3 border-b border-slate-200 dark:border-slate-800 flex items-center gap-2 w-full">
                 <User size={16} className="text-blue-500" />
                 Informações da Minha Conta
               </h3>
-              <form onSubmit={handleSaveAccount} className="space-y-5 w-full max-w-xl">
+              <form onSubmit={handleSaveAccount} className="space-y-5 w-full max-w-xl flex flex-col items-start font-sans">
                 <div className="flex items-center gap-4 pb-4 border-b border-slate-900/40">
                   {avatarUrl ? (
                     <img
@@ -874,13 +874,13 @@ export function Settings({
           )}
 
           {activeSubTab === 'appearance' && (
-            <CardGlass className="p-6 space-y-6">
-              <h3 className="text-base font-bold text-slate-900 dark:text-slate-100 pb-3 border-b border-slate-200 dark:border-slate-800 flex items-center gap-2">
+            <CardGlass className="p-6 space-y-6 w-full min-w-0 flex flex-col items-start font-sans">
+              <h3 className="text-base font-bold text-slate-900 dark:text-slate-100 pb-3 border-b border-slate-200 dark:border-slate-800 flex items-center gap-2 w-full">
                 <Palette size={16} className="text-brand-500" />
                 Personalização Visual e Tema
               </h3>
 
-              <p className="text-xs text-slate-400 max-w-md">
+              <p className="text-xs text-slate-600 dark:text-slate-400 w-full min-w-0 max-w-md font-sans font-medium block break-normal whitespace-normal leading-relaxed">
                 Selecione o esquema de cores que prefere para a interface de trabalho. Nossos temas garantem legibilidade.
               </p>
 

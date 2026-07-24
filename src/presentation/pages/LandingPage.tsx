@@ -307,13 +307,13 @@ export function LandingPage({ onNavigateToAuth }: LandingPageProps) {
       </section>
 
       {/* Interactive Tour Showcase Section */}
-      <section id="demonstracao" className="py-20 px-6 max-w-5xl mx-auto relative z-10 space-y-10">
-        <div className="text-center space-y-3 max-w-xl mx-auto">
+      <section id="demonstracao" className="py-20 px-6 max-w-5xl mx-auto relative z-10 space-y-10 w-full min-w-0">
+        <div className="text-center space-y-3 w-full min-w-0 max-w-xl mx-auto flex flex-col items-center">
           <h2 className="text-xs font-bold text-brand-accent uppercase tracking-widest font-mono">Veja em Ação</h2>
-          <p className="text-3xl sm:text-4xl font-extrabold tracking-tight text-slate-100 dark:text-white light:text-slate-900 font-display">
+          <p className="text-3xl sm:text-4xl font-extrabold tracking-tight text-slate-100 dark:text-white light:text-slate-900 font-display w-full block break-normal whitespace-normal text-center">
             A plataforma desenhada para você
           </p>
-          <p className="text-xs text-slate-400 dark:text-slate-400 light:text-slate-600 leading-relaxed font-sans">
+          <p className="text-xs text-slate-400 dark:text-slate-400 light:text-slate-600 leading-relaxed font-sans w-full block break-normal whitespace-normal text-center">
             Entenda como a nossa tecnologia opera sob sua direção em cada etapa da recolocação e aprimoramento profissional.
           </p>
         </div>
@@ -559,13 +559,13 @@ export function LandingPage({ onNavigateToAuth }: LandingPageProps) {
       </section>
 
       {/* Narrative Section - A Jornada Completa */}
-      <section id="como-funciona" className="py-20 px-6 max-w-7xl mx-auto relative z-10 space-y-16">
-        <div className="text-center space-y-3 max-w-xl mx-auto">
+      <section id="como-funciona" className="py-20 px-6 max-w-7xl mx-auto relative z-10 space-y-16 w-full min-w-0">
+        <div className="text-center space-y-3 w-full min-w-0 max-w-xl mx-auto flex flex-col items-center">
           <h2 className="text-xs font-bold text-brand-accent uppercase tracking-widest font-mono">A Jornada Completa</h2>
-          <p className="text-3xl sm:text-4xl font-extrabold tracking-tight text-slate-100 dark:text-white light:text-slate-900 font-display">
+          <p className="text-3xl sm:text-4xl font-extrabold tracking-tight text-slate-100 dark:text-white light:text-slate-900 font-display w-full block break-normal whitespace-normal text-center">
             Sua evolução passo a passo
           </p>
-          <p className="text-xs text-slate-400 dark:text-slate-400 light:text-slate-600 leading-relaxed font-sans font-medium">
+          <p className="text-xs text-slate-400 dark:text-slate-400 light:text-slate-600 leading-relaxed font-sans font-medium w-full block break-normal whitespace-normal text-center">
             Não vendemos currículos ou vagas. Oferecemos as ferramentas e a inteligência estratégica que colocam você no controle da sua própria carreira.
           </p>
         </div>
@@ -656,13 +656,13 @@ export function LandingPage({ onNavigateToAuth }: LandingPageProps) {
       </section>
 
       {/* Before / After Section (ATS Comparison) */}
-      <section id="comparativo" className="py-20 px-6 max-w-5xl mx-auto relative z-10 space-y-12">
-        <div className="text-center space-y-3">
+      <section id="comparativo" className="py-20 px-6 max-w-5xl mx-auto relative z-10 space-y-12 w-full min-w-0">
+        <div className="text-center space-y-3 w-full min-w-0 max-w-xl mx-auto flex flex-col items-center">
           <h2 className="text-xs font-bold text-brand-500 dark:text-brand-500 light:text-brand-600 uppercase tracking-widest font-mono">Seu currículo é apenas o começo</h2>
-          <p className="text-3xl sm:text-4xl font-extrabold tracking-tight text-slate-100 dark:text-white light:text-slate-900 font-display">
+          <p className="text-3xl sm:text-4xl font-extrabold tracking-tight text-slate-100 dark:text-white light:text-slate-900 font-display w-full block break-normal whitespace-normal text-center">
             Antes vs Depois com Vocentro
           </p>
-          <p className="text-xs text-slate-400 dark:text-slate-400 light:text-slate-655 max-w-md mx-auto leading-relaxed font-sans font-medium">
+          <p className="text-xs text-slate-400 dark:text-slate-400 light:text-slate-600 max-w-md leading-relaxed font-sans font-medium w-full block break-normal whitespace-normal text-center">
             Veja a diferença imediata na pontuação ATS de triagem de candidatos após a otimização estrutural.
           </p>
         </div>
@@ -670,9 +670,9 @@ export function LandingPage({ onNavigateToAuth }: LandingPageProps) {
         <div className="grid grid-cols-1 md:grid-cols-11 gap-6 items-center max-w-4xl mx-auto">
           {/* Before Column */}
           <div className="md:col-span-5 bg-slate-900/20 dark:bg-slate-900/20 light:bg-white border border-red-500/20 dark:border-red-500/10 light:border-red-200 p-6 rounded-[20px] space-y-6 shadow-sm">
-            <div className="flex justify-between items-center border-b border-slate-905 dark:border-slate-900 light:border-slate-150 pb-3 font-sans">
+            <div className="flex justify-between items-center border-b border-slate-900 dark:border-slate-900 light:border-slate-200 pb-3 font-sans">
               <span className="text-[10px] font-bold text-red-500 dark:text-red-400 uppercase tracking-wider">Sem Otimização</span>
-              <span className="px-2 py-0.5 rounded bg-red-950/20 text-red-455 text-[8px] font-bold uppercase font-mono">41% Match</span>
+              <span className="px-2 py-0.5 rounded bg-red-950/20 text-red-400 text-[8px] font-bold uppercase font-mono">41% Match</span>
             </div>
 
             <div className="flex items-center gap-5 font-sans leading-relaxed">
@@ -686,7 +686,7 @@ export function LandingPage({ onNavigateToAuth }: LandingPageProps) {
               </div>
             </div>
 
-            <ul className="space-y-2.5 text-[10px] text-slate-450 dark:text-slate-400 light:text-slate-700 font-sans leading-relaxed font-medium">
+            <ul className="space-y-2.5 text-[10px] text-slate-400 dark:text-slate-400 light:text-slate-700 font-sans leading-relaxed font-medium">
               <li className="flex items-start gap-2.5">
                 <span className="text-red-500 shrink-0 select-none">❌</span>
                 <span>Termos técnicos obrigatórios ausentes</span>
@@ -713,7 +713,7 @@ export function LandingPage({ onNavigateToAuth }: LandingPageProps) {
               Você no centro
             </div>
 
-            <div className="flex justify-between items-center border-b border-slate-850 dark:border-slate-850 light:border-slate-150 pb-3 font-sans">
+            <div className="flex justify-between items-center border-b border-slate-850 dark:border-slate-850 light:border-slate-200 pb-3 font-sans">
               <span className="text-[10px] font-bold text-brand-accent uppercase tracking-wider font-mono">Com o Vocentro</span>
               <span className="px-2 py-0.5 rounded bg-brand-accent/10 text-brand-accent text-[8px] font-bold uppercase font-mono">89% Match</span>
             </div>
@@ -748,13 +748,13 @@ export function LandingPage({ onNavigateToAuth }: LandingPageProps) {
       </section>
 
       {/* Narrative Section - A IA trabalha para você (Timeline) */}
-      <section id="recursos" className="py-20 px-6 max-w-7xl mx-auto relative z-10 space-y-16">
-        <div className="text-center space-y-3 max-w-2xl mx-auto">
+      <section id="recursos" className="py-20 px-6 max-w-7xl mx-auto relative z-10 space-y-16 w-full min-w-0">
+        <div className="text-center space-y-3 w-full min-w-0 max-w-2xl mx-auto flex flex-col items-center">
           <h2 className="text-xs font-bold text-brand-accent uppercase tracking-widest font-mono">Estratégia Integrada</h2>
-          <p className="text-3xl sm:text-4xl font-extrabold tracking-tight text-slate-100 dark:text-white light:text-slate-900 font-display">
+          <p className="text-3xl sm:text-4xl font-extrabold tracking-tight text-slate-100 dark:text-white light:text-slate-900 font-display w-full block break-normal whitespace-normal text-center">
             A IA trabalha para você
           </p>
-          <p className="text-xs text-slate-400 dark:text-slate-400 light:text-slate-655 leading-relaxed font-sans font-medium">
+          <p className="text-xs text-slate-400 dark:text-slate-400 light:text-slate-600 leading-relaxed font-sans font-medium w-full block break-normal whitespace-normal text-center">
             Nossos sistemas de inteligência foram projetados de forma narrativa e integrada para impulsionar cada etapa da sua jornada profissional.
           </p>
         </div>

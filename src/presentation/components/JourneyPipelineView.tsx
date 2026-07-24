@@ -105,11 +105,11 @@ export function JourneyPipelineView({
             <Layers size={32} />
           </div>
           
-          <div className="space-y-2 max-w-md">
-            <h3 className="text-xl font-bold text-slate-900 dark:text-slate-100 tracking-tight font-display">
+          <div className="space-y-2 w-full max-w-md flex flex-col items-center text-center font-sans">
+            <h3 className="text-xl font-bold text-slate-900 dark:text-slate-100 tracking-tight font-display w-full block break-normal whitespace-normal text-center">
               Seu pipeline ainda está vazio
             </h3>
-            <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed font-medium">
+            <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed font-medium w-full block break-normal whitespace-normal text-center">
               Salve vagas de interesse ou acompanhe suas candidaturas para visualizar sua evolução.
             </p>
           </div>

@@ -48,17 +48,17 @@ export function CareerScoreDashboardCard({ resume, careerProfileNew, onExploreJo
   return (
     <CardGlass className="bg-gradient-to-br from-[#1a2744] via-[#15213a] to-[#0f1a2e] border border-blue-500/30 p-6 rounded-2xl shadow-xl space-y-6 animate-fade-in text-white">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-6 pb-5 border-b border-slate-700/60">
-        <div className="space-y-1.5 max-w-lg">
+        <div className="space-y-1.5 flex-1 w-full min-w-0 flex flex-col items-start font-sans">
           <div className="flex items-center gap-2">
             <span className="p-1.5 rounded-lg bg-blue-500/20 text-blue-300">
               <Sparkles size={16} />
             </span>
             <span className="text-xs font-bold uppercase tracking-wider text-blue-300">Primeiro Momento IA</span>
           </div>
-          <h2 className="text-xl font-bold text-white tracking-tight">
+          <h2 className="text-xl font-bold text-white tracking-tight w-full block break-normal whitespace-normal">
             Seu Career Score de Mercado
           </h2>
-          <p className="text-xs text-blue-100/90 font-medium leading-relaxed">
+          <p className="text-xs text-blue-100/90 font-medium leading-relaxed w-full block break-normal whitespace-normal">
             Diagnóstico instantâneo gerado a partir da análise do seu perfil e currículo.
           </p>
         </div>

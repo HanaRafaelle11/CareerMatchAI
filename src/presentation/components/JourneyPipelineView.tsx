@@ -100,12 +100,12 @@ export function JourneyPipelineView({
 
       {/* Visual Pipeline Funnel ou Empty State Elegante */}
       {!hasApplications ? (
-        <CardGlass className="p-8 sm:p-12 text-center space-y-5 flex flex-col items-center justify-center">
-          <div className="w-16 h-16 rounded-2xl bg-blue-500/10 border border-blue-500/20 text-blue-500 flex items-center justify-center shadow-lg shadow-blue-500/5">
+        <CardGlass className="p-8 sm:p-12 text-center space-y-5 w-full min-w-0 font-sans block">
+          <div className="w-16 h-16 rounded-2xl bg-blue-500/10 border border-blue-500/20 text-blue-500 flex items-center justify-center shadow-lg shadow-blue-500/5 mx-auto">
             <Layers size={32} />
           </div>
           
-          <div className="space-y-2 w-full max-w-md flex flex-col items-center text-center font-sans">
+          <div className="space-y-2 w-full max-w-md mx-auto block text-center font-sans">
             <h3 className="text-xl font-bold text-slate-900 dark:text-slate-100 tracking-tight font-display w-full block break-normal whitespace-normal text-center">
               Seu pipeline ainda está vazio
             </h3>
@@ -114,10 +114,10 @@ export function JourneyPipelineView({
             </p>
           </div>
 
-          <div className="pt-2">
+          <div className="pt-2 flex justify-center">
             <button
               onClick={handleExploreJobs}
-              className="px-6 py-3 rounded-xl bg-brand-600 hover:bg-brand-500 text-white font-bold text-xs shadow-lg shadow-brand-500/20 flex items-center gap-2 transition cursor-pointer hover:scale-[1.01]"
+              className="px-6 py-3 rounded-xl bg-brand-600 hover:bg-brand-500 text-white font-bold text-xs shadow-lg shadow-brand-500/20 flex items-center justify-center gap-2 transition cursor-pointer hover:scale-[1.01]"
             >
               <Search size={15} />
               <span>Encontrar vagas</span>

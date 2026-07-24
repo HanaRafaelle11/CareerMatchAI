@@ -199,7 +199,7 @@ export function LandingPage({ onNavigateToAuth }: LandingPageProps) {
       <section className="relative min-h-[90vh] pt-28 pb-12 flex items-center px-6 md:px-12 z-10 w-full max-w-7xl mx-auto">
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 items-center w-full">
           {/* Left Hero Copy */}
-          <div className="lg:col-span-6 space-y-6 text-left w-full min-w-0 flex flex-col items-start">
+          <div className="lg:col-span-6 space-y-6 text-left w-full min-w-0 block">
             <motion.div 
               initial={{ opacity: 0, y: 15 }}
               animate={{ opacity: 1, y: 0 }}
@@ -306,9 +306,22 @@ export function LandingPage({ onNavigateToAuth }: LandingPageProps) {
         </div>
       </section>
 
+      {/* Narrative Section - Métricas de Sucesso */}
+      <section id="metricas" className="py-20 px-6 max-w-7xl mx-auto relative z-10 space-y-16 w-full min-w-0">
+        <div className="text-center space-y-3 w-full min-w-0 max-w-2xl mx-auto block">
+          <h2 className="text-xs font-bold text-brand-accent uppercase tracking-widest font-mono">Resultados Comprovados</h2>
+          <p className="text-3xl sm:text-4xl font-extrabold tracking-tight text-slate-100 dark:text-white light:text-slate-900 font-display w-full block break-normal whitespace-normal text-center">
+            Métricas de Sucesso
+          </p>
+          <p className="text-xs text-slate-400 dark:text-slate-400 light:text-slate-600 leading-relaxed font-sans font-medium w-full block break-normal whitespace-normal text-center">
+            Acompanhe em tempo real como o posicionamento estratégico transforma suas estatísticas de recolocação.
+          </p>
+        </div>
+      </section>
+
       {/* Interactive Tour Showcase Section */}
       <section id="demonstracao" className="py-20 px-6 max-w-5xl mx-auto relative z-10 space-y-10 w-full min-w-0">
-        <div className="text-center space-y-3 w-full min-w-0 max-w-xl mx-auto flex flex-col items-center">
+        <div className="text-center space-y-3 w-full min-w-0 max-w-2xl mx-auto block">
           <h2 className="text-xs font-bold text-brand-accent uppercase tracking-widest font-mono">Veja em Ação</h2>
           <p className="text-3xl sm:text-4xl font-extrabold tracking-tight text-slate-100 dark:text-white light:text-slate-900 font-display w-full block break-normal whitespace-normal text-center">
             A plataforma desenhada para você
@@ -560,7 +573,7 @@ export function LandingPage({ onNavigateToAuth }: LandingPageProps) {
 
       {/* Narrative Section - A Jornada Completa */}
       <section id="como-funciona" className="py-20 px-6 max-w-7xl mx-auto relative z-10 space-y-16 w-full min-w-0">
-        <div className="text-center space-y-3 w-full min-w-0 max-w-xl mx-auto flex flex-col items-center">
+        <div className="text-center space-y-3 w-full min-w-0 max-w-2xl mx-auto block">
           <h2 className="text-xs font-bold text-brand-accent uppercase tracking-widest font-mono">A Jornada Completa</h2>
           <p className="text-3xl sm:text-4xl font-extrabold tracking-tight text-slate-100 dark:text-white light:text-slate-900 font-display w-full block break-normal whitespace-normal text-center">
             Sua evolução passo a passo
@@ -657,12 +670,12 @@ export function LandingPage({ onNavigateToAuth }: LandingPageProps) {
 
       {/* Before / After Section (ATS Comparison) */}
       <section id="comparativo" className="py-20 px-6 max-w-5xl mx-auto relative z-10 space-y-12 w-full min-w-0">
-        <div className="text-center space-y-3 w-full min-w-0 max-w-xl mx-auto flex flex-col items-center">
+        <div className="text-center space-y-3 w-full min-w-0 max-w-2xl mx-auto block">
           <h2 className="text-xs font-bold text-brand-500 dark:text-brand-500 light:text-brand-600 uppercase tracking-widest font-mono">Seu currículo é apenas o começo</h2>
           <p className="text-3xl sm:text-4xl font-extrabold tracking-tight text-slate-100 dark:text-white light:text-slate-900 font-display w-full block break-normal whitespace-normal text-center">
             Antes vs Depois com Vocentro
           </p>
-          <p className="text-xs text-slate-400 dark:text-slate-400 light:text-slate-600 max-w-md leading-relaxed font-sans font-medium w-full block break-normal whitespace-normal text-center">
+          <p className="text-xs text-slate-400 dark:text-slate-400 light:text-slate-600 max-w-md mx-auto leading-relaxed font-sans font-medium w-full block break-normal whitespace-normal text-center">
             Veja a diferença imediata na pontuação ATS de triagem de candidatos após a otimização estrutural.
           </p>
         </div>
@@ -749,7 +762,7 @@ export function LandingPage({ onNavigateToAuth }: LandingPageProps) {
 
       {/* Narrative Section - A IA trabalha para você (Timeline) */}
       <section id="recursos" className="py-20 px-6 max-w-7xl mx-auto relative z-10 space-y-16 w-full min-w-0">
-        <div className="text-center space-y-3 w-full min-w-0 max-w-2xl mx-auto flex flex-col items-center">
+        <div className="text-center space-y-3 w-full min-w-0 max-w-2xl mx-auto block">
           <h2 className="text-xs font-bold text-brand-accent uppercase tracking-widest font-mono">Estratégia Integrada</h2>
           <p className="text-3xl sm:text-4xl font-extrabold tracking-tight text-slate-100 dark:text-white light:text-slate-900 font-display w-full block break-normal whitespace-normal text-center">
             A IA trabalha para você
@@ -980,13 +993,13 @@ export function LandingPage({ onNavigateToAuth }: LandingPageProps) {
       </section>
 
       {/* FAQ Accordion Section */}
-      <section id="faq" className="py-20 px-6 max-w-3xl mx-auto relative z-10 space-y-12">
-        <div className="text-center space-y-3 font-sans">
+      <section id="faq" className="py-20 px-6 max-w-3xl mx-auto relative z-10 space-y-12 w-full min-w-0">
+        <div className="text-center space-y-3 w-full max-w-2xl mx-auto block font-sans">
           <h2 className="text-xs font-bold text-brand-accent uppercase tracking-widest font-mono">Dúvidas</h2>
-          <p className="text-3xl sm:text-4xl font-extrabold tracking-tight text-slate-100 dark:text-white light:text-slate-900 font-display">Perguntas Frequentes</p>
+          <p className="text-3xl sm:text-4xl font-extrabold tracking-tight text-slate-100 dark:text-white light:text-slate-900 font-display w-full block break-normal whitespace-normal text-center">Perguntas Frequentes</p>
         </div>
 
-        <div className="space-y-3">
+        <div className="space-y-3 w-full min-w-0">
           {faqData.map((faq, idx) => {
             const isOpen = activeFaq === idx;
             return (
@@ -1029,14 +1042,14 @@ export function LandingPage({ onNavigateToAuth }: LandingPageProps) {
       </section>
 
       {/* Strong Final CTA */}
-      <section className="py-24 px-6 text-center max-w-4xl mx-auto relative z-10 space-y-8 font-sans leading-relaxed">
+      <section className="py-24 px-6 text-center max-w-4xl mx-auto relative z-10 space-y-8 font-sans leading-relaxed w-full min-w-0">
         <div className="absolute inset-0 bg-brand-500/5 blur-[120px] rounded-full pointer-events-none" />
         
-        <div className="space-y-4 max-w-2xl mx-auto">
-          <h2 className="text-4xl sm:text-5xl font-extrabold tracking-tight text-slate-100 dark:text-white light:text-slate-900 leading-tight font-display">
+        <div className="space-y-4 w-full max-w-2xl mx-auto block text-center">
+          <h2 className="text-4xl sm:text-5xl font-extrabold tracking-tight text-slate-100 dark:text-white light:text-slate-900 leading-tight font-display w-full block break-normal whitespace-normal text-center">
             Sua próxima contratação começa hoje.
           </h2>
-          <p className="text-slate-350 dark:text-slate-300 light:text-slate-700 text-sm sm:text-base max-w-xl mx-auto leading-relaxed font-semibold">
+          <p className="text-slate-350 dark:text-slate-300 light:text-slate-700 text-sm sm:text-base max-w-xl mx-auto leading-relaxed font-semibold w-full block break-normal whitespace-normal text-center">
             Você não precisa enviar centenas de currículos. Precisa enviar o currículo certo, para a vaga certa, no momento certo. A Vocentro faz esse trabalho com você.
           </p>
         </div>

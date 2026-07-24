@@ -114,6 +114,16 @@
     @apply bg-surface text-on-surface font-sans antialiased selection:bg-primary/15 selection:text-primary;
     line-height: 1.6;
   }
+
+  p, h1, h2, h3, h4, h5, h6 {
+    max-width: 100%;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+  }
+
+  form, textarea, input, select {
+    max-width: 100%;
+  }
 }
 
 /* Custom discreet SaaS scrollbar */

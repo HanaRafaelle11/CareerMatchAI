@@ -639,7 +639,7 @@ export function Settings({
                   <button
                     type="button"
                     onClick={handleResetPassword}
-                    className="px-5 py-2.5 rounded-xl bg-slate-900 hover:bg-slate-855 text-slate-350 text-xs font-bold transition-all border border-slate-800"
+                    className="px-5 py-2.5 rounded-xl bg-slate-100 dark:bg-slate-850 hover:bg-slate-200 dark:hover:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 text-xs font-bold transition-all cursor-pointer"
                   >
                     Redefinir Senha
                   </button>
@@ -968,7 +968,7 @@ export function Settings({
                   <button
                     type="button"
                     onClick={handleExportData}
-                    className="px-4 py-2.5 rounded-xl bg-slate-900 hover:bg-slate-855 text-slate-200 text-xs font-bold transition-all border border-slate-800 flex items-center gap-1.5"
+                    className="px-4 py-2.5 rounded-xl bg-slate-100 dark:bg-slate-850 hover:bg-slate-200 dark:hover:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 text-xs font-bold transition-all border flex items-center gap-1.5 cursor-pointer"
                   >
                     <Download size={14} />
                     Exportar Meus Dados (JSON)

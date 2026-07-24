@@ -233,7 +233,7 @@ export function ProcessingState({ title, subtitle, steps, expectedTime }: Proces
           </div>
 
           {/* Listagem das etapas individuais */}
-          <div className="space-y-2 rounded-xl bg-slate-950/60 border border-slate-900 p-3 sm:p-3.5">
+          <div className="space-y-2 rounded-xl bg-slate-950/60 dark:bg-slate-950/60 light:bg-slate-100 border border-slate-900 dark:border-slate-900 light:border-slate-200 p-3 sm:p-3.5 w-full min-w-0 block font-sans">
             {steps.map((s, idx) => (
               <div key={s.id} className="flex items-center justify-between gap-3 text-xxs font-medium font-sans">
                 <span className={`leading-tight flex-1 break-words ${

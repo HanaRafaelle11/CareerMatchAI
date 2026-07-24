@@ -2637,7 +2637,7 @@ export function JobMatchHub({
                                 href={selectedJob.sourceUrl}
                                 target="_blank"
                                 rel="noopener noreferrer"
-                                className="w-full py-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 border border-slate-800 text-brand-400 hover:text-brand-300 text-[11px] font-bold tracking-wider uppercase transition flex items-center justify-center gap-1.5 cursor-pointer"
+                                className="w-full py-2.5 rounded-xl bg-slate-100 dark:bg-slate-850 hover:bg-slate-200 dark:hover:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 text-[11px] font-bold tracking-wider uppercase transition flex items-center justify-center gap-1.5 cursor-pointer"
                               >
                                 <span>Ver vaga original</span>
                                 <ArrowUpRight size={12} />
@@ -3751,12 +3751,12 @@ export function JobMatchHub({
                              window.scrollTo({ top: 0, behavior: 'smooth' });
                            }}
                            disabled={searchPage === 1 || isLoadingDiscovery}
-                           className="px-4 py-2 rounded-xl bg-slate-900 border border-slate-800 hover:border-slate-700 text-slate-350 disabled:opacity-40 disabled:cursor-not-allowed text-xs font-semibold transition-all"
+                           className="px-4 py-2 rounded-xl bg-slate-100 dark:bg-slate-850 hover:bg-slate-200 dark:hover:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 disabled:opacity-40 disabled:cursor-not-allowed text-xs font-bold transition-all cursor-pointer"
                          >
                            Anterior
                          </button>
                          
-                         <span className="text-xs text-slate-400 font-semibold">
+                         <span className="text-xs text-slate-600 dark:text-slate-400 font-bold">
                            Página {searchPage} de {Math.max(1, Math.ceil(totalCount / 15))}
                          </span>
 
@@ -3766,7 +3766,7 @@ export function JobMatchHub({
                              window.scrollTo({ top: 0, behavior: 'smooth' });
                            }}
                            disabled={isLoadingDiscovery || searchPage >= Math.ceil(totalCount / 15)}
-                           className="px-4 py-2 rounded-xl bg-slate-900 border border-slate-800 hover:border-slate-700 text-slate-350 disabled:opacity-40 disabled:cursor-not-allowed text-xs font-semibold transition-all"
+                           className="px-4 py-2 rounded-xl bg-slate-100 dark:bg-slate-850 hover:bg-slate-200 dark:hover:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 disabled:opacity-40 disabled:cursor-not-allowed text-xs font-bold transition-all cursor-pointer"
                          >
                            Próxima
                          </button>

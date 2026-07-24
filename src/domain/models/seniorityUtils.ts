@@ -19,6 +19,9 @@ export function extractSeniorityFromJob(title: string, description: string = '')
   if (/\b(director|diretor|diretora|vp|vice.president|cxo|ceo|cto|cfo|chief|partner)\b/i.test(t)) {
     detected = 'director';
     reason = 'Title contains director/executive term';
+  } else if (/\b(lead|head|principal|staff|manager|gerente|coordenador|coordenadora|supervisor|supervisora|líder|lider)\b/i.test(t)) {
+    detected = 'lead';
+    reason = 'Title contains leadership/manager/supervisor term';
   } else if (/\b(senior|sênior|sr\.?|especialista|specialist)\b/i.test(t)) {
     detected = 'senior';
     reason = 'Title contains explicit senior/sr modifier';
@@ -28,9 +31,6 @@ export function extractSeniorityFromJob(title: string, description: string = '')
   } else if (/\b(pleno|mid|intermediate|3-5|3 a 5)\b/i.test(t)) {
     detected = 'pleno';
     reason = 'Title contains explicit pleno/mid modifier';
-  } else if (/\b(lead|head|principal|staff|manager|gerente|coordenador|coordenadora|líder|lider)\b/i.test(t)) {
-    detected = 'lead';
-    reason = 'Title contains leadership/manager role term';
   }
 
   // 2. SEGUNDA PRIORIDADE: Descrição da Vaga
@@ -38,9 +38,9 @@ export function extractSeniorityFromJob(title: string, description: string = '')
     if (/\b(director|diretor|diretora|vp|vice.president)\b/i.test(d)) {
       detected = 'director';
       reason = 'Description mentions director/vp';
-    } else if (/\b(lead|head|liderança|lider|líder|gestão de equipe)\b/i.test(d)) {
+    } else if (/\b(lead|head|liderança|lider|líder|supervisor|supervisora|gestão de equipe)\b/i.test(d)) {
       detected = 'lead';
-      reason = 'Description mentions leadership/head';
+      reason = 'Description mentions leadership/head/supervisor';
     } else if (/\b(senior|sênior|sr\.?|especialista)\b/i.test(d)) {
       detected = 'senior';
       reason = 'Description mentions senior/sr/especialista';

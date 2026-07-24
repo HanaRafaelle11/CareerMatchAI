@@ -1057,7 +1057,7 @@ export function AdminDashboard({ userId }: AdminDashboardProps) {
   };
 
   return (
-    <div className="space-y-6 animate-fade-in font-sans p-0 text-slate-100 max-w-7xl mx-auto mb-16">
+    <div className="space-y-6 w-full min-w-0 max-w-7xl mx-auto animate-fade-in font-sans text-slate-100 mb-16 block">
       
       {/* Toast Feedback */}
       {toast && (

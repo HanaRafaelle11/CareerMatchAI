@@ -268,22 +268,22 @@ export function CoachDashboard({
       </div>
 
       {/* Top AI Guidance Banner */}
-      <div className="bg-white dark:bg-[#162032] border border-slate-200/90 dark:border-slate-800/90 rounded-2xl p-6 shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <div className="flex items-start gap-3.5">
+      <div className="bg-white dark:bg-[#162032] border border-slate-200/90 dark:border-slate-800/90 rounded-2xl p-6 shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-4 w-full min-w-0">
+        <div className="flex items-start gap-3.5 min-w-0">
           <div className="w-9 h-9 rounded-xl bg-blue-50 dark:bg-blue-500/10 text-[#4F8EF7] flex items-center justify-center shrink-0 mt-0.5">
             <Sparkles size={18} strokeWidth={1.75} />
           </div>
-          <div>
-            <div className="flex items-center gap-2">
+          <div className="min-w-0">
+            <div className="flex items-center gap-2 flex-wrap">
               <span className="text-xs font-semibold text-[#4F8EF7] uppercase tracking-wider">Recomendação da IA</span>
               <Badge variant="premium" size="sm">Recrutador IA</Badge>
             </div>
-            <h2 className="text-base font-semibold text-slate-900 dark:text-slate-100 mt-1">
+            <h2 className="text-base font-semibold text-slate-900 dark:text-slate-100 mt-1 block break-normal whitespace-normal">
               {simulation 
                 ? 'Simulação em andamento. Responda às perguntas comportamentais utilizando a técnica STAR.' 
                 : 'Selecione uma vaga no menu abaixo e inicie uma simulação realista de entrevista.'}
             </h2>
-            <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+            <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 block break-normal whitespace-normal">
               O recrutador IA avalia clareza, objetividade e aderência técnica das suas respostas em tempo real.
             </p>
           </div>
@@ -303,9 +303,9 @@ export function CoachDashboard({
         </button>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        <div className="lg:col-span-2 space-y-6">
-          <CardGlass className="p-6 space-y-6 flex flex-col min-h-[480px] animate-slide-in">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 w-full min-w-0">
+        <div className="lg:col-span-2 space-y-6 w-full min-w-0">
+          <CardGlass className="p-6 space-y-6 flex flex-col min-h-[480px] w-full min-w-0 animate-slide-in">
             <div>
               <h3 className="font-display font-bold text-base text-slate-200 flex items-center gap-2 pb-3 border-b border-slate-900">
                 <MessageSquare size={18} className="text-brand-accent" />

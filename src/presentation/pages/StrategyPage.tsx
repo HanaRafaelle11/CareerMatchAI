@@ -481,21 +481,21 @@ export function StrategyPage({
   const funnel = CareerAnalyticsService.getFunnel(applications);
 
   return (
-    <div className="space-y-6 animate-fade-in font-sans p-0">
+    <div className="space-y-6 w-full min-w-0 max-w-7xl mx-auto animate-fade-in font-sans block">
       {/* Cabeçalho */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <div>
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 w-full min-w-0">
+        <div className="min-w-0">
           <h1 className="text-3xl font-bold tracking-tight text-slate-900 dark:text-slate-100">
             Minha Estratégia de Busca
           </h1>
-          <p className="text-slate-500 dark:text-slate-400 text-sm mt-1">
+          <p className="text-slate-500 dark:text-slate-400 text-sm mt-1 block break-normal whitespace-normal">
             CRM inteligente que planeja, calcula o ROI e monitora a performance da sua recolocação.
           </p>
         </div>
       </div>
 
       {/* Top AI Guidance Banner */}
-      <div className="bg-white dark:bg-[#162032] border border-slate-200/90 dark:border-slate-800/90 rounded-2xl p-6 shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-4">
+      <div className="bg-white dark:bg-[#162032] border border-slate-200/90 dark:border-slate-800/90 rounded-2xl p-6 shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-4 w-full min-w-0">
         <div className="flex items-start gap-3.5">
           <div className="w-9 h-9 rounded-xl bg-blue-50 dark:bg-blue-500/10 text-[#4F8EF7] flex items-center justify-center shrink-0 mt-0.5">
             <Sparkles size={18} strokeWidth={1.75} />

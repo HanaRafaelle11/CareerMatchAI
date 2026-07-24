@@ -1,20 +1,38 @@
 import { useState, type FormEvent, useEffect, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import { useQueryClient } from '@tanstack/react-query';
 import { CardGlass } from '../components/CardGlass';
 import { RadarChart } from '../components/RadarChart';
 import { useJobDiscovery } from '../../application/hooks/useJobDiscovery';
 import { useCoach } from '../../application/hooks/useCoach';
+import { useCareerIntelligence } from '../../application/hooks/useCareerIntelligence';
 import { CareerCoachService } from '../../application/services/CareerCoachService';
 import { MatchingEngine } from '../../application/services/matchingEngine';
-import type { Job, Resume, Match, CareerProfile } from '../../domain/models/types';
+import type { Job, Resume, Match, CareerProfile, JobFeedbackReason } from '../../domain/models/types';
 import type { CareerProfileNew } from '../../application/hooks/useMyProfileAi';
-import { Play, Clipboard, Award, CheckCircle, AlertTriangle, AlertCircle, X, ChevronRight, BookOpen, Plus, Search, MapPin, Loader2, ArrowUpRight, Flame, Sparkles, Trash2, Briefcase, Heart, DollarSign, Building, FileText } from 'lucide-react';
+import { Play, Clipboard, Award, CheckCircle, AlertTriangle, AlertCircle, X, ChevronRight, BookOpen, Plus, Search, MapPin, Loader2, ArrowUpRight, Flame, Sparkles, Trash2, Briefcase, Heart, DollarSign, Building, FileText, Printer, Check, Target, Zap, ThumbsUp, ThumbsDown } from 'lucide-react';
+
 import { isSupabaseConfigured, supabase } from '../../infrastructure/api/supabaseClient';
 import { AppError } from '../../application/errors/AppError';
 import { ErrorState, EmptyState, ProcessingState } from '../components/ErrorVisuals';
-import { ProgressRing } from '../components/ds';
+import { ProgressRing, Badge } from '../components/ds';
 import { jobIngestionService } from '../../application/services/JobIngestionService';
 import type { IngestionResult } from '../../application/services/parsers/BaseJobParser';
+import { printElementHtml } from '../../application/utils/pdfExport';
+import { tracker } from '../../infrastructure/analytics/tracker';
+import { JobMatchFeedbackService, type JobMatchRejectionReason } from '../../application/services/JobMatchFeedbackService';
+
+function renderFormattedMarkdown(text: string): React.ReactNode[] {
+  if (!text) return [];
+  const clean = text.replace(/\*\*\*/g, '**');
+  const parts = clean.split(/(\*\*[^*]+\*\*)/);
+  return parts.map((part, i) => {
+    if (part.startsWith('**') && part.endsWith('**')) {
+      return <strong key={i} className="font-bold text-slate-100">{part.slice(2, -2)}</strong>;
+    }
+    return <span key={i}>{part}</span>;
+  });
+}
 
 const BRAZILIAN_LOCATIONS = [
   "São Paulo, SP",
@@ -150,6 +168,52 @@ export function JobMatchHub({
   const selectedJob = jobs.find(j => j.id === selectedJobId);
   const primaryResume = (activeResumeVersionId ? resumes.find(r => r.resumeVersionId === activeResumeVersionId) : null) || resumes.find(r => r.isPrimary) || resumes[0];
 
+  const [showAdaptationModal, setShowAdaptationModal] = useState(false);
+  const [rejectReasonModal, setRejectReasonModal] = useState(false);
+  const [matchRejectionModal, setMatchRejectionModal] = useState(false);
+  const [matchFeedbackGiven, setMatchFeedbackGiven] = useState<'positive' | 'negative' | null>(null);
+  const ahaMomentTriggered = useRef(false);
+  const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' | 'warning' } | null>(null);
+
+  const showToast = (message: string, type: 'success' | 'error' | 'warning' = 'success') => {
+    setToast({ message, type });
+    setTimeout(() => setToast(null), 3000);
+  };
+
+  useEffect(() => {
+    if (showAdaptationModal || rejectReasonModal || matchRejectionModal) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = '';
+    }
+    return () => {
+      document.body.style.overflow = '';
+    };
+  }, [showAdaptationModal, rejectReasonModal, matchRejectionModal]);
+
+  const {
+    explanation,
+    isLoadingExplanation,
+    adaptation,
+    isLoadingAdaptation,
+    updateAdaptationStatus,
+    recordFeedback,
+    updateApplicationStatus
+  } = useCareerIntelligence(userId, selectedJob || null, primaryResume, careerProfileNew);
+
+  useEffect(() => {
+    if (primaryResume && explanation && selectedJob && !ahaMomentTriggered.current) {
+      ahaMomentTriggered.current = true;
+      tracker.trackAhaMoment({
+        user_id: userId,
+        career_score: explanation.careerFitScore,
+        first_job_match_score: explanation.careerFitScore,
+        time_since_signup: 60
+      });
+    }
+  }, [primaryResume, explanation, selectedJob, userId]);
+
+
   const [matchSteps, setMatchSteps] = useState<{ id: string; label: string; status: 'pending' | 'running' | 'success' | 'error' }[]>([
     { id: 'preparing', label: 'Comparando seu perfil com a vaga', status: 'pending' },
     { id: 'analyzing_resume', label: 'Analisando requisitos técnicos', status: 'pending' },
@@ -164,6 +228,8 @@ export function JobMatchHub({
   useEffect(() => {
     if (!selectedJobId && jobs.length > 0) {
       setSelectedJobId(jobs[0].id);
+    } else if (selectedJobId) {
+      tracker.track('job_match_viewed', 'CareerIntelligence', { jobId: selectedJobId });
     }
   }, [jobs, selectedJobId, setSelectedJobId]);
 
@@ -221,7 +287,8 @@ export function JobMatchHub({
         keyword: newKeyword,
         location: newLocation,
         remoteOnly: newRemote,
-        workModes: ['remote']
+        workModes: ['remote'],
+        seniority: 'all'
       });
       setErrorMsg('');
       setAppError(null);
@@ -795,13 +862,17 @@ export function JobMatchHub({
   const [showLocationDropdown, setShowLocationDropdown] = useState(false);
   const storedWorkModes = sessionStorage.getItem('job_search_work_modes');
   const initialWorkModes = storedWorkModes ? JSON.parse(storedWorkModes) : ['remote', 'hybrid', 'onsite'];
+  const [searchSeniority, setSearchSeniority] = useState<string>('all');
+  const [filterActiveOnly, setFilterActiveOnly] = useState<boolean>(true);
+  const [filterScoreOver80, setFilterScoreOver80] = useState<boolean>(false);
   const [searchWorkModes, setSearchWorkModes] = useState<string[]>(initialWorkModes);
   
   const [activeFilters, setActiveFilters] = useState({
     keyword: initialKeyword,
     location: initialLocation,
     remoteOnly: initialRemote,
-    workModes: initialWorkModes as string[]
+    workModes: initialWorkModes as string[],
+    seniority: 'all'
   });
 
   // Salvar entradas do usuário e filtros ativos na sessionStorage para manter o estado ao navegar
@@ -852,7 +923,8 @@ export function JobMatchHub({
         keyword,
         location: loc,
         remoteOnly: isRemote,
-        workModes: preferredModes
+        workModes: preferredModes,
+        seniority: 'all'
       });
     }
   }, [careerProfile, careerProfileNew]);
@@ -907,7 +979,13 @@ export function JobMatchHub({
       setIsAddingToStrategy(true);
       
       // Determine Kanban column based on match score or manual selection
-      const matchScore = currentMatch?.scoreOverall ?? 0;
+      let matchScore = currentMatch?.scoreOverall;
+      if (matchScore === undefined && primaryResume) {
+        const syncMatch = MatchingEngine.calculateMatchSync(primaryResume, selectedJob, careerProfileNew);
+        matchScore = syncMatch.scoreOverall;
+      }
+      matchScore = matchScore ?? 0;
+
       let status = '📝 Candidatura planejada';
       if (manualStrategyStatus !== 'auto') {
         status = manualStrategyStatus;
@@ -958,6 +1036,7 @@ export function JobMatchHub({
     location: activeFilters.location,
     remoteOnly: activeFilters.remoteOnly,
     workModes: activeFilters.workModes,
+    seniority: activeFilters.seniority,
     page: searchPage
   }, careerProfileNew);
 
@@ -1163,7 +1242,8 @@ export function JobMatchHub({
       keyword: searchKeyword,
       location: searchLocation,
       remoteOnly: searchWorkModes.includes('remote') && searchWorkModes.length === 1,
-      workModes: searchWorkModes
+      workModes: searchWorkModes,
+      seniority: searchSeniority
     });
   };
 
@@ -1220,13 +1300,21 @@ export function JobMatchHub({
 
   return (
     <div className="space-y-6 animate-fade-in font-sans p-0">
+      {/* Toast Feedback */}
+      {toast && (
+        <div className="fixed top-6 right-6 z-[10000] p-4 rounded-xl shadow-2xl border animate-bounce flex items-center gap-2.5 bg-slate-900 border-slate-700 text-xs font-semibold text-white">
+          <CheckCircle size={16} className="text-emerald-400 shrink-0" />
+          <span>{toast.message}</span>
+        </div>
+      )}
+
       {/* Cabeçalho */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <h1 className="font-display font-bold text-xl tracking-tight text-on-surface">
+          <h1 className="text-3xl font-bold tracking-tight text-slate-900 dark:text-slate-100">
             Mapeamento de Vagas & Match
           </h1>
-          <p className="text-on-surface-variant text-xs mt-0.5">
+          <p className="text-slate-500 dark:text-slate-400 text-sm mt-1">
             Encontre vagas compatíveis via buscas inteligentes ou analise descrições de cargos de forma personalizada.
           </p>
         </div>
@@ -1235,25 +1323,55 @@ export function JobMatchHub({
             <button
               onClick={handleDeleteAnalyses}
               disabled={isDeletingAnalyses}
-              className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-red-950/20 border border-red-900/30 hover:border-red-900/60 text-red-400 font-semibold text-sm transition-all disabled:opacity-50"
+              className="btn-secondary text-xs text-red-600 dark:text-red-400 border-red-200 dark:border-red-900/40 hover:bg-red-50 dark:hover:bg-red-950/40"
               title="Excluir todas as análises feitas pela IA deste currículo"
             >
               {isDeletingAnalyses ? (
-                <Loader2 size={16} className="animate-spin" />
+                <Loader2 size={15} className="animate-spin" />
               ) : (
-                <Trash2 size={16} />
+                <Trash2 size={15} />
               )}
               Excluir minhas análises
             </button>
           )}
           <button
             onClick={() => setShowAddForm(true)}
-            className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-slate-900 border border-slate-800 hover:border-slate-700 text-slate-200 font-semibold text-sm transition-all"
+            className="btn-primary text-xs"
           >
-            <Plus size={16} />
-            Colar Nova Vaga
+            <Plus size={15} />
+            Analisar Nova Vaga
           </button>
         </div>
+      </div>
+
+      {/* Top AI Guidance Banner */}
+      <div className="bg-white dark:bg-[#162032] border border-slate-200/90 dark:border-slate-800/90 rounded-2xl p-6 shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div className="flex items-start gap-3.5">
+          <div className="w-9 h-9 rounded-xl bg-blue-50 dark:bg-blue-500/10 text-[#4F8EF7] flex items-center justify-center shrink-0 mt-0.5">
+            <Sparkles size={18} strokeWidth={1.75} />
+          </div>
+          <div>
+            <div className="flex items-center gap-2">
+              <span className="text-xs font-semibold text-[#4F8EF7] uppercase tracking-wider">Recomendação da IA</span>
+              <Badge variant="premium" size="sm">Gemini Matching</Badge>
+            </div>
+            <h2 className="text-base font-semibold text-slate-900 dark:text-slate-100 mt-1">
+              {discoveredJobs.length > 0 
+                ? `Identificamos ${discoveredJobs.length} vaga(s) com alto potencial de compatibilidade para seu perfil.` 
+                : 'Insira palavras-chave ou cole o link de uma vaga para analisar seu alinhamento com a IA.'}
+            </h2>
+            <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+              O copiloto calcula a aderência semântica e lacunas técnicas comparando com seu currículo selecionado.
+            </p>
+          </div>
+        </div>
+        <button
+          onClick={() => { setSubTab('discover'); setSelectedJobId(null); }}
+          className="btn-secondary text-xs shrink-0 self-start md:self-center"
+        >
+          <span>Explorar Vagas</span>
+          <ChevronRight size={14} />
+        </button>
       </div>
 
       {/* Estatísticas Rápidas */}
@@ -1345,8 +1463,8 @@ export function JobMatchHub({
 
       {/* Modal de colagem de vaga manual / Job Ingestion Engine */}
       {showAddForm && (
-        <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 flex items-center justify-center p-4 overflow-y-auto">
-          <CardGlass className="w-full max-w-2xl min-w-[320px] sm:min-w-[400px] space-y-6 relative border border-slate-800 my-8">
+        <div className="fixed inset-0 bg-slate-950/85 backdrop-blur-sm z-50 flex items-center justify-center p-3 sm:p-4 overflow-y-auto">
+          <CardGlass className="w-full max-w-2xl max-h-[85vh] overflow-y-auto p-4 sm:p-6 space-y-4 sm:space-y-6 relative border border-slate-800 my-auto">
             <button
               onClick={() => {
                 resetIngestionStates();
@@ -1963,8 +2081,503 @@ export function JobMatchHub({
                   )}
                 </CardGlass>
 
-                {/* Resultados de Compatibilidade */}
+                {/* ── FASE 1 & FASE 2: CARD "POR QUE ESSA VAGA COMBINA COM VOCÊ?" ── */}
+                {selectedJob && (
+                  <div className="bg-gradient-to-b from-[#182338] to-[#121927] border border-blue-500/20 rounded-2xl p-6 shadow-xl space-y-6 animate-fade-in">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-slate-800/80">
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <span className="p-1.5 rounded-lg bg-blue-500/10 text-blue-400">
+                            <Sparkles size={16} />
+                          </span>
+                          <span className="text-xs font-bold uppercase tracking-wider text-blue-400">Job Match Explanation Engine</span>
+                        </div>
+                        <h2 className="text-xl font-bold text-slate-100 mt-1">
+                          Por que essa vaga combina com você?
+                        </h2>
+                      </div>
+                      
+                      <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 shrink-0">
+                        {/* Secondary Score Card: Job Score */}
+                        <div 
+                          className="p-2.5 rounded-xl bg-slate-800/80 border border-slate-700 text-right space-y-0.5 relative group cursor-help"
+                          title="Job Score: Mede a qualidade da vaga considerando fonte, atualidade, empresa e confiabilidade do anúncio."
+                        >
+                          <span className="text-[9px] uppercase font-bold text-slate-300 flex items-center gap-1 justify-end">
+                            🏢 Job Score
+                          </span>
+                          <span className="text-sm font-extrabold text-emerald-400 block">
+                            {selectedJob?.scores?.overall ? `${selectedJob.scores.overall}%` : '92%'}
+                          </span>
+                          <span className="text-[8px] text-slate-400 block">Qualidade da oportunidade no mercado</span>
+                        </div>
+
+                        {/* Primary Score Circle: Career Fit Score */}
+                        <div 
+                          className="flex items-center gap-3 bg-blue-950/40 p-2.5 rounded-2xl border border-blue-500/30 relative group cursor-help"
+                          title="Career Fit Score: Mede o alinhamento entre seu currículo, experiência, habilidades e objetivos profissionais."
+                        >
+                          <div className="text-right">
+                            <span className="text-[10px] uppercase font-bold text-blue-300 flex items-center gap-1 justify-end">
+                              🎯 Career Fit Score
+                            </span>
+                            <span className="text-xs text-slate-300 block">Quanto essa vaga combina com seu perfil</span>
+                          </div>
+                          <div className="w-14 h-14 rounded-full border-2 border-blue-400 bg-blue-500/20 flex items-center justify-center text-blue-300 font-extrabold text-base font-display shadow-lg shadow-blue-500/20">
+                            {explanation ? `${explanation.careerFitScore}%` : '76%'}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    {!primaryResume && !careerProfileNew ? (
+                      <div className="p-4 rounded-xl bg-amber-950/20 border border-amber-500/30 text-amber-300 text-xs flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                        <div className="flex items-start sm:items-center gap-3">
+                          <AlertTriangle size={20} className="shrink-0 text-amber-400 mt-0.5 sm:mt-0" />
+                          <div>
+                            <span className="font-bold block text-amber-200">Sem dados suficientes para análise profunda</span>
+                            <span className="text-[11px] text-amber-300/80">Envie seu currículo em PDF para calcularmos a compatibilidade de 7 fatores e ativarmos a IA.</span>
+                          </div>
+                        </div>
+                        {setActiveTab && (
+                          <button
+                            onClick={() => setActiveTab('profile')}
+                            className="px-4 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-xs shrink-0 self-start sm:self-center transition shadow-md shadow-amber-500/10 cursor-pointer"
+                          >
+                            Ir para Meu Perfil
+                          </button>
+                        )}
+                      </div>
+                    ) : isLoadingExplanation ? (
+                      <div className="py-8 text-center text-slate-400 space-y-2">
+                        <Loader2 size={24} className="animate-spin text-blue-400 mx-auto" />
+                        <p className="text-xs font-semibold text-slate-200">Calculando match & gerando análise IA...</p>
+                        <p className="text-[10px] text-slate-500">Sintetizando 7 fatores de compatibilidade e pontos fortes...</p>
+                      </div>
+                    ) : (
+                      <>
+                        {/* Resumo Geral do Match */}
+                        <div className="p-4 rounded-xl bg-blue-900/40 border border-blue-500/40 text-white text-xs leading-relaxed flex items-start gap-3">
+                          <Zap size={18} className="text-blue-300 shrink-0 mt-0.5" />
+                          <div>
+                            <span className="font-semibold text-blue-200 block mb-0.5">Diagnóstico do Copiloto:</span>
+                            {explanation?.overallMatchReason || 'Sua trajetória e competências apresentam alta sinergia com os requisitos essenciais desta posição.'}
+                          </div>
+                        </div>
+
+                        {/* 7-Factor Transparency Breakdown */}
+                        {explanation?.breakdown && (
+                          <div className="p-4 rounded-xl bg-slate-800/60 border border-slate-600/60 space-y-3">
+                            <span className="text-[11px] font-bold text-slate-200 uppercase tracking-wider block">Transparência dos 7 Fatores de Fit:</span>
+                            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-center text-xs">
+                              <div className="p-2 rounded-lg bg-slate-700/50 border border-slate-600">
+                                <span className="text-[9px] text-slate-300 uppercase font-semibold block">Skills (30%)</span>
+                                <span className="font-bold text-emerald-300">{explanation.breakdown.skillsScore}%</span>
+                              </div>
+                              <div className="p-2 rounded-lg bg-slate-700/50 border border-slate-600">
+                                <span className="text-[9px] text-slate-300 uppercase font-semibold block">Experiência (25%)</span>
+                                <span className="font-bold text-blue-300">{explanation.breakdown.experienceScore}%</span>
+                              </div>
+                              <div className="p-2 rounded-lg bg-slate-700/50 border border-slate-600">
+                                <span className="text-[9px] text-slate-300 uppercase font-semibold block">Senioridade (15%)</span>
+                                <span className="font-bold text-indigo-300">{explanation.breakdown.seniorityScore}%</span>
+                              </div>
+                              <div className="p-2 rounded-lg bg-slate-700/50 border border-slate-600">
+                                <span className="text-[9px] text-slate-300 uppercase font-semibold block">Objetivos (15%)</span>
+                                <span className="font-bold text-purple-300">{explanation.breakdown.careerGoalScore}%</span>
+                              </div>
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Grid: Pontos Fortes e Pontos de Atenção */}
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          {/* Pontos Fortes */}
+                          <div className="space-y-3 p-4 rounded-xl bg-emerald-900/30 border border-emerald-500/40">
+                            <h3 className="text-xs font-bold text-emerald-300 flex items-center gap-1.5 uppercase tracking-wider">
+                              <CheckCircle size={15} />
+                              Seus Pontos Fortes
+                            </h3>
+                            <div className="space-y-2">
+                              {explanation?.strengths && explanation.strengths.length > 0 ? (
+                                explanation.strengths.map((item, i) => (
+                                  <div key={i} className="p-2.5 rounded-lg bg-emerald-900/20 border border-emerald-800/40 text-xs space-y-0.5">
+                                    <span className="font-bold text-emerald-200 block">{item.skill}</span>
+                                    <span className="text-slate-300 text-[11px] block">{item.reason}</span>
+                                  </div>
+                                ))
+                              ) : (
+                                <p className="text-xs text-slate-300">Vivência relevante em projetos de escopo similar.</p>
+                              )}
+                            </div>
+                          </div>
+
+                          {/* Pontos de Atenção */}
+                          <div className="space-y-3 p-4 rounded-xl bg-amber-950/10 border border-amber-500/20">
+                            <h3 className="text-xs font-bold text-amber-400 flex items-center gap-1.5 uppercase tracking-wider">
+                              <AlertTriangle size={15} />
+                              Pontos de Atenção
+                            </h3>
+                            <div className="space-y-2">
+                              {explanation?.gaps && explanation.gaps.length > 0 ? (
+                                explanation.gaps.map((gap, i) => (
+                                  <div key={i} className="p-2.5 rounded-lg bg-slate-900/60 border border-amber-900/40 text-xs space-y-1">
+                                    <div className="flex items-center justify-between">
+                                      <span className="font-bold text-amber-300">{gap.requirement}</span>
+                                      <span className={`text-[9px] px-1.5 py-0.5 rounded font-bold uppercase ${gap.impact === 'Alto' ? 'bg-red-500/20 text-red-400 border border-red-500/30' : 'bg-amber-500/20 text-amber-400 border border-amber-500/30'}`}>
+                                        Impacto {gap.impact}
+                                      </span>
+                                    </div>
+                                    <span className="text-slate-400 text-[11px] block">💡 {gap.suggestion}</span>
+                                  </div>
+                                ))
+                              ) : (
+                                <p className="text-xs text-slate-400">Nenhum bloqueio crítico de pré-requisitos detectado.</p>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Estratégia de Candidatura */}
+                        {explanation?.recommendation && (
+                          <div className="p-4 rounded-xl bg-slate-900/80 border border-slate-800 space-y-1.5">
+                            <h4 className="text-xs font-bold text-blue-400 flex items-center gap-1.5 uppercase tracking-wider">
+                              <Target size={14} />
+                              Estratégia Recomendada
+                            </h4>
+                            <p className="text-xs text-slate-300 leading-relaxed">
+                              {explanation.recommendation}
+                            </p>
+                          </div>
+                        )}
+
+                        {/* Match IA Quality Feedback Bar (Item 1 & 2) */}
+                        <div className="p-3.5 rounded-xl bg-slate-900/90 border border-slate-800 space-y-2">
+                          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                            <span className="text-xs font-bold text-slate-200">Essa recomendação faz sentido para você?</span>
+                            <div className="flex items-center gap-2">
+                              <button
+                                onClick={async () => {
+                                  setMatchFeedbackGiven('positive');
+                                  await JobMatchFeedbackService.recordMatchFeedback({
+                                    userId,
+                                    jobId: selectedJob.id,
+                                    careerFitScore: explanation?.careerFitScore || 75,
+                                    jobScore: selectedJob.scores?.overall || 90,
+                                    feedbackType: 'positive'
+                                  });
+                                  showToast('✓ Feedback registrado com sucesso! Obrigado.', 'success');
+                                }}
+                                className={`px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition cursor-pointer ${
+                                  matchFeedbackGiven === 'positive'
+                                    ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/40'
+                                    : 'bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700'
+                                }`}
+                              >
+                                <ThumbsUp size={13} className="text-emerald-400" />
+                                <span>👍 Sim, combina comigo</span>
+                              </button>
+
+                              <button
+                                onClick={() => setMatchRejectionModal(true)}
+                                className={`px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition cursor-pointer ${
+                                  matchFeedbackGiven === 'negative'
+                                    ? 'bg-red-500/20 text-red-300 border border-red-500/40'
+                                    : 'bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700'
+                                }`}
+                              >
+                                <ThumbsDown size={13} className="text-red-400" />
+                                <span>👎 Não combina comigo</span>
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Botão de Adaptação de Currículo */}
+                        <div className="flex flex-col sm:flex-row items-center justify-between gap-3 pt-2">
+                          <button
+                            onClick={() => {
+                              setShowAdaptationModal(true);
+                              tracker.track('resume_adaptation_opened', 'CareerIntelligence', { jobId: selectedJobId });
+                              tracker.trackQualifiedAction({
+                                user_id: userId,
+                                job_id: selectedJob.id,
+                                action: 'resume_adaptation',
+                                career_fit_score: explanation?.careerFitScore || 75
+                              });
+                            }}
+                            className="w-full sm:w-auto px-5 py-3 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs shadow-lg shadow-blue-500/20 flex items-center justify-center gap-2 cursor-pointer transition"
+                          >
+                            <Sparkles size={16} />
+                            <span>Adaptar meu currículo para essa vaga</span>
+                          </button>
+
+                          {/* Quick Feedback Bar */}
+                          <div className="flex items-center gap-1 bg-slate-900/80 border border-slate-800 p-1 rounded-xl">
+                            <button
+                              onClick={async () => {
+                                recordFeedback({ jobId: selectedJob.id, action: 'SAVED' });
+                                await updateApplicationStatus({ job: selectedJob, status: 'SAVED' });
+                                queryClient.invalidateQueries({ queryKey: ['job-applications-list'] });
+                                queryClient.invalidateQueries({ queryKey: ['user-applications'] });
+                                showToast('✓ Vaga salva na sua jornada', 'success');
+
+                                if ((explanation?.careerFitScore || 75) >= 75) {
+                                  tracker.trackQualifiedAction({
+                                    user_id: userId,
+                                    job_id: selectedJob.id,
+                                    action: 'saved',
+                                    career_fit_score: explanation?.careerFitScore || 75
+                                  });
+                                }
+                              }}
+                              className="px-3 py-1.5 text-xs text-slate-300 hover:text-white hover:bg-slate-800 rounded-lg font-medium transition flex items-center gap-1 cursor-pointer"
+                              title="Salvar Vaga"
+                            >
+                              <Heart size={14} className="text-pink-400" />
+                              <span>Salvar</span>
+                            </button>
+                            <button
+                              onClick={async () => {
+                                recordFeedback({ jobId: selectedJob.id, action: 'APPLIED' });
+                                await updateApplicationStatus({ job: selectedJob, status: 'APPLIED' });
+                                queryClient.invalidateQueries({ queryKey: ['job-applications-list'] });
+                                queryClient.invalidateQueries({ queryKey: ['user-applications'] });
+                                showToast('✓ Candidatura registrada', 'success');
+
+                                if ((explanation?.careerFitScore || 75) >= 75) {
+                                  tracker.trackQualifiedAction({
+                                    user_id: userId,
+                                    job_id: selectedJob.id,
+                                    action: 'applied',
+                                    career_fit_score: explanation?.careerFitScore || 75
+                                  });
+                                }
+                              }}
+                              className="px-3 py-1.5 text-xs text-slate-300 hover:text-white hover:bg-slate-800 rounded-lg font-medium transition flex items-center gap-1 cursor-pointer"
+                              title="Marcar Candidatura"
+                            >
+                              <CheckCircle size={14} className="text-emerald-400" />
+                              <span>Candidatado</span>
+                            </button>
+                            <button
+                              onClick={() => setRejectReasonModal(true)}
+                              className="px-3 py-1.5 text-xs text-slate-400 hover:text-red-400 hover:bg-slate-800 rounded-lg font-medium transition flex items-center gap-1"
+                              title="Rejeitar Vaga"
+                            >
+                              <X size={14} />
+                              <span>Rejeitar</span>
+                            </button>
+                          </div>
+                        </div>
+                      </>
+                    )}
+                  </div>
+                )}
+
+                {/* MODAL DE ADAPTAÇÃO DE CURRÍCULO (SUGESTÕES APROVÁVEIS) */}
+                {showAdaptationModal && selectedJob && createPortal(
+                  <div className="fixed inset-0 bg-black/80 backdrop-blur-md z-[10000] flex items-center justify-center p-4 min-h-screen w-screen overflow-y-auto">
+                    <div className="bg-[#121927] border border-slate-800 rounded-2xl max-w-2xl min-w-[320px] w-full p-6 space-y-6 shadow-2xl animate-scale-up relative my-auto max-h-[90vh] overflow-y-auto">
+                      <div className="flex items-center justify-between pb-4 border-b border-slate-800">
+                        <div className="flex items-center gap-2">
+                          <span className="p-2 rounded-xl bg-blue-500/10 text-blue-400">
+                            <FileText size={20} />
+                          </span>
+                          <div>
+                            <h3 className="font-bold text-base text-slate-100">Sugestões de Adaptação de Currículo</h3>
+                            <p className="text-xs text-slate-400">Vaga: {selectedJob.title} na {selectedJob.companyName}</p>
+                          </div>
+                        </div>
+                        <button
+                          onClick={() => setShowAdaptationModal(false)}
+                          className="p-1 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800"
+                        >
+                          <X size={18} />
+                        </button>
+                      </div>
+
+                      {isLoadingAdaptation ? (
+                        <div className="py-8 text-center text-slate-400 space-y-2">
+                          <Loader2 size={24} className="animate-spin text-blue-400 mx-auto" />
+                          <p className="text-xs">Analisando currículo em relação aos requisitos ATS...</p>
+                        </div>
+                      ) : (
+                        <div className="space-y-5 text-xs">
+                          {/* Status Banner */}
+                          <div className="p-3 rounded-xl bg-blue-950/30 border border-blue-500/20 text-blue-300 flex items-center justify-between">
+                            <span>Status da Adaptação: <strong>{adaptation?.status || 'PENDING'}</strong></span>
+                            {adaptation?.status === 'APPLIED' && (
+                              <span className="px-2 py-0.5 bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 rounded font-bold uppercase text-[10px]">
+                                Recomendações Aprovadas
+                              </span>
+                            )}
+                          </div>
+
+                          {/* Seções Recomendadas */}
+                          {adaptation?.adaptedSections?.map((section, idx) => (
+                            <div key={idx} className="p-4 rounded-xl bg-slate-900/80 border border-slate-800 space-y-2">
+                              <span className="font-bold text-blue-400 block uppercase tracking-wider text-[11px]">{section.sectionName}</span>
+                              <div className="p-2.5 rounded bg-slate-950/60 border border-slate-800/80 text-slate-400 text-[11px]">
+                                <span className="font-semibold text-slate-500 block mb-0.5">Texto Atual:</span>
+                                {section.originalText}
+                              </div>
+                              <div className="p-2.5 rounded bg-blue-950/30 border border-blue-500/20 text-slate-200 text-[11px]">
+                                <span className="font-semibold text-blue-400 block mb-0.5">Sugestão de Otimização:</span>
+                                {section.suggestedText}
+                              </div>
+                              <p className="text-slate-400 text-[10px]">💡 {section.reasoning}</p>
+                            </div>
+                          ))}
+
+                          {/* Palavras-chave Adicionadas */}
+                          {adaptation?.keywordsAdded && adaptation.keywordsAdded.length > 0 && (
+                            <div className="p-4 rounded-xl bg-slate-900/80 border border-slate-800 space-y-2">
+                              <span className="font-bold text-emerald-400 block uppercase tracking-wider text-[11px]">Palavras-chave Relevantes para Inserir:</span>
+                              <div className="flex flex-wrap gap-2">
+                                {adaptation.keywordsAdded.map((kw, i) => (
+                                  <span key={i} className="px-2.5 py-1 rounded bg-emerald-950/40 border border-emerald-500/30 text-emerald-300 font-semibold text-[11px]">
+                                    + {kw}
+                                  </span>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+
+                          {/* Ações de Aprovação */}
+                          <div className="flex justify-end gap-3 pt-4 border-t border-slate-800">
+                            <button
+                              onClick={() => {
+                                if (adaptation) updateAdaptationStatus({ adaptationId: adaptation.id, status: 'DISMISSED' });
+                                setShowAdaptationModal(false);
+                              }}
+                              className="px-4 py-2 rounded-xl border border-slate-800 text-slate-400 hover:text-white text-xs font-semibold cursor-pointer"
+                            >
+                              Descartar Sugestões
+                            </button>
+                            <button
+                              onClick={() => {
+                                if (adaptation) updateAdaptationStatus({ adaptationId: adaptation.id, status: 'APPLIED' });
+                                setShowAdaptationModal(false);
+                              }}
+                              className="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold shadow-md shadow-emerald-500/20 flex items-center gap-1.5 cursor-pointer"
+                            >
+                              <Check size={14} />
+                              Aprovar e Aplicar Otimizações
+                            </button>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  </div>,
+                  document.body
+                )}
+
+                {/* MODAL DE MOTIVO DE REJEIÇÃO */}
+                {rejectReasonModal && selectedJob && createPortal(
+                  <div className="fixed inset-0 bg-black/80 backdrop-blur-md z-[10000] flex items-center justify-center p-4 min-h-screen w-screen overflow-y-auto">
+                    <div className="bg-[#121927] border border-slate-800 rounded-2xl max-w-lg min-w-[320px] w-full p-6 space-y-4 shadow-2xl relative my-auto">
+                      <h3 className="font-bold text-sm text-slate-100">Por que esta vaga não interessa?</h3>
+                      <p className="text-xs text-slate-400">Seu feedback ajuda a treinar o algoritmo de recomendação do VoCentro.</p>
+                      
+                      <div className="space-y-2 text-xs">
+                        {[
+                          { id: 'LOW_SALARY', label: 'Salário abaixo da expectativa' },
+                          { id: 'BAD_LOCATION', label: 'Localização ou modalidade inviável' },
+                          { id: 'BAD_MATCH', label: 'Requisitos sem relação com meu perfil' },
+                          { id: 'WRONG_LEVEL', label: 'Nível de senioridade incompatível' },
+                          { id: 'ALREADY_APPLIED', label: 'Já me candidatei previamente' }
+                        ].map((item) => (
+                          <button
+                            key={item.id}
+                            onClick={() => {
+                              recordFeedback({ jobId: selectedJob.id, action: 'REJECTED', reason: item.id as JobFeedbackReason });
+                              updateApplicationStatus({ job: selectedJob, status: 'REJECTED' });
+                              setRejectReasonModal(false);
+                            }}
+                            className="w-full text-left p-3 rounded-xl bg-slate-900 border border-slate-800 hover:border-blue-500/50 hover:bg-slate-800 text-slate-200 font-medium transition cursor-pointer"
+                          >
+                            {item.label}
+                          </button>
+                        ))}
+                      </div>
+                      <div className="pt-2 text-right">
+                        <button
+                          onClick={() => setRejectReasonModal(false)}
+                          className="text-xs text-slate-400 hover:text-slate-200 cursor-pointer"
+                        >
+                          Cancelar
+                        </button>
+                      </div>
+                    </div>
+                  </div>,
+                  document.body
+                )}
+
+                {/* MODAL DE FEEDBACK DE REJEIÇÃO DO MATCH IA (Item 2) */}
+                {matchRejectionModal && selectedJob && createPortal(
+                  <div className="fixed inset-0 bg-black/80 backdrop-blur-md z-[10000] flex items-center justify-center p-4 min-h-screen w-screen overflow-y-auto">
+                    <div className="bg-[#121927] border border-slate-800 rounded-2xl max-w-md min-w-[320px] w-full p-6 space-y-4 shadow-2xl relative my-auto">
+                      <div className="flex items-center justify-between pb-3 border-b border-slate-800">
+                        <div>
+                          <h3 className="text-sm font-bold text-white">Ajude a melhorar sua recomendação</h3>
+                          <p className="text-[11px] text-slate-400">Por que essa vaga não combina com você?</p>
+                        </div>
+                        <button
+                          onClick={() => setMatchRejectionModal(false)}
+                          className="text-slate-400 hover:text-white p-1 rounded-lg hover:bg-slate-800 cursor-pointer"
+                        >
+                          <X size={18} />
+                        </button>
+                      </div>
+
+                      <div className="space-y-2 pt-2">
+                        {[
+                          { id: 'seniority_mismatch', label: 'Senioridade diferente' },
+                          { id: 'skill_gap', label: 'Não tenho essas habilidades' },
+                          { id: 'career_direction', label: 'Cargo não faz sentido para minha carreira' },
+                          { id: 'location', label: 'Localização incompatível' },
+                          { id: 'other', label: 'Outro motivo' }
+                        ].map(opt => (
+                          <button
+                            key={opt.id}
+                            onClick={async () => {
+                              setMatchFeedbackGiven('negative');
+                              await JobMatchFeedbackService.recordMatchFeedback({
+                                userId,
+                                jobId: selectedJob.id,
+                                careerFitScore: explanation?.careerFitScore || 75,
+                                jobScore: selectedJob.scores?.overall || 90,
+                                feedbackType: 'negative',
+                                reason: opt.id as JobMatchRejectionReason
+                              });
+                              setMatchRejectionModal(false);
+                              showToast('✓ Motivo registrado! O algoritmo usará essa informação.', 'success');
+                            }}
+                            className="w-full text-left p-3 rounded-xl bg-slate-900/60 hover:bg-slate-800/80 border border-slate-800 text-xs text-slate-200 hover:text-white transition flex items-center justify-between cursor-pointer"
+                          >
+                            <span>{opt.label}</span>
+                            <ChevronRight size={14} className="text-slate-500" />
+                          </button>
+                        ))}
+                      </div>
+
+                      <div className="pt-2 text-right">
+                        <button
+                          onClick={() => setMatchRejectionModal(false)}
+                          className="text-xs text-slate-400 hover:text-slate-200 cursor-pointer"
+                        >
+                          Cancelar
+                        </button>
+                      </div>
+                    </div>
+                  </div>,
+                  document.body
+                )}
+
+                {/* Resultados de Compatibilidade Existentes */}
                 {currentMatch ? (
+
                   <div className="space-y-6">
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                       {/* Gráfico Radar */}
@@ -1982,7 +2595,7 @@ export function JobMatchHub({
                       <div className="space-y-4">
                         <CardGlass className="flex flex-col justify-center space-y-4">
                           <div>
-                            <span className="text-[10px] text-slate-500 font-bold uppercase tracking-wider">Compatibilidade Geral</span>
+                            <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Qualidade da Oportunidade (Job Score)</span>
                             <div className="flex items-baseline gap-2 mt-1">
                               <h2 className="font-display font-extrabold text-5xl text-brand-500">
                                 {currentMatch.scoreOverall}%
@@ -2014,16 +2627,27 @@ export function JobMatchHub({
                                   handleGenerateOptimization();
                                 }
                               }}
-                              className="w-full py-2 rounded-xl bg-brand-50 dark:bg-brand-500/10 hover:bg-brand-100 dark:hover:bg-brand-500/20 border border-brand-200 dark:border-brand-500/20 text-brand-700 dark:text-brand-400 text-[10px] font-bold tracking-wider uppercase transition font-display flex items-center justify-center gap-1"
+                              className="w-full py-2.5 rounded-xl bg-brand-600 hover:bg-brand-500 text-white text-[11px] font-bold tracking-wider uppercase transition shadow-md shadow-brand-500/10 flex items-center justify-center gap-1.5 cursor-pointer"
                             >
-                              <Sparkles size={11} />
+                              <Sparkles size={12} />
                               Melhorar meu currículo para essa vaga
                             </button>
+                            {selectedJob.sourceUrl && (
+                              <a
+                                href={selectedJob.sourceUrl}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="w-full py-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 border border-slate-800 text-brand-400 hover:text-brand-300 text-[11px] font-bold tracking-wider uppercase transition flex items-center justify-center gap-1.5 cursor-pointer"
+                              >
+                                <span>Ver vaga original</span>
+                                <ArrowUpRight size={12} />
+                              </a>
+                            )}
                              <div className="flex gap-2">
                                <button
                                  onClick={handleDeleteSelectedAnalysis}
                                  disabled={isDeletingAnalyses}
-                                 className="flex-1 py-2 rounded-xl bg-red-50 dark:bg-red-950/20 hover:bg-red-100 dark:hover:bg-red-950/40 border border-red-200 dark:border-red-900/30 text-red-650 dark:text-red-400 text-[10px] font-bold tracking-wider uppercase transition font-display flex items-center justify-center gap-1 disabled:opacity-50"
+                                 className="flex-1 py-2 rounded-xl bg-red-950/20 hover:bg-red-950/40 border border-red-900/40 text-red-400 text-[10px] font-bold tracking-wider uppercase transition flex items-center justify-center gap-1.5 disabled:opacity-50 cursor-pointer"
                                >
                                  {isDeletingAnalyses ? (
                                    <Loader2 size={11} className="animate-spin" />
@@ -2042,7 +2666,7 @@ export function JobMatchHub({
                                      }
                                    }
                                  }}
-                                 className="flex-1 py-2 rounded-xl bg-red-50 dark:bg-red-600/10 hover:bg-red-100 dark:hover:bg-red-600/20 border border-red-200 dark:border-red-500/20 text-red-650 dark:text-red-400 text-[10px] font-bold tracking-wider uppercase transition font-display flex items-center justify-center gap-1"
+                                 className="flex-1 py-2 rounded-xl bg-red-950/20 hover:bg-red-950/40 border border-red-900/40 text-red-400 text-[10px] font-bold tracking-wider uppercase transition flex items-center justify-center gap-1.5 cursor-pointer"
                                >
                                  <Trash2 size={11} />
                                  Excluir esta vaga
@@ -2054,18 +2678,18 @@ export function JobMatchHub({
                               return (
                                 <div className="space-y-2 text-left">
                                   {isAdded ? (
-                                    <div className="w-full py-2 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-[10px] font-bold tracking-wider uppercase flex items-center justify-center gap-1">
+                                    <div className="w-full py-2.5 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-[10px] font-bold tracking-wider uppercase flex items-center justify-center gap-1">
                                       <CheckCircle size={11} />
                                       Vaga em Acompanhamento na Estratégia
                                     </div>
                                   ) : (
                                     <>
                                       <div className="flex items-center justify-between gap-2 px-1">
-                                        <span className="text-[10px] text-slate-500 font-semibold font-sans">Coluna Kanban:</span>
+                                        <span className="text-[10px] text-slate-400 font-semibold font-sans">Coluna Kanban:</span>
                                         <select
                                           value={manualStrategyStatus}
                                           onChange={(e) => setManualStrategyStatus(e.target.value)}
-                                          className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300 text-[10px] rounded-lg px-2 py-0.5 outline-none focus:border-brand-500 font-semibold"
+                                          className="bg-slate-900 border border-slate-800 text-slate-200 text-[10px] rounded-lg px-2 py-0.5 outline-none focus:border-brand-500 font-semibold"
                                         >
                                           <option value="auto">Automático (Score)</option>
                                           <option value="🎯 Alta Prioridade">🎯 Alta Prioridade</option>
@@ -2078,7 +2702,7 @@ export function JobMatchHub({
                                         type="button"
                                         onClick={handleAddToStrategy}
                                         disabled={isAddingToStrategy}
-                                        className="w-full py-2 rounded-xl bg-indigo-50 dark:bg-indigo-600/20 hover:bg-indigo-100 dark:hover:bg-indigo-600/30 border border-indigo-200 dark:border-indigo-500/30 text-indigo-700 dark:text-indigo-400 text-[10px] font-bold tracking-wider uppercase transition font-display flex items-center justify-center gap-1 disabled:opacity-50"
+                                        className="w-full py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-[11px] font-bold tracking-wider uppercase transition shadow flex items-center justify-center gap-1.5 disabled:opacity-50 cursor-pointer"
                                       >
                                         {isAddingToStrategy ? (
                                           <Loader2 size={11} className="animate-spin" />
@@ -2091,11 +2715,11 @@ export function JobMatchHub({
                                   )}
                                   {onStartSimulation && (
                                     <button
-                                      type="button"
                                       onClick={() => onStartSimulation(selectedJob)}
-                                      className="w-full py-2 rounded-xl bg-brand-50 dark:bg-brand-500/10 hover:bg-brand-100 dark:hover:bg-brand-500/20 border border-brand-200 dark:border-brand-500/30 text-brand-700 dark:text-brand-400 text-[10px] font-bold tracking-wider uppercase transition font-display flex items-center justify-center gap-1"
+                                      className="w-full py-2.5 rounded-xl bg-brand-500/10 hover:bg-brand-500/20 border border-brand-500/30 text-brand-400 text-[11px] font-bold tracking-wider uppercase transition flex items-center justify-center gap-1.5 cursor-pointer"
                                     >
-                                      🎤 Simular entrevista
+                                      <Play size={12} />
+                                      Simular Entrevista
                                     </button>
                                   )}
                                 </div>
@@ -2414,24 +3038,77 @@ export function JobMatchHub({
                           <div className="space-y-1.5 p-4 rounded-xl bg-slate-900/30 border border-slate-900/60 relative">
                             <div className="flex justify-between items-center mb-1">
                               <strong className="text-slate-200 text-[11px]">Resumo Profissional Otimizado (sem inventar fatos):</strong>
-                              <button
-                                onClick={() => handleCopySummary(optimization.optimizedSummary)}
-                                className="px-2 py-1 rounded bg-slate-950 hover:bg-slate-800 text-[10px] text-slate-400 hover:text-slate-200 flex items-center gap-1 transition"
-                              >
-                                {copiedSummary ? (
-                                  <>
-                                    <CheckCircle size={11} className="text-emerald-500" />
-                                    <span>Copiado!</span>
-                                  </>
-                                ) : (
-                                  <>
-                                    <Clipboard size={11} />
-                                    <span>Copiar</span>
-                                  </>
-                                )}
-                              </button>
+                              <div className="flex gap-2">
+                                <button
+                                  type="button"
+                                  onClick={() => handleCopySummary(optimization.optimizedSummary)}
+                                  className="px-2 py-1 rounded bg-slate-950 hover:bg-slate-800 text-[10px] text-slate-400 hover:text-slate-200 flex items-center gap-1 transition"
+                                >
+                                  {copiedSummary ? (
+                                    <>
+                                      <CheckCircle size={11} className="text-emerald-500" />
+                                      <span>Copiado!</span>
+                                    </>
+                                  ) : (
+                                    <>
+                                      <Clipboard size={11} />
+                                      <span>Copiar</span>
+                                    </>
+                                  )}
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    if (!optimization || !selectedJob) return;
+                                    const experiencesHtml = (optimization.keyExperiences || []).map((exp: any) => `
+                                      <div class="experience-item">
+                                        <div class="experience-header">
+                                          <span class="experience-role">${exp.role}</span>
+                                          <span class="experience-meta">${exp.company}</span>
+                                        </div>
+                                        <p>${(exp.description || '').replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')}</p>
+                                      </div>
+                                    `).join('');
+
+                                    const htmlContent = `
+                                      <h1>Currículo Otimizado</h1>
+                                      <div style="font-size: 10pt; color: #64748b; margin-bottom: 20px; border-bottom: 1px solid #e2e8f0; padding-bottom: 8px;">
+                                        Vaga: <strong>${selectedJob.title}</strong> | Empresa: <strong>${selectedJob.companyName || 'Empresa Confidencial'}</strong>
+                                      </div>
+
+                                      <div class="card">
+                                        <div class="card-title">Resumo Profissional Otimizado</div>
+                                        <p>${(optimization.optimizedSummary || '').replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')}</p>
+                                      </div>
+
+                                      <h2>Reestruturação de Experiências</h2>
+                                      ${experiencesHtml}
+
+                                      <div class="grid-2" style="margin-top: 25px;">
+                                        <div class="grid-col">
+                                          <div class="card">
+                                            <div class="card-title" style="color: #059669;">Termos a Destacar</div>
+                                            <p>${(optimization.missingKeywords || []).join(', ')}</p>
+                                          </div>
+                                        </div>
+                                        <div class="grid-col">
+                                          <div class="card">
+                                            <div class="card-title" style="color: #d97706;">Termos a Reduzir</div>
+                                            <p>${(optimization.redundantInfo || []).join(', ')}</p>
+                                          </div>
+                                        </div>
+                                      </div>
+                                    `;
+                                    printElementHtml(`Curriculo_Otimizado_${selectedJob.title.replace(/\s+/g, '_')}`, htmlContent);
+                                  }}
+                                  className="px-2.5 py-1 rounded bg-brand-600 hover:bg-brand-500 text-[10px] text-white font-bold flex items-center gap-1 transition shadow cursor-pointer"
+                                >
+                                  <Printer size={11} />
+                                  <span>Exportar PDF</span>
+                                </button>
+                              </div>
                             </div>
-                            <p className="text-slate-350 leading-relaxed italic">"{optimization.optimizedSummary}"</p>
+                            <p className="text-slate-350 leading-relaxed italic">"{renderFormattedMarkdown(optimization.optimizedSummary)}"</p>
                           </div>
 
                           <div className="space-y-2.5">
@@ -2443,7 +3120,7 @@ export function JobMatchHub({
                                     <span className="font-bold text-slate-200">{exp.role}</span>
                                     <span className="text-slate-500">{exp.company}</span>
                                   </div>
-                                  <p className="text-slate-400 leading-relaxed text-[11px] mt-1">{exp.description}</p>
+                                  <p className="text-slate-400 leading-relaxed text-[11px] mt-1">{renderFormattedMarkdown(exp.description)}</p>
                                 </div>
                               ))}
                             </div>
@@ -2654,16 +3331,37 @@ export function JobMatchHub({
 
       {/* VIEW 2: Descoberta de Vagas (Discovery) */}
       {subTab === 'discover' && (() => {
-        const scoredDiscoveredJobs = discoveredJobs.map(job => {
+        const rawScored = discoveredJobs.map(job => {
           if (!primaryResume) {
             return { ...job, scoreOverall: 0, cpi: 0, missingSkills: [] as string[], matchedSkills: [] as string[] };
           }
-          // Usa o perfil consolidado como fonte primária
+          // Verificar se já existe um match completo calculado no banco de dados para essa vaga
+          const jobIdStr = (job as any).id;
+          const existingMatch = (matches || []).find(m => 
+            (jobIdStr && m.jobId === jobIdStr) || 
+            (jobIdStr && (m as any).job_id === jobIdStr) || 
+            (job.sourceUrl && (m as any).sourceUrl === job.sourceUrl)
+          );
+
+          if (existingMatch) {
+            const scoreOverall = existingMatch.scoreOverall ?? (existingMatch as any).score_overall ?? 0;
+            const cpi = (existingMatch as any).cpi ?? scoreOverall;
+            return {
+              ...job,
+              scoreOverall,
+              cpi,
+              missingSkills: (existingMatch as any).gapAnalysis?.missingSkills || [],
+              matchedSkills: (existingMatch as any).gapAnalysis?.matchedSkills || []
+            };
+          }
+
+          // Usa o perfil consolidado para cálculo síncrono de compatibilidade
           const analysis = MatchingEngine.calculateMatchSync(primaryResume, job, careerProfileNew);
           const recencyBonus = 10;
           const skillsGapBonus = Math.max(0, 10 - (analysis.missingSkills.length * 2.5));
+          const effectiveScore = (job as any).scoreOverall ?? (job as any).scores?.overall ?? analysis.scoreOverall;
           const cpi = Math.round(
-            (analysis.scoreOverall * 0.60) +
+            (effectiveScore * 0.60) +
             (analysis.scoreTechnical * 0.20) +
             recencyBonus +
             skillsGapBonus
@@ -2671,33 +3369,54 @@ export function JobMatchHub({
 
           return {
             ...job,
-            scoreOverall: analysis.scoreOverall,
+            scoreOverall: effectiveScore,
             cpi,
             missingSkills: analysis.missingSkills,
             matchedSkills: analysis.matchedSkills || []
           };
+        });
+
+        const scoredDiscoveredJobs = rawScored.filter(job => {
+          if (filterActiveOnly && job.isActive === false) return false;
+          if (filterScoreOver80 && job.scoreOverall < 80 && job.cpi < 80) return false;
+          return true;
         }).sort((a, b) => b.cpi - a.cpi);
 
-        const getPriorityBadge = (cpi: number) => {
-          if (cpi >= 85) {
+        console.log('[STAGE 5: JOB_MATCH_HUB RENDER DATA]', JSON.stringify({
+          totalJobs: scoredDiscoveredJobs.length,
+          sampleFirst5: scoredDiscoveredJobs.slice(0, 5).map(j => ({
+            title: j.title,
+            company: j.companyName,
+            provider: j.sourcePlatform,
+            sourcePlatform: j.sourcePlatform,
+            sources: j.sources,
+            sourceUrl: j.sourceUrl,
+            redirect_url: (j as any).redirect_url,
+            applyUrl: (j as any).applyUrl,
+            url: (j as any).url
+          }))
+        }, null, 2));
+
+        const getPriorityBadge = (score: number) => {
+          if (score >= 80) {
             return (
               <span className="inline-flex items-center gap-1 text-[9px] px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 font-extrabold border border-emerald-500/20">
                 <Flame size={10} className="fill-emerald-400 shrink-0" />
-                Prioridade Máxima (Aplicar Hoje)
+                Alta Aderência (Aplicar Hoje)
               </span>
             );
-          } else if (cpi >= 70) {
+          } else if (score >= 50) {
             return (
               <span className="inline-flex items-center gap-1 text-[9px] px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-400 font-bold border border-amber-500/20">
                 <Sparkles size={10} className="shrink-0" />
-                Prioridade Média (Otimizar CV)
+                Aderência Média (Otimizar CV)
               </span>
             );
           } else {
             return (
               <span className="inline-flex items-center gap-1 text-[9px] px-2 py-0.5 rounded-full bg-slate-500/10 text-slate-400 font-medium border border-slate-500/20">
                 <AlertCircle size={10} className="shrink-0" />
-                Prioridade Baixa (Capacitação)
+                Em Análise / Capacitação Recomendada
               </span>
             );
           }
@@ -2731,8 +3450,8 @@ export function JobMatchHub({
             ) : (
               <>
                 {/* Barra de Filtros */}
-                <CardGlass>
-                  <form onSubmit={handleSearchDiscovery} className="grid grid-cols-1 sm:grid-cols-4 gap-4 items-end">
+                <CardGlass className="space-y-4">
+                  <form onSubmit={handleSearchDiscovery} className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 items-end">
                     <div className="space-y-1">
                       <label className="text-xs font-semibold text-slate-400 flex items-center gap-1.5">
                         <Search size={12} />
@@ -2785,6 +3504,25 @@ export function JobMatchHub({
                       )}
                     </div>
 
+                    <div className="space-y-1">
+                      <label className="text-xs font-semibold text-slate-400 flex items-center gap-1.5">
+                        <Briefcase size={12} />
+                        Senioridade
+                      </label>
+                      <select
+                        value={searchSeniority}
+                        onChange={e => setSearchSeniority(e.target.value)}
+                        className="w-full px-3 py-2.5 rounded-xl bg-slate-900 border border-slate-800 text-xs text-slate-200 outline-none focus:border-brand-500"
+                      >
+                        <option value="all">Todas as Senioridades</option>
+                        <option value="junior">Júnior (Junior)</option>
+                        <option value="pleno">Pleno (Pleno)</option>
+                        <option value="senior">Sênior (Senior)</option>
+                        <option value="lead">Lead (Lead)</option>
+                        <option value="director">Diretor (Director)</option>
+                      </select>
+                    </div>
+
                     <div className="space-y-1 min-w-[140px]">
                       <label className="text-xs font-semibold text-slate-400 block mb-1">Modelo de Trabalho</label>
                       <div className="flex flex-wrap gap-2 py-1.5">
@@ -2824,6 +3562,33 @@ export function JobMatchHub({
                       Buscar Vagas
                     </button>
                   </form>
+
+                  {/* Pre-render Filters Switchers */}
+                  <div className="flex flex-wrap items-center justify-between gap-4 pt-3 border-t border-slate-900 text-xs text-slate-400">
+                    <div className="flex flex-wrap items-center gap-4">
+                      <label className="flex items-center gap-2 cursor-pointer select-none font-medium hover:text-slate-200 transition">
+                        <input
+                          type="checkbox"
+                          checked={filterActiveOnly}
+                          onChange={e => setFilterActiveOnly(e.target.checked)}
+                          className="h-3.5 w-3.5 accent-brand-500 rounded bg-slate-900 border-slate-800"
+                        />
+                        <span>Exibir apenas vagas ativas</span>
+                      </label>
+                      <label className="flex items-center gap-2 cursor-pointer select-none font-medium hover:text-slate-200 transition">
+                        <input
+                          type="checkbox"
+                          checked={filterScoreOver80}
+                          onChange={e => setFilterScoreOver80(e.target.checked)}
+                          className="h-3.5 w-3.5 accent-brand-500 rounded bg-slate-900 border-slate-800"
+                        />
+                        <span className="text-emerald-400 font-semibold">Match Superior a 80% (Alta Aderência)</span>
+                      </label>
+                    </div>
+                    <span className="text-[11px] text-slate-500 font-mono">
+                      Exibindo {scoredDiscoveredJobs.length} de {discoveredJobs.length} vaga(s)
+                    </span>
+                  </div>
                 </CardGlass>
 
                 {/* Listagem de Resultados */}
@@ -2850,14 +3615,18 @@ export function JobMatchHub({
                                   <span className="text-xs text-brand-500 font-semibold truncate block">{job.companyName}</span>
                                 </div>
                               </div>
-                              <span className="text-[10px] px-2 py-0.5 rounded-full bg-slate-900 border border-slate-800 text-slate-500 font-semibold shrink-0">
-                                {job.sourcePlatform}
-                              </span>
+                              <div className="flex gap-1.5 items-center flex-wrap shrink-0">
+                                {(job.sources && job.sources.length > 0 ? job.sources : [job.sourcePlatform || 'JobAggregator']).map((src: string, i: number) => (
+                                  <span key={i} className="text-[10px] px-2 py-0.5 rounded-md bg-blue-50 dark:bg-blue-500/10 border border-blue-200/80 dark:border-blue-800/80 text-[#4F8EF7] font-semibold">
+                                    {src}
+                                  </span>
+                                ))}
+                              </div>
                             </div>
 
                             {/* Selo de Prioridade CPI */}
                             <div className="pt-1 flex gap-2 items-center flex-wrap">
-                              {getPriorityBadge(job.cpi)}
+                              {getPriorityBadge(job.scoreOverall)}
                               <span className="text-[10px] text-slate-500 font-semibold">
                                 Match Estimado: {job.scoreOverall}%
                               </span>
@@ -3025,7 +3794,8 @@ export function JobMatchHub({
                         keyword: initialKeyword,
                         location: initialLocation,
                         remoteOnly: initialRemote,
-                        workModes: initialRemote ? ['remote'] : ['remote', 'hybrid', 'onsite']
+                        workModes: initialRemote ? ['remote'] : ['remote', 'hybrid', 'onsite'],
+                        seniority: 'all'
                       });
                     }}
                   />

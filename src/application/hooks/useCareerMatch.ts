@@ -71,6 +71,21 @@ export function useResumes(userId: string | undefined) {
     mutationFn: async ({ file, rawText }: { file: File, rawText: string }) => {
       if (!userId) throw new Error('Usuário não autenticado.');
 
+      // Validar tamanho do arquivo (máx 10MB)
+      const MAX_SIZE_BYTES = 10 * 1024 * 1024;
+      if (file.size > MAX_SIZE_BYTES) {
+        throw new Error('O arquivo excede o limite máximo de 10MB. Por favor, envie um arquivo menor.');
+      }
+
+      // Validar extensão / MIME type
+      const allowedExtensions = ['.pdf', '.docx', '.doc', '.txt'];
+      const fileExt = '.' + file.name.split('.').pop()?.toLowerCase();
+      const allowedMimes = ['application/pdf', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 'application/msword', 'text/plain'];
+      
+      if (!allowedExtensions.includes(fileExt) && file.type && !allowedMimes.includes(file.type)) {
+        throw new Error('Formato de arquivo não suportado. Por favor, envie um documento em formato PDF, DOCX ou TXT.');
+      }
+
       const pipelineStartTime = Date.now();
       console.log(`[PIPELINE] 1. Upload iniciado para o arquivo: ${file.name} (Tamanho: ${file.size} bytes)`);
 
@@ -418,17 +433,21 @@ export function useResumes(userId: string | undefined) {
         }
       } catch (error: any) {
         const errorMsg = error.message || String(error);
+        const userFriendlyMsg = (errorMsg.includes('non-2xx') || errorMsg.includes('Edge Function') || errorMsg.includes('parse') || errorMsg.includes('PDF'))
+          ? 'Não conseguimos processar este arquivo. Verifique:\n✓ PDF válido com camada de texto\n✓ Arquivo menor que 10MB\n✓ Arquivo sem senha de proteção'
+          : errorMsg;
+
         setPipelineSteps(prev => {
           let marked = false;
           return prev.map(s => {
             if (!marked && (s.status === 'running' || s.status === 'pending')) {
               marked = true;
-              return { ...s, label: `✖ Falha: ${errorMsg}`, status: 'error' };
+              return { ...s, label: `✖ ${userFriendlyMsg}`, status: 'error' };
             }
             return s;
           });
         });
-        throw error;
+        throw new Error(userFriendlyMsg);
       }
     },
     onError: (error: any) => {

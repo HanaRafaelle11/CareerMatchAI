@@ -578,7 +578,27 @@ export function useCoach(userId: string | undefined) {
       }
       return updated;
     },
+    onMutate: async ({ sim, role, text }) => {
+      const appId = sim.applicationId;
+      await queryClient.cancelQueries({ queryKey: ['simulation', appId] });
+      const previousSim = queryClient.getQueryData<InterviewSimulation>(['simulation', appId]);
+      
+      if (previousSim) {
+        const optimisticSim = {
+          ...previousSim,
+          chatHistory: [...previousSim.chatHistory, { role, text }]
+        };
+        queryClient.setQueryData(['simulation', appId], optimisticSim);
+      }
+      return { previousSim, appId };
+    },
+    onError: (_err, _variables, context) => {
+      if (context?.previousSim && context?.appId) {
+        queryClient.setQueryData(['simulation', context.appId], context.previousSim);
+      }
+    },
     onSuccess: (data) => {
+      queryClient.setQueryData(['simulation', data.applicationId], data);
       queryClient.invalidateQueries({ queryKey: ['simulation', data.applicationId] });
       if (data.evaluations) {
         tracker.track('interview_finished', 'interviews', { scores: data.evaluations });

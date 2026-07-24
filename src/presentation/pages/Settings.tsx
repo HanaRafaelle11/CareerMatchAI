@@ -495,33 +495,33 @@ export function Settings({
   ] as const;
 
   return (
-    <div className="space-y-8 animate-fade-in font-sans">
+    <div className="space-y-6 animate-fade-in font-sans">
       <div>
-        <h1 className="font-display font-bold text-3xl tracking-tight text-slate-100 dark:text-slate-100 light:text-slate-800">
-          Configurações do Sistema
+        <h1 className="font-display font-bold text-2xl tracking-tight text-slate-900 dark:text-slate-100">
+          Configurações
         </h1>
-        <p className="text-slate-400 dark:text-slate-400 light:text-slate-500 text-sm mt-1">
+        <p className="text-slate-500 dark:text-slate-400 text-sm mt-1">
           Gerencie suas preferências, dados de privacidade, tema visual e assinaturas.
         </p>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-lg items-start">
+      <div className="flex flex-col lg:flex-row gap-6 items-start">
         {/* Menu Lateral de Configurações */}
-        <div className="lg:col-span-3 flex lg:flex-col overflow-x-auto lg:overflow-x-visible gap-2 pb-2 lg:pb-0">
+        <div className="w-full lg:w-52 shrink-0 flex lg:flex-col overflow-x-auto lg:overflow-x-visible gap-1.5 pb-2 lg:pb-0">
           {subTabItems.map(tab => {
             const Icon = tab.icon;
             const isActive = activeSubTab === tab.id;
             return (
               <button
                 key={tab.id}
-                onClick={() => setActiveSubTab(tab.id)}
-                className={`flex items-center gap-3 px-4 py-3 rounded-xl text-xs font-semibold whitespace-nowrap transition-all duration-200 text-left ${
+                onClick={() => setActiveSubTab(tab.id as SettingsTab)}
+                className={`flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl text-xs font-semibold whitespace-nowrap transition-all duration-200 text-left ${
                   isActive
-                    ? 'bg-brand-500 text-white shadow shadow-brand-500/20'
-                    : 'bg-slate-900/40 border border-slate-900/60 hover:bg-slate-900 text-slate-400 hover:text-slate-200'
+                    ? 'bg-blue-600 text-white shadow shadow-blue-500/20'
+                    : 'bg-slate-100 dark:bg-slate-900/40 border border-slate-200 dark:border-slate-800 hover:bg-slate-200 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200'
                 }`}
               >
-                <Icon size={14} />
+                <Icon size={14} className="shrink-0" />
                 {tab.label}
               </button>
             );
@@ -529,14 +529,14 @@ export function Settings({
         </div>
 
         {/* Painel Central Reativo */}
-        <div className="lg:col-span-9">
+        <div className="flex-1 min-w-0 w-full">
           {activeSubTab === 'account' && (
             <CardGlass className="p-6 space-y-6">
-              <h3 className="text-base font-bold text-slate-200 dark:text-slate-200 light:text-slate-800 pb-3 border-b border-slate-900 flex items-center gap-2">
-                <User size={16} className="text-brand-500" />
+              <h3 className="text-base font-bold text-slate-900 dark:text-slate-100 pb-3 border-b border-slate-200 dark:border-slate-800 flex items-center gap-2">
+                <User size={16} className="text-blue-500" />
                 Informações da Minha Conta
               </h3>
-              <form onSubmit={handleSaveAccount} className="space-y-4 max-w-lg">
+              <form onSubmit={handleSaveAccount} className="space-y-5 w-full max-w-xl">
                 <div className="flex items-center gap-4 pb-4 border-b border-slate-900/40">
                   {avatarUrl ? (
                     <img
@@ -550,7 +550,7 @@ export function Settings({
                     </div>
                   )}
                   <div className="space-y-1 text-left">
-                    <label className="text-xs text-slate-400 font-semibold block">Foto de Perfil</label>
+                    <label className="text-xs text-slate-600 dark:text-slate-400 font-semibold block">Foto de Perfil</label>
                     <input
                       type="file"
                       accept="image/*"
@@ -577,17 +577,17 @@ export function Settings({
                 </div>
 
                 <div className="space-y-1">
-                  <label className="text-xs text-slate-400 font-semibold block">Nome Completo</label>
+                  <label className="text-xs text-slate-600 dark:text-slate-400 font-semibold block">Nome Completo</label>
                   <input
                     type="text"
                     value={fullName}
                     onChange={e => setFullName(e.target.value)}
-                    className="w-full px-4 py-2.5 rounded-xl bg-slate-900/50 border border-slate-850 focus:border-brand-500 outline-none text-xs text-slate-200"
+                    className="w-full px-4 py-2.5 rounded-xl bg-white dark:bg-slate-900/50 border border-slate-300 dark:border-slate-700 focus:border-blue-500 dark:focus:border-blue-500 outline-none text-xs text-slate-900 dark:text-slate-200 placeholder-slate-400"
                     placeholder="Seu Nome Completo"
                   />
                 </div>
                 <div className="space-y-1">
-                  <label className="text-xs text-slate-400 font-semibold block">E-mail Cadastrado</label>
+                  <label className="text-xs text-slate-600 dark:text-slate-400 font-semibold block">E-mail Cadastrado</label>
                   <input
                     type="email"
                     value={email || 'email@exemplo.com'}
@@ -596,34 +596,34 @@ export function Settings({
                   />
                 </div>
                 <div className="space-y-1">
-                  <label className="text-xs text-slate-400 font-semibold block">Cargo/Headline Atual</label>
+                  <label className="text-xs text-slate-600 dark:text-slate-400 font-semibold block">Cargo/Headline Atual</label>
                   <input
                     type="text"
                     value={headline}
                     onChange={e => setHeadline(e.target.value)}
-                    className="w-full px-4 py-2.5 rounded-xl bg-slate-900/50 border border-slate-850 focus:border-brand-500 outline-none text-xs text-slate-200"
+                    className="w-full px-4 py-2.5 rounded-xl bg-white dark:bg-slate-900/50 border border-slate-300 dark:border-slate-700 focus:border-blue-500 dark:focus:border-blue-500 outline-none text-xs text-slate-900 dark:text-slate-200 placeholder-slate-400"
                     placeholder="Ex: Farmacêutica Esteta, Senior Frontend Developer"
                   />
                 </div>
 
                 <div className="space-y-1">
-                  <label className="text-xs text-slate-400 font-semibold block">LinkedIn URL</label>
+                  <label className="text-xs text-slate-600 dark:text-slate-400 font-semibold block">LinkedIn URL</label>
                   <input
                     type="url"
                     value={linkedin}
                     onChange={e => setLinkedin(e.target.value)}
-                    className="w-full px-4 py-2.5 rounded-xl bg-slate-900/50 border border-slate-850 focus:border-brand-500 outline-none text-xs text-slate-200"
+                    className="w-full px-4 py-2.5 rounded-xl bg-white dark:bg-slate-900/50 border border-slate-300 dark:border-slate-700 focus:border-blue-500 dark:focus:border-blue-500 outline-none text-xs text-slate-900 dark:text-slate-200 placeholder-slate-400"
                     placeholder="https://linkedin.com/in/seu-perfil"
                   />
                 </div>
 
                 <div className="space-y-1">
-                  <label className="text-xs text-slate-400 font-semibold block">Sobre / Resumo Profissional (About)</label>
+                  <label className="text-xs text-slate-600 dark:text-slate-400 font-semibold block">Sobre / Resumo Profissional (About)</label>
                   <textarea
                     value={skillsSummary}
                     onChange={e => setSkillsSummary(e.target.value)}
                     rows={4}
-                    className="w-full px-4 py-2.5 rounded-xl bg-slate-900/50 border border-slate-850 focus:border-brand-500 outline-none text-xs text-slate-200 resize-y"
+                    className="w-full px-4 py-2.5 rounded-xl bg-white dark:bg-slate-900/50 border border-slate-300 dark:border-slate-700 focus:border-blue-500 dark:focus:border-blue-500 outline-none text-xs text-slate-900 dark:text-slate-200 placeholder-slate-400 resize-y"
                     placeholder="Conte sobre sua jornada profissional, conquistas e objetivos..."
                   />
                 </div>
@@ -665,7 +665,7 @@ export function Settings({
 
           {activeSubTab === 'resumes' && (
             <CardGlass className="p-6 space-y-6">
-              <h3 className="text-base font-bold text-slate-200 dark:text-slate-200 light:text-slate-800 pb-3 border-b border-slate-900 flex items-center gap-2">
+              <h3 className="text-base font-bold text-slate-900 dark:text-slate-100 pb-3 border-b border-slate-200 dark:border-slate-800 flex items-center gap-2">
                 <FileText size={16} className="text-brand-500" />
                 Histórico de Currículos Cadastrados
               </h3>
@@ -732,36 +732,36 @@ export function Settings({
 
           {activeSubTab === 'preferences' && (
             <CardGlass className="p-6 space-y-6">
-              <h3 className="text-base font-bold text-slate-200 dark:text-slate-200 light:text-slate-800 pb-3 border-b border-slate-900 flex items-center gap-2">
+              <h3 className="text-base font-bold text-slate-900 dark:text-slate-100 pb-3 border-b border-slate-200 dark:border-slate-800 flex items-center gap-2">
                 <SettingsIcon size={16} className="text-brand-500" />
                 Preferências de Busca de Vagas
               </h3>
 
               <form onSubmit={handleSavePreferences} className="space-y-4 max-w-lg">
                 <div className="space-y-1">
-                  <label className="text-xs text-slate-400 font-semibold block">Cargos Desejados (separados por vírgula)</label>
+                  <label className="text-xs text-slate-600 dark:text-slate-400 font-semibold block">Cargos Desejados (separados por vírgula)</label>
                   <input
                     type="text"
                     value={roles}
                     onChange={e => setRoles(e.target.value)}
-                    className="w-full px-4 py-2.5 rounded-xl bg-slate-900/50 border border-slate-850 focus:border-brand-500 outline-none text-xs text-slate-200"
+                    className="w-full px-4 py-2.5 rounded-xl bg-white dark:bg-slate-900/50 border border-slate-300 dark:border-slate-700 focus:border-blue-500 dark:focus:border-blue-500 outline-none text-xs text-slate-900 dark:text-slate-200 placeholder-slate-400"
                     placeholder="Ex: Farmacêutica Esteta, Farmacêutica Responsável"
                   />
                 </div>
 
                 <div className="space-y-1">
-                  <label className="text-xs text-slate-400 font-semibold block">Localidades Desejadas</label>
+                  <label className="text-xs text-slate-600 dark:text-slate-400 font-semibold block">Localidades Desejadas</label>
                   <input
                     type="text"
                     value={locations}
                     onChange={e => setLocations(e.target.value)}
-                    className="w-full px-4 py-2.5 rounded-xl bg-slate-900/50 border border-slate-850 focus:border-brand-500 outline-none text-xs text-slate-200"
+                    className="w-full px-4 py-2.5 rounded-xl bg-white dark:bg-slate-900/50 border border-slate-300 dark:border-slate-700 focus:border-blue-500 dark:focus:border-blue-500 outline-none text-xs text-slate-900 dark:text-slate-200 placeholder-slate-400"
                     placeholder="Ex: São Paulo, Rio de Janeiro, Remoto"
                   />
                 </div>
 
                 <div className="space-y-2">
-                  <label className="text-xs text-slate-400 font-semibold block">Modelo de Trabalho</label>
+                  <label className="text-xs text-slate-600 dark:text-slate-400 font-semibold block">Modelo de Trabalho</label>
                   <div className="flex gap-4">
                     {['remote', 'hybrid', 'onsite'].map((mode) => (
                       <label key={mode} className="flex items-center gap-1.5 text-xs text-slate-350 cursor-pointer">
@@ -814,7 +814,7 @@ export function Settings({
 
           {activeSubTab === 'notifications' && (
             <CardGlass className="p-6 space-y-6">
-              <h3 className="text-base font-bold text-slate-200 dark:text-slate-200 light:text-slate-800 pb-3 border-b border-slate-900 flex items-center gap-2">
+              <h3 className="text-base font-bold text-slate-900 dark:text-slate-100 pb-3 border-b border-slate-200 dark:border-slate-800 flex items-center gap-2">
                 <Bell size={16} className="text-brand-500" />
                 Notificações e Alertas
               </h3>
@@ -875,7 +875,7 @@ export function Settings({
 
           {activeSubTab === 'appearance' && (
             <CardGlass className="p-6 space-y-6">
-              <h3 className="text-base font-bold text-slate-200 dark:text-slate-200 light:text-slate-800 pb-3 border-b border-slate-900 flex items-center gap-2">
+              <h3 className="text-base font-bold text-slate-900 dark:text-slate-100 pb-3 border-b border-slate-200 dark:border-slate-800 flex items-center gap-2">
                 <Palette size={16} className="text-brand-500" />
                 Personalização Visual e Tema
               </h3>
@@ -889,42 +889,42 @@ export function Settings({
                   onClick={() => handleApplyTheme('light')}
                   className={`p-5 rounded-2xl border transition-all cursor-pointer text-center relative flex flex-col items-center justify-center min-h-[120px] ${
                     theme === 'light'
-                      ? 'bg-slate-100 border-brand-500 text-slate-900 shadow-md shadow-brand-500/10'
-                      : 'bg-slate-900/40 border-slate-900/60 text-slate-400 hover:bg-slate-900 hover:text-slate-350'
+                      ? 'bg-slate-100 border-2 border-brand-500 shadow-md shadow-brand-500/10'
+                      : 'bg-slate-900/30 border-slate-800 text-slate-400 hover:bg-slate-900 hover:text-slate-200'
                   }`}
                 >
-                  {theme === 'light' && <div className="absolute top-2.5 right-2.5 p-0.5 bg-brand-500 text-white rounded-full"><Check size={10} /></div>}
-                  <Sun size={28} className="mb-2" />
-                  <span className="text-xs font-bold">Tema Claro</span>
-                  <span className="text-[9px] opacity-70 mt-1">Interface brilhante e limpa</span>
+                  {theme === 'light' && <div className="absolute top-2.5 right-2.5 p-1 bg-brand-500 text-white rounded-full"><Check size={10} /></div>}
+                  <Sun size={28} className={theme === 'light' ? 'text-amber-500 mb-2' : 'text-slate-400 mb-2'} />
+                  <span className={`text-xs font-bold ${theme === 'light' ? 'text-slate-800' : 'text-slate-300'}`}>Tema Claro</span>
+                  <span className={`text-[9px] mt-1 ${theme === 'light' ? 'text-slate-600' : 'text-slate-500'}`}>Interface brilhante e limpa</span>
                 </div>
 
                 <div 
                   onClick={() => handleApplyTheme('dark')}
                   className={`p-5 rounded-2xl border transition-all cursor-pointer text-center relative flex flex-col items-center justify-center min-h-[120px] ${
                     theme === 'dark'
-                      ? 'bg-slate-950 border-brand-500 text-white shadow-md shadow-brand-500/10'
-                      : 'bg-slate-900/40 border-slate-900/60 text-slate-400 hover:bg-slate-900 hover:text-slate-350'
+                      ? 'bg-slate-950 border-2 border-brand-500 shadow-md shadow-brand-500/10'
+                      : 'bg-slate-900/30 border-slate-800 text-slate-400 hover:bg-slate-900 hover:text-slate-200'
                   }`}
                 >
-                  {theme === 'dark' && <div className="absolute top-2.5 right-2.5 p-0.5 bg-brand-500 text-white rounded-full"><Check size={10} /></div>}
-                  <Moon size={28} className="mb-2" />
-                  <span className="text-xs font-bold">Tema Escuro</span>
-                  <span className="text-[9px] opacity-70 mt-1">Modo focado e anti-fadiga</span>
+                  {theme === 'dark' && <div className="absolute top-2.5 right-2.5 p-1 bg-brand-500 text-white rounded-full"><Check size={10} /></div>}
+                  <Moon size={28} className={theme === 'dark' ? 'text-indigo-400 mb-2' : 'text-slate-400 mb-2'} />
+                  <span className={`text-xs font-bold ${theme === 'dark' ? 'text-white' : 'text-slate-300'}`}>Tema Escuro</span>
+                  <span className={`text-[9px] mt-1 ${theme === 'dark' ? 'text-slate-400' : 'text-slate-500'}`}>Modo focado e anti-fadiga</span>
                 </div>
 
                 <div 
                   onClick={() => handleApplyTheme('system')}
                   className={`p-5 rounded-2xl border transition-all cursor-pointer text-center relative flex flex-col items-center justify-center min-h-[120px] ${
                     theme === 'system'
-                      ? 'bg-slate-900/80 border-brand-500 text-slate-200 shadow-md shadow-brand-500/10'
-                      : 'bg-slate-900/40 border-slate-900/60 text-slate-400 hover:bg-slate-900 hover:text-slate-350'
+                      ? 'bg-slate-900 border-2 border-brand-500 shadow-md shadow-brand-500/10'
+                      : 'bg-slate-900/30 border-slate-800 text-slate-400 hover:bg-slate-900 hover:text-slate-200'
                   }`}
                 >
-                  {theme === 'system' && <div className="absolute top-2.5 right-2.5 p-0.5 bg-brand-500 text-white rounded-full"><Check size={10} /></div>}
-                  <Monitor size={28} className="mb-2" />
-                  <span className="text-xs font-bold">Sistema</span>
-                  <span className="text-[9px] opacity-70 mt-1">Segue as configurações do OS</span>
+                  {theme === 'system' && <div className="absolute top-2.5 right-2.5 p-1 bg-brand-500 text-white rounded-full"><Check size={10} /></div>}
+                  <Monitor size={28} className={theme === 'system' ? 'text-brand-400 mb-2' : 'text-slate-400 mb-2'} />
+                  <span className={`text-xs font-bold ${theme === 'system' ? 'text-slate-100' : 'text-slate-300'}`}>Sistema</span>
+                  <span className={`text-[9px] mt-1 ${theme === 'system' ? 'text-slate-400' : 'text-slate-500'}`}>Segue as configurações do OS</span>
                 </div>
               </div>
             </CardGlass>
@@ -932,7 +932,7 @@ export function Settings({
 
           {activeSubTab === 'privacy' && (
             <CardGlass className="p-6 space-y-6">
-              <h3 className="text-base font-bold text-slate-200 dark:text-slate-200 light:text-slate-800 pb-3 border-b border-slate-900 flex items-center gap-2">
+              <h3 className="text-base font-bold text-slate-900 dark:text-slate-100 pb-3 border-b border-slate-200 dark:border-slate-800 flex items-center gap-2">
                 <ShieldAlert size={16} className="text-brand-500" />
                 Segurança, Privacidade e LGPD
               </h3>
@@ -980,7 +980,7 @@ export function Settings({
 
           {activeSubTab === 'billing' && (
             <CardGlass className="p-6 space-y-6">
-              <h3 className="text-base font-bold text-slate-200 dark:text-slate-200 light:text-slate-800 pb-3 border-b border-slate-900 flex items-center gap-2">
+              <h3 className="text-base font-bold text-slate-900 dark:text-slate-100 pb-3 border-b border-slate-200 dark:border-slate-800 flex items-center gap-2">
                 <CreditCard size={16} className="text-brand-500" />
                 Assinatura e Planos
               </h3>

@@ -14,6 +14,7 @@ import {
   X, Briefcase, Layout, AlertTriangle,
   Smile, Meh, Frown, CheckSquare, Square, Building2, BookOpen, Target, Loader2, List
 } from 'lucide-react';
+import { Badge } from '../components/ds';
 
 interface StrategyPageProps {
   careerProfile: CareerProfile | null;
@@ -403,7 +404,19 @@ export function StrategyPage({
     }
   };
 
-
+  const handleDeleteTask = async (dayName: string, taskId: string) => {
+    if (!planner) return;
+    const updatedPlannerData = { ...planner.plannerData };
+    const dayTasks = updatedPlannerData[dayName]?.tasks || [];
+    updatedPlannerData[dayName] = {
+      tasks: dayTasks.filter((t: any) => t.id !== taskId)
+    };
+    try {
+      await saveWeeklyPlanner({ ...planner, plannerData: updatedPlannerData });
+    } catch (err) {
+      console.error(err);
+    }
+  };
 
   const handleSaveCompany = async (e: FormEvent) => {
     e.preventDefault();
@@ -468,26 +481,47 @@ export function StrategyPage({
   const funnel = CareerAnalyticsService.getFunnel(applications);
 
   return (
-    <div className="space-y-8 animate-fade-in font-sans p-0">
+    <div className="space-y-6 animate-fade-in font-sans p-0">
       {/* Cabeçalho */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <h1 className="font-display font-bold text-3xl tracking-tight text-slate-100 dark:text-slate-100 light:text-slate-800">
+          <h1 className="text-3xl font-bold tracking-tight text-slate-900 dark:text-slate-100">
             Minha Estratégia de Busca
           </h1>
-          <p className="text-slate-400 dark:text-slate-400 light:text-slate-500 text-sm mt-1">
+          <p className="text-slate-500 dark:text-slate-400 text-sm mt-1">
             CRM inteligente que planeja, calcula o ROI e monitora a performance da sua recolocação.
           </p>
         </div>
-        <div className="flex gap-3">
-          <button
-            onClick={() => setShowAddForm(true)}
-            className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-brand-600 hover:bg-brand-500 text-white font-bold text-xs transition-all shadow-lg shadow-brand-500/20"
-          >
-            <Plus size={14} />
-            Candidatura Manual
-          </button>
+      </div>
+
+      {/* Top AI Guidance Banner */}
+      <div className="bg-white dark:bg-[#162032] border border-slate-200/90 dark:border-slate-800/90 rounded-2xl p-6 shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div className="flex items-start gap-3.5">
+          <div className="w-9 h-9 rounded-xl bg-blue-50 dark:bg-blue-500/10 text-[#4F8EF7] flex items-center justify-center shrink-0 mt-0.5">
+            <Sparkles size={18} strokeWidth={1.75} />
+          </div>
+          <div>
+            <div className="flex items-center gap-2">
+              <span className="text-xs font-semibold text-[#4F8EF7] uppercase tracking-wider">Recomendação da IA</span>
+              <Badge variant="premium" size="sm">Estratégia de Carreira</Badge>
+            </div>
+            <h2 className="text-base font-semibold text-slate-900 dark:text-slate-100 mt-1">
+              {applications.length > 0
+                ? `Você tem ${applications.length} candidatura(s) ativas no seu Kanban. Mantenha o acompanhamento atualizado.`
+                : 'Adicione suas candidaturas ao Kanban para que a IA acompanhe prazos e taxas de resposta.'}
+            </h2>
+            <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+              O CRM calcula a probabilidade e prioridade de retorno de cada empresa.
+            </p>
+          </div>
         </div>
+        <button
+          onClick={() => setShowAddForm(true)}
+          className="btn-secondary text-xs shrink-0 self-start md:self-center"
+        >
+          <Plus size={14} />
+          <span>Nova Candidatura</span>
+        </button>
       </div>
 
       {/* Sub Tabs Switcher */}
@@ -1011,15 +1045,29 @@ export function StrategyPage({
                           <span className="text-[10px] text-slate-600 block italic py-2">Sem tarefas</span>
                         ) : (
                           dayData.tasks.map((task: any) => (
-                            <div 
-                              key={task.id} 
-                              onClick={() => handleToggleTask(day, task.id)}
-                              className="flex gap-2 items-start text-[11px] text-slate-300 hover:text-white cursor-pointer select-none"
+                            <div
+                              key={task.id}
+                              className="flex gap-2 items-start text-[11px] text-slate-300 group"
                             >
-                              <span className="shrink-0 mt-0.5 text-brand-500">
+                              <button
+                                type="button"
+                                onClick={() => handleToggleTask(day, task.id)}
+                                className="shrink-0 mt-0.5 text-brand-500 cursor-pointer"
+                              >
                                 {task.completed ? <CheckSquare size={13} /> : <Square size={13} />}
-                              </span>
-                              <span className={task.completed ? 'line-through text-slate-600' : ''}>{task.text}</span>
+                              </button>
+                              <span
+                                onClick={() => handleToggleTask(day, task.id)}
+                                className={`flex-1 cursor-pointer hover:text-white select-none ${task.completed ? 'line-through text-slate-600' : ''}`}
+                              >{task.text}</span>
+                              <button
+                                type="button"
+                                onClick={() => handleDeleteTask(day, task.id)}
+                                className="shrink-0 opacity-0 group-hover:opacity-100 text-red-500 hover:text-red-400 cursor-pointer transition-opacity"
+                                title="Excluir tarefa"
+                              >
+                                <Trash2 size={11} />
+                              </button>
                             </div>
                           ))
                         )}

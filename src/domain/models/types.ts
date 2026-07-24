@@ -33,6 +33,7 @@ export interface Job {
   currency: string;
   sourceUrl?: string;
   sourcePlatform?: string;
+  sources?: string[];
   isActive: boolean;
   createdAt: string;
   updatedAt: string;
@@ -406,3 +407,121 @@ export interface PipelineStep {
   status: 'pending' | 'running' | 'success' | 'error';
   value?: string | number;
 }
+
+// ─────────────────────────────────────────────────────────────────
+// CAMADA DE INTELIGÊNCIA DE CARREIRA (CAREER INTELLIGENCE LAYER)
+// ─────────────────────────────────────────────────────────────────
+
+export interface CareerProfileSnapshot {
+  id: string;
+  userId: string;
+  resumeVersionId?: string;
+  profileData: any;
+  createdAt: string;
+}
+
+export interface CareerFitBreakdown {
+  id?: string;
+  jobMatchExplanationId?: string;
+  skillsScore: number;       // 30%
+  experienceScore: number;   // 25%
+  seniorityScore: number;    // 15%
+  careerGoalScore: number;   // 15%
+  salaryScore: number;       // 5%
+  locationScore: number;     // 5%
+  semanticScore: number;     // 5%
+  createdAt?: string;
+}
+
+export interface MatchStrengthItem {
+  skill: string;
+  reason: string;
+}
+
+export interface MatchGapItem {
+  requirement: string;
+  impact: 'Baixo' | 'Médio' | 'Alto';
+  suggestion: string;
+}
+
+export interface JobMatchExplanation {
+  id: string;
+  userId: string;
+  jobId: string;
+  careerProfileSnapshotId?: string;
+  overallMatchReason: string;
+  strengths: MatchStrengthItem[];
+  gaps: MatchGapItem[];
+  recommendation: string;
+  confidenceScore: number;
+  careerFitScore: number;
+  breakdown?: CareerFitBreakdown;
+  createdAt: string;
+}
+
+export type JobFeedbackAction = 'VIEWED' | 'SAVED' | 'APPLIED' | 'REJECTED';
+export type JobFeedbackReason = 'LOW_SALARY' | 'BAD_LOCATION' | 'BAD_MATCH' | 'WRONG_LEVEL' | 'ALREADY_APPLIED';
+
+export interface JobFeedback {
+  id: string;
+  userId: string;
+  jobId: string;
+  action: JobFeedbackAction;
+  reason?: JobFeedbackReason;
+  createdAt: string;
+}
+
+export interface AdaptedSection {
+  sectionName: string;
+  originalText: string;
+  suggestedText: string;
+  reasoning: string;
+}
+
+export interface ResumeAdaptation {
+  id: string;
+  userId: string;
+  jobId: string;
+  originalResumeId?: string;
+  adaptedSections: AdaptedSection[];
+  keywordsAdded: string[];
+  atsImprovements: string[];
+  status: 'PENDING' | 'APPLIED' | 'DISMISSED';
+  createdAt: string;
+}
+
+export type JobApplicationJourneyStatus = 'DISCOVERED' | 'SAVED' | 'APPLIED' | 'INTERVIEW' | 'OFFER' | 'REJECTED';
+
+export interface JobApplicationRecord {
+  id: string;
+  userId: string;
+  jobId: string;
+  companyName: string;
+  jobTitle: string;
+  jobUrl?: string;
+  salaryRange?: string;
+  status: JobApplicationJourneyStatus;
+  notes?: string;
+  appliedAt?: string;
+  createdAt: string;
+}
+
+export interface FeatureFlag {
+  id: string;
+  key: string;
+  enabled: boolean;
+  createdAt: string;
+}
+
+export type BetaFeedbackRating = 'POSITIVE' | 'NEGATIVE' | 'NEUTRAL';
+
+export interface BetaFeedback {
+  id: string;
+  userId?: string;
+  feature: string;
+  rating: BetaFeedbackRating;
+  comment?: string;
+  createdAt: string;
+}
+
+

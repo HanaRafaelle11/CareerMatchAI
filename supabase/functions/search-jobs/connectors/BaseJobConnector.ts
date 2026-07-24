@@ -10,6 +10,7 @@ export interface RawJob {
   currency?: string;
   sourceUrl: string;
   sourcePlatform: string;
+  sources?: string[];
   requirements?: string[];
   benefits?: string[];
   publishedAt?: string;

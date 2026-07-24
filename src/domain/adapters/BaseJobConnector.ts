@@ -6,6 +6,7 @@ export interface JobSearchFilters {
   location?: string;
   remoteOnly?: boolean;
   workModes?: string[]; // Modalidades selecionadas: remote, hybrid, onsite
+  seniority?: string; // Nível de senioridade: junior, pleno, senior, lead, director
   page?: number; // Suporte à paginação
 }
 

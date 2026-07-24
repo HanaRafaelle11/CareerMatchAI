@@ -10,6 +10,13 @@ export interface NormalizedJob extends RawJob {
   requirementsNormalized: string[];
   benefitsNormalized: string[];
   languageNormalized: 'pt' | 'en' | 'es';
+  
+  // Tríplice de Origem (Provedor -> Fonte Intermediária -> ATS Oficial)
+  provider: string;       // Provedor invocador (ex: Adzuna, Jooble, SerpApi, Greenhouse)
+  source: string;         // Plataforma intermediária
+  ats?: string;           // ATS Oficial detectado (ex: Workday, Greenhouse, Lever, Gupy)
+  confidencePercent: number; // Score de Confiança % (0 - 100%)
+
   scores: {
     providerQuality: number;
     freshness: number;
@@ -25,38 +32,87 @@ export interface NormalizedJob extends RawJob {
   };
 }
 
-// ── Calculate Semantic Similarity Score ──
-function calculateSemanticScore(
+// ── 1. TABLE OF PROVIDER / ATS QUALITY INDEX ──
+export const PROVIDER_QUALITY_INDEX: Record<string, number> = {
+  workday: 100,
+  greenhouse: 100,
+  lever: 98,
+  ashby: 98,
+  smartrecruiters: 97,
+  gupy: 96,
+  catho: 94,
+  linkedin: 92,
+  google_jobs: 90,
+  serpapi: 90,
+  jooble: 88,
+  remotive: 87,
+  arbeitnow: 86,
+  adzuna: 75
+};
+
+// Detect ATS system from URL or string
+function detectATS(url: string, platformName: string): { ats?: string; score: number } {
+  const u = (url || '').toLowerCase();
+  const p = (platformName || '').toLowerCase();
+
+  if (u.includes('workday') || u.includes('myworkdayjobs')) return { ats: 'Workday', score: 100 };
+  if (u.includes('greenhouse.io') || p.includes('greenhouse')) return { ats: 'Greenhouse', score: 100 };
+  if (u.includes('lever.co') || p.includes('lever')) return { ats: 'Lever', score: 98 };
+  if (u.includes('ashbyhq.com') || p.includes('ashby')) return { ats: 'Ashby', score: 98 };
+  if (u.includes('smartrecruiters.com') || p.includes('smartrecruiters')) return { ats: 'SmartRecruiters', score: 97 };
+  if (u.includes('gupy.io') || u.includes('gupy.com') || p.includes('gupy')) return { ats: 'Gupy', score: 96 };
+  if (u.includes('catho.com.br') || p.includes('catho')) return { ats: 'Catho', score: 94 };
+  if (u.includes('linkedin.com')) return { ats: 'LinkedIn', score: 92 };
+  if (u.includes('google.com') || p.includes('google') || p.includes('serpapi')) return { ats: undefined, score: 90 };
+  if (u.includes('jooble.org') || p.includes('jooble')) return { ats: undefined, score: 88 };
+  if (u.includes('remotive.com') || p.includes('remotive')) return { ats: undefined, score: 87 };
+  if (u.includes('arbeitnow.com') || p.includes('arbeitnow')) return { ats: undefined, score: 86 };
+  if (u.includes('adzuna.com') || p.includes('adzuna')) return { ats: undefined, score: 75 };
+
+  return { ats: undefined, score: 80 };
+}
+
+// Calculate Freshness score and age in days
+function calculateFreshness(publishedAt?: string): { score: number; ageDays: number; isExpired: boolean } {
+  if (!publishedAt) return { score: 50, ageDays: 15, isExpired: false };
+  
+  const pubDate = new Date(publishedAt);
+  if (isNaN(pubDate.getTime())) return { score: 50, ageDays: 15, isExpired: false };
+
+  const ageMs = Date.now() - pubDate.getTime();
+  const ageDays = Math.max(0, Math.floor(ageMs / (1000 * 60 * 60 * 24)));
+
+  if (ageDays > 90) return { score: 0, ageDays, isExpired: true };
+  if (ageDays <= 1) return { score: 100, ageDays, isExpired: false }; // 0-24h: +15
+  if (ageDays <= 3) return { score: 90, ageDays, isExpired: false };  // 1-3d: +12
+  if (ageDays <= 7) return { score: 80, ageDays, isExpired: false };  // 4-7d: +8
+  if (ageDays <= 15) return { score: 70, ageDays, isExpired: false }; // 8-15d: +5
+  if (ageDays <= 30) return { score: 60, ageDays, isExpired: false }; // 16-30d: +2
+  if (ageDays <= 60) return { score: 50, ageDays, isExpired: false }; // 31-60d: 0
+  return { score: 30, ageDays, isExpired: false };                    // 61-90d: -5
+}
+
+// Calculate Semantic Similarity Match Score (0 - 100)
+function calculateSemanticMatch(
   j: RawJob,
-  intent: JobIntent,
-  workMode: 'remote' | 'hybrid' | 'onsite',
-  seniority: 'junior' | 'pleno' | 'senior' | 'lead' | 'director',
-  location: string,
-  baseScores: any
-): {
-  overall: number;
-  breakdown: { title: number; skills: number; context: number };
-  adjustments: { boosts: string[]; penalties: string[] };
-  explanation: string;
-  confidence: 'high' | 'medium' | 'low';
-} {
+  intent: JobIntent
+): { matchScore: number; detail: string } {
   const titleClean = j.title.replace(/<\/?[^>]+(>|$)/g, "").trim();
   const titleLower = titleClean.toLowerCase();
-  const descLower = j.description.toLowerCase();
+  const descLower = (j.description || '').toLowerCase();
   const combinedText = `${titleLower} ${descLower}`;
 
-  let titleScore = 0;
-  let titleMatchDetail = "";
+  let score = 30;
+  let detail = "compatibilidade inicial";
 
-  // 1. Título (60 pts)
   const matchedPrimary = intent.primary_titles.some(t => {
     const tLower = t.toLowerCase();
     return titleLower.includes(tLower) || tLower.includes(titleLower);
   });
 
   if (matchedPrimary) {
-    titleScore = 60;
-    titleMatchDetail = "título primário";
+    score = 90;
+    detail = "correspondência exata de cargo";
   } else {
     const matchedSecondary = intent.secondary_titles.some(t => {
       const tLower = t.toLowerCase();
@@ -64,15 +120,11 @@ function calculateSemanticScore(
     });
 
     if (matchedSecondary) {
-      titleScore = 40;
-      titleMatchDetail = "título secundário";
+      score = 75;
+      detail = "cargo correlato relevante";
     } else {
       const tokensToMatch = new Set<string>();
       intent.primary_titles.forEach(t => t.toLowerCase().split(/\s+/).forEach(w => {
-        const cleaned = w.replace(/[^\w]/g, "");
-        if (cleaned.length >= 2) tokensToMatch.add(cleaned);
-      }));
-      intent.secondary_titles.forEach(t => t.toLowerCase().split(/\s+/).forEach(w => {
         const cleaned = w.replace(/[^\w]/g, "");
         if (cleaned.length >= 2) tokensToMatch.add(cleaned);
       }));
@@ -80,131 +132,33 @@ function calculateSemanticScore(
       const titleWords = titleLower.split(/\s+/).map(w => w.replace(/[^\w]/g, "")).filter(w => w.length >= 2);
       const overlapCount = titleWords.filter(w => tokensToMatch.has(w)).length;
       if (overlapCount > 0) {
-        titleScore = 20;
-        titleMatchDetail = "sobreposição parcial de cargo";
-      } else {
-        titleMatchDetail = "sem correspondência clara de título";
+        score = 60;
+        detail = "sobreposição parcial de palavra-chave";
       }
     }
   }
 
-  // 2. Skills (20 pts)
-  let skillScore = 0;
-  const matchedSkillsList: string[] = [];
+  // Bonus for matched skills
   if (intent.skills && intent.skills.length > 0) {
-    const matchedSkills = intent.skills.filter(skill => {
+    const matchedSkillsCount = intent.skills.filter(skill => {
       if (!skill) return false;
-      const rx = new RegExp(`\\b${skill.toLowerCase()}\\b`, 'i');
-      return rx.test(combinedText);
-    });
-    matchedSkills.forEach(s => matchedSkillsList.push(s));
-    skillScore = Math.round((matchedSkills.length / intent.skills.length) * 20);
+      const escaped = skill.toLowerCase().replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      try {
+        const rx = new RegExp(`(?:^|\\s|\\b)${escaped}(?:$|\\s|\\b)`, 'i');
+        return rx.test(combinedText);
+      } catch (_) {
+        return combinedText.includes(skill.toLowerCase());
+      }
+    }).length;
+
+    const skillBonus = Math.min(10, Math.round((matchedSkillsCount / intent.skills.length) * 10));
+    score = Math.min(100, score + skillBonus);
   }
 
-  // 3. Contexto (20 pts)
-  // Descrição (10 pts)
-  let descScore = 3;
-  if (j.description.length > 1000) {
-    descScore = 10;
-  } else if (j.description.length > 500) {
-    descScore = 6;
-  }
-  // Família/Categoria (5 pts)
-  let familyScore = 2;
-  const familyLower = intent.family.toLowerCase();
-  if (titleLower.includes(familyLower) || descLower.includes(familyLower)) {
-    familyScore = 5;
-  }
-  // Empresa (5 pts)
-  const companyScore = Math.round((baseScores.companyTrust / 100) * 5);
-  const contextScore = descScore + familyScore + companyScore;
-
-  // 4. Ajustes (Boosts & Penalties)
-  const boosts: string[] = [];
-  const penalties: string[] = [];
-  let adjustmentsSum = 0;
-
-  // Boost: Preferred Skills (+1 pt cada, máx +5)
-  if (intent.preferred_skills && intent.preferred_skills.length > 0) {
-    const matchedPreferred = intent.preferred_skills.filter(skill => {
-      if (!skill) return false;
-      const rx = new RegExp(`\\b${skill.toLowerCase()}\\b`, 'i');
-      return rx.test(combinedText);
-    });
-    if (matchedPreferred.length > 0) {
-      const pBoost = Math.min(5, matchedPreferred.length);
-      boosts.push(`Competência opcional: +${pBoost} pts (${matchedPreferred.join(', ')})`);
-      adjustmentsSum += pBoost;
-    }
-  }
-
-  // Boost: Vaga recente (postada nas últimas 24h) (+5 pts)
-  if (j.publishedAt) {
-    const ageMs = Date.now() - new Date(j.publishedAt).getTime();
-    const ageHours = ageMs / (1000 * 60 * 60);
-    if (ageHours <= 24) {
-      boosts.push("Vaga muito recente: +5 pts");
-      adjustmentsSum += 5;
-    }
-  }
-
-  // Boost: Recrutador confiável (ATS direta) (+5 pts)
-  const platform = j.sourcePlatform.toLowerCase();
-  if (["greenhouse", "lever", "ashby", "smartrecruiters"].includes(platform)) {
-    boosts.push("Conexão direta ATS: +5 pts");
-    adjustmentsSum += 5;
-  }
-
-  // Penalty: Palavras-chave negativas (-15 pts)
-  if (intent.negative_keywords && intent.negative_keywords.length > 0) {
-    const matchedNegative = intent.negative_keywords.filter(word => {
-      if (!word) return false;
-      const rx = new RegExp(`\\b${word.toLowerCase()}\\b`, 'i');
-      return rx.test(combinedText);
-    });
-    if (matchedNegative.length > 0) {
-      penalties.push(`Sinalizador negativo: -15 pts (${matchedNegative.join(', ')})`);
-      adjustmentsSum -= 15;
-    }
-  }
-
-  // Score total calibrado
-  const overall = Math.max(0, Math.min(100, Math.round(titleScore + skillScore + contextScore + adjustmentsSum)));
-
-  // Nível de confiança
-  let confidence: 'high' | 'medium' | 'low' = 'low';
-  if (overall >= 80) confidence = 'high';
-  else if (overall >= 60) confidence = 'medium';
-
-  // Gerar explicação em Português
-  const explanationParts = [
-    `+${titleScore} título (${titleMatchDetail})`,
-    `+${skillScore} competências`
-  ];
-  if (matchedSkillsList.length > 0) {
-    explanationParts[1] += ` (${matchedSkillsList.slice(0, 3).join(', ')})`;
-  }
-  explanationParts.push(`+${contextScore} contexto (desc: +${descScore}, cat: +${familyScore}, trust: +${companyScore})`);
-
-  if (boosts.length > 0) {
-    explanationParts.push(`bônus: +${adjustmentsSum > 0 ? adjustmentsSum : 0}`);
-  }
-  if (penalties.length > 0) {
-    explanationParts.push(`penalidades: -15`);
-  }
-
-  const explanation = explanationParts.join(', ');
-
-  return {
-    overall,
-    breakdown: { title: titleScore, skills: skillScore, context: contextScore },
-    adjustments: { boosts, penalties },
-    explanation,
-    confidence
-  };
+  return { matchScore: score, detail };
 }
 
-// ── Normalize Company Names ──
+// Normalize Company Name
 function normalizeCompany(name: string): string {
   if (!name) return "Empresa Confidencial";
   return name
@@ -213,7 +167,7 @@ function normalizeCompany(name: string): string {
     .trim();
 }
 
-// ── Normalize Locations ──
+// Normalize Location
 function normalizeLocation(loc: string): string {
   if (!loc) return "Brasil";
   const l = loc.toLowerCase();
@@ -238,284 +192,235 @@ function normalizeLocation(loc: string): string {
   return loc.trim();
 }
 
-// ── Convert Salary to BRL ──
-function normalizeSalary(j: RawJob): { min?: number; max?: number } {
-  let min = j.salaryMin;
-  let max = j.salaryMax;
-  if (!min && !max) return {};
-
-  const curr = (j.currency || "USD").toUpperCase();
-  let rate = 1;
-  if (curr === "USD") rate = 5.0;
-  else if (curr === "EUR") rate = 5.4;
-  else if (curr === "GBP") rate = 6.2;
-
-  return {
-    min: min ? Math.round(min * rate) : undefined,
-    max: max ? Math.round(max * rate) : undefined
-  };
-}
-
-// ── Normalize Work Mode ──
-function normalizeWorkMode(j: RawJob): 'remote' | 'hybrid' | 'onsite' {
-  if (j.workMode) return j.workMode;
-  const text = (j.title + " " + j.description).toLowerCase();
-  if (text.includes("remot") || text.includes("anywhere") || text.includes("home office") || text.includes("teletrabalho") || text.includes("distância")) {
-    return "remote";
-  }
-  if (text.includes("hybrid") || text.includes("híbrido") || text.includes("presencial e remoto")) {
-    return "hybrid";
-  }
-  return "onsite";
-}
-
-// ── Normalize Seniority ──
-function normalizeSeniority(j: RawJob): 'junior' | 'pleno' | 'senior' | 'lead' | 'director' {
-  if (j.seniority) return j.seniority;
-  const title = j.title.toLowerCase();
-  if (title.includes("junior") || title.includes("júnior") || title.includes("jr") || title.includes("estágio") || title.includes("estagiário") || title.includes("trainee")) {
-    return "junior";
-  }
-  if (title.includes("senior") || title.includes("sênior") || title.includes("sr") || title.includes("pleno") || title.includes("pl")) {
-    return title.includes("senior") || title.includes("sênior") || title.includes("sr") ? "senior" : "pleno";
-  }
-  if (title.includes("lead") || title.includes("lider") || title.includes("líder") || title.includes("coordenador") || title.includes("coordinator")) {
-    return "lead";
-  }
-  if (title.includes("director") || title.includes("diretor") || title.includes("gerente") || title.includes("manager") || title.includes("head") || title.includes("vp")) {
-    return "director";
-  }
-  return "pleno";
-}
-
-// ── Extract Tech Stack Tags ──
-const KNOWN_STACKS = [
-  "React", "TypeScript", "Node.js", "Docker", "AWS", "Python", "Java",
-  "PostgreSQL", "CSS", "HTML", "Vite", "GraphQL", "Figma", "Salesforce",
-  "Git", "Kubernetes", "Next.js", "Vue", "Angular", "Go", "Ruby", "PHP"
-];
-function normalizeRequirements(j: RawJob): string[] {
-  if (j.requirements && j.requirements.length > 0) return j.requirements;
-  const text = (j.title + " " + j.description).toLowerCase();
-  const reqs = KNOWN_STACKS.filter(stack => 
-    new RegExp(`\\b${stack}\\b`, 'i').test(text)
-  );
-  return reqs.length > 0 ? reqs : ["Geral"];
-}
-
-// ── Extract Benefits ──
-const KNOWN_BENEFITS = [
-  { term: /vale refeição|vale-refeição|\bvr\b/i, normalized: "Vale Refeição" },
-  { term: /vale alimentação|vale-alimentação|\bva\b/i, normalized: "Vale Alimentação" },
-  { term: /plano de saúde|saúde|unimed|bradesco saúde/i, normalized: "Plano de Saúde" },
-  { term: /plano odontológico|odonto/i, normalized: "Plano Odontológico" },
-  { term: /vale transporte|vale-transporte|\bvt\b/i, normalized: "Vale Transporte" },
-  { term: /gympass|academia/i, normalized: "Gympass" },
-  { term: /participação nos lucros|\bplr\b/i, normalized: "PLR" }
-];
-function normalizeBenefits(j: RawJob): string[] {
-  if (j.benefits && j.benefits.length > 0) return j.benefits;
-  const text = j.description.toLowerCase();
-  const benefits: string[] = [];
-  KNOWN_BENEFITS.forEach(b => {
-    if (b.term.test(text)) benefits.push(b.normalized);
-  });
-  return benefits;
-}
-
-// ── Detect Language ──
-function detectLanguage(description: string): 'pt' | 'en' | 'es' {
-  const text = description.toLowerCase();
-  const ptCount = (text.match(/\b(o|a|e|da|do|em|para|com|vaga|requisitos)\b/g) || []).length;
-  const enCount = (text.match(/\b(the|and|of|in|to|with|job|requirements|skills)\b/g) || []).length;
-  const esCount = (text.match(/\b(el|la|y|de|en|para|con|trabajo|requisitos)\b/g) || []).length;
-
-  if (enCount > ptCount && enCount > esCount) return "en";
-  if (esCount > ptCount && esCount > enCount) return "es";
-  return "pt";
-}
-
-// ── Calculate Quality Scores ──
-function calculateScores(
-  j: RawJob, 
-  workMode: 'remote' | 'hybrid' | 'onsite',
-  salMinBRL?: number
-) {
-  let providerQuality = 70;
-  const platform = j.sourcePlatform.toLowerCase();
-  if (["greenhouse", "lever", "ashby", "smartrecruiters"].includes(platform)) providerQuality = 95;
-  else if (["adzuna", "remotive", "remoteok"].includes(platform)) providerQuality = 85;
-  else if (["gupy", "abler"].includes(platform)) providerQuality = 90;
-
-  let freshness = 90;
-  if (j.publishedAt) {
-    const ageMs = Date.now() - new Date(j.publishedAt).getTime();
-    const ageDays = ageMs / (1000 * 60 * 60 * 24);
-    if (ageDays <= 1) freshness = 100;
-    else if (ageDays <= 3) freshness = 90;
-    else if (ageDays <= 7) freshness = 70;
-    else if (ageDays <= 14) freshness = 40;
-    else freshness = 20;
-  }
-
-  const cName = j.companyName.toLowerCase();
-  let companyTrust = 90;
-  if (cName.includes("confidencial") || cName.includes("empresa") || cName.length < 3) {
-    companyTrust = 40;
-  }
-
-  let salaryConfidence = 20;
-  if (salMinBRL) {
-    salaryConfidence = j.salaryMin && j.salaryMax ? 100 : 80;
-  }
-
-  const descLen = j.description.length;
-  let descriptionCompleteness = 30;
-  if (descLen > 1500) descriptionCompleteness = 100;
-  else if (descLen > 800) descriptionCompleteness = 80;
-  else if (descLen > 400) descriptionCompleteness = 60;
-
-  let remoteConfidence = 50;
-  if (workMode === "remote") remoteConfidence = 100;
-  else if (workMode === "hybrid") remoteConfidence = 80;
-  else remoteConfidence = 70;
-
-  const overall = Math.round(
-    (providerQuality * 0.25) +
-    (freshness * 0.15) +
-    (companyTrust * 0.15) +
-    (salaryConfidence * 0.10) +
-    (descriptionCompleteness * 0.15) +
-    (remoteConfidence * 0.20)
-  );
-
-  return {
-    providerQuality,
-    freshness,
-    companyTrust,
-    salaryConfidence,
-    descriptionCompleteness,
-    remoteConfidence,
-    overall
-  };
-}
-
+// ── 2. MAIN AGGREGATOR & MULTI-PROVIDER SEARCH ENGINE ──
 export function aggregateAndNormalizeJobs(
-  jobs: RawJob[],
-  intent?: JobIntent,
-  location?: string
+  rawJobs: RawJob[],
+  intent: JobIntent,
+  searchLocation: string = "Brasil"
 ): NormalizedJob[] {
-  const normalizedList: NormalizedJob[] = [];
-  const seen = new Set<string>();
+  console.log(`[SEARCH ENGINE AGGREGATOR] Processando ${rawJobs.length} vagas brutas...`);
 
-  for (const j of jobs) {
-    const companyNormalized = normalizeCompany(j.companyName);
-    const titleClean = j.title.replace(/<\/?[^>]+(>|$)/g, "").trim();
+  // Count raw inputs per provider
+  const rawProviderCounts: Record<string, number> = {};
+  rawJobs.forEach(j => {
+    const src = j.sourcePlatform || 'Desconhecido';
+    rawProviderCounts[src] = (rawProviderCounts[src] || 0) + 1;
+  });
+
+  // Step 1: Deduplication & Official ATS Link Upgrade
+  const deduplicatedMap = new Map<string, NormalizedJob>();
+  let duplicatesRemoved = 0;
+
+  for (let idx = 0; idx < rawJobs.length; idx++) {
+    const j = rawJobs[idx];
+    const company = normalizeCompany(j.companyName);
+    const titleClean = (j.title || '').replace(/<\/?[^>]+(>|$)/g, "").trim();
+    const locStr = normalizeLocation(j.location);
+    const key = `${company.toLowerCase()}|${titleClean.toLowerCase()}`;
+
+    const { ats, score: atsScore } = detectATS(j.sourceUrl, j.sourcePlatform);
+    const { score: freshnessScore, ageDays, isExpired } = calculateFreshness(j.publishedAt);
     
-    // Phase 1: Title Pre-filter & Exclusion Check
-    if (intent) {
-      const titleLower = titleClean.toLowerCase();
+    // Discard stale jobs (>90 days) if publishedAt is explicit
+    if (isExpired) continue;
 
-      // A. Discard instantly if job title matches any negative_titles
-      const isNegativeMatch = intent.negative_titles.some(nt => {
-        if (!nt) return false;
-        const rx = new RegExp(`\\b${nt.toLowerCase()}\\b`, 'i');
-        return rx.test(titleLower);
-      });
-      if (isNegativeMatch) {
-        continue;
-      }
+    const { matchScore, detail } = calculateSemanticMatch(j, intent);
+    const companyScore = company !== "Empresa Confidencial" ? 90 : 50;
+    
+    const locLower = locStr.toLowerCase();
+    const isBrazilLoc = locLower.includes("brasil") || locLower.includes("sp") || locLower.includes("rj") || locLower.includes("mg") || locLower.includes("pr") || locLower.includes("remoto");
+    const locationScore = isBrazilLoc ? 100 : 60;
 
-      // B. Token positive match check
-      const tokensToMatch = new Set<string>();
-      intent.family.toLowerCase().split(/\s+/).forEach(w => {
-        const cleaned = w.replace(/[^\w]/g, "");
-        if (cleaned.length >= 2) tokensToMatch.add(cleaned);
-      });
-      intent.primary_titles.forEach(t => {
-        t.toLowerCase().split(/\s+/).forEach(w => {
-          const cleaned = w.replace(/[^\w]/g, "");
-          if (cleaned.length >= 2) tokensToMatch.add(cleaned);
-        });
-      });
-      intent.secondary_titles.forEach(t => {
-        t.toLowerCase().split(/\s+/).forEach(w => {
-          const cleaned = w.replace(/[^\w]/g, "");
-          if (cleaned.length >= 2) tokensToMatch.add(cleaned);
-        });
-      });
+    // Weighted jobScore Formula (100% Predictable):
+    // 40% Match + 25% Freshness + 15% ATS/Link Quality + 10% Company Trust + 10% Location
+    const jobScore = Math.round(
+      (matchScore * 0.40) +
+      (freshnessScore * 0.25) +
+      (atsScore * 0.15) +
+      (companyScore * 0.10) +
+      (locationScore * 0.10)
+    );
 
-      const titleWords = titleLower.split(/\s+/).map(w => w.replace(/[^\w]/g, "")).filter(w => w.length >= 2);
-      const passesPreFilter = titleWords.some(word => tokensToMatch.has(word));
-      if (!passesPreFilter) {
-        continue;
-      }
-    }
+    // Calculate Confidence Score %
+    let confidencePercent = 60;
+    if (matchScore >= 75) confidencePercent += 15;
+    if (freshnessScore >= 80) confidencePercent += 10;
+    if (atsScore >= 90) confidencePercent += 10;
+    if (isBrazilLoc) confidencePercent += 5;
+    confidencePercent = Math.min(99, confidencePercent);
 
-    const key = `${titleClean.toLowerCase()}|${companyNormalized.toLowerCase()}`;
-
-    if (seen.has(key)) continue;
-    seen.add(key);
-
-    const locNormalized = normalizeLocation(j.location);
-    const salaries = normalizeSalary(j);
-    const mode = normalizeWorkMode(j);
-    const seniority = normalizeSeniority(j);
-    const reqs = normalizeRequirements(j);
-    const benefits = normalizeBenefits(j);
-    const lang = detectLanguage(j.description);
-
-    const baseScores = calculateScores(j, mode, salaries.min);
-
-    const descClean = j.description
-      .replace(/<\/p>/gi, '\n')
-      .replace(/<br\s*\/?>/gi, '\n')
-      .replace(/<[^>]+>/g, ' ')
-      .replace(/&nbsp;/g, ' ')
-      .replace(/&amp;/g, '&')
-      .replace(/\s+/g, ' ')
-      .trim();
-
-    // Compute semantic match score if intent is provided
-    let finalOverallScore = baseScores.overall;
-    let semanticDetails: any = null;
-
-    if (intent) {
-      semanticDetails = calculateSemanticScore(j, intent, mode, seniority, location || '', baseScores);
-      finalOverallScore = semanticDetails.overall;
-      
-      // Keep jobs with overall score >= 60 (threshold filter)
-      if (finalOverallScore < 60) {
-        continue;
-      }
-    }
-
-    normalizedList.push({
+    const providerName = j.sourcePlatform || 'JobAggregator';
+    const normalizedItem: NormalizedJob = {
       ...j,
-      title: titleClean,
-      description: descClean,
-      companyNameNormalized: companyNormalized,
-      locationNormalized: locNormalized,
-      salaryMinBRL: salaries.min,
-      salaryMaxBRL: salaries.max,
-      workModeNormalized: mode,
-      seniorityNormalized: seniority,
-      requirementsNormalized: reqs,
-      benefitsNormalized: benefits,
-      languageNormalized: lang,
+      companyNameNormalized: company,
+      locationNormalized: locStr,
+      workModeNormalized: (locLower.includes('remoto') || titleClean.toLowerCase().includes('remot')) ? 'remote' : 'onsite',
+      seniorityNormalized: 'pleno',
+      requirementsNormalized: [],
+      benefitsNormalized: [],
+      languageNormalized: /[\u00C0-\u024F]/.test(titleClean + j.description) || /você|vaga|experiência/i.test(j.description) ? 'pt' : 'en',
+      provider: providerName,
+      source: j.sourcePlatform,
+      ats,
+      sources: j.sources && j.sources.length > 0 ? j.sources : [providerName],
+      confidencePercent,
       scores: {
-        ...baseScores,
-        overall: finalOverallScore,
-        ...(semanticDetails ? {
-          breakdown: semanticDetails.breakdown,
-          adjustments: semanticDetails.adjustments,
-          explanation: semanticDetails.explanation,
-          confidence: semanticDetails.confidence
-        } : {})
+        providerQuality: atsScore,
+        freshness: freshnessScore,
+        companyTrust: companyScore,
+        salaryConfidence: 50,
+        descriptionCompleteness: Math.min(100, j.description.length / 10),
+        remoteConfidence: locLower.includes('remoto') ? 100 : 50,
+        overall: jobScore,
+        explanation: `${detail} | Frescor: ${ageDays}d | Link: ${ats || providerName} (${atsScore} pts)`,
+        confidence: confidencePercent >= 85 ? 'high' : confidencePercent >= 70 ? 'medium' : 'low'
       }
-    });
+    };
+
+    if (deduplicatedMap.has(key)) {
+      duplicatesRemoved++;
+      const existing = deduplicatedMap.get(key)!;
+
+      // Merge sources array
+      const mergedSources = Array.from(new Set([...(existing.sources || []), ...(normalizedItem.sources || [])]));
+      existing.sources = mergedSources;
+
+      // Priority upgrade: Replace Adzuna redirect link if an official ATS or direct URL is found
+      const existingATS = detectATS(existing.sourceUrl, existing.source);
+      const newATS = detectATS(normalizedItem.sourceUrl, normalizedItem.source);
+
+      if (newATS.score > existingATS.score) {
+        existing.sourceUrl = normalizedItem.sourceUrl;
+        existing.provider = normalizedItem.provider;
+        existing.ats = newATS.ats;
+        existing.scores.providerQuality = newATS.score;
+        existing.scores.overall = Math.max(existing.scores.overall, normalizedItem.scores.overall);
+      }
+    } else {
+      deduplicatedMap.set(key, normalizedItem);
+    }
   }
 
-  // Sort descending by Overall score
-  return normalizedList.sort((a, b) => b.scores.overall - a.scores.overall);
+  const deduplicatedJobs = Array.from(deduplicatedMap.values());
+
+  // Step 3: Smart Block Bucketing & Dynamic Penalties for Companies & Cities
+  // Group jobs by primary provider
+  const jobsByProvider = new Map<string, NormalizedJob[]>();
+  deduplicatedJobs.forEach(job => {
+    const p = job.provider || 'Outros';
+    if (!jobsByProvider.has(p)) jobsByProvider.set(p, []);
+    jobsByProvider.get(p)!.push(job);
+  });
+
+  // Sort each provider's bucket by jobScore descending
+  for (const [p, list] of jobsByProvider.entries()) {
+    list.sort((a, b) => b.scores.overall - a.scores.overall);
+  }
+
+  // Interleave using Smart Block Bucketing (Preference, NOT rigid block)
+  const rankedResults: NormalizedJob[] = [];
+  const companyAppearanceCount = new Map<string, number>();
+  let lastCity = '';
+
+  const providerKeys = Array.from(jobsByProvider.keys()).sort((a, b) => {
+    const scoreA = PROVIDER_QUALITY_INDEX[a.toLowerCase()] || 80;
+    const scoreB = PROVIDER_QUALITY_INDEX[b.toLowerCase()] || 80;
+    return scoreB - scoreA;
+  });
+
+  let addedInRound = true;
+  while (addedInRound) {
+    addedInRound = false;
+    for (const pKey of providerKeys) {
+      const bucket = jobsByProvider.get(pKey);
+      if (bucket && bucket.length > 0) {
+        const candidate = bucket.shift()!;
+        
+        // Dynamic Penalty: Repeated Company (-5 for 1st repeat, -10 for 2nd, -20 for 3rd+)
+        const companyKey = candidate.companyNameNormalized.toLowerCase();
+        const prevCompCount = companyAppearanceCount.get(companyKey) || 0;
+        let companyPenalty = 0;
+        if (prevCompCount === 1) companyPenalty = 5;
+        else if (prevCompCount === 2) companyPenalty = 10;
+        else if (prevCompCount >= 3) companyPenalty = 20;
+
+        // Dynamic Penalty: Continuous City (-3 pts for identical consecutive city)
+        let cityPenalty = 0;
+        if (candidate.locationNormalized === lastCity && lastCity !== 'Remoto') {
+          cityPenalty = 3;
+        }
+
+        candidate.scores.overall = Math.max(1, candidate.scores.overall - companyPenalty - cityPenalty);
+        companyAppearanceCount.set(companyKey, prevCompCount + 1);
+        lastCity = candidate.locationNormalized;
+
+        rankedResults.push(candidate);
+        addedInRound = true;
+      }
+    }
+  }
+
+  // Sort final array by overall jobScore preserving diversity
+  rankedResults.sort((a, b) => b.scores.overall - a.scores.overall);
+
+  // ── 4. PIPELINE HEALTH DASHBOARD LOG ──
+  const finalProviderStats: Record<string, number> = {};
+  let officialAtsCount = 0;
+  let directLinksCount = 0;
+  let redirectLinksCount = 0;
+  const uniqueCompanies = new Set<string>();
+  const uniqueCities = new Set<string>();
+  let totalAgeDays = 0;
+
+  rankedResults.forEach(j => {
+    finalProviderStats[j.provider] = (finalProviderStats[j.provider] || 0) + 1;
+    if (j.ats) officialAtsCount++;
+    if (j.sourceUrl.includes('adzuna.com')) redirectLinksCount++;
+    else directLinksCount++;
+
+    uniqueCompanies.add(j.companyNameNormalized);
+    uniqueCities.add(j.locationNormalized);
+
+    const { ageDays } = calculateFreshness(j.publishedAt);
+    totalAgeDays += ageDays;
+  });
+
+  const avgAgeDays = rankedResults.length > 0 ? Math.round(totalAgeDays / rankedResults.length) : 0;
+  
+  // Overall Job Quality Score formula (0 - 100)
+  const officialAtsRatio = rankedResults.length > 0 ? officialAtsCount / rankedResults.length : 0;
+  const directLinkRatio = rankedResults.length > 0 ? directLinksCount / rankedResults.length : 0;
+  const providerCount = Object.keys(finalProviderStats).length;
+
+  let pipelineHealthScore = Math.round(
+    (officialAtsRatio * 40) +
+    (directLinkRatio * 30) +
+    (Math.min(1, providerCount / 4) * 20) +
+    (Math.min(1, uniqueCompanies.size / Math.max(1, rankedResults.length)) * 10)
+  );
+  pipelineHealthScore = Math.max(0, Math.min(100, pipelineHealthScore));
+
+  console.log(`
+========== PIPELINE HEALTH ==========
+Busca: ${intent.family} | Terreno: ${searchLocation}
+Vagas Brutas: ${rawJobs.length}
+Após deduplicação: ${deduplicatedJobs.length} (Duplicatas removidas: ${duplicatesRemoved})
+Após ranking final: ${rankedResults.length}
+
+Diversidade de Provedores:
+${JSON.stringify(finalProviderStats, null, 2)}
+
+Métricas de Qualidade:
+  - ATS Oficiais (Greenhouse/Lever/Gupy/Workday): ${officialAtsCount}
+  - Links Diretos: ${directLinksCount}
+  - Links Redirecionadores: ${redirectLinksCount}
+  - Empresas Únicas: ${uniqueCompanies.size}
+  - Cidades Únicas: ${uniqueCities.size}
+  - Idade Média das Vagas: ${avgAgeDays} dias
+
+Job Quality Score: ${pipelineHealthScore} / 100
+====================================
+  `);
+
+  return rankedResults;
 }

@@ -3,6 +3,8 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.8"
 
 // Import Connectors
 import { AdzunaConnector } from "./connectors/AdzunaConnector.ts";
+import { JoobleConnector } from "./connectors/JoobleConnector.ts";
+import { SerpApiConnector } from "./connectors/SerpApiConnector.ts";
 import { RemotiveConnector } from "./connectors/RemotiveConnector.ts";
 import { RemoteOkConnector } from "./connectors/RemoteOkConnector.ts";
 import { ArbeitnowConnector } from "./connectors/ArbeitnowConnector.ts";
@@ -170,6 +172,8 @@ async function logAnalyticsEvent(
 // List of all active connectors
 const ACTIVE_CONNECTORS = [
   new AdzunaConnector(),
+  new JoobleConnector(),
+  new SerpApiConnector(),
   new RemotiveConnector(),
   new RemoteOkConnector(),
   new ArbeitnowConnector(),
@@ -200,7 +204,7 @@ serve(async (req) => {
   let supabaseClient: any = null;
 
   try {
-    const { keyword, location, pageNum = 1, userId } = await req.json();
+    const { keyword, location, pageNum = 1, userId, provider } = await req.json();
     const searchKeyword = keyword || 'React';
     const searchLocation = location || 'Brasil';
 
@@ -222,7 +226,8 @@ serve(async (req) => {
       }
     }
 
-    const queryKey = `${searchKeyword.toLowerCase().trim()}|${searchLocation.toLowerCase().trim()}|${pageNum}`;
+    const providerPrefix = provider ? provider.toLowerCase().trim() : 'aggregated';
+    const queryKey = `${providerPrefix}|${searchKeyword.toLowerCase().trim()}|${searchLocation.toLowerCase().trim()}|${pageNum}`;
 
     // ── 1. VERIFICAR CACHE (TTL: 5 minutos) ──
     const fiveMinutesAgo = new Date(Date.now() - 5 * 60 * 1000).toISOString();
@@ -261,8 +266,12 @@ serve(async (req) => {
 
     // ── 2. INICIAR BUSCA PARALELA EM PROVEDORES ──
     let rawJobsList: any[] = [];
+    const connectorsToRun = provider
+      ? ACTIVE_CONNECTORS.filter(c => c.platformName.toUpperCase().includes(provider.toUpperCase()))
+      : ACTIVE_CONNECTORS;
+    const listToExecute = connectorsToRun.length > 0 ? connectorsToRun : ACTIVE_CONNECTORS;
 
-    const promises = ACTIVE_CONNECTORS.map(async (connector) => {
+    const promises = listToExecute.map(async (connector) => {
       const start = Date.now();
       await logAnalyticsEvent(supabaseClient, resolvedUserId, 'provider_started', connector.platformName, 'started', { keyword: searchKeyword });
 
@@ -343,6 +352,22 @@ serve(async (req) => {
       count: filteredJobs.length,
       results: filteredJobs
     };
+
+    console.log('[STAGE 1: EDGE FUNCTION SEARCH-JOBS OUTPUT]', JSON.stringify({
+      requestProviderParam: provider,
+      totalResults: filteredJobs.length,
+      sampleFirst5: filteredJobs.slice(0, 5).map(j => ({
+        title: j.title,
+        company: j.companyName || j.companyNameNormalized,
+        provider: j.sourcePlatform,
+        sourcePlatform: j.sourcePlatform,
+        sources: j.sources,
+        sourceUrl: j.sourceUrl,
+        redirect_url: (j as any).redirect_url,
+        applyUrl: (j as any).applyUrl,
+        url: (j as any).url
+      }))
+    }, null, 2));
 
     // ── 4. GRAVAR EM CACHE ──
     try {

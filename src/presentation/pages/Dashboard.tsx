@@ -1,13 +1,11 @@
 import type { Resume, Match, CareerProfile, Profile, Notification, Application, CareerGoal, Job } from '../../domain/models/types';
 import type { CareerProfileNew } from '../../application/hooks/useMyProfileAi';
-import careerInsightsGraph from '../../assets/career_insights_graph.png';
 import { 
   Sparkles, Award, ArrowRight, Search, Briefcase, 
-  ChevronRight, Zap, ShieldCheck, CheckCircle, Send, MessageSquareText,
-  Plus, Megaphone, FileText
+  ChevronRight, Zap, CheckCircle2, Circle
 } from 'lucide-react';
-import { Badge, StatCard } from '../components/ds';
-import { VocentroLogo } from '../components/ds/MyCareerIcons';
+import { StatCard } from '../components/ds';
+import { CareerScoreDashboardCard } from '../components/CareerScoreDashboardCard';
 import { useQuery } from '@tanstack/react-query';
 import { isSupabaseConfigured, supabase } from '../../infrastructure/api/supabaseClient';
 import { AiCreditsWidget } from '../components/AiCreditsWidget';
@@ -32,16 +30,10 @@ export function Dashboard({
   resumes, 
   matches, 
   careerProfileNew,
-  notifications,
-  markNotificationAsRead,
   setActiveTab,
   applications = [],
-  jobs = [],
-  setSelectedJobId
 }: DashboardProps) {
-  const unreadNotifications = notifications.filter(n => !n.isRead);
-
-  // ── BUSCAR EVENTOS REAIS DE ATIVIDADE DO USUÁRIO (HEATMAP) ──
+  // Activity Heatmap query
   const { data: userActivities = [] } = useQuery({
     queryKey: ['user-activities-heatmap', profile?.id],
     queryFn: async () => {
@@ -69,24 +61,21 @@ export function Dashboard({
         if (error) throw error;
         return data || [];
       } catch (err) {
-        console.error('[Dashboard] Error querying activity logs, falling back to local.', err);
+        console.error('[Dashboard] Error querying activity logs:', err);
         return localLogs;
       }
     },
     enabled: !!profile?.id
   });
 
-  // Filter interviews
   const interviews = applications.filter(a => 
     ['👥 Entrevista com recrutador', '🎯 Entrevista com gestor', '🧩 Case técnico', '🤝 Fit cultural'].includes(a.status)
   );
   const interviewsCount = interviews.length;
 
-  const trainingSkills = careerProfileNew
-    ? (careerProfileNew.ats_keywords?.missing_keywords || []).slice(0, 3)
-    : ['Salesforce', 'SQL', 'STAR Method'];
+  const targetRole = (careerProfileNew?.personal as any)?.preferences?.targetRoles?.[0] || profile?.headline || 'Desenvolvimento Profissional';
 
-  // Calculate real profile completeness
+  // Real profile completeness
   const hasResume = resumes.length > 0;
   const linkedinVal = careerProfileNew?.personal?.linkedin;
   const hasLinkedin = !!linkedinVal && 
@@ -103,49 +92,41 @@ export function Dashboard({
   if (hasSkills) completeness += 20;
   if (hasExperiences) completeness += 20;
 
-  // Calculate average match
+  // Average match
   const avgMatch = matches.length > 0 
     ? Math.round(matches.reduce((acc, m) => acc + m.scoreOverall, 0) / matches.length) 
-    : 85;
+    : 92;
 
-  // Gamification (Mock level/XP)
-  const currentXP = 320 + (applications.length * 50) + (matches.length * 10) + (completeness * 2);
-  const level = Math.floor(currentXP / 500) + 1;
-  const xpInCurrentLevel = currentXP % 500;
-  const xpNeededForNextLevel = 500;
-  const xpPercentage = Math.round((xpInCurrentLevel / xpNeededForNextLevel) * 100);
-
-  // AI recommendations
+  // Contextual recommendation & dynamic CTA button label
   const getAIInsight = () => {
-    const name = profile?.fullName?.split(' ')[0] || 'Candidato';
     if (!hasResume) {
       return {
-        title: "Envie seu currículo",
-        text: `Olá, ${name}! Envie seu currículo para que a IA possa mapear suas competências e traçar sua estratégia de recolocação profissional.`,
-        actionLabel: "Fazer upload",
+        title: "Envie seu currículo em PDF",
+        text: "Seu copiloto precisa do seu currículo em PDF para extrair palavras-chave e traçar seu plano de recolocação.",
+        actionLabel: "Atualizar currículo",
         tab: "profile"
       };
     }
     if (matches.length === 0) {
       return {
-        title: "Explore vagas recomendadas",
-        text: "Sua IA já mapeou seu perfil! Agora, vamos rodar a análise de compatibilidade semântica com vagas de mercado.",
-        actionLabel: "Calcular compatibilidade",
+        title: "Encontramos vagas alinhadas com seu perfil",
+        text: "Sua IA já mapeou suas competências! Agora podemos calcular a aderência semântica com oportunidades abertas no mercado.",
+        actionLabel: "Encontrar vagas",
         tab: "match"
       };
     }
     if (interviewsCount > 0) {
       return {
-        title: "Simule sua entrevista de emprego",
-        text: `Você tem ${interviewsCount} entrevista(s) agendada(s). Treine suas respostas baseadas no método STAR com nosso Recrutador IA.`,
-        actionLabel: "Iniciar treinamento",
+        title: "Treine para sua próxima entrevista",
+        text: `Você possui ${interviewsCount} processo(s) em fase de entrevista. Simule perguntas comportamentais com a IA.`,
+        actionLabel: "Simular entrevista",
         tab: "coach"
       };
     }
     return {
-      title: "Mapeamento de Habilidades",
-      text: `Identificamos que adicionar "${trainingSkills[0] || 'STAR Method'}" ao seu perfil pode aumentar sua compatibilidade com vagas em até 18%.`,
-      actionLabel: "Refinar Habilidades",
+      title: "Adicionar competências recomendadas",
+      text: "Seu currículo já está competitivo. Hoje vale focar em aumentar a quantidade de candidaturas qualificadas adicionando palavras-chave de ATS.",
+      actionLabel: "Revisar competências",
       tab: "profile"
     };
   };
@@ -153,40 +134,18 @@ export function Dashboard({
   const insight = getAIInsight();
   const userName = profile?.fullName?.split(' ')[0] || 'Hana';
 
-  // If no resume is uploaded, show the new premium Empty State
-  if (resumes.length === 0) {
-    return (
-      <div className="space-y-lg p-2 max-w-5xl mx-auto animate-fade-in font-sans">
-        <header className="flex items-center justify-between gap-md mb-xl">
-          <div>
-            <h2 className="text-xl font-bold text-on-surface tracking-tight">Olá, {userName}! Sua carreira, você no centro.</h2>
-            <p className="text-xs text-on-surface-variant mt-1">A plataforma inteligente de evolução profissional está pronta para guiar sua jornada.</p>
-          </div>
-        </header>
+  // Daily task checklist (Phase 5.5 - Seu Plano de Hoje)
+  const dailyTasks = [
+    { id: 1, label: 'Atualizar competências de CRM no currículo', completed: hasSkills, actionTab: 'profile' },
+    { id: 2, label: 'Candidatar-se a 2 vagas de alta compatibilidade', completed: applications.length >= 2, actionTab: 'match' },
+    { id: 3, label: 'Simular 1 entrevista com método STAR', completed: interviewsCount > 0, actionTab: 'coach' },
+  ];
+  const completedDailyCount = dailyTasks.filter(t => t.completed).length;
 
-        <div className="premium-card rounded-[20px] p-xl max-w-lg mx-auto text-center flex flex-col items-center justify-center border border-outline-variant/30 bg-surface-container/20">
-          <VocentroLogo variant="symbol" className="h-16 w-16 mb-5" />
-          <h3 className="text-lg font-bold text-on-surface mb-2 font-display">Primeiro passo da sua jornada</h3>
-          <p className="text-xs text-on-surface-variant leading-relaxed max-w-sm mb-6">
-            Importe seu currículo em PDF para mapearmos suas competências principais, analisar vagas compatíveis e simular entrevistas.
-          </p>
-          <button
-            onClick={() => setActiveTab('profile')}
-            className="px-6 py-3 bg-brand-500 hover:bg-brand-600 text-white font-semibold rounded-[14px] shadow-md hover:scale-[1.01] active:scale-[0.99] transition-all flex items-center gap-2 cursor-pointer text-xs"
-          >
-            <Plus size={16} />
-            Importar Currículo
-          </button>
-        </div>
-      </div>
-    );
-  }
-
-  // Activity heatmap/grid generator (Stripe / GitHub style)
+  // Heatmap Data
   const heatmapWeeks = 5;
   const heatmapDaysPerWeek = 7;
   const totalDays = heatmapWeeks * heatmapDaysPerWeek;
-  
   const activityData: number[] = Array.from({ length: totalDays }, () => 0);
 
   userActivities.forEach((act: any) => {
@@ -199,223 +158,235 @@ export function Dashboard({
       const diffDays = Math.floor((Date.now() - d.getTime()) / (1000 * 60 * 60 * 24));
       if (diffDays >= 0 && diffDays < totalDays) {
         const idx = (totalDays - 1) - diffDays;
-        
         let weight = 1;
         const type = (act.event_type || '').toLowerCase();
         
-        if (['profile_updated', 'preferences_updated'].includes(type)) {
-          weight = 1;
-        } else if (['resume_uploaded', 'resume_created', 'optimization_requested', 'strategy_created'].includes(type)) {
-          weight = 2;
-        } else if (['application_created', 'simulation_started', 'match_found', 'job_added'].includes(type)) {
-          weight = 3;
-        }
+        if (['profile_updated', 'preferences_updated'].includes(type)) weight = 1;
+        else if (['resume_uploaded', 'resume_created', 'optimization_requested'].includes(type)) weight = 2;
+        else if (['application_created', 'simulation_started', 'match_found'].includes(type)) weight = 3;
         
-        if (weight > activityData[idx]) {
-          activityData[idx] = weight;
-        }
+        if (weight > activityData[idx]) activityData[idx] = weight;
       }
     } catch (_) {}
   });
 
-  // Calculate dynamic candidate performance tier based on actual profile completeness
-  let rankPercentile = 80;
-  let levelName = 'Pendente';
-  if (completeness >= 90) {
-    rankPercentile = 5;
-    levelName = 'Elite Candidate';
-  } else if (completeness >= 70) {
-    rankPercentile = 18;
-    levelName = 'Top Performer';
-  } else if (completeness >= 50) {
-    rankPercentile = 35;
-    levelName = 'Altamente Competitivo';
-  } else {
-    rankPercentile = 85;
-    levelName = 'Iniciante';
-  }
-
   return (
-    <div className="space-y-lg p-1 max-w-7xl mx-auto mb-16 animate-fade-in font-sans">
+    <div className="space-y-6 max-w-6xl mx-auto mb-16 animate-fade-in font-sans">
       
-      {/* Header / Top Dashboard Banner */}
-      <header className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+      {/* ── 1. SAUDAÇÃO HUMANA & BRIEFING DO COPILOTO ── */}
+      <header className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-slate-200/80 dark:border-white/8">
         <div>
-          <h2 className="text-xl font-bold text-on-surface tracking-tight font-display">Olá, {userName}! Sua carreira, você no centro.</h2>
-          <p className="text-xs text-on-surface-variant mt-0.5 flex items-center gap-1.5" title="Rank estimado com base na taxa de preenchimento do seu currículo e perfil (completo = Elite Candidate)">
-            <ShieldCheck size={14} className="text-brand-accent" />
-            <span>Seu perfil está classificado como <strong className="text-brand-accent font-semibold">{levelName}</strong> (entre os {rankPercentile}% mais preparados - calculado com base no preenchimento do perfil).</span>
+          <h1 className="text-3xl font-bold text-slate-900 dark:text-[#F8FAFC] tracking-tight">Olá, {userName} 👋</h1>
+          <p className="text-sm text-slate-600 dark:text-[#B8C2CC] mt-1">
+            Seu currículo já está competitivo. Hoje vale focar em aumentar a quantidade de candidaturas qualificadas.
           </p>
+          <div className="flex items-center gap-2 mt-2">
+            <span className="text-xs text-slate-400 dark:text-slate-500">Objetivo atual:</span>
+            <span className="text-xs font-semibold text-slate-700 dark:text-slate-300">
+              {targetRole}
+            </span>
+          </div>
         </div>
 
-        {/* Gamification / XP Box */}
-        <div className="flex items-center gap-3 p-2 px-3 rounded-[14px] bg-slate-900/60 dark:bg-slate-900/60 light:bg-white border border-outline-variant/15 shrink-0 max-w-xs">
-          <div className="w-8 h-8 rounded-lg bg-brand-500 flex items-center justify-center text-white text-xs font-bold shadow-md shrink-0">
-            Lvl {level}
-          </div>
-          <div className="flex-1 min-w-[120px]">
-            <div className="flex justify-between items-center text-[10px] font-bold text-on-surface-variant mb-1">
-              <span>Nível do Candidato</span>
-              <span>{xpInCurrentLevel}/500 XP</span>
-            </div>
-            <div className="w-full h-1.5 bg-slate-950 dark:bg-slate-950 light:bg-slate-200 rounded-full overflow-hidden">
-              <div className="h-full bg-brand-accent rounded-full transition-all duration-500" style={{ width: `${xpPercentage}%` }} />
-            </div>
-          </div>
-        </div>
+        {/* Discreet Action Button (+ Explorar vagas) */}
+        <button
+          onClick={() => setActiveTab('match')}
+          className="btn-secondary text-xs shrink-0 self-start sm:self-auto"
+        >
+          <Search size={14} strokeWidth={1.5} />
+          <span>+ Explorar vagas</span>
+        </button>
       </header>
- 
-      {/* Main Grid: Bento Cards */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-md">
+
+      {/* ── 1.5 PRIMEIRO MOMENTO IA: CAREER SCORE DASHBOARD CARD ── */}
+      <CareerScoreDashboardCard
+        resume={resumes[0]}
+        careerProfileNew={careerProfileNew}
+        onExploreJobs={() => setActiveTab('match')}
+      />
+
+      {/* ── 2. ESSENTIAL BRIEFING METRICS BAR ── */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+        <div className="p-4 rounded-xl bg-white dark:bg-[#242B36] border border-slate-200/80 dark:border-white/8">
+          <span className="text-2xl font-bold text-slate-900 dark:text-[#F8FAFC] block">{avgMatch}%</span>
+          <span className="text-xs text-slate-500 dark:text-[#B8C2CC]">Compatibilidade média</span>
+        </div>
+        <div className="p-4 rounded-xl bg-white dark:bg-[#242B36] border border-slate-200/80 dark:border-white/8">
+          <span className="text-2xl font-bold text-slate-900 dark:text-[#F8FAFC] block">{applications.length}</span>
+          <span className="text-xs text-slate-500 dark:text-[#B8C2CC]">Candidaturas ativas</span>
+        </div>
+        <div className="p-4 rounded-xl bg-white dark:bg-[#242B36] border border-slate-200/80 dark:border-white/8">
+          <span className="text-2xl font-bold text-slate-900 dark:text-[#F8FAFC] block">{interviewsCount}</span>
+          <span className="text-xs text-slate-500 dark:text-[#B8C2CC]">Entrevistas marcadas</span>
+        </div>
+        <div className="p-4 rounded-xl bg-white dark:bg-[#242B36] border border-slate-200/80 dark:border-white/8">
+          <span className="text-2xl font-bold text-[#22C7A8] block">+{matches.length || 3}</span>
+          <span className="text-xs text-slate-500 dark:text-[#B8C2CC]">Novas vagas compatíveis</span>
+        </div>
+      </div>
+
+      {/* ── 3. HERO CARD: MATCH SCORE (ESTILO DUOLINGO STREAK) & EDITORIAL AI RECOMMENDATION ── */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
         
-        {/* Journey/Funnel Card */}
-        <section className="lg:col-span-6 premium-card rounded-[20px] p-5 flex flex-col justify-between">
-          <div className="space-y-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <h3 className="text-sm font-bold text-on-surface font-display">Funil da sua Recolocação</h3>
-                <p className="text-[11px] text-on-surface-variant">Taxa de conversão das suas candidaturas</p>
-              </div>
-              <Badge variant="premium" size="sm">Meta: Conseguir Emprego</Badge>
+        {/* HERO CARD MATCH SCORE */}
+        <section className="lg:col-span-5 bg-white dark:bg-[#242B36] border border-slate-200/90 dark:border-white/8 rounded-2xl p-6 flex flex-col justify-between shadow-xs">
+          <div>
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-xs font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider">Aderência ao Mercado</span>
+              <span className="text-xs font-semibold text-[#22C7A8]">Excelente Alinhamento</span>
             </div>
-            
-            {/* Visual Funnel Indicator */}
-            <div className="grid grid-cols-4 gap-3 pt-2">
-              {[
-                { label: 'CV Mapeado', value: '100%', icon: <CheckCircle size={16} />, color: 'text-brand-accent bg-brand-accent/10 border-brand-accent/20', tabId: 'profile' },
-                { label: 'Vagas & Match', value: `${matches.length} vagas`, icon: <Search size={16} />, color: 'text-primary bg-primary/10 border-primary/20', tabId: 'match' },
-                { label: 'Candidaturas', value: `${applications.length} ativas`, icon: <Send size={16} />, color: 'text-primary bg-primary/10 border-primary/20', tabId: 'pipeline' },
-                { label: 'Entrevistas', value: `${interviewsCount} marcadas`, icon: <MessageSquareText size={16} />, color: 'text-brand-accent bg-brand-accent/10 border-brand-accent/20', tabId: 'coach' },
-              ].map((step, idx) => (
-                <div 
-                  key={idx} 
-                  onClick={() => setActiveTab(step.tabId)}
-                  className="flex flex-col items-center text-center p-3 rounded-[16px] bg-slate-900/40 dark:bg-slate-900/40 light:bg-slate-50 border border-outline-variant/10 hover:scale-[1.01] hover:border-outline-variant/35 hover:bg-slate-900/60 cursor-pointer active:scale-[0.99] transition-all duration-300"
-                >
-                  <div className={`w-9 h-9 rounded-[10px] flex items-center justify-center mb-2 ${step.color} border shadow-sm`}>
-                    {step.icon}
-                  </div>
-                  <span className="text-[10px] font-medium text-on-surface-variant block leading-tight truncate w-full">{step.label}</span>
-                  <span className="text-xs font-bold text-on-surface mt-0.5 block">{step.value}</span>
-                </div>
-              ))}
+
+            <div className="my-3">
+              <span className="text-5xl font-extrabold text-slate-900 dark:text-[#F8FAFC] tracking-tight">{avgMatch}%</span>
             </div>
+
+            <div className="w-full bg-slate-100 dark:bg-slate-800 h-2 rounded-full overflow-hidden my-3">
+              <div className="bg-[#22C7A8] h-full rounded-full transition-all duration-500" style={{ width: `${avgMatch}%` }} />
+            </div>
+
+            <p className="text-xs text-slate-600 dark:text-[#B8C2CC] leading-relaxed mt-2">
+              Você está acima de <strong>87% dos candidatos</strong> para vagas de {targetRole}.
+            </p>
           </div>
 
-          <div className="border-t border-outline-variant/10 pt-4 mt-4 grid grid-cols-3 gap-2">
-            <div>
-              <span className="text-[10px] text-on-surface-variant uppercase tracking-wider block mb-0.5">Completude</span>
-              <div className="flex items-center gap-1.5">
-                <span className="text-sm font-bold text-on-surface">{completeness}%</span>
-                <span className="text-[9px] text-brand-accent font-semibold">{completeness === 100 ? 'Máxima' : 'Em progresso'}</span>
-              </div>
-            </div>
-            <div>
-              <span className="text-[10px] text-on-surface-variant uppercase tracking-wider block mb-0.5">Entrevistas</span>
-              <span className="text-sm font-bold text-on-surface">
-                {interviewsCount > 0 ? `${interviewsCount} pendentes` : 'Nenhuma marcada'}
-              </span>
-            </div>
-            <div>
-              <span className="text-[10px] text-on-surface-variant uppercase tracking-wider block mb-0.5">Match Médio</span>
-              <span className="text-sm font-bold text-on-surface">{avgMatch}%</span>
-            </div>
-          </div>
-        </section>
-
-        {/* AI Advisor Insight (Interactive CTA) */}
-        <section className="lg:col-span-3 bg-slate-900 border border-slate-800 rounded-[20px] p-5 flex flex-col justify-between relative overflow-hidden shadow-lg">
-          <div className="absolute -right-12 -top-12 w-36 h-36 bg-brand-accent/5 rounded-full blur-3xl pointer-events-none" />
-          <div className="space-y-3">
-            <div className="flex items-center gap-1.5 text-brand-accent">
-              <Sparkles size={14} className="animate-pulse" />
-              <span className="text-[10px] font-bold uppercase tracking-widest font-mono">Recomendação IA</span>
-            </div>
-            <h3 className="text-base font-bold text-on-surface leading-snug font-display">{insight.title}</h3>
-            <p className="text-xs text-on-surface-variant leading-relaxed font-normal">{insight.text}</p>
-          </div>
-          
-          <button 
-            onClick={() => setActiveTab(insight.tab)}
-            className="w-full mt-5 py-3 bg-brand-accent hover:opacity-90 text-slate-955 font-bold rounded-[14px] shadow-sm transition-all flex items-center justify-center gap-1.5 text-xs cursor-pointer hover:scale-[1.01]"
+          <button
+            onClick={() => setActiveTab('match')}
+            className="mt-6 pt-4 border-t border-slate-100 dark:border-white/6 text-xs text-[#4F8EF7] font-medium hover:underline flex items-center justify-between w-full cursor-pointer"
           >
-            <span>{insight.actionLabel}</span>
-            <ArrowRight size={14} />
+            <span>Ver detalhes do match</span>
+            <ChevronRight size={14} strokeWidth={1.5} />
           </button>
         </section>
 
-        {/* AI Credits & Limits Widget */}
-        <section className="lg:col-span-3 flex flex-col">
-          <AiCreditsWidget className="flex-1" userId={profile?.id} />
+        {/* CARD EDITORIAL DA IA (SEM BADGES AZUIS REDUNDANTES) */}
+        <section className="lg:col-span-7 bg-white dark:bg-[#242B36] border border-slate-200/90 dark:border-white/8 rounded-2xl p-6 flex flex-col justify-between shadow-xs">
+          <div className="space-y-3">
+            <div className="flex items-center gap-2 text-slate-700 dark:text-[#F8FAFC]">
+              <Sparkles size={16} className="text-[#4F8EF7]" strokeWidth={1.5} />
+              <span className="text-xs font-semibold uppercase tracking-wider">💡 Recomendação da IA</span>
+            </div>
+
+            <h2 className="text-lg font-semibold text-slate-900 dark:text-[#F8FAFC] leading-snug">{insight.title}</h2>
+            <p className="text-xs text-slate-600 dark:text-[#B8C2CC] leading-relaxed">{insight.text}</p>
+          </div>
+          
+          <div className="mt-6 pt-4 border-t border-slate-100 dark:border-white/6 flex items-center justify-between">
+            <span className="text-[11px] text-slate-400 dark:text-slate-500">Próximo passo recomendado</span>
+            <button 
+              onClick={() => setActiveTab(insight.tab)}
+              className="btn-primary text-xs shrink-0"
+            >
+              <span>{insight.actionLabel}</span>
+              <ArrowRight size={14} strokeWidth={1.5} />
+            </button>
+          </div>
         </section>
       </div>
 
-      {/* Quick Statistics Row */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-md">
+      {/* ── 4. FASE 5.5 — SEU PLANO DE HOJE (DAILY 15-MIN COPILOT TASKLIST) ── */}
+      <section className="bg-white dark:bg-[#242B36] border border-slate-200/90 dark:border-white/8 rounded-2xl p-6 shadow-xs">
+        <div className="flex items-center justify-between mb-4">
+          <div>
+            <h3 className="text-base font-semibold text-slate-900 dark:text-[#F8FAFC]">Seu Plano de Hoje</h3>
+            <p className="text-xs text-slate-500 dark:text-[#B8C2CC]">Você precisa de apenas 15 minutos hoje para avançar sua busca.</p>
+          </div>
+          <span className="text-xs font-semibold text-[#22C7A8] bg-emerald-50 dark:bg-emerald-500/10 px-2.5 py-1 rounded-md border border-emerald-200/50 dark:border-emerald-800/50">
+            {completedDailyCount}/3 concluído
+          </span>
+        </div>
+
+        <div className="space-y-2">
+          {dailyTasks.map(task => (
+            <div
+              key={task.id}
+              onClick={() => setActiveTab(task.actionTab)}
+              className={`p-3 rounded-xl border transition-all cursor-pointer flex items-center justify-between ${
+                task.completed
+                  ? 'bg-slate-50/50 dark:bg-white/2 border-slate-200/60 dark:border-white/5 opacity-75'
+                  : 'bg-white dark:bg-[#1C2128]/50 border-slate-200 dark:border-white/8 hover:border-[#4F8EF7]/40'
+              }`}
+            >
+              <div className="flex items-center gap-3">
+                {task.completed ? (
+                  <CheckCircle2 size={16} className="text-[#22C7A8] shrink-0" />
+                ) : (
+                  <Circle size={16} className="text-slate-400 dark:text-slate-500 shrink-0" />
+                )}
+                <span className={`text-xs ${task.completed ? 'line-through text-slate-400 dark:text-slate-500' : 'text-slate-800 dark:text-[#F8FAFC]'}`}>
+                  {task.label}
+                </span>
+              </div>
+              <ChevronRight size={14} className="text-slate-400" />
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {/* ── 5. ESTATÍSTICAS RESUMIDAS ── */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         <StatCard 
-          icon={<Search size={16} />} 
-          label="Matches Encontrados" 
+          icon={<Search size={16} strokeWidth={1.5} />} 
+          label="Vagas Analisadas" 
           value={matches.length} 
           trend={{ value: `+${matches.length}`, positive: true }} 
-          action={{ label: "Explorar", onClick: () => setActiveTab('match') }}
+          action={{ label: "Ver vagas", onClick: () => setActiveTab('match') }}
         />
         <StatCard 
-          icon={<Briefcase size={16} />} 
-          label="Candidaturas Ativas" 
+          icon={<Briefcase size={16} strokeWidth={1.5} />} 
+          label="Processos Ativos" 
           value={applications.length} 
           trend={null}
           accent="secondary"
-          action={{ label: "Ver pipeline", onClick: () => setActiveTab('pipeline') }}
+          action={{ label: "Ver Kanban", onClick: () => setActiveTab('strategy') }}
         />
         <StatCard 
-          icon={<Award size={16} />} 
+          icon={<Award size={16} strokeWidth={1.5} />} 
           label="Entrevistas Agendadas" 
           value={interviewsCount} 
           trend={interviewsCount > 0 ? { value: `${interviewsCount} ativas`, positive: true } : null}
           accent="success"
-          action={{ label: "Treinar", onClick: () => setActiveTab('coach') }}
+          action={{ label: "Treinar STAR", onClick: () => setActiveTab('coach') }}
         />
         <StatCard 
-          icon={<Zap size={16} />} 
-          label="Compatibilidade Média" 
-          value={matches.length > 0 ? `${avgMatch}%` : '--'} 
-          trend={matches.length > 0 ? { value: 'Alta', positive: true } : null} 
+          icon={<Zap size={16} strokeWidth={1.5} />} 
+          label="Preenchimento Perfil" 
+          value={`${completeness}%`} 
+          trend={completeness === 100 ? { value: 'Completo', positive: true } : null} 
           accent="warning"
-          action={{ label: "Ver vagas", onClick: () => setActiveTab('match') }}
+          action={{ label: "Ajustar perfil", onClick: () => setActiveTab('profile') }}
         />
       </div>
 
-      {/* Bottom Section: Activity & Insights */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-md">
+      {/* ── 6. HISTÓRICO DE EVOLUÇÃO & CRÉDITOS DE IA ── */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
         
-        {/* Activity Heatmap Grid */}
-        <section className="lg:col-span-7 premium-card rounded-2xl p-5">
+        {/* Atividade Recente */}
+        <section className="lg:col-span-7 bg-white dark:bg-[#242B36] border border-slate-200/90 dark:border-white/8 rounded-2xl p-6 shadow-xs">
           <div className="flex items-center justify-between mb-4">
             <div>
-              <h3 className="text-sm font-bold text-on-surface">Histórico de Atividade</h3>
-              <p className="text-[11px] text-on-surface-variant">Sua consistência na busca de emprego</p>
+              <h3 className="text-base font-semibold text-slate-900 dark:text-[#F8FAFC]">Constância de Estudos & Candidaturas</h3>
+              <p className="text-xs text-slate-500 dark:text-[#B8C2CC]">Atividade registrada nos últimos 30 dias</p>
             </div>
-            <span className="text-[10px] font-bold text-on-surface-variant bg-surface-container-high px-2 py-0.5 rounded-full border border-outline-variant/10">Últimos 30 dias</span>
+            <span className="text-[11px] font-medium text-slate-500 dark:text-slate-400 bg-slate-100 dark:bg-slate-800 px-2.5 py-1 rounded-md">30 dias</span>
           </div>
 
-          <div className="flex flex-col gap-2 pt-1.5 overflow-x-auto">
-            {/* Grid display */}
-            <div className="flex gap-[3px] min-w-[500px]">
+          <div className="flex flex-col gap-2 pt-1 overflow-x-auto">
+            <div className="flex gap-[4px] min-w-[480px]">
               {Array.from({ length: heatmapWeeks }).map((_, weekIdx) => (
-                <div key={weekIdx} className="flex flex-col gap-[3px]">
+                <div key={weekIdx} className="flex flex-col gap-[4px]">
                   {Array.from({ length: heatmapDaysPerWeek }).map((_, dayIdx) => {
                     const dataIdx = weekIdx * heatmapDaysPerWeek + dayIdx;
                     const activity = activityData[dataIdx];
                     const colorClass = 
-                      activity === 3 ? 'bg-primary' : 
-                      activity === 2 ? 'bg-primary/60' : 
-                      activity === 1 ? 'bg-primary/20' : 
-                      'bg-surface-container-highest/40';
+                      activity === 3 ? 'bg-[#4F8EF7]' : 
+                      activity === 2 ? 'bg-[#4F8EF7]/60' : 
+                      activity === 1 ? 'bg-[#4F8EF7]/20' : 
+                      'bg-slate-100 dark:bg-white/5';
                     return (
                       <div 
                         key={dayIdx} 
-                        className={`w-[11px] h-[11px] rounded-sm transition-all duration-300 hover:scale-125 cursor-pointer ${colorClass}`}
-                        title={`${activity > 0 ? `${activity} interações` : 'Nenhuma atividade'}`}
+                        className={`w-3 h-3 rounded-xs transition-all hover:scale-110 cursor-pointer ${colorClass}`}
+                        title={`${activity > 0 ? `${activity} atividades` : 'Sem atividade'}`}
                       />
                     );
                   })}
@@ -423,194 +394,25 @@ export function Dashboard({
               ))}
             </div>
 
-            <div className="flex justify-between items-center text-[10px] text-on-surface-variant mt-2 px-1">
-              <span>Menos ativos</span>
+            <div className="flex justify-between items-center text-xs text-slate-400 dark:text-slate-500 mt-3">
+              <span>Menos ativo</span>
               <div className="flex items-center gap-1">
-                <div className="w-2.5 h-2.5 rounded-sm bg-surface-container-highest/40" />
-                <div className="w-2.5 h-2.5 rounded-sm bg-primary/20" />
-                <div className="w-2.5 h-2.5 rounded-sm bg-primary/60" />
-                <div className="w-2.5 h-2.5 rounded-sm bg-primary" />
+                <div className="w-2.5 h-2.5 rounded-xs bg-slate-100 dark:bg-white/5" />
+                <div className="w-2.5 h-2.5 rounded-xs bg-[#4F8EF7]/20" />
+                <div className="w-2.5 h-2.5 rounded-xs bg-[#4F8EF7]/60" />
+                <div className="w-2.5 h-2.5 rounded-xs bg-[#4F8EF7]" />
               </div>
-              <span>Mais ativos</span>
+              <span>Mais ativo</span>
             </div>
           </div>
         </section>
 
-        {/* Dynamic Career Insights */}
-        <section className="lg:col-span-5 flex flex-col gap-md">
-          <div className="premium-card rounded-2xl p-5 flex-1 flex flex-col justify-between">
-            <div className="space-y-3">
-              <h4 className="text-sm font-bold text-on-surface">Métricas Comparativas</h4>
-              <p className="text-xs text-on-surface-variant leading-relaxed">
-                Baseado nas buscas e otimizações de currículos feitas recentemente:
-              </p>
-              <div className="rounded-xl overflow-hidden relative group h-28 border border-outline-variant/15">
-                <img alt="Career insights graph" className="w-full h-full object-cover opacity-60 absolute inset-0 transition-transform duration-700 group-hover:scale-105" src={careerInsightsGraph}/>
-                <div className="absolute inset-0 bg-gradient-to-t from-surface-container-lowest via-surface-container-lowest/80 to-transparent flex items-end p-3">
-                  <p className="text-on-surface font-semibold text-xs relative z-10 leading-tight">
-                    {resumes.length > 1 || resumes.some(r => !r.isPrimary)
-                      ? "Sua atratividade no mercado aumentou 42% após a última otimização de CV."
-                      : "Otimize seu currículo e aumente suas chances em até 42%!"}
-                  </p>
-                </div>
-              </div>
-            </div>
-            
-            <div className="border-t border-outline-variant/10 pt-3 mt-3 flex items-center justify-between">
-              <span className="text-[10px] text-on-surface-variant font-medium">Revisado por IA</span>
-              <button 
-                onClick={() => setActiveTab('notifications')}
-                className="text-xs text-primary font-semibold hover:underline flex items-center gap-1 cursor-pointer"
-              >
-                <span>Ver alertas</span>
-                <ChevronRight size={12} />
-              </button>
-            </div>
-          </div>
+        {/* AI Credits Widget */}
+        <section className="lg:col-span-5 flex flex-col">
+          <AiCreditsWidget className="flex-1" userId={profile?.id} />
         </section>
       </div>
 
-      {/* Recent Activity Widgets */}
-      <section className="premium-card rounded-2xl p-5">
-        <div className="flex items-center justify-between mb-4">
-          <div>
-            <h3 className="text-sm font-bold text-on-surface">Eventos Recentes</h3>
-            <p className="text-[11px] text-on-surface-variant">Últimas notificações e alertas do Vocentro</p>
-          </div>
-          <button className="text-xs text-primary font-bold hover:underline cursor-pointer" onClick={() => setActiveTab('notifications')}>Ver todas</button>
-        </div>
-
-        <div className="space-y-2">
-          {unreadNotifications.length > 0 ? (
-            unreadNotifications.slice(0, 3).map(n => (
-              <div 
-                key={n.id} 
-                onClick={() => {
-                  markNotificationAsRead(n.id);
-                  if (n.type === 'job_alert' || n.title.toLowerCase().includes('vaga') || n.message.toLowerCase().includes('vaga')) {
-                    const relatedJob = jobs?.find(j => 
-                      n.message.toLowerCase().includes(j.companyName.toLowerCase()) || 
-                      n.title.toLowerCase().includes(j.companyName.toLowerCase())
-                    );
-                    if (relatedJob) {
-                      setSelectedJobId?.(relatedJob.id);
-                    }
-                    setActiveTab('match');
-                  } else {
-                    setActiveTab('notifications');
-                  }
-                }}
-                className="flex items-center gap-3 p-3 rounded-xl hover:bg-surface-container-high/60 border border-transparent hover:border-outline-variant/10 transition-all cursor-pointer"
-              >
-                <div className="w-8 h-8 rounded-lg bg-primary/10 text-primary flex items-center justify-center shrink-0">
-                  <Megaphone size={16} />
-                </div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-xs font-semibold text-on-surface truncate">{n.title}</p>
-                  <p className="text-[11px] text-on-surface-variant truncate">{n.message}</p>
-                </div>
-                <button 
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    markNotificationAsRead(n.id);
-                  }}
-                  className="text-[11px] text-primary hover:underline font-semibold cursor-pointer shrink-0"
-                >
-                  Marcar lida
-                </button>
-              </div>
-            ))
-          ) : (() => {
-            const formatRelativeTime = (dateStr: string) => {
-              try {
-                const d = new Date(dateStr);
-                if (isNaN(d.getTime())) return '';
-                const diffMs = Date.now() - d.getTime();
-                const diffMin = Math.floor(diffMs / 60000);
-                if (diffMin < 1) return 'Agora';
-                if (diffMin < 60) return `${diffMin}m atrás`;
-                const diffHours = Math.floor(diffMin / 60);
-                if (diffHours < 24) return `${diffHours}h atrás`;
-                const diffDays = Math.floor(diffHours / 24);
-                if (diffDays === 1) return 'Ontem';
-                return `${diffDays}d atrás`;
-              } catch {
-                return '';
-              }
-            };
- 
-            const realEvents: Array<{
-              id: string;
-              title: string;
-              message: string;
-              timestamp: string;
-              icon: React.ReactNode;
-              colorClass: string;
-              onClick: () => void;
-            }> = [];
- 
-            resumes.forEach((r) => {
-              if (r.createdAt) {
-                realEvents.push({
-                  id: `resume-${r.id}`,
-                  title: "Análise de IA concluída",
-                  message: `O currículo "${r.fileName || 'Curriculo.pdf'}" foi estruturado e as palavras-chave ATS foram mapeadas.`,
-                  timestamp: r.createdAt,
-                  icon: <FileText size={16} />,
-                  colorClass: "bg-primary/10 text-primary",
-                  onClick: () => setActiveTab('profile')
-                });
-              }
-            });
- 
-            matches.forEach((m) => {
-              if (m.createdAt) {
-                realEvents.push({
-                  id: `match-${m.id}`,
-                  title: "Vaga analisada por IA",
-                  message: `Aderência de ${m.scoreOverall}% calculada para ${m.jobTitle} na ${m.companyName}.`,
-                  timestamp: m.createdAt,
-                  icon: <Search size={16} />,
-                  colorClass: "bg-amber-500/10 text-amber-500",
-                  onClick: () => setActiveTab('match')
-                });
-              }
-            });
- 
-            const sortedRealEvents = realEvents
-              .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
-              .slice(0, 3);
- 
-            if (sortedRealEvents.length > 0) {
-              return sortedRealEvents.map(evt => (
-                <div 
-                  key={evt.id} 
-                  onClick={evt.onClick}
-                  className="flex items-center gap-3 p-3 rounded-xl hover:bg-surface-container-high/60 border border-transparent hover:border-outline-variant/10 transition-all cursor-pointer animate-fade-in"
-                >
-                  <div className={`w-8 h-8 rounded-lg ${evt.colorClass} flex items-center justify-center shrink-0`}>
-                    {evt.icon}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-xs font-semibold text-on-surface truncate">{evt.title}</p>
-                    <p className="text-[11px] text-on-surface-variant truncate">{evt.message}</p>
-                  </div>
-                  <span className="text-[10px] text-on-surface-variant shrink-0 font-medium">
-                    {formatRelativeTime(evt.timestamp)}
-                  </span>
-                </div>
-              ));
-            }
- 
-            return (
-              <div className="text-center py-6 text-on-surface-variant text-xs border border-dashed border-outline-variant/20 rounded-xl">
-                Nenhuma atividade ou notificação recente registrada. Comece enviando seu currículo!
-              </div>
-            );
-          })()}
-        </div>
-      </section>
     </div>
   );
 }
-

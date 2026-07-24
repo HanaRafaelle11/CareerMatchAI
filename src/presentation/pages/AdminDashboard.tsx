@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { CardGlass } from '../components/CardGlass';
 import { isSupabaseConfigured, supabase } from '../../infrastructure/api/supabaseClient';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { AdminBetaDashboard } from './AdminBetaDashboard';
 import { 
   Activity, Loader2, ShieldAlert, RefreshCw, 
   Users, CreditCard, Search, Filter, 
@@ -503,6 +504,7 @@ export function AdminDashboard({ userId }: AdminDashboardProps) {
 
   const tabs = [
     { id: 'overview', label: 'Overview' },
+    { id: 'beta', label: 'Beta Operations' },
     hasUsersAccess && { id: 'users', label: 'Usuários' },
     hasTelemetryAccess && { id: 'logs', label: 'Logs' },
     hasTelemetryAccess && { id: 'ia', label: 'IA' }
@@ -1118,6 +1120,9 @@ export function AdminDashboard({ userId }: AdminDashboardProps) {
           </button>
         ))}
       </div>
+
+      {/* VIEW BETA: Operations */}
+      {activeSubTab === 'beta' && <AdminBetaDashboard />}
 
       {/* VIEW 1: Command Overview */}
       {activeSubTab === 'overview' && (

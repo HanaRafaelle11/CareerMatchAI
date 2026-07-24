@@ -3,11 +3,9 @@ import { CardGlass } from '../components/CardGlass';
 import { MarketIntelligenceService } from '../../application/services/MarketIntelligenceService';
 import type { Application, CareerProfile, Job } from '../../domain/models/types';
 import type { CareerProfileNew } from '../../application/hooks/useMyProfileAi';
-import { calcYearsFromExperiences } from '../../application/services/matchingEngine';
-import { tracker } from '../../infrastructure/analytics/tracker';
 import { 
   Award, Play, MessageSquare, Send, 
-  RefreshCcw, Star, UserCheck, Loader2, BarChart3, ChevronDown, Sparkles
+  RefreshCcw, Star, Loader2, BarChart3, ChevronDown, Search, Sparkles
 } from 'lucide-react';
 import { ProgressRing, Badge } from '../components/ds';
 import { printElementHtml } from '../../application/utils/pdfExport';
@@ -54,15 +52,10 @@ export function CoachDashboard({
   onClearInitialSelectedAppId,
   setActiveTab
 }: CoachDashboardProps) {
-  const [activeSubTab, setActiveSubTab] = useState<'simulator' | 'recruiter'>('simulator');
   const [isCheckingVagas, setIsCheckingVagas] = useState(false);
   
-  // Dados do perfil consolidado para personalizar respostas
+  // Dados do perfil consolidado para personalizar PDF
   const profileName = careerProfileNew?.personal?.fullName?.split(' ')[0] || 'Profissional';
-  const profileHeadline = careerProfileNew?.personal?.headline || 'Especialista';
-  const profileYears = careerProfileNew ? calcYearsFromExperiences(careerProfileNew.experience) : 0;
-  const profileSkills = careerProfileNew?.skills.slice(0, 5).map(s => s.name).join(', ') || 'suas competências principais';
-  const profileRole = careerProfileNew?.experience?.[0]?.role || profileHeadline;
 
   const handleExportSimulationPDF = () => {
     if (!simulation || !simulation.evaluations) {
@@ -193,34 +186,10 @@ export function CoachDashboard({
   // Input de resposta do candidato
   const [candidateResponse, setCandidateResponse] = useState('');
   const [isSending, setIsSending] = useState(false);
-
-  // Estatísticas e Heurísticas
+  // Estatísticas de Mercado
   const matchedJobIds = new Set((matches || []).map((m: any) => m.jobId || m.job_id));
   const activeJobs = jobs.filter(j => matchedJobIds.has(j.id));
   const marketTrends = MarketIntelligenceService.getMarketTrends(activeJobs, careerProfileNew);
-
-  // Mentor IA Vocentro Chat States — personalizado com dados reais do perfil
-  const initialRecruiterMsg = careerProfileNew
-    ? `Olá, ${profileName}! Sou a **Mariana**, sua recrutadora sênior da Vocentro. Analisei seu perfil como **${profileRole}** com **${profileYears} anos** de experiência e competências como **${profileSkills}**. Estou aqui para guiar sua evolução profissional de forma personalizada. Você prefere focar em preparação para entrevistas, estratégia de carreira ou mapeamento de gaps de competência?`
-    : 'Olá! Sou a **Mariana**, recrutadora sênior da Vocentro. Analiso todo o seu histórico profissional, currículos e feedbacks para te colocar no centro das melhores oportunidades. Como posso ajudar na sua evolução de carreira hoje?';
-
-  const [recruiterChat, setRecruiterChat] = useState<Array<{ role: 'recruiter' | 'candidate', text: string }>>([
-    {
-      role: 'recruiter',
-      text: initialRecruiterMsg
-    }
-  ]);
-
-  useEffect(() => {
-    setRecruiterChat(prev => {
-      if (prev.length <= 1) {
-        return [{ role: 'recruiter' as const, text: initialRecruiterMsg }];
-      }
-      return prev;
-    });
-  }, [initialRecruiterMsg]);
-
-  const [recruiterInput, setRecruiterInput] = useState('');
 
   const handleStartSim = async () => {
     if (!selectedAppId) return;
@@ -244,67 +213,22 @@ export function CoachDashboard({
 
   const handleSendResponse = async (e: FormEvent) => {
     e.preventDefault();
-    if (!simulation || !candidateResponse.trim() || isSending) return;
+    const textToSend = candidateResponse.trim();
+    if (!simulation || !textToSend || isSending) return;
 
+    setCandidateResponse('');
     setIsSending(true);
     try {
       await sendMessage({
         sim: simulation,
         role: 'candidate',
-        text: candidateResponse.trim()
+        text: textToSend
       });
-      setCandidateResponse('');
     } catch (err) {
       console.error(err);
     } finally {
       setIsSending(false);
     }
-  };
-
-  const handleSendRecruiterMessage = (e?: FormEvent, directText?: string) => {
-    if (e) e.preventDefault();
-    const userText = (directText || recruiterInput).trim();
-    if (!userText) return;
-
-    const newChat = [...recruiterChat, { role: 'candidate' as const, text: userText }];
-    setRecruiterChat(newChat);
-    setRecruiterInput('');
-    tracker.track('coach_message', 'coach', { query: userText });
-
-    // Responsive advisor feedback
-    setTimeout(() => {
-      let reply = '';
-      const textLower = userText.toLowerCase();
-      
-      // Verificar se a última mensagem foi a resposta padrão de direcionamento
-      const lastRecruiterMsg = recruiterChat[recruiterChat.length - 1];
-      const wasLastMsgDefault = lastRecruiterMsg && lastRecruiterMsg.role === 'recruiter' && lastRecruiterMsg.text.startsWith('Entendi perfeitamente sua colocação');
-
-      // Respostas dinâmicas baseadas em heurísticas inteligentes
-      if (textLower.includes('como') || textLower.includes('onde') || textLower.includes('fazer isso') || textLower.includes('fazer')) {
-        reply = `Você pode fazer isso de duas maneiras muito simples:\n\n1. **Cadastrar/Colar Vagas**: Vá até a aba **Encontrar Vagas** no menu lateral esquerdo. Lá você pode pesquisar oportunidades ou clicar em "Colar Vaga Manualmente" para analisar a compatibilidade do seu currículo com a vaga e adicioná-la à sua estratégia.\n2. **Ajustar Preferências e Metas**: Clique na aba **Ajustes** no menu lateral para atualizar suas pretensões salariais e preferências de trabalho.`;
-      } else if (textLower.includes('ajuda') || textLower.includes('como funciona') || textLower.includes('o que você faz') || textLower.includes('ajudar')) {
-        reply = `Como seu AI Recruiter Advisor, posso atuar em várias frentes para acelerar sua recolocação:\n\n1. **Simulação de Entrevistas**: Preparação com rodadas de perguntas STAR e feedback instantâneo.\n2. **Diagnóstico de Match**: Analisar a aderência técnica e comportamental do seu currículo frente a qualquer vaga.\n3. **Insights de Conversão**: Mapear gargalos e estimar sua taxa de sucesso nas etapas.\n4. **Negociação Salarial**: Direcionar pretensões baseadas na senioridade e modelo de trabalho.`;
-      } else if (textLower.includes('remoto') || textLower.includes(profileRole.toLowerCase()) || textLower.includes('vaga') || textLower.includes('salário') || textLower.includes('15k') || textLower.includes('+15k')) {
-        reply = `Excelente meta! Vagas de ${profileRole} remotas ou seniores na faixa de R$ 15k+ costumam exigir proficiência avançada em termos estratégicos específicos da área (tais como ${profileSkills}) e liderança de projetos complexos.\n\nCom base no seu perfil, sugiro mapear as principais vagas que se encaixam nesta meta e adicioná-las na aba **Estratégia** para diagnosticarmos se há gaps específicos de termos ou ferramentas.`;
-      } else if (textLower.includes('olá') || textLower.includes('oi') || textLower.includes('bom dia') || textLower.includes('boa tarde')) {
-        reply = `Olá, ${profileName}! Como posso te auxiliar em sua jornada profissional hoje? Quer conversar sobre vagas de interesse, simular uma entrevista ou analisar sua estratégia salarial?`;
-      } else if (wasLastMsgDefault) {
-        reply = `Compreendo seu interesse. Para que possamos aprofundar em análises estatísticas e feedbacks mais ricos, é fundamental termos dados reais na sua conta. Qual o próximo passo ou dúvida de carreira que você gostaria de explorar agora?`;
-      } else {
-        reply = `Entendi perfeitamente sua colocação. Na minha atuação como conselheiro de carreira, a melhor forma de atingirmos esse objetivo é vinculando suas ideias a vagas reais de mercado.\n\nSugiro colar a descrição de uma vaga na aba **Match de Vagas** ou cadastrar metas de salário em configurações para refinarmos nossa orientação.`;
-      }
-
-      // Adicionar observação contextual amigável se houver poucas ou nenhuma vaga cadastrada
-      const hasStrategyMention = reply.includes('aba Estratégia') || reply.includes('aba Ajustes') || reply.includes('aba Encontrar Vagas');
-      if ((!applications || applications.length === 0) && !hasStrategyMention) {
-        reply += `\n\n*(Nota: Você ainda não tem vagas na sua aba de Estratégia. Cadastre vagas por lá para desbloquear o monitoramento completo de conversão e negociação de salário!)*`;
-      } else if (applications && applications.length > 0 && applications.length < 5 && !reply.includes('candidatura') && !hasStrategyMention) {
-        reply += `\n\n*(Nota: Identificamos ${applications.length} vaga(s) cadastrada(s). Cadastre pelo menos 5 vagas para projetarmos suas taxas estatísticas de avanço e identificar gargalos!)*`;
-      }
-
-      setRecruiterChat(prev => [...prev, { role: 'recruiter' as const, text: reply }]);
-    }, 600);
   };
 
   const handleVerificarVagas = async () => {
@@ -322,82 +246,75 @@ export function CoachDashboard({
   };
 
   return (
-    <div className="space-y-8 animate-fade-in font-sans p-0">
+    <div className="space-y-6 animate-fade-in font-sans p-0">
       {/* Cabeçalho */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <h1 className="font-display font-bold text-3xl tracking-tight text-slate-100 dark:text-slate-100 light:text-slate-800">
-            Evolução Profissional & Recrutadora IA
+          <h1 className="text-3xl font-bold tracking-tight text-slate-900 dark:text-slate-100">
+            Simulador de Entrevista STAR
           </h1>
-          <p className="text-xs text-slate-400 leading-relaxed">
-            Prepare-se para processos seletivos ou consulte a Recrutadora Mariana para traçar sua estratégia.
+          <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
+            Prepare-se para seus processos seletivos treinando com entrevistas simuladas específicas para cada vaga.
           </p>
         </div>
         <button
           onClick={handleVerificarVagas}
           disabled={isCheckingVagas}
-          className="px-4 py-2.5 rounded-[14px] bg-slate-900 border border-slate-800 hover:border-slate-700 text-xs font-bold text-slate-200 flex items-center gap-1.5 transition-all disabled:opacity-50 cursor-pointer font-sans"
+          className="btn-secondary text-xs"
         >
-          {isCheckingVagas ? (
-            <Loader2 size={14} className="animate-spin text-brand-accent" />
-          ) : (
-            <RefreshCcw size={14} />
-          )}
-          {isCheckingVagas ? 'Verificando...' : 'Verificar Novas Vagas'}
+          <Search size={14} />
+          <span>Buscar Novas Vagas</span>
         </button>
       </div>
 
-      {/* Subtabs switcher */}
-      <div className="flex border-b border-slate-800 dark:border-slate-800 light:border-slate-200 gap-6">
-        <button
-          onClick={() => setActiveSubTab('simulator')}
-          className={`pb-3 font-semibold text-sm transition-all relative flex items-center gap-1.5 cursor-pointer font-sans ${
-            activeSubTab === 'simulator' ? 'text-brand-accent font-bold' : 'text-slate-400 hover:text-slate-200'
-          }`}
-        >
-          {activeSubTab === 'simulator' && <span className="absolute bottom-0 left-0 w-full h-[2px] bg-brand-accent" />}
-          <MessageSquare size={15} />
-          Simulador de Entrevista
-        </button>
-        <button
-          onClick={() => setActiveSubTab('recruiter')}
-          className={`pb-3 font-semibold text-sm transition-all relative flex items-center gap-1.5 cursor-pointer font-sans ${
-            activeSubTab === 'recruiter' ? 'text-brand-accent font-bold' : 'text-slate-400 hover:text-slate-200'
-          }`}
-        >
-          {activeSubTab === 'recruiter' && <span className="absolute bottom-0 left-0 w-full h-[2px] bg-brand-accent" />}
-          <UserCheck size={15} />
-          Recrutadora IA (Consultora)
-        </button>
-      </div>
-
-      {/* Premium Explanation Banner */}
-      <div className="p-4 rounded-2xl bg-gradient-to-r from-brand-900/10 via-slate-900/40 to-slate-900/10 border border-brand-500/10 text-xs flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <div className="space-y-1">
-          <div className="flex items-center gap-1.5 font-bold text-slate-200">
-            <Sparkles size={14} className="text-brand-accent animate-pulse" />
-            <span>Qual a diferença entre as ferramentas?</span>
+      {/* Top AI Guidance Banner */}
+      <div className="bg-white dark:bg-[#162032] border border-slate-200/90 dark:border-slate-800/90 rounded-2xl p-6 shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div className="flex items-start gap-3.5">
+          <div className="w-9 h-9 rounded-xl bg-blue-50 dark:bg-blue-500/10 text-[#4F8EF7] flex items-center justify-center shrink-0 mt-0.5">
+            <Sparkles size={18} strokeWidth={1.75} />
           </div>
-          <p className="text-slate-400 leading-relaxed max-w-4xl text-[11px]">
-            O <strong>Simulador de Entrevista STAR</strong> é estruturado para praticar respostas baseadas em uma vaga e empresa específicas. A <strong>Recrutadora IA (Mariana)</strong> é uma consultoria aberta onde você pode tirar dúvidas de carreira, revisar currículo ou negociar salário livremente.
-          </p>
+          <div>
+            <div className="flex items-center gap-2">
+              <span className="text-xs font-semibold text-[#4F8EF7] uppercase tracking-wider">Recomendação da IA</span>
+              <Badge variant="premium" size="sm">Recrutador IA</Badge>
+            </div>
+            <h2 className="text-base font-semibold text-slate-900 dark:text-slate-100 mt-1">
+              {simulation 
+                ? 'Simulação em andamento. Responda às perguntas comportamentais utilizando a técnica STAR.' 
+                : 'Selecione uma vaga no menu abaixo e inicie uma simulação realista de entrevista.'}
+            </h2>
+            <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+              O recrutador IA avalia clareza, objetividade e aderência técnica das suas respostas em tempo real.
+            </p>
+          </div>
         </div>
+        <button
+          onClick={() => {
+            if (activeApps.length > 0) {
+              handleStartSim();
+            } else {
+              setActiveTab?.('match');
+            }
+          }}
+          className="btn-primary text-xs shrink-0 self-start md:self-center"
+        >
+          <Sparkles size={14} />
+          <span>{simulation ? 'Continuar Simulação' : 'Iniciar Treino'}</span>
+        </button>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         <div className="lg:col-span-2 space-y-6">
-          {/* TAB 1: Simulator */}
-          {activeSubTab === 'simulator' && (
-            <CardGlass className="p-6 space-y-6 flex flex-col min-h-[480px] animate-slide-in">
-              <div>
-                <h3 className="font-display font-bold text-base text-slate-200 flex items-center gap-2 pb-3 border-b border-slate-905">
-                  <MessageSquare size={18} className="text-brand-accent" />
-                  Recrutadora Mariana — Simulação de Entrevista
-                </h3>
-                <p className="text-xs text-slate-500 mt-2 font-sans">
-                  Selecione uma candidatura em andamento para iniciar a simulação focada no método STAR.
-                </p>
-              </div>
+          <CardGlass className="p-6 space-y-6 flex flex-col min-h-[480px] animate-slide-in">
+            <div>
+              <h3 className="font-display font-bold text-base text-slate-200 flex items-center gap-2 pb-3 border-b border-slate-900">
+                <MessageSquare size={18} className="text-brand-accent" />
+                Simulação de Entrevista Interativa
+              </h3>
+              <p className="text-xs text-slate-400 mt-2 font-sans">
+                Selecione uma candidatura em andamento para iniciar a simulação focada no método STAR.
+              </p>
+            </div>
 
               {activeApps.length === 0 ? (
                 <div className="flex-1 py-16 flex flex-col items-center justify-center border border-dashed border-slate-800 rounded-[14px] text-xs text-slate-500 text-center space-y-2 font-sans">
@@ -845,7 +762,7 @@ export function CoachDashboard({
                       )}
                     </div>
                   ) : (
-                    <div className="flex-grow flex flex-col justify-center items-center text-center py-4 px-2 space-y-4 font-sans">
+                    <div className="w-full flex-grow flex flex-col justify-center items-center text-center py-4 px-2 space-y-4 font-sans">
                       <div className="w-12 h-12 rounded-full bg-brand-accent/10 border border-brand-accent/20 flex items-center justify-center text-brand-accent shrink-0">
                         <MessageSquare size={24} />
                       </div>
@@ -883,85 +800,11 @@ export function CoachDashboard({
                 </div>
               )}
             </CardGlass>
-          )}
-
-          {/* TAB 2: AI Recruiter Console */}
-          {activeSubTab === 'recruiter' && (
-            <CardGlass className="p-6 space-y-6 flex flex-col min-h-[480px] animate-slide-in">
-              <div>
-                <h3 className="font-display font-bold text-base text-slate-200 flex items-center gap-2 pb-3 border-b border-slate-900">
-                  <UserCheck size={18} className="text-brand-accent" />
-                  Recrutadora Mariana (Consultora)
-                </h3>
-                <p className="text-xs text-slate-400">
-                  Converse com a Recrutadora Mariana para extrair direcionamentos de carreira com base no seu histórico exclusivo.
-                </p>
-              </div>
-
-              {/* Chat Recruiter log */}
-              <div className="flex-1 flex flex-col gap-4 font-sans">
-                <div className="flex-grow max-h-[300px] overflow-y-auto space-y-3 p-3 rounded-[14px] bg-slate-900/30 border border-slate-900/60 text-xs flex flex-col">
-                  {recruiterChat.map((msg, i) => (
-                    <div
-                      key={i}
-                      className={`p-3 rounded-[14px] max-w-[85%] leading-relaxed ${
-                        msg.role === 'recruiter'
-                          ? 'bg-slate-900 border border-slate-850 text-slate-300 self-start mr-auto'
-                          : 'bg-brand-500/10 border border-brand-500/20 text-brand-400 self-end ml-auto'
-                      }`}
-                    >
-                      <strong className="block mb-0.5 text-[9px] uppercase font-bold text-slate-500 font-mono">
-                        {msg.role === 'recruiter' ? '🎤 Recrutadora Mariana' : 'Você'}
-                      </strong>
-                      <span className="whitespace-pre-line">{formatBoldText(msg.text)}</span>
-                    </div>
-                  ))}
-                </div>
-
-                {/* Suggestions Quick keys */}
-                <div className="flex flex-wrap gap-2 text-[10px]">
-                  <button 
-                    onClick={() => handleSendRecruiterMessage(undefined, `Quero vaga de ${profileRole} remoto pagando +15k`)}
-                    type="button"
-                    className="px-2.5 py-1.5 bg-slate-900 hover:bg-slate-800 text-slate-300 border border-slate-800 rounded-xl cursor-pointer font-sans"
-                  >
-                    🔍 Vagas de {profileRole} remoto &gt; 15k?
-                  </button>
-                  <button 
-                    onClick={() => {
-                      setRecruiterInput(`Diagnóstico de mercado e tendências para ${profileRole}`);
-                    }}
-                    type="button"
-                    className="px-2.5 py-1.5 bg-slate-900 hover:bg-slate-800 text-slate-300 border border-slate-800 rounded-xl cursor-pointer font-sans"
-                  >
-                    📊 Diagnóstico de {profileRole}
-                  </button>
-                </div>
-
-                <form onSubmit={handleSendRecruiterMessage} className="flex gap-2">
-                  <input
-                    type="text"
-                    placeholder="Digite sua dúvida de carreira (Ex: CS remoto, gaps técnicos...)"
-                    value={recruiterInput}
-                    onChange={e => setRecruiterInput(e.target.value)}
-                    className="flex-1 px-4 py-2.5 rounded-[14px] bg-slate-900/50 border border-slate-800 focus:border-brand-accent outline-none text-xs text-slate-200"
-                  />
-                  <button
-                    type="submit"
-                    disabled={!recruiterInput.trim()}
-                    className="px-4.5 rounded-[14px] bg-brand-500 hover:bg-brand-600 text-white font-bold text-xs flex items-center cursor-pointer"
-                  >
-                    <Send size={14} />
-                  </button>
-                </form>
-              </div>
-            </CardGlass>
-          )}
         </div>
 
         {/* Coluna 3: Gaps and demand */}
         <div className="space-y-6">
-          {activeSubTab === 'simulator' && activeApps.length > 0 && (
+          {activeApps.length > 0 && (
             <CardGlass className="p-6 space-y-4">
               <h3 className="font-display font-bold text-base text-slate-200 pb-2 border-b border-slate-900 flex items-center gap-1.5">
                 <Star size={16} className="text-brand-500 fill-brand-500" />

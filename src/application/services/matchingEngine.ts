@@ -7,50 +7,119 @@ import { isSupabaseConfigured, supabase } from '../../infrastructure/api/supabas
 // ─────────────────────────────────────────────────────────────────
 
 /**
- * Calcula anos de experiência a partir do histórico de experiências do perfil consolidado.
- * Evita contar períodos sobrepostos de cargos simultâneos.
+ * Parser robusto de datas de experiência.
+ * Suporta: ISO, "YYYY", "MM/YYYY", "YYYY-MM", "Jan 2015", "janeiro de 2015",
+ * "Present", "Atual", "Até hoje", timestamps numéricos.
+ */
+function parseExpDate(raw: string | undefined | null, fallbackToNow = false): number | null {
+  if (!raw) return fallbackToNow ? Date.now() : null;
+  const s = String(raw).trim();
+
+  // Palavras que significam "presente"
+  if (/^(present|atual|hoje|current|now|até hoje|até o momento|em andamento|atualmente)$/i.test(s)) {
+    return Date.now();
+  }
+
+  // ISO completo ou parcial — new Date() lida com isso
+  const iso = new Date(s).getTime();
+  if (!isNaN(iso) && iso > 0) return iso;
+
+  // Apenas ano: "2015"
+  const yearOnly = s.match(/^(\d{4})$/);
+  if (yearOnly) return new Date(parseInt(yearOnly[1]), 0, 1).getTime();
+
+  // MM/YYYY ou YYYY/MM
+  const mY = s.match(/^(\d{1,2})\/(\d{4})$/);
+  if (mY) return new Date(parseInt(mY[2]), parseInt(mY[1]) - 1, 1).getTime();
+
+  // YYYY-MM
+  const yM = s.match(/^(\d{4})-(\d{1,2})$/);
+  if (yM) return new Date(parseInt(yM[1]), parseInt(yM[2]) - 1, 1).getTime();
+
+  // "Jan 2015" | "Janeiro 2015" | "jan. 2015"
+  const monthNames: Record<string, number> = {
+    jan: 0, fev: 1, mar: 2, abr: 3, mai: 4, jun: 5,
+    jul: 6, ago: 7, set: 8, out: 9, nov: 10, dez: 11,
+    feb: 1, apr: 3, may: 4, aug: 7, sep: 8, oct: 9,
+    janeiro: 0, fevereiro: 1, março: 2, abril: 3, maio: 4, junho: 5,
+    julho: 6, agosto: 7, setembro: 8, outubro: 9, novembro: 10, dezembro: 11,
+    january: 0, february: 1, march: 2, june: 5, july: 6,
+    august: 7, september: 8, october: 9, november: 10, december: 11
+  };
+  const textDate = s.match(/^([a-záàâãéíóúüç]+)\.?\s+(\d{4})$/i);
+  if (textDate) {
+    const monthKey = textDate[1].toLowerCase().replace(/\.$/, '');
+    const year = parseInt(textDate[2]);
+    const month = monthNames[monthKey];
+    if (month !== undefined && !isNaN(year)) return new Date(year, month, 1).getTime();
+  }
+
+  // Apenas o ano dentro de uma string maior: "Desde 2010"
+  const yearInText = s.match(/(\d{4})/);
+  if (yearInText) {
+    const y = parseInt(yearInText[1]);
+    if (y >= 1970 && y <= 2035) return new Date(y, 0, 1).getTime();
+  }
+
+  return fallbackToNow ? Date.now() : null;
+}
+
+/**
+ * Calcula anos de experiência total com fallback robusto em 4 níveis:
+ * 1. Cálculo por datas de experiência (com parser robusto)
+ * 2. yearsOfExperience do currículo bruto
+ * 3. Inferência pelo cargo atual (Director/Head/VP → 12+, Sênior → 7+, etc.)
+ * 4. Fallback seguro: 3 anos (evita classificar erroneamente como Junior)
  */
 export function calcYearsFromExperiences(
-  experiences: CareerProfileNew['experience']
+  experiences: CareerProfileNew['experience'],
+  resumeYears?: number,
+  currentRole?: string
 ): number {
-  if (!experiences || experiences.length === 0) return 0;
+  // NÍVEL 1: calcular por datas de experiência com parser robusto
+  if (experiences && experiences.length > 0) {
+    const intervals: [number, number][] = [];
+    for (const exp of experiences) {
+      const start = parseExpDate(exp.startDate);
+      if (start === null) continue;
+      const end = (exp.isCurrent || !exp.endDate)
+        ? Date.now()
+        : (parseExpDate(exp.endDate) ?? Date.now());
+      if (end > start) intervals.push([start, end]);
+    }
 
-  // Coleta todos os intervalos [startMs, endMs] — ignora experiências sem data válida
-  const intervals: [number, number][] = [];
-  for (const exp of experiences) {
-    if (!exp.startDate) continue; // Sem data de início → não contabiliza
-    const start = new Date(exp.startDate).getTime();
-    if (isNaN(start)) continue; // Data inválida → não contabiliza
-    
-    let end = exp.isCurrent || !exp.endDate ? Date.now() : new Date(exp.endDate).getTime();
-    if (isNaN(end)) end = Date.now();
-    
-    intervals.push([Math.min(start, end), Math.max(start, end)]);
-  }
-
-  if (intervals.length === 0) return 0;
-
-  // Ordena e mescla intervalos para evitar dupla contagem
-  intervals.sort((a, b) => a[0] - b[0]);
-  let merged = 0;
-  let curStart = intervals[0][0];
-  let curEnd = intervals[0][1];
-
-  for (let i = 1; i < intervals.length; i++) {
-    const [s, e] = intervals[i];
-    if (s <= curEnd) {
-      curEnd = Math.max(curEnd, e);
-    } else {
+    if (intervals.length > 0) {
+      intervals.sort((a, b) => a[0] - b[0]);
+      let merged = 0;
+      let curStart = intervals[0][0];
+      let curEnd = intervals[0][1];
+      for (let i = 1; i < intervals.length; i++) {
+        const [s, e] = intervals[i];
+        if (s <= curEnd) { curEnd = Math.max(curEnd, e); }
+        else { merged += curEnd - curStart; curStart = s; curEnd = e; }
+      }
       merged += curEnd - curStart;
-      curStart = s;
-      curEnd = e;
+      const years = Math.floor(merged / (1000 * 60 * 60 * 24 * 365.25));
+      if (years > 0) return years;
     }
   }
-  merged += curEnd - curStart;
 
-  const years = Math.round(merged / (1000 * 60 * 60 * 24 * 365));
-  return isNaN(years) ? 0 : Math.max(0, years);
+  // NÍVEL 2: usar yearsOfExperience do currículo parseado
+  if (resumeYears && resumeYears > 0) return resumeYears;
+
+  // NÍVEL 3: inferência pelo cargo atual
+  if (currentRole) {
+    const role = currentRole.toLowerCase();
+    if (/\b(vp|vice.president|diretor|director|head|cxo|ceo|coo|cfo|cto|founder|partner|sócio)\b/.test(role)) return 12;
+    if (/\b(senior|sênior|sr\.?|specialist|especialista|lead|líder|principal)\b/.test(role)) return 7;
+    if (/\b(pleno|mid.level|mid level|analyst|analista|coordinator|coordenador)\b/.test(role)) return 4;
+    if (/\b(junior|júnior|jr\.?|trainee|estagiário|intern|assistente)\b/.test(role)) return 1;
+  }
+
+  // NÍVEL 4: fallback seguro — assume no mínimo pleno para evitar Junior injusto
+  return 3;
 }
+
 
 /**
  * Extrai uma lista plana de nomes de skill a partir do perfil consolidado.
@@ -124,8 +193,8 @@ const SYNONYM_MAP: Record<string, string[]> = {
   'saas': ['software as a service', 'b2b saas', 'enterprise saas', 'plataforma saas', 'produto saas'],
   'nps': ['net promoter score', 'satisfação do cliente', 'pesquisa de satisfação'],
   'churn': ['churn rate', 'taxa de cancelamento', 'retenção', 'retention'],
-  'crm': ['salesforce', 'hubspot', 'pipedrive', 'zoho crm', 'dynamics'],
-  'gainsight': ['totango', 'planhat', 'churnzero', 'cs platform'],
+  'crm': ['salesforce', 'hubspot', 'pipedrive', 'zoho crm', 'dynamics', 'gestão de relacionamento'],
+  'gainsight': ['totango', 'planhat', 'churnzero', 'plataforma de cs'],
   // Liderança & Gestão
   'liderança': [
     'gestão de times', 'people management', 'team lead', 'team leader',
@@ -368,10 +437,13 @@ export class MatchingEngine {
 
     const experiences = consolidatedProfile?.experience ?? null;
 
-    // Anos de experiência: calcula a partir do histórico quando disponível
-    const yearsOfExperience = consolidatedProfile && consolidatedProfile.experience.length > 0
-      ? calcYearsFromExperiences(consolidatedProfile.experience)
-      : (resume.yearsOfExperience || 0);
+    // Anos de experiência: calcula com fallback robusto em 4 níveis
+    const currentRole = consolidatedProfile?.experience?.[0]?.role ?? resume.structured_data?.experience?.[0]?.role;
+    const yearsOfExperience = calcYearsFromExperiences(
+      consolidatedProfile?.experience ?? [],
+      resume.yearsOfExperience,
+      currentRole
+    );
 
     // 1. Match Técnico
     let matchedCount = 0;
@@ -673,9 +745,11 @@ ${candidateName}`,
 
     const experiences = consolidatedProfile?.experience ?? null;
 
-    const yearsOfExperience = consolidatedProfile && consolidatedProfile.experience.length > 0
-      ? calcYearsFromExperiences(consolidatedProfile.experience)
-      : (resume.yearsOfExperience || 0);
+    const yearsOfExperience = calcYearsFromExperiences(
+      consolidatedProfile?.experience ?? [],
+      resume.yearsOfExperience,
+      consolidatedProfile?.experience?.[0]?.role ?? resume.structured_data?.experience?.[0]?.role
+    );
 
     let matchedCount = 0;
     const missingSkills: string[] = [];

@@ -181,11 +181,11 @@ serve(async (req) => {
 
       promptText = `Você é uma inteligência artificial especialista em recrutamento e seleção de tecnologia. Seu papel é analisar o conteúdo textual de uma vaga de emprego e extrair todas as informações de forma estruturada.
 
-Extraia as seguintes informações:
+Extraia as seguintes informações (baseando-se ESTRITAMENTE no texto e sem inventar ferramentas não citadas):
 - title (Título do cargo)
 - company_name (Nome da empresa. Se não encontrar, retorne "Inserida Manualmente" ou "Não Informada")
 - description (Descrição geral da vaga, responsabilidades e atribuições)
-- requirements (Array de strings contendo stacks técnicas, ferramentas e requisitos essenciais)
+- requirements (Array de strings contendo estritamente as stacks técnicas, ferramentas e requisitos essenciais citados no texto da vaga)
 - benefits (Array de strings contendo benefícios do plano de contratação)
 - location (Localização da vaga. Ex: "São Paulo, SP" ou "Remoto")
 - work_mode (String literal de preferência: "remote", "hybrid" ou "onsite")
@@ -193,7 +193,7 @@ Extraia as seguintes informações:
 - salary (Descrição textual simples da remuneração)
 - salary_numeric (Valor numérico estimado mensal, caso aplicável. Ex: R$ 15000 -> 15000)
 
-Retorne OBRIGATORIAMENTE um objeto JSON correspondente a esta estrutura de forma limpa, sem tags de markdown adicionais ou formatações como \`\`\`json.
+Retorne OBRIGATORIAMENTE um objeto JSON correspondente a esta estrutura de forma limpa, sem tags de markdown adicionais ou formatações como ```json.
 
 Conteúdo da vaga extraído:
 ${text}`;

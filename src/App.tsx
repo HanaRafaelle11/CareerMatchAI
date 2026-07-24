@@ -14,6 +14,8 @@ import { LandingPage } from './presentation/pages/LandingPage';
 import { Menu, Loader2 } from 'lucide-react';
 import { VocentroLogo } from './presentation/components/ds/MyCareerIcons';
 import { isSupabaseConfigured, supabase } from './infrastructure/api/supabaseClient';
+import { BetaFeedbackWidget } from './presentation/components/BetaFeedbackWidget';
+import { JourneyPipelineView } from './presentation/components/JourneyPipelineView';
 import type { Job } from './domain/models/types';
 
 // ── Code Splitting: Lazy-load das páginas pesadas ──
@@ -60,17 +62,25 @@ function App() {
       const savedTheme = preferences.theme || localStorage.getItem('theme') || 'dark';
       if (savedTheme === 'light') {
         document.documentElement.classList.add('light');
+        document.documentElement.classList.remove('dark');
         document.body.classList.add('light');
+        document.body.classList.remove('dark');
       } else if (savedTheme === 'dark') {
+        document.documentElement.classList.add('dark');
         document.documentElement.classList.remove('light');
+        document.body.classList.add('dark');
         document.body.classList.remove('light');
       } else {
         const systemPrefersLight = window.matchMedia('(prefers-color-scheme: light)').matches;
         if (systemPrefersLight) {
           document.documentElement.classList.add('light');
+          document.documentElement.classList.remove('dark');
           document.body.classList.add('light');
+          document.body.classList.remove('dark');
         } else {
+          document.documentElement.classList.add('dark');
           document.documentElement.classList.remove('light');
+          document.body.classList.add('dark');
           document.body.classList.remove('light');
         }
       }
@@ -555,6 +565,13 @@ function App() {
           </Suspense>
         )}
 
+        {activeTab === 'jornada' && (
+          <JourneyPipelineView
+            applications={applications}
+            jobs={jobs}
+          />
+        )}
+
         {activeTab === 'admin' && isAdmin && (
           <Suspense fallback={<LazyFallback />}>
             <AdminDashboard userId={user?.id} />
@@ -578,6 +595,9 @@ function App() {
           </Suspense>
         )}
       </main>
+
+      {/* Beta Feedback Widget — Floating Global */}
+      {user && <BetaFeedbackWidget userId={user.id} feature="career_intelligence" />}
     </div>
   );
 }

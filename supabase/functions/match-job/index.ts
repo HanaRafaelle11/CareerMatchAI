@@ -320,6 +320,7 @@ class JobMatchingEngine {
       
       INSTRUÇÕES IMPORTANTES:
       - Realize uma análise semântica robusta de adequação técnica, comportamental e de nível de experiência.
+      - NÃO INVENTE softwares, ferramentas, plataformas ou certificações (ex: Gainsight, HubSpot, Salesforce) que NÃO foram explicitamente citados no texto da vaga. A lista "missing_keywords", "weaknesses" e "skills_to_learn" DEVE se basear ESTRITAMENTE em requisitos expressos no texto da vaga que estão ausentes no perfil do candidato.
       - NÃO atribua scores genéricos de média (como 46% ou 50%) para perfis incompatíveis. Se a área profissional do candidato (ex: Farmácia/Estética) não tiver nenhuma afinidade com a vaga (ex: Software Engineer, Gari, Motorista), o "match_score" DEVE ser muito baixo, entre 0% e 15%.
       - A recomendação verbal ("recommendation"), os pontos fortes ("strengths") e os pontos fracos ("weaknesses") devem estar em total coerência matemática com o "match_score" atribuído. Se a nota de match for baixa (menor que 50%), a lista de pontos fracos/atenção ("weaknesses") DEVE conter mais itens e detalhes do que a lista de pontos fortes. Se a nota for alta (maior que 70%), os pontos fortes ("strengths") devem ser amplamente dominantes.
       - Retorne estritamente um objeto JSON válido correspondente ao JSON Schema especificado abaixo.

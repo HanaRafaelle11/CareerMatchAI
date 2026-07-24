@@ -4,14 +4,14 @@ export class RemotiveConnector extends BaseJobConnector {
   readonly platformName = "Remotive";
 
   async searchJobs(keyword: string, location: string, pageNum: number): Promise<RawJob[]> {
-    if (pageNum > 1) return []; // Remotive has single list search
-
-    const url = `https://remotive.com/api/remote-jobs?search=${encodeURIComponent(keyword)}&limit=15`;
+    // Remotive returns all matching jobs; paginate locally
+    const pageSize = 15;
+    const url = `https://remotive.com/api/remote-jobs?search=${encodeURIComponent(keyword)}&limit=1000`;
     const res = await fetch(url);
     if (!res.ok) return [];
 
     const data = await res.json();
-    const results = (data.jobs || []).map((j: any) => ({
+    const allResults = (data.jobs || []).map((j: any) => ({
       title: j.title || "",
       description: j.description || "",
       companyName: j.company_name || "Remotive Hirer",
@@ -21,6 +21,7 @@ export class RemotiveConnector extends BaseJobConnector {
       publishedAt: j.publication_date
     }));
 
-    return results;
+    const start = (pageNum - 1) * pageSize;
+    return allResults.slice(start, start + pageSize);
   }
 }

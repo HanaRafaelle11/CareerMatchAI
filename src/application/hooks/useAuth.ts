@@ -204,6 +204,7 @@ export function useAuth() {
           });
         if (profileError) console.error(profileError);
         tracker.track('user_registered', 'auth');
+        tracker.track('signup_completed', 'auth');
       }
     } else {
       // Simulação local
@@ -215,6 +216,7 @@ export function useAuth() {
       setUser(mockUserObj);
       setProfile(localDB.getProfile());
       tracker.track('user_registered', 'auth');
+      tracker.track('signup_completed', 'auth');
       setLoading(false);
     }
   };

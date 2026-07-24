@@ -25,6 +25,13 @@ const KEYS = {
   WEEKLY_PLANNERS: 'vocentro_weekly_planners',
   WEEKLY_GOALS: 'vocentro_weekly_goals',
   CAREER_GOALS: 'vocentro_career_goals',
+  CAREER_SNAPSHOTS: 'vocentro_career_snapshots',
+  JOB_EXPLANATIONS: 'vocentro_job_explanations',
+  JOB_FEEDBACK: 'vocentro_job_feedback',
+  RESUME_ADAPTATIONS: 'vocentro_resume_adaptations',
+  JOB_APPLICATIONS_V2: 'vocentro_job_applications_v2',
+  FEATURE_FLAGS: 'vocentro_feature_flags',
+  BETA_FEEDBACK: 'vocentro_beta_feedback',
 };
 
 class LocalDatabase {
@@ -955,6 +962,113 @@ class LocalDatabase {
         return [];
     }
   }
+
+  // ── Métodos para a Camada de Inteligência de Carreira ──
+  getJobExplanation(userId: string, jobId: string): any | null {
+    try {
+      const raw = localStorage.getItem(KEYS.JOB_EXPLANATIONS);
+      if (!raw) return null;
+      const list: any[] = JSON.parse(raw);
+      return list.find(item => item.userId === userId && item.jobId === jobId) || null;
+    } catch (_) {
+      return null;
+    }
+  }
+
+  saveJobExplanation(explanation: any): void {
+    try {
+      const raw = localStorage.getItem(KEYS.JOB_EXPLANATIONS) || '[]';
+      const list: any[] = JSON.parse(raw);
+      const filtered = list.filter(item => !(item.userId === explanation.userId && item.jobId === explanation.jobId));
+      filtered.push(explanation);
+      localStorage.setItem(KEYS.JOB_EXPLANATIONS, JSON.stringify(filtered));
+    } catch (_) {}
+  }
+
+  saveJobFeedback(feedback: any): void {
+    try {
+      const raw = localStorage.getItem(KEYS.JOB_FEEDBACK) || '[]';
+      const list: any[] = JSON.parse(raw);
+      list.push(feedback);
+      localStorage.setItem(KEYS.JOB_FEEDBACK, JSON.stringify(list));
+    } catch (_) {}
+  }
+
+  getResumeAdaptation(userId: string, jobId: string): any | null {
+    try {
+      const raw = localStorage.getItem(KEYS.RESUME_ADAPTATIONS);
+      if (!raw) return null;
+      const list: any[] = JSON.parse(raw);
+      return list.find(item => item.userId === userId && item.jobId === jobId) || null;
+    } catch (_) {
+      return null;
+    }
+  }
+
+  saveResumeAdaptation(adaptation: any): void {
+    try {
+      const raw = localStorage.getItem(KEYS.RESUME_ADAPTATIONS) || '[]';
+      const list: any[] = JSON.parse(raw);
+      const filtered = list.filter(item => !(item.userId === adaptation.userId && item.jobId === adaptation.jobId));
+      filtered.push(adaptation);
+      localStorage.setItem(KEYS.RESUME_ADAPTATIONS, JSON.stringify(filtered));
+    } catch (_) {}
+  }
+
+  updateResumeAdaptationStatus(id: string, status: 'PENDING' | 'APPLIED' | 'DISMISSED'): void {
+    try {
+      const raw = localStorage.getItem(KEYS.RESUME_ADAPTATIONS) || '[]';
+      const list: any[] = JSON.parse(raw);
+      const target = list.find(item => item.id === id);
+      if (target) {
+        target.status = status;
+        localStorage.setItem(KEYS.RESUME_ADAPTATIONS, JSON.stringify(list));
+      }
+    } catch (_) {}
+  }
+
+  getJobApplicationRecord(userId: string, jobId: string): any | null {
+    try {
+      const raw = localStorage.getItem(KEYS.JOB_APPLICATIONS_V2);
+      if (!raw) return null;
+      const list: any[] = JSON.parse(raw);
+      return list.find(item => item.userId === userId && item.jobId === jobId) || null;
+    } catch (_) {
+      return null;
+    }
+  }
+
+  saveJobApplicationRecord(record: any): void {
+    try {
+      const raw = localStorage.getItem(KEYS.JOB_APPLICATIONS_V2) || '[]';
+      const list: any[] = JSON.parse(raw);
+      const filtered = list.filter(item => !(item.userId === record.userId && item.jobId === record.jobId));
+      filtered.push(record);
+      localStorage.setItem(KEYS.JOB_APPLICATIONS_V2, JSON.stringify(filtered));
+    } catch (_) {}
+  }
+
+  getFeatureFlag(key: string): boolean {
+    try {
+      const raw = localStorage.getItem(KEYS.FEATURE_FLAGS);
+      if (!raw) return true; // Habilitado por padrão no ambiente local
+      const flags = JSON.parse(raw);
+      return flags[key] ?? true;
+    } catch (_) {
+      return true;
+    }
+  }
+
+  saveBetaFeedback(feedback: any): void {
+    try {
+      const raw = localStorage.getItem(KEYS.BETA_FEEDBACK) || '[]';
+      const list: any[] = JSON.parse(raw);
+      list.push(feedback);
+      localStorage.setItem(KEYS.BETA_FEEDBACK, JSON.stringify(list));
+    } catch (_) {}
+  }
 }
 
 export const localDB = new LocalDatabase();
+
+

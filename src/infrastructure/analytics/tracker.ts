@@ -74,6 +74,10 @@ class AnalyticsTracker {
     return { device, browser, os };
   }
 
+  public getSessionId(): string {
+    return this.sessionId;
+  }
+
   /**
    * Tracks an analytical event and pushes it to Supabase (if configured) or local DB fallback
    */
@@ -125,6 +129,33 @@ class AnalyticsTracker {
     } catch (err) {
       console.error('Error in AnalyticsTracker:', err);
     }
+  }
+
+  /**
+   * Dispara o evento de momento "Aha!" quando o usuário completa o funil básico de valor
+   */
+  public trackAhaMoment(metadata: {
+    user_id?: string;
+    career_score?: number;
+    first_job_match_score?: number;
+    time_since_signup?: number;
+  }) {
+    this.track('aha_moment_reached', 'Growth', {
+      session_id: this.sessionId,
+      ...metadata
+    });
+  }
+
+  /**
+   * Dispara o evento de ação de carreira qualificada (Saved / Applied / Adaptation com fit >= 75)
+   */
+  public trackQualifiedAction(metadata: {
+    user_id?: string;
+    job_id: string;
+    action: 'saved' | 'applied' | 'resume_adaptation';
+    career_fit_score: number;
+  }) {
+    this.track('qualified_career_action', 'Growth', metadata);
   }
 }
 

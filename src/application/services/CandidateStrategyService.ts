@@ -54,8 +54,8 @@ export class CandidateStrategyService {
     profile: CareerProfile | null,
     careerProfileNew?: CareerProfileNew | null
   ): StrategyRecommendation {
-    // 1. Executa o casamento de compatibilidade síncrono da Engine
-    const matchAnalysis = MatchingEngine.calculateMatchSync(resume, job);
+    // 1. Executa o casamento de compatibilidade síncrono da Engine com o perfil consolidado
+    const matchAnalysis = MatchingEngine.calculateMatchSync(resume, job, careerProfileNew);
     
     // 2. Pontua os fatores individuais do CPI
     const scoreOverall = matchAnalysis.scoreOverall;

@@ -1,11 +1,12 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { jobDiscoveryService } from '../services/jobDiscoveryService';
+import { JobSearchService } from '../services/JobSearchService';
 import { isSupabaseConfigured, supabase } from '../../infrastructure/api/supabaseClient';
 import { localDB } from '../../infrastructure/storage/localDatabase';
 import type { Job } from '../../domain/models/types';
 import type { JobSearchFilters } from '../../domain/adapters/BaseJobConnector';
 import type { CareerProfileNew } from './useMyProfileAi';
 import { AppError } from '../errors/AppError';
+import { calculateJobRelevanceScore } from '../../domain/services/JobRelevanceService';
 
 export function useJobDiscovery(
   userId: string | undefined, 
@@ -22,6 +23,7 @@ export function useJobDiscovery(
       filters.location, 
       filters.remoteOnly, 
       filters.workModes,
+      filters.seniority,
       filters.page,
       careerProfileNew?.id
     ],
@@ -72,10 +74,13 @@ export function useJobDiscovery(
         keywordsToSearch.push('React');
       }
 
-      const searchResult = await jobDiscoveryService.discoverJobs({
+      const searchResult = await JobSearchService.searchJobs({
+        keyword: keywordsToSearch[0],
         keywords: keywordsToSearch,
         location: finalLocation,
         remoteOnly: finalRemoteOnly,
+        workModes: filters.workModes,
+        seniority: filters.seniority,
         page: filters.page || 1
       });
 
@@ -91,8 +96,25 @@ export function useJobDiscovery(
 
         // 1. Filtrar resultados incompatíveis
         let filteredResults = searchResult.results.filter(job => {
-          // A. Filtragem por Senioridade
-          if (targetSeniority) {
+          // A. Filtragem por Senioridade explícita dos filtros
+          if (filters.seniority && filters.seniority !== 'all') {
+            const jobSeniority = (job.seniority || '').toLowerCase();
+            const filterSeniority = filters.seniority.toLowerCase();
+            const jobTitleLower = job.title.toLowerCase();
+
+            if (filterSeniority === 'junior') {
+              if (jobSeniority === 'senior' || jobSeniority === 'lead' || jobSeniority === 'director' ||
+                  jobTitleLower.includes('senior') || jobTitleLower.includes('sênior') || jobTitleLower.includes('lead') || jobTitleLower.includes('diretor')) {
+                return false;
+              }
+            } else if (filterSeniority === 'senior') {
+              if (jobSeniority === 'junior' || jobTitleLower.includes('junior') || jobTitleLower.includes('júnior') || jobTitleLower.includes('estágio')) {
+                return false;
+              }
+            } else if (jobSeniority && jobSeniority !== filterSeniority && !jobTitleLower.includes(filterSeniority)) {
+              return false;
+            }
+          } else if (targetSeniority) {
             const jobTitleLower = job.title.toLowerCase();
             
             // Usuário Júnior -> descarta vagas explicitamente Sênior/Lead/Diretor
@@ -185,13 +207,37 @@ export function useJobDiscovery(
             }
           });
 
-          return { job, score };
+          return { job, rawScore: score };
         });
 
-        // Ordenar do maior score para o menor
-        scoredResults.sort((a, b) => b.score - a.score);
+        // Ordenar do maior Relevance Score (Composite 70/20/10) para o menor
+        scoredResults.sort((a, b) => {
+          const fitA = Math.min(95, Math.max(50, 60 + a.rawScore));
+          const fitB = Math.min(95, Math.max(50, 60 + b.rawScore));
+          const dateA = (a.job as any).posted_at || (a.job as any).postedAt;
+          const dateB = (b.job as any).posted_at || (b.job as any).postedAt;
+          const relA = calculateJobRelevanceScore(fitA, (a.job as any).scores?.overall || 85, dateA).relevanceScore;
+          const relB = calculateJobRelevanceScore(fitB, (b.job as any).scores?.overall || 85, dateB).relevanceScore;
+          return relB - relA;
+        });
+
         searchResult.results = scoredResults.map(item => item.job);
       }
+
+      console.log('[STAGE 4: USE_JOB_DISCOVERY OUTPUT]', JSON.stringify({
+        totalCount: searchResult.results.length,
+        sampleFirst5: searchResult.results.slice(0, 5).map(j => ({
+          title: j.title,
+          company: j.companyName,
+          provider: j.sourcePlatform,
+          sourcePlatform: j.sourcePlatform,
+          sources: j.sources,
+          sourceUrl: j.sourceUrl,
+          redirect_url: (j as any).redirect_url,
+          applyUrl: (j as any).applyUrl,
+          url: (j as any).url
+        }))
+      }, null, 2));
 
       return searchResult;
     },
@@ -221,6 +267,7 @@ export function useJobDiscovery(
             location: discoveredJob.location,
             work_mode: discoveredJob.workMode,
             source_url: discoveredJob.sourceUrl,
+            source_platform: discoveredJob.sourcePlatform || 'JobAggregator',
             salary: discoveredJob.salaryMin && discoveredJob.salaryMax 
               ? `R$ ${discoveredJob.salaryMin} - R$ ${discoveredJob.salaryMax}`
               : discoveredJob.salaryMin 
@@ -234,19 +281,20 @@ export function useJobDiscovery(
         if (error) throw error;
         return {
           id: data.id,
-          companyId: 'adzuna',
+          companyId: discoveredJob.companyId || (data.company_name ? data.company_name.toLowerCase().replace(/\s+/g, '_') : 'aggregator'),
           companyName: data.company_name || 'Empresa Confidencial',
           title: data.title,
           description: data.description,
           requirements: data.requirements || [],
           location: data.location || 'Brasil',
           workMode: data.work_mode || 'remote',
-          seniority: 'pleno',
+          seniority: discoveredJob.seniority || 'pleno',
           salaryMin: data.salary_numeric || undefined,
           salaryMax: undefined,
           currency: 'BRL',
-          sourceUrl: data.source_url || '',
-          sourcePlatform: 'Adzuna',
+          sourceUrl: data.source_url || discoveredJob.sourceUrl || '',
+          sourcePlatform: data.source_platform || discoveredJob.sourcePlatform || 'JobAggregator',
+          sources: discoveredJob.sources,
           isActive: true
         };
       } else {
@@ -266,6 +314,7 @@ export function useJobDiscovery(
           currency: discoveredJob.currency,
           sourceUrl: discoveredJob.sourceUrl,
           sourcePlatform: discoveredJob.sourcePlatform,
+          sources: discoveredJob.sources,
           isActive: true,
           createdAt: new Date().toISOString(),
           updatedAt: new Date().toISOString()

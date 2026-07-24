@@ -11,7 +11,8 @@ export class AdzunaConnector extends BaseJobConnector {
       return [];
     }
 
-    const url = `https://api.adzuna.com/v1/api/jobs/br/search/${pageNum}?app_id=${appId}&app_key=${appKey}&results_per_page=15&what=${encodeURIComponent(keyword)}&where=${encodeURIComponent(location)}`;
+    const resultsPerPage = 100;
+    const url = `https://api.adzuna.com/v1/api/jobs/br/search/${pageNum}?app_id=${appId}&app_key=${appKey}&results_per_page=${resultsPerPage}&what=${encodeURIComponent(keyword)}&where=${encodeURIComponent(location)}`;
     const res = await fetch(url);
     if (!res.ok) return [];
 

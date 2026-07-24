@@ -8,7 +8,7 @@ import { ResumeOptimizationService } from '../../application/services/ResumeOpti
 import { isSupabaseConfigured } from '../../infrastructure/api/supabaseClient';
 import { ProcessingState, ErrorState } from '../components/ErrorVisuals';
 import { AppError } from '../../application/errors/AppError';
-import { ProgressRing, SkillChip } from '../components/ds';
+import { ProgressRing, SkillChip, Badge } from '../components/ds';
 import { printElementHtml } from '../../application/utils/pdfExport';
 
 interface ProfileProps {
@@ -182,7 +182,7 @@ export function Profile({
   onSelectResumeVersion,
   activeProfileTab,
   setActiveProfileTab,
-  setActiveTab
+  setActiveTab: _setActiveTab
 }: ProfileProps) {
   const activeInsights = careerInsights || getLocalFallbackInsights(careerProfileNew);
   const [dragActive, setDragActive] = useState(false);
@@ -481,54 +481,56 @@ export function Profile({
   return (
     <div className="space-y-6 animate-fade-in font-sans p-0">
       {/* Título com Completude */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-4 rounded-2xl bg-surface-container-high/20 border border-outline-variant/10">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="font-display font-bold text-xl tracking-tight text-on-surface">
+          <h1 className="text-3xl font-bold tracking-tight text-slate-900 dark:text-slate-100">
             Perfil Profissional
           </h1>
-          <p className="text-on-surface-variant text-xs mt-0.5">
+          <p className="text-slate-500 dark:text-slate-400 text-sm mt-1">
             Mapeamento de competências, histórico profissional e otimização para ATS.
           </p>
         </div>
         <div className="flex items-center gap-3 shrink-0">
           <ProgressRing value={completeness} size={36} strokeWidth={3} />
           <div className="text-left">
-            <span className="text-xs font-bold text-on-surface block leading-tight">Perfil {completeness}% Completo</span>
+            <span className="text-xs font-bold text-slate-900 dark:text-slate-100 block leading-tight">Perfil {completeness}% Completo</span>
             {completeness === 100 ? (
-              <span className="text-[10px] text-emerald-400 block mt-0.5">Perfil totalmente otimizado! 🔥</span>
+              <span className="text-[10px] text-[#22C7A8] block mt-0.5 font-medium">Perfil totalmente otimizado! 🔥</span>
             ) : (
-              <div className="mt-1.5 text-[10px] text-on-surface-variant space-y-1">
-                <span className="font-semibold text-slate-400 block mb-0.5">Como chegar em 100%:</span>
-                <div className="flex flex-col gap-1 font-sans">
-                  <span className="flex items-center gap-1.5">
-                    <span className={`w-3 h-3 rounded-full flex items-center justify-center text-[8px] font-bold ${hasResume ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30' : 'bg-slate-900/60 text-slate-500 border border-slate-800'}`}>✓</span>
-                    <span className={hasResume ? 'line-through text-slate-500' : 'text-slate-350'}>Fazer upload do currículo (+30%)</span>
-                  </span>
-                  <span className="flex items-center gap-1.5">
-                    <span className={`w-3 h-3 rounded-full flex items-center justify-center text-[8px] font-bold ${hasLinkedin ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30' : 'bg-slate-900/60 text-slate-500 border border-slate-800'}`}>✓</span>
-                    <span className={hasLinkedin ? 'line-through text-slate-500' : 'text-slate-350'}>
-                      Adicionar LinkedIn em{' '}
-                      <button 
-                        onClick={() => setActiveTab && setActiveTab('settings')}
-                        className="underline text-brand-500 hover:text-brand-400 font-semibold bg-transparent border-none p-0 cursor-pointer outline-none text-[10px]"
-                      >
-                        Ajustes
-                      </button> (+20%)
-                    </span>
-                  </span>
-                  <span className="flex items-center gap-1.5">
-                    <span className={`w-3 h-3 rounded-full flex items-center justify-center text-[8px] font-bold ${hasSkills ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30' : 'bg-slate-900/60 text-slate-500 border border-slate-800'}`}>✓</span>
-                    <span className={hasSkills ? 'line-through text-slate-500' : 'text-slate-350'}>Mapear competências técnicas/soft (+20%)</span>
-                  </span>
-                  <span className="flex items-center gap-1.5">
-                    <span className={`w-3 h-3 rounded-full flex items-center justify-center text-[8px] font-bold ${hasExperiences ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30' : 'bg-slate-900/60 text-slate-500 border border-slate-800'}`}>✓</span>
-                    <span className={hasExperiences ? 'line-through text-slate-500' : 'text-slate-350'}>Adicionar experiências de trabalho (+20%)</span>
-                  </span>
-                </div>
-              </div>
+              <span className="text-[10px] text-slate-400 block mt-0.5">Em progresso</span>
             )}
           </div>
         </div>
+      </div>
+
+      {/* Top AI Guidance Banner */}
+      <div className="bg-white dark:bg-[#162032] border border-slate-200/90 dark:border-slate-800/90 rounded-2xl p-6 shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div className="flex items-start gap-3.5">
+          <div className="w-9 h-9 rounded-xl bg-blue-50 dark:bg-blue-500/10 text-[#4F8EF7] flex items-center justify-center shrink-0 mt-0.5">
+            <Sparkles size={18} strokeWidth={1.75} />
+          </div>
+          <div>
+            <div className="flex items-center gap-2">
+              <span className="text-xs font-semibold text-[#4F8EF7] uppercase tracking-wider">Recomendação da IA</span>
+              <Badge variant="premium" size="sm">Otimizador de Perfil</Badge>
+            </div>
+            <h2 className="text-base font-semibold text-slate-900 dark:text-slate-100 mt-1">
+              {hasResume
+                ? 'Seu currículo foi processado pela IA. Mantenha suas habilidades e preferências de vaga atualizadas.'
+                : 'Envie seu currículo em PDF para que a IA processe suas palavras-chave e gere seu perfil consolidado.'}
+            </h2>
+            <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+              O modelo Gemini extrai palavras-chave compatíveis com ATS para aumentar sua visibilidade nos recrutadores.
+            </p>
+          </div>
+        </div>
+        <button
+          onClick={() => fileInputRef.current?.click()}
+          className="btn-primary text-xs shrink-0 self-start md:self-center"
+        >
+          <Upload size={14} />
+          <span>{hasResume ? 'Atualizar Currículo' : 'Enviar Currículo'}</span>
+        </button>
       </div>
 
       {pipelineSteps && pipelineSteps.length > 0 ? (

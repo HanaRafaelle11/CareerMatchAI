@@ -176,53 +176,22 @@ body.light {
   color: #1f2937;
 }
 
-/* Dark Mode Utilities matching #1C2128 / #242B36 / #2C3440 */
+/* Dark Mode Surfaces matching #1C2128 / #242B36 / #2C3440 */
 .dark .bg-slate-950,
 .dark .bg-slate-900 {
-  background-color: #1C2128 !important;
+  background-color: #1C2128;
 }
 
 .dark .bg-slate-850,
 .dark .bg-slate-800 {
-  background-color: #242B36 !important;
+  background-color: #242B36;
 }
 
 .dark .border-slate-800,
 .dark .border-slate-900,
 .dark .border-slate-850,
 .dark .border-slate-700 {
-  border-color: rgba(255, 255, 255, 0.08) !important;
-}
-
-/* Light Mode Overrides (Scoped to protect dark panels & modals) */
-.light :not(.dark-card, .dark-card *, [class*="from-[#"], [class*="from-[#"] *).text-slate-100,
-.light :not(.dark-card, .dark-card *, [class*="from-[#"], [class*="from-[#"] *).text-slate-200,
-.light :not(button, button *, .badge, .badge *, .btn, .btn *, [role="button"], [role="button"] *, .dark-card, .dark-card *, [class*="from-[#"], [class*="from-[#"] *).text-white {
-  color: #1f2937;
-}
-
-.light :not(.dark-card, .dark-card *, [class*="from-[#"], [class*="from-[#"] *).text-slate-300,
-.light :not(.dark-card, .dark-card *, [class*="from-[#"], [class*="from-[#"] *).text-slate-400 {
-  color: #475569;
-}
-
-.light :not(.dark-card, .dark-card *, [class*="from-[#"], [class*="from-[#"] *).text-slate-500 {
-  color: #64748b;
-}
-
-.light :not(.dark-card, .dark-card *, [class*="from-[#"], [class*="from-[#"] *).border-slate-800,
-.light :not(.dark-card, .dark-card *, [class*="from-[#"], [class*="from-[#"] *).border-slate-900,
-.light :not(.dark-card, .dark-card *, [class*="from-[#"], [class*="from-[#"] *).border-slate-850,
-.light :not(.dark-card, .dark-card *, [class*="from-[#"], [class*="from-[#"] *).border-slate-700 {
-  border-color: #e2e8f0;
-}
-
-.light :not(.dark-card, .dark-card *, [class*="bg-[#"], [class*="bg-[#"] *, [class*="from-[#"], [class*="from-[#"] *).bg-slate-900 {
-  background-color: #ffffff;
-}
-
-.light :not(.dark-card, .dark-card *, [class*="bg-[#"], [class*="bg-[#"] *, [class*="from-[#"], [class*="from-[#"] *).bg-slate-950 {
-  background-color: #fafbfc;
+  border-color: rgba(255, 255, 255, 0.08);
 }
 
 /* Linear & Notion Soft Card Style */

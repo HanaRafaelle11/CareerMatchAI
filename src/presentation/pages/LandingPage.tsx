@@ -214,7 +214,7 @@ export function LandingPage({ onNavigateToAuth }: LandingPageProps) {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.7, delay: 0.1 }}
-              className="text-4xl sm:text-5xl lg:text-6.5xl font-extrabold tracking-tight text-slate-100 dark:text-white light:text-slate-900 leading-tight font-display"
+              className="text-4xl sm:text-5xl lg:text-6xl font-extrabold tracking-tight text-slate-100 dark:text-white light:text-slate-900 leading-tight font-display w-full block break-normal whitespace-normal"
             >
               Pare de enviar<br />
               currículos no escuro.
@@ -224,7 +224,7 @@ export function LandingPage({ onNavigateToAuth }: LandingPageProps) {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.7, delay: 0.2 }}
-              className="text-slate-300 dark:text-slate-300 light:text-slate-655 text-sm sm:text-base leading-relaxed max-w-xl font-sans font-medium"
+              className="text-slate-300 dark:text-slate-300 light:text-slate-700 text-sm sm:text-base leading-relaxed max-w-xl font-sans font-medium w-full block break-normal whitespace-normal"
             >
               Descubra quais vagas realmente combinam com seu perfil, adapte seu currículo com IA e treine entrevistas antes de se candidatar. Isso aumenta muito a percepção de seu valor.
             </motion.p>
@@ -244,7 +244,7 @@ export function LandingPage({ onNavigateToAuth }: LandingPageProps) {
               </button>
               <a 
                 href="#demonstracao"
-                className="px-6 py-3.5 rounded-[14px] border border-slate-880 dark:border-slate-800 light:border-slate-200 bg-slate-900/30 dark:bg-slate-900/30 light:bg-white text-slate-300 dark:text-slate-300 light:text-slate-700 hover:text-white light:hover:text-slate-900 font-semibold text-sm transition-all flex items-center justify-center gap-2 hover:scale-[1.01] cursor-pointer shadow-sm"
+                className="px-6 py-3.5 rounded-[14px] border border-slate-800 dark:border-slate-800 light:border-slate-200 bg-slate-900/30 dark:bg-slate-900/30 light:bg-white text-slate-300 dark:text-slate-300 light:text-slate-700 hover:text-white light:hover:text-slate-900 font-semibold text-sm transition-all flex items-center justify-center gap-2 hover:scale-[1.01] cursor-pointer shadow-sm"
               >
                 Ver demonstração
               </a>

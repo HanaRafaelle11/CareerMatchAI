@@ -2475,10 +2475,10 @@ export function JobMatchHub({
 
                 {/* MODAL DE MOTIVO DE REJEIÇÃO */}
                 {rejectReasonModal && selectedJob && createPortal(
-                  <div className="fixed inset-0 bg-black/80 backdrop-blur-md z-[10000] flex items-center justify-center p-4 min-h-screen w-screen overflow-y-auto">
-                    <div className="bg-[#121927] border border-slate-800 rounded-2xl max-w-lg min-w-[320px] w-full p-6 space-y-4 shadow-2xl relative my-auto">
-                      <h3 className="font-bold text-sm text-slate-100">Por que esta vaga não interessa?</h3>
-                      <p className="text-xs text-slate-400">Seu feedback ajuda a treinar o algoritmo de recomendação do VoCentro.</p>
+                  <div className="fixed inset-0 bg-black/80 backdrop-blur-md z-[10000] flex items-center justify-center p-4 min-h-screen w-screen overflow-y-auto font-sans">
+                    <div className="dark-card bg-[#121927] text-white border border-slate-800 rounded-2xl max-w-lg w-full shrink-0 p-6 space-y-4 shadow-2xl relative my-auto font-sans">
+                      <h3 className="font-bold text-sm text-white">Por que esta vaga não interessa?</h3>
+                      <p className="text-xs text-slate-300">Seu feedback ajuda a treinar o algoritmo de recomendação do VoCentro.</p>
                       
                       <div className="space-y-2 text-xs">
                         {[
@@ -2495,7 +2495,7 @@ export function JobMatchHub({
                               updateApplicationStatus({ job: selectedJob, status: 'REJECTED' });
                               setRejectReasonModal(false);
                             }}
-                            className="w-full text-left p-3 rounded-xl bg-slate-900 border border-slate-800 hover:border-blue-500/50 hover:bg-slate-800 text-slate-200 font-medium transition cursor-pointer"
+                            className="w-full text-left p-3 rounded-xl bg-slate-900/90 border border-slate-800 hover:border-blue-500/50 hover:bg-slate-800 text-slate-100 font-medium transition cursor-pointer"
                           >
                             {item.label}
                           </button>
@@ -2516,12 +2516,12 @@ export function JobMatchHub({
 
                 {/* MODAL DE FEEDBACK DE REJEIÇÃO DO MATCH IA (Item 2) */}
                 {matchRejectionModal && selectedJob && createPortal(
-                  <div className="fixed inset-0 bg-black/80 backdrop-blur-md z-[10000] flex items-center justify-center p-4 min-h-screen w-screen overflow-y-auto">
-                    <div className="bg-[#121927] border border-slate-800 rounded-2xl max-w-md min-w-[320px] w-full p-6 space-y-4 shadow-2xl relative my-auto">
+                  <div className="fixed inset-0 bg-black/80 backdrop-blur-md z-[10000] flex items-center justify-center p-4 min-h-screen w-screen overflow-y-auto font-sans">
+                    <div className="dark-card bg-[#121927] text-white border border-slate-800 rounded-2xl max-w-md w-full shrink-0 p-6 space-y-4 shadow-2xl relative my-auto font-sans">
                       <div className="flex items-center justify-between pb-3 border-b border-slate-800">
                         <div>
                           <h3 className="text-sm font-bold text-white">Ajude a melhorar sua recomendação</h3>
-                          <p className="text-[11px] text-slate-400">Por que essa vaga não combina com você?</p>
+                          <p className="text-[11px] text-slate-300">Por que essa vaga não combina com você?</p>
                         </div>
                         <button
                           onClick={() => setMatchRejectionModal(false)}
@@ -2554,10 +2554,10 @@ export function JobMatchHub({
                               setMatchRejectionModal(false);
                               showToast('✓ Motivo registrado! O algoritmo usará essa informação.', 'success');
                             }}
-                            className="w-full text-left p-3 rounded-xl bg-slate-900/60 hover:bg-slate-800/80 border border-slate-800 text-xs text-slate-200 hover:text-white transition flex items-center justify-between cursor-pointer"
+                            className="w-full text-left p-3 rounded-xl bg-slate-900/90 hover:bg-slate-800 border border-slate-800 text-xs text-slate-100 hover:text-white transition flex items-center justify-between cursor-pointer"
                           >
                             <span>{opt.label}</span>
-                            <ChevronRight size={14} className="text-slate-500" />
+                            <ChevronRight size={14} className="text-slate-400" />
                           </button>
                         ))}
                       </div>

@@ -576,43 +576,43 @@ export function Settings({
                   </div>
                 </div>
 
-                <div className="space-y-1">
+                <div className="space-y-1 w-full min-w-0 flex flex-col">
                   <label className="text-xs text-slate-600 dark:text-slate-400 font-semibold block">Nome Completo</label>
                   <input
                     type="text"
                     value={fullName}
                     onChange={e => setFullName(e.target.value)}
-                    className="w-full px-4 py-2.5 rounded-xl bg-white dark:bg-slate-900/50 border border-slate-300 dark:border-slate-700 focus:border-blue-500 dark:focus:border-blue-500 outline-none text-xs text-slate-900 dark:text-slate-200 placeholder-slate-400"
+                    className="w-full min-w-0 block px-4 py-2.5 rounded-xl bg-white dark:bg-slate-900/50 border border-slate-300 dark:border-slate-700 focus:border-blue-500 dark:focus:border-blue-500 outline-none text-xs text-slate-900 dark:text-slate-200 placeholder-slate-400 font-sans"
                     placeholder="Seu Nome Completo"
                   />
                 </div>
-                <div className="space-y-1">
+                <div className="space-y-1 w-full min-w-0 flex flex-col">
                   <label className="text-xs text-slate-600 dark:text-slate-400 font-semibold block">E-mail Cadastrado</label>
                   <input
                     type="email"
                     value={email || 'email@exemplo.com'}
                     disabled
-                    className="w-full px-4 py-2.5 rounded-xl bg-slate-900/30 border border-slate-850/40 text-slate-500 text-xs cursor-not-allowed"
+                    className="w-full min-w-0 block px-4 py-2.5 rounded-xl bg-slate-100 dark:bg-slate-900/30 border border-slate-200 dark:border-slate-850/40 text-slate-500 text-xs cursor-not-allowed font-sans"
                   />
                 </div>
-                <div className="space-y-1">
+                <div className="space-y-1 w-full min-w-0 flex flex-col">
                   <label className="text-xs text-slate-600 dark:text-slate-400 font-semibold block">Cargo/Headline Atual</label>
                   <input
                     type="text"
                     value={headline}
                     onChange={e => setHeadline(e.target.value)}
-                    className="w-full px-4 py-2.5 rounded-xl bg-white dark:bg-slate-900/50 border border-slate-300 dark:border-slate-700 focus:border-blue-500 dark:focus:border-blue-500 outline-none text-xs text-slate-900 dark:text-slate-200 placeholder-slate-400"
+                    className="w-full min-w-0 block px-4 py-2.5 rounded-xl bg-white dark:bg-slate-900/50 border border-slate-300 dark:border-slate-700 focus:border-blue-500 dark:focus:border-blue-500 outline-none text-xs text-slate-900 dark:text-slate-200 placeholder-slate-400 font-sans"
                     placeholder="Ex: Farmacêutica Esteta, Senior Frontend Developer"
                   />
                 </div>
 
-                <div className="space-y-1">
+                <div className="space-y-1 w-full min-w-0 flex flex-col">
                   <label className="text-xs text-slate-600 dark:text-slate-400 font-semibold block">LinkedIn URL</label>
                   <input
                     type="url"
                     value={linkedin}
                     onChange={e => setLinkedin(e.target.value)}
-                    className="w-full px-4 py-2.5 rounded-xl bg-white dark:bg-slate-900/50 border border-slate-300 dark:border-slate-700 focus:border-blue-500 dark:focus:border-blue-500 outline-none text-xs text-slate-900 dark:text-slate-200 placeholder-slate-400"
+                    className="w-full min-w-0 block px-4 py-2.5 rounded-xl bg-white dark:bg-slate-900/50 border border-slate-300 dark:border-slate-700 focus:border-blue-500 dark:focus:border-blue-500 outline-none text-xs text-slate-900 dark:text-slate-200 placeholder-slate-400 font-sans"
                     placeholder="https://linkedin.com/in/seu-perfil"
                   />
                 </div>

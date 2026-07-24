@@ -49,7 +49,7 @@ export function BetaFeedbackWidget({ userId, feature = 'career_intelligence' }: 
           <span>Feedback Beta</span>
         </button>
       ) : (
-        <div className="bg-[#121927] border border-slate-700 rounded-2xl p-4 w-80 shadow-2xl space-y-3 animate-scale-up text-xs font-sans">
+        <div className="dark-card bg-[#121927] text-white border border-slate-700 rounded-2xl p-4 w-80 max-w-[calc(100vw-2rem)] shrink-0 shadow-2xl space-y-3 animate-scale-up text-xs font-sans">
           <div className="flex items-center justify-between pb-2 border-b border-slate-800">
             <span className="font-bold text-white text-xs">Feedback do Beta</span>
             <button

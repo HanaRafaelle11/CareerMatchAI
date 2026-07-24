@@ -649,7 +649,7 @@ export function LandingPage({ onNavigateToAuth }: LandingPageProps) {
                   </div>
                   <div className="flex items-center gap-1.5">
                     <span className="w-1.5 h-1.5 rounded-full bg-brand-accent" />
-                    <span className="text-lg font-black text-slate-800 dark:text-slate-800 light:text-slate-200 font-mono tracking-tighter select-none">
+                    <span className="text-lg font-black text-slate-400 dark:text-slate-400 light:text-slate-600 font-mono tracking-tighter select-none">
                       {item.step}
                     </span>
                   </div>
@@ -657,7 +657,7 @@ export function LandingPage({ onNavigateToAuth }: LandingPageProps) {
                 
                 <div className="space-y-2">
                   <h3 className="text-xs font-bold text-slate-200 dark:text-slate-200 light:text-slate-900 uppercase tracking-wider">{item.title}</h3>
-                  <p className="text-[11px] text-slate-450 dark:text-slate-400 light:text-slate-655 leading-relaxed font-sans font-medium">{item.desc}</p>
+                  <p className="text-[11px] text-slate-450 dark:text-slate-400 light:text-slate-600 leading-relaxed font-sans font-medium">{item.desc}</p>
                 </div>
               </div>
 
@@ -893,7 +893,7 @@ export function LandingPage({ onNavigateToAuth }: LandingPageProps) {
           
           <div className="space-y-2">
             <h3 className="text-sm font-bold text-slate-100 dark:text-white light:text-slate-900 uppercase tracking-wider">Privacidade absoluta do candidato</h3>
-            <p className="text-slate-400 dark:text-slate-400 light:text-slate-655 text-xs leading-relaxed max-w-xl mx-auto font-normal">
+            <p className="text-slate-400 dark:text-slate-400 light:text-slate-600 text-xs leading-relaxed max-w-xl mx-auto font-normal">
               Seus dados de currículo, feedbacks da Recrutadora IA e vagas mapeadas pertencem estritamente a você. Não compartilhamos nenhuma informação com recrutadores externos sem sua aprovação explícita. Todo processamento de dados atende às regulamentações da LGPD.
             </p>
           </div>
@@ -1029,7 +1029,7 @@ export function LandingPage({ onNavigateToAuth }: LandingPageProps) {
                       exit={{ height: 0, opacity: 0 }}
                       transition={{ duration: 0.25, ease: 'easeInOut' }}
                     >
-                      <div className="px-5 pb-5 pt-1 text-xs text-slate-450 dark:text-slate-400 light:text-slate-655 leading-relaxed border-t border-slate-950/30 dark:border-slate-950/30 light:border-slate-100 font-sans font-normal">
+                      <div className="px-5 pb-5 pt-1 text-xs text-slate-450 dark:text-slate-400 light:text-slate-600 leading-relaxed border-t border-slate-950/30 dark:border-slate-950/30 light:border-slate-100 font-sans font-normal">
                         {faq.a}
                       </div>
                     </motion.div>
@@ -1068,13 +1068,13 @@ export function LandingPage({ onNavigateToAuth }: LandingPageProps) {
         <div className="max-w-6xl mx-auto grid grid-cols-1 sm:grid-cols-2 md:grid-cols-5 gap-10">
           <div className="md:col-span-2 space-y-4">
             <VocentroLogo className="h-10 text-white dark:text-white light:text-slate-900" showText={true} />
-            <p className="text-[11px] text-slate-500 dark:text-slate-500 light:text-slate-655 leading-relaxed max-w-sm font-sans font-normal">
+            <p className="text-[11px] text-slate-500 dark:text-slate-500 light:text-slate-600 leading-relaxed max-w-sm font-sans font-normal">
               A Vocentro é a central de evolução profissional que coloca você no centro das melhores vagas do mercado de tecnologia e negócios através de match semântico e mentoria baseada em inteligência artificial.
             </p>
           </div>
           <div>
             <h4 className="text-[10px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-400 light:text-slate-800 mb-4 font-mono">Produto</h4>
-            <ul className="space-y-2 text-[10px] text-slate-500 dark:text-slate-500 light:text-slate-655 font-semibold font-sans leading-relaxed">
+            <ul className="space-y-2 text-[10px] text-slate-500 dark:text-slate-500 light:text-slate-600 font-semibold font-sans leading-relaxed">
               <li><a href="#como-funciona" className="hover:text-slate-200 dark:hover:text-slate-200 light:hover:text-slate-900 transition-colors">A Jornada</a></li>
               <li><a href="#demonstracao" className="hover:text-slate-200 dark:hover:text-slate-200 light:hover:text-slate-900 transition-colors">Veja em Ação</a></li>
               <li><a href="#comparativo" className="hover:text-slate-200 dark:hover:text-slate-200 light:hover:text-slate-900 transition-colors">Antes vs Depois</a></li>
@@ -1083,7 +1083,7 @@ export function LandingPage({ onNavigateToAuth }: LandingPageProps) {
           </div>
           <div>
             <h4 className="text-[10px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-400 light:text-slate-800 mb-4 font-mono">Segurança</h4>
-            <ul className="space-y-2 text-[10px] text-slate-500 dark:text-slate-500 light:text-slate-655 font-semibold font-sans leading-relaxed">
+            <ul className="space-y-2 text-[10px] text-slate-500 dark:text-slate-500 light:text-slate-600 font-semibold font-sans leading-relaxed">
               <li><a href="/terms.html" target="_blank" rel="noopener noreferrer" className="hover:text-slate-200 dark:hover:text-slate-200 light:hover:text-slate-900 transition-colors">Termos de Uso</a></li>
               <li><a href="/privacy.html" target="_blank" rel="noopener noreferrer" className="hover:text-slate-200 dark:hover:text-slate-200 light:hover:text-slate-900 transition-colors">Privacidade</a></li>
               <li><span className="text-slate-500/80 cursor-default">Termos de Cookies</span></li>
@@ -1091,25 +1091,25 @@ export function LandingPage({ onNavigateToAuth }: LandingPageProps) {
           </div>
           <div>
             <h4 className="text-[10px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-400 light:text-slate-800 mb-4 font-mono">Fale Conosco</h4>
-            <a href="mailto:suporte@vocentro.com" className="text-[10px] text-slate-500 dark:text-slate-500 light:text-slate-655 font-semibold font-sans leading-relaxed hover:text-slate-200 transition-colors flex items-center gap-1.5">
+            <a href="mailto:suporte@vocentro.com" className="text-[10px] text-slate-500 dark:text-slate-500 light:text-slate-600 font-semibold font-sans leading-relaxed hover:text-slate-200 transition-colors flex items-center gap-1.5">
               <Mail size={12} className="text-brand-accent" />
               suporte@vocentro.com
             </a>
             <div className="flex gap-4 mt-6">
               {/* GitHub */}
-              <a href="#" aria-label="Github" className="text-slate-500 dark:text-slate-500 light:text-slate-655 hover:text-brand-accent transition-colors">
+              <a href="#" aria-label="Github" className="text-slate-500 dark:text-slate-500 light:text-slate-600 hover:text-brand-accent transition-colors">
                 <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
                   <path fillRule="evenodd" clipRule="evenodd" d="M12 2C6.477 2 2 6.477 2 12c0 4.42 2.87 8.17 6.84 9.5.5.08.66-.23.66-.5v-1.69c-2.77.6-3.36-1.34-3.36-1.34-.46-1.16-1.11-1.47-1.11-1.47-.9-.62.07-.6.07-.6 1 .07 1.53 1.03 1.53 1.03.9 1.52 2.34 1.07 2.91.83.09-.65.35-1.09.63-1.34-2.22-.25-4.55-1.11-4.55-4.92 0-1.11.38-2 1.03-2.71-.1-.25-.45-1.29.1-2.64 0 0 .84-.27 2.75 1.02.79-.22 1.65-.33 2.5-.33.85 0 1.71.11 2.5.33 1.91-1.29 2.75-1.02 2.75-1.02.55 1.35.2 2.39.1 2.64.65.71 1.03 1.6 1.03 2.71 0 3.82-2.34 4.66-4.57 4.91.36.31.69.92.69 1.85V21c0 .27.16.59.67.5C19.14 20.16 22 16.42 22 12A10 10 0 0012 2z"/>
                 </svg>
               </a>
               {/* LinkedIn */}
-              <a href="#" aria-label="LinkedIn" className="text-slate-500 dark:text-slate-500 light:text-slate-655 hover:text-brand-accent transition-colors">
+              <a href="#" aria-label="LinkedIn" className="text-slate-500 dark:text-slate-500 light:text-slate-600 hover:text-brand-accent transition-colors">
                 <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
                   <path d="M19 0h-14c-2.761 0-5 2.239-5 5v14c0 2.761 2.239 5 5 5h14c2.762 0 5-2.239 5-5v-14c0-2.761-2.238-5-5-5zm-11 19h-3v-11h3v11zm-1.5-12.268c-.966 0-1.75-.79-1.75-1.764s.784-1.764 1.75-1.764 1.75.79 1.75 1.764-.783 1.764-1.75 1.764zm13.5 12.268h-3v-5.604c0-3.368-4-3.113-4 0v5.604h-3v-11h3v1.765c1.396-2.586 7-2.777 7 2.476v6.759z"/>
                 </svg>
               </a>
               {/* Twitter / X */}
-              <a href="#" aria-label="Twitter/X" className="text-slate-500 dark:text-slate-500 light:text-slate-655 hover:text-brand-accent transition-colors">
+              <a href="#" aria-label="Twitter/X" className="text-slate-500 dark:text-slate-500 light:text-slate-600 hover:text-brand-accent transition-colors">
                 <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
                   <path d="M24 4.557c-.883.392-1.832.656-2.828.775 1.017-.609 1.798-1.574 2.165-2.724-.951.564-2.005.974-3.127 1.195-.897-.957-2.178-1.555-3.594-1.555-3.179 0-5.515 2.966-4.797 6.045-4.091-.205-7.719-2.165-10.148-5.144-1.29 2.213-.669 5.108 1.523 6.574-.806-.026-1.566-.247-2.229-.616-.054 2.281 1.581 4.415 3.949 4.89-.693.188-1.452.232-2.224.084.626 1.956 2.444 3.379 4.6 3.419-2.07 1.623-4.678 2.348-7.29 2.04 2.179 1.397 4.768 2.212 7.548 2.212 9.142 0 14.307-7.721 13.995-14.646.962-.695 1.797-1.562 2.457-2.549z"/>
                 </svg>

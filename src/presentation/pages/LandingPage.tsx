@@ -196,10 +196,10 @@ export function LandingPage({ onNavigateToAuth }: LandingPageProps) {
       </header>
 
       {/* Hero Section */}
-      <section className="relative min-h-[90vh] pt-28 pb-12 flex items-center px-6 md:px-12 z-10 max-w-7xl mx-auto">
+      <section className="relative min-h-[90vh] pt-28 pb-12 flex items-center px-6 md:px-12 z-10 w-full max-w-7xl mx-auto">
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 items-center w-full">
           {/* Left Hero Copy */}
-          <div className="lg:col-span-6 space-y-6 text-left">
+          <div className="lg:col-span-6 space-y-6 text-left w-full min-w-0 flex flex-col items-start">
             <motion.div 
               initial={{ opacity: 0, y: 15 }}
               animate={{ opacity: 1, y: 0 }}

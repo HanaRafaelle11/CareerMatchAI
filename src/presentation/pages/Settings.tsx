@@ -664,14 +664,14 @@ export function Settings({
           )}
 
           {activeSubTab === 'resumes' && (
-            <CardGlass className="p-6 space-y-6">
-              <h3 className="text-base font-bold text-slate-900 dark:text-slate-100 pb-3 border-b border-slate-200 dark:border-slate-800 flex items-center gap-2">
+            <CardGlass className="p-6 space-y-6 w-full min-w-0 flex flex-col items-start font-sans">
+              <h3 className="text-base font-bold text-slate-900 dark:text-slate-100 pb-3 border-b border-slate-200 dark:border-slate-800 flex items-center gap-2 w-full">
                 <FileText size={16} className="text-brand-500" />
                 Histórico de Currículos Cadastrados
               </h3>
 
               {resumes && resumes.length > 0 ? (
-                <div className="overflow-x-auto">
+                <div className="overflow-x-auto w-full">
                   <table className="w-full text-left text-xs border-collapse">
                     <thead>
                       <tr className="border-b border-slate-900 text-slate-500 font-bold">
@@ -723,7 +723,7 @@ export function Settings({
                   </table>
                 </div>
               ) : (
-                <div className="text-center py-8 text-slate-500 text-xs">
+                <div className="text-center py-8 text-slate-500 text-xs w-full">
                   Nenhum currículo cadastrado. Faça upload do seu arquivo na aba Resume.
                 </div>
               )}
@@ -731,36 +731,36 @@ export function Settings({
           )}
 
           {activeSubTab === 'preferences' && (
-            <CardGlass className="p-6 space-y-6">
-              <h3 className="text-base font-bold text-slate-900 dark:text-slate-100 pb-3 border-b border-slate-200 dark:border-slate-800 flex items-center gap-2">
+            <CardGlass className="p-6 space-y-6 w-full min-w-0 flex flex-col items-start font-sans">
+              <h3 className="text-base font-bold text-slate-900 dark:text-slate-100 pb-3 border-b border-slate-200 dark:border-slate-800 flex items-center gap-2 w-full">
                 <SettingsIcon size={16} className="text-brand-500" />
                 Preferências de Busca de Vagas
               </h3>
 
-              <form onSubmit={handleSavePreferences} className="space-y-4 max-w-lg">
-                <div className="space-y-1">
+              <form onSubmit={handleSavePreferences} className="space-y-4 w-full max-w-xl flex flex-col items-start font-sans">
+                <div className="space-y-1 w-full min-w-0 flex flex-col">
                   <label className="text-xs text-slate-600 dark:text-slate-400 font-semibold block">Cargos Desejados (separados por vírgula)</label>
                   <input
                     type="text"
                     value={roles}
                     onChange={e => setRoles(e.target.value)}
-                    className="w-full px-4 py-2.5 rounded-xl bg-white dark:bg-slate-900/50 border border-slate-300 dark:border-slate-700 focus:border-blue-500 dark:focus:border-blue-500 outline-none text-xs text-slate-900 dark:text-slate-200 placeholder-slate-400"
+                    className="w-full min-w-0 block px-4 py-2.5 rounded-xl bg-white dark:bg-slate-900/50 border border-slate-300 dark:border-slate-700 focus:border-blue-500 dark:focus:border-blue-500 outline-none text-xs text-slate-900 dark:text-slate-200 placeholder-slate-400"
                     placeholder="Ex: Farmacêutica Esteta, Farmacêutica Responsável"
                   />
                 </div>
 
-                <div className="space-y-1">
+                <div className="space-y-1 w-full min-w-0 flex flex-col">
                   <label className="text-xs text-slate-600 dark:text-slate-400 font-semibold block">Localidades Desejadas</label>
                   <input
                     type="text"
                     value={locations}
                     onChange={e => setLocations(e.target.value)}
-                    className="w-full px-4 py-2.5 rounded-xl bg-white dark:bg-slate-900/50 border border-slate-300 dark:border-slate-700 focus:border-blue-500 dark:focus:border-blue-500 outline-none text-xs text-slate-900 dark:text-slate-200 placeholder-slate-400"
+                    className="w-full min-w-0 block px-4 py-2.5 rounded-xl bg-white dark:bg-slate-900/50 border border-slate-300 dark:border-slate-700 focus:border-blue-500 dark:focus:border-blue-500 outline-none text-xs text-slate-900 dark:text-slate-200 placeholder-slate-400"
                     placeholder="Ex: São Paulo, Rio de Janeiro, Remoto"
                   />
                 </div>
 
-                <div className="space-y-2">
+                <div className="space-y-2 w-full min-w-0 flex flex-col">
                   <label className="text-xs text-slate-600 dark:text-slate-400 font-semibold block">Modelo de Trabalho</label>
                   <div className="flex gap-4">
                     {['remote', 'hybrid', 'onsite'].map((mode) => (
@@ -783,7 +783,7 @@ export function Settings({
                   </div>
                 </div>
 
-                <div className="space-y-2 pt-2">
+                <div className="space-y-2 pt-2 w-full min-w-0 flex flex-col">
                   <div className="flex justify-between text-xs font-semibold">
                     <span className="text-slate-400">Pretensão Salarial Mínima</span>
                     <span className="text-brand-400">R$ {salaryMin.toLocaleString('pt-BR')} / mês</span>
@@ -813,14 +813,14 @@ export function Settings({
           )}
 
           {activeSubTab === 'notifications' && (
-            <CardGlass className="p-6 space-y-6">
-              <h3 className="text-base font-bold text-slate-900 dark:text-slate-100 pb-3 border-b border-slate-200 dark:border-slate-800 flex items-center gap-2">
+            <CardGlass className="p-6 space-y-6 w-full min-w-0 flex flex-col items-start font-sans">
+              <h3 className="text-base font-bold text-slate-900 dark:text-slate-100 pb-3 border-b border-slate-200 dark:border-slate-800 flex items-center gap-2 w-full">
                 <Bell size={16} className="text-brand-500" />
                 Notificações e Alertas
               </h3>
 
-              <div className="space-y-4 max-w-lg">
-                <div className="flex items-start gap-3 p-3 rounded-xl bg-slate-900/30 border border-slate-850/50">
+              <div className="space-y-4 w-full max-w-xl flex flex-col items-start font-sans">
+                <div className="flex items-start gap-3 p-3 rounded-xl bg-slate-900/30 border border-slate-850/50 w-full">
                   <input
                     type="checkbox"
                     id="email-alerts"

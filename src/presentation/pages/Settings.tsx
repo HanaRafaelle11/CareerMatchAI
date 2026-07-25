@@ -39,6 +39,9 @@ export function Settings({
   preferences,
   updatePreferences
 }: SettingsProps) {
+  console.log("SETTINGS DIAGNOSTIC RUNNING");
+  (window as any).__SETTINGS_DIAGNOSTIC_MOUNTED__ = true;
+
   const queryClient = useQueryClient();
   const [activeSubTab, setActiveSubTab] = useState<SettingsTab>('account');
   const [fullName, setFullName] = useState(profile?.fullName || '');
@@ -98,7 +101,8 @@ export function Settings({
 
   // Temporarily instrument Settings DOM elements for diagnostic audit
   useEffect(() => {
-    const timer = setTimeout(() => {
+    const runMeasure = () => {
+      console.log("SETTINGS DIAGNOSTIC RUNNING");
       const mainEl = document.querySelector('main');
       const settingsContainerEl = document.querySelector('main .flex.flex-col') || document.querySelector('main div');
       const cardGlassEl = document.querySelector('form')?.closest('div') || document.querySelector('main .rounded-2xl');
@@ -146,7 +150,10 @@ export function Settings({
       console.log('=== DIAGNÓSTICO ESTRUTURAL DOM SETTINGS ===');
       console.table(results);
       (window as any).__SETTINGS_DOM_DIAGNOSTIC__ = results;
-    }, 1000);
+    };
+
+    runMeasure();
+    const timer = setTimeout(runMeasure, 500);
     return () => clearTimeout(timer);
   }, [activeSubTab]);
 

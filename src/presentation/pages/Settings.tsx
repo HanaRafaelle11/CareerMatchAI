@@ -531,12 +531,12 @@ export function Settings({
         {/* Painel Central Reativo */}
         <div className="flex-1 min-w-0 w-full">
           {activeSubTab === 'account' && (
-            <CardGlass className="p-6 space-y-6 w-full min-w-0 flex flex-col items-start font-sans">
+            <CardGlass className="p-6 space-y-6 w-full min-w-0 flex flex-col font-sans">
               <h3 className="text-base font-bold text-slate-900 dark:text-slate-100 pb-3 border-b border-slate-200 dark:border-slate-800 flex items-center gap-2 w-full">
                 <User size={16} className="text-blue-500" />
                 Informações da Minha Conta
               </h3>
-              <form onSubmit={handleSaveAccount} className="space-y-5 w-full max-w-xl flex flex-col items-start font-sans">
+              <form onSubmit={handleSaveAccount} className="space-y-5 w-full max-w-xl flex flex-col font-sans">
                 <div className="flex items-center gap-4 pb-4 border-b border-slate-900/40">
                   {avatarUrl ? (
                     <img
@@ -646,7 +646,7 @@ export function Settings({
                 </div>
               </form>
 
-              <div className="pt-6 border-t border-slate-200 dark:border-slate-800 space-y-3 w-full min-w-0 flex flex-col items-start font-sans">
+              <div className="pt-6 border-t border-slate-200 dark:border-slate-800 space-y-3 w-full min-w-0 flex flex-col font-sans">
                 <span className="text-xs font-bold text-red-500 dark:text-red-400 block uppercase tracking-wider">Zona de Perigo</span>
                 <p className="text-xs text-slate-600 dark:text-slate-400 w-full max-w-xl leading-relaxed font-sans font-medium block break-normal whitespace-normal">
                   Ao excluir a sua conta, todas as suas candidaturas salvas, análises de IA, roteiros de entrevista e currículos serão deletados permanentemente.
@@ -654,7 +654,7 @@ export function Settings({
                 <button
                   type="button"
                   onClick={handleDeleteAccount}
-                  className="px-4 py-2 rounded-xl bg-red-950/20 hover:bg-red-950/40 text-red-400 border border-red-900/30 text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer"
+                  className="px-4 py-2 rounded-xl bg-red-950/20 hover:bg-red-950/40 text-red-400 border border-red-900/30 text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer self-start"
                 >
                   <Trash2 size={12} />
                   Excluir Minha Conta
@@ -664,7 +664,7 @@ export function Settings({
           )}
 
           {activeSubTab === 'resumes' && (
-            <CardGlass className="p-6 space-y-6 w-full min-w-0 flex flex-col items-start font-sans">
+            <CardGlass className="p-6 space-y-6 w-full min-w-0 flex flex-col font-sans">
               <h3 className="text-base font-bold text-slate-900 dark:text-slate-100 pb-3 border-b border-slate-200 dark:border-slate-800 flex items-center gap-2 w-full">
                 <FileText size={16} className="text-brand-500" />
                 Histórico de Currículos Cadastrados
@@ -731,13 +731,13 @@ export function Settings({
           )}
 
           {activeSubTab === 'preferences' && (
-            <CardGlass className="p-6 space-y-6 w-full min-w-0 flex flex-col items-start font-sans">
+            <CardGlass className="p-6 space-y-6 w-full min-w-0 flex flex-col font-sans">
               <h3 className="text-base font-bold text-slate-900 dark:text-slate-100 pb-3 border-b border-slate-200 dark:border-slate-800 flex items-center gap-2 w-full">
                 <SettingsIcon size={16} className="text-brand-500" />
                 Preferências de Busca de Vagas
               </h3>
 
-              <form onSubmit={handleSavePreferences} className="space-y-4 w-full max-w-xl flex flex-col items-start font-sans">
+              <form onSubmit={handleSavePreferences} className="space-y-4 w-full max-w-xl flex flex-col font-sans">
                 <div className="space-y-1 w-full min-w-0 flex flex-col">
                   <label className="text-xs text-slate-600 dark:text-slate-400 font-semibold block">Cargos Desejados (separados por vírgula)</label>
                   <input
@@ -813,13 +813,13 @@ export function Settings({
           )}
 
           {activeSubTab === 'notifications' && (
-            <CardGlass className="p-6 space-y-6 w-full min-w-0 flex flex-col items-start font-sans">
+            <CardGlass className="p-6 space-y-6 w-full min-w-0 flex flex-col font-sans">
               <h3 className="text-base font-bold text-slate-900 dark:text-slate-100 pb-3 border-b border-slate-200 dark:border-slate-800 flex items-center gap-2 w-full">
                 <Bell size={16} className="text-brand-500" />
                 Notificações e Alertas
               </h3>
 
-              <div className="space-y-4 w-full max-w-xl flex flex-col items-start font-sans">
+              <div className="space-y-4 w-full max-w-xl flex flex-col font-sans">
                 <div className="flex items-start gap-3 p-3 rounded-xl bg-slate-900/30 border border-slate-850/50 w-full">
                   <input
                     type="checkbox"
@@ -874,7 +874,7 @@ export function Settings({
           )}
 
           {activeSubTab === 'appearance' && (
-            <CardGlass className="p-6 space-y-6 w-full min-w-0 flex flex-col items-start font-sans">
+            <CardGlass className="p-6 space-y-6 w-full min-w-0 flex flex-col font-sans">
               <h3 className="text-base font-bold text-slate-900 dark:text-slate-100 pb-3 border-b border-slate-200 dark:border-slate-800 flex items-center gap-2 w-full">
                 <Palette size={16} className="text-brand-500" />
                 Personalização Visual e Tema

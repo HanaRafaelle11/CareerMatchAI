@@ -505,7 +505,7 @@ export function Settings({
         </p>
       </div>
 
-      <div className="flex flex-col lg:flex-row gap-6 items-start">
+      <div className="flex flex-col lg:flex-row gap-6 items-stretch lg:items-start">
         {/* Menu Lateral de Configurações */}
         <div className="w-full lg:w-52 shrink-0 flex lg:flex-col overflow-x-auto lg:overflow-x-visible gap-1.5 pb-2 lg:pb-0">
           {subTabItems.map(tab => {

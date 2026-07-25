@@ -307,17 +307,17 @@ export function CoachDashboard({
         <div className="lg:col-span-2 space-y-6 w-full min-w-0">
           <CardGlass className="p-6 space-y-6 flex flex-col min-h-[480px] w-full min-w-0 animate-slide-in">
             <div>
-              <h3 className="font-display font-bold text-base text-slate-200 flex items-center gap-2 pb-3 border-b border-slate-900">
+              <h3 className="font-display font-bold text-base text-slate-900 dark:text-slate-100 flex items-center gap-2 pb-3 border-b border-slate-200 dark:border-slate-800">
                 <MessageSquare size={18} className="text-brand-accent" />
                 Simulação de Entrevista Interativa
               </h3>
-              <p className="text-xs text-slate-400 mt-2 font-sans">
+              <p className="text-xs text-slate-700 dark:text-slate-400 mt-2 font-sans font-medium">
                 Selecione uma candidatura em andamento para iniciar a simulação focada no método STAR.
               </p>
             </div>
 
               {activeApps.length === 0 ? (
-                <div className="flex-1 py-16 flex flex-col items-center justify-center border border-dashed border-slate-800 rounded-[14px] text-xs text-slate-500 text-center space-y-2 font-sans">
+                <div className="flex-1 py-16 flex flex-col items-center justify-center border border-dashed border-slate-300 dark:border-slate-800 rounded-[14px] text-xs text-slate-700 dark:text-slate-400 text-center space-y-2 font-sans font-semibold">
                   <span>Nenhuma candidatura ativa registrada para simular.</span>
                 </div>
               ) : (
@@ -806,7 +806,7 @@ export function CoachDashboard({
         <div className="space-y-6">
           {activeApps.length > 0 && (
             <CardGlass className="p-6 space-y-4">
-              <h3 className="font-display font-bold text-base text-slate-200 pb-2 border-b border-slate-900 flex items-center gap-1.5">
+              <h3 className="font-display font-bold text-base text-slate-900 dark:text-slate-100 pb-2 border-b border-slate-200 dark:border-slate-800 flex items-center gap-1.5">
                 <Star size={16} className="text-brand-500 fill-brand-500" />
                 Histórico de Simulações
               </h3>
@@ -817,13 +817,13 @@ export function CoachDashboard({
                     onClick={() => setSelectedAppId(app.id)}
                     className={`w-full p-2.5 rounded-xl border text-left text-xs transition-all flex items-center justify-between ${
                       app.id === selectedAppId
-                        ? 'bg-brand-500/10 border-brand-500/30 text-slate-200 font-semibold font-sans'
-                        : 'bg-slate-900/20 border-slate-900 hover:border-slate-800 text-slate-450'
+                        ? 'bg-brand-500/10 border-brand-500/30 text-brand-600 dark:text-slate-200 font-semibold font-sans'
+                        : 'bg-slate-100 dark:bg-slate-900/20 border-slate-200 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700 text-slate-700 dark:text-slate-300'
                     }`}
                   >
                     <div className="truncate pr-2">
-                      <span className="font-bold block truncate">{app.jobTitle}</span>
-                      <span className="text-[9px] text-slate-500 truncate block mt-0.5">{app.companyName}</span>
+                      <span className="font-bold block truncate text-slate-900 dark:text-slate-100">{app.jobTitle}</span>
+                      <span className="text-[9px] text-slate-600 dark:text-slate-400 truncate block mt-0.5">{app.companyName}</span>
                     </div>
                   </button>
                 ))}
@@ -832,19 +832,19 @@ export function CoachDashboard({
           )}
 
           <CardGlass className="p-6 space-y-4">
-            <h3 className="font-display font-bold text-base text-slate-200 pb-2 border-b border-slate-900 flex items-center gap-1.5">
+            <h3 className="font-display font-bold text-base text-slate-900 dark:text-slate-100 pb-2 border-b border-slate-200 dark:border-slate-800 flex items-center gap-1.5">
               <Award size={18} className="text-emerald-500" />
               Diagnóstico Consolidado
             </h3>
             {!careerProfileNew ? (
-              <p className="text-xs text-slate-400 italic">
+              <p className="text-xs text-slate-600 dark:text-slate-400 italic">
                 Nenhum currículo ativo cadastrado. Faça o upload na aba "Perfil & Currículo" para gerar o diagnóstico de IA.
               </p>
             ) : (
               <div className="space-y-3 text-xs">
                 <div className="space-y-1">
-                  <span className="text-[10px] text-slate-500 uppercase font-bold block">Forças</span>
-                  <p className="text-slate-300">
+                  <span className="text-[10px] text-slate-700 dark:text-slate-400 uppercase font-extrabold block">FORÇAS</span>
+                  <p className="text-slate-800 dark:text-slate-200 font-medium">
                     {careerProfileNew?.ats_keywords?.existing_keywords && careerProfileNew.ats_keywords.existing_keywords.length > 0
                       ? careerProfileNew.ats_keywords.existing_keywords.slice(0, 5).join(', ')
                       : careerProfileNew?.skills && careerProfileNew.skills.length > 0
@@ -853,8 +853,8 @@ export function CoachDashboard({
                   </p>
                 </div>
                 <div className="space-y-1">
-                  <span className="text-[10px] text-slate-500 uppercase font-bold block">Gaps Recomendados</span>
-                  <p className="text-slate-300">
+                  <span className="text-[10px] text-slate-700 dark:text-slate-400 uppercase font-extrabold block">GAPS RECOMENDADOS</span>
+                  <p className="text-slate-800 dark:text-slate-200 font-medium">
                     {careerProfileNew?.ats_keywords?.missing_keywords && careerProfileNew.ats_keywords.missing_keywords.length > 0
                       ? `Recomenda-se focar em: ${careerProfileNew.ats_keywords.missing_keywords.slice(0, 4).join(', ')}.`
                       : 'Nenhum gap crítico identificado no momento. Continue atualizando seu perfil.'}
@@ -865,13 +865,13 @@ export function CoachDashboard({
           </CardGlass>
 
           <CardGlass className="p-6 space-y-4">
-            <h3 className="font-display font-bold text-base text-slate-200 pb-2 border-b border-slate-900 flex items-center gap-1.5">
+            <h3 className="font-display font-bold text-base text-slate-900 dark:text-slate-100 pb-2 border-b border-slate-200 dark:border-slate-800 flex items-center gap-1.5">
               <BarChart3 size={18} className="text-brand-500" />
               Monitor de Demanda Real
             </h3>
-            <p className="text-[10px] text-slate-500">Habilidades mais exigidas nas vagas monitoradas.</p>
+            <p className="text-[10px] text-slate-600 dark:text-slate-400 font-medium">Habilidades mais exigidas nas vagas monitoradas.</p>
             {marketTrends.length === 0 ? (
-              <p className="text-xs text-slate-400 italic">
+              <p className="text-xs text-slate-600 dark:text-slate-400 italic">
                 Nenhuma vaga monitorada no momento. Busque e salve vagas na aba "Vagas & Match" para gerar estatísticas de demanda real.
               </p>
             ) : (
@@ -879,10 +879,10 @@ export function CoachDashboard({
                 {marketTrends.slice(0, 4).map((trend, i) => (
                   <div key={i} className="space-y-1">
                     <div className="flex justify-between items-center text-xs">
-                      <span className="text-slate-300 font-semibold">{trend.keyword}</span>
-                      <span className="text-slate-500 text-[10px]">{trend.percentage}% das vagas</span>
+                      <span className="text-slate-900 dark:text-slate-100 font-bold">{trend.keyword}</span>
+                      <span className="text-slate-600 dark:text-slate-400 text-[10px] font-semibold">{trend.percentage}% das vagas</span>
                     </div>
-                    <div className="w-full h-1.5 rounded bg-slate-950 overflow-hidden">
+                    <div className="w-full h-1.5 rounded bg-slate-200 dark:bg-slate-950 overflow-hidden">
                       <div className="h-full bg-brand-accent" style={{ width: `${trend.percentage}%` }} />
                     </div>
                   </div>

@@ -898,48 +898,48 @@ export function StrategyPage({
 
             {/* Warm priorities */}
             <div 
-              className="space-y-4 rounded-2xl p-2 min-h-[550px] bg-slate-900/10 border border-transparent transition-all hover:border-slate-850/50"
+              className="space-y-4 rounded-2xl p-2 min-h-[550px] bg-slate-100/70 dark:bg-slate-900/20 border border-slate-200 dark:border-slate-800/60 transition-all"
               onDragOver={(e) => e.preventDefault()}
               onDrop={(e) => {
                 const jobId = e.dataTransfer.getData('text/plain');
                 if (jobId) handleMoveJobColumn(jobId, 'warm');
               }}
             >
-              <div className="flex items-center gap-2 px-2 pb-1 border-b border-slate-900">
+              <div className="flex items-center gap-2 px-2 pb-1 border-b border-slate-200 dark:border-slate-800">
                 <Sparkles size={16} className="text-amber-500" />
-                <h3 className="font-bold text-sm text-slate-200">Ajustar antes ({finalGrouped.warm.length})</h3>
+                <h3 className="font-bold text-sm text-slate-900 dark:text-slate-100">Ajustar antes ({finalGrouped.warm.length})</h3>
               </div>
 
               {finalGrouped.warm.map((rec, idx) => (
                 <CardGlass 
                   key={idx} 
-                  className="p-4 space-y-4 hover:border-slate-800 cursor-grab active:cursor-grabbing"
+                  className="p-4 space-y-4 hover:border-slate-400 dark:hover:border-slate-700 cursor-grab active:cursor-grabbing"
                   draggable
                   onDragStart={(e) => e.dataTransfer.setData('text/plain', (rec.job as any).id)}
                 >
                   <div className="flex justify-between items-start gap-2">
                     <div>
-                      <h4 className="font-bold text-sm text-slate-100 truncate max-w-[150px]">{rec.job.title}</h4>
-                      <span className="text-xs text-slate-400 font-medium block mt-0.5">{rec.job.companyName}</span>
+                      <h4 className="font-bold text-sm text-slate-900 dark:text-slate-100 truncate max-w-[150px]">{rec.job.title}</h4>
+                      <span className="text-xs text-slate-700 dark:text-slate-400 font-medium block mt-0.5">{rec.job.companyName}</span>
                     </div>
                     <div className="flex flex-col items-end gap-1">
-                      <span className="text-[9px] px-1.5 py-0.5 rounded bg-amber-500/10 text-amber-400 font-extrabold border border-amber-500/20">
+                      <span className="text-[9px] px-1.5 py-0.5 rounded bg-amber-500/10 text-amber-600 dark:text-amber-400 font-extrabold border border-amber-500/20">
                         {rec.cpi}% CPI
                       </span>
-                      <span className="text-[9px] px-1.5 py-0.5 rounded bg-slate-900 text-slate-400 font-extrabold border border-slate-850">
+                      <span className="text-[9px] px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-900 text-slate-700 dark:text-slate-300 font-extrabold border border-slate-200 dark:border-slate-800">
                         ROI {rec.roi}
                       </span>
                     </div>
                   </div>
 
-                  <div className="text-xs text-slate-400 space-y-1.5 leading-relaxed bg-slate-950/20 p-2.5 rounded-xl border border-slate-900">
-                    <p>💡 <strong>Dica da IA:</strong> Adicione termos ausentes: <strong className="text-slate-200">{rec.missingSkills.slice(0, 2).join(', ')}</strong>.</p>
+                  <div className="text-xs text-slate-700 dark:text-slate-300 space-y-1.5 leading-relaxed bg-slate-100 dark:bg-slate-950/40 p-2.5 rounded-xl border border-slate-200 dark:border-slate-800">
+                    <p>💡 <strong>Dica da IA:</strong> Adicione termos ausentes: <strong className="text-slate-900 dark:text-slate-100">{rec.missingSkills.slice(0, 2).join(', ')}</strong>.</p>
                   </div>
 
                   <div className="pt-2 flex gap-2">
                     <button
                       onClick={() => setActiveTab('match')}
-                      className="flex-1 py-1.5 rounded-xl bg-slate-900 border border-slate-800 hover:border-slate-700 text-slate-200 font-bold text-xs flex items-center justify-center gap-1"
+                      className="flex-1 py-1.5 rounded-xl bg-slate-100 dark:bg-slate-900 border border-slate-300 dark:border-slate-800 hover:border-slate-400 dark:hover:border-slate-700 text-slate-900 dark:text-slate-100 font-bold text-xs flex items-center justify-center gap-1"
                     >
                       Otimizar
                       <ChevronRight size={14} />
@@ -947,7 +947,7 @@ export function StrategyPage({
                     {onStartSimulation && (
                       <button
                         onClick={() => onStartSimulation(rec.job as Job)}
-                        className="py-1.5 px-3 rounded-xl bg-brand-500/10 hover:bg-brand-500/20 border border-brand-500/30 text-brand-400 font-bold text-xs flex items-center justify-center gap-1 transition"
+                        className="py-1.5 px-3 rounded-xl bg-brand-500/10 hover:bg-brand-500/20 border border-brand-500/30 text-brand-600 dark:text-brand-400 font-bold text-xs flex items-center justify-center gap-1 transition"
                         title="Simular Entrevista"
                       >
                         🎤 Simular
@@ -961,7 +961,7 @@ export function StrategyPage({
                           }
                         }
                       }}
-                      className="p-1.5 rounded-xl bg-red-950/20 hover:bg-red-950/40 border border-red-900/30 text-red-400 flex items-center justify-center transition"
+                      className="p-1.5 rounded-xl bg-red-500/10 hover:bg-red-500/20 border border-red-500/30 text-red-600 dark:text-red-400 flex items-center justify-center transition"
                       title="Excluir Vaga"
                     >
                       <Trash2 size={13} />
@@ -973,16 +973,16 @@ export function StrategyPage({
 
             {/* Cold priorities */}
             <div 
-              className="space-y-4 rounded-2xl p-2 min-h-[550px] bg-slate-900/10 border border-transparent transition-all hover:border-slate-850/50"
+              className="space-y-4 rounded-2xl p-2 min-h-[550px] bg-slate-100/70 dark:bg-slate-900/20 border border-slate-200 dark:border-slate-800/60 transition-all"
               onDragOver={(e) => e.preventDefault()}
               onDrop={(e) => {
                 const jobId = e.dataTransfer.getData('text/plain');
                 if (jobId) handleMoveJobColumn(jobId, 'cold');
               }}
             >
-              <div className="flex items-center gap-2 px-2 pb-1 border-b border-slate-900">
-                <AlertCircle size={16} className="text-slate-500" />
-                <h3 className="font-bold text-sm text-slate-200">Baixa Aderência ({finalGrouped.cold.length})</h3>
+              <div className="flex items-center gap-2 px-2 pb-1 border-b border-slate-200 dark:border-slate-800">
+                <AlertCircle size={16} className="text-slate-600 dark:text-slate-400" />
+                <h3 className="font-bold text-sm text-slate-900 dark:text-slate-100">Baixa Aderência ({finalGrouped.cold.length})</h3>
               </div>
 
               <div className="space-y-3 max-h-[500px] overflow-y-auto pr-1">
@@ -991,14 +991,14 @@ export function StrategyPage({
                     key={idx}
                     draggable
                     onDragStart={(e) => e.dataTransfer.setData('text/plain', (rec.job as any).id)}
-                    className="p-3.5 rounded-xl bg-slate-900/10 border border-slate-900 flex justify-between items-center text-xs gap-3 hover:border-slate-800 cursor-grab active:cursor-grabbing"
+                    className="p-3.5 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 flex justify-between items-center text-xs gap-3 hover:border-slate-400 dark:hover:border-slate-700 cursor-grab active:cursor-grabbing shadow-xs"
                   >
                     <div className="truncate flex-1">
-                      <h4 className="font-bold text-slate-300 truncate">{rec.job.title}</h4>
-                      <p className="text-[10px] text-slate-500 mt-0.5 truncate">{rec.job.companyName}</p>
+                      <h4 className="font-bold text-slate-900 dark:text-slate-100 truncate">{rec.job.title}</h4>
+                      <p className="text-[10px] text-slate-700 dark:text-slate-400 mt-0.5 truncate">{rec.job.companyName}</p>
                     </div>
                     <div className="flex items-center gap-2">
-                      <span className="text-[10px] px-1.5 py-0.5 rounded bg-slate-900 text-slate-500 font-semibold">{rec.cpi}% CPI</span>
+                      <span className="text-[10px] px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-slate-800 dark:text-slate-200 font-bold border border-slate-300 dark:border-slate-700">{rec.cpi}% CPI</span>
                       <button
                         onClick={async (e) => {
                           e.stopPropagation();
@@ -1008,7 +1008,7 @@ export function StrategyPage({
                             }
                           }
                         }}
-                        className="p-1 rounded bg-red-950/20 hover:bg-red-950/40 border border-red-900/30 text-red-400 hover:text-red-300 transition"
+                        className="p-1 rounded bg-red-500/10 hover:bg-red-500/20 border border-red-500/30 text-red-600 dark:text-red-400 transition"
                         title="Excluir Vaga"
                       >
                         <Trash2 size={11} />

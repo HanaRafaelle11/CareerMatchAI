@@ -72,7 +72,9 @@ export function useCareerIntelligence(
       return await JobFeedbackService.updateApplicationStatus(userId, job, status, notes);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['job-applications', userId] });
+      queryClient.invalidateQueries({ queryKey: ['job-applications'] });
+      queryClient.invalidateQueries({ queryKey: ['applications'] });
+      queryClient.invalidateQueries({ queryKey: ['user-applications'] });
     }
   });
 

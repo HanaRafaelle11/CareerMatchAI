@@ -300,16 +300,29 @@ export class MatchingEngine {
     }
 
     const textLower = rawText.toLowerCase();
-    const resumeKeywords = [
-      'experiencia', 'experiência', 'educacao', 'educação', 'formacao', 'formação',
-      'competencias', 'competências', 'habilidades', 'resumo', 'trabalhou', 'cargo',
-      'empresa', 'curriculo', 'currículo', 'resume', 'projects', 'projetos', 'skill',
-      'skills', 'experience', 'education', 'tecnologia', 'tecnologias', 'desenvolvedor',
-      'engenheiro', 'analista', 'gerente', 'coordenador', 'estágio', 'certificações'
+
+    // 1. Rejeitar documentos jurídicos, contratos, notas fiscais, termos e manuais
+    const nonResumeTerms = [
+      'contratante', 'contratada', 'cláusula', 'clausula', 'foro da comarca', 'nota fiscal',
+      'faturamento', 'locação', 'locante', 'locatário', 'vendedor', 'comprador',
+      'termo de adesão', 'termo de uso', 'manual do usuário', 'especificação técnica'
     ];
 
-    const hasResumeKeywords = resumeKeywords.some(kw => textLower.includes(kw));
-    if (!hasResumeKeywords) {
+    const isNonResumeDoc = nonResumeTerms.some(term => textLower.includes(term));
+    if (isNonResumeDoc) {
+      throw new Error('Não foi possível identificar um currículo neste arquivo. Verifique se o PDF enviado realmente contém um currículo e não um contrato, fatura ou documento genérico.');
+    }
+
+    // 2. Exigir sinais estruturais reais de currículo
+    const resumeSignals = [
+      'experiencia', 'experiência', 'educacao', 'educação', 'formacao', 'formação',
+      'competencias', 'competências', 'habilidades', 'resumo profissional', 'curriculo',
+      'currículo', 'resume', 'historico profissional', 'histórico profissional', 'work experience',
+      'skills', 'education', 'certificações', 'certificacoes'
+    ];
+
+    const matchedSignalsCount = resumeSignals.filter(kw => textLower.includes(kw)).length;
+    if (matchedSignalsCount < 2) {
       throw new Error('Não foi possível identificar um currículo neste arquivo. Verifique se o PDF enviado realmente contém um currículo e não um contrato, fatura ou documento genérico.');
     }
 

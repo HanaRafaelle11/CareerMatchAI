@@ -7,59 +7,58 @@
 
 @theme {
   /* ══════════════════════════════════════════════════════════════
-     PHASE 4 — HUMANE & COMFORTABLE EXECUTIVE SAAS DESIGN TOKENS
-     Inspired by GitHub Dark, Notion, Linear, Arc & Stripe
+     VOCENTRO DESIGN SYSTEM TOKENS (Blue 600 / Slate 900 / Slate 800)
+     Inspired by Stripe, Linear, Notion, Vercel & GitHub Dark
      ══════════════════════════════════════════════════════════════ */
   --color-brand-50: #eff6ff;
   --color-brand-100: #dbeafe;
-  --color-brand-500: #4F8EF7; /* Reserved strictly for primary action, links, focus & selection */
-  --color-brand-600: #3B76E1;
-  --color-brand-700: #275ECA;
-  --color-brand-accent: #22C7A8; /* Success / Match Green */
-  --color-brand-violet: #4F8EF7;
-  --color-brand-blue: #4F8EF7;
-  --color-brand-dark: #1C2128;
-  --color-brand-card: #242B36;
-  --color-brand-border: rgba(255, 255, 255, 0.08);
+  --color-brand-500: #2563eb; /* Primary Action Blue 600 */
+  --color-brand-600: #1d4ed8; /* Hover Blue 700 */
+  --color-brand-700: #1e40af; /* Active Blue 800 */
+  --color-brand-accent: #10b981; /* Success Green */
+  --color-brand-violet: #2563eb;
+  --color-brand-blue: #2563eb;
+  --color-brand-dark: #0f172a;
+  --color-brand-card: #1e293b;
+  --color-brand-border: #334155;
 
-  /* Dark Theme Comfort Slate Surfaces (#1C2128 / #242B36 / #2C3440) */
-  --color-surface: #1C2128;
-  --color-surface-dim: #1C2128;
-  --color-surface-bright: #242B36;
-  --color-surface-container-lowest: #1C2128;
-  --color-surface-container-low: #202632;
-  --color-surface-container: #242B36;
-  --color-surface-container-high: #2C3440;
-  --color-surface-container-highest: #374151;
+  /* Dark Theme Surfaces (Slate 900 / Slate 800 / Slate 700) */
+  --color-surface: #0f172a;
+  --color-surface-dim: #0f172a;
+  --color-surface-bright: #1e293b;
+  --color-surface-container-lowest: #0f172a;
+  --color-surface-container-low: #1e293b;
+  --color-surface-container: #1e293b;
+  --color-surface-container-high: #334155;
+  --color-surface-container-highest: #475569;
   
-  --color-on-surface: #F8FAFC;
-  --color-on-surface-variant: #B8C2CC;
-  --color-outline: rgba(255, 255, 255, 0.08);
-  --color-outline-variant: rgba(255, 255, 255, 0.08);
+  --color-on-surface: #f8fafc;
+  --color-on-surface-variant: #cbd5e1;
+  --color-outline: #334155;
+  --color-outline-variant: #334155;
   
-  --color-primary: #4F8EF7;
+  --color-primary: #2563eb;
   --color-on-primary: #ffffff;
-  --color-primary-container: #2C3440;
-  --color-on-primary-container: #4F8EF7;
+  --color-primary-container: #1e293b;
+  --color-on-primary-container: #2563eb;
   
-  --color-secondary: #2C3440;
-  --color-on-secondary: #F8FAFC;
-  --color-secondary-container: #374151;
-  --color-on-secondary-container: #B8C2CC;
+  --color-secondary: #1e293b;
+  --color-on-secondary: #f8fafc;
+  --color-secondary-container: #334155;
+  --color-on-secondary-container: #cbd5e1;
   
-  --color-tertiary: #22C7A8;
-  --color-on-tertiary: #1C2128;
-  --color-tertiary-container: rgba(34, 199, 168, 0.08);
-  --color-on-tertiary-container: #22C7A8;
+  --color-tertiary: #10b981;
+  --color-on-tertiary: #0f172a;
+  --color-tertiary-container: rgba(16, 185, 129, 0.1);
+  --color-on-tertiary-container: #10b981;
   
-  /* Desaturated Status Colors (-20% Saturation) */
-  --color-error: #E55353;
+  --color-error: #ef4444;
   --color-on-error: #ffffff;
-  --color-error-container: rgba(229, 83, 83, 0.12);
-  --color-on-error-container: #FCA5A5;
+  --color-error-container: rgba(239, 68, 68, 0.12);
+  --color-on-error-container: #fca5a5;
 
-  --color-warning: #E5A137;
-  --color-success: #22C7A8;
+  --color-warning: #f59e0b;
+  --color-success: #10b981;
 
   --font-sans: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
   --font-display: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
@@ -74,32 +73,32 @@
 }
 
 /* ══════════════════════════════════════════════════════════════
-   Linear & Notion Aesthetic Panels (Comfortable Dark #242B36)
+   Linear & Notion Aesthetic Panels
    ══════════════════════════════════════════════════════════════ */
 
 @utility glass-panel {
-  background: #242B36;
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.04);
+  background: #1e293b;
+  border: 1px solid #334155;
+  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1);
 }
 
 .light .glass-panel {
   background: #ffffff;
-  border: 1px solid #e2e8f0;
-  box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.03);
+  border: 1px solid #cbd5e1;
+  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.05);
 }
 
 @utility glow-brand {
-  box-shadow: 0 1px 3px 0 rgba(79, 142, 247, 0.08);
+  box-shadow: 0 1px 3px 0 rgba(37, 99, 235, 0.15);
 }
 
 @utility radar-grid {
-  stroke: rgba(184, 194, 204, 0.15);
+  stroke: rgba(203, 213, 225, 0.2);
   stroke-width: 1px;
 }
 
 .light .radar-grid {
-  stroke: rgba(203, 213, 225, 0.4);
+  stroke: rgba(71, 85, 105, 0.3);
 }
 
 @layer base {
@@ -146,73 +145,73 @@
   background: transparent;
 }
 ::-webkit-scrollbar-thumb {
-  background: rgba(184, 194, 204, 0.2);
+  background: rgba(203, 213, 225, 0.25);
   border-radius: 9999px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: rgba(184, 194, 204, 0.35);
+  background: rgba(203, 213, 225, 0.4);
 }
 .light ::-webkit-scrollbar-thumb {
-  background: rgba(203, 213, 225, 0.7);
+  background: rgba(148, 163, 184, 0.7);
 }
 
 /* ══════════════════════════════════════════════════════════════
-   LIGHT MODE — Warm Off-White (#FAFBFC) Executive Theme
+   LIGHT MODE — Slate 50 (#F8FAFC) High-Contrast Executive Theme
    ══════════════════════════════════════════════════════════════ */
 body.light {
-  --color-surface: #fafbfc;
+  --color-surface: #f8fafc;
   --color-surface-dim: #f8fafc;
   --color-surface-bright: #e2e8f0;
   --color-surface-container-lowest: #ffffff;
   --color-surface-container-low: #ffffff;
   --color-surface-container: #ffffff;
-  --color-surface-container-high: #f8fafc;
+  --color-surface-container-high: #f1f5f9;
   --color-surface-container-highest: #e2e8f0;
 
-  --color-on-surface: #1f2937;
-  --color-on-surface-variant: #64748b;
-  --color-outline: #e2e8f0;
-  --color-outline-variant: #e2e8f0;
+  --color-on-surface: #0f172a; /* Slate 900 */
+  --color-on-surface-variant: #475569; /* Slate 600 */
+  --color-outline: #cbd5e1; /* Slate 300 */
+  --color-outline-variant: #cbd5e1;
 
-  --color-primary: #4f8ef7;
+  --color-primary: #2563eb;
   --color-on-primary: #ffffff;
   --color-primary-container: #eff6ff;
-  --color-on-primary-container: #3b76e1;
+  --color-on-primary-container: #1d4ed8;
 
   --color-secondary: #f8fafc;
-  --color-on-secondary: #1f2937;
+  --color-on-secondary: #0f172a;
   --color-secondary-container: #f1f5f9;
-  --color-on-secondary-container: #64748b;
+  --color-on-secondary-container: #475569;
 
-  --color-tertiary: #22c7a8;
+  --color-tertiary: #10b981;
   --color-on-tertiary: #ffffff;
-  --color-tertiary-container: rgba(34, 199, 168, 0.08);
-  --color-on-tertiary-container: #22c7a8;
+  --color-tertiary-container: rgba(16, 185, 129, 0.08);
+  --color-on-tertiary-container: #10b981;
 
   --color-brand-card: #ffffff;
-  --color-brand-border: #e2e8f0;
-  --color-brand-dark: #fafbfc;
+  --color-brand-border: #cbd5e1;
+  --color-brand-dark: #f8fafc;
 
-  background-color: #fafbfc;
-  color: #1f2937;
+  background-color: #f8fafc;
+  color: #0f172a;
 }
 
-/* Dark Mode Surfaces matching #1C2128 / #242B36 / #2C3440 */
+/* Dark Mode Surfaces matching Slate 900 / Slate 800 / Slate 700 */
 .dark .bg-slate-950,
 .dark .bg-slate-900 {
-  background-color: #1C2128;
+  background-color: #0f172a;
 }
 
 .dark .bg-slate-850,
 .dark .bg-slate-800 {
-  background-color: #242B36;
+  background-color: #1e293b;
 }
 
 .dark .border-slate-800,
 .dark .border-slate-900,
 .dark .border-slate-850,
 .dark .border-slate-700 {
-  border-color: rgba(255, 255, 255, 0.08);
+  border-color: #334155;
 }
 
 /* Linear & Notion Soft Card Style */

@@ -1782,48 +1782,48 @@ export function JobMatchHub({
                       <form onSubmit={handleIngestManual} className="space-y-4">
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                           <div className="space-y-1">
-                            <label className="text-xs font-semibold text-slate-400">Título do Cargo</label>
+                            <label className="text-xs font-semibold text-slate-700 dark:text-slate-400">Título do Cargo</label>
                             <input
                               type="text"
                               placeholder="Ex: Senior Frontend Engineer"
                               value={title}
                               onChange={e => setTitle(e.target.value)}
-                              className="w-full px-4 py-2.5 rounded-xl bg-slate-900/50 border border-slate-800 focus:border-brand-500 outline-none text-xs text-slate-200"
+                              className="w-full px-4 py-2.5 rounded-xl bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-800 focus:border-brand-500 outline-none text-xs text-slate-900 dark:text-slate-100 placeholder:text-slate-400"
                               required
                             />
                           </div>
                           <div className="space-y-1">
-                            <label className="text-xs font-semibold text-slate-400">Empresa</label>
+                            <label className="text-xs font-semibold text-slate-700 dark:text-slate-400">Empresa</label>
                             <input
                               type="text"
                               placeholder="Ex: Vocentro"
                               value={companyName}
                               onChange={e => setCompanyName(e.target.value)}
-                              className="w-full px-4 py-2.5 rounded-xl bg-slate-900/50 border border-slate-800 focus:border-brand-500 outline-none text-xs text-slate-200"
+                              className="w-full px-4 py-2.5 rounded-xl bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-800 focus:border-brand-500 outline-none text-xs text-slate-900 dark:text-slate-100 placeholder:text-slate-400"
                             />
                           </div>
                         </div>
 
                         <div className="space-y-1">
-                          <label className="text-xs font-semibold text-slate-400">Descrição / Escopo da Vaga</label>
+                          <label className="text-xs font-semibold text-slate-700 dark:text-slate-400">Descrição / Escopo da Vaga</label>
                           <textarea
                             placeholder="Cole aqui a descrição completa da vaga..."
                             rows={5}
                             value={description}
                             onChange={e => setDescription(e.target.value)}
-                            className="w-full px-4 py-2.5 rounded-xl bg-slate-900/50 border border-slate-800 focus:border-brand-500 outline-none text-xs text-slate-200 resize-none text-slate-350"
+                            className="w-full px-4 py-2.5 rounded-xl bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-800 focus:border-brand-500 outline-none text-xs text-slate-900 dark:text-slate-100 placeholder:text-slate-400 resize-none"
                             required
                           />
                         </div>
 
                         <div className="space-y-1">
-                          <label className="text-xs font-semibold text-slate-400">Stacks / Requisitos Principais (Separados por vírgula)</label>
+                          <label className="text-xs font-semibold text-slate-700 dark:text-slate-400">Stacks / Requisitos Principais (Separados por vírgula)</label>
                           <input
                             type="text"
                             placeholder="Ex: React, Next.js, Node.js, GraphQL"
                             value={requirementsInput}
                             onChange={e => setRequirementsInput(e.target.value)}
-                            className="w-full px-4 py-2.5 rounded-xl bg-slate-900/50 border border-slate-800 focus:border-brand-500 outline-none text-xs text-slate-200"
+                            className="w-full px-4 py-2.5 rounded-xl bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-800 focus:border-brand-500 outline-none text-xs text-slate-900 dark:text-slate-100 placeholder:text-slate-400"
                           />
                         </div>
 
@@ -2040,7 +2040,7 @@ export function JobMatchHub({
                 <CardGlass className="space-y-4">
                   <div className="flex justify-between items-start gap-4">
                     <div>
-                      <span className="text-[10px] px-2 py-0.5 bg-slate-900/60 border border-slate-800 rounded-lg text-slate-300 font-semibold uppercase tracking-wider">
+                      <span className="text-[10px] px-2.5 py-1 bg-brand-500/10 border border-brand-500/20 text-brand-500 dark:text-brand-400 rounded-lg font-bold uppercase tracking-wider whitespace-nowrap inline-block">
                         Vaga Selecionada
                       </span>
                       <h3 className="font-display font-bold text-lg text-slate-200 dark:text-slate-200 light:text-slate-800 mt-2">
@@ -3333,7 +3333,7 @@ export function JobMatchHub({
       {/* VIEW 2: Descoberta de Vagas (Discovery) */}
       {subTab === 'discover' && (() => {
         const rawScored = discoveredJobs.map(job => {
-          if (!primaryResume) {
+          if (!primaryResume && !careerProfileNew) {
             return { ...job, scoreOverall: 0, cpi: 0, missingSkills: [] as string[], matchedSkills: [] as string[] };
           }
           // Verificar se já existe um match completo calculado no banco de dados para essa vaga

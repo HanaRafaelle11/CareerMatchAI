@@ -571,6 +571,8 @@ function App() {
           <JourneyPipelineView
             applications={applications}
             jobs={jobs}
+            onNavigateToDiscover={() => setActiveTab('match')}
+            setActiveTab={setActiveTab}
           />
         )}
 

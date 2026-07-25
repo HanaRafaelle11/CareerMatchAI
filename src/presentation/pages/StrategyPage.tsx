@@ -791,9 +791,9 @@ export function StrategyPage({
                 if (jobId) handleMoveJobColumn(jobId, 'hot');
               }}
             >
-              <div className="flex items-center gap-2 px-2 pb-1 border-b border-slate-900">
+              <div className="flex items-center gap-2 px-2 pb-1 border-b border-slate-200 dark:border-slate-800">
                 <Flame size={16} className="text-emerald-500 fill-emerald-500" />
-                <h3 className="font-bold text-sm text-slate-200">Alta Prioridade ({finalGrouped.hot.length})</h3>
+                <h3 className="font-bold text-sm text-slate-800 dark:text-slate-200">Alta Prioridade ({finalGrouped.hot.length})</h3>
               </div>
 
               {finalGrouped.hot.map((rec, idx) => (
@@ -805,8 +805,8 @@ export function StrategyPage({
                 >
                   <div className="flex justify-between items-start gap-2">
                     <div>
-                      <h4 className="font-bold text-sm text-slate-100 truncate max-w-[150px]">{rec.job.title}</h4>
-                      <span className="text-xs text-slate-400 font-medium block mt-0.5">{rec.job.companyName}</span>
+                      <h4 className="font-bold text-sm text-slate-900 dark:text-slate-100 truncate max-w-[150px]">{rec.job.title}</h4>
+                      <span className="text-xs text-slate-500 dark:text-slate-400 font-medium block mt-0.5">{rec.job.companyName}</span>
                     </div>
                     <div className="flex flex-col items-end gap-1">
                       <span className="text-[9px] px-1.5 py-0.5 rounded bg-emerald-500/10 text-emerald-400 font-extrabold border border-emerald-500/20">

@@ -220,14 +220,16 @@ export function LandingPage({ onNavigateToAuth }: LandingPageProps) {
               currículos no escuro.
             </motion.h1>
             
-            <motion.p 
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.7, delay: 0.2 }}
-              className="text-slate-300 dark:text-slate-300 light:text-slate-700 text-sm sm:text-base leading-relaxed max-w-xl font-sans font-medium w-full block break-normal whitespace-normal"
-            >
-              Descubra quais vagas realmente combinam com seu perfil, adapte seu currículo com IA e treine entrevistas antes de se candidatar. Isso aumenta muito a percepção de seu valor.
-            </motion.p>
+            <div className="w-full max-w-xl">
+              <motion.p 
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.7, delay: 0.2 }}
+                className="text-slate-300 dark:text-slate-300 light:text-slate-700 text-sm sm:text-base leading-relaxed font-sans font-medium w-full block"
+              >
+                Descubra quais vagas realmente combinam com seu perfil, adapte seu currículo com IA e treine entrevistas antes de se candidatar. Isso aumenta muito a percepção de seu valor.
+              </motion.p>
+            </div>
             
             <motion.div 
               initial={{ opacity: 0, y: 20 }}
@@ -670,14 +672,16 @@ export function LandingPage({ onNavigateToAuth }: LandingPageProps) {
 
       {/* Before / After Section (ATS Comparison) */}
       <section id="comparativo" className="py-20 px-6 max-w-7xl mx-auto relative z-10 space-y-12 w-full min-w-0">
-        <div className="text-center space-y-3 w-full min-w-0 max-w-2xl mx-auto block">
-          <h2 className="text-xs font-bold text-brand-500 dark:text-brand-500 light:text-brand-600 uppercase tracking-widest font-mono">Seu currículo é apenas o começo</h2>
-          <p className="text-3xl sm:text-4xl font-extrabold tracking-tight text-slate-100 dark:text-white light:text-slate-900 font-display w-full block break-normal whitespace-normal text-center">
+        <div className="text-center space-y-3 w-full min-w-0 max-w-2xl mx-auto flex flex-col items-center">
+          <h2 className="text-xs font-bold text-brand-500 dark:text-brand-500 light:text-brand-600 uppercase tracking-widest font-mono w-full text-center">Seu currículo é apenas o começo</h2>
+          <p className="text-3xl sm:text-4xl font-extrabold tracking-tight text-slate-100 dark:text-white light:text-slate-900 font-display w-full text-center">
             Antes vs Depois com Vocentro
           </p>
-          <p className="text-xs text-slate-400 dark:text-slate-400 light:text-slate-600 max-w-md mx-auto leading-relaxed font-sans font-medium w-full block break-normal whitespace-normal text-center">
-            Veja a diferença imediata na pontuação ATS de triagem de candidatos após a otimização estrutural.
-          </p>
+          <div className="w-full max-w-md mx-auto">
+            <p className="text-xs text-slate-400 dark:text-slate-400 light:text-slate-600 leading-relaxed font-sans font-medium w-full text-center">
+              Veja a diferença imediata na pontuação ATS de triagem de candidatos após a otimização estrutural.
+            </p>
+          </div>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-11 gap-6 items-center max-w-6xl mx-auto">
@@ -891,11 +895,13 @@ export function LandingPage({ onNavigateToAuth }: LandingPageProps) {
             <EyeOff size={24} className="text-brand-accent" />
           </div>
           
-          <div className="space-y-2">
-            <h3 className="text-sm font-bold text-slate-100 dark:text-white light:text-slate-900 uppercase tracking-wider">Privacidade absoluta do candidato</h3>
-            <p className="text-slate-400 dark:text-slate-400 light:text-slate-600 text-xs leading-relaxed max-w-xl mx-auto font-normal">
-              Seus dados de currículo, feedbacks da Recrutadora IA e vagas mapeadas pertencem estritamente a você. Não compartilhamos nenhuma informação com recrutadores externos sem sua aprovação explícita. Todo processamento de dados atende às regulamentações da LGPD.
-            </p>
+          <div className="space-y-2 w-full flex flex-col items-center">
+            <h3 className="text-sm font-bold text-slate-100 dark:text-white light:text-slate-900 uppercase tracking-wider w-full text-center">Privacidade absoluta do candidato</h3>
+            <div className="w-full max-w-xl mx-auto">
+              <p className="text-slate-400 dark:text-slate-400 light:text-slate-600 text-xs leading-relaxed font-normal w-full text-center">
+                Seus dados de currículo, feedbacks da Recrutadora IA e vagas mapeadas pertencem estritamente a você. Não compartilhamos nenhuma informação com recrutadores externos sem sua aprovação explícita. Todo processamento de dados atende às regulamentações da LGPD.
+              </p>
+            </div>
           </div>
 
           <div className="flex flex-col sm:flex-row items-center justify-center gap-6 text-[10px] text-slate-500">
@@ -907,9 +913,9 @@ export function LandingPage({ onNavigateToAuth }: LandingPageProps) {
 
       {/* Pricing Section */}
       <section id="planos" className="py-20 px-6 max-w-7xl mx-auto relative z-10 space-y-12">
-        <div className="text-center space-y-3 max-w-xl mx-auto">
-          <h2 className="text-xs font-bold text-brand-accent uppercase tracking-widest font-mono">Planos</h2>
-          <p className="text-3xl sm:text-4xl font-extrabold tracking-tight text-slate-100 dark:text-white light:text-slate-900 font-display">Simplicidade e transparência</p>
+        <div className="text-center space-y-3 w-full max-w-xl mx-auto flex flex-col items-center">
+          <h2 className="text-xs font-bold text-brand-accent uppercase tracking-widest font-mono w-full text-center">Planos</h2>
+          <p className="text-3xl sm:text-4xl font-extrabold tracking-tight text-slate-100 dark:text-white light:text-slate-900 font-display w-full text-center">Simplicidade e transparência</p>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-5xl mx-auto font-sans">
@@ -1045,13 +1051,15 @@ export function LandingPage({ onNavigateToAuth }: LandingPageProps) {
       <section className="py-24 px-6 text-center max-w-4xl mx-auto relative z-10 space-y-8 font-sans leading-relaxed w-full min-w-0">
         <div className="absolute inset-0 bg-brand-500/5 blur-[120px] rounded-full pointer-events-none" />
         
-        <div className="space-y-4 w-full max-w-2xl mx-auto block text-center">
-          <h2 className="text-4xl sm:text-5xl font-extrabold tracking-tight text-slate-100 dark:text-white light:text-slate-900 leading-tight font-display w-full block break-normal whitespace-normal text-center">
+        <div className="space-y-4 w-full max-w-2xl mx-auto flex flex-col items-center text-center">
+          <h2 className="text-4xl sm:text-5xl font-extrabold tracking-tight text-slate-100 dark:text-white light:text-slate-900 leading-tight font-display w-full text-center">
             Sua próxima contratação começa hoje.
           </h2>
-          <p className="text-slate-350 dark:text-slate-300 light:text-slate-700 text-sm sm:text-base max-w-xl mx-auto leading-relaxed font-semibold w-full block break-normal whitespace-normal text-center">
-            Você não precisa enviar centenas de currículos. Precisa enviar o currículo certo, para a vaga certa, no momento certo. A Vocentro faz esse trabalho com você.
-          </p>
+          <div className="w-full max-w-xl mx-auto">
+            <p className="text-slate-350 dark:text-slate-300 light:text-slate-700 text-sm sm:text-base leading-relaxed font-semibold w-full text-center">
+              Você não precisa enviar centenas de currículos. Precisa enviar o currículo certo, para a vaga certa, no momento certo. A Vocentro faz esse trabalho com você.
+            </p>
+          </div>
         </div>
 
         <button 
@@ -1068,30 +1076,32 @@ export function LandingPage({ onNavigateToAuth }: LandingPageProps) {
         <div className="max-w-6xl mx-auto grid grid-cols-1 sm:grid-cols-2 md:grid-cols-5 gap-10">
           <div className="md:col-span-2 space-y-4">
             <VocentroLogo className="h-10 text-white dark:text-white light:text-slate-900" showText={true} />
-            <p className="text-[11px] text-slate-500 dark:text-slate-500 light:text-slate-600 leading-relaxed max-w-sm font-sans font-normal">
-              A Vocentro é a central de evolução profissional que coloca você no centro das melhores vagas do mercado de tecnologia e negócios através de match semântico e mentoria baseada em inteligência artificial.
-            </p>
+            <div className="w-full max-w-sm">
+              <p className="text-[11px] text-slate-500 dark:text-slate-500 light:text-slate-600 leading-relaxed font-sans font-normal w-full">
+                A Vocentro é a central de evolução profissional que coloca você no centro das melhores vagas do mercado de tecnologia e negócios através de match semântico e mentoria baseada em inteligência artificial.
+              </p>
+            </div>
           </div>
           <div>
             <h4 className="text-[10px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-400 light:text-slate-800 mb-4 font-mono">Produto</h4>
             <ul className="space-y-2 text-[10px] text-slate-500 dark:text-slate-500 light:text-slate-600 font-semibold font-sans leading-relaxed">
-              <li><a href="#como-funciona" className="hover:text-slate-200 dark:hover:text-slate-200 light:hover:text-slate-900 transition-colors">A Jornada</a></li>
-              <li><a href="#demonstracao" className="hover:text-slate-200 dark:hover:text-slate-200 light:hover:text-slate-900 transition-colors">Veja em Ação</a></li>
-              <li><a href="#comparativo" className="hover:text-slate-200 dark:hover:text-slate-200 light:hover:text-slate-900 transition-colors">Antes vs Depois</a></li>
-              <li><a href="#planos" className="hover:text-slate-200 dark:hover:text-slate-200 light:hover:text-slate-900 transition-colors">Planos & Preços</a></li>
+              <li><a href="#como-funciona" className="hover:text-slate-200 dark:hover:text-slate-200 light:hover:text-slate-900 transition-colors block w-full">A Jornada</a></li>
+              <li><a href="#demonstracao" className="hover:text-slate-200 dark:hover:text-slate-200 light:hover:text-slate-900 transition-colors block w-full">Veja em Ação</a></li>
+              <li><a href="#comparativo" className="hover:text-slate-200 dark:hover:text-slate-200 light:hover:text-slate-900 transition-colors block w-full">Antes vs Depois</a></li>
+              <li><a href="#planos" className="hover:text-slate-200 dark:hover:text-slate-200 light:hover:text-slate-900 transition-colors block w-full">Planos & Preços</a></li>
             </ul>
           </div>
           <div>
             <h4 className="text-[10px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-400 light:text-slate-800 mb-4 font-mono">Segurança</h4>
             <ul className="space-y-2 text-[10px] text-slate-500 dark:text-slate-500 light:text-slate-600 font-semibold font-sans leading-relaxed">
-              <li><a href="/terms.html" target="_blank" rel="noopener noreferrer" className="hover:text-slate-200 dark:hover:text-slate-200 light:hover:text-slate-900 transition-colors">Termos de Uso</a></li>
-              <li><a href="/privacy.html" target="_blank" rel="noopener noreferrer" className="hover:text-slate-200 dark:hover:text-slate-200 light:hover:text-slate-900 transition-colors">Privacidade</a></li>
-              <li><span className="text-slate-500/80 cursor-default">Termos de Cookies</span></li>
+              <li><a href="/terms.html" target="_blank" rel="noopener noreferrer" className="hover:text-slate-200 dark:hover:text-slate-200 light:hover:text-slate-900 transition-colors block w-full">Termos de Uso</a></li>
+              <li><a href="/privacy.html" target="_blank" rel="noopener noreferrer" className="hover:text-slate-200 dark:hover:text-slate-200 light:hover:text-slate-900 transition-colors block w-full">Privacidade</a></li>
+              <li><span className="text-slate-500/80 cursor-default block w-full">Termos de Cookies</span></li>
             </ul>
           </div>
           <div>
             <h4 className="text-[10px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-400 light:text-slate-800 mb-4 font-mono">Fale Conosco</h4>
-            <a href="mailto:suporte@vocentro.com" className="text-[10px] text-slate-500 dark:text-slate-500 light:text-slate-600 font-semibold font-sans leading-relaxed hover:text-slate-200 transition-colors flex items-center gap-1.5">
+            <a href="mailto:suporte@vocentro.com" className="text-[10px] text-slate-500 dark:text-slate-500 light:text-slate-600 font-semibold font-sans leading-relaxed hover:text-slate-200 transition-colors inline-flex items-center gap-1.5">
               <Mail size={12} className="text-brand-accent" />
               suporte@vocentro.com
             </a>
@@ -1118,8 +1128,8 @@ export function LandingPage({ onNavigateToAuth }: LandingPageProps) {
           </div>
         </div>
         <div className="max-w-6xl mx-auto border-t border-slate-900 dark:border-slate-900 light:border-slate-100 mt-12 pt-8 flex flex-col sm:flex-row items-center justify-between text-[9px] text-slate-500 dark:text-slate-500 light:text-slate-600 gap-4 font-sans leading-relaxed font-normal">
-          <span>© 2026 Vocentro. Todos os direitos reservados.</span>
-          <span>Tecnologia avançada em prol da evolução de carreiras e da igualdade de oportunidades.</span>
+          <span className="shrink-0">© 2026 Vocentro. Todos os direitos reservados.</span>
+          <span className="text-center sm:text-right">Tecnologia avançada em prol da evolução de carreiras e da igualdade de oportunidades.</span>
         </div>
       </footer>
     </div>

@@ -2318,6 +2318,7 @@ export function JobMatchHub({
                               onClick={async () => {
                                 recordFeedback({ jobId: selectedJob.id, action: 'SAVED' });
                                 await updateApplicationStatus({ job: selectedJob, status: 'SAVED' });
+                                queryClient.invalidateQueries({ queryKey: ['applications'] });
                                 queryClient.invalidateQueries({ queryKey: ['job-applications-list'] });
                                 queryClient.invalidateQueries({ queryKey: ['user-applications'] });
                                 showToast('✓ Vaga salva na sua jornada', 'success');
@@ -2341,6 +2342,7 @@ export function JobMatchHub({
                               onClick={async () => {
                                 recordFeedback({ jobId: selectedJob.id, action: 'APPLIED' });
                                 await updateApplicationStatus({ job: selectedJob, status: 'APPLIED' });
+                                queryClient.invalidateQueries({ queryKey: ['applications'] });
                                 queryClient.invalidateQueries({ queryKey: ['job-applications-list'] });
                                 queryClient.invalidateQueries({ queryKey: ['user-applications'] });
                                 showToast('✓ Candidatura registrada', 'success');
@@ -2358,7 +2360,7 @@ export function JobMatchHub({
                               title="Marcar Candidatura"
                             >
                               <CheckCircle size={14} className="text-emerald-400" />
-                              <span>Candidatado</span>
+                              <span>Candidatar-se</span>
                             </button>
                             <button
                               onClick={() => setRejectReasonModal(true)}

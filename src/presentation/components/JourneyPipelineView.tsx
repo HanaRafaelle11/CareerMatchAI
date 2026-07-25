@@ -83,7 +83,7 @@ export function JourneyPipelineView({
 
         <div className="premium-card rounded-xl p-4 flex flex-col justify-between">
           <div className="flex items-center justify-between mb-2">
-            <span className="text-[10px] text-slate-500 dark:text-slate-400 font-bold uppercase tracking-wider">Candidatadas</span>
+            <span className="text-[10px] text-slate-500 dark:text-slate-400 font-bold uppercase tracking-wider">Candidaturas</span>
             <CheckCircle size={16} className="text-amber-500" />
           </div>
           <p className="text-2xl font-extrabold text-slate-900 dark:text-slate-100 font-display">{countCandidatadas}</p>

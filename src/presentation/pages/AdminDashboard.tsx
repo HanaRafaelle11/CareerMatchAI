@@ -1101,7 +1101,7 @@ export function AdminDashboard({ userId }: AdminDashboardProps) {
       </div>
 
       {/* Tabs Selector */}
-      <div className="flex border-b border-slate-900 gap-6">
+      <div className="flex border-b border-slate-200 dark:border-slate-900 gap-6">
         {tabs.map(tab => (
           <button
             key={tab.id}
@@ -1111,8 +1111,8 @@ export function AdminDashboard({ userId }: AdminDashboardProps) {
             }}
             className={`pb-3 font-semibold text-xs transition-all relative ${
               activeSubTab === tab.id
-                ? 'text-brand-500 font-bold'
-                : 'text-slate-450 hover:text-slate-200'
+                ? 'text-brand-600 dark:text-brand-500 font-bold'
+                : 'text-slate-700 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 font-medium'
             }`}
           >
             {activeSubTab === tab.id && <span className="absolute bottom-0 left-0 w-full h-[2px] bg-brand-500" />}
@@ -1128,7 +1128,7 @@ export function AdminDashboard({ userId }: AdminDashboardProps) {
       {activeSubTab === 'overview' && (
         <div className="space-y-6 animate-fade-in">
           {isLoadingOverview ? (
-            <div className="flex flex-col items-center justify-center py-24 gap-3 text-slate-400">
+            <div className="flex flex-col items-center justify-center py-24 gap-3 text-slate-600 dark:text-slate-400">
               <Loader2 className="animate-spin text-brand-500" size={28} />
               <span className="text-xs font-semibold">Consolidando métricas operacionais...</span>
             </div>
@@ -1146,14 +1146,14 @@ export function AdminDashboard({ userId }: AdminDashboardProps) {
                   className={`p-4 flex flex-col justify-between hover:scale-[1.01] transition-all duration-300 ${hasUsersAccess ? 'cursor-pointer' : ''}`}
                 >
                   <div className="flex justify-between items-start">
-                    <span className="text-[10px] text-slate-500 font-bold uppercase tracking-wider">Usuários Cadastrados</span>
+                    <span className="text-[10px] text-slate-700 dark:text-slate-400 font-extrabold uppercase tracking-wider">Usuários Cadastrados</span>
                     <Users size={16} className="text-brand-500" />
                   </div>
                   <div className="mt-4">
-                    <span className="text-3xl font-extrabold text-slate-100 font-display">
+                    <span className="text-3xl font-extrabold text-slate-900 dark:text-slate-100 font-display">
                       {overviewStats?.users_count ?? 0}
                     </span>
-                    <span className="text-[9px] text-slate-550 block mt-1">Registros na tabela profiles (clique para ver a lista)</span>
+                    <span className="text-[9px] text-slate-600 dark:text-slate-400 font-medium block mt-1">Registros na tabela profiles (clique para ver a lista)</span>
                   </div>
                 </CardGlass>
 
@@ -1164,14 +1164,14 @@ export function AdminDashboard({ userId }: AdminDashboardProps) {
                   className="p-4 flex flex-col justify-between hover:scale-[1.01] transition-all duration-300 cursor-pointer"
                 >
                   <div className="flex justify-between items-start">
-                    <span className="text-[10px] text-slate-500 font-bold uppercase tracking-wider">Currículos Enviados</span>
+                    <span className="text-[10px] text-slate-700 dark:text-slate-400 font-extrabold uppercase tracking-wider">Currículos Enviados</span>
                     <FileText size={16} className="text-brand-505" />
                   </div>
                   <div className="mt-4">
-                    <span className="text-3xl font-extrabold text-slate-100 font-display">
+                    <span className="text-3xl font-extrabold text-slate-900 dark:text-slate-100 font-display">
                       {overviewStats?.resumes_count ?? 0}
                     </span>
-                    <span className="text-[9px] text-slate-550 block mt-1">Análises de arquivos no Supabase (clique para ver logs)</span>
+                    <span className="text-[9px] text-slate-600 dark:text-slate-400 font-medium block mt-1">Análises de arquivos no Supabase (clique para ver logs)</span>
                   </div>
                 </CardGlass>
 
@@ -1182,14 +1182,14 @@ export function AdminDashboard({ userId }: AdminDashboardProps) {
                   className="p-4 flex flex-col justify-between hover:scale-[1.01] transition-all duration-300 cursor-pointer"
                 >
                   <div className="flex justify-between items-start">
-                    <span className="text-[10px] text-slate-500 font-bold uppercase tracking-wider">Vagas Analisadas</span>
+                    <span className="text-[10px] text-slate-700 dark:text-slate-400 font-extrabold uppercase tracking-wider">Vagas Analisadas</span>
                     <Layers size={16} className="text-purple-400" />
                   </div>
                   <div className="mt-4">
-                    <span className="text-3xl font-extrabold text-slate-100 font-display">
+                    <span className="text-3xl font-extrabold text-slate-900 dark:text-slate-100 font-display">
                       {overviewStats?.matches_count ?? 0}
                     </span>
-                    <span className="text-[9px] text-slate-550 block mt-1">Matches de compatibilidade (clique para ver IA)</span>
+                    <span className="text-[9px] text-slate-600 dark:text-slate-400 font-medium block mt-1">Matches de compatibilidade (clique para ver IA)</span>
                   </div>
                 </CardGlass>
 
@@ -1200,14 +1200,14 @@ export function AdminDashboard({ userId }: AdminDashboardProps) {
                   className="p-4 flex flex-col justify-between hover:scale-[1.01] transition-all duration-300 cursor-pointer"
                 >
                   <div className="flex justify-between items-start">
-                    <span className="text-[10px] text-slate-500 font-bold uppercase tracking-wider">Tempo Médio IA</span>
+                    <span className="text-[10px] text-slate-700 dark:text-slate-400 font-extrabold uppercase tracking-wider">Tempo Médio IA</span>
                     <Clock size={16} className="text-amber-400" />
                   </div>
                   <div className="mt-4">
-                    <span className="text-3xl font-extrabold text-slate-100 font-display">
+                    <span className="text-3xl font-extrabold text-slate-900 dark:text-slate-100 font-display">
                       {overviewStats?.avg_processing_time ?? 0} s
                     </span>
-                    <span className="text-[9px] text-slate-550 block mt-1">Média de processamento por vaga (clique para ver IA)</span>
+                    <span className="text-[9px] text-slate-600 dark:text-slate-400 font-medium block mt-1">Média de processamento por vaga (clique para ver IA)</span>
                   </div>
                 </CardGlass>
               </div>
@@ -1221,14 +1221,14 @@ export function AdminDashboard({ userId }: AdminDashboardProps) {
                   className="p-4 flex flex-col justify-between hover:scale-[1.01] transition-all duration-300 cursor-pointer"
                 >
                   <div className="flex justify-between items-start">
-                    <span className="text-[10px] text-slate-500 font-bold uppercase tracking-wider">Tokens Gemini</span>
+                    <span className="text-[10px] text-slate-700 dark:text-slate-400 font-extrabold uppercase tracking-wider">Tokens Gemini</span>
                     <Bot size={16} className="text-blue-400" />
                   </div>
                   <div className="mt-4">
-                    <span className="text-3xl font-extrabold text-slate-100 font-display font-mono">
+                    <span className="text-3xl font-extrabold text-slate-900 dark:text-slate-100 font-display font-mono">
                       {(overviewStats?.total_tokens ?? 0).toLocaleString()}
                     </span>
-                    <span className="text-[9px] text-slate-550 block mt-1">Acumulado de input/output de IA (clique para ver)</span>
+                    <span className="text-[9px] text-slate-600 dark:text-slate-400 font-medium block mt-1">Acumulado de input/output de IA (clique para ver)</span>
                   </div>
                 </CardGlass>
 
@@ -1239,14 +1239,14 @@ export function AdminDashboard({ userId }: AdminDashboardProps) {
                   className="p-4 flex flex-col justify-between hover:scale-[1.01] transition-all duration-300 cursor-pointer"
                 >
                   <div className="flex justify-between items-start">
-                    <span className="text-[10px] text-slate-500 font-bold uppercase tracking-wider">Taxa de Sucesso</span>
+                    <span className="text-[10px] text-slate-700 dark:text-slate-400 font-extrabold uppercase tracking-wider">Taxa de Sucesso</span>
                     <Activity size={16} className="text-emerald-450" />
                   </div>
                   <div className="mt-4">
-                    <span className="text-3xl font-extrabold text-emerald-400 font-display">
+                    <span className="text-3xl font-extrabold text-emerald-600 dark:text-emerald-400 font-display">
                       {overviewStats?.success_rate ?? 100.0}%
                     </span>
-                    <span className="text-[9px] text-slate-550 block mt-1">Conversão de parsing sem erros (clique para ver logs)</span>
+                    <span className="text-[9px] text-slate-600 dark:text-slate-400 font-medium block mt-1">Conversão de parsing sem erros (clique para ver logs)</span>
                   </div>
                 </CardGlass>
 
@@ -1257,14 +1257,14 @@ export function AdminDashboard({ userId }: AdminDashboardProps) {
                   className="p-4 flex flex-col justify-between hover:scale-[1.01] transition-all duration-300 cursor-pointer"
                 >
                   <div className="flex justify-between items-start">
-                    <span className="text-[10px] text-slate-550 font-bold uppercase tracking-wider">Último Deploy</span>
-                    <Laptop size={16} className="text-slate-400" />
+                    <span className="text-[10px] text-slate-700 dark:text-slate-400 font-extrabold uppercase tracking-wider">Último Deploy</span>
+                    <Laptop size={16} className="text-slate-500" />
                   </div>
                   <div className="mt-4">
-                    <span className="text-3xl font-extrabold text-slate-100 font-display">
+                    <span className="text-3xl font-extrabold text-slate-900 dark:text-slate-100 font-display">
                       {getDeployAge()}
                     </span>
-                    <span className="text-[9px] text-slate-550 block mt-1">Compilação do ambiente (clique para ver logs)</span>
+                    <span className="text-[9px] text-slate-600 dark:text-slate-400 font-medium block mt-1">Compilação do ambiente (clique para ver logs)</span>
                   </div>
                 </CardGlass>
               </div>

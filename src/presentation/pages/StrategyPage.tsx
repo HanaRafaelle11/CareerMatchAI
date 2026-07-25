@@ -1626,19 +1626,19 @@ export function StrategyPage({
       {subTab === 'pipeline' && (
         <div className="space-y-6 animate-slide-in">
           {/* Alternância de Visualização (Toggle) */}
-          <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-3 bg-slate-900/40 p-4 rounded-2xl border border-slate-900">
+          <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-3 bg-slate-100 dark:bg-slate-900/40 p-4 rounded-2xl border border-slate-200 dark:border-slate-900">
             <div>
-              <h3 className="font-display font-bold text-sm text-slate-200">Pipeline de Vagas</h3>
-              <p className="text-[10px] text-slate-500 mt-0.5">Acompanhe e movimente o status de seus processos seletivos.</p>
+              <h3 className="font-display font-bold text-sm text-slate-900 dark:text-slate-200">Pipeline de Vagas</h3>
+              <p className="text-[10px] text-slate-700 dark:text-slate-400 mt-0.5 font-medium">Acompanhe e movimente o status de seus processos seletivos.</p>
             </div>
-            <div className="flex bg-slate-900 border border-slate-800 p-0.5 rounded-xl shrink-0">
+            <div className="flex bg-slate-200 dark:bg-slate-900 border border-slate-300 dark:border-slate-800 p-0.5 rounded-xl shrink-0">
               <button
                 type="button"
                 onClick={() => setViewMode('kanban')}
                 className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
                   viewMode === 'kanban'
                     ? 'bg-brand-600 text-white shadow-md'
-                    : 'text-slate-400 hover:text-slate-200'
+                    : 'text-slate-700 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'
                 }`}
               >
                 <Layout size={13} />
@@ -1650,7 +1650,7 @@ export function StrategyPage({
                 className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
                   viewMode === 'list'
                     ? 'bg-brand-600 text-white shadow-md'
-                    : 'text-slate-400 hover:text-slate-200'
+                    : 'text-slate-700 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'
                 }`}
               >
                 <List size={13} />
@@ -1674,15 +1674,15 @@ export function StrategyPage({
                   }
                 }
               }}
-              className={`p-3 rounded-2xl border ${col.color} min-w-[220px] flex flex-col gap-3 min-h-[550px] transition-all hover:bg-slate-900/5`}
+              className={`p-3 rounded-2xl border ${col.color} min-w-[220px] flex flex-col gap-3 min-h-[550px] transition-all hover:bg-slate-100/50 dark:hover:bg-slate-900/5`}
             >
-              <div className="flex justify-between items-center pb-2 border-b border-slate-900">
-                <span className="font-bold text-xs text-slate-200">{col.title}</span>
-                <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-slate-900/40 text-slate-405">{col.apps.length}</span>
+              <div className="flex justify-between items-center pb-2 border-b border-slate-300 dark:border-slate-800">
+                <span className="font-bold text-xs text-slate-900 dark:text-slate-100">{col.title}</span>
+                <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-slate-200 dark:bg-slate-900/40 text-slate-900 dark:text-slate-100 border border-slate-300 dark:border-slate-800">{col.apps.length}</span>
               </div>
 
               {col.apps.length === 0 ? (
-                <div className="py-16 border border-dashed border-slate-900/60 rounded-xl text-center text-[10px] text-slate-600">
+                <div className="py-16 border border-dashed border-slate-300 dark:border-slate-800 rounded-xl text-center text-[10px] text-slate-700 dark:text-slate-400 font-semibold">
                   Sem processos
                 </div>
               ) : (

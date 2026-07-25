@@ -54,7 +54,7 @@ export function useApplications(userId: string | undefined, resumeVersionId?: st
   const queryClient = useQueryClient();
 
   const applicationsQuery = useQuery<Application[]>({
-    queryKey: ['applications', userId, resumeVersionId],
+    queryKey: ['applications', userId],
     queryFn: async () => {
       if (!userId) return [];
       if (isSupabaseConfigured && supabase) {
@@ -63,11 +63,8 @@ export function useApplications(userId: string | undefined, resumeVersionId?: st
           .select('*')
           .eq('user_id', userId);
 
-        if (resumeVersionId) {
-          query = query.eq('resume_version_id', resumeVersionId);
-        } else {
-          query = query.is('resume_version_id', null);
-        }
+        // Do NOT filter by resume_version_id — saved/applied jobs must always be visible
+        // regardless of which resume version is currently selected
 
         const { data, error } = await query.order('created_at', { ascending: false });
 

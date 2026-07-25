@@ -82,6 +82,19 @@ function getMockUserDetails(user: any) {
 
 declare const __BUILD_TIME__: string;
 
+function getRelativeTime(dateStr: string): string {
+  const date = new Date(dateStr);
+  if (isNaN(date.getTime())) return '';
+  const diffMs = Date.now() - date.getTime();
+  const diffMin = Math.floor(diffMs / 60000);
+  if (diffMin < 1) return 'agora';
+  if (diffMin < 60) return `há ${diffMin} min`;
+  const diffHr = Math.floor(diffMin / 60);
+  if (diffHr < 24) return `há ${diffHr}h`;
+  const diffDays = Math.floor(diffHr / 24);
+  return `há ${diffDays}d`;
+}
+
 export function AdminDashboard({ userId }: AdminDashboardProps) {
   const queryClient = useQueryClient();
   const [activeSubTab, setActiveSubTab] = useState('overview');
@@ -265,16 +278,7 @@ export function AdminDashboard({ userId }: AdminDashboardProps) {
     queryKey: ['admin-provider-stats'],
     queryFn: async () => {
       if (!isSupabaseConfigured || !supabase) {
-        return [
-          { provider: 'Adzuna', calls: 140, avg_latency: 980, success_rate: 96.5, last_run: '13:42:10', total_jobs: 210, discarded: 18, duplicates: 14, errors: 4, healthScore: 92 },
-          { provider: 'Remotive', calls: 124, avg_latency: 1450, success_rate: 100, last_run: '13:40:15', total_jobs: 145, discarded: 12, duplicates: 8, errors: 0, healthScore: 98 },
-          { provider: 'RemoteOK', calls: 98, avg_latency: 2100, success_rate: 89.2, last_run: '13:38:22', total_jobs: 90, discarded: 9, duplicates: 6, errors: 11, healthScore: 84 },
-          { provider: 'Arbeitnow', calls: 105, avg_latency: 1250, success_rate: 98.0, last_run: '13:35:12', total_jobs: 120, discarded: 11, duplicates: 7, errors: 2, healthScore: 96 },
-          { provider: 'Greenhouse', calls: 82, avg_latency: 120, success_rate: 100, last_run: '13:31:05', total_jobs: 82, discarded: 0, duplicates: 0, errors: 0, healthScore: 100 },
-          { provider: 'Lever', calls: 82, avg_latency: 140, success_rate: 100, last_run: '13:30:10', total_jobs: 82, discarded: 0, duplicates: 0, errors: 0, healthScore: 100 },
-          { provider: 'Ashby', calls: 82, avg_latency: 130, success_rate: 100, last_run: '13:28:44', total_jobs: 82, discarded: 0, duplicates: 0, errors: 0, healthScore: 100 },
-          { provider: 'Gupy', calls: 115, avg_latency: 850, success_rate: 98.2, last_run: '13:41:55', total_jobs: 195, discarded: 15, duplicates: 11, errors: 2, healthScore: 97 }
-        ];
+        return []; // No fake data — show empty state
       }
 
       const { data, error } = await supabase
@@ -290,9 +294,12 @@ export function AdminDashboard({ userId }: AdminDashboardProps) {
         started: number; 
         finished: number; 
         failed: number; 
+        skipped: number;
         total_latency: number; 
         total_jobs: number;
         last_run?: string;
+        last_http_status?: number | null;
+        tier?: string;
       }> = {};
       
       (data || []).forEach(evt => {
@@ -301,11 +308,19 @@ export function AdminDashboard({ userId }: AdminDashboardProps) {
 
         const providerName = metadata?.service || 'Desconhecido';
         if (!statsMap[providerName]) {
-          statsMap[providerName] = { started: 0, finished: 0, failed: 0, total_latency: 0, total_jobs: 0 };
+          statsMap[providerName] = { started: 0, finished: 0, failed: 0, skipped: 0, total_latency: 0, total_jobs: 0 };
         }
 
         if (!statsMap[providerName].last_run) {
           statsMap[providerName].last_run = evt.created_at;
+        }
+
+        if (metadata?.tier && !statsMap[providerName].tier) {
+          statsMap[providerName].tier = metadata.tier;
+        }
+
+        if (metadata?.http_status && !statsMap[providerName].last_http_status) {
+          statsMap[providerName].last_http_status = metadata.http_status;
         }
 
         if (evt.event_name === 'provider_started') {
@@ -317,6 +332,8 @@ export function AdminDashboard({ userId }: AdminDashboardProps) {
         } else if (evt.event_name === 'provider_failed') {
           statsMap[providerName].failed += 1;
           statsMap[providerName].total_latency += Number(metadata?.duration_ms || 0);
+        } else if (evt.event_name === 'provider_skipped') {
+          statsMap[providerName].skipped += 1;
         }
       });
 
@@ -328,12 +345,38 @@ export function AdminDashboard({ userId }: AdminDashboardProps) {
         const totalAttempts = stats.started || (stats.finished + stats.failed);
         const successRate = totalAttempts > 0 
           ? Math.round((stats.finished * 100) / totalAttempts) 
-          : 100;
-
-        const duplicates = Math.round(stats.total_jobs * 0.12);
-        const discarded = Math.round(stats.total_jobs * 0.08);
+          : 0;
 
         const healthScore = Math.max(0, Math.min(100, Math.round(successRate * 0.8 + (100 - Math.min(100, avg_latency / 30)) * 0.2)));
+
+        // Real status based on actual data
+        const apiKeyMissing = stats.skipped > 0;
+        const lastHttpStatus = stats.last_http_status || null;
+        let realStatus = 'Operando';
+        let statusColor = 'emerald';
+        
+        if (apiKeyMissing) {
+          realStatus = 'Sem chave configurada';
+          statusColor = 'red';
+        } else if (lastHttpStatus === 401 || lastHttpStatus === 403) {
+          realStatus = 'Erro de autenticação';
+          statusColor = 'red';
+        } else if (lastHttpStatus === 429) {
+          realStatus = 'Limite excedido';
+          statusColor = 'amber';
+        } else if (stats.failed > totalAttempts * 0.5) {
+          realStatus = 'Instável';
+          statusColor = 'red';
+        } else if (stats.total_jobs === 0 && totalAttempts > 0) {
+          realStatus = 'Sem resultados';
+          statusColor = 'amber';
+        } else if (avg_latency > 3000) {
+          realStatus = 'Timeout frequente';
+          statusColor = 'amber';
+        } else if (totalAttempts === 0) {
+          realStatus = 'Aguardando';
+          statusColor = 'slate';
+        }
 
         return {
           provider,
@@ -341,26 +384,15 @@ export function AdminDashboard({ userId }: AdminDashboardProps) {
           avg_latency,
           success_rate: successRate,
           last_run: stats.last_run ? new Date(stats.last_run).toLocaleTimeString() : 'N/A',
+          last_run_relative: stats.last_run ? getRelativeTime(stats.last_run) : 'Nunca',
           total_jobs: stats.total_jobs,
-          discarded,
-          duplicates,
           errors: stats.failed,
-          healthScore
+          healthScore,
+          realStatus,
+          statusColor,
+          tier: (stats as any).tier || 'B'
         };
       });
-
-      if (list.length === 0) {
-        return [
-          { provider: 'Adzuna', calls: 140, avg_latency: 980, success_rate: 96.5, last_run: '13:42:10', total_jobs: 210, discarded: 18, duplicates: 14, errors: 4, healthScore: 92 },
-          { provider: 'Remotive', calls: 124, avg_latency: 1450, success_rate: 100, last_run: '13:40:15', total_jobs: 145, discarded: 12, duplicates: 8, errors: 0, healthScore: 98 },
-          { provider: 'RemoteOK', calls: 98, avg_latency: 2100, success_rate: 89.2, last_run: '13:38:22', total_jobs: 90, discarded: 9, duplicates: 6, errors: 11, healthScore: 84 },
-          { provider: 'Arbeitnow', calls: 105, avg_latency: 1250, success_rate: 98.0, last_run: '13:35:12', total_jobs: 120, discarded: 11, duplicates: 7, errors: 2, healthScore: 96 },
-          { provider: 'Greenhouse', calls: 82, avg_latency: 120, success_rate: 100, last_run: '13:31:05', total_jobs: 82, discarded: 0, duplicates: 0, errors: 0, healthScore: 100 },
-          { provider: 'Lever', calls: 82, avg_latency: 140, success_rate: 100, last_run: '13:30:10', total_jobs: 82, discarded: 0, duplicates: 0, errors: 0, healthScore: 100 },
-          { provider: 'Ashby', calls: 82, avg_latency: 130, success_rate: 100, last_run: '13:28:44', total_jobs: 82, discarded: 0, duplicates: 0, errors: 0, healthScore: 100 },
-          { provider: 'Gupy', calls: 115, avg_latency: 850, success_rate: 98.2, last_run: '13:41:55', total_jobs: 195, discarded: 15, duplicates: 11, errors: 2, healthScore: 97 }
-        ];
-      }
 
       return list;
     },
@@ -1791,57 +1823,48 @@ export function AdminDashboard({ userId }: AdminDashboardProps) {
                     Calculando dados de eventos...
                   </div>
                 ) : providerStats.length === 0 ? (
-                  <p className="text-xs text-slate-500 py-4 text-center">Nenhuma busca de vaga registrada nos logs de telemetria.</p>
+                  <p className="text-xs text-slate-500 dark:text-slate-400 py-6 text-center">Nenhuma busca de vaga registrada. Aguardando primeira sincronização.</p>
                 ) : (
                   <div className="overflow-x-auto">
                     <table className="w-full text-left text-xs border-collapse">
                       <thead>
-                        <tr className="text-slate-500 font-bold border-b border-slate-900/50">
+                        <tr className="text-slate-600 dark:text-slate-500 font-bold border-b border-slate-200 dark:border-slate-900/50">
                           <th className="pb-2">Provedor / API</th>
                           <th className="pb-2 text-center">Consultas</th>
-                          <th className="pb-2 text-center">Vagas Encontradas</th>
-                          <th className="pb-2 text-center">Descartadas</th>
-                          <th className="pb-2 text-center">Duplicadas</th>
-                          <th className="pb-2 text-center">Erros / Timeouts</th>
+                          <th className="pb-2 text-center">Vagas</th>
+                          <th className="pb-2 text-center">Erros</th>
                           <th className="pb-2 text-center">Latência</th>
                           <th className="pb-2 text-center">Última Execução</th>
-                          <th className="pb-2 text-center">Health Score</th>
                           <th className="pb-2 text-right">Status</th>
                         </tr>
                       </thead>
-                      <tbody className="divide-y divide-slate-900/40">
+                      <tbody className="divide-y divide-slate-200/60 dark:divide-slate-900/40">
                         {providerStats.map((stat: any, idx: number) => {
-                          const isHealthy = stat.healthScore >= 90;
-                          const isWarning = stat.healthScore >= 70 && stat.healthScore < 90;
+                          const statusColorMap: Record<string, string> = {
+                            emerald: 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20',
+                            amber: 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20',
+                            red: 'bg-red-500/10 text-red-600 dark:text-red-400 border border-red-500/20',
+                            slate: 'bg-slate-500/10 text-slate-600 dark:text-slate-400 border border-slate-500/20'
+                          };
+                          const statusClasses = statusColorMap[stat.statusColor] || statusColorMap.slate;
+                          const dotColor = stat.statusColor === 'emerald' ? 'bg-emerald-500' : 
+                                           stat.statusColor === 'amber' ? 'bg-amber-500' : 
+                                           stat.statusColor === 'red' ? 'bg-red-500' : 'bg-slate-500';
                           return (
-                            <tr key={idx} className="hover:bg-slate-900/10 transition-colors">
-                              <td className="py-2.5 font-semibold text-slate-200">{stat.provider}</td>
-                              <td className="py-2.5 text-center font-mono text-slate-350">{stat.calls}</td>
-                              <td className="py-2.5 text-center font-mono text-emerald-400 font-semibold">{stat.total_jobs}</td>
-                              <td className="py-2.5 text-center font-mono text-slate-500">{stat.discarded}</td>
-                              <td className="py-2.5 text-center font-mono text-amber-550">{stat.duplicates}</td>
-                              <td className="py-2.5 text-center font-mono text-red-400">{stat.errors}</td>
-                              <td className="py-2.5 text-center font-mono text-slate-350">{stat.avg_latency}ms</td>
-                              <td className="py-2.5 text-center font-mono text-slate-400">{stat.last_run}</td>
+                            <tr key={idx} className="hover:bg-slate-100/50 dark:hover:bg-slate-900/10 transition-colors">
+                              <td className="py-2.5 font-semibold text-slate-800 dark:text-slate-200">{stat.provider}</td>
+                              <td className="py-2.5 text-center font-mono text-slate-600 dark:text-slate-350">{stat.calls}</td>
+                              <td className="py-2.5 text-center font-mono text-emerald-600 dark:text-emerald-400 font-semibold">{stat.total_jobs}</td>
+                              <td className="py-2.5 text-center font-mono text-red-500 dark:text-red-400">{stat.errors}</td>
+                              <td className="py-2.5 text-center font-mono text-slate-600 dark:text-slate-350">{stat.avg_latency}ms</td>
                               <td className="py-2.5 text-center">
-                                <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${
-                                  isHealthy 
-                                    ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' 
-                                    : isWarning 
-                                      ? 'bg-amber-500/10 text-amber-455 border border-amber-500/20'
-                                      : 'bg-red-500/10 text-red-400 border border-red-500/20'
-                                }`}>
-                                  {stat.healthScore}%
-                                </span>
+                                <div className="text-slate-600 dark:text-slate-400 font-mono">{stat.last_run}</div>
+                                <div className="text-[9px] text-slate-500">{stat.last_run_relative || ''}</div>
                               </td>
                               <td className="py-2.5 text-right">
-                                <span className={`inline-flex items-center gap-1 text-[10px] font-bold ${
-                                  stat.errors > 2 ? 'text-amber-500' : 'text-emerald-450'
-                                }`}>
-                                  <span className={`h-1.5 w-1.5 rounded-full ${
-                                    stat.errors > 2 ? 'bg-amber-500 animate-pulse' : 'bg-emerald-500 animate-pulse'
-                                  }`} />
-                                  {stat.errors > 2 ? 'Timeout / Instável' : 'Operando'}
+                                <span className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-[10px] font-bold ${statusClasses}`}>
+                                  <span className={`h-1.5 w-1.5 rounded-full ${dotColor} ${stat.statusColor === 'emerald' ? 'animate-pulse' : ''}`} />
+                                  {stat.realStatus || 'Desconhecido'}
                                 </span>
                               </td>
                             </tr>

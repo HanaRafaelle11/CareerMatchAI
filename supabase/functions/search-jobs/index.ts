@@ -35,6 +35,57 @@ const corsHeaders = {
   'Access-Control-Allow-Methods': 'POST, GET, OPTIONS',
 }
 
+// ── TIER SYSTEM ──
+// Tier A: Major ATS platforms + Brazilian platforms with high volume
+// Tier B: Secondary aggregators
+// Tier C: Niche / low-volume sources (only queried when needed)
+interface TieredConnector {
+  connector: any;
+  tier: 'A' | 'B' | 'C';
+}
+
+const TIERED_CONNECTORS: TieredConnector[] = [
+  // Tier A — Priority platforms
+  { connector: new GupyConnector(), tier: 'A' },
+  { connector: new AdzunaConnector(), tier: 'A' },
+  { connector: new GreenhouseConnector(), tier: 'A' },
+  { connector: new LeverConnector(), tier: 'A' },
+  { connector: new WorkableConnector(), tier: 'A' },
+  { connector: new SmartRecruitersConnector(), tier: 'A' },
+  { connector: new TeamtailorConnector(), tier: 'A' },
+  { connector: new AshbyConnector(), tier: 'A' },
+  { connector: new RecruiteeConnector(), tier: 'A' },
+  
+  // Tier B — Secondary aggregators
+  { connector: new RemotiveConnector(), tier: 'B' },
+  { connector: new RemoteOkConnector(), tier: 'B' },
+  { connector: new JoobleConnector(), tier: 'B' },
+  { connector: new SerpApiConnector(), tier: 'B' },
+  { connector: new ArbeitnowConnector(), tier: 'B' },
+  
+  // Tier C — Brazilian niche platforms
+  { connector: new ProgramathorConnector(), tier: 'C' },
+  { connector: new TramposConnector(), tier: 'C' },
+  { connector: new GeekHunterConnector(), tier: 'C' },
+  { connector: new ReveloConnector(), tier: 'C' },
+  { connector: new AblerConnector(), tier: 'C' },
+  { connector: new BambooHRConnector(), tier: 'C' },
+  { connector: new ComeetConnector(), tier: 'C' },
+];
+
+// ── Provider Diagnostic ──
+interface ProviderDiagnostic {
+  name: string;
+  tier: 'A' | 'B' | 'C';
+  status: 'ok' | 'skipped' | 'failed' | 'timeout' | 'no_results' | 'no_key';
+  apiKeyPresent: boolean;
+  httpStatus: number | null;
+  responseTimeMs: number;
+  rawJobsReturned: number;
+  errorType: string | null;
+  errorMessage: string | null;
+}
+
 // Resilient fetch with exponential backoff
 async function fetchWithRetry(url: string, options: any, maxRetries = 3): Promise<Response> {
   const delays = [2000, 4000, 8000];
@@ -67,12 +118,12 @@ async function classifyIntentWithGemini(
 The response must be valid JSON matching this schema:
 {
   "family": "The job family or category name (e.g., 'Customer Success', 'Software Engineering')",
-  "primary_titles": ["The most common/standard exact titles for this role (e.g., ['Customer Success Manager', 'Customer Success Specialist'])"],
-  "secondary_titles": ["Alternative titles, synonyms, related roles, abbreviations, or specialized variants (e.g., ['CSM', 'Client Success', 'Onboarding Specialist', 'Implementation Consultant', 'Customer Success Engineer'])"],
-  "negative_titles": ["Unrelated roles that might share words or overlap but are completely different professions and should be explicitly excluded (e.g., ['Software Engineer', 'Sales Representative', 'Product Manager'])"],
-  "skills": ["Key required technical/functional skills, tags, tools, or methodologies associated with this role (e.g., ['CRM', 'NPS', 'CSAT', 'Retention', 'Onboarding'])"],
-  "preferred_skills": ["Secondary, optional, or preferred skills that are nice to have but not required (e.g., ['Zendesk', 'SQL', 'SaaS experience'])"],
-  "negative_keywords": ["Keywords or warning signs in the job posting that indicate the role is a mismatch (e.g., ['quota', 'cold calling', 'sales target' for relationship CS roles])"]
+  "primary_titles": ["The most common/standard exact titles for this role"],
+  "secondary_titles": ["Alternative titles, synonyms, related roles"],
+  "negative_titles": ["Unrelated roles that might share words"],
+  "skills": ["Key required technical/functional skills"],
+  "preferred_skills": ["Secondary, optional skills"],
+  "negative_keywords": ["Keywords indicating a mismatch"]
 }
 Do not include any explanation, backticks, or markdown formatting, just the raw JSON.`;
 
@@ -93,16 +144,10 @@ Do not include any explanation, backticks, or markdown formatting, just the raw 
       
       const response = await fetchWithRetry(targetUrl, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          contents: [{
-            parts: [{ text: prompt }]
-          }],
-          generationConfig: {
-            responseMimeType: "application/json"
-          }
+          contents: [{ parts: [{ text: prompt }] }],
+          generationConfig: { responseMimeType: "application/json" }
         })
       });
 
@@ -127,7 +172,6 @@ Do not include any explanation, backticks, or markdown formatting, just the raw 
   throw new Error(`Failed to classify intent with Gemini: ${lastError?.message || lastError}`);
 }
 
-// Fallback classifier in case of Gemini failures
 function getFallbackIntent(keyword: string): JobIntent {
   return {
     family: keyword,
@@ -169,30 +213,87 @@ async function logAnalyticsEvent(
   }
 }
 
-// List of all active connectors
-const ACTIVE_CONNECTORS = [
-  new AdzunaConnector(),
-  new JoobleConnector(),
-  new SerpApiConnector(),
-  new RemotiveConnector(),
-  new RemoteOkConnector(),
-  new ArbeitnowConnector(),
-  new GreenhouseConnector(),
-  new LeverConnector(),
-  new AshbyConnector(),
-  new SmartRecruitersConnector(),
-  new WorkableConnector(),
-  new RecruiteeConnector(),
-  new TeamtailorConnector(),
-  new BambooHRConnector(),
-  new ComeetConnector(),
-  new GupyConnector(),
-  new ProgramathorConnector(),
-  new TramposConnector(),
-  new GeekHunterConnector(),
-  new ReveloConnector(),
-  new AblerConnector()
-];
+// ── Classify HTTP errors ──
+function classifyHttpError(status: number): string {
+  if (status === 401 || status === 403) return 'AUTH_FAILED';
+  if (status === 429) return 'QUOTA_EXCEEDED';
+  if (status >= 500) return 'SERVER_ERROR';
+  if (status === 408) return 'TIMEOUT';
+  return 'HTTP_ERROR';
+}
+
+// ── Execute connector with REAL timeout and diagnostics ──
+async function executeConnectorWithDiag(
+  tieredConn: TieredConnector,
+  keyword: string,
+  location: string,
+  pageNum: number,
+  timeoutMs: number = 4000
+): Promise<{ diagnostic: ProviderDiagnostic; jobs: any[] }> {
+  const { connector, tier } = tieredConn;
+  const start = Date.now();
+  const name = connector.platformName;
+
+  try {
+    // Real timeout using AbortController + Promise.race
+    const timeoutPromise = new Promise<never>((_, reject) => {
+      setTimeout(() => reject(new Error('TIMEOUT')), timeoutMs);
+    });
+
+    const searchPromise = connector.searchJobs(keyword, location, pageNum);
+    const jobs = await Promise.race([searchPromise, timeoutPromise]);
+    
+    const duration = Date.now() - start;
+    const jobCount = Array.isArray(jobs) ? jobs.length : 0;
+
+    return {
+      diagnostic: {
+        name,
+        tier,
+        status: jobCount > 0 ? 'ok' : 'no_results',
+        apiKeyPresent: true,
+        httpStatus: 200,
+        responseTimeMs: duration,
+        rawJobsReturned: jobCount,
+        errorType: null,
+        errorMessage: null
+      },
+      jobs: jobs || []
+    };
+  } catch (err: any) {
+    const duration = Date.now() - start;
+    const isTimeout = err.message === 'TIMEOUT' || err.name === 'AbortError';
+    
+    // Try to extract HTTP status from error message
+    let httpStatus: number | null = null;
+    let errorType = isTimeout ? 'TIMEOUT' : 'NETWORK_ERROR';
+    const statusMatch = err.message?.match(/status\s+(\d{3})/i);
+    if (statusMatch) {
+      httpStatus = parseInt(statusMatch[1]);
+      errorType = classifyHttpError(httpStatus);
+    }
+
+    // Check if it's a missing API key
+    const isNoKey = err.message?.toLowerCase().includes('não configurad') || 
+                    err.message?.toLowerCase().includes('not configured') ||
+                    err.message?.toLowerCase().includes('key');
+
+    return {
+      diagnostic: {
+        name,
+        tier,
+        status: isNoKey ? 'no_key' : isTimeout ? 'timeout' : 'failed',
+        apiKeyPresent: !isNoKey,
+        httpStatus,
+        responseTimeMs: duration,
+        rawJobsReturned: 0,
+        errorType,
+        errorMessage: err.message?.substring(0, 200) || 'Unknown error'
+      },
+      jobs: []
+    };
+  }
+}
 
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
@@ -249,7 +350,7 @@ serve(async (req) => {
 
     await logAnalyticsEvent(supabaseClient, resolvedUserId, 'cache_miss', 'Cache', 'completed', { queryKey });
 
-    // ── 1.5. ENVIAR KEYWORD AO GEMINI PARA MAPEAMENTO DE INTENÇÃO SEMÂNTICA ──
+    // ── 1.5. GEMINI INTENT CLASSIFICATION ──
     let intent: JobIntent;
     const geminiApiKey = Deno.env.get('GEMINI_API_KEY');
     if (!geminiApiKey) {
@@ -264,57 +365,80 @@ serve(async (req) => {
       }
     }
 
-    // ── 2. INICIAR BUSCA PARALELA EM PROVEDORES ──
-    let rawJobsList: any[] = [];
-    const connectorsToRun = provider
-      ? ACTIVE_CONNECTORS.filter(c => c.platformName.toUpperCase().includes(provider.toUpperCase()))
-      : ACTIVE_CONNECTORS;
-    const listToExecute = connectorsToRun.length > 0 ? connectorsToRun : ACTIVE_CONNECTORS;
-
-    const promises = listToExecute.map(async (connector) => {
-      const start = Date.now();
-      await logAnalyticsEvent(supabaseClient, resolvedUserId, 'provider_started', connector.platformName, 'started', { keyword: searchKeyword });
-
-      try {
-        const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 3500);
-
-        const connectorResult = await connector.searchJobs(searchKeyword, searchLocation, pageNum);
-        clearTimeout(timeoutId);
-
-        const duration = Date.now() - start;
-        await logAnalyticsEvent(supabaseClient, resolvedUserId, 'provider_finished', connector.platformName, 'completed', {
-          count: connectorResult.length,
-          duration_ms: duration
-        });
-
-        return { name: connector.platformName, jobs: connectorResult, success: true };
-      } catch (err) {
-        const duration = Date.now() - start;
-        console.error(`[Aggregator] Falha no conector ${connector.platformName}:`, err.message);
-        await logAnalyticsEvent(supabaseClient, resolvedUserId, 'provider_failed', connector.platformName, 'failed', {
-          error: err.message,
-          duration_ms: duration
-        });
-        return { name: connector.platformName, jobs: [], success: false, error: err.message };
-      }
-    });
-
-    const settledResults = await Promise.allSettled(promises);
+    // ── 2. SELECT CONNECTORS TO RUN ──
+    let connectorsToRun: TieredConnector[];
     
-    let totalCount = 0;
-    settledResults.forEach((r) => {
+    if (provider) {
+      // Legacy: specific provider requested
+      connectorsToRun = TIERED_CONNECTORS.filter(tc => 
+        tc.connector.platformName.toUpperCase().includes(provider.toUpperCase())
+      );
+      if (connectorsToRun.length === 0) {
+        connectorsToRun = TIERED_CONNECTORS; // fallback to all
+      }
+    } else {
+      // Unified aggregated mode: run Tier A + B always, Tier C only for Brazilian searches
+      const locLower = searchLocation.toLowerCase();
+      const isBrazilianSearch = /brasil|brazil|br|são paulo|rio|belo horizonte|curitiba|porto alegre|sp|rj|mg/i.test(locLower);
+      
+      connectorsToRun = TIERED_CONNECTORS.filter(tc => {
+        if (tc.tier === 'A' || tc.tier === 'B') return true;
+        // Tier C only runs for Brazilian searches or when explicitly requested
+        if (tc.tier === 'C' && isBrazilianSearch) return true;
+        return false;
+      });
+    }
+
+    console.log(`[AGGREGATOR] Running ${connectorsToRun.length} connectors for "${searchKeyword}" in "${searchLocation}"`);
+    console.log(`[AGGREGATOR] Connectors: ${connectorsToRun.map(tc => `${tc.connector.platformName} (${tc.tier})`).join(', ')}`);
+
+    // ── 3. EXECUTE ALL CONNECTORS IN PARALLEL WITH REAL TIMEOUT ──
+    const diagnostics: ProviderDiagnostic[] = [];
+    let rawJobsList: any[] = [];
+
+    // Tier A gets 4s timeout, Tier B gets 3.5s, Tier C gets 3s
+    const tierTimeouts: Record<string, number> = { A: 4000, B: 3500, C: 3000 };
+
+    const promises = connectorsToRun.map(tc => 
+      executeConnectorWithDiag(tc, searchKeyword, searchLocation, pageNum, tierTimeouts[tc.tier])
+    );
+
+    const results = await Promise.allSettled(promises);
+
+    results.forEach((r) => {
       if (r.status === 'fulfilled') {
-        rawJobsList = [...rawJobsList, ...r.value.jobs];
-        totalCount += r.value.jobs.length;
+        diagnostics.push(r.value.diagnostic);
+        if (r.value.jobs.length > 0) {
+          rawJobsList = [...rawJobsList, ...r.value.jobs];
+        }
+
+        // Log analytics event per provider
+        const diag = r.value.diagnostic;
+        const eventName = diag.status === 'ok' ? 'provider_finished' : 
+                          diag.status === 'no_key' ? 'provider_skipped' : 'provider_failed';
+        
+        logAnalyticsEvent(supabaseClient, resolvedUserId, eventName, diag.name, diag.status, {
+          tier: diag.tier,
+          count: diag.rawJobsReturned,
+          duration_ms: diag.responseTimeMs,
+          http_status: diag.httpStatus,
+          api_key_present: diag.apiKeyPresent,
+          error_type: diag.errorType,
+          error_message: diag.errorMessage
+        });
+      } else {
+        console.error(`[AGGREGATOR] Promise rejected:`, r.reason);
       }
     });
 
-    // ── 3. AGREGADOR INTELIGENTE (NORMALIZAÇÃO, DEDUPLICAÇÃO & SCORING SEMÂNTICO) ──
+    const totalCount = rawJobsList.length;
+    console.log(`[AGGREGATOR] Total raw jobs: ${totalCount} from ${diagnostics.filter(d => d.status === 'ok').length} successful providers`);
+
+    // ── 4. AGGREGATE, NORMALIZE, DEDUPLICATE & RANK ──
     const normalizedJobs = aggregateAndNormalizeJobs(rawJobsList, intent, searchLocation);
     const duplicatesRemoved = totalCount - normalizedJobs.length;
 
-    // ── 3.5. FILTRO GEOGRÁFICO — Priorizar Brasil quando localização brasileira ──
+    // ── 4.5. GEO FILTER ──
     const locLower = searchLocation.toLowerCase();
     const isBrazilianSearch = /brasil|brazil|br|são paulo|rio de janeiro|belo horizonte|curitiba|porto alegre|recife|salvador|fortaleza|brasília|campinas|goiânia|manaus|belém|florianópolis|sp|rj|mg|pr|rs|sc|ba|pe|ce|df|go|am|pa/i.test(locLower);
     
@@ -331,45 +455,54 @@ serve(async (req) => {
         if (jobLoc.includes('remot') || jobLoc === '' || jobLoc === 'remote' || jobLoc.includes('anywhere') || jobLoc.includes('worldwide')) {
           return true;
         }
-        if (nonBrazilPatterns.test(jobLoc) || nonBrazilPatterns.test(jobDesc)) {
-          return false;
-        }
-        if (foreignLangPatterns.test(jobTitle)) {
-          return false;
-        }
+        if (nonBrazilPatterns.test(jobLoc) || nonBrazilPatterns.test(jobDesc)) return false;
+        if (foreignLangPatterns.test(jobTitle)) return false;
         return true;
       });
     }
 
-    // Log stats
-    await logAnalyticsEvent(supabaseClient, resolvedUserId, 'jobs_normalized', 'Aggregator', 'completed', { count: totalCount });
-    await logAnalyticsEvent(supabaseClient, resolvedUserId, 'jobs_deduplicated', 'Aggregator', 'completed', { duplicates_count: duplicatesRemoved });
-    await logAnalyticsEvent(supabaseClient, resolvedUserId, 'jobs_intent_classified', 'Aggregator', 'completed', { family: intent.family });
-    await logAnalyticsEvent(supabaseClient, resolvedUserId, 'jobs_geo_filtered', 'Aggregator', 'completed', { before: normalizedJobs.length, after: filteredJobs.length, location: searchLocation });
-    await logAnalyticsEvent(supabaseClient, resolvedUserId, 'jobs_ranked', 'Aggregator', 'completed', { ranked_count: filteredJobs.length });
+    // ── 5. LOG DIAGNOSTICS SUMMARY ──
+    console.log(`
+========== AGGREGATOR DIAGNOSTICS ==========
+Connectors executed: ${diagnostics.length}
+Successful: ${diagnostics.filter(d => d.status === 'ok').length}
+No results: ${diagnostics.filter(d => d.status === 'no_results').length}
+No key: ${diagnostics.filter(d => d.status === 'no_key').length}
+Failed: ${diagnostics.filter(d => d.status === 'failed').length}
+Timeout: ${diagnostics.filter(d => d.status === 'timeout').length}
+
+Per provider:
+${diagnostics.map(d => `  ${d.status === 'ok' ? '✔' : '✖'} ${d.name} (${d.tier}): ${d.status} | ${d.rawJobsReturned} jobs | ${d.responseTimeMs}ms${d.errorType ? ` | ${d.errorType}` : ''}`).join('\n')}
+
+Raw jobs: ${totalCount}
+After normalization: ${normalizedJobs.length} (${duplicatesRemoved} duplicates removed)
+After geo filter: ${filteredJobs.length}
+Total time: ${Date.now() - requestStartTime}ms
+=============================================
+    `);
+
+    // Log aggregated stats
+    await logAnalyticsEvent(supabaseClient, resolvedUserId, 'aggregator_completed', 'Aggregator', 'completed', {
+      connectors_run: diagnostics.length,
+      connectors_ok: diagnostics.filter(d => d.status === 'ok').length,
+      connectors_failed: diagnostics.filter(d => d.status === 'failed' || d.status === 'timeout').length,
+      connectors_no_key: diagnostics.filter(d => d.status === 'no_key').length,
+      raw_jobs: totalCount,
+      normalized_jobs: normalizedJobs.length,
+      duplicates_removed: duplicatesRemoved,
+      geo_filtered: normalizedJobs.length - filteredJobs.length,
+      final_jobs: filteredJobs.length,
+      total_time_ms: Date.now() - requestStartTime,
+      intent_family: intent.family
+    });
 
     const finalResponse = {
       count: filteredJobs.length,
-      results: filteredJobs
+      results: filteredJobs,
+      diagnostics
     };
 
-    console.log('[STAGE 1: EDGE FUNCTION SEARCH-JOBS OUTPUT]', JSON.stringify({
-      requestProviderParam: provider,
-      totalResults: filteredJobs.length,
-      sampleFirst5: filteredJobs.slice(0, 5).map(j => ({
-        title: j.title,
-        company: j.companyName || j.companyNameNormalized,
-        provider: j.sourcePlatform,
-        sourcePlatform: j.sourcePlatform,
-        sources: j.sources,
-        sourceUrl: j.sourceUrl,
-        redirect_url: (j as any).redirect_url,
-        applyUrl: (j as any).applyUrl,
-        url: (j as any).url
-      }))
-    }, null, 2));
-
-    // ── 4. GRAVAR EM CACHE ──
+    // ── 6. SAVE TO CACHE ──
     try {
       await supabaseClient
         .from('job_search_cache')

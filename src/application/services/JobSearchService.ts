@@ -1,37 +1,165 @@
 import type { Job } from '../../domain/models/types';
 import type { JobSearchFilters } from '../../domain/adapters/BaseJobConnector';
 import { 
-  type JobProviderInterface, 
   type NormalizedJobResult, 
   mapNormalizedToVocentroJob 
 } from '../../domain/adapters/JobProviderInterface';
-import { AdzunaAdapter } from '../../domain/adapters/AdzunaAdapter';
-import { JoobleAdapter } from '../../domain/adapters/JoobleAdapter';
-import { SerpApiAdapter } from '../../domain/adapters/SerpApiAdapter';
+import { isSupabaseConfigured, supabase } from '../../infrastructure/api/supabaseClient';
+import { extractSeniorityFromJob } from '../../domain/models/seniorityUtils';
 
-export type PrimaryProviderStrategy = 'SERPAPI' | 'JOOBLE' | 'ADZUNA' | 'AGGREGATED' | 'MULTIPLE_AGGREGATED';
+export interface ProviderDiagnostic {
+  name: string;
+  tier: 'A' | 'B' | 'C';
+  status: 'ok' | 'skipped' | 'failed' | 'timeout' | 'no_results' | 'no_key';
+  apiKeyPresent: boolean;
+  httpStatus: number | null;
+  responseTimeMs: number;
+  rawJobsReturned: number;
+  validJobsAfterNorm: number;
+  discardedCount: number;
+  discardReasons: Record<string, number>;
+  errorType: string | null;
+  errorMessage: string | null;
+}
+
+export interface AggregatorResult {
+  results: NormalizedJobResult[];
+  count: number;
+  providerUsed: string;
+  diagnostics: ProviderDiagnostic[];
+  pipelineStats: {
+    totalRaw: number;
+    afterDedup: number;
+    afterDescFilter: number;
+    afterUserFilters: number;
+    totalTimeMs: number;
+  };
+}
 
 export class JobSearchService {
-  private static providers: Record<string, JobProviderInterface> = {
-    ADZUNA: new AdzunaAdapter(),
-    JOOBLE: new JoobleAdapter(),
-    SERPAPI: new SerpApiAdapter(),
-  };
-
   /**
-   * Obtém a estratégia padrão de provedor das variáveis de ambiente (padrão: AGGREGATED)
+   * Executa busca agregada — UMA ÚNICA chamada à Edge Function que orquestra todos os provedores tiered.
+   * Eliminada a duplicação de 3 adapters chamando a Edge Function separadamente.
    */
-  static getPrimaryStrategy(): PrimaryProviderStrategy {
-    const envStrategy = (import.meta.env.VITE_PRIMARY_JOB_PROVIDER || 'AGGREGATED').toUpperCase();
-    if (['SERPAPI', 'JOOBLE', 'ADZUNA', 'AGGREGATED'].includes(envStrategy)) {
-      return envStrategy as PrimaryProviderStrategy;
+  static async searchJobs(filters: JobSearchFilters): Promise<{ 
+    results: Omit<Job, 'id' | 'userId' | 'createdAt' | 'updatedAt'>[]; 
+    count: number;
+    providerUsed: string;
+    diagnostics?: ProviderDiagnostic[];
+  }> {
+    const startTime = Date.now();
+    console.log(`[JobSearchService] Iniciando busca agregada unificada`);
+
+    if (!isSupabaseConfigured || !supabase) {
+      console.warn('[JobSearchService] Supabase não está configurado.');
+      return { results: [], count: 0, providerUsed: 'NONE', diagnostics: [] };
     }
-    return 'AGGREGATED';
+
+    // Build keywords array
+    let keywordsToSearch = filters.keywords && filters.keywords.length > 0
+      ? filters.keywords
+      : [filters.keyword || 'React'];
+
+    if (filters.remoteOnly) {
+      keywordsToSearch = keywordsToSearch.map(kw => {
+        const kwLower = kw.toLowerCase();
+        if (kwLower.includes('remoto') || kwLower.includes('remote')) return kw;
+        return `${kw} remoto`;
+      });
+    }
+
+    // Single call to Edge Function — no provider filter, all tiers run
+    try {
+      const { data, error } = await supabase.functions.invoke('search-jobs', {
+        body: { 
+          keyword: keywordsToSearch[0],
+          keywords: keywordsToSearch,
+          location: filters.location || 'Brasil', 
+          pageNum: filters.page || 1
+          // NO "provider" parameter — Edge Function runs ALL tiered connectors
+        }
+      });
+
+      if (error) {
+        console.error('[JobSearchService] Edge Function error:', error.message);
+        return { results: [], count: 0, providerUsed: 'ERROR', diagnostics: [] };
+      }
+
+      const rawResults: NormalizedJobResult[] = (data?.results || []).map((res: any, idx: number): NormalizedJobResult => {
+        const title = (res.title || '').replace(/<\/?[^>]+(>|$)/g, "").trim();
+        const description = (res.description || '').replace(/<\/?[^>]+(>|$)/g, "").trim();
+        const company = res.companyNameNormalized || res.companyName || res.company?.display_name || 'Empresa Confidencial';
+        const locStr = res.locationNormalized || (typeof res.location === 'object' ? res.location?.display_name : res.location) || 'Brasil';
+        const url = res.sourceUrl || res.redirect_url || res.link || res.url || '';
+        const workMode = res.workModeNormalized || res.workMode || 'onsite';
+        const seniority = extractSeniorityFromJob(title, description);
+
+        return {
+          id: `agg_${res.id || idx}_${Date.now()}`,
+          title,
+          company,
+          location: locStr,
+          description,
+          url,
+          seniority,
+          workMode,
+          is_active: res.isActive !== false,
+          posted_at: res.publishedAt || res.created || new Date().toISOString(),
+          salaryMin: res.salaryMinBRL || res.salaryMin || res.salary_min,
+          salaryMax: res.salaryMaxBRL || res.salaryMax || res.salary_max,
+          currency: res.currency || 'BRL',
+          requirements: res.requirementsNormalized || res.requirements || [],
+          rawSource: res.sourcePlatform || res.provider || 'JobAggregator',
+          sources: res.sources && res.sources.length > 0 ? res.sources : [res.sourcePlatform || 'JobAggregator']
+        };
+      });
+
+      // Deduplication
+      const deduplicated = this.deduplicateJobs(rawResults);
+      
+      // Description filter
+      const enriched = this.enrichAndFilterDescriptions(deduplicated);
+      
+      // User filters
+      const filtered = this.applyFilters(enriched, filters);
+
+      const totalTimeMs = Date.now() - startTime;
+
+      console.log(`
+========== SEARCH PIPELINE (UNIFIED) ==========
+Edge Function returned: ${rawResults.length}
+After deduplication: ${deduplicated.length}
+After description filter: ${enriched.length}
+After user filters: ${filtered.length}
+Total time: ${totalTimeMs}ms
+================================================
+      `);
+
+      // Provider stats log
+      const providerStats: Record<string, number> = {};
+      rawResults.forEach(j => {
+        const src = j.rawSource || 'Desconhecido';
+        providerStats[src] = (providerStats[src] || 0) + 1;
+      });
+      console.log(`[JobSearchService AUDIT] Vagas por provedor:`, providerStats);
+
+      // Map to Vocentro Job model
+      const mapped = filtered.map(mapNormalizedToVocentroJob);
+
+      return {
+        results: mapped,
+        count: data?.count || mapped.length,
+        providerUsed: 'UNIFIED_AGGREGATED',
+        diagnostics: data?.diagnostics || []
+      };
+    } catch (err: any) {
+      console.error('[JobSearchService] Falha na busca:', err.message || err);
+      return { results: [], count: 0, providerUsed: 'ERROR', diagnostics: [] };
+    }
   }
 
   /**
    * Deduplica lista de vagas normalizadas por (empresa + título + localização)
-   * Preserva a lista completa de origens (sources) e dá preferência a URLs diretas
    */
   static deduplicateJobs(jobs: NormalizedJobResult[]): NormalizedJobResult[] {
     const map = new Map<string, NormalizedJobResult>();
@@ -55,7 +183,7 @@ export class JobSearchService {
           }
         });
 
-        // Se a URL existente for de um agregador (Adzuna) e a nova for de outra fonte direta (Jooble, SerpApi, Gupy), preferir a URL direta
+        // Prefer direct URL over Adzuna redirect
         const existingIsAdzuna = (existing.url || '').includes('adzuna.com');
         const newIsNotAdzuna = job.url && !job.url.includes('adzuna.com');
         if (existingIsAdzuna && newIsNotAdzuna) {
@@ -63,10 +191,7 @@ export class JobSearchService {
           existing.rawSource = currentSource;
         }
       } else {
-        map.set(key, {
-          ...job,
-          sources: [...itemSources]
-        });
+        map.set(key, { ...job, sources: [...itemSources] });
       }
     }
 
@@ -74,7 +199,7 @@ export class JobSearchService {
   }
 
   /**
-   * Garante enriquecimento de descrição e remove apenas vagas vazias ou com descrições insignificantes (< 30 caracteres)
+   * Remove vagas com descrições insignificantes (< 30 caracteres)
    */
   static enrichAndFilterDescriptions(jobs: NormalizedJobResult[]): NormalizedJobResult[] {
     return jobs.filter(job => {
@@ -85,13 +210,17 @@ export class JobSearchService {
   }
 
   /**
-   * Filtra resultados por status ativo e senioridade (se solicitada)
+   * Filtra resultados por status ativo, modalidade e senioridade
    */
   static applyFilters(jobs: NormalizedJobResult[], filters: JobSearchFilters): NormalizedJobResult[] {
     let result = jobs.filter(j => j.is_active !== false);
 
     if (filters.remoteOnly) {
       result = result.filter(j => j.workMode === 'remote');
+    }
+
+    if (filters.workModes && filters.workModes.length > 0) {
+      result = result.filter(j => filters.workModes!.includes(j.workMode));
     }
 
     if (filters.seniority && filters.seniority !== 'all') {
@@ -103,116 +232,5 @@ export class JobSearchService {
     }
 
     return result;
-  }
-
-  /**
-   * Executa busca multi-provedor com estratégia de Fallback / Waterfall e Agregação
-   */
-  static async searchJobs(filters: JobSearchFilters): Promise<{ 
-    results: Omit<Job, 'id' | 'userId' | 'createdAt' | 'updatedAt'>[]; 
-    count: number;
-    providerUsed: string;
-  }> {
-    const strategy = this.getPrimaryStrategy();
-    console.log(`[JobSearchService] Iniciando busca com estratégia: ${strategy}`);
-
-    let rawResults: NormalizedJobResult[] = [];
-    let providerUsed = strategy;
-
-    if (strategy === 'AGGREGATED') {
-      // ── Execução Paralela em Todos os Provedores Disponíveis ──
-      const activeProviders = Object.values(this.providers).filter(p => p.isAvailable());
-      const searchPromises = activeProviders.map(async p => {
-        try {
-          const res = await p.searchJobs(filters);
-          console.log(`[JobSearchService Provider] Provedor ${p.providerName} retornou ${res.results.length} vagas.`);
-          return res.results;
-        } catch (err) {
-          console.warn(`[JobSearchService] Falha no provedor ${p.providerName}:`, err);
-          return [];
-        }
-      });
-
-      const allResults = await Promise.all(searchPromises);
-      rawResults = allResults.flat();
-      providerUsed = 'MULTIPLE_AGGREGATED';
-    } else {
-      // ── Execução Waterfall (Fallback) ──
-      const waterfallOrder: PrimaryProviderStrategy[] = [
-        strategy,
-        ...(['SERPAPI', 'JOOBLE', 'ADZUNA'] as PrimaryProviderStrategy[]).filter(s => s !== strategy)
-      ];
-
-      for (const currentProvKey of waterfallOrder) {
-        const provider = this.providers[currentProvKey];
-        if (provider && provider.isAvailable()) {
-          try {
-            console.log(`[JobSearchService Waterfall] Testando provedor: ${currentProvKey}...`);
-            const res = await provider.searchJobs(filters);
-            
-            // Valida se retornou resultados com descrições ricas (> 200 caracteres)
-            const enriched = this.enrichAndFilterDescriptions(res.results);
-            if (enriched.length > 0) {
-              rawResults = res.results;
-              providerUsed = currentProvKey;
-              console.log(`[JobSearchService Waterfall] Sucesso no provedor ${currentProvKey} (${rawResults.length} vagas encontradas)`);
-              break;
-            } else {
-              console.warn(`[JobSearchService Waterfall] Provedor ${currentProvKey} retornou 0 vagas válidas (> 200 chars). Acionando fallback...`);
-            }
-          } catch (err) {
-            console.warn(`[JobSearchService Waterfall] Erro no provedor ${currentProvKey}. Acionando fallback...`, err);
-          }
-        }
-      }
-    }
-
-    // ── Log Estatístico de Vagas por Provedor ──
-    const providerStats: Record<string, number> = {};
-    rawResults.forEach(j => {
-      const src = j.rawSource || 'Desconhecido';
-      providerStats[src] = (providerStats[src] || 0) + 1;
-    });
-    console.log(`[JobSearchService AUDIT] Total de ${rawResults.length} vagas recebidas de provedores. Detalhamento:`, providerStats);
-
-    // ── Enriquecimento, Deduplicação e Filtragem ──
-    const deduplicated = this.deduplicateJobs(rawResults);
-    const enriched = this.enrichAndFilterDescriptions(deduplicated);
-    const filtered = this.applyFilters(enriched, filters);
-
-    console.log(`
-========== SEARCH PIPELINE ==========
-Provider received: ${rawResults.length}
-After deduplication: ${deduplicated.length}
-After description filter: ${enriched.length}
-After user filters: ${filtered.length}
-Final returned: ${filtered.length}
-=====================================
-    `);
-
-    // Mapeia para o modelo Vocentro Job
-    const mapped = filtered.map(mapNormalizedToVocentroJob);
-
-    console.log('[STAGE 3: JOB_SEARCH_SERVICE OUTPUT]', JSON.stringify({
-      providerUsed,
-      count: mapped.length,
-      sampleFirst5: mapped.slice(0, 5).map(j => ({
-        title: j.title,
-        company: j.companyName,
-        provider: j.sourcePlatform,
-        sourcePlatform: j.sourcePlatform,
-        sources: j.sources,
-        sourceUrl: j.sourceUrl,
-        redirect_url: (j as any).redirect_url,
-        applyUrl: (j as any).applyUrl,
-        url: (j as any).url
-      }))
-    }, null, 2));
-
-    return {
-      results: mapped,
-      count: mapped.length,
-      providerUsed
-    };
   }
 }

@@ -320,7 +320,7 @@ export function LandingPage({ onNavigateToAuth }: LandingPageProps) {
       </section>
 
       {/* Interactive Tour Showcase Section */}
-      <section id="demonstracao" className="py-20 px-6 max-w-5xl mx-auto relative z-10 space-y-10 w-full min-w-0">
+      <section id="demonstracao" className="py-20 px-6 max-w-7xl mx-auto relative z-10 space-y-10 w-full min-w-0">
         <div className="text-center space-y-3 w-full min-w-0 max-w-2xl mx-auto block">
           <h2 className="text-xs font-bold text-brand-accent uppercase tracking-widest font-mono">Veja em Ação</h2>
           <p className="text-3xl sm:text-4xl font-extrabold tracking-tight text-slate-100 dark:text-white light:text-slate-900 font-display w-full block break-normal whitespace-normal text-center">
@@ -331,7 +331,7 @@ export function LandingPage({ onNavigateToAuth }: LandingPageProps) {
           </p>
         </div>
 
-        <div className="w-full max-w-3xl mx-auto bg-slate-900/40 dark:bg-slate-900/40 light:bg-white border border-slate-850 dark:border-slate-850 light:border-slate-200 rounded-[22px] p-6 shadow-2xl backdrop-blur-sm space-y-5">
+        <div className="w-full max-w-5xl mx-auto bg-slate-900/40 dark:bg-slate-900/40 light:bg-white border border-slate-850 dark:border-slate-850 light:border-slate-200 rounded-[22px] p-6 shadow-2xl backdrop-blur-sm space-y-5">
           {/* Fake Window Controls */}
           <div className="flex items-center justify-between border-b border-slate-850/50 dark:border-slate-850/50 light:border-slate-200 pb-3 font-sans">
             <div className="flex items-center gap-1.5">
@@ -669,7 +669,7 @@ export function LandingPage({ onNavigateToAuth }: LandingPageProps) {
       </section>
 
       {/* Before / After Section (ATS Comparison) */}
-      <section id="comparativo" className="py-20 px-6 max-w-5xl mx-auto relative z-10 space-y-12 w-full min-w-0">
+      <section id="comparativo" className="py-20 px-6 max-w-7xl mx-auto relative z-10 space-y-12 w-full min-w-0">
         <div className="text-center space-y-3 w-full min-w-0 max-w-2xl mx-auto block">
           <h2 className="text-xs font-bold text-brand-500 dark:text-brand-500 light:text-brand-600 uppercase tracking-widest font-mono">Seu currículo é apenas o começo</h2>
           <p className="text-3xl sm:text-4xl font-extrabold tracking-tight text-slate-100 dark:text-white light:text-slate-900 font-display w-full block break-normal whitespace-normal text-center">
@@ -680,7 +680,7 @@ export function LandingPage({ onNavigateToAuth }: LandingPageProps) {
           </p>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-11 gap-6 items-center max-w-4xl mx-auto">
+        <div className="grid grid-cols-1 md:grid-cols-11 gap-6 items-center max-w-6xl mx-auto">
           {/* Before Column */}
           <div className="md:col-span-5 bg-slate-900/20 dark:bg-slate-900/20 light:bg-white border border-red-500/20 dark:border-red-500/10 light:border-red-200 p-6 rounded-[20px] space-y-6 shadow-sm">
             <div className="flex justify-between items-center border-b border-slate-900 dark:border-slate-900 light:border-slate-200 pb-3 font-sans">
@@ -912,7 +912,7 @@ export function LandingPage({ onNavigateToAuth }: LandingPageProps) {
           <p className="text-3xl sm:text-4xl font-extrabold tracking-tight text-slate-100 dark:text-white light:text-slate-900 font-display">Simplicidade e transparência</p>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-3xl mx-auto font-sans">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-5xl mx-auto font-sans">
           {/* Free Plan */}
           <div className="p-8 rounded-[20px] bg-slate-900/20 dark:bg-slate-900/20 light:bg-white border border-slate-850 dark:border-slate-850 light:border-slate-200 flex flex-col justify-between space-y-8 shadow-sm">
             <div className="space-y-4">

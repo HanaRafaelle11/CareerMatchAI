@@ -602,7 +602,7 @@ export function Settings({
                 <User size={16} className="text-blue-500" />
                 Informações da Minha Conta
               </h3>
-              <form onSubmit={handleSaveAccount} className="space-y-5 w-full max-w-xl flex flex-col font-sans">
+              <form onSubmit={handleSaveAccount} className="space-y-5 w-full max-w-4xl flex flex-col font-sans">
                 <div className="flex items-center gap-4 pb-4 border-b border-slate-900/40">
                   {avatarUrl ? (
                     <img
@@ -803,7 +803,7 @@ export function Settings({
                 Preferências de Busca de Vagas
               </h3>
 
-              <form onSubmit={handleSavePreferences} className="space-y-4 w-full max-w-xl flex flex-col font-sans">
+              <form onSubmit={handleSavePreferences} className="space-y-4 w-full max-w-4xl flex flex-col font-sans">
                 <div className="space-y-1 w-full min-w-0 flex flex-col">
                   <label className="text-xs text-slate-600 dark:text-slate-400 font-semibold block">Cargos Desejados (separados por vírgula)</label>
                   <input
@@ -885,7 +885,7 @@ export function Settings({
                 Notificações e Alertas
               </h3>
 
-              <div className="space-y-4 w-full max-w-xl flex flex-col font-sans">
+              <div className="space-y-4 w-full max-w-4xl flex flex-col font-sans">
                 <div className="flex items-start gap-3 p-3 rounded-xl bg-slate-900/30 border border-slate-850/50 w-full">
                   <input
                     type="checkbox"

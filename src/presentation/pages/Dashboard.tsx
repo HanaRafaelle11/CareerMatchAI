@@ -171,7 +171,7 @@ export function Dashboard({
   });
 
   return (
-    <div className="space-y-6 max-w-6xl mx-auto mb-16 animate-fade-in font-sans">
+    <div className="space-y-6 w-full max-w-7xl mx-auto mb-16 animate-fade-in font-sans">
       
       {/* ── 1. SAUDAÇÃO HUMANA & BRIEFING DO COPILOTO ── */}
       <header className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-slate-200/80 dark:border-white/8">

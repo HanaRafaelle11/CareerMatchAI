@@ -96,6 +96,59 @@ export function Settings({
     }
   }, [initialTab]);
 
+  // Temporarily instrument Settings DOM elements for diagnostic audit
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      const mainEl = document.querySelector('main');
+      const settingsContainerEl = document.querySelector('main .flex.flex-col') || document.querySelector('main div');
+      const cardGlassEl = document.querySelector('form')?.closest('div') || document.querySelector('main .rounded-2xl');
+      const formEl = document.querySelector('form');
+      const inputWrapperEl = document.querySelector('form input[type="text"]')?.parentElement;
+      const inputEl = document.querySelector('form input[type="text"]');
+      const textareaEl = document.querySelector('form textarea');
+
+      const elementsToMeasure = [
+        { name: '1. main', el: mainEl, file: 'App.tsx', line: 382 },
+        { name: '2. Settings outer container', el: settingsContainerEl, file: 'Settings.tsx', line: 508 },
+        { name: '3. CardGlass', el: cardGlassEl, file: 'Settings.tsx', line: 534 },
+        { name: '4. form', el: formEl, file: 'Settings.tsx', line: 539 },
+        { name: '5. wrapper do input', el: inputWrapperEl, file: 'Settings.tsx', line: 579 },
+        { name: '6. input (Nome Completo)', el: inputEl, file: 'Settings.tsx', line: 581 },
+        { name: '7. textarea (Sobre)', el: textareaEl, file: 'Settings.tsx', line: 622 }
+      ];
+
+      const results = elementsToMeasure.map(item => {
+        if (!item.el) return { Elemento: item.name, status: 'Não encontrado' };
+        const cs = window.getComputedStyle(item.el);
+        const rect = item.el.getBoundingClientRect();
+        return {
+          Elemento: item.name,
+          'offsetWidth': item.el.offsetWidth,
+          'clientWidth': item.el.clientWidth,
+          'scrollWidth': item.el.scrollWidth,
+          'rectWidth': Math.round(rect.width),
+          'display': cs.display,
+          'width': cs.width,
+          'minWidth': cs.minWidth,
+          'maxWidth': cs.maxWidth,
+          'flexGrow': cs.flexGrow,
+          'flexShrink': cs.flexShrink,
+          'flexBasis': cs.flexBasis,
+          'alignSelf': cs.alignSelf,
+          'Pai': item.el.parentElement?.tagName.toLowerCase() + '.' + (item.el.parentElement?.className?.slice(0, 30) || ''),
+          'Classe': item.el.className?.slice?.(0, 40) || '',
+          'Arquivo': item.file,
+          'Linha': item.line
+        };
+      });
+
+      console.log('=== DIAGNÓSTICO ESTRUTURAL DOM SETTINGS ===');
+      console.table(results);
+      (window as any).__SETTINGS_DOM_DIAGNOSTIC__ = results;
+    }, 1000);
+    return () => clearTimeout(timer);
+  }, [activeSubTab]);
+
   useEffect(() => {
     if (profile) {
       setFullName(profile.fullName || '');

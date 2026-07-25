@@ -1829,41 +1829,50 @@ export function AdminDashboard({ userId }: AdminDashboardProps) {
                     <table className="w-full text-left text-xs border-collapse">
                       <thead>
                         <tr className="text-slate-600 dark:text-slate-500 font-bold border-b border-slate-200 dark:border-slate-900/50">
-                          <th className="pb-2">Provedor / API</th>
-                          <th className="pb-2 text-center">Consultas</th>
+                          <th className="pb-2">Provedor</th>
+                          <th className="pb-2 text-center">Executou</th>
+                          <th className="pb-2 text-center">Tempo</th>
+                          <th className="pb-2 text-center">HTTP</th>
                           <th className="pb-2 text-center">Vagas</th>
-                          <th className="pb-2 text-center">Erros</th>
-                          <th className="pb-2 text-center">Latência</th>
-                          <th className="pb-2 text-center">Última Execução</th>
+                          <th className="pb-2 text-center">Válidas</th>
+                          <th className="pb-2 text-center">Descartadas</th>
                           <th className="pb-2 text-right">Status</th>
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-slate-200/60 dark:divide-slate-900/40">
                         {providerStats.map((stat: any, idx: number) => {
-                          const statusColorMap: Record<string, string> = {
-                            emerald: 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20',
-                            amber: 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20',
-                            red: 'bg-red-500/10 text-red-600 dark:text-red-400 border border-red-500/20',
-                            slate: 'bg-slate-500/10 text-slate-600 dark:text-slate-400 border border-slate-500/20'
+                          const statusColorMap: Record<string, { badge: string; icon: string }> = {
+                            emerald: { badge: 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20', icon: '🟢' },
+                            amber: { badge: 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20', icon: '🟡' },
+                            orange: { badge: 'bg-orange-500/10 text-orange-600 dark:text-orange-400 border border-orange-500/20', icon: '🟠' },
+                            red: { badge: 'bg-red-500/10 text-red-600 dark:text-red-400 border border-red-500/20', icon: '🔴' },
+                            slate: { badge: 'bg-slate-500/10 text-slate-600 dark:text-slate-400 border border-slate-500/20', icon: '⚪' }
                           };
-                          const statusClasses = statusColorMap[stat.statusColor] || statusColorMap.slate;
-                          const dotColor = stat.statusColor === 'emerald' ? 'bg-emerald-500' : 
-                                           stat.statusColor === 'amber' ? 'bg-amber-500' : 
-                                           stat.statusColor === 'red' ? 'bg-red-500' : 'bg-slate-500';
+                          const conf = statusColorMap[stat.statusColor] || statusColorMap.slate;
+                          const executedSymbol = stat.calls > 0 ? (stat.errors > 0 && stat.errors === stat.calls ? '✖' : '✔') : '⚪';
+                          const httpCode = stat.last_http_status || (stat.calls > 0 ? 200 : '—');
+                          const validJobs = stat.valid_jobs !== undefined ? stat.valid_jobs : Math.max(0, stat.total_jobs - (stat.discarded || 0));
+                          const discardedJobs = stat.discarded || 0;
+
                           return (
                             <tr key={idx} className="hover:bg-slate-100/50 dark:hover:bg-slate-900/10 transition-colors">
-                              <td className="py-2.5 font-semibold text-slate-800 dark:text-slate-200">{stat.provider}</td>
-                              <td className="py-2.5 text-center font-mono text-slate-600 dark:text-slate-350">{stat.calls}</td>
-                              <td className="py-2.5 text-center font-mono text-emerald-600 dark:text-emerald-400 font-semibold">{stat.total_jobs}</td>
-                              <td className="py-2.5 text-center font-mono text-red-500 dark:text-red-400">{stat.errors}</td>
-                              <td className="py-2.5 text-center font-mono text-slate-600 dark:text-slate-350">{stat.avg_latency}ms</td>
-                              <td className="py-2.5 text-center">
-                                <div className="text-slate-600 dark:text-slate-400 font-mono">{stat.last_run}</div>
-                                <div className="text-[9px] text-slate-500">{stat.last_run_relative || ''}</div>
+                              <td className="py-2.5 font-semibold text-slate-800 dark:text-slate-200">
+                                {stat.provider}
+                                {stat.tier && <span className="ml-1.5 text-[9px] px-1 py-0.2 rounded bg-slate-800 text-slate-400 font-mono">Tier {stat.tier}</span>}
                               </td>
+                              <td className="py-2.5 text-center font-bold">
+                                <span className={executedSymbol === '✔' ? 'text-emerald-500' : executedSymbol === '✖' ? 'text-red-500' : 'text-slate-400'}>
+                                  {executedSymbol}
+                                </span>
+                              </td>
+                              <td className="py-2.5 text-center font-mono text-slate-600 dark:text-slate-350">{stat.avg_latency} ms</td>
+                              <td className="py-2.5 text-center font-mono text-slate-600 dark:text-slate-350">{httpCode}</td>
+                              <td className="py-2.5 text-center font-mono text-slate-700 dark:text-slate-300 font-semibold">{stat.total_jobs}</td>
+                              <td className="py-2.5 text-center font-mono text-emerald-600 dark:text-emerald-400 font-semibold">{validJobs}</td>
+                              <td className="py-2.5 text-center font-mono text-amber-600 dark:text-amber-400">{discardedJobs}</td>
                               <td className="py-2.5 text-right">
-                                <span className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-[10px] font-bold ${statusClasses}`}>
-                                  <span className={`h-1.5 w-1.5 rounded-full ${dotColor} ${stat.statusColor === 'emerald' ? 'animate-pulse' : ''}`} />
+                                <span className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-[10px] font-bold ${conf.badge}`}>
+                                  <span>{conf.icon}</span>
                                   {stat.realStatus || 'Desconhecido'}
                                 </span>
                               </td>

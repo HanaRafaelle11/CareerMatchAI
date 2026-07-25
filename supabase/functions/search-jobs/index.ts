@@ -255,6 +255,9 @@ async function executeConnectorWithDiag(
         httpStatus: 200,
         responseTimeMs: duration,
         rawJobsReturned: jobCount,
+        validJobsAfterNorm: jobCount,
+        discardedCount: 0,
+        discardReasons: {},
         errorType: null,
         errorMessage: null
       },
@@ -273,21 +276,26 @@ async function executeConnectorWithDiag(
       errorType = classifyHttpError(httpStatus);
     }
 
-    // Check if it's a missing API key
+    // Check if it's a missing API key or deprecated feed
     const isNoKey = err.message?.toLowerCase().includes('não configurad') || 
                     err.message?.toLowerCase().includes('not configured') ||
                     err.message?.toLowerCase().includes('key');
+    const isDeprecated = err.message?.includes('ENDPOINT_DEPRECATED');
+    const isAuthRequired = err.message?.includes('AUTH_REQUIRED');
 
     return {
       diagnostic: {
         name,
         tier,
-        status: isNoKey ? 'no_key' : isTimeout ? 'timeout' : 'failed',
-        apiKeyPresent: !isNoKey,
-        httpStatus,
+        status: isNoKey ? 'no_key' : isDeprecated ? 'deprecated' : isAuthRequired ? 'auth_required' : isTimeout ? 'timeout' : 'failed',
+        apiKeyPresent: !isNoKey && !isAuthRequired,
+        httpStatus: httpStatus || (isDeprecated ? 404 : isAuthRequired ? 401 : null),
         responseTimeMs: duration,
         rawJobsReturned: 0,
-        errorType,
+        validJobsAfterNorm: 0,
+        discardedCount: 0,
+        discardReasons: {},
+        errorType: isDeprecated ? 'ENDPOINT_DEPRECATED' : isAuthRequired ? 'AUTH_REQUIRED' : errorType,
         errorMessage: err.message?.substring(0, 200) || 'Unknown error'
       },
       jobs: []
@@ -461,6 +469,23 @@ serve(async (req) => {
       });
     }
 
+    // ── 4.6. ENRICH DIAGNOSTICS WITH EXACT VALID & DISCARD COUNTS PER PROVIDER ──
+    const validCountByProvider: Record<string, number> = {};
+    filteredJobs.forEach(j => {
+      const src = j.sourcePlatform || j.provider || 'Desconhecido';
+      validCountByProvider[src] = (validCountByProvider[src] || 0) + 1;
+    });
+
+    diagnostics.forEach(diag => {
+      const valid = validCountByProvider[diag.name] || 0;
+      diag.validJobsAfterNorm = valid;
+      diag.discardedCount = Math.max(0, diag.rawJobsReturned - valid);
+      diag.discardReasons = {
+        duplicates: Math.max(0, diag.rawJobsReturned - valid),
+        staleOrEmpty: 0
+      };
+    });
+
     // ── 5. LOG DIAGNOSTICS SUMMARY ──
     console.log(`
 ========== AGGREGATOR DIAGNOSTICS ==========
@@ -472,7 +497,7 @@ Failed: ${diagnostics.filter(d => d.status === 'failed').length}
 Timeout: ${diagnostics.filter(d => d.status === 'timeout').length}
 
 Per provider:
-${diagnostics.map(d => `  ${d.status === 'ok' ? '✔' : '✖'} ${d.name} (${d.tier}): ${d.status} | ${d.rawJobsReturned} jobs | ${d.responseTimeMs}ms${d.errorType ? ` | ${d.errorType}` : ''}`).join('\n')}
+${diagnostics.map(d => `  ${d.status === 'ok' ? '✔' : '✖'} ${d.name} (${d.tier}): ${d.status} | ${d.rawJobsReturned} raw | ${d.validJobsAfterNorm} valid | ${d.discardedCount} discarded | ${d.responseTimeMs}ms${d.errorType ? ` | ${d.errorType}` : ''}`).join('\n')}
 
 Raw jobs: ${totalCount}
 After normalization: ${normalizedJobs.length} (${duplicatesRemoved} duplicates removed)

@@ -714,7 +714,7 @@ export function Settings({
 
               <div className="pt-6 border-t border-slate-200 dark:border-slate-800 space-y-3 w-full min-w-0 flex flex-col font-sans">
                 <span className="text-xs font-bold text-red-500 dark:text-red-400 block uppercase tracking-wider">Zona de Perigo</span>
-                <p className="text-xs text-slate-600 dark:text-slate-400 w-full max-w-xl leading-relaxed font-sans font-medium block break-normal whitespace-normal">
+                <p className="text-xs text-slate-600 dark:text-slate-400 w-full max-w-4xl leading-relaxed font-sans font-medium block break-normal whitespace-normal">
                   Ao excluir a sua conta, todas as suas candidaturas salvas, análises de IA, roteiros de entrevista e currículos serão deletados permanentemente.
                 </p>
                 <button
@@ -946,11 +946,11 @@ export function Settings({
                 Personalização Visual e Tema
               </h3>
 
-              <p className="text-xs text-slate-600 dark:text-slate-400 w-full min-w-0 max-w-md font-sans font-medium block break-normal whitespace-normal leading-relaxed">
+              <p className="text-xs text-slate-600 dark:text-slate-400 w-full min-w-0 max-w-4xl font-sans font-medium block break-normal whitespace-normal leading-relaxed">
                 Selecione o esquema de cores que prefere para a interface de trabalho. Nossos temas garantem legibilidade.
               </p>
 
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-md max-w-2xl">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-md w-full max-w-4xl">
                 <div 
                   onClick={() => handleApplyTheme('light')}
                   className={`p-5 rounded-2xl border transition-all cursor-pointer text-center relative flex flex-col items-center justify-center min-h-[120px] ${
@@ -1051,13 +1051,13 @@ export function Settings({
                 Assinatura e Planos
               </h3>
 
-              <div className="max-w-xl p-6 rounded-2xl bg-gradient-to-br from-indigo-950/40 via-slate-900 to-brand-950/40 light:from-slate-100 light:via-white light:to-brand-50 border border-slate-800/80 light:border-slate-200 relative overflow-hidden">
+              <div className="w-full max-w-4xl p-6 rounded-2xl bg-gradient-to-br from-indigo-950/40 via-slate-900 to-brand-950/40 light:from-slate-100 light:via-white light:to-brand-50 border border-slate-800/80 light:border-slate-200 relative overflow-hidden">
                 <div className="absolute top-0 right-0 h-32 w-32 bg-brand-500/10 rounded-full blur-3xl pointer-events-none" />
-                <div className="flex justify-between items-start">
-                  <div>
+                <div className="flex justify-between items-start gap-4 w-full min-w-0">
+                  <div className="flex-1 min-w-0">
                     <span className="text-[9px] font-bold uppercase tracking-wider text-brand-400">Plano Ativo</span>
                     <h4 className="text-lg font-extrabold text-slate-200 mt-1">Premium Copilot</h4>
-                    <p className="text-[11px] text-slate-400 mt-1 leading-snug max-w-xs">Acesso total a buscas inteligentes no Adzuna, otimizações ATS e simulados de entrevista STAR.</p>
+                    <p className="text-[11px] text-slate-400 mt-1 leading-snug w-full min-w-0 block break-normal whitespace-normal">Acesso total a buscas inteligentes no Adzuna, otimizações ATS e simulados de entrevista STAR.</p>
                   </div>
                   <span className="px-2.5 py-1 rounded-lg bg-emerald-500/10 text-emerald-400 text-[10px] font-bold border border-emerald-500/20">Ativo</span>
                 </div>

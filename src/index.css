@@ -116,9 +116,17 @@
   }
 
   p, h1, h2, h3, h4, h5, h6 {
+    width: 100%;
     max-width: 100%;
+    min-width: 0;
     word-wrap: break-word;
     overflow-wrap: break-word;
+  }
+
+  form {
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
   }
 
   form, textarea, input, select {

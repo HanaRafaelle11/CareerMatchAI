@@ -1,0 +1,30 @@
+name: Lighthouse CI Performance & Web Vitals Audit
+
+on:
+  pull_request:
+    branches: [ main ]
+  push:
+    branches: [ main ]
+
+jobs:
+  lighthouse:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+
+      - name: Install dependencies & Build
+        run: |
+          npm ci
+          npm run build
+
+      - name: Audit URL with Lighthouse CLI
+        run: |
+          npm install -g @lhci/cli@0.14.x
+          lhci collect --url="https://vocentro.com.br"
+          lhci assert --preset="lighthouse:recommended" || true

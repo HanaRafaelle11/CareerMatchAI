@@ -119,13 +119,14 @@ export function Settings({
 
       const results = elementsToMeasure.map(item => {
         if (!item.el) return { Elemento: item.name, status: 'Não encontrado' };
+        const htmlEl = item.el as HTMLElement;
         const cs = window.getComputedStyle(item.el);
         const rect = item.el.getBoundingClientRect();
         return {
           Elemento: item.name,
-          'offsetWidth': item.el.offsetWidth,
-          'clientWidth': item.el.clientWidth,
-          'scrollWidth': item.el.scrollWidth,
+          'offsetWidth': htmlEl.offsetWidth || 0,
+          'clientWidth': htmlEl.clientWidth || 0,
+          'scrollWidth': htmlEl.scrollWidth || 0,
           'rectWidth': Math.round(rect.width),
           'display': cs.display,
           'width': cs.width,

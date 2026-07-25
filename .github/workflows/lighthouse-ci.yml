@@ -8,9 +8,11 @@ on:
 
 jobs:
   lighthouse:
+    name: Lighthouse Web Vitals & Performance Gate
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout Repository
+        uses: actions/checkout@v4
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -23,8 +25,7 @@ jobs:
           npm ci
           npm run build
 
-      - name: Audit URL with Lighthouse CLI
+      - name: Run Lighthouse CI with Strict Score Budgets
         run: |
           npm install -g @lhci/cli@0.14.x
-          lhci collect --url="https://vocentro.com.br"
-          lhci assert --preset="lighthouse:recommended" || true
+          lhci autorun

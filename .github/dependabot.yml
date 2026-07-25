@@ -4,9 +4,16 @@ updates:
     directory: "/"
     schedule:
       interval: "weekly"
-    open-pull-requests-limit: 5
+      day: "monday"
+      time: "04:00"
+    open-pull-requests-limit: 10
+    groups:
+      dependencies:
+        patterns:
+          - "*"
     reviewers:
       - "HanaRafaelle11"
     labels:
       - "dependencies"
       - "security"
+      - "automated-pr"

@@ -199,43 +199,45 @@ export function LandingPage({ onNavigateToAuth }: LandingPageProps) {
       <section className="relative min-h-[90vh] pt-28 pb-12 flex items-center px-6 md:px-12 z-10 w-full max-w-7xl mx-auto">
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 items-center w-full">
           {/* Left Hero Copy */}
-          <div className="lg:col-span-6 space-y-6 text-left w-full min-w-0 block">
+          <div className="lg:col-span-6 flex flex-col items-start gap-6 text-left w-full min-w-0">
             <motion.div 
               initial={{ opacity: 0, y: 15 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.6 }}
-              className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-brand-500/10 border border-brand-500/20 text-brand-400 light:text-brand-600 text-[10px] font-bold tracking-wider uppercase font-mono"
+              className="w-full inline-flex items-center gap-2"
             >
-              <Sparkles size={10} className="animate-pulse" />
-              Sua carreira, você no centro.
+              <span className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-brand-500/10 border border-brand-500/20 text-brand-400 light:text-brand-600 text-[10px] font-bold tracking-wider uppercase font-mono">
+                <Sparkles size={10} className="animate-pulse" />
+                Sua carreira, você no centro.
+              </span>
             </motion.div>
             
             <motion.h1 
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.7, delay: 0.1 }}
-              className="text-4xl sm:text-5xl lg:text-6xl font-extrabold tracking-tight text-slate-100 dark:text-white light:text-slate-900 leading-tight font-display w-full block break-normal whitespace-normal"
+              className="text-4xl sm:text-5xl lg:text-6xl font-extrabold tracking-tight text-slate-100 dark:text-white light:text-slate-900 leading-tight font-display w-full block"
             >
               Pare de enviar<br />
               currículos no escuro.
             </motion.h1>
             
-            <div className="w-full max-w-xl">
-              <motion.p 
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.7, delay: 0.2 }}
-                className="text-slate-300 dark:text-slate-300 light:text-slate-700 text-sm sm:text-base leading-relaxed font-sans font-medium w-full block"
-              >
+            <motion.div 
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.7, delay: 0.2 }}
+              className="w-full max-w-xl"
+            >
+              <p className="text-slate-300 dark:text-slate-300 light:text-slate-700 text-sm sm:text-base leading-relaxed font-sans font-medium w-full block">
                 Descubra quais vagas realmente combinam com seu perfil, adapte seu currículo com IA e treine entrevistas antes de se candidatar. Isso aumenta muito a percepção de seu valor.
-              </motion.p>
-            </div>
+              </p>
+            </motion.div>
             
             <motion.div 
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.7, delay: 0.3 }}
-              className="flex flex-col sm:flex-row items-stretch sm:items-center gap-4 pt-2"
+              className="w-full flex flex-col sm:flex-row items-stretch sm:items-center gap-4 pt-2"
             >
               <button 
                 onClick={() => onNavigateToAuth('signup')}
@@ -257,7 +259,7 @@ export function LandingPage({ onNavigateToAuth }: LandingPageProps) {
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               transition={{ delay: 0.5 }}
-              className="pt-6 grid grid-cols-3 gap-4 border-t border-slate-900 dark:border-slate-900 light:border-slate-200 font-sans"
+              className="w-full pt-6 grid grid-cols-3 gap-4 border-t border-slate-900 dark:border-slate-900 light:border-slate-200 font-sans"
             >
               <div>
                 <span className="text-xl font-bold text-white dark:text-white light:text-slate-900 block font-display">👤 2.300+</span>
@@ -310,27 +312,31 @@ export function LandingPage({ onNavigateToAuth }: LandingPageProps) {
 
       {/* Narrative Section - Métricas de Sucesso */}
       <section id="metricas" className="py-20 px-6 max-w-7xl mx-auto relative z-10 space-y-16 w-full min-w-0">
-        <div className="text-center space-y-3 w-full min-w-0 max-w-2xl mx-auto block">
-          <h2 className="text-xs font-bold text-brand-accent uppercase tracking-widest font-mono">Resultados Comprovados</h2>
-          <p className="text-3xl sm:text-4xl font-extrabold tracking-tight text-slate-100 dark:text-white light:text-slate-900 font-display w-full block break-normal whitespace-normal text-center">
+        <div className="text-center flex flex-col items-center gap-3 w-full min-w-0 max-w-2xl mx-auto">
+          <h2 className="text-xs font-bold text-brand-accent uppercase tracking-widest font-mono w-full text-center">Resultados Comprovados</h2>
+          <p className="text-3xl sm:text-4xl font-extrabold tracking-tight text-slate-100 dark:text-white light:text-slate-900 font-display w-full text-center">
             Métricas de Sucesso
           </p>
-          <p className="text-xs text-slate-400 dark:text-slate-400 light:text-slate-600 leading-relaxed font-sans font-medium w-full block break-normal whitespace-normal text-center">
-            Acompanhe em tempo real como o posicionamento estratégico transforma suas estatísticas de recolocação.
-          </p>
+          <div className="w-full max-w-xl mx-auto">
+            <p className="text-xs text-slate-400 dark:text-slate-400 light:text-slate-600 leading-relaxed font-sans font-medium w-full text-center">
+              Acompanhe em tempo real como o posicionamento estratégico transforma suas estatísticas de recolocação.
+            </p>
+          </div>
         </div>
       </section>
 
       {/* Interactive Tour Showcase Section */}
       <section id="demonstracao" className="py-20 px-6 max-w-7xl mx-auto relative z-10 space-y-10 w-full min-w-0">
-        <div className="text-center space-y-3 w-full min-w-0 max-w-2xl mx-auto block">
-          <h2 className="text-xs font-bold text-brand-accent uppercase tracking-widest font-mono">Veja em Ação</h2>
-          <p className="text-3xl sm:text-4xl font-extrabold tracking-tight text-slate-100 dark:text-white light:text-slate-900 font-display w-full block break-normal whitespace-normal text-center">
+        <div className="text-center flex flex-col items-center gap-3 w-full min-w-0 max-w-2xl mx-auto">
+          <h2 className="text-xs font-bold text-brand-accent uppercase tracking-widest font-mono w-full text-center">Veja em Ação</h2>
+          <p className="text-3xl sm:text-4xl font-extrabold tracking-tight text-slate-100 dark:text-white light:text-slate-900 font-display w-full text-center">
             A plataforma desenhada para você
           </p>
-          <p className="text-xs text-slate-400 dark:text-slate-400 light:text-slate-600 leading-relaxed font-sans w-full block break-normal whitespace-normal text-center">
-            Entenda como a nossa tecnologia opera sob sua direção em cada etapa da recolocação e aprimoramento profissional.
-          </p>
+          <div className="w-full max-w-xl mx-auto">
+            <p className="text-xs text-slate-400 dark:text-slate-400 light:text-slate-600 leading-relaxed font-sans w-full text-center">
+              Entenda como a nossa tecnologia opera sob sua direção em cada etapa da recolocação e aprimoramento profissional.
+            </p>
+          </div>
         </div>
 
         <div className="w-full max-w-5xl mx-auto bg-slate-900/40 dark:bg-slate-900/40 light:bg-white border border-slate-850 dark:border-slate-850 light:border-slate-200 rounded-[22px] p-6 shadow-2xl backdrop-blur-sm space-y-5">
@@ -575,14 +581,16 @@ export function LandingPage({ onNavigateToAuth }: LandingPageProps) {
 
       {/* Narrative Section - A Jornada Completa */}
       <section id="como-funciona" className="py-20 px-6 max-w-7xl mx-auto relative z-10 space-y-16 w-full min-w-0">
-        <div className="text-center space-y-3 w-full min-w-0 max-w-2xl mx-auto block">
-          <h2 className="text-xs font-bold text-brand-accent uppercase tracking-widest font-mono">A Jornada Completa</h2>
-          <p className="text-3xl sm:text-4xl font-extrabold tracking-tight text-slate-100 dark:text-white light:text-slate-900 font-display w-full block break-normal whitespace-normal text-center">
+        <div className="text-center flex flex-col items-center gap-3 w-full min-w-0 max-w-2xl mx-auto">
+          <h2 className="text-xs font-bold text-brand-accent uppercase tracking-widest font-mono w-full text-center">A Jornada Completa</h2>
+          <p className="text-3xl sm:text-4xl font-extrabold tracking-tight text-slate-100 dark:text-white light:text-slate-900 font-display w-full text-center">
             Sua evolução passo a passo
           </p>
-          <p className="text-xs text-slate-400 dark:text-slate-400 light:text-slate-600 leading-relaxed font-sans font-medium w-full block break-normal whitespace-normal text-center">
-            Não vendemos currículos ou vagas. Oferecemos as ferramentas e a inteligência estratégica que colocam você no controle da sua própria carreira.
-          </p>
+          <div className="w-full max-w-xl mx-auto">
+            <p className="text-xs text-slate-400 dark:text-slate-400 light:text-slate-600 leading-relaxed font-sans font-medium w-full text-center">
+              Não vendemos currículos ou vagas. Oferecemos as ferramentas e a inteligência estratégica que colocam você no controle da sua própria carreira.
+            </p>
+          </div>
         </div>
 
         {/* 8-Step Journey Alternated Grid */}

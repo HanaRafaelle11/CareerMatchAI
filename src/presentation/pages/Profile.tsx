@@ -482,11 +482,11 @@ export function Profile({
     <div className="space-y-6 w-full min-w-0 max-w-7xl mx-auto animate-fade-in font-sans block">
       {/* Título com Completude */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 w-full min-w-0">
-        <div className="min-w-0">
-          <h1 className="text-3xl font-bold tracking-tight text-slate-900 dark:text-slate-100">
+        <div className="flex-1 min-w-0 w-full">
+          <h1 className="text-3xl font-bold tracking-tight text-slate-900 dark:text-slate-100 w-full">
             Perfil Profissional
           </h1>
-          <p className="text-slate-500 dark:text-slate-400 text-sm mt-1 block break-normal whitespace-normal">
+          <p className="text-slate-500 dark:text-slate-400 text-sm mt-1 block break-normal whitespace-normal w-full">
             Mapeamento de competências, histórico profissional e otimização para ATS.
           </p>
         </div>

@@ -383,26 +383,28 @@ function App() {
 
         {/* Compact Header — Currículo ativo */}
         {resumes && resumes.length > 0 && (
-          <CompactHeader
-            userName={profile?.fullName?.split(' ')[0] || 'Candidato'}
-            activeResume={selectedResume || null}
-            aiScore={matches.length > 0 ? Math.round(matches.reduce((a, m) => a + m.scoreOverall, 0) / matches.length) : undefined}
-            resumes={resumes}
-            onSelectResume={selectActiveResume}
-            onSwitchResume={() => {
-              setSettingsInitialSubTab('resumes');
-              handleSetActiveTab('settings');
-            }}
-            onReanalyze={async () => {
-              try {
-                await triggerDailyChecks();
-                handleSetActiveTab('discover');
-              } catch (err) {
-                console.error(err);
-              }
-            }}
-            className="mb-4 border-b border-outline-variant/10 pb-3"
-          />
+          <div className="w-full mb-6 p-3.5 rounded-2xl bg-white dark:bg-[#242B36] border border-slate-200/90 dark:border-slate-800/90 shadow-xs transition-colors">
+            <CompactHeader
+              userName={profile?.fullName?.split(' ')[0] || 'Candidato'}
+              activeResume={selectedResume || null}
+              aiScore={matches.length > 0 ? Math.round(matches.reduce((a, m) => a + m.scoreOverall, 0) / matches.length) : undefined}
+              resumes={resumes}
+              onSelectResume={selectActiveResume}
+              onSwitchResume={() => {
+                setSettingsInitialSubTab('resumes');
+                handleSetActiveTab('settings');
+              }}
+              onReanalyze={async () => {
+                try {
+                  await triggerDailyChecks();
+                  handleSetActiveTab('discover');
+                } catch (err) {
+                  console.error(err);
+                }
+              }}
+              className=""
+            />
+          </div>
         )}
 
         {activeTab === 'dashboard' && (

@@ -950,47 +950,62 @@ export function Settings({
                 Selecione o esquema de cores que prefere para a interface de trabalho. Nossos temas garantem legibilidade.
               </p>
 
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-md w-full max-w-4xl">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 w-full max-w-4xl">
+                {/* Tema Claro */}
                 <div 
                   onClick={() => handleApplyTheme('light')}
                   className={`p-5 rounded-2xl border transition-all cursor-pointer text-center relative flex flex-col items-center justify-center min-h-[120px] ${
                     theme === 'light'
-                      ? 'bg-slate-100 border-2 border-brand-500 shadow-md shadow-brand-500/10'
-                      : 'bg-slate-900/30 border-slate-800 text-slate-400 hover:bg-slate-900 hover:text-slate-200'
+                      ? 'bg-blue-50/80 dark:bg-slate-800/80 border-2 border-brand-500 shadow-sm'
+                      : 'bg-slate-50 dark:bg-slate-900/40 border-slate-200 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700'
                   }`}
                 >
-                  {theme === 'light' && <div className="absolute top-2.5 right-2.5 p-1 bg-brand-500 text-white rounded-full"><Check size={10} /></div>}
+                  {theme === 'light' && (
+                    <div className="absolute top-3 right-3 w-5 h-5 bg-brand-500 text-white rounded-full flex items-center justify-center">
+                      <Check size={12} />
+                    </div>
+                  )}
                   <Sun size={28} className={theme === 'light' ? 'text-amber-500 mb-2' : 'text-slate-400 mb-2'} />
-                  <span className={`text-xs font-bold ${theme === 'light' ? 'text-slate-800' : 'text-slate-300'}`}>Tema Claro</span>
-                  <span className={`text-[9px] mt-1 ${theme === 'light' ? 'text-slate-600' : 'text-slate-500'}`}>Interface brilhante e limpa</span>
+                  <span className="text-xs font-bold text-slate-900 dark:text-slate-100">Tema Claro</span>
+                  <span className="text-[10px] mt-1 text-slate-500 dark:text-slate-400">Interface brilhante e limpa</span>
                 </div>
 
+                {/* Tema Escuro */}
                 <div 
                   onClick={() => handleApplyTheme('dark')}
                   className={`p-5 rounded-2xl border transition-all cursor-pointer text-center relative flex flex-col items-center justify-center min-h-[120px] ${
                     theme === 'dark'
-                      ? 'bg-slate-950 border-2 border-brand-500 shadow-md shadow-brand-500/10'
-                      : 'bg-slate-900/30 border-slate-800 text-slate-400 hover:bg-slate-900 hover:text-slate-200'
+                      ? 'bg-blue-50/80 dark:bg-slate-800/80 border-2 border-brand-500 shadow-sm'
+                      : 'bg-slate-50 dark:bg-slate-900/40 border-slate-200 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700'
                   }`}
                 >
-                  {theme === 'dark' && <div className="absolute top-2.5 right-2.5 p-1 bg-brand-500 text-white rounded-full"><Check size={10} /></div>}
+                  {theme === 'dark' && (
+                    <div className="absolute top-3 right-3 w-5 h-5 bg-brand-500 text-white rounded-full flex items-center justify-center">
+                      <Check size={12} />
+                    </div>
+                  )}
                   <Moon size={28} className={theme === 'dark' ? 'text-indigo-400 mb-2' : 'text-slate-400 mb-2'} />
-                  <span className={`text-xs font-bold ${theme === 'dark' ? 'text-white' : 'text-slate-300'}`}>Tema Escuro</span>
-                  <span className={`text-[9px] mt-1 ${theme === 'dark' ? 'text-slate-400' : 'text-slate-500'}`}>Modo focado e anti-fadiga</span>
+                  <span className="text-xs font-bold text-slate-900 dark:text-slate-100">Tema Escuro</span>
+                  <span className="text-[10px] mt-1 text-slate-500 dark:text-slate-400">Modo focado e anti-fadiga</span>
                 </div>
 
+                {/* Sistema */}
                 <div 
                   onClick={() => handleApplyTheme('system')}
                   className={`p-5 rounded-2xl border transition-all cursor-pointer text-center relative flex flex-col items-center justify-center min-h-[120px] ${
                     theme === 'system'
-                      ? 'bg-slate-900 border-2 border-brand-500 shadow-md shadow-brand-500/10'
-                      : 'bg-slate-900/30 border-slate-800 text-slate-400 hover:bg-slate-900 hover:text-slate-200'
+                      ? 'bg-blue-50/80 dark:bg-slate-800/80 border-2 border-brand-500 shadow-sm'
+                      : 'bg-slate-50 dark:bg-slate-900/40 border-slate-200 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700'
                   }`}
                 >
-                  {theme === 'system' && <div className="absolute top-2.5 right-2.5 p-1 bg-brand-500 text-white rounded-full"><Check size={10} /></div>}
-                  <Monitor size={28} className={theme === 'system' ? 'text-brand-400 mb-2' : 'text-slate-400 mb-2'} />
-                  <span className={`text-xs font-bold ${theme === 'system' ? 'text-slate-100' : 'text-slate-300'}`}>Sistema</span>
-                  <span className={`text-[9px] mt-1 ${theme === 'system' ? 'text-slate-400' : 'text-slate-500'}`}>Segue as configurações do OS</span>
+                  {theme === 'system' && (
+                    <div className="absolute top-3 right-3 w-5 h-5 bg-brand-500 text-white rounded-full flex items-center justify-center">
+                      <Check size={12} />
+                    </div>
+                  )}
+                  <Monitor size={28} className={theme === 'system' ? 'text-brand-500 mb-2' : 'text-slate-400 mb-2'} />
+                  <span className="text-xs font-bold text-slate-900 dark:text-slate-100">Sistema</span>
+                  <span className="text-[10px] mt-1 text-slate-500 dark:text-slate-400">Segue as configurações do OS</span>
                 </div>
               </div>
             </CardGlass>

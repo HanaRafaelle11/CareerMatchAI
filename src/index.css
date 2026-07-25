@@ -115,7 +115,7 @@
     line-height: 1.6;
   }
 
-  /* Universal Flex & Grid Child Width Preservation (Prevents min-content collapsing in Tailwind v4) */
+  /* Safe Box-Sizing & Intrinsic Width Reset */
   *, ::before, ::after {
     box-sizing: border-box;
   }
@@ -124,42 +124,15 @@
     min-width: 0;
   }
 
-  /* Force children of flex columns and space-y utilities to stretch to full width */
-  .flex-col > *,
-  [class*="space-y-"] > * {
-    width: 100%;
-    min-width: 0;
-  }
-
-  /* Exceptions for buttons, inline badges, icons, and SVG wrappers */
-  .flex-col > button,
-  .flex-col > a.inline-flex,
-  .flex-col > a.inline-block,
-  .flex-col > .inline-flex,
-  .flex-col > .inline-block,
-  .flex-col > svg,
-  [class*="space-y-"] > button,
-  [class*="space-y-"] > a.inline-flex,
-  [class*="space-y-"] > a.inline-block,
-  [class*="space-y-"] > .inline-flex,
-  [class*="space-y-"] > .inline-block,
-  [class*="space-y-"] > svg {
-    width: auto;
-  }
-
   p, h1, h2, h3, h4, h5, h6 {
-    width: 100%;
     max-width: 100%;
-    min-width: 0;
     word-break: normal;
     overflow-wrap: break-word;
     white-space: normal;
   }
 
   form {
-    width: 100%;
     max-width: 100%;
-    min-width: 0;
   }
 
   form, textarea, input, select {

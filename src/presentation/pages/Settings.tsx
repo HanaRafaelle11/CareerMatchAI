@@ -39,8 +39,10 @@ export function Settings({
   preferences,
   updatePreferences
 }: SettingsProps) {
-  console.log("SETTINGS DIAGNOSTIC RUNNING");
-  (window as any).__SETTINGS_DIAGNOSTIC_MOUNTED__ = true;
+  if (!(window as any).SETTINGS_DIAGNOSTIC_MOUNTED) {
+    (window as any).SETTINGS_DIAGNOSTIC_MOUNTED = true;
+    console.log("SETTINGS DIAGNOSTIC RUNNING");
+  }
 
   const queryClient = useQueryClient();
   const [activeSubTab, setActiveSubTab] = useState<SettingsTab>('account');
@@ -102,7 +104,10 @@ export function Settings({
   // Temporarily instrument Settings DOM elements for diagnostic audit
   useEffect(() => {
     const runMeasure = () => {
-      console.log("SETTINGS DIAGNOSTIC RUNNING");
+      if (!(window as any).SETTINGS_DIAGNOSTIC_LOGGED) {
+        (window as any).SETTINGS_DIAGNOSTIC_LOGGED = true;
+        console.log("SETTINGS DIAGNOSTIC RUNNING");
+      }
       const mainEl = document.querySelector('main');
       const settingsContainerEl = document.querySelector('main .flex.flex-col') || document.querySelector('main div');
       const cardGlassEl = document.querySelector('form')?.closest('div') || document.querySelector('main .rounded-2xl');

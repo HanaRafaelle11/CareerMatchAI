@@ -1302,7 +1302,7 @@ export function JobMatchHub({
     <div className="space-y-6 animate-fade-in font-sans p-0">
       {/* Toast Feedback */}
       {toast && (
-        <div className="fixed top-6 right-6 z-[10000] p-4 rounded-xl shadow-2xl border animate-bounce flex items-center gap-2.5 bg-slate-900 border-slate-700 text-xs font-semibold text-white">
+        <div className="fixed bottom-6 right-6 z-[10000] p-4 rounded-xl shadow-2xl border animate-bounce flex items-center gap-2.5 bg-slate-900 border-slate-700 text-xs font-semibold text-white">
           <CheckCircle size={16} className="text-emerald-400 shrink-0" />
           <span>{toast.message}</span>
         </div>

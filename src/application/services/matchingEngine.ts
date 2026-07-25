@@ -295,15 +295,33 @@ export class MatchingEngine {
     resume: Omit<Resume, 'id' | 'userId' | 'createdAt' | 'updatedAt'>;
     careerProfile: Omit<CareerProfile, 'id' | 'userId' | 'resumeId' | 'createdAt' | 'updatedAt'>;
   }> {
+    if (!rawText || rawText.trim().length < 50) {
+      throw new Error('Não foi possível identificar texto suficiente neste arquivo. Verifique se o PDF enviado contém texto selecionável.');
+    }
+
+    const textLower = rawText.toLowerCase();
+    const resumeKeywords = [
+      'experiencia', 'experiência', 'educacao', 'educação', 'formacao', 'formação',
+      'competencias', 'competências', 'habilidades', 'resumo', 'trabalhou', 'cargo',
+      'empresa', 'curriculo', 'currículo', 'resume', 'projects', 'projetos', 'skill',
+      'skills', 'experience', 'education', 'tecnologia', 'tecnologias', 'desenvolvedor',
+      'engenheiro', 'analista', 'gerente', 'coordenador', 'estágio', 'certificações'
+    ];
+
+    const hasResumeKeywords = resumeKeywords.some(kw => textLower.includes(kw));
+    if (!hasResumeKeywords) {
+      throw new Error('Não foi possível identificar um currículo neste arquivo. Verifique se o PDF enviado realmente contém um currículo e não um contrato, fatura ou documento genérico.');
+    }
+
     if (isSupabaseConfigured && supabase) {
       const { data, error } = await supabase.functions.invoke('analyze-resume', {
         body: { rawText, fileName }
       });
       if (error) {
-        throw new Error(error.message || 'Falha ao processar o currículo no Supabase.');
+        throw new Error(error.message || 'Não foi possível processar este currículo pela IA. Nenhuma informação foi gerada. Tente novamente.');
       }
       if (!data || data.error) {
-        throw new Error(data?.error || 'Nenhum dado retornado pela análise da IA.');
+        throw new Error(data?.error || 'Nenhum dado de currículo foi identificado neste arquivo. Tente enviar um documento válido.');
       }
       return {
         resume: data,

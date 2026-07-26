@@ -1,5 +1,4 @@
 import { useState } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
 import { 
   FileText, 
   Search, 
@@ -69,26 +68,26 @@ export function LandingPage({ onNavigateToAuth }: LandingPageProps) {
         <VocentroLogo className="h-7 text-white dark:text-white light:text-slate-900" showText={true} />
         
         <nav className="hidden md:flex items-center gap-5">
-          <a href="#o-que-e" className="text-xs font-medium text-slate-400 hover:text-slate-100 transition-colors">O que é</a>
-          <a href="#como-funciona" className="text-xs font-medium text-slate-400 hover:text-slate-100 transition-colors">Como funciona</a>
-          <a href="#autenticacao-google" className="text-xs font-medium text-slate-400 hover:text-slate-100 transition-colors">Entrar com Google</a>
-          <a href="#recursos" className="text-xs font-medium text-slate-400 hover:text-slate-100 transition-colors">Recursos</a>
-          <a href="#quem-somos" className="text-xs font-medium text-slate-400 hover:text-slate-100 transition-colors">Quem somos</a>
-          <a href="#planos" className="text-xs font-medium text-slate-400 hover:text-slate-100 transition-colors">Planos</a>
-          <a href="/about.html" className="text-xs font-medium text-slate-400 hover:text-slate-100 transition-colors">Sobre</a>
+          <a href="#o-que-e" className="text-xs font-medium text-slate-400 hover:text-slate-100 transition-colors py-1.5 px-1 min-h-[32px] inline-flex items-center">O que é</a>
+          <a href="#como-funciona" className="text-xs font-medium text-slate-400 hover:text-slate-100 transition-colors py-1.5 px-1 min-h-[32px] inline-flex items-center">Como funciona</a>
+          <a href="#autenticacao-google" className="text-xs font-medium text-slate-400 hover:text-slate-100 transition-colors py-1.5 px-1 min-h-[32px] inline-flex items-center">Entrar com Google</a>
+          <a href="#recursos" className="text-xs font-medium text-slate-400 hover:text-slate-100 transition-colors py-1.5 px-1 min-h-[32px] inline-flex items-center">Recursos</a>
+          <a href="#quem-somos" className="text-xs font-medium text-slate-400 hover:text-slate-100 transition-colors py-1.5 px-1 min-h-[32px] inline-flex items-center">Quem somos</a>
+          <a href="#planos" className="text-xs font-medium text-slate-400 hover:text-slate-100 transition-colors py-1.5 px-1 min-h-[32px] inline-flex items-center">Planos</a>
+          <a href="/about.html" className="text-xs font-medium text-slate-400 hover:text-slate-100 transition-colors py-1.5 px-1 min-h-[32px] inline-flex items-center">Sobre</a>
         </nav>
 
         <div className="flex items-center gap-3">
           <ThemeToggle />
           <button 
             onClick={() => onNavigateToAuth('login')}
-            className="text-xs font-semibold text-slate-300 hover:text-white transition-colors cursor-pointer px-2 py-1"
+            className="text-xs font-semibold text-slate-300 hover:text-white transition-colors cursor-pointer px-3 py-1.5 min-h-[32px] inline-flex items-center"
           >
             Entrar
           </button>
           <button 
             onClick={() => onNavigateToAuth('signup')}
-            className="px-4 py-2 text-xs font-semibold text-white bg-brand-500 hover:bg-brand-600 rounded-xl transition-all shadow-sm cursor-pointer"
+            className="px-4 py-2 text-xs font-semibold text-white bg-brand-500 hover:bg-brand-600 rounded-xl transition-all shadow-sm cursor-pointer min-h-[36px] inline-flex items-center"
           >
             Começar gratuitamente
           </button>
@@ -561,20 +560,13 @@ export function LandingPage({ onNavigateToAuth }: LandingPageProps) {
                   />
                 </button>
 
-                <AnimatePresence initial={false}>
-                  {isOpen && (
-                    <motion.div
-                      initial={{ height: 0, opacity: 0 }}
-                      animate={{ height: 'auto', opacity: 1 }}
-                      exit={{ height: 0, opacity: 0 }}
-                      transition={{ duration: 0.2, ease: 'easeInOut' }}
-                    >
-                      <div className="px-4 pb-4 pt-1 text-[11px] text-slate-300 leading-relaxed border-t border-slate-950/30 font-sans font-normal">
-                        {faq.a}
-                      </div>
-                    </motion.div>
-                  )}
-                </AnimatePresence>
+                <div 
+                  className={`transition-all duration-300 ease-in-out overflow-hidden ${
+                    isOpen ? 'max-h-96 opacity-100 px-4 pb-4 pt-1' : 'max-h-0 opacity-0 px-4 py-0'
+                  } text-[11px] text-slate-300 leading-relaxed border-t border-slate-950/30 font-sans font-normal`}
+                >
+                  {faq.a}
+                </div>
               </div>
             );
           })}
@@ -601,56 +593,56 @@ export function LandingPage({ onNavigateToAuth }: LandingPageProps) {
         </button>
       </section>
 
-      {/* ── 10. RODAPÉ INSTITUCIONAL COMPACTO (~40% MENOR) ── */}
+      {/* ── 10. RODAPÉ INSTITUCIONAL COMPACTO (TOUCH TARGETS OPTIMIZED >= 32px) ── */}
       <footer className="border-t border-slate-900 dark:border-slate-900 light:border-slate-200 bg-slate-950/80 dark:bg-slate-950/80 light:bg-white backdrop-blur-md py-10 px-6 relative z-10 transition-colors duration-300">
         <div className="max-w-6xl mx-auto grid grid-cols-1 sm:grid-cols-2 md:grid-cols-5 gap-8">
           <div className="md:col-span-2 space-y-3">
             <VocentroLogo className="h-8 text-white dark:text-white light:text-slate-900" showText={true} />
-            <p className="text-[10px] text-slate-400 dark:text-slate-400 light:text-slate-600 leading-relaxed font-sans font-normal max-w-xs">
+            <p className="text-xs text-slate-400 dark:text-slate-400 light:text-slate-600 leading-relaxed font-sans font-normal max-w-xs">
               O Vocentro é uma plataforma desenvolvida para apoiar profissionais durante toda a jornada de busca por oportunidades de trabalho, utilizando Inteligência Artificial para aumentar a eficiência na preparação de currículos, identificação de vagas compatíveis e preparação para processos seletivos.
             </p>
           </div>
 
           <div>
-            <h3 className="text-[9px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-400 light:text-slate-800 mb-3 font-mono">Produto</h3>
-            <ul className="space-y-1.5 text-[10px] text-slate-400 dark:text-slate-400 light:text-slate-600 font-medium font-sans leading-relaxed">
-              <li><a href="#o-que-e" className="hover:text-slate-200 transition-colors block">O que é o Vocentro</a></li>
-              <li><a href="#como-funciona" className="hover:text-slate-200 transition-colors block">Como funciona</a></li>
-              <li><a href="#recursos" className="hover:text-slate-200 transition-colors block">Recursos da Plataforma</a></li>
-              <li><a href="#planos" className="hover:text-slate-200 transition-colors block">Planos & Preços</a></li>
+            <h3 className="text-[10px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-400 light:text-slate-800 mb-3 font-mono">Produto</h3>
+            <ul className="space-y-2 text-xs text-slate-400 dark:text-slate-400 light:text-slate-600 font-medium font-sans leading-relaxed">
+              <li><a href="#o-que-e" className="hover:text-slate-200 transition-colors py-1.5 px-1 min-h-[32px] inline-flex items-center">O que é o Vocentro</a></li>
+              <li><a href="#como-funciona" className="hover:text-slate-200 transition-colors py-1.5 px-1 min-h-[32px] inline-flex items-center">Como funciona</a></li>
+              <li><a href="#recursos" className="hover:text-slate-200 transition-colors py-1.5 px-1 min-h-[32px] inline-flex items-center">Recursos da Plataforma</a></li>
+              <li><a href="#planos" className="hover:text-slate-200 transition-colors py-1.5 px-1 min-h-[32px] inline-flex items-center">Planos & Preços</a></li>
             </ul>
           </div>
 
           <div>
-            <h3 className="text-[9px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-400 light:text-slate-800 mb-3 font-mono">Institucional</h3>
-            <ul className="space-y-1.5 text-[10px] text-slate-400 dark:text-slate-400 light:text-slate-600 font-medium font-sans leading-relaxed">
-              <li><a href="/about.html" className="hover:text-slate-200 transition-colors block">Sobre o Vocentro</a></li>
-              <li><a href="/privacy.html" target="_blank" rel="noopener noreferrer" className="hover:text-slate-200 transition-colors block">Política de Privacidade</a></li>
-              <li><a href="/terms.html" target="_blank" rel="noopener noreferrer" className="hover:text-slate-200 transition-colors block">Termos de Uso</a></li>
+            <h3 className="text-[10px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-400 light:text-slate-800 mb-3 font-mono">Institucional</h3>
+            <ul className="space-y-2 text-xs text-slate-400 dark:text-slate-400 light:text-slate-600 font-medium font-sans leading-relaxed">
+              <li><a href="/about.html" className="hover:text-slate-200 transition-colors py-1.5 px-1 min-h-[32px] inline-flex items-center">Sobre o Vocentro</a></li>
+              <li><a href="/privacy.html" target="_blank" rel="noopener noreferrer" className="hover:text-slate-200 transition-colors py-1.5 px-1 min-h-[32px] inline-flex items-center">Política de Privacidade</a></li>
+              <li><a href="/terms.html" target="_blank" rel="noopener noreferrer" className="hover:text-slate-200 transition-colors py-1.5 px-1 min-h-[32px] inline-flex items-center">Termos de Uso</a></li>
             </ul>
           </div>
 
           <div>
-            <h3 className="text-[9px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-400 light:text-slate-800 mb-3 font-mono">Contato & Suporte</h3>
-            <ul className="space-y-1.5 text-[10px] text-slate-400 dark:text-slate-400 light:text-slate-600 font-medium font-sans leading-relaxed">
+            <h3 className="text-[10px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-400 light:text-slate-800 mb-3 font-mono">Contato & Suporte</h3>
+            <ul className="space-y-2 text-xs text-slate-400 dark:text-slate-400 light:text-slate-600 font-medium font-sans leading-relaxed">
               <li>
-                <a href="mailto:contato@vocentro.com.br" className="hover:text-slate-200 transition-colors inline-flex items-center gap-1.5">
-                  <Mail size={11} className="text-brand-accent" />
+                <a href="mailto:contato@vocentro.com.br" className="hover:text-slate-200 transition-colors py-1.5 px-1 min-h-[32px] inline-flex items-center gap-1.5">
+                  <Mail size={13} className="text-brand-accent" />
                   contato@vocentro.com.br
                 </a>
               </li>
               <li>
-                <a href="mailto:suporte@vocentro.com.br" className="hover:text-slate-200 transition-colors inline-flex items-center gap-1.5">
-                  <Mail size={11} className="text-brand-accent" />
+                <a href="mailto:suporte@vocentro.com.br" className="hover:text-slate-200 transition-colors py-1.5 px-1 min-h-[32px] inline-flex items-center gap-1.5">
+                  <Mail size={13} className="text-brand-accent" />
                   suporte@vocentro.com.br
                 </a>
               </li>
             </ul>
-            <p className="text-[9px] text-slate-500 mt-1.5">Suporte institucional ao candidato</p>
+            <p className="text-[10px] text-slate-500 mt-2">Suporte institucional ao candidato</p>
           </div>
         </div>
 
-        <div className="max-w-6xl mx-auto border-t border-slate-900 dark:border-slate-900 light:border-slate-100 mt-8 pt-6 flex flex-col sm:flex-row items-center justify-between text-[9px] text-slate-400 dark:text-slate-400 light:text-slate-600 gap-3 font-sans leading-relaxed font-normal">
+        <div className="max-w-6xl mx-auto border-t border-slate-900 dark:border-slate-900 light:border-slate-100 mt-8 pt-6 flex flex-col sm:flex-row items-center justify-between text-[10px] text-slate-400 dark:text-slate-400 light:text-slate-600 gap-3 font-sans leading-relaxed font-normal">
           <span className="shrink-0">© 2026 Vocentro. Todos os direitos reservados.</span>
           <span className="text-center sm:text-right">Plataforma inteligente para desenvolvimento profissional e gestão de candidaturas de carreira.</span>
         </div>

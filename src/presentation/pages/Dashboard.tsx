@@ -193,8 +193,11 @@ export function Dashboard({
 
         {/* Discreet Action Button (+ Explorar vagas) */}
         <button
-          onClick={() => setActiveTab('match')}
-          className="btn-secondary text-xs shrink-0 self-start sm:self-auto"
+          onClick={() => {
+            setActiveTab('match');
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+          }}
+          className="btn-secondary text-xs shrink-0 self-start sm:self-auto cursor-pointer"
         >
           <Search size={14} strokeWidth={1.5} />
           <span>+ Explorar vagas</span>
@@ -205,7 +208,10 @@ export function Dashboard({
       <CareerScoreDashboardCard
         resume={resumes[0]}
         careerProfileNew={careerProfileNew}
-        onExploreJobs={() => setActiveTab('match')}
+        onExploreJobs={() => {
+          setActiveTab('match');
+          window.scrollTo({ top: 0, behavior: 'smooth' });
+        }}
       />
 
       {/* ── 2. ESSENTIAL BRIEFING METRICS BAR ── */}

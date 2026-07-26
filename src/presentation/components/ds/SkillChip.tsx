@@ -1,3 +1,5 @@
+import React from 'react';
+
 interface SkillChipProps {
   name: string;
   level?: 1 | 2 | 3 | 4 | 5;
@@ -7,11 +9,11 @@ interface SkillChipProps {
 }
 
 const categoryStyles: Record<string, string> = {
-  hard: 'border-primary/25 bg-primary/5 text-primary',
-  soft: 'border-secondary/25 bg-secondary/5 text-secondary',
-  tool: 'border-emerald-500/25 bg-emerald-500/5 text-emerald-400 light:text-emerald-600',
-  method: 'border-amber-500/25 bg-amber-500/5 text-amber-400 light:text-amber-700',
-  language: 'border-tertiary/25 bg-tertiary/5 text-tertiary light:text-amber-700',
+  hard: 'border-indigo-500/35 bg-indigo-500/15 text-indigo-300 dark:text-indigo-200 light:text-indigo-900 font-semibold',
+  soft: 'border-emerald-500/35 bg-emerald-500/15 text-emerald-300 dark:text-emerald-200 light:text-emerald-900 font-semibold',
+  tool: 'border-cyan-500/35 bg-cyan-500/15 text-cyan-300 dark:text-cyan-200 light:text-cyan-900 font-semibold',
+  method: 'border-amber-500/35 bg-amber-500/15 text-amber-300 dark:text-amber-200 light:text-amber-900 font-semibold',
+  language: 'border-purple-500/35 bg-purple-500/15 text-purple-300 dark:text-purple-200 light:text-purple-900 font-semibold',
 };
 
 const levelNames: Record<number, string> = {
@@ -29,16 +31,16 @@ export function SkillChip({ name, level, category = 'hard', size = 'md', classNa
 
   return (
     <span 
-      className={`inline-flex items-center gap-1.5 rounded-lg border font-medium ${style} ${sizeClass} ${className}`}
+      className={`inline-flex items-center gap-1.5 rounded-lg border shadow-xs ${style} ${sizeClass} ${className}`}
       title={levelText ? `${name} - Nível: ${levelText}` : name}
     >
-      <span className="truncate max-w-[140px]">{name}</span>
+      <span className="truncate max-w-[160px]">{name}</span>
       {level && (
         <span className="flex items-center gap-px shrink-0">
           {[1, 2, 3, 4, 5].map(i => (
             <span
               key={i}
-              className={`w-1 h-1 rounded-full ${i <= level ? 'bg-current opacity-90' : 'bg-current opacity-20'}`}
+              className={`w-1 h-1 rounded-full ${i <= level ? 'bg-current opacity-90' : 'bg-current opacity-25'}`}
             />
           ))}
         </span>

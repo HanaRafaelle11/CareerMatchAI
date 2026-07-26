@@ -230,8 +230,13 @@ export function Settings({
     const file = e.target.files?.[0];
     if (!file) return;
 
-    if (file.size > 2 * 1024 * 1024) {
-      showToast("A imagem deve ter no máximo 2MB.", "error");
+    if (!file.type.startsWith('image/')) {
+      showToast("Não foi possível carregar o arquivo. Por favor, selecione uma imagem válida (JPG, PNG ou WebP).", "error");
+      return;
+    }
+
+    if (file.size > 5 * 1024 * 1024) {
+      showToast("Não foi possível carregar a foto: O arquivo excede o tamanho máximo de 5MB. Por favor, selecione uma foto menor.", "error");
       return;
     }
 
@@ -239,7 +244,11 @@ export function Settings({
     reader.onloadend = () => {
       if (typeof reader.result === 'string') {
         setAvatarUrl(reader.result);
+        showToast("Foto de perfil selecionada com sucesso!", "success");
       }
+    };
+    reader.onerror = () => {
+      showToast("Erro ao processar a foto selecionada. Tente escolher outro arquivo de imagem.", "error");
     };
     reader.readAsDataURL(file);
   };

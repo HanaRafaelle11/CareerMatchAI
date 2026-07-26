@@ -582,16 +582,18 @@ export class MatchingEngine {
       }
     }
 
-    const isManualJob = /gari|coletor|limpeza|auxiliar de servicos gerais|serviços gerais|porteiro|copa|cozinha/i.test(titleLower);
-    const isOfficeCandidate = flatSkills.some((s: string) => 
-      /react|typescript|node|customer success|cs|salesforce|gerência|gerente|diretor|lead|liderança|marketing|agile/i.test(s)
-    ) || normalizedTargetRoles.some((r: string) => /success|cs|dev|manager|eng|soft|lider|analista/i.test(r));
+    const isITJob = /desenvolvedor|programador|frontend|backend|fullstack|software engineer|tech lead|devops|data engineer|dba|qa engineer/i.test(titleLower);
+    const hasITSkills = flatSkills.some((s: string) => 
+      /react|typescript|javascript|node|python|java|c#|golang|php|sql|docker|aws|git|html|css|devops|frontend|backend|fullstack|software|programação/i.test(s)
+    );
 
     let scoreRoleCompatibility = 100;
-    if (isManualJob && isOfficeCandidate) {
+    if (isITJob && !hasITSkills) {
+      scoreRoleCompatibility = 5;
+    } else if (isManualJob && isOfficeCandidate) {
       scoreRoleCompatibility = 5; 
     } else if (!hasRoleMatch && targetRoles.length > 0) {
-      scoreRoleCompatibility = 30;
+      scoreRoleCompatibility = 25;
     }
 
     // 6. Score Geral ajustado com compatibilidade de cargo

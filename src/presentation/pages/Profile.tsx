@@ -213,13 +213,55 @@ export function Profile({
     };
   }, [isUploading]);
 
-  const primaryResume = resumes.find(r => r.isPrimary) || resumes[0];
-  const versionStats = ResumeOptimizationService.getResumeVersionStats(resumes, applications);
+  const [selectedTargetDomain, setSelectedTargetDomain] = useState<string>('cozinha');
 
-  // Anos de experiência a partir do perfil consolidado (fonte primária)
-  const yearsOfExperience = careerProfileNew && careerProfileNew.experience.length > 0
-    ? calcYearsFromExperiences(careerProfileNew.experience)
-    : (primaryResume?.yearsOfExperience || 0);
+  const getDomainSkillGaps = (domain: string, defaultMissingSkills?: string[]) => {
+    if (domain === 'cozinha') {
+      return [
+        { name: 'Manipulação de Alimentos (Boas Práticas Anvisa)', confidence: 95, reason: 'Requisito fundamental para atuar em cozinhas profissionais, restaurantes e serviços de alimentação.' },
+        { name: 'Segurança Alimentar & Controle Sanitário', confidence: 92, reason: 'Sugerido para prevenção de contaminação cruzada, controle de pragas e manutenção de padrões de higiene.' },
+        { name: 'Organização de Praça (Mise en Place)', confidence: 90, reason: 'Essencial para agilizar o pré-preparo, montagem e fluxo operacional durante o horário de pico de atendimento.' },
+        { name: 'Controle de Estoque & Validade (Método PEPS)', confidence: 88, reason: 'Sugerido para rotatividade de insumos (Primeiro que Entra, Primeiro que Sai) e minimização de desperdícios.' },
+        { name: 'Fichas Técnicas & Padronização de Receitas', confidence: 85, reason: 'Recomendado para manter a consistência de sabor, apresentação dos pratos e controle de custo por porção.' }
+      ];
+    }
+    if (domain === 'ti') {
+      return [
+        { name: 'Git & Controle de Versão (GitHub/GitLab)', confidence: 95, reason: 'Indispensável para trabalho colaborativo e gerenciamento de repositórios de código.' },
+        { name: 'Lógica de Programação & Algoritmos', confidence: 92, reason: 'Base fundamental para construção de código limpo, estruturado e escalável.' },
+        { name: 'Bancos de Dados & Consultas SQL', confidence: 90, reason: 'Recomendado para manipulação, filtragem e persistência de dados em aplicações modernas.' },
+        { name: 'APIs RESTful & Integração de Serviços', confidence: 88, reason: 'Competência técnica chave para comunicação entre sistemas web e mobile.' }
+      ];
+    }
+    if (domain === 'admin') {
+      return [
+        { name: 'Microsoft Excel (Tabelas Dinâmicas & ProcV/ProcX)', confidence: 95, reason: 'Fundamental para organização de dados, relatórios e planilhas operacionais.' },
+        { name: 'Controle de Contas a Pagar e Receber', confidence: 90, reason: 'Essencial para suporte financeiro e conciliação de lançamentos.' },
+        { name: 'Sistemas ERP (Totvs, SAP ou Bling)', confidence: 85, reason: 'Recomendado para gestão integrada de notas fiscais e estoque.' }
+      ];
+    }
+    if (domain === 'vendas') {
+      return [
+        { name: 'Técnicas de Negociação & Fechamento', confidence: 95, reason: 'Recomendado para aumentar a taxa de conversão de propostas comerciais.' },
+        { name: 'Gestão de CRM (Salesforce / HubSpot / RD)', confidence: 90, reason: 'Essencial para registro de interações e acompanhamento do pipeline de clientes.' }
+      ];
+    }
+
+    // Default / Auto
+    if (defaultMissingSkills && defaultMissingSkills.length > 0) {
+      return defaultMissingSkills.map(s => ({
+        name: s,
+        confidence: 85,
+        reason: 'Competência ausente recomendada com base no mapeamento automático.'
+      }));
+    }
+
+    return [
+      { name: 'Gestão do Tempo & Priorização', confidence: 85, reason: 'Recomendado para otimizar entregas diárias.' }
+    ];
+  };
+
+  const primaryResume = resumes.find(r => r.isPrimary) || resumes[0];
 
   // Skills a exibir: usar career_profiles como fonte primária
   const displaySkills = careerProfileNew?.skills || [];
@@ -1068,24 +1110,45 @@ export function Profile({
                       </div>
                     </CardGlass>
 
-                    <CardGlass className="p-6 space-y-4">
-                      <h3 className="font-display font-bold text-base text-slate-200 flex items-center gap-2 border-b border-slate-900 pb-3">
-                        <AlertCircle size={16} className="text-amber-400" />
-                        Gaps de Competências
-                      </h3>
-                      <div className="space-y-3">
-                        {activeInsights?.missing_skills && activeInsights.missing_skills.value && activeInsights.missing_skills.value.length > 0 ? (
-                          activeInsights.missing_skills.value.map((skill, idx) => (
-                            <div key={idx} className="bg-amber-500/5 rounded-xl p-3 border border-amber-500/10 space-y-1">
-                              <span className="font-bold text-xs text-slate-200">{skill}</span>
-                              <p className="text-[10px] text-slate-400">
-                                {activeInsights.missing_skills.reason || "Competência ausente recomendada para a vaga."} (Confiança: {Math.round((activeInsights.missing_skills.confidence || 0.85) * 100)}%)
-                              </p>
+                    <CardGlass className="p-6 space-y-4 md:col-span-2">
+                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-900 pb-3">
+                        <h3 className="font-display font-bold text-base text-slate-200 flex items-center gap-2">
+                          <AlertCircle size={16} className="text-amber-400" />
+                          Gaps de Competências & Área Alvo
+                        </h3>
+                        
+                        {/* Seletor de Área Desejada / Transição de Carreira */}
+                        <div className="flex items-center gap-2">
+                          <span className="text-xs text-slate-400 font-semibold shrink-0">Área Desejada:</span>
+                          <select
+                            value={selectedTargetDomain}
+                            onChange={e => setSelectedTargetDomain(e.target.value)}
+                            className="bg-slate-900 border border-slate-700 text-xs text-brand-300 font-bold rounded-lg px-2.5 py-1 outline-none focus:border-brand-500 cursor-pointer"
+                          >
+                            <option value="cozinha">🍳 Gastronomia / Cozinha / Alimentação</option>
+                            <option value="ti">💻 TI / Software & Tecnologia</option>
+                            <option value="admin">🏢 Administrativo / Suporte Operacional</option>
+                            <option value="vendas">🎯 Vendas / Atendimento Comercial</option>
+                            <option value="auto">🤖 Sugestão Automática do Currículo</option>
+                          </select>
+                        </div>
+                      </div>
+
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-1">
+                        {/* Renderizar Gaps da Área Selecionada */}
+                        {getDomainSkillGaps(selectedTargetDomain, activeInsights?.missing_skills?.value).map((gap, idx) => (
+                          <div key={idx} className="bg-amber-500/5 rounded-xl p-3.5 border border-amber-500/15 space-y-1.5 shadow-xs">
+                            <div className="flex justify-between items-center">
+                              <span className="font-bold text-xs text-slate-100">{gap.name}</span>
+                              <span className="text-[9px] font-mono px-1.5 py-0.5 rounded bg-amber-500/10 text-amber-300 border border-amber-500/20 font-bold">
+                                Confiança: {gap.confidence}%
+                              </span>
                             </div>
-                          ))
-                        ) : (
-                          <div className="text-xs text-slate-500">Nenhum gap crítico identificado.</div>
-                        )}
+                            <p className="text-[11px] text-slate-300 leading-relaxed font-sans">
+                              {gap.reason}
+                            </p>
+                          </div>
+                        ))}
                       </div>
                     </CardGlass>
                   </div>

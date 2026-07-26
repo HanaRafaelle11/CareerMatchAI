@@ -1,33 +1,63 @@
 /**
  * Helper utility to export HTML elements as PDF by rendering them in a print-friendly document
- * and triggering the browser's native print manager dialog.
+ * and triggering the browser's native print manager dialog across desktop and mobile devices.
  */
 export const printElementHtml = (title: string, htmlContent: string) => {
+  const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+
   const printWindow = window.open('', '_blank');
   if (!printWindow) {
-    alert("Falha ao abrir janela de impressão. Por favor, desabilite bloqueadores de pop-up e tente novamente.");
+    // Popup bloqueado: fallback utilizando iframe embutido na página
+    const iframe = document.createElement('iframe');
+    iframe.style.position = 'fixed';
+    iframe.style.right = '0';
+    iframe.style.bottom = '0';
+    iframe.style.width = '0';
+    iframe.style.height = '0';
+    iframe.style.border = '0';
+    document.body.appendChild(iframe);
+
+    const doc = iframe.contentWindow?.document;
+    if (doc) {
+      doc.open();
+      doc.write(generatePrintDocumentHtml(title, htmlContent, false));
+      doc.close();
+      setTimeout(() => {
+        iframe.contentWindow?.focus();
+        iframe.contentWindow?.print();
+        setTimeout(() => document.body.removeChild(iframe), 2000);
+      }, 500);
+    } else {
+      alert("Falha ao gerar impressão. Por favor, desabilite o bloqueador de pop-ups do seu navegador.");
+    }
     return;
   }
 
-  printWindow.document.write(`
+  printWindow.document.write(generatePrintDocumentHtml(title, htmlContent, !isMobile));
+  printWindow.document.close();
+};
+
+const generatePrintDocumentHtml = (title: string, htmlContent: string, autoClose: boolean): string => {
+  return `
     <!DOCTYPE html>
-    <html>
+    <html lang="pt-BR">
       <head>
         <title>${title}</title>
         <meta charset="utf-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
         <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
         <style>
           @page {
             size: A4;
-            margin: 20mm;
+            margin: 15mm;
           }
           body {
             font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
             color: #1e293b;
             background: #ffffff;
-            line-height: 1.6;
+            line-height: 1.5;
             margin: 0;
-            padding: 0;
+            padding: 16px;
             font-size: 11pt;
           }
           h1, h2, h3, h4 {
@@ -36,152 +66,48 @@ export const printElementHtml = (title: string, htmlContent: string) => {
             font-weight: 700;
           }
           h1 {
-            font-size: 20pt;
-            border-bottom: 2px solid #6366f1;
+            font-size: 18pt;
+            border-bottom: 2px solid #4f46e5;
             padding-bottom: 8px;
-            margin-bottom: 20px;
+            margin-bottom: 16px;
           }
           h2 {
-            font-size: 14pt;
+            font-size: 13pt;
             border-bottom: 1px solid #e2e8f0;
             padding-bottom: 6px;
-            margin-top: 25px;
-            margin-bottom: 12px;
-          }
-          h3 {
-            font-size: 12pt;
-            margin-top: 15px;
-            margin-bottom: 8px;
+            margin-top: 20px;
+            margin-bottom: 10px;
           }
           p {
-            margin: 0 0 10px 0;
+            margin: 0 0 8px 0;
           }
           ul {
-            margin: 0 0 15px 0;
-            padding-left: 20px;
+            margin: 0 0 12px 0;
+            padding-left: 18px;
           }
           li {
-            margin-bottom: 6px;
-          }
-          .header-table {
-            width: 100%;
-            margin-bottom: 30px;
-            border-collapse: collapse;
-          }
-          .header-table td {
-            vertical-align: top;
-            padding: 0;
-          }
-          .header-info {
-            text-align: right;
-            font-size: 9.5pt;
-            color: #64748b;
-          }
-          .grid-2 {
-            display: table;
-            width: 100%;
-            table-layout: fixed;
-            margin-bottom: 20px;
-          }
-          .grid-col {
-            display: table-cell;
-            width: 50%;
-            vertical-align: top;
-            padding-right: 15px;
-          }
-          .grid-col:last-child {
-            padding-right: 0;
-            padding-left: 15px;
+            margin-bottom: 4px;
           }
           .card {
-            border: 1.5px solid #e2e8f0;
+            border: 1px solid #cbd5e1;
             border-radius: 8px;
-            padding: 15px;
-            margin-bottom: 15px;
+            padding: 12px;
+            margin-bottom: 12px;
             background: #f8fafc;
+            page-break-inside: avoid;
           }
           .card-title {
             font-weight: 700;
-            font-size: 10.5pt;
+            font-size: 10pt;
             text-transform: uppercase;
             letter-spacing: 0.05em;
-            color: #4f46e5;
-            margin-bottom: 8px;
-          }
-          .badge {
-            display: inline-block;
-            padding: 3px 8px;
-            background: #e0e7ff;
             color: #4338ca;
-            border-radius: 4px;
-            font-size: 8.5pt;
-            font-weight: 600;
-            text-transform: uppercase;
-          }
-          .badge-success {
-            background: #d1fae5;
-            color: #065f46;
-          }
-          .score-grid {
-            display: table;
-            width: 100%;
-            table-layout: fixed;
-            margin-bottom: 25px;
-          }
-          .score-card {
-            display: table-cell;
-            text-align: center;
-            border: 1.5px solid #e2e8f0;
-            border-radius: 8px;
-            padding: 15px;
-            background: #faf5ff;
-            width: 33.33%;
-          }
-          .score-card:not(:last-child) {
-            margin-right: 10px; /* Note: table-cell margins don't work, so border spacing or padding is used. */
-          }
-          .score-val {
-            font-size: 24pt;
-            font-weight: 800;
-            color: #7c3aed;
-            line-height: 1;
-            margin-bottom: 4px;
-          }
-          .score-label {
-            font-size: 8.5pt;
-            font-weight: 600;
-            color: #6b21a8;
-            text-transform: uppercase;
-          }
-          .experience-item {
-            margin-bottom: 15px;
-            padding-bottom: 15px;
-            border-bottom: 1px dashed #e2e8f0;
-          }
-          .experience-item:last-child {
-            border-bottom: none;
-            margin-bottom: 0;
-            padding-bottom: 0;
-          }
-          .experience-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: baseline;
-            margin-bottom: 4px;
-          }
-          .experience-role {
-            font-weight: 700;
-            font-size: 11pt;
-            color: #0f172a;
-          }
-          .experience-meta {
-            font-size: 9.5pt;
-            color: #64748b;
+            margin-bottom: 6px;
           }
           .footer {
-            margin-top: 40px;
+            margin-top: 30px;
             border-top: 1px solid #e2e8f0;
-            padding-top: 10px;
+            padding-top: 8px;
             text-align: center;
             font-size: 8.5pt;
             color: #94a3b8;
@@ -192,12 +118,17 @@ export const printElementHtml = (title: string, htmlContent: string) => {
               print-color-adjust: exact;
             }
             .no-print {
-              display: none;
+              display: none !important;
             }
           }
         </style>
       </head>
       <body>
+        <div class="no-print" style="margin-bottom: 16px; padding: 12px; background: #e0e7ff; border-radius: 8px; text-align: center;">
+          <button onclick="window.print()" style="padding: 10px 20px; font-weight: bold; background: #4f46e5; color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 14px;">
+            🖨️ Salvar como PDF / Imprimir
+          </button>
+        </div>
         ${htmlContent}
         <div class="footer">
           Relatório gerado pelo Vocentro - Inteligência Artificial para Aceleração de Carreira. www.vocentro.com.br
@@ -206,12 +137,11 @@ export const printElementHtml = (title: string, htmlContent: string) => {
           window.onload = function() {
             setTimeout(function() {
               window.print();
-              window.close();
-            }, 300);
+              ${autoClose ? 'setTimeout(function() { window.close(); }, 1000);' : ''}
+            }, 400);
           };
         </script>
       </body>
     </html>
-  `);
-  printWindow.document.close();
+  `;
 };

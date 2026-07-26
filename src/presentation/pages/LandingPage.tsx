@@ -22,11 +22,9 @@ import { VocentroLogo } from '../components/ds/MyCareerIcons';
 import { ThemeToggle } from '../components/ThemeToggle';
 import { HeroProductMockup } from '../components/HeroProductMockup';
 import { 
-  BrandIcon, 
   FeatureIcon, 
   StepIcon, 
-  SecurityIcon, 
-  PremiumBadge 
+  SecurityIcon 
 } from '../components/ds/VdsIcons';
 
 interface LandingPageProps {

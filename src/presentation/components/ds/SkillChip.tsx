@@ -1,5 +1,3 @@
-import React from 'react';
-
 interface SkillChipProps {
   name: string;
   level?: 1 | 2 | 3 | 4 | 5;

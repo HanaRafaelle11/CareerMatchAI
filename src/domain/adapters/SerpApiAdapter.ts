@@ -1,20 +1,19 @@
-import { NormalizedJobResult } from '../../domain/models/types';
-import { extractSeniorityFromJob } from '../../application/services/jobMatchEngine';
+import { Job } from '../../domain/models/types';
+import { extractSeniorityFromJob } from '../../application/services/matchingEngine';
 
 export class SerpApiAdapter {
-  static transform(data: any, location: string = 'Brasil'): NormalizedJobResult[] {
+  static transform(data: any, location: string = 'Brasil'): Job[] {
     if (!data || !Array.isArray(data.results)) {
       return [];
     }
 
-    const results = (data?.results || []).map((res: any, idx: number): NormalizedJobResult => {
+    const results = (data?.results || []).map((res: any, idx: number): Job => {
       const title = (res.title || '').replace(/<\/?[^>]+(>|$)/g, "").trim();
       const description = (res.description || res.snippet || '').replace(/<\/?[^>]+(>|$)/g, "").trim();
       const company = res.company_name || res.company || 'Empresa Confidencial';
       const locStr = res.location || location;
       
       // PRIORIZAR O LINK DIRETO DA VAGA DA EMPRESA OU PORTAL DE CANDIDATURA (LinkedIn, Catho, Glassdoor, Gupy, InfoJobs)
-      // Evitar links genéricos de busca do Google
       const directApplyUrl = res.apply_options?.[0]?.link || res.applyUrl || res.redirect_url || res.sourceUrl || res.url;
       const fallbackUrl = res.share_link || res.link || '';
       
@@ -32,10 +31,11 @@ export class SerpApiAdapter {
       return {
         id: `serp_${res.job_id || idx}_${Date.now()}`,
         title,
-        company,
+        companyName: company,
         location: locStr,
         description,
         url: finalUrl,
+        applyUrl: finalUrl,
         seniority,
         workMode,
         is_active: res.isActive !== false,
@@ -44,9 +44,9 @@ export class SerpApiAdapter {
         salaryMax: res.salaryMax,
         currency: 'BRL',
         requirements: res.requirements || [],
-        rawSource: res.sourcePlatform || 'Google Jobs (SerpApi)',
+        sourcePlatform: res.sourcePlatform || 'Google Jobs (SerpApi)',
         sources: res.sources && res.sources.length > 0 ? res.sources : [res.sourcePlatform || 'Google Jobs (SerpApi)']
-      };
+      } as Job;
     });
 
     return results;

@@ -262,6 +262,10 @@ export function Profile({
   };
 
   const primaryResume = resumes.find(r => r.isPrimary) || resumes[0];
+  const versionStats = ResumeOptimizationService.getResumeVersionStats(resumes, applications);
+  const yearsOfExperience = careerProfileNew && careerProfileNew.experience && careerProfileNew.experience.length > 0
+    ? calcYearsFromExperiences(careerProfileNew.experience)
+    : (primaryResume?.yearsOfExperience || 0);
 
   // Skills a exibir: usar career_profiles como fonte primária
   const displaySkills = careerProfileNew?.skills || [];

@@ -587,6 +587,11 @@ export class MatchingEngine {
       /react|typescript|javascript|node|python|java|c#|golang|php|sql|docker|aws|git|html|css|devops|frontend|backend|fullstack|software|programação/i.test(s)
     );
 
+    const isManualJob = /gari|coletor|limpeza|auxiliar de servicos gerais|serviços gerais|porteiro|copa/i.test(titleLower);
+    const isOfficeCandidate = flatSkills.some((s: string) => 
+      /react|typescript|node|customer success|cs|salesforce|gerência|gerente|diretor|lead|liderança|marketing|agile/i.test(s)
+    ) || normalizedTargetRoles.some((r: string) => /success|cs|dev|manager|eng|soft|lider|analista/i.test(r));
+
     let scoreRoleCompatibility = 100;
     if (isITJob && !hasITSkills) {
       scoreRoleCompatibility = 5;

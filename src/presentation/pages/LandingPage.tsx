@@ -9,7 +9,6 @@ import {
   ArrowRight,
   Sparkles,
   Check,
-  EyeOff,
   UserCheck,
   ShieldCheck,
   Mail,

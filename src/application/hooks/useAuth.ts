@@ -128,7 +128,7 @@ export function useAuth() {
 
         const { data: inserted, error: insertError } = await supabase
           .from('profiles')
-          .insert(newProfile)
+          .upsert(newProfile, { onConflict: 'id' })
           .select('id, full_name, email, headline, role, created_at, updated_at')
           .maybeSingle();
 
@@ -173,6 +173,7 @@ export function useAuth() {
       localStorage.setItem('vocentro_auth_user', JSON.stringify(mockUserObj));
       setUser(mockUserObj);
       setProfile(localDB.getProfile());
+      registerSessionOnce(mockUserId);
       tracker.track('login', 'auth');
       setLoading(false);
     }
@@ -193,19 +194,48 @@ export function useAuth() {
         throw error;
       }
       if (data?.user) {
-        // Criar perfil
+        // Tentar upsert no perfil
         const { error: profileError } = await supabase
           .from('profiles')
-          .insert({
+          .upsert({
             id: data.user.id,
             full_name: fullName,
-            created_at: new Date().toISOString(),
+            email: email,
+            headline: 'Profissional | Vocentro',
+            role: 'user',
             updated_at: new Date().toISOString(),
-          });
-        if (profileError) console.error(profileError);
+          }, { onConflict: 'id' });
+        if (profileError) console.warn('[AUTH] Aviso ao criar perfil no signup:', profileError);
+
         tracker.track('user_registered', 'auth');
         tracker.track('signup_completed', 'auth');
+
+        if (data.session) {
+          setUser(data.session.user);
+          await fetchSupabaseProfile(data.session.user.id);
+          setLoading(false);
+          return { status: 'authenticated' };
+        } else {
+          // Tentar autenticação direta caso a confirmação automática esteja ativa na conta Supabase
+          try {
+            const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
+              email,
+              password
+            });
+            if (!signInError && signInData?.user) {
+              setUser(signInData.user);
+              await fetchSupabaseProfile(signInData.user.id);
+              setLoading(false);
+              return { status: 'authenticated' };
+            }
+          } catch (_) {}
+
+          setLoading(false);
+          return { status: 'needs_confirmation', email };
+        }
       }
+      setLoading(false);
+      return { status: 'needs_confirmation', email };
     } else {
       // Simulação local
       await new Promise(resolve => setTimeout(resolve, 1000));
@@ -215,9 +245,11 @@ export function useAuth() {
       localDB.updateProfile({ fullName, headline: 'Novo Usuário | Vocentro' });
       setUser(mockUserObj);
       setProfile(localDB.getProfile());
+      registerSessionOnce(mockUserId);
       tracker.track('user_registered', 'auth');
       tracker.track('signup_completed', 'auth');
       setLoading(false);
+      return { status: 'authenticated' };
     }
   };
 

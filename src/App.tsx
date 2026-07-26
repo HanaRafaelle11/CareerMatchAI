@@ -49,6 +49,7 @@ function App() {
   const { user, profile, loading, loginWithEmail, signUpWithEmail, loginWithOAuth, logout, updateProfile } = useAuth();
   const [activeTab, setActiveTab] = useState('dashboard');
   const [showAuth, setShowAuth] = useState(false);
+  const [authMode, setAuthMode] = useState<'login' | 'signup'>('login');
   const [activeProfileTab, setActiveProfileTab] = useState<'profile' | 'ai-profile' | 'transparency'>('profile');
   const [settingsInitialSubTab, setSettingsInitialSubTab] = useState<'account' | 'resumes' | 'preferences' | 'notifications' | 'appearance' | 'privacy' | 'billing'>('account');
   const [strategyInitialSubTab, setStrategyInitialSubTab] = useState<'strategy' | 'planner' | 'pipeline' | 'journal'>('strategy');
@@ -312,6 +313,7 @@ function App() {
     if (showAuth) {
       return (
         <Login
+          initialMode={authMode}
           onLogin={loginWithEmail}
           onSignUp={signUpWithEmail}
           onOAuth={loginWithOAuth}
@@ -321,7 +323,10 @@ function App() {
     }
     return (
       <LandingPage 
-        onNavigateToAuth={() => setShowAuth(true)}
+        onNavigateToAuth={(mode = 'login') => {
+          setAuthMode(mode);
+          setShowAuth(true);
+        }}
       />
     );
   }

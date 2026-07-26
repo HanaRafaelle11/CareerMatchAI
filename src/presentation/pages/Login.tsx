@@ -2,19 +2,21 @@ import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { loginSchema, signUpSchema } from '../../domain/validators/schemas';
-import { Mail, Lock, User, AlertCircle, ArrowRight } from 'lucide-react';
+import { Mail, Lock, User, AlertCircle, ArrowRight, CheckCircle2 } from 'lucide-react';
 import { VocentroLogo } from '../components/ds/MyCareerIcons';
 
 interface LoginProps {
+  initialMode?: 'login' | 'signup';
   onLogin: (email: string, password: string) => Promise<void>;
-  onSignUp: (fullName: string, email: string, password: string) => Promise<void>;
+  onSignUp: (fullName: string, email: string, password: string) => Promise<any>;
   onOAuth: (provider: 'google' | 'github') => Promise<void>;
   onBack?: () => void;
 }
 
-export function Login({ onLogin, onSignUp, onOAuth, onBack }: LoginProps) {
-  const [isSignUp, setIsSignUp] = useState(false);
+export function Login({ initialMode = 'login', onLogin, onSignUp, onOAuth, onBack }: LoginProps) {
+  const [isSignUp, setIsSignUp] = useState(initialMode === 'signup');
   const [errorMsg, setErrorMsg] = useState('');
+  const [successMsg, setSuccessMsg] = useState('');
   const [loading, setLoading] = useState(false);
 
   const loginForm = useForm({
@@ -29,6 +31,7 @@ export function Login({ onLogin, onSignUp, onOAuth, onBack }: LoginProps) {
 
   const handleLoginSubmit = async (data: any) => {
     setErrorMsg('');
+    setSuccessMsg('');
     setLoading(true);
     try {
       await onLogin(data.email, data.password);
@@ -41,9 +44,15 @@ export function Login({ onLogin, onSignUp, onOAuth, onBack }: LoginProps) {
 
   const handleSignUpSubmit = async (data: any) => {
     setErrorMsg('');
+    setSuccessMsg('');
     setLoading(true);
     try {
-      await onSignUp(data.fullName, data.email, data.password);
+      const res = await onSignUp(data.fullName, data.email, data.password);
+      if (res?.status === 'needs_confirmation') {
+        setSuccessMsg(`Cadastro realizado com sucesso! Enviamos um e-mail de confirmação para ${data.email}. Por favor, verifique sua caixa de entrada para ativar sua conta.`);
+      } else {
+        setSuccessMsg('Cadastro realizado com sucesso! Acessando sua conta...');
+      }
     } catch (err: any) {
       setErrorMsg(err.message || 'Erro ao criar conta. Tente novamente.');
     } finally {
@@ -53,6 +62,7 @@ export function Login({ onLogin, onSignUp, onOAuth, onBack }: LoginProps) {
 
   const handleOAuthClick = async (provider: 'google' | 'github') => {
     setErrorMsg('');
+    setSuccessMsg('');
     setLoading(true);
     try {
       await onOAuth(provider);
@@ -92,6 +102,13 @@ export function Login({ onLogin, onSignUp, onOAuth, onBack }: LoginProps) {
             <div className="p-4 rounded-[14px] bg-red-500/10 border border-red-500/20 flex items-start gap-3 text-red-400 text-xs">
               <AlertCircle size={16} className="shrink-0 mt-0.5" />
               <span>{errorMsg}</span>
+            </div>
+          )}
+
+          {successMsg && (
+            <div className="p-4 rounded-[14px] bg-emerald-500/10 border border-emerald-500/20 flex items-start gap-3 text-emerald-400 text-xs">
+              <CheckCircle2 size={16} className="shrink-0 mt-0.5" />
+              <span>{successMsg}</span>
             </div>
           )}
 
@@ -254,6 +271,7 @@ export function Login({ onLogin, onSignUp, onOAuth, onBack }: LoginProps) {
             onClick={() => {
               setIsSignUp(!isSignUp);
               setErrorMsg('');
+              setSuccessMsg('');
             }}
             className="text-brand-accent hover:underline font-semibold ml-1.5 focus:outline-none cursor-pointer"
           >

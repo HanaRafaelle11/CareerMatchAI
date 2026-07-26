@@ -274,7 +274,7 @@ export function JobMatchHub({
       
       // Obter preferências novas do perfil selecionado
       const newPref = (careerProfileNew?.personal as any)?.preferences || {};
-      const newKeyword = newPref.searchKeywords?.[0] || newPref.targetRoles?.[0] || careerProfile?.searchKeywords?.[0] || primaryResume?.skills?.[0]?.name || 'React';
+      const newKeyword = newPref.targetRoles?.[0] || newPref.searchKeywords?.[0] || careerProfile?.searchKeywords?.[0] || (primaryResume as any)?.headline?.split('|')[0]?.trim() || primaryResume?.skills?.[0]?.name || '';
       const newLocation = newPref.preferredLocations?.[0] || careerProfile?.preferredLocations?.[0] || 'Brasil';
       const newRemote = true;
 
@@ -909,7 +909,7 @@ export function JobMatchHub({
       setSubTab('discover');
       
       const preferences = (careerProfileNew?.personal as any)?.preferences || {};
-      const keyword = preferences.searchKeywords?.[0] || (careerProfile as any)?.searchKeywords?.[0] || 'React';
+      const keyword = preferences.targetRoles?.[0] || preferences.searchKeywords?.[0] || (careerProfile as any)?.targetRoles?.[0] || (careerProfile as any)?.searchKeywords?.[0] || (primaryResume as any)?.headline?.split('|')[0]?.trim() || '';
       const loc = preferences.preferredLocations?.[0] || (careerProfile as any)?.preferredLocations?.[0] || 'Brasil';
       const isRemote = preferences.preferredWorkModes ? preferences.preferredWorkModes.includes('remote') : ((careerProfile as any)?.preferredWorkModes?.includes('remote') ?? true);
       const preferredModes = preferences.preferredWorkModes || (careerProfile as any)?.preferredWorkModes || ['remote'];
@@ -934,9 +934,9 @@ export function JobMatchHub({
     if (activeProf) {
       const preferences = (careerProfileNew?.personal as any)?.preferences || {};
       const targetRolesList = preferences.targetRoles || (careerProfile as any)?.targetRoles || [];
-      const defaultKeyword = targetRolesList.join(', ') || preferences.searchKeywords?.[0] || (careerProfile as any)?.searchKeywords?.[0] || '';
+      const defaultKeyword = targetRolesList.join(', ') || preferences.searchKeywords?.[0] || (careerProfile as any)?.searchKeywords?.[0] || (primaryResume as any)?.headline?.split('|')[0]?.trim() || '';
       
-      if (defaultKeyword && (!searchKeyword || searchKeyword === 'React')) {
+      if (defaultKeyword && !searchKeyword) {
         setSearchKeyword(defaultKeyword);
         setActiveFilters(prev => ({
           ...prev,

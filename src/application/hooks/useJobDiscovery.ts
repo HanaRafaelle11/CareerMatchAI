@@ -65,13 +65,13 @@ export function useJobDiscovery(
         }
       } else {
         // Fallback básico se sem currículo/perfil estruturado
-        finalKeywords = [filters.keyword || 'React'];
+        finalKeywords = [filters.keyword || 'Vagas'];
       }
 
       // Limitar a no máximo 3 termos paralelos para evitar limites de tráfego
       const keywordsToSearch = finalKeywords.filter(Boolean).slice(0, 3);
       if (keywordsToSearch.length === 0) {
-        keywordsToSearch.push('React');
+        keywordsToSearch.push('Vagas');
       }
 
       const searchResult = await JobSearchService.searchJobs({

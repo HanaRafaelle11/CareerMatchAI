@@ -201,7 +201,7 @@ export function CareerProfilePage({
                   <div className="flex gap-2">
                     <input
                       type="text"
-                      placeholder="Ex: Customer Success Manager"
+                      placeholder="Ex: Ajudante de Cozinha, Gerente de Loja, Analista"
                       value={newRole}
                       onChange={e => setNewRole(e.target.value)}
                       className="flex-1 px-4 py-2 rounded-xl bg-slate-900/50 border border-slate-800 focus:border-brand-500 outline-none text-xs text-slate-200"
@@ -232,7 +232,7 @@ export function CareerProfilePage({
                   <label className="text-xs font-semibold text-slate-400">Senioridade Desejada</label>
                   <input
                     type="text"
-                    placeholder="Ex: Manager, Sênior, Pleno"
+                    placeholder="Ex: Auxiliar, Pleno, Sênior, Gestão"
                     value={seniority}
                     onChange={e => setSeniority(e.target.value)}
                     className="w-full px-4 py-2.5 rounded-xl bg-slate-900/50 border border-slate-800 focus:border-brand-500 outline-none text-xs text-slate-200"
@@ -246,7 +246,7 @@ export function CareerProfilePage({
                   <div className="flex gap-2">
                     <input
                       type="text"
-                      placeholder="Ex: SaaS, Fintech, EdTech"
+                      placeholder="Ex: Gastronomia, Alimentação, Varejo, Tecnologia"
                       value={newIndustry}
                       onChange={e => setNewIndustry(e.target.value)}
                       className="flex-1 px-4 py-2 rounded-xl bg-slate-900/50 border border-slate-800 focus:border-brand-500 outline-none text-xs text-slate-200"

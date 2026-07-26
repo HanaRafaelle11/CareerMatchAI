@@ -16,7 +16,7 @@ export class JoobleAdapter implements JobProviderInterface {
       return { results: [], count: 0 };
     }
 
-    const keyword = filters.keyword || (filters.keywords && filters.keywords[0]) || 'React';
+    const keyword = filters.keyword || (filters.keywords && filters.keywords[0]) || 'Vagas';
     const location = filters.location || 'Brasil';
     const pageNum = filters.page || 1;
 

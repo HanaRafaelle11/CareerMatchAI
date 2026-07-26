@@ -58,7 +58,7 @@ export class JobSearchService {
     // Build keywords array
     let keywordsToSearch = filters.keywords && filters.keywords.length > 0
       ? filters.keywords
-      : [filters.keyword || 'React'];
+      : [filters.keyword || 'Vagas'];
 
     if (filters.remoteOnly) {
       keywordsToSearch = keywordsToSearch.map(kw => {

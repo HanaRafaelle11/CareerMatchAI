@@ -39,14 +39,21 @@ export class JobMatchFeedbackService {
 
     if (isSupabaseConfigured && supabase) {
       try {
-        await supabase.from('job_match_feedback').insert({
-          user_id: params.userId || null,
+        const feedbackReason = params.reason || (params.feedbackType === 'positive' ? 'positive' : 'negative');
+        const insertPayload: any = {
           job_id: params.jobId,
-          career_fit_score: params.careerFitScore,
-          job_score: params.jobScore,
-          feedback_type: params.feedbackType,
-          reason: params.reason || null
-        });
+          reason: feedbackReason
+        };
+        if (params.userId) {
+          insertPayload.user_id = params.userId;
+        }
+
+        const { error } = await supabase.from('job_feedback').insert(insertPayload);
+        if (error) {
+          console.warn('[JobMatchFeedbackService] Erro ao salvar feedback no Supabase:', error);
+        } else {
+          console.log('[JobMatchFeedbackService] Feedback de vaga salvo no Supabase com sucesso!');
+        }
       } catch (err) {
         console.warn('[JobMatchFeedbackService] Erro ao salvar feedback no Supabase:', err);
       }
@@ -83,13 +90,17 @@ export class JobMatchFeedbackService {
 
     if (isSupabaseConfigured && supabase) {
       try {
-        const { data } = await supabase.from('job_match_feedback').select('*');
+        const { data } = await supabase.from('job_feedback').select('*');
         if (data && data.length > 0) {
           data.forEach(item => {
-            if (item.feedback_type === 'positive') positiveCount++;
-            if (item.feedback_type === 'negative') negativeCount++;
-            if (item.reason && rejectionReasons[item.reason] !== undefined) {
-              rejectionReasons[item.reason]++;
+            const r = item.reason || '';
+            if (r === 'positive' || item.feedback_type === 'positive') {
+              positiveCount++;
+            } else {
+              negativeCount++;
+            }
+            if (r && rejectionReasons[r] !== undefined) {
+              rejectionReasons[r]++;
             }
           });
           return {

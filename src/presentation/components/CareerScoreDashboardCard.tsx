@@ -17,25 +17,30 @@ export function CareerScoreDashboardCard({ resume, careerProfileNew, onExploreJo
   const userSkills = profileSkills.length > 0 ? profileSkills : resumeSkills;
   const experiencesCount = resume?.experiences?.length || (careerProfileNew?.experience as any[])?.length || 0;
   const targetRoles = (careerProfileNew?.personal as any)?.preferences?.targetRoles || [];
+  const userHeadline = (resume as any)?.headline || (careerProfileNew?.personal as any)?.headline || 'Profissional';
+  const primaryRole = targetRoles[0] || userHeadline.split('|')[0].trim();
 
   // Calcular o Career Score inicial do perfil (0 - 100)
-  const baseScore = Math.min(95, Math.max(50, 60 + (userSkills.length * 2) + (experiencesCount * 4)));
+  const baseScore = Math.min(95, Math.max(40, 50 + (userSkills.length * 3) + (experiencesCount * 5)));
 
   const topCompatibleRoles = targetRoles.length >= 3
     ? targetRoles.slice(0, 3)
     : [
-        targetRoles[0] || 'Customer Success Manager',
-        targetRoles[1] || 'CS Operations Manager',
-        'Customer Experience Lead'
+        primaryRole,
+        targetRoles[1] || (primaryRole !== 'Profissional' ? `Auxiliar / ${primaryRole}` : 'Assistente Operacional'),
+        targetRoles[2] || (primaryRole !== 'Profissional' ? `Especialista / ${primaryRole}` : 'Analista Operacional')
       ];
 
   const strengthsList = userSkills.length >= 3
-    ? userSkills.slice(0, 3).map(s => `Gestão e domínio em ${s}`)
-    : ['Gestão de carteira SaaS', 'Liderança operacional e processos', 'Retenção e estratégia de Churn'];
+    ? userSkills.slice(0, 3).map(s => `Domínio e execução em ${s}`)
+    : userSkills.length > 0
+    ? [...userSkills.map(s => `Domínio em ${s}`), 'Organização e atenção aos detalhes', 'Pontualidade e rotina operacional'].slice(0, 3)
+    : ['Organização e processos de trabalho', 'Pontualidade e atenção aos detalhes', 'Execução de rotinas operacionais'];
 
+  const hasSkills = userSkills.length > 0;
   const gapsList = [
-    'Estratégia de expansão de contas (Upsell / Cross-sell)',
-    'Ferramentas enterprise avançadas (Gainsight / Salesforce)'
+    hasSkills ? 'Certificações e cursos complementares na área' : 'Cadastrar competências técnicas específicas no perfil',
+    experiencesCount > 0 ? 'Quantificar conquistas e resultados em experiências anteriores' : 'Adicionar histórico completo de experiências profissionais'
   ];
 
   useEffect(() => {

@@ -29,6 +29,32 @@ export function Login({ initialMode = 'login', onLogin, onSignUp, onOAuth, onBac
     defaultValues: { fullName: '', email: '', password: '', confirmPassword: '' }
   });
 
+  const formatAuthError = (err: any): string => {
+    const msg = err?.message || err?.error_description || String(err || '');
+    const code = err?.code || '';
+
+    if (code === 'user_already_exists' || msg.toLowerCase().includes('user already registered') || msg.toLowerCase().includes('already registered')) {
+      return 'Este e-mail já está cadastrado no Vocentro. Por favor, faça login com sua senha ou utilize a opção "Entrar com o Google".';
+    }
+    if (code === 'invalid_credentials' || msg.toLowerCase().includes('invalid login credentials')) {
+      return 'E-mail ou senha incorretos. Por favor, verifique suas credenciais e tente novamente.';
+    }
+    if (msg.toLowerCase().includes('password should be at least')) {
+      return 'A senha deve conter no mínimo 6 caracteres.';
+    }
+    if (msg.toLowerCase().includes('email rate limit exceeded')) {
+      return 'Limite de solicitações atingido. Por favor, aguarde um minuto antes de tentar novamente.';
+    }
+    return msg || 'Ocorreu um erro ao processar sua solicitação. Tente novamente.';
+  };
+
+  const handleInvalidFormSubmit = (errors: any) => {
+    const firstErrKey = Object.keys(errors)[0];
+    if (firstErrKey && errors[firstErrKey]?.message) {
+      setErrorMsg(String(errors[firstErrKey]?.message));
+    }
+  };
+
   const handleLoginSubmit = async (data: any) => {
     setErrorMsg('');
     setSuccessMsg('');
@@ -36,7 +62,7 @@ export function Login({ initialMode = 'login', onLogin, onSignUp, onOAuth, onBac
     try {
       await onLogin(data.email, data.password);
     } catch (err: any) {
-      setErrorMsg(err.message || 'Erro ao autenticar. Tente novamente.');
+      setErrorMsg(formatAuthError(err));
     } finally {
       setLoading(false);
     }
@@ -54,7 +80,7 @@ export function Login({ initialMode = 'login', onLogin, onSignUp, onOAuth, onBac
         setSuccessMsg('Cadastro realizado com sucesso! Acessando sua conta...');
       }
     } catch (err: any) {
-      setErrorMsg(err.message || 'Erro ao criar conta. Tente novamente.');
+      setErrorMsg(formatAuthError(err));
     } finally {
       setLoading(false);
     }
@@ -67,7 +93,7 @@ export function Login({ initialMode = 'login', onLogin, onSignUp, onOAuth, onBac
     try {
       await onOAuth(provider);
     } catch (err: any) {
-      setErrorMsg(err.message || `Erro ao entrar com o ${provider}.`);
+      setErrorMsg(formatAuthError(err));
     } finally {
       setLoading(false);
     }
@@ -114,7 +140,7 @@ export function Login({ initialMode = 'login', onLogin, onSignUp, onOAuth, onBac
 
           {isSignUp ? (
             /* Formulário Cadastro */
-            <form onSubmit={signUpForm.handleSubmit(handleSignUpSubmit)} className="flex flex-col gap-4 w-full">
+            <form onSubmit={signUpForm.handleSubmit(handleSignUpSubmit, handleInvalidFormSubmit)} className="flex flex-col gap-4 w-full">
               <div className="flex flex-col gap-1.5 w-full">
                 <label className="text-xs font-semibold text-slate-400">Nome Completo</label>
                 <div className="relative w-full">
@@ -190,7 +216,7 @@ export function Login({ initialMode = 'login', onLogin, onSignUp, onOAuth, onBac
             </form>
           ) : (
             /* Formulário Login */
-            <form onSubmit={loginForm.handleSubmit(handleLoginSubmit)} className="flex flex-col gap-4 w-full">
+            <form onSubmit={loginForm.handleSubmit(handleLoginSubmit, handleInvalidFormSubmit)} className="flex flex-col gap-4 w-full">
               <div className="flex flex-col gap-1.5 w-full">
                 <label className="text-xs font-semibold text-slate-400">E-mail</label>
                 <div className="relative w-full">

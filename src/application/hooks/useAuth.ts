@@ -194,6 +194,13 @@ export function useAuth() {
         throw error;
       }
       if (data?.user) {
+        // Se a lista de identidades vier vazia, o e-mail já existe na base de dados do Supabase (com proteção de enumeração ativa)
+        if (data.user.identities && data.user.identities.length === 0) {
+          setLoading(false);
+          const errObj = new Error('Este e-mail já está cadastrado no Vocentro.');
+          (errObj as any).code = 'user_already_exists';
+          throw errObj;
+        }
         // Tentar upsert no perfil
         const { error: profileError } = await supabase
           .from('profiles')

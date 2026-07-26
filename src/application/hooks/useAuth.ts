@@ -189,19 +189,22 @@ export function useAuth() {
           data: { full_name: fullName }
         }
       });
+
       if (error) {
         setLoading(false);
         throw error;
       }
+
       if (data?.user) {
-        // Se a lista de identidades vier vazia, o e-mail já existe na base de dados do Supabase (com proteção de enumeração ativa)
+        // Se a lista de identidades vier vazia, o e-mail já existe na base de dados do Supabase
         if (data.user.identities && data.user.identities.length === 0) {
           setLoading(false);
           const errObj = new Error('Este e-mail já está cadastrado no Vocentro.');
           (errObj as any).code = 'user_already_exists';
           throw errObj;
         }
-        // Tentar upsert no perfil
+
+        // Upsert do perfil do usuário
         const { error: profileError } = await supabase
           .from('profiles')
           .upsert({
@@ -212,40 +215,24 @@ export function useAuth() {
             role: 'user',
             updated_at: new Date().toISOString(),
           }, { onConflict: 'id' });
+
         if (profileError) console.warn('[AUTH] Aviso ao criar perfil no signup:', profileError);
 
         tracker.track('user_registered', 'auth');
         tracker.track('signup_completed', 'auth');
 
-        if (data.session) {
-          setUser(data.session.user);
-          await fetchSupabaseProfile(data.session.user.id);
-          setLoading(false);
-          return { status: 'authenticated' };
-        } else {
-          // Tentar autenticação direta caso a confirmação automática esteja ativa na conta Supabase
-          try {
-            const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
-              email,
-              password
-            });
-            if (!signInError && signInData?.user) {
-              setUser(signInData.user);
-              await fetchSupabaseProfile(signInData.user.id);
-              setLoading(false);
-              return { status: 'authenticated' };
-            }
-          } catch (_) {}
-
-          setLoading(false);
-          return { status: 'needs_confirmation', email };
-        }
+        // Logar o usuário instantaneamente
+        setUser(data.user);
+        await fetchSupabaseProfile(data.user.id);
+        setLoading(false);
+        return { status: 'authenticated' };
       }
+
       setLoading(false);
-      return { status: 'needs_confirmation', email };
+      return { status: 'authenticated' };
     } else {
       // Simulação local
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      await new Promise(resolve => setTimeout(resolve, 800));
       const mockUserId = btoa(email).replace(/[^a-zA-Z0-9]/g, '').slice(0, 12);
       const mockUserObj = { id: mockUserId, email };
       localStorage.setItem('vocentro_auth_user', JSON.stringify(mockUserObj));

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { loginSchema, signUpSchema } from '../../domain/validators/schemas';
@@ -19,6 +19,12 @@ export function Login({ initialMode = 'login', onLogin, onSignUp, onOAuth, onBac
   const [successMsg, setSuccessMsg] = useState('');
   const [loading, setLoading] = useState(false);
 
+  useEffect(() => {
+    setIsSignUp(initialMode === 'signup');
+    setErrorMsg('');
+    setSuccessMsg('');
+  }, [initialMode]);
+
   const loginForm = useForm({
     resolver: zodResolver(loginSchema),
     defaultValues: { email: '', password: '' }
@@ -38,6 +44,9 @@ export function Login({ initialMode = 'login', onLogin, onSignUp, onOAuth, onBac
     }
     if (code === 'invalid_credentials' || msg.toLowerCase().includes('invalid login credentials')) {
       return 'E-mail ou senha incorretos. Por favor, verifique suas credenciais e tente novamente.';
+    }
+    if (msg.toLowerCase().includes('email not confirmed')) {
+      return 'E-mail ainda não confirmado. Por favor, verifique a caixa de entrada do seu e-mail.';
     }
     if (msg.toLowerCase().includes('password should be at least')) {
       return 'A senha deve conter no mínimo 6 caracteres.';

@@ -1,5 +1,4 @@
-import { Job } from '../../domain/models/types';
-import { extractSeniorityFromJob } from '../../application/services/matchingEngine';
+import type { Job } from '../models/types';
 
 export class SerpApiAdapter {
   static transform(data: any, location: string = 'Brasil'): Job[] {
@@ -26,7 +25,6 @@ export class SerpApiAdapter {
       }
 
       const workMode = (locStr.toLowerCase().includes('remot') || title.toLowerCase().includes('remot') || res.detected_extensions?.work_from_home) ? 'remote' : 'onsite';
-      const seniority = extractSeniorityFromJob(title, description);
 
       return {
         id: `serp_${res.job_id || idx}_${Date.now()}`,
@@ -36,9 +34,9 @@ export class SerpApiAdapter {
         description,
         url: finalUrl,
         applyUrl: finalUrl,
-        seniority,
         workMode,
         is_active: res.isActive !== false,
+        isActive: res.isActive !== false,
         posted_at: res.detected_extensions?.posted_at || new Date().toISOString(),
         salaryMin: res.salaryMin,
         salaryMax: res.salaryMax,
@@ -46,7 +44,7 @@ export class SerpApiAdapter {
         requirements: res.requirements || [],
         sourcePlatform: res.sourcePlatform || 'Google Jobs (SerpApi)',
         sources: res.sources && res.sources.length > 0 ? res.sources : [res.sourcePlatform || 'Google Jobs (SerpApi)']
-      } as Job;
+      } as unknown as Job;
     });
 
     return results;

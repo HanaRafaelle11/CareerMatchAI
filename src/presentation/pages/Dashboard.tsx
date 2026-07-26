@@ -92,10 +92,11 @@ export function Dashboard({
   if (hasSkills) completeness += 20;
   if (hasExperiences) completeness += 20;
 
-  // Average match
-  const avgMatch = matches.length > 0 
+  // Average match (0% if no matches calculated yet)
+  const hasMatches = matches.length > 0;
+  const avgMatch = hasMatches 
     ? Math.round(matches.reduce((acc, m) => acc + m.scoreOverall, 0) / matches.length) 
-    : 92;
+    : 0;
 
   // Contextual recommendation & dynamic CTA button label
   const getAIInsight = () => {
@@ -178,7 +179,9 @@ export function Dashboard({
         <div>
           <h1 className="text-3xl font-bold text-slate-900 dark:text-[#F8FAFC] tracking-tight">Olá, {userName} 👋</h1>
           <p className="text-sm text-slate-600 dark:text-[#B8C2CC] mt-1">
-            Seu currículo já está competitivo. Hoje vale focar em aumentar a quantidade de candidaturas qualificadas.
+            {hasResume 
+              ? 'Seu currículo está cadastrado. Acompanhe abaixo seu diagnóstico de mercado e recomendações.'
+              : 'Bem-vindo ao Vocentro! Envie seu currículo para calcular sua compatibilidade e acessar recomendações personalizadas.'}
           </p>
           <div className="flex items-center gap-2 mt-2">
             <span className="text-xs text-slate-400 dark:text-slate-500">Objetivo atual:</span>
@@ -220,7 +223,7 @@ export function Dashboard({
           <span className="text-xs text-slate-500 dark:text-[#B8C2CC]">Entrevistas marcadas</span>
         </div>
         <div className="p-4 rounded-xl bg-white dark:bg-[#242B36] border border-slate-200/80 dark:border-white/8">
-          <span className="text-2xl font-bold text-[#22C7A8] block">+{matches.length || 3}</span>
+          <span className="text-2xl font-bold text-[#22C7A8] block">+{matches.length}</span>
           <span className="text-xs text-slate-500 dark:text-[#B8C2CC]">Novas vagas compatíveis</span>
         </div>
       </div>
@@ -233,7 +236,9 @@ export function Dashboard({
           <div>
             <div className="flex items-center justify-between mb-2">
               <span className="text-xs font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider">Aderência ao Mercado</span>
-              <span className="text-xs font-semibold text-[#22C7A8]">Excelente Alinhamento</span>
+              <span className={`text-xs font-semibold ${hasMatches ? 'text-[#22C7A8]' : 'text-amber-500 dark:text-amber-400'}`}>
+                {hasMatches ? (avgMatch >= 75 ? 'Excelente Alinhamento' : avgMatch >= 50 ? 'Bom Alinhamento' : 'Em Desenvolvimento') : 'Pendente de Dados'}
+              </span>
             </div>
 
             <div className="my-3">
@@ -245,7 +250,11 @@ export function Dashboard({
             </div>
 
             <p className="text-xs text-slate-600 dark:text-[#B8C2CC] leading-relaxed mt-2">
-              Você está acima de <strong>87% dos candidatos</strong> para vagas de {targetRole}.
+              {hasMatches ? (
+                <>Você está acima de <strong>{Math.min(95, Math.max(10, avgMatch - 5))}% dos candidatos</strong> para vagas de {targetRole}.</>
+              ) : (
+                <>Envie seu currículo em PDF e explore vagas para calcular seu diagnóstico de aderência ao mercado.</>
+              )}
             </p>
           </div>
 

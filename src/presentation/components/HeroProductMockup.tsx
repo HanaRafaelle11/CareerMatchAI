@@ -1,13 +1,10 @@
-import React from 'react';
 import { 
   Sparkles, 
   CheckCircle2, 
   Bot, 
   FileCheck, 
-  ArrowUpRight, 
   Zap, 
   ShieldCheck, 
-  TrendingUp, 
   Building2,
   Award,
   ChevronRight,

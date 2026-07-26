@@ -48,13 +48,9 @@ import { useQueryClient } from '@tanstack/react-query';
 
 function App() {
   const { user, profile, loading, loginWithEmail, signUpWithEmail, loginWithOAuth, logout, updateProfile } = useAuth();
-  const [activeTab, setActiveTab] = useState('dashboard');
   const [showAuth, setShowAuth] = useState(false);
   const [authMode, setAuthMode] = useState<'login' | 'signup'>('login');
-  const [activeProfileTab, setActiveProfileTab] = useState<'profile' | 'ai-profile' | 'transparency'>('profile');
-  const [settingsInitialSubTab, setSettingsInitialSubTab] = useState<'account' | 'resumes' | 'preferences' | 'notifications' | 'appearance' | 'privacy' | 'billing'>('account');
-  const [strategyInitialSubTab, setStrategyInitialSubTab] = useState<'strategy' | 'planner' | 'pipeline' | 'journal'>('strategy');
-  const [matchHubInitialSubTab, setMatchHubInitialSubTab] = useState<'my-jobs' | 'discover'>('discover');
+  const [isAboutView, setIsAboutView] = useState(window.location.pathname === '/about');
 
   const { preferences, updatePreferences } = useUserPreferences(user?.id);
 
@@ -92,80 +88,6 @@ function App() {
     return () => window.removeEventListener('theme-change', applyTheme);
   }, [preferences.theme]);
 
-  const handleSetActiveTab = (tab: string) => {
-    if (tab === 'admin') {
-      window.history.pushState(null, '', '/admin');
-      setActiveTab('admin');
-      return;
-    } else {
-      window.history.pushState(null, '', '/');
-    }
-
-    if (tab === 'settings') {
-      setSettingsInitialSubTab('account');
-      setActiveTab('settings');
-    } else if (tab === 'career-profile') {
-      setSettingsInitialSubTab('preferences');
-      setActiveTab('settings');
-    } else if (tab === 'strategy') {
-      setStrategyInitialSubTab('strategy');
-      setActiveTab('strategy');
-    } else if (tab === 'pipeline') {
-      setStrategyInitialSubTab('pipeline');
-      setActiveTab('strategy');
-    } else if (tab === 'planner') {
-      setStrategyInitialSubTab('planner');
-      setActiveTab('strategy');
-    } else if (tab === 'journal') {
-      setStrategyInitialSubTab('journal');
-      setActiveTab('strategy');
-    } else if (tab === 'match') {
-      setMatchHubInitialSubTab('my-jobs');
-      setActiveTab('match');
-    } else if (tab === 'discover') {
-      setMatchHubInitialSubTab('discover');
-      setActiveTab('match');
-    } else {
-      setActiveTab(tab);
-    }
-  };
-  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
-  const [isAdmin, setIsAdmin] = useState(false);
-  const queryClient = useQueryClient();
-  const [selectedJobId, setSelectedJobId] = useState<string | null>(null);
-  const [activeSimulationAppId, setActiveSimulationAppId] = useState<string | null>(null);
-
-  const handleStartSimulation = async (target: Job | string, reset?: boolean) => {
-    if (!profile?.id) return;
-    try {
-      let appId: string;
-      if (typeof target === 'string') {
-        appId = target;
-      } else {
-        const job = target;
-        let app = applications.find(a => String(a.jobId) === String(job.id));
-        if (!app) {
-          app = await createApplication({
-            jobId: job.id,
-            companyName: job.companyName || 'Empresa Confidencial',
-            jobTitle: job.title,
-            status: '📝 Vou me candidatar',
-            resumeVersionId: selectedResumeVersionId || undefined
-          });
-        }
-        appId = app.id;
-      }
-
-      await startSimulation({ applicationId: appId, reset });
-      setActiveSimulationAppId(appId);
-      setActiveTab('coach');
-    } catch (err) {
-      console.error('Erro ao iniciar simulação de entrevista:', err);
-      alert('Não foi possível iniciar a simulação no momento.');
-    }
-  };
-  const [isAboutView, setIsAboutView] = useState(window.location.pathname === '/about');
-
   // Observa mudanças de histórico (Voltar / Avançar do navegador)
   useEffect(() => {
     const handlePopState = () => {
@@ -174,44 +96,10 @@ function App() {
       } else {
         setIsAboutView(false);
       }
-      if (window.location.pathname === '/admin') {
-        setActiveTab('admin');
-      } else if (window.location.pathname !== '/about') {
-        setActiveTab('dashboard');
-      }
     };
     window.addEventListener('popstate', handlePopState);
     return () => window.removeEventListener('popstate', handlePopState);
   }, []);
-
-  // Avalia perfil administrativo de forma reativa a partir do RBAC
-  useEffect(() => {
-    if (!isSupabaseConfigured || !supabase) {
-      setIsAdmin(true); // fallback local
-      return;
-    }
-    if (profile) {
-      const hasAdminRole = ['administrador', 'suporte', 'financeiro', 'somente_leitura'].includes(profile.role || '');
-      setIsAdmin(hasAdminRole);
-    } else {
-      setIsAdmin(false);
-    }
-  }, [profile]);
-
-  // Redireciona usuários não autorizados tentando acessar /admin
-  useEffect(() => {
-    if (!loading) {
-      const isPathAdmin = window.location.pathname === '/admin';
-      if (isPathAdmin) {
-        if (profile && ['administrador', 'suporte', 'financeiro', 'somente_leitura'].includes(profile.role || '')) {
-          setActiveTab('admin');
-        } else if (profile) {
-          window.history.replaceState(null, '', '/');
-          setActiveTab('dashboard');
-        }
-      }
-    }
-  }, [loading, profile]);
 
   if (loading) {
     return (
@@ -299,7 +187,7 @@ function AuthenticatedApp({
   user: any;
   profile: any;
   logout: () => void;
-  updateProfile: (data: any) => Promise<any>;
+  updateProfile: (newUpdates: any) => Promise<void>;
   preferences: any;
   updatePreferences: (data: any) => void;
 }) {

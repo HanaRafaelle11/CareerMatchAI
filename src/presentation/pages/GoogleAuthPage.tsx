@@ -1,5 +1,5 @@
 import { VocentroLogo } from '../components/ds/MyCareerIcons';
-import { ShieldCheck, UserCheck, EyeOff, Mail, ArrowLeft, CheckCircle2, Lock } from 'lucide-react';
+import { ShieldCheck, UserCheck, Mail, ArrowLeft, CheckCircle2, Lock } from 'lucide-react';
 
 interface GoogleAuthPageProps {
   onBack?: () => void;

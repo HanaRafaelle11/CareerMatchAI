@@ -12,9 +12,6 @@ import {
   UserCheck,
   ShieldCheck,
   Mail,
-  Building,
-  Target,
-  Zap,
   CheckSquare
 } from 'lucide-react';
 import { VocentroLogo } from '../components/ds/MyCareerIcons';

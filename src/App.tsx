@@ -11,6 +11,7 @@ import { Navbar } from './presentation/components/Navbar';
 import { CompactHeader } from './presentation/components/ds/CompactHeader';
 import { Login } from './presentation/pages/Login';
 import { LandingPage } from './presentation/pages/LandingPage';
+import { AboutPage } from './presentation/pages/AboutPage';
 import { Menu, Loader2 } from 'lucide-react';
 import { VocentroLogo } from './presentation/components/ds/MyCareerIcons';
 import { isSupabaseConfigured, supabase } from './infrastructure/api/supabaseClient';
@@ -163,12 +164,19 @@ function App() {
       alert('Não foi possível iniciar a simulação no momento.');
     }
   };
+  const [isAboutView, setIsAboutView] = useState(window.location.pathname === '/about');
+
   // Observa mudanças de histórico (Voltar / Avançar do navegador)
   useEffect(() => {
     const handlePopState = () => {
+      if (window.location.pathname === '/about') {
+        setIsAboutView(true);
+      } else {
+        setIsAboutView(false);
+      }
       if (window.location.pathname === '/admin') {
         setActiveTab('admin');
-      } else {
+      } else if (window.location.pathname !== '/about') {
         setActiveTab('dashboard');
       }
     };
@@ -306,6 +314,17 @@ function App() {
           </div>
         </div>
       </div>
+    );
+  }
+
+  if (isAboutView) {
+    return (
+      <AboutPage
+        onBack={() => {
+          window.history.pushState(null, '', '/');
+          setIsAboutView(false);
+        }}
+      />
     );
   }
 

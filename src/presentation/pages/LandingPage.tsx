@@ -10,7 +10,6 @@ import {
   Sparkles,
   Check,
   UserCheck,
-  ShieldCheck,
   Mail,
   CheckSquare,
   Target,

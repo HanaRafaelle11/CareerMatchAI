@@ -6,44 +6,73 @@
     <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
     <link rel="manifest" href="/manifest.webmanifest" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Vocentro | Plataforma Inteligente para Carreira</title>
-    <meta name="description" content="Vocentro é uma plataforma de Inteligência Artificial para busca de vagas, otimização de currículo ATS, preparação para entrevistas e gestão de candidaturas." />
+    <title>Vocentro | A Plataforma Inteligente para Acelerar sua Carreira</title>
+    <meta name="description" content="O Vocentro utiliza Inteligência Artificial para ajudar profissionais a encontrar vagas, otimizar currículos para ATS, preparar entrevistas e acompanhar toda a jornada de candidatura em um único lugar." />
     <meta name="theme-color" content="#08162E" />
     
+    <!-- Preload Hero Image LCP Optimization -->
+    <link rel="preload" as="image" href="/professional_happy_illustration.webp" type="image/webp" />
+
+    <!-- Font Preconnect & Performance -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+
     <!-- OpenGraph -->
-    <meta property="og:title" content="Vocentro | Plataforma Inteligente para Carreira" />
-    <meta property="og:description" content="Vocentro é uma plataforma de Inteligência Artificial para busca de vagas, otimização de currículo ATS, preparação para entrevistas e gestão de candidaturas." />
+    <meta property="og:title" content="Vocentro | A Plataforma Inteligente para Acelerar sua Carreira" />
+    <meta property="og:description" content="O Vocentro utiliza Inteligência Artificial para ajudar profissionais a encontrar vagas, otimizar currículos para ATS, preparar entrevistas e acompanhar toda a jornada de candidatura em um único lugar." />
     <meta property="og:url" content="https://www.vocentro.com.br" />
     <meta property="og:site_name" content="Vocentro" />
-    <meta property="og:image" content="https://www.vocentro.com.br/og-image.png" />
+    <meta property="og:image" content="https://www.vocentro.com.br/og-image.webp" />
     <meta property="og:type" content="website" />
 
     <!-- Twitter Card -->
     <meta name="twitter:card" content="summary_large_image" />
-    <meta name="twitter:title" content="Vocentro | Plataforma Inteligente para Carreira" />
-    <meta name="twitter:description" content="Vocentro é uma plataforma de Inteligência Artificial para busca de vagas, otimização de currículo ATS, preparação para entrevistas e gestão de candidaturas." />
-    <meta name="twitter:image" content="https://www.vocentro.com.br/og-image.png" />
+    <meta name="twitter:title" content="Vocentro | A Plataforma Inteligente para Acelerar sua Carreira" />
+    <meta name="twitter:description" content="O Vocentro utiliza Inteligência Artificial para ajudar profissionais a encontrar vagas, otimizar currículos para ATS, preparar entrevistas e acompanhar toda a jornada de candidatura em um único lugar." />
+    <meta name="twitter:image" content="https://www.vocentro.com.br/og-image.webp" />
 
-    <!-- JSON-LD Structured Data for Google Verification & SEO -->
+    <!-- JSON-LD Structured Data for Google OAuth Verification, WebSite & Organization SEO -->
     <script type="application/ld+json">
     {
       "@context": "https://schema.org",
-      "@type": "SoftwareApplication",
-      "name": "Vocentro",
-      "operatingSystem": "All",
-      "applicationCategory": "BusinessApplication",
-      "description": "Plataforma para desenvolvimento profissional utilizando Inteligência Artificial.",
-      "url": "https://www.vocentro.com.br",
-      "publisher": {
-        "@type": "Organization",
-        "name": "Vocentro",
-        "url": "https://www.vocentro.com.br"
-      }
+      "@graph": [
+        {
+          "@type": "Organization",
+          "@id": "https://www.vocentro.com.br/#organization",
+          "name": "Vocentro",
+          "url": "https://www.vocentro.com.br",
+          "logo": "https://www.vocentro.com.br/og-image.webp",
+          "email": "contato@vocentro.com.br",
+          "description": "Plataforma de Inteligência Artificial para desenvolvimento profissional, recolocação e gestão de candidaturas de carreira."
+        },
+        {
+          "@type": "WebSite",
+          "@id": "https://www.vocentro.com.br/#website",
+          "url": "https://www.vocentro.com.br",
+          "name": "Vocentro",
+          "description": "Plataforma inteligente para acelerar sua carreira.",
+          "publisher": {
+            "@id": "https://www.vocentro.com.br/#organization"
+          }
+        },
+        {
+          "@type": "SoftwareApplication",
+          "@id": "https://www.vocentro.com.br/#software",
+          "name": "Vocentro",
+          "operatingSystem": "All",
+          "applicationCategory": "BusinessApplication",
+          "description": "O Vocentro utiliza Inteligência Artificial para ajudar profissionais a encontrar vagas, otimizar currículos para ATS, preparar entrevistas e acompanhar toda a jornada de candidatura em um único lugar.",
+          "url": "https://www.vocentro.com.br",
+          "publisher": {
+            "@id": "https://www.vocentro.com.br/#organization"
+          }
+        }
+      ]
     }
     </script>
 
-    <!-- Fonts and Icons -->
-    <link href="https://fonts.googleapis.com/css2?family=Sora:wght@300;400;500;600;700;800&amp;family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&amp;family=Inter:wght@400;500;600;700;850&amp;family=Manrope:wght@400;600;700;800&amp;display=swap" rel="stylesheet"/>
+    <!-- Fonts and Icons with font-display swap -->
+    <link href="https://fonts.googleapis.com/css2?family=Sora:wght@300;400;500;600;700;800&amp;family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&amp;family=Inter:wght@400;500;600;700;800&amp;family=Manrope:wght@400;600;700;800&amp;display=swap" rel="stylesheet"/>
     <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
   </head>
   <body>

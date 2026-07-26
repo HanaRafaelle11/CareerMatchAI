@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   FileText, 
@@ -14,7 +14,12 @@ import {
   EyeOff,
   UserCheck,
   ShieldCheck,
-  Mail
+  Mail,
+  Lock,
+  Building,
+  Target,
+  Zap,
+  CheckSquare
 } from 'lucide-react';
 import { VocentroLogo } from '../components/ds/MyCareerIcons';
 import { ThemeToggle } from '../components/ThemeToggle';
@@ -25,28 +30,6 @@ interface LandingPageProps {
 
 export function LandingPage({ onNavigateToAuth }: LandingPageProps) {
   const [activeFaq, setActiveFaq] = useState<number | null>(null);
-  
-  // Interactive Product Tour State
-  const [tourStep, setTourStep] = useState(0);
-  const [isTourPaused, setIsTourPaused] = useState(false);
-  const autoplayTimer = useRef<any>(null);
-
-  // Autoplay for the interactive tour
-  useEffect(() => {
-    if (!isTourPaused) {
-      autoplayTimer.current = setInterval(() => {
-        setTourStep((prev) => (prev + 1) % 5);
-      }, 4500);
-    }
-    return () => {
-      if (autoplayTimer.current) clearInterval(autoplayTimer.current);
-    };
-  }, [isTourPaused]);
-
-  const selectTourStep = (index: number) => {
-    setTourStep(index);
-    setIsTourPaused(true); // Pause autoplay once the user interacts
-  };
 
   const toggleFaq = (index: number) => {
     setActiveFaq(activeFaq === index ? null : index);
@@ -54,24 +37,24 @@ export function LandingPage({ onNavigateToAuth }: LandingPageProps) {
 
   const faqData = [
     {
-      q: 'Meus dados ficam seguros?',
-      a: 'Sim, totalmente. Seus dados profissionais, currículos e histórico de simulações são criptografados de ponta a ponta e armazenados de acordo com as diretrizes da LGPD/GDPR. Você tem total controle sobre suas informações e pode removê-las permanentemente da nossa base a qualquer momento com apenas um clique nas configurações.'
+      q: 'Meus dados ficam seguros no Vocentro?',
+      a: 'Sim, totalmente. Seus dados profissionais, currículos e histórico de simulações são criptografados de ponta a ponta e armazenados de acordo com as diretrizes da LGPD/GDPR. O Vocentro garante que seus dados pertencem exclusivamente a você e nunca são compartilhados ou vendidos a terceiros sem seu consentimento explícito.'
     },
     {
-      q: 'A IA realmente melhora meu currículo?',
-      a: 'Sim. Nosso motor semântico analisa detalhadamente a descrição e os requisitos da vaga desejada, identificando termos técnicos relevantes (keywords) e sugerindo adaptações no formato STAR (Situação, Tarefa, Ação, Resultado). Isso aumenta expressivamente sua nota nos sistemas automáticos de triagem de candidatos (ATS) sem falsificar nenhuma informação.'
+      q: 'Por que o Vocentro utiliza o login do Google?',
+      a: 'O login com o Google no Vocentro serve única e exclusivamente para autenticação rápida e segura do usuário. Ele evita a necessidade de memorizar senhas adicionais e permite acessar a plataforma em um clique. O Vocentro não lê, não edita e não possui acesso a e-mails do Gmail, contatos ou arquivos do Google Drive.'
     },
     {
-      q: 'Posso cancelar quando quiser?',
-      a: 'Sem burocracia. O plano Premium é cobrado mensalmente e pode ser cancelado a qualquer momento com um único clique em seu painel de faturamento. Não há contratos de fidelidade ou taxas ocultas de cancelamento.'
+      q: 'A Inteligência Artificial realmente melhora meu currículo?',
+      a: 'Sim. Nosso motor semântico analisa a descrição e os requisitos da vaga desejada, identificando termos técnicos relevantes e sugerindo adaptações no padrão STAR (Situação, Tarefa, Ação, Resultado). Isso aumenta significativamente a aprovação em robôs de triagem automáticos de RH (ATS) mantendo a veracidade das suas experiências.'
     },
     {
-      q: 'O sistema funciona para qualquer área profissional?',
-      a: 'Sim. Embora seja amplamente otimizada para carreiras de tecnologia, marketing, design, finanças e administração, a IA utiliza modelos linguísticos de ampla cobertura semântica que conseguem interpretar, cruzar dados e sugerir melhorias de alta precisão para qualquer setor do mercado de trabalho.'
+      q: 'Posso cancelar o plano Premium quando quiser?',
+      a: 'Sim, sem burocracia. O plano Premium pode ser cancelado a qualquer momento com apenas um clique em seu painel de faturamento. Não há contratos de fidelidade ou taxas ocultas.'
     },
     {
       q: 'Como funciona o Match de Vagas?',
-      a: 'Utilizamos inteligência de correspondência avançada baseada em IA generativa (Google Gemini) para realizar uma análise de afinidade semântica tridimensional: (1) Requisitos Técnicos Hard Skills, (2) Competências Interpessoais Soft Skills e (3) Nível de Senioridade e Impacto. Com isso, indicamos uma nota percentual precisa e uma lista exata de gaps de competências necessários para a aprovação.'
+      a: 'Realizamos uma análise de afinidade semântica tridimensional comparando (1) Requisitos Técnicos, (2) Competências Comportamentais e (3) Nível de Senioridade. Com isso, indicamos uma nota percentual de compatibilidade e a lista exata de lacunas para sua aprovação.'
     }
   ];
 
@@ -87,10 +70,11 @@ export function LandingPage({ onNavigateToAuth }: LandingPageProps) {
         <VocentroLogo className="h-8 text-white dark:text-white light:text-slate-900" showText={true} />
         
         <nav className="hidden md:flex items-center gap-6">
+          <a href="#o-que-e" className="text-xs font-semibold text-slate-400 hover:text-slate-200 dark:text-slate-400 dark:hover:text-slate-200 light:text-slate-600 light:hover:text-slate-900 transition-colors">O que é</a>
           <a href="#como-funciona" className="text-xs font-semibold text-slate-400 hover:text-slate-200 dark:text-slate-400 dark:hover:text-slate-200 light:text-slate-600 light:hover:text-slate-900 transition-colors">Como funciona</a>
+          <a href="#autenticacao-google" className="text-xs font-semibold text-slate-400 hover:text-slate-200 dark:text-slate-400 dark:hover:text-slate-200 light:text-slate-600 light:hover:text-slate-900 transition-colors">Entrar com Google</a>
           <a href="#recursos" className="text-xs font-semibold text-slate-400 hover:text-slate-200 dark:text-slate-400 dark:hover:text-slate-200 light:text-slate-600 light:hover:text-slate-900 transition-colors">Recursos</a>
           <a href="#quem-somos" className="text-xs font-semibold text-slate-400 hover:text-slate-200 dark:text-slate-400 dark:hover:text-slate-200 light:text-slate-600 light:hover:text-slate-900 transition-colors">Quem somos</a>
-          <a href="#demonstracao" className="text-xs font-semibold text-slate-400 hover:text-slate-200 dark:text-slate-400 dark:hover:text-slate-200 light:text-slate-600 light:hover:text-slate-900 transition-colors">Demonstração</a>
           <a href="#planos" className="text-xs font-semibold text-slate-400 hover:text-slate-200 dark:text-slate-400 dark:hover:text-slate-200 light:text-slate-600 light:hover:text-slate-900 transition-colors">Planos</a>
           <a href="/about.html" className="text-xs font-semibold text-slate-400 hover:text-slate-200 dark:text-slate-400 dark:hover:text-slate-200 light:text-slate-600 light:hover:text-slate-900 transition-colors">Sobre</a>
         </nav>
@@ -112,71 +96,41 @@ export function LandingPage({ onNavigateToAuth }: LandingPageProps) {
         </div>
       </header>
 
-      {/* Hero Section */}
-      <section className="relative min-h-[90vh] pt-28 pb-12 flex items-center px-6 md:px-12 z-10 w-full max-w-7xl mx-auto">
+      {/* ── 1. HERO SECTION (PRIMEIRA DOBRA) ── */}
+      <section className="relative min-h-[85vh] pt-28 pb-12 flex items-center px-6 md:px-12 z-10 w-full max-w-7xl mx-auto">
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 items-center w-full">
           {/* Left Hero Copy */}
           <div className="lg:col-span-6 flex flex-col items-start gap-6 text-left w-full min-w-0">
-            <motion.div 
-              initial={{ opacity: 0, y: 15 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.6 }}
-              className="w-full inline-flex items-center gap-2"
-            >
+            <div className="w-full inline-flex items-center gap-2">
               <span className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-brand-500/10 border border-brand-500/20 text-brand-400 light:text-brand-600 text-[11px] font-bold tracking-wider uppercase font-mono">
                 <Sparkles size={11} className="animate-pulse" />
                 Vocentro | Inteligência Artificial para Carreiras
               </span>
-            </motion.div>
+            </div>
             
-            <motion.h1 
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.7, delay: 0.1 }}
-              className="text-5xl sm:text-6xl lg:text-7xl font-extrabold tracking-tight text-slate-100 dark:text-white light:text-slate-900 leading-tight font-display w-full block"
-            >
+            <h1 className="text-5xl sm:text-6xl lg:text-7xl font-extrabold tracking-tight text-slate-100 dark:text-white light:text-slate-900 leading-tight font-display w-full block">
               Vocentro
-            </motion.h1>
+            </h1>
 
-            <motion.h2 
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.7, delay: 0.15 }}
-              className="text-xl sm:text-2xl font-bold text-brand-accent dark:text-brand-accent light:text-brand-600 font-display leading-snug w-full block"
-            >
+            <h2 className="text-xl sm:text-2xl font-bold text-brand-accent dark:text-brand-accent light:text-brand-600 font-display leading-snug w-full block">
               A plataforma inteligente para acelerar sua carreira.
-            </motion.h2>
+            </h2>
             
-            <motion.div 
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.7, delay: 0.2 }}
-              className="w-full max-w-xl"
-            >
+            <div className="w-full max-w-xl">
               <p className="text-slate-300 dark:text-slate-300 light:text-slate-700 text-sm sm:text-base leading-relaxed font-sans font-normal w-full block">
                 O Vocentro utiliza Inteligência Artificial para ajudar profissionais a encontrar vagas, otimizar currículos para ATS, preparar entrevistas e acompanhar toda a jornada de candidatura em um único lugar.
               </p>
-            </motion.div>
+            </div>
 
-            <motion.div 
-              initial={{ opacity: 0, y: 15 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.7, delay: 0.25 }}
-              className="flex items-center gap-2 text-xs text-slate-400 font-medium"
-            >
+            <div className="flex items-center gap-2 text-xs text-slate-400 font-medium">
               <ShieldCheck size={16} className="text-brand-accent shrink-0" />
               <span>Autenticação rápida e segura via Conta Google ou E-mail</span>
-            </motion.div>
+            </div>
             
-            <motion.div 
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.7, delay: 0.3 }}
-              className="w-full flex flex-col sm:flex-row items-stretch sm:items-center gap-4 pt-1"
-            >
+            <div className="w-full flex flex-col sm:flex-row items-stretch sm:items-center gap-4 pt-1">
               <button 
                 onClick={() => onNavigateToAuth('signup')}
-                className="px-7 py-4 rounded-[14px] bg-brand-500 hover:bg-brand-600 text-white font-semibold text-sm transition-all flex items-center justify-center gap-2 shadow-lg shadow-brand-500/10 hover:scale-[1.01] cursor-pointer animate-fade-in"
+                className="px-7 py-4 rounded-[14px] bg-brand-500 hover:bg-brand-600 text-white font-semibold text-sm transition-all flex items-center justify-center gap-2 shadow-lg shadow-brand-500/10 hover:scale-[1.01] cursor-pointer"
               >
                 Começar gratuitamente
                 <ArrowRight size={16} />
@@ -187,387 +141,178 @@ export function LandingPage({ onNavigateToAuth }: LandingPageProps) {
               >
                 Entrar
               </button>
-            </motion.div>
+            </div>
 
             {/* Quick Metrics Bar in Hero */}
-            <motion.div 
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ delay: 0.5 }}
-              className="w-full pt-6 grid grid-cols-3 gap-4 border-t border-slate-900 dark:border-slate-900 light:border-slate-200 font-sans"
-            >
+            <div className="w-full pt-6 grid grid-cols-3 gap-4 border-t border-slate-900 dark:border-slate-900 light:border-slate-200 font-sans">
               <div>
                 <span className="text-xl font-bold text-white dark:text-white light:text-slate-900 block font-display">👤 2.300+</span>
-                <span className="text-[10px] text-slate-500 dark:text-slate-500 light:text-slate-600 leading-relaxed font-medium">Perfis analisados</span>
+                <span className="text-[10px] text-slate-400 dark:text-slate-400 light:text-slate-600 leading-relaxed font-medium">Perfis analisados</span>
               </div>
               <div>
                 <span className="text-xl font-bold text-white dark:text-white light:text-slate-900 block font-display">📄 11.000+</span>
-                <span className="text-[10px] text-slate-500 dark:text-slate-500 light:text-slate-600 leading-relaxed font-medium">Vagas mapeadas</span>
+                <span className="text-[10px] text-slate-400 dark:text-slate-400 light:text-slate-600 leading-relaxed font-medium">Vagas mapeadas</span>
               </div>
               <div>
                 <span className="text-xl font-bold text-white dark:text-white light:text-slate-900 block font-display">🎯 94%</span>
-                <span className="text-[10px] text-slate-500 dark:text-slate-500 light:text-slate-600 leading-relaxed font-medium">Satisfação profissional</span>
+                <span className="text-[10px] text-slate-400 dark:text-slate-400 light:text-slate-600 leading-relaxed font-medium">Satisfação profissional</span>
               </div>
-            </motion.div>
+            </div>
           </div>
 
-          {/* Right Hero - CONFIDENT CANDIDATE ILLUSTRATION */}
+          {/* Right Hero - Candidate Illustration (WebP + LCP optimized) */}
           <div className="lg:col-span-6 flex justify-center relative w-full font-sans">
             <div className="absolute inset-0 bg-gradient-to-tr from-brand-accent/10 to-indigo-500/10 blur-[100px] rounded-full pointer-events-none" />
-            <motion.div
-              initial={{ opacity: 0, scale: 0.95 }}
-              animate={{ opacity: 1, scale: 1 }}
-              transition={{ duration: 0.8 }}
-              className="relative max-w-md w-full"
-            >
+            <div className="relative max-w-md w-full">
               <img 
-                src="/professional_happy_illustration.png" 
+                src="/professional_happy_illustration.webp" 
                 alt="Profissional Vocentro sorrindo e trabalhando com sucesso" 
+                width={600}
+                height={600}
+                loading="eager"
+                // @ts-ignore
+                fetchpriority="high"
                 className="w-full h-auto object-contain rounded-[24px] shadow-2xl border border-slate-900/60"
               />
-              {/* Floating badges for visual sophistication */}
-              <div className="absolute top-10 -left-6 bg-slate-900/90 border border-slate-800 rounded-2xl p-3 shadow-xl backdrop-blur-md flex items-center gap-2 animate-bounce-slow leading-relaxed">
+              <div className="absolute top-8 -left-4 bg-slate-900/90 border border-slate-800 rounded-2xl p-3 shadow-xl backdrop-blur-md flex items-center gap-2 leading-relaxed">
                 <span className="text-xl">🏆</span>
                 <div>
-                  <span className="text-[9px] text-slate-450 block font-mono">Match de Carreira</span>
+                  <span className="text-[9px] text-slate-400 block font-mono">Match de Carreira</span>
                   <span className="text-xs font-bold text-brand-accent">98% Compatível</span>
                 </div>
               </div>
-              <div className="absolute bottom-12 -right-6 bg-slate-900/90 border border-slate-800 rounded-2xl p-3 shadow-xl backdrop-blur-md flex items-center gap-2 animate-bounce-slow leading-relaxed" style={{ animationDelay: '1.5s' }}>
+              <div className="absolute bottom-8 -right-4 bg-slate-900/90 border border-slate-800 rounded-2xl p-3 shadow-xl backdrop-blur-md flex items-center gap-2 leading-relaxed">
                 <span className="text-xl">🤝</span>
                 <div>
-                  <span className="text-[9px] text-slate-455 block font-mono">Feedback da Entrevista</span>
+                  <span className="text-[9px] text-slate-400 block font-mono">Feedback da Entrevista</span>
                   <span className="text-xs font-bold text-slate-200">Aprovado no Processo</span>
                 </div>
               </div>
-            </motion.div>
-          </div>
-        </div>
-      </section>
-
-      {/* Narrative Section - Métricas de Sucesso */}
-      <section id="metricas" className="py-20 px-6 max-w-7xl mx-auto relative z-10 space-y-16 w-full min-w-0">
-        <div className="text-center flex flex-col items-center gap-3 w-full min-w-0 max-w-2xl mx-auto">
-          <h2 className="text-xs font-bold text-brand-accent uppercase tracking-widest font-mono w-full text-center">Resultados Comprovados</h2>
-          <p className="text-3xl sm:text-4xl font-extrabold tracking-tight text-slate-100 dark:text-white light:text-slate-900 font-display w-full text-center">
-            Métricas de Sucesso
-          </p>
-          <div className="w-full max-w-xl mx-auto">
-            <p className="text-xs text-slate-400 dark:text-slate-400 light:text-slate-600 leading-relaxed font-sans font-medium w-full text-center">
-              Acompanhe em tempo real como o posicionamento estratégico transforma suas estatísticas de recolocação.
-            </p>
-          </div>
-        </div>
-      </section>
-
-      {/* Interactive Tour Showcase Section */}
-      <section id="demonstracao" className="py-20 px-6 max-w-7xl mx-auto relative z-10 space-y-10 w-full min-w-0">
-        <div className="text-center flex flex-col items-center gap-3 w-full min-w-0 max-w-2xl mx-auto">
-          <h2 className="text-xs font-bold text-brand-accent uppercase tracking-widest font-mono w-full text-center">Veja em Ação</h2>
-          <p className="text-3xl sm:text-4xl font-extrabold tracking-tight text-slate-100 dark:text-white light:text-slate-900 font-display w-full text-center">
-            A plataforma desenhada para você
-          </p>
-          <div className="w-full max-w-xl mx-auto">
-            <p className="text-xs text-slate-400 dark:text-slate-400 light:text-slate-600 leading-relaxed font-sans w-full text-center">
-              Entenda como a nossa tecnologia opera sob sua direção em cada etapa da recolocação e aprimoramento profissional.
-            </p>
-          </div>
-        </div>
-
-        <div className="w-full max-w-5xl mx-auto bg-slate-900/40 dark:bg-slate-900/40 light:bg-white border border-slate-850 dark:border-slate-850 light:border-slate-200 rounded-[22px] p-6 shadow-2xl backdrop-blur-sm space-y-5">
-          {/* Fake Window Controls */}
-          <div className="flex items-center justify-between border-b border-slate-850/50 dark:border-slate-850/50 light:border-slate-200 pb-3 font-sans">
-            <div className="flex items-center gap-1.5">
-              <span className="w-2.5 h-2.5 rounded-full bg-red-500/40" />
-              <span className="w-2.5 h-2.5 rounded-full bg-yellow-500/40" />
-              <span className="w-2.5 h-2.5 rounded-full bg-green-500/40" />
-              <span className="text-[10px] text-slate-500 dark:text-slate-500 light:text-slate-400 font-mono ml-4 select-none">vocentro.com/demonstracao</span>
-            </div>
-            <div className="px-2 py-0.5 rounded bg-brand-accent/10 text-brand-accent dark:text-brand-accent light:text-green-700 text-[9px] font-bold uppercase tracking-wider animate-pulse font-mono">
-              Tour de Produto
             </div>
           </div>
+        </div>
+      </section>
 
-          {/* Navigation Tabs for Tour Steps */}
-          <div className="grid grid-cols-5 gap-1.5 p-1 bg-slate-950/50 dark:bg-slate-950/50 light:bg-slate-100 rounded-xl border border-slate-900 dark:border-slate-900 light:border-slate-200 font-sans">
-            {[
-              { name: '1. Currículo', icon: FileText },
-              { name: '2. Vaga', icon: Search },
-              { name: '3. Match', icon: Trophy },
-              { name: '4. Otimizar', icon: Sparkles },
-              { name: '5. Entrevista', icon: MessageSquare }
-            ].map((step, idx) => {
-              const Icon = step.icon;
-              const isActive = tourStep === idx;
-              return (
-                <button
-                  key={idx}
-                  onClick={() => selectTourStep(idx)}
-                  className={`flex flex-col items-center py-2 px-1 rounded-lg transition-all duration-200 text-center gap-1.5 cursor-pointer ${
-                    isActive 
-                      ? 'bg-slate-900 dark:bg-slate-900 light:bg-white text-brand-accent shadow-md border border-slate-800 dark:border-slate-800 light:border-slate-200' 
-                      : 'text-slate-500 dark:text-slate-500 light:text-slate-600 hover:text-slate-350 light:hover:text-slate-800'
-                  }`}
-                >
-                  <Icon size={14} className={isActive ? 'animate-bounce text-brand-accent' : ''} />
-                  <span className="text-[8px] font-bold tracking-tight whitespace-nowrap">{step.name.split('. ')[1]}</span>
-                </button>
-              );
-            })}
+      {/* ── 2. SEÇÃO INSTITUCIONAL: O QUE É O VOCENTRO? ── */}
+      <section id="o-que-e" className="py-16 px-6 max-w-7xl mx-auto relative z-10 space-y-10 w-full min-w-0">
+        <div className="text-center flex flex-col items-center gap-3 w-full min-w-0 max-w-3xl mx-auto">
+          <span className="px-3.5 py-1 rounded-full bg-brand-500/10 border border-brand-500/20 text-brand-400 text-[10px] font-bold tracking-wider uppercase font-mono">
+            Apresentação Institucional
+          </span>
+          <h2 className="text-3xl sm:text-4xl font-extrabold tracking-tight text-slate-100 dark:text-white light:text-slate-900 font-display text-center">
+            O que é o Vocentro?
+          </h2>
+          <p className="text-sm sm:text-base text-slate-300 dark:text-slate-300 light:text-slate-700 leading-relaxed font-sans text-center">
+            O Vocentro é uma plataforma completa de Inteligência Artificial desenvolvida para apoiar profissionais em todas as fases da jornada de carreira e recolocação. Nossa solução une tecnologia semântica, automação ética e metodologia de recrutamento para que o candidato assuma o controle do seu futuro profissional.
+          </p>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 max-w-6xl mx-auto font-sans">
+          <div className="p-6 rounded-[20px] bg-slate-900/40 dark:bg-slate-900/40 light:bg-white border border-slate-850 dark:border-slate-850 light:border-slate-200 space-y-3 shadow-sm">
+            <div className="w-10 h-10 rounded-xl bg-brand-500/10 text-brand-accent flex items-center justify-center">
+              <Building size={20} />
+            </div>
+            <h3 className="text-sm font-bold text-slate-100 dark:text-white light:text-slate-900 font-display">Quem somos</h3>
+            <p className="text-xs text-slate-400 dark:text-slate-400 light:text-slate-600 leading-relaxed">
+              Uma plataforma institucional voltada a capacitar trabalhadores de todas as áreas com ferramentas de inteligência semântica e orientação contínua.
+            </p>
           </div>
 
-          {/* Visual Simulated Mockups */}
-          <div className="relative min-h-[260px] bg-slate-950/80 dark:bg-slate-950/80 light:bg-slate-50/50 rounded-2xl p-5 border border-slate-900 dark:border-slate-900 light:border-slate-200 overflow-hidden flex flex-col justify-center font-sans leading-relaxed">
-            <AnimatePresence mode="wait">
-              {tourStep === 0 && (
-                <motion.div 
-                  key="step0"
-                  initial={{ opacity: 0, scale: 0.95 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  exit={{ opacity: 0, scale: 0.95 }}
-                  transition={{ duration: 0.3 }}
-                  className="space-y-4 text-xs"
-                >
-                  <div className="flex items-center justify-between border-b border-slate-900 dark:border-slate-900 light:border-slate-200 pb-2">
-                    <span className="font-bold text-slate-100 dark:text-white light:text-slate-900">Perfil & Currículo</span>
-                    <span className="text-[10px] text-slate-500 font-mono">Formatos: PDF, DOCX</span>
-                  </div>
-
-                  <div className="border border-dashed border-slate-800 dark:border-slate-850 light:border-slate-200 rounded-xl p-6 text-center space-y-2.5">
-                    <div className="w-10 h-10 rounded-full bg-brand-accent/15 text-brand-accent flex items-center justify-center mx-auto">
-                      <FileText size={18} />
-                    </div>
-                    <div>
-                      <p className="font-semibold text-slate-200">Arraste e solte seu currículo</p>
-                      <p className="text-[10px] text-slate-500 leading-relaxed font-medium">Apenas arquivos originais. Limite de 8MB.</p>
-                    </div>
-                  </div>
-                </motion.div>
-              )}
-
-              {tourStep === 1 && (
-                <motion.div 
-                  key="step1"
-                  initial={{ opacity: 0, scale: 0.95 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  exit={{ opacity: 0, scale: 0.95 }}
-                  transition={{ duration: 0.3 }}
-                  className="space-y-4 text-xs"
-                >
-                  <div className="flex items-center justify-between">
-                    <span className="font-bold text-slate-100 dark:text-white light:text-slate-900">Ingestão Automática de Vagas</span>
-                    <span className="text-[10px] text-slate-500 font-mono">Métodos de Captura</span>
-                  </div>
-
-                  <div className="space-y-3">
-                    <div className="flex items-center gap-2 p-2 px-3 rounded-lg bg-slate-900/60 dark:bg-slate-900/60 light:bg-white border border-slate-850 dark:border-slate-850 light:border-slate-200">
-                      <Search size={14} className="text-slate-500" />
-                      <span className="text-[10px] text-slate-400 truncate flex-1 leading-relaxed font-medium">
-                        https://jobs.lever.co/stripe/senior-frontend-engineer
-                      </span>
-                      <span className="text-[8px] bg-brand-accent/15 text-brand-accent px-1.5 py-0.5 rounded font-bold uppercase font-mono">
-                        Greenhouse
-                      </span>
-                    </div>
-
-                    <div className="bg-slate-900/60 dark:bg-slate-900/60 light:bg-white border border-slate-850 dark:border-slate-850 light:border-slate-200 p-3 rounded-[14px] space-y-2 shadow-sm">
-                      <div className="flex items-center justify-between">
-                        <span className="font-bold text-slate-200 dark:text-slate-200 light:text-slate-900">Vaga: Senior Frontend Developer</span>
-                        <span className="text-[8px] bg-brand-500/10 text-brand-500 light:text-brand-655 px-1.5 py-0.5 rounded font-semibold font-mono">Stripe Inc.</span>
-                      </div>
-                      <div className="flex flex-wrap gap-1 text-[8px] pt-1">
-                        <span className="px-1.5 py-0.5 bg-slate-950/20 text-slate-350 dark:text-slate-350 light:text-slate-700 border border-slate-850 rounded font-medium">React</span>
-                        <span className="px-1.5 py-0.5 bg-slate-950/20 text-slate-350 dark:text-slate-350 light:text-slate-700 border border-slate-850 rounded font-medium">TypeScript</span>
-                        <span className="px-1.5 py-0.5 bg-slate-950/20 text-slate-350 dark:text-slate-350 light:text-slate-700 border border-slate-850 rounded font-medium">Zustand</span>
-                        <span className="px-1.5 py-0.5 bg-slate-950/20 text-slate-350 dark:text-slate-350 light:text-slate-700 border border-slate-850 rounded font-medium">CI/CD</span>
-                      </div>
-                    </div>
-                  </div>
-                </motion.div>
-              )}
-
-              {tourStep === 2 && (
-                <motion.div 
-                  key="step2"
-                  initial={{ opacity: 0, scale: 0.95 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  exit={{ opacity: 0, scale: 0.95 }}
-                  transition={{ duration: 0.3 }}
-                  className="space-y-4 text-xs"
-                >
-                  <div className="flex items-center justify-between">
-                    <h4 className="font-bold text-slate-100 dark:text-white light:text-slate-900">Score de Match Vocentro</h4>
-                    <span className="text-[10px] text-slate-500 dark:text-slate-500 light:text-slate-600 font-mono">Análise de Relevância</span>
-                  </div>
-
-                  <div className="grid grid-cols-12 gap-4 items-center py-2">
-                    <div className="col-span-4 flex justify-center relative">
-                      <div className="w-20 h-20 rounded-full border-4 border-slate-900 light:border-slate-200 flex items-center justify-center relative">
-                        <div className="absolute inset-0 rounded-full border-4 border-t-brand-accent border-r-brand-accent border-b-transparent border-l-transparent animate-spin-slow" />
-                        <div className="absolute w-2 h-2 rounded-full bg-brand-accent animate-ping" />
-                        <span className="text-lg font-black text-white dark:text-white light:text-slate-900 z-10 font-display">92%</span>
-                      </div>
-                    </div>
-
-                    <div className="col-span-8 space-y-2">
-                      <div className="flex justify-between items-center text-[10px]">
-                        <span className="text-slate-400">Match de Competências</span>
-                        <span className="text-brand-accent font-bold">Excelente</span>
-                      </div>
-                      <div className="flex justify-between items-center text-[10px]">
-                        <span className="text-slate-400">Requisitos Técnicos</span>
-                        <span className="text-amber-400 font-bold">Falta "Zustand" no CV</span>
-                      </div>
-                      <div className="flex justify-between items-center text-[10px]">
-                        <span className="text-slate-400">Nível da Oportunidade</span>
-                        <span className="text-brand-500 light:text-brand-600 font-bold">Alta afinidade</span>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="p-2.5 bg-slate-900/60 border border-slate-850 dark:border-slate-850 light:border-slate-200 rounded-xl text-[9px] text-slate-350 light:text-slate-700 leading-relaxed font-sans font-medium">
-                    💡 <strong>Você no centro:</strong> Incluir referências à gestão de estados com Zustand elevará a sua compatibilidade para a faixa de destaque absoluto (98% Match).
-                  </div>
-                </motion.div>
-              )}
-
-              {tourStep === 3 && (
-                <motion.div 
-                  key="step3"
-                  initial={{ opacity: 0, scale: 0.95 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  exit={{ opacity: 0, scale: 0.95 }}
-                  transition={{ duration: 0.3 }}
-                  className="space-y-3.5 text-xs"
-                >
-                  <h4 className="font-bold text-slate-100 dark:text-white light:text-slate-900">Currículo Estratégico para ATS</h4>
-                  <p className="text-[10px] text-slate-500 leading-relaxed font-sans font-medium">A IA trabalha sob seu comando para reescrever conquistas com foco em impacto.</p>
-
-                  <div className="space-y-2.5 text-[10px]">
-                    <div className="bg-slate-900/60 dark:bg-slate-900/60 light:bg-red-50/30 border border-red-500/20 p-2.5 rounded-lg">
-                      <span className="font-bold text-red-400 uppercase text-[8px] tracking-wider block mb-1">Currículo Anterior</span>
-                      <p className="text-slate-400 dark:text-slate-400 light:text-slate-700 italic">"Trabalhei como desenvolvedor criando interfaces web com React."</p>
-                    </div>
-
-                    <div className="bg-slate-900/60 dark:bg-slate-900 light:bg-green-50/30 border border-brand-accent/20 p-2.5 rounded-lg relative overflow-hidden">
-                      <div className="absolute top-2 right-2 flex items-center gap-1 px-1 py-0.5 rounded bg-brand-accent/15 text-brand-accent text-[7px] font-bold uppercase">
-                        <Sparkles size={8} /> Otimizado com IA
-                      </div>
-                      <span className="font-bold text-brand-accent text-[8px] tracking-wider block mb-1 font-mono">Depois da Otimização</span>
-                      <p className="text-slate-200 dark:text-slate-200 light:text-slate-800 font-medium">
-                        "Liderei a engenharia frontend de interfaces responsivas usando <strong className="text-brand-accent font-bold">React e TypeScript</strong>, reduzindo o tempo de renderização em 32% e aplicando <strong className="text-brand-accent font-bold">Zustand</strong> para controle de estado global."
-                      </p>
-                    </div>
-                  </div>
-                </motion.div>
-              )}
-
-              {tourStep === 4 && (
-                <motion.div 
-                  key="step4"
-                  initial={{ opacity: 0, scale: 0.95 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  exit={{ opacity: 0, scale: 0.95 }}
-                  transition={{ duration: 0.3 }}
-                  className="space-y-3 text-xs"
-                >
-                  <div className="flex items-center justify-between border-b border-slate-900 light:border-slate-200 pb-2">
-                    <span className="font-bold text-slate-100 dark:text-white light:text-slate-900">Recrutadora Mariana</span>
-                    <div className="flex items-center gap-1 text-[8px] text-brand-accent font-mono">
-                      <span className="w-1.5 h-1.5 rounded-full bg-brand-accent animate-ping" />
-                      Simulação em tempo real
-                    </div>
-                  </div>
-
-                  <div className="space-y-3 min-h-[160px] flex flex-col justify-end text-[10px] leading-relaxed">
-                    <div className="bg-slate-900/60 dark:bg-slate-900/60 light:bg-white border border-slate-850 dark:border-slate-850 light:border-slate-200 rounded-xl p-2.5 max-w-[85%] text-slate-350">
-                      <span className="font-bold text-slate-500 uppercase text-[7px] block font-mono">Mentor Vocentro</span>
-                      <p className="text-slate-350 dark:text-slate-350 light:text-slate-800">"Como você otimiza a performance no controle de estado do React?"</p>
-                    </div>
-
-                    <div className="bg-brand-500/10 border border-brand-500/20 rounded-xl p-2.5 max-w-[90%] text-brand-400 ml-auto text-right">
-                      <span className="font-bold text-brand-500 uppercase text-[7px] block font-mono">Você</span>
-                      <p className="text-slate-200 dark:text-slate-200 light:text-slate-850">"Utilizo Zustand para evitar re-renderizações e Context apenas em estados estáticos."</p>
-                    </div>
-
-                    <div className="p-2 bg-emerald-950/20 border border-brand-accent/20 rounded-xl flex items-center justify-between text-[9px] text-brand-accent font-sans">
-                      <span>🎯 Nota: <strong>9.4/10</strong>. Resposta objetiva e focada na arquitetura de seletores.</span>
-                    </div>
-                  </div>
-                </motion.div>
-              )}
-            </AnimatePresence>
+          <div className="p-6 rounded-[20px] bg-slate-900/40 dark:bg-slate-900/40 light:bg-white border border-slate-850 dark:border-slate-850 light:border-slate-200 space-y-3 shadow-sm">
+            <div className="w-10 h-10 rounded-xl bg-brand-500/10 text-brand-accent flex items-center justify-center">
+              <Zap size={20} />
+            </div>
+            <h3 className="text-sm font-bold text-slate-100 dark:text-white light:text-slate-900 font-display">O que a plataforma faz</h3>
+            <p className="text-xs text-slate-400 dark:text-slate-400 light:text-slate-600 leading-relaxed">
+              Centraliza a busca de vagas, analisa a compatibilidade do perfil (Match Score), otimiza currículos para robôs ATS e simula entrevistas comportamentais.
+            </p>
           </div>
 
-          {/* Pause/Play indicator */}
-          <div className="flex justify-between items-center text-[9px] text-slate-500 dark:text-slate-500 light:text-slate-400 pt-1 font-sans">
-            <span>Clique em qualquer aba para pausar a animação</span>
-            {isTourPaused && (
-              <button 
-                onClick={() => setIsTourPaused(false)}
-                className="text-brand-accent hover:underline cursor-pointer"
-              >
-                Retomar reprodução automática
-              </button>
-            )}
+          <div className="p-6 rounded-[20px] bg-slate-900/40 dark:bg-slate-900/40 light:bg-white border border-slate-850 dark:border-slate-850 light:border-slate-200 space-y-3 shadow-sm">
+            <div className="w-10 h-10 rounded-xl bg-brand-500/10 text-brand-accent flex items-center justify-center">
+              <Target size={20} />
+            </div>
+            <h3 className="text-sm font-bold text-slate-100 dark:text-white light:text-slate-900 font-display">Quais problemas resolve</h3>
+            <p className="text-xs text-slate-400 dark:text-slate-400 light:text-slate-600 leading-relaxed">
+              Elimina o envio massivo de currículos sem resposta, desmistifica os filtros automáticos de RH e prepara o candidato com segurança para entrevistas.
+            </p>
+          </div>
+
+          <div className="p-6 rounded-[20px] bg-slate-900/40 dark:bg-slate-900/40 light:bg-white border border-slate-850 dark:border-slate-850 light:border-slate-200 space-y-3 shadow-sm">
+            <div className="w-10 h-10 rounded-xl bg-brand-500/10 text-brand-accent flex items-center justify-center">
+              <CheckSquare size={20} />
+            </div>
+            <h3 className="text-sm font-bold text-slate-100 dark:text-white light:text-slate-900 font-display">Funcionalidades principais</h3>
+            <p className="text-xs text-slate-400 dark:text-slate-400 light:text-slate-600 leading-relaxed">
+              Mapeamento de vagas, cálculo de Match Score, Otimização de Currículos no método STAR, Treino com Recrutadora IA e Gestão Kanban.
+            </p>
           </div>
         </div>
       </section>
 
-      {/* 2. SOBRE O VOCENTRO */}
-      <section id="como-funciona" className="py-20 px-6 max-w-7xl mx-auto relative z-10 space-y-12 w-full min-w-0">
+      {/* ── 3. COMO FUNCIONA (FLUXO NO TOPO) ── */}
+      <section id="como-funciona" className="py-16 px-6 max-w-7xl mx-auto relative z-10 space-y-10 w-full min-w-0">
         <div className="text-center flex flex-col items-center gap-3 w-full min-w-0 max-w-2xl mx-auto">
-          <h2 className="text-xs font-bold text-brand-accent uppercase tracking-widest font-mono w-full text-center">Metodologia</h2>
-          <p className="text-3xl sm:text-4xl font-extrabold tracking-tight text-slate-100 dark:text-white light:text-slate-900 font-display w-full text-center">
-            Como o Vocentro funciona
+          <span className="text-xs font-bold text-brand-accent uppercase tracking-widest font-mono">Metodologia</span>
+          <h2 className="text-3xl sm:text-4xl font-extrabold tracking-tight text-slate-100 dark:text-white light:text-slate-900 font-display text-center">
+            Como funciona o Vocentro
+          </h2>
+          <p className="text-xs text-slate-400 dark:text-slate-400 light:text-slate-600 leading-relaxed font-sans font-medium text-center">
+            Um fluxo visual integrado em seis etapas para transformar sua busca de vagas em aprovação profissional.
           </p>
-          <div className="w-full max-w-xl mx-auto">
-            <p className="text-xs text-slate-400 dark:text-slate-400 light:text-slate-600 leading-relaxed font-sans font-medium w-full text-center">
-              Quatro etapas integradas por Inteligência Artificial para transformar sua recolocação e avanço de carreira.
-            </p>
-          </div>
         </div>
 
-        {/* 4-Step Process Grid */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 max-w-6xl mx-auto">
+        {/* 6-Step Visual Flow */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 max-w-6xl mx-auto">
           {[
             {
-              step: '1',
-              title: 'Importe seu currículo',
-              desc: 'Suba seu arquivo em PDF ou Word para que o Vocentro leia e estruture seu perfil profissional.',
-              icon: <FileText className="w-6 h-6 text-brand-accent" />
+              step: '01',
+              title: 'Cadastrar',
+              desc: 'Crie sua conta no Vocentro de forma rápida e segura utilizando sua Conta Google ou e-mail.',
+              icon: <UserCheck className="w-5 h-5 text-brand-accent" />
             },
             {
-              step: '2',
-              title: 'Encontre vagas em múltiplas plataformas',
-              desc: 'Localize oportunidades alinhadas ao seu perfil em portais parceiros e sistemas de recrutamento.',
-              icon: <Search className="w-6 h-6 text-brand-accent" />
+              step: '02',
+              title: 'Enviar currículo',
+              desc: 'Suba seu arquivo original em PDF para que o Vocentro leia e estruture seu perfil de competências.',
+              icon: <FileText className="w-5 h-5 text-brand-accent" />
             },
             {
-              step: '3',
-              title: 'Otimize seu currículo com IA',
-              desc: 'Adapte palavras-chave e descrições no padrão STAR para aumentar sua pontuação na triagem ATS.',
-              icon: <Sparkles className="w-6 h-6 text-brand-accent" />
+              step: '03',
+              title: 'Encontrar vagas',
+              desc: 'Mapeie oportunidades de trabalho alinhadas ao seu objetivo em múltiplos portais e empresas.',
+              icon: <Search className="w-5 h-5 text-brand-accent" />
             },
             {
-              step: '4',
-              title: 'Prepare-se para entrevistas e acompanhe suas candidaturas',
-              desc: 'Simule entrevistas reais com mentoria de IA e organize todo seu pipeline em um Kanban inteligente.',
-              icon: <MessageSquare className="w-6 h-6 text-brand-accent" />
+              step: '04',
+              title: 'Receber análises',
+              desc: 'Visualize seu Match Score percentual de afinidade, pontos fortes e lacunas técnicas para a vaga.',
+              icon: <Trophy className="w-5 h-5 text-brand-accent" />
+            },
+            {
+              step: '05',
+              title: 'Preparar entrevistas',
+              desc: 'Simule entrevistas reais no método STAR com a Recrutadora IA e receba feedback em tempo real.',
+              icon: <MessageSquare className="w-5 h-5 text-brand-accent" />
+            },
+            {
+              step: '06',
+              title: 'Acompanhar candidaturas',
+              desc: 'Gerencie todo o seu pipeline de processos seletivos em um painel Kanban intuitivo.',
+              icon: <CheckSquare className="w-5 h-5 text-brand-accent" />
             }
           ].map((item, idx) => (
-            <motion.div 
-              whileHover={{ y: -4 }}
+            <div 
               key={idx}
-              className="p-6 rounded-[20px] bg-slate-900/40 dark:bg-slate-900/40 light:bg-white border border-slate-850 dark:border-slate-850 light:border-slate-200 shadow-sm transition-all duration-300 relative flex flex-col justify-between"
+              className="p-6 rounded-[20px] bg-slate-900/40 dark:bg-slate-900/40 light:bg-white border border-slate-850 dark:border-slate-850 light:border-slate-200 shadow-sm flex flex-col justify-between"
             >
               <div>
                 <div className="flex justify-between items-center mb-4">
-                  <div className="p-3 rounded-xl bg-brand-accent/10 text-brand-accent border border-brand-accent/15">
+                  <div className="p-2.5 rounded-xl bg-brand-accent/10 text-brand-accent border border-brand-accent/15">
                     {item.icon}
                   </div>
                   <span className="text-2xl font-black text-slate-700 dark:text-slate-700 light:text-slate-300 font-mono">
-                    0{item.step}
+                    {item.step}
                   </span>
                 </div>
                 <h3 className="text-sm font-bold text-slate-100 dark:text-white light:text-slate-900 font-display mb-2 leading-snug">
@@ -577,48 +322,92 @@ export function LandingPage({ onNavigateToAuth }: LandingPageProps) {
                   {item.desc}
                 </p>
               </div>
-            </motion.div>
+            </div>
           ))}
         </div>
       </section>
 
-      {/* 3. RECURSOS */}
-      <section id="recursos" className="py-20 px-6 max-w-7xl mx-auto relative z-10 space-y-12 w-full min-w-0">
+      {/* ── 4. SEÇÃO: ENTRAR COM GOOGLE (OAUTH TRANSPARENCY) ── */}
+      <section id="autenticacao-google" className="py-16 px-6 max-w-5xl mx-auto relative z-10">
+        <div className="p-8 sm:p-12 rounded-[24px] bg-slate-900/50 dark:bg-slate-900/50 light:bg-white border border-brand-500/20 dark:border-brand-500/20 light:border-slate-200 space-y-6 shadow-xl backdrop-blur-md font-sans">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border-b border-slate-800/80 pb-4">
+            <div className="flex items-center gap-3">
+              <div className="p-3 rounded-xl bg-brand-500/10 text-brand-accent border border-brand-500/20">
+                <Lock size={22} />
+              </div>
+              <div>
+                <span className="text-[10px] font-bold uppercase tracking-wider text-brand-accent font-mono block">Segurança & Autenticação</span>
+                <h2 className="text-xl sm:text-2xl font-extrabold text-slate-100 dark:text-white light:text-slate-900 font-display">
+                  Entrar com o Google no Vocentro
+                </h2>
+              </div>
+            </div>
+            <span className="px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-[10px] font-bold font-mono">
+              ✓ OAuth 2.0 Verificado
+            </span>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 text-xs text-slate-300 leading-relaxed">
+            <div className="space-y-3">
+              <h3 className="font-bold text-white text-sm flex items-center gap-2">
+                <UserCheck size={16} className="text-brand-accent" />
+                Apenas para Autenticação Rápida
+              </h3>
+              <p className="text-slate-400">
+                A integração com a **Conta Google (Entrar com o Google)** tem a finalidade exclusiva de permitir que você crie sua conta ou faça login no Vocentro em segundos, sem a necessidade de memorizar senhas adicionais.
+              </p>
+            </div>
+
+            <div className="space-y-3">
+              <h3 className="font-bold text-white text-sm flex items-center gap-2">
+                <EyeOff size={16} className="text-brand-accent" />
+                Privacidade & Escopo Limitado
+              </h3>
+              <p className="text-slate-400">
+                O Vocentro **não acessa, não lê, não altera e não possui permissão** para visualizar seus e-mails do Gmail, contatos, arquivos do Google Drive ou dados privados. Utilizamos apenas seu nome, e-mail e foto pública de perfil fornecidos no fluxo oficial do Google.
+              </p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* ── 5. RECURSOS DA PLATAFORMA (CONDENSADO - 6 CARDS) ── */}
+      <section id="recursos" className="py-16 px-6 max-w-7xl mx-auto relative z-10 space-y-10 w-full min-w-0">
         <div className="text-center flex flex-col items-center gap-3 w-full min-w-0 max-w-2xl mx-auto">
-          <h2 className="text-xs font-bold text-brand-accent uppercase tracking-widest font-mono w-full text-center">Funcionalidades</h2>
-          <p className="text-3xl sm:text-4xl font-extrabold tracking-tight text-slate-100 dark:text-white light:text-slate-900 font-display w-full text-center">
+          <span className="text-xs font-bold text-brand-accent uppercase tracking-widest font-mono">Funcionalidades</span>
+          <h2 className="text-3xl sm:text-4xl font-extrabold tracking-tight text-slate-100 dark:text-white light:text-slate-900 font-display text-center">
             Recursos da Plataforma
-          </p>
-          <p className="text-xs text-slate-400 dark:text-slate-400 light:text-slate-600 leading-relaxed font-sans font-medium w-full text-center">
-            Tudo o que você precisa para gerenciar sua evolução profissional com máxima eficiência.
+          </h2>
+          <p className="text-xs text-slate-400 dark:text-slate-400 light:text-slate-600 leading-relaxed font-sans font-medium text-center">
+            As principais ferramentas de inteligência desenhadas para acelerar seu desenvolvimento de carreira.
           </p>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 max-w-6xl mx-auto">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 max-w-6xl mx-auto font-sans">
           {[
             {
               title: 'Busca inteligente de vagas',
-              desc: 'Mapeamento automatizado e centralizado de vagas em múltiplos portais e ecossistemas de contratação.'
+              desc: 'Mapeamento automatizado e centralizado de oportunidades em múltiplos portais e empresas de contratação.'
             },
             {
               title: 'Match entre currículo e vaga',
-              desc: 'Análise semântica de afinidade com nota percentual de compatibilidade e diagnóstico de lacunas de competências.'
+              desc: 'Análise semântica de afinidade com nota percentual de compatibilidade e diagnóstico claro de lacunas.'
             },
             {
-              title: 'Otimização ATS',
-              desc: 'Reescrita estratégica de experiências profissionais com foco em robôs de triagem e palavras-chave.'
+              title: 'Otimização ATS (Método STAR)',
+              desc: 'Reescrita estratégica de experiências profissionais com foco em robôs de triagem de RH e palavras-chave.'
             },
             {
-              title: 'Coach de entrevistas',
-              desc: 'Simulador interativo em tempo real com recrutador de IA para treino de respostas e postura.'
+              title: 'Coach de entrevistas em tempo real',
+              desc: 'Simulador interativo por chat ou voz com recrutadora de IA para treino de respostas e postura.'
             },
             {
               title: 'Estratégias de candidatura',
-              desc: 'Planejamento semanal de metas de recolocação, cartas de apresentação personalizadas e direcionamento.'
+              desc: 'Planejamento de metas de recolocação, cartas de apresentação personalizadas e direcionamento diário.'
             },
             {
-              title: 'Dashboard de evolução',
-              desc: 'Visão Kanban intuitiva de todas as fases da sua candidatura, do envio inicial até a proposta.'
+              title: 'Dashboard Kanban de evolução',
+              desc: 'Visão Kanban intuitiva de todas as fases da sua candidatura, do envio inicial até a proposta final.'
             }
           ].map((feature, idx) => (
             <div key={idx} className="p-6 rounded-[20px] bg-slate-900/30 dark:bg-slate-900/30 light:bg-white border border-slate-850 dark:border-slate-850 light:border-slate-200 flex items-start gap-3.5 shadow-sm">
@@ -636,267 +425,49 @@ export function LandingPage({ onNavigateToAuth }: LandingPageProps) {
         </div>
       </section>
 
-      {/* 4. SOBRE A EMPRESA (Quem somos) */}
-      <section id="quem-somos" className="py-20 px-6 max-w-5xl mx-auto relative z-10">
-        <div className="p-8 sm:p-12 rounded-[24px] bg-slate-900/50 dark:bg-slate-900/50 light:bg-white border border-slate-850 dark:border-slate-850 light:border-slate-200 text-center space-y-6 shadow-xl backdrop-blur-md">
-          <span className="px-3 py-1 rounded-full bg-brand-500/10 border border-brand-500/20 text-brand-400 text-[10px] font-bold tracking-wider uppercase font-mono">
-            Institucional
+      {/* ── 6. SEÇÃO INSTITUCIONAL: QUEM SOMOS, PRIVACIDADE & SEGURANÇA ── */}
+      <section id="quem-somos" className="py-16 px-6 max-w-5xl mx-auto relative z-10">
+        <div className="p-8 sm:p-12 rounded-[24px] bg-slate-900/50 dark:bg-slate-900/50 light:bg-white border border-slate-850 dark:border-slate-850 light:border-slate-200 text-center space-y-6 shadow-xl backdrop-blur-md font-sans">
+          <span className="px-3.5 py-1 rounded-full bg-brand-500/10 border border-brand-500/20 text-brand-400 text-[10px] font-bold tracking-wider uppercase font-mono">
+            Quem somos & Compromisso Institucional
           </span>
           <h2 className="text-3xl sm:text-4xl font-extrabold text-slate-100 dark:text-white light:text-slate-900 font-display">
             Quem somos
           </h2>
-          <p className="text-sm sm:text-base text-slate-300 dark:text-slate-300 light:text-slate-700 leading-relaxed font-sans max-w-3xl mx-auto">
+          <p className="text-sm sm:text-base text-slate-300 dark:text-slate-300 light:text-slate-700 leading-relaxed max-w-3xl mx-auto">
             O Vocentro é uma plataforma desenvolvida para apoiar profissionais durante toda a jornada de busca por oportunidades de trabalho, utilizando Inteligência Artificial para aumentar a eficiência na preparação de currículos, identificação de vagas compatíveis e preparação para processos seletivos.
           </p>
-        </div>
-      </section>
 
-      {/* Before / After Section (ATS Comparison) */}
-      <section id="comparativo" className="py-20 px-6 max-w-7xl mx-auto relative z-10 space-y-12 w-full min-w-0">
-        <div className="text-center space-y-3 w-full min-w-0 max-w-2xl mx-auto flex flex-col items-center">
-          <h2 className="text-xs font-bold text-brand-500 dark:text-brand-500 light:text-brand-600 uppercase tracking-widest font-mono w-full text-center">Seu currículo é apenas o começo</h2>
-          <p className="text-3xl sm:text-4xl font-extrabold tracking-tight text-slate-100 dark:text-white light:text-slate-900 font-display w-full text-center">
-            Antes vs Depois com Vocentro
-          </p>
-          <div className="w-full max-w-md mx-auto">
-            <p className="text-xs text-slate-400 dark:text-slate-400 light:text-slate-600 leading-relaxed font-sans font-medium w-full text-center">
-              Veja a diferença imediata na pontuação ATS de triagem de candidatos após a otimização estrutural.
-            </p>
-          </div>
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-11 gap-6 items-center max-w-6xl mx-auto">
-          {/* Before Column */}
-          <div className="md:col-span-5 bg-slate-900/20 dark:bg-slate-900/20 light:bg-white border border-red-500/20 dark:border-red-500/10 light:border-red-200 p-6 rounded-[20px] space-y-6 shadow-sm">
-            <div className="flex justify-between items-center border-b border-slate-900 dark:border-slate-900 light:border-slate-200 pb-3 font-sans">
-              <span className="text-[10px] font-bold text-red-500 dark:text-red-400 uppercase tracking-wider">Sem Otimização</span>
-              <span className="px-2 py-0.5 rounded bg-red-950/20 text-red-400 text-[8px] font-bold uppercase font-mono">41% Match</span>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 text-left pt-4 border-t border-slate-800/80">
+            <div className="space-y-2">
+              <h3 className="text-xs font-bold text-brand-accent uppercase tracking-wider font-mono">Nossa Missão</h3>
+              <p className="text-xs text-slate-400 leading-relaxed">
+                Empoderar trabalhadores de todas as áreas com inteligência de dados e automação ética para alcançar sua recolocação ideal.
+              </p>
             </div>
 
-            <div className="flex items-center gap-5 font-sans leading-relaxed">
-              <div className="w-16 h-16 rounded-full border-4 border-slate-950 dark:border-slate-950 light:border-slate-100 flex items-center justify-center relative shrink-0">
-                <div className="absolute inset-0 rounded-full border-4 border-t-red-500 border-b-transparent border-l-transparent border-r-transparent" />
-                <span className="text-base font-black text-red-400 font-display">41%</span>
-              </div>
-              <div>
-                <span className="text-xs font-bold text-slate-300 dark:text-slate-350 light:text-slate-800 block">Filtros Automáticos</span>
-                <span className="text-[9px] text-slate-500 dark:text-slate-500 light:text-slate-600 font-mono">Rejeitado na triagem do ATS</span>
-              </div>
+            <div className="space-y-2">
+              <h3 className="text-xs font-bold text-brand-accent uppercase tracking-wider font-mono">Nossa Visão</h3>
+              <p className="text-xs text-slate-400 leading-relaxed">
+                Ser o ecossistema de referência em transparência, eficiência e preparação de carreira no mercado de trabalho.
+              </p>
             </div>
 
-            <ul className="space-y-2.5 text-[10px] text-slate-400 dark:text-slate-400 light:text-slate-700 font-sans leading-relaxed font-medium">
-              <li className="flex items-start gap-2.5">
-                <span className="text-red-500 shrink-0 select-none">❌</span>
-                <span>Termos técnicos obrigatórios ausentes</span>
-              </li>
-              <li className="flex items-start gap-2.5">
-                <span className="text-red-500 shrink-0 select-none">❌</span>
-                <span>Experiência descrita sem dados de impacto e negócio</span>
-              </li>
-              <li className="flex items-start gap-2.5">
-                <span className="text-red-500 shrink-0 select-none">❌</span>
-                <span>Foco apenas em tarefas, em vez de conquistas</span>
-              </li>
-            </ul>
-          </div>
-
-          {/* Central Arrow */}
-          <div className="md:col-span-1 flex justify-center text-slate-500">
-            <ArrowRight size={24} className="rotate-90 md:rotate-0 text-brand-accent shrink-0 animate-pulse" />
-          </div>
-
-          {/* After Column */}
-          <div className="md:col-span-5 bg-slate-900/40 dark:bg-slate-900/40 light:bg-white border border-brand-accent/30 dark:border-brand-accent/20 light:border-brand-accent/30 p-6 rounded-[20px] space-y-6 shadow-md relative overflow-hidden">
-            <div className="absolute top-0 right-0 bg-brand-accent text-slate-950 text-[7px] font-black uppercase px-2 py-0.5 rounded-bl font-mono">
-              Você no centro
-            </div>
-
-            <div className="flex justify-between items-center border-b border-slate-850 dark:border-slate-850 light:border-slate-200 pb-3 font-sans">
-              <span className="text-[10px] font-bold text-brand-accent uppercase tracking-wider font-mono">Com o Vocentro</span>
-              <span className="px-2 py-0.5 rounded bg-brand-accent/10 text-brand-accent text-[8px] font-bold uppercase font-mono">89% Match</span>
-            </div>
-
-            <div className="flex items-center gap-5 font-sans leading-relaxed">
-              <div className="w-16 h-16 rounded-full border-4 border-slate-950 dark:border-slate-950 light:border-slate-100 flex items-center justify-center relative shrink-0 shadow-lg shadow-brand-accent/5">
-                <div className="absolute inset-0 rounded-full border-4 border-brand-accent" />
-                <span className="text-base font-black text-brand-accent font-display">89%</span>
-              </div>
-              <div>
-                <span className="text-xs font-bold text-brand-accent dark:text-brand-accent light:text-green-700 block">Destaque na Triagem</span>
-                <span className="text-[9px] text-slate-350 dark:text-slate-350 light:text-slate-700">Encaminhado direto ao gestor da vaga</span>
-              </div>
-            </div>
-
-            <ul className="space-y-2.5 text-[10px] text-slate-300 dark:text-slate-300 light:text-slate-800 font-sans leading-relaxed font-medium">
-              <li className="flex items-start gap-2.5">
-                <span className="text-brand-accent shrink-0 select-none">✓</span>
-                <span>Alinhamento semântico de hard skills exigidas</span>
-              </li>
-              <li className="flex items-start gap-2.5">
-                <span className="text-brand-accent shrink-0 select-none">✓</span>
-                <span>Ações estruturadas no método STAR com métricas</span>
-              </li>
-              <li className="flex items-start gap-2.5">
-                <span className="text-brand-accent shrink-0 select-none">✓</span>
-                <span>Vocabulário customizado para a cultura da empresa</span>
-              </li>
-            </ul>
-          </div>
-        </div>
-      </section>
-
-      {/* Narrative Section - A IA trabalha para você (Timeline) */}
-      <section id="recursos" className="py-20 px-6 max-w-7xl mx-auto relative z-10 space-y-16 w-full min-w-0">
-        <div className="text-center space-y-3 w-full min-w-0 max-w-2xl mx-auto block">
-          <h2 className="text-xs font-bold text-brand-accent uppercase tracking-widest font-mono">Estratégia Integrada</h2>
-          <p className="text-3xl sm:text-4xl font-extrabold tracking-tight text-slate-100 dark:text-white light:text-slate-900 font-display w-full block break-normal whitespace-normal text-center">
-            A IA trabalha para você
-          </p>
-          <p className="text-xs text-slate-400 dark:text-slate-400 light:text-slate-600 leading-relaxed font-sans font-medium w-full block break-normal whitespace-normal text-center">
-            Nossos sistemas de inteligência foram projetados de forma narrativa e integrada para impulsionar cada etapa da sua jornada profissional.
-          </p>
-        </div>
-
-        {/* Narrative Vertical Timeline Path */}
-        <div className="relative max-w-3xl mx-auto py-10">
-          {/* Vertical Connecting Line */}
-          <div className="absolute left-6 md:left-1/2 top-0 bottom-0 w-[2px] bg-slate-900 dark:bg-slate-900 light:bg-slate-200" />
-          
-          <div className="space-y-12">
-            {[
-              {
-                step: '01',
-                title: 'A IA entende seu currículo',
-                desc: 'Lê e decodifica seu currículo original, mapeando competências técnicas e comportamentais para criar o perfil.',
-                icon: '👤'
-              },
-              {
-                step: '02',
-                title: 'Compara com milhares de vagas',
-                desc: 'Realiza uma análise semântica tridimensional detalhada comparando sua trajetória com as vagas importadas.',
-                icon: '🔍'
-              },
-              {
-                step: '03',
-                title: 'Identifica gaps de competência',
-                desc: 'Mapeia exatamente quais frameworks, termos técnicos ou ferramentas estão ausentes para aquela vaga específica.',
-                icon: '⚠️'
-              },
-              {
-                step: '04',
-                title: 'Sugere melhorias estruturais',
-                desc: 'Apresenta reescritas de conquistas profissionais baseadas no método STAR para maximizar seu score no ATS.',
-                icon: '💡'
-              },
-              {
-                step: '05',
-                title: 'Treina suas entrevistas',
-                desc: 'Simula processos seletivos reais por voz ou chat conduzidos pela Recrutadora Mariana com notas instantâneas.',
-                icon: '💬'
-              },
-              {
-                step: '06',
-                title: 'Monta seu plano de carreira',
-                desc: 'Estrutura metas salariais, objetivos e planos de ação semanais para guiar sua recolocação ativa.',
-                icon: '📅'
-              },
-              {
-                step: '07',
-                title: 'Acompanha sua evolução',
-                desc: 'Mede as taxas de conversão e avanço das suas candidaturas ativas na plataforma, oferecendo telemetria completa.',
-                icon: '📈'
-              }
-            ].map((step, idx) => {
-              const isEven = idx % 2 === 0;
-              return (
-                <div key={idx} className="relative flex flex-col md:flex-row items-start md:items-center font-sans w-full">
-                  {/* Timeline dot */}
-                  <div className="absolute left-[20px] md:left-1/2 transform -translate-x-1/2 w-4 h-4 rounded-full bg-slate-950 border-4 border-brand-accent z-20 shadow-md shadow-brand-accent/20" />
-                  
-                  {/* Left Column (Desktop Even Steps) */}
-                  <div className="hidden md:block w-1/2 pr-12 text-right">
-                    {isEven && (
-                      <div className="space-y-1.5 leading-relaxed font-medium">
-                        <span className="text-[10px] font-bold text-brand-accent uppercase font-mono tracking-wider">Etapa {step.step}</span>
-                        <h4 className="text-sm font-bold text-slate-100 dark:text-white light:text-slate-900 font-display flex items-center justify-end gap-2">
-                          <span>{step.icon}</span>
-                          <span>{step.title}</span>
-                        </h4>
-                        <p className="text-xs text-slate-400 dark:text-slate-400 light:text-slate-600 font-sans font-normal">{step.desc}</p>
-                      </div>
-                    )}
-                  </div>
-                  
-                  {/* Right Column (Desktop Odd Steps & All Mobile Steps) */}
-                  <div className="w-full md:w-1/2 pl-12 text-left">
-                    <div className={`space-y-1.5 leading-relaxed font-medium ${isEven ? 'md:hidden' : ''}`}>
-                      <span className="text-[10px] font-bold text-brand-accent uppercase font-mono tracking-wider">Etapa {step.step}</span>
-                      <h4 className="text-sm font-bold text-slate-100 dark:text-white light:text-slate-900 font-display flex items-center gap-2">
-                        <span>{step.icon}</span>
-                        <span>{step.title}</span>
-                      </h4>
-                      <p className="text-xs text-slate-400 dark:text-slate-400 light:text-slate-600 font-sans font-normal">{step.desc}</p>
-                    </div>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        </div>
-      </section>
-
-      {/* Metrics Dashboard */}
-      <section className="py-16 px-6 max-w-5xl mx-auto relative z-10 space-y-10 text-center">
-        <div className="space-y-3">
-          <h2 className="text-xs font-bold text-brand-accent uppercase tracking-widest font-mono">Métricas de Sucesso</h2>
-          <p className="text-3xl sm:text-4xl font-extrabold tracking-tight text-slate-100 dark:text-white light:text-slate-900 font-display">Resultados Comprovados</p>
-        </div>
-
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-5 max-w-4xl mx-auto text-center font-sans leading-relaxed">
-          {[
-            { metric: '2.300+', label: 'Perfis Analisados', detail: 'IA de alta precisão semântica', emoji: '👤' },
-            { metric: '11.000+', label: 'Vagas Processadas', detail: 'Mapeamento contínuo de mercado', emoji: '📄' },
-            { metric: '8.400+', label: 'Simulações Concluídas', detail: 'Entrevistas STAR com Recrutadora IA', emoji: '🎯' },
-            { metric: '94%', label: 'Taxa de Satisfação', detail: 'Profissionais em evolução ativa', emoji: '⭐' }
-          ].map((stat, idx) => (
-            <div key={idx} className="p-6 rounded-[20px] bg-slate-900/30 dark:bg-slate-900/30 light:bg-white border border-slate-850 dark:border-slate-850 light:border-slate-200 hover:border-slate-800 dark:hover:border-slate-700 light:hover:border-slate-300 transition-all shadow-sm">
-              <span className="text-3xl block mb-2">{stat.emoji}</span>
-              <div className="text-2xl font-black text-white dark:text-white light:text-slate-900 font-display mt-2">{stat.metric}</div>
-              <div className="text-xs font-bold text-slate-300 dark:text-slate-300 light:text-slate-800 mt-1">{stat.label}</div>
-              <div className="text-[9px] text-slate-500 dark:text-slate-550 mt-0.5 leading-relaxed font-normal">{stat.detail}</div>
-            </div>
-          ))}
-        </div>
-      </section>
-
-      {/* Privacy highlights */}
-      <section className="py-12 px-6 max-w-4xl mx-auto relative z-10 text-center">
-        <div className="p-8 rounded-[20px] bg-slate-900/20 dark:bg-slate-900/20 light:bg-white border border-slate-850 dark:border-slate-850 light:border-slate-200 max-w-3xl mx-auto space-y-5 shadow-sm font-sans leading-relaxed">
-          <div className="inline-flex p-3 rounded-full bg-brand-500/10 text-brand-500 border border-brand-500/15">
-            <EyeOff size={24} className="text-brand-accent" />
-          </div>
-          
-          <div className="space-y-2 w-full flex flex-col items-center">
-            <h3 className="text-sm font-bold text-slate-100 dark:text-white light:text-slate-900 uppercase tracking-wider w-full text-center">Privacidade absoluta do candidato</h3>
-            <div className="w-full max-w-xl mx-auto">
-              <p className="text-slate-400 dark:text-slate-400 light:text-slate-600 text-xs leading-relaxed font-normal w-full text-center">
-                Seus dados de currículo, feedbacks da Recrutadora IA e vagas mapeadas pertencem estritamente a você. Não compartilhamos nenhuma informação com recrutadores externos sem sua aprovação explícita. Todo processamento de dados atende às regulamentações da LGPD.
+            <div className="space-y-2">
+              <h3 className="text-xs font-bold text-brand-accent uppercase tracking-wider font-mono">Privacidade & LGPD</h3>
+              <p className="text-xs text-slate-400 leading-relaxed">
+                Seus dados pertencem 100% a você. Criptografia ponta a ponta, total conformidade com a LGPD e zero venda de informações a terceiros.
               </p>
             </div>
           </div>
-
-          <div className="flex flex-col sm:flex-row items-center justify-center gap-6 text-[10px] text-slate-500">
-            <span className="flex items-center gap-1.5"><ShieldCheck size={12} className="text-brand-accent" /> Criptografia de Dados (SSL)</span>
-            <span className="flex items-center gap-1.5"><UserCheck size={12} className="text-brand-accent" /> Sem Cookies de Terceiros</span>
-          </div>
         </div>
       </section>
 
-      {/* Pricing Section */}
-      <section id="planos" className="py-20 px-6 max-w-7xl mx-auto relative z-10 space-y-12">
+      {/* ── 7. PLANOS & PREÇOS ── */}
+      <section id="planos" className="py-16 px-6 max-w-7xl mx-auto relative z-10 space-y-10">
         <div className="text-center space-y-3 w-full max-w-xl mx-auto flex flex-col items-center">
-          <h2 className="text-xs font-bold text-brand-accent uppercase tracking-widest font-mono w-full text-center">Planos</h2>
-          <p className="text-3xl sm:text-4xl font-extrabold tracking-tight text-slate-100 dark:text-white light:text-slate-900 font-display w-full text-center">Simplicidade e transparência</p>
+          <span className="text-xs font-bold text-brand-accent uppercase tracking-widest font-mono">Planos</span>
+          <h2 className="text-3xl sm:text-4xl font-extrabold tracking-tight text-slate-100 dark:text-white light:text-slate-900 font-display text-center">Simplicidade e transparência</h2>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-5xl mx-auto font-sans">
@@ -906,23 +477,23 @@ export function LandingPage({ onNavigateToAuth }: LandingPageProps) {
               <div className="flex justify-between items-start gap-4">
                 <div className="flex-1">
                   <h3 className="text-lg font-bold text-slate-100 dark:text-white light:text-slate-900 font-display">Plano Básico</h3>
-                  <p className="text-xs text-slate-400">O básico essencial de recolocação.</p>
+                  <p className="text-xs text-slate-400">O básico essencial para iniciar sua recolocação.</p>
                 </div>
                 <span className="text-2xl font-black text-slate-200 dark:text-white light:text-slate-900 font-display shrink-0">Grátis</span>
               </div>
               
               <ul className="space-y-3 text-xs text-slate-350 dark:text-slate-350 light:text-slate-700 leading-relaxed font-medium">
                 <li className="flex items-center gap-2.5">
-                  <Check size={12} className="text-brand-accent" /> Kanban Pipeline de candidaturas
+                  <Check size={12} className="text-brand-accent" /> Pipeline Kanban de candidaturas
                 </li>
                 <li className="flex items-center gap-2.5">
-                  <Check size={12} className="text-brand-accent" /> Cadastro básico de currículo
+                  <Check size={12} className="text-brand-accent" /> Cadastro estruturado de currículo
                 </li>
                 <li className="flex items-center gap-2.5">
-                  <Check size={12} className="text-brand-accent" /> Match Score simplificado
+                  <Check size={12} className="text-brand-accent" /> Match Score de afinidade
                 </li>
                 <li className="flex items-center gap-2.5">
-                  <Check size={12} className="text-brand-accent" /> Acesso limitado à Recrutadora IA
+                  <Check size={12} className="text-brand-accent" /> Treinos com a Recrutadora IA
                 </li>
               </ul>
             </div>
@@ -949,7 +520,7 @@ export function LandingPage({ onNavigateToAuth }: LandingPageProps) {
                 </div>
                 <div className="text-right shrink-0 font-display">
                   <span className="text-2xl font-black text-slate-200 dark:text-white light:text-slate-900">R$ 29</span>
-                  <span className="text-[10px] text-slate-450 dark:text-slate-400 light:text-slate-500 block font-sans font-semibold">/mês</span>
+                  <span className="text-[10px] text-slate-400 block font-sans font-semibold">/mês</span>
                 </div>
               </div>
 
@@ -958,10 +529,10 @@ export function LandingPage({ onNavigateToAuth }: LandingPageProps) {
                   <Check size={12} className="text-brand-accent shrink-0 font-bold" /> Simulações ilimitadas com Recrutadora IA
                 </li>
                 <li className="flex items-center gap-2.5">
-                  <Check size={12} className="text-brand-accent shrink-0 font-bold" /> Otimizador ATS ilimitado de currículo
+                  <Check size={12} className="text-brand-accent shrink-0 font-bold" /> Otimizador ATS ilimitado no método STAR
                 </li>
                 <li className="flex items-center gap-2.5">
-                  <Check size={12} className="text-brand-accent shrink-0 font-bold" /> Ingestão de vagas automática via Greenhouse
+                  <Check size={12} className="text-brand-accent shrink-0 font-bold" /> Ingestão automática de vagas parceiras
                 </li>
                 <li className="flex items-center gap-2.5">
                   <Check size={12} className="text-brand-accent shrink-0 font-bold" /> Cartas de apresentação personalizadas ilimitadas
@@ -979,11 +550,11 @@ export function LandingPage({ onNavigateToAuth }: LandingPageProps) {
         </div>
       </section>
 
-      {/* FAQ Accordion Section */}
-      <section id="faq" className="py-20 px-6 max-w-3xl mx-auto relative z-10 space-y-12 w-full min-w-0">
-        <div className="text-center space-y-3 w-full max-w-2xl mx-auto block font-sans">
-          <h2 className="text-xs font-bold text-brand-accent uppercase tracking-widest font-mono">Dúvidas</h2>
-          <p className="text-3xl sm:text-4xl font-extrabold tracking-tight text-slate-100 dark:text-white light:text-slate-900 font-display w-full block break-normal whitespace-normal text-center">Perguntas Frequentes</p>
+      {/* ── 8. PERGUNTAS FREQUENTES (FAQ) ── */}
+      <section id="faq" className="py-16 px-6 max-w-3xl mx-auto relative z-10 space-y-10 w-full min-w-0">
+        <div className="text-center space-y-3 w-full max-w-2xl mx-auto font-sans">
+          <span className="text-xs font-bold text-brand-accent uppercase tracking-widest font-mono">Dúvidas</span>
+          <h2 className="text-3xl sm:text-4xl font-extrabold tracking-tight text-slate-100 dark:text-white light:text-slate-900 font-display text-center">Perguntas Frequentes</h2>
         </div>
 
         <div className="space-y-3 w-full min-w-0">
@@ -1016,7 +587,7 @@ export function LandingPage({ onNavigateToAuth }: LandingPageProps) {
                       exit={{ height: 0, opacity: 0 }}
                       transition={{ duration: 0.25, ease: 'easeInOut' }}
                     >
-                      <div className="px-5 pb-5 pt-1 text-xs text-slate-450 dark:text-slate-400 light:text-slate-600 leading-relaxed border-t border-slate-950/30 dark:border-slate-950/30 light:border-slate-100 font-sans font-normal">
+                      <div className="px-5 pb-5 pt-1 text-xs text-slate-400 dark:text-slate-400 light:text-slate-600 leading-relaxed border-t border-slate-950/30 dark:border-slate-950/30 light:border-slate-100 font-sans font-normal">
                         {faq.a}
                       </div>
                     </motion.div>
@@ -1028,17 +599,17 @@ export function LandingPage({ onNavigateToAuth }: LandingPageProps) {
         </div>
       </section>
 
-      {/* Strong Final CTA */}
-      <section className="py-24 px-6 text-center max-w-4xl mx-auto relative z-10 space-y-8 font-sans leading-relaxed w-full min-w-0">
+      {/* ── 9. CTA FINAL ÚNICO ── */}
+      <section className="py-20 px-6 text-center max-w-4xl mx-auto relative z-10 space-y-8 font-sans leading-relaxed w-full min-w-0">
         <div className="absolute inset-0 bg-brand-500/5 blur-[120px] rounded-full pointer-events-none" />
         
         <div className="space-y-4 w-full max-w-2xl mx-auto flex flex-col items-center text-center">
-          <h2 className="text-4xl sm:text-5xl font-extrabold tracking-tight text-slate-100 dark:text-white light:text-slate-900 leading-tight font-display w-full text-center">
+          <h2 className="text-4xl sm:text-5xl font-extrabold tracking-tight text-slate-100 dark:text-white light:text-slate-900 leading-tight font-display text-center">
             Sua próxima contratação começa hoje.
           </h2>
           <div className="w-full max-w-xl mx-auto">
-            <p className="text-slate-350 dark:text-slate-300 light:text-slate-700 text-sm sm:text-base leading-relaxed font-semibold w-full text-center">
-              Você não precisa enviar centenas de currículos. Precisa enviar o currículo certo, para a vaga certa, no momento certo. A Vocentro faz esse trabalho com você.
+            <p className="text-slate-300 dark:text-slate-300 light:text-slate-700 text-sm sm:text-base leading-relaxed font-semibold text-center">
+              Você não precisa enviar centenas de currículos genéricos. Precisa enviar o currículo certo, ajustado para a vaga certa, no momento certo. O Vocentro faz esse trabalho com você.
             </p>
           </div>
         </div>
@@ -1052,46 +623,60 @@ export function LandingPage({ onNavigateToAuth }: LandingPageProps) {
         </button>
       </section>
 
-      {/* Footer Notion/Vercel/Stripe style */}
+      {/* ── 10. RODAPÉ INSTITUCIONAL COMPLETO ── */}
       <footer className="border-t border-slate-900 dark:border-slate-900 light:border-slate-200 bg-slate-950/80 dark:bg-slate-950/80 light:bg-white backdrop-blur-md py-16 px-8 relative z-10 transition-colors duration-300">
         <div className="max-w-6xl mx-auto grid grid-cols-1 sm:grid-cols-2 md:grid-cols-5 gap-10">
           <div className="md:col-span-2 space-y-4">
             <VocentroLogo className="h-10 text-white dark:text-white light:text-slate-900" showText={true} />
             <div className="w-full max-w-sm">
-              <p className="text-[11px] text-slate-500 dark:text-slate-500 light:text-slate-600 leading-relaxed font-sans font-normal w-full">
+              <p className="text-[11px] text-slate-400 dark:text-slate-400 light:text-slate-600 leading-relaxed font-sans font-normal">
                 O Vocentro é uma plataforma desenvolvida para apoiar profissionais durante toda a jornada de busca por oportunidades de trabalho, utilizando Inteligência Artificial para aumentar a eficiência na preparação de currículos, identificação de vagas compatíveis e preparação para processos seletivos.
               </p>
             </div>
           </div>
+
           <div>
-            <h4 className="text-[10px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-400 light:text-slate-800 mb-4 font-mono">Produto</h4>
-            <ul className="space-y-2 text-[10px] text-slate-500 dark:text-slate-500 light:text-slate-600 font-semibold font-sans leading-relaxed">
-              <li><a href="#como-funciona" className="hover:text-slate-200 dark:hover:text-slate-200 light:hover:text-slate-900 transition-colors block w-full">Como funciona</a></li>
-              <li><a href="#recursos" className="hover:text-slate-200 dark:hover:text-slate-200 light:hover:text-slate-900 transition-colors block w-full">Recursos</a></li>
-              <li><a href="#quem-somos" className="hover:text-slate-200 dark:hover:text-slate-200 light:hover:text-slate-900 transition-colors block w-full">Quem somos</a></li>
-              <li><a href="#planos" className="hover:text-slate-200 dark:hover:text-slate-200 light:hover:text-slate-900 transition-colors block w-full">Planos & Preços</a></li>
+            <h3 className="text-[10px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-400 light:text-slate-800 mb-4 font-mono">Produto</h3>
+            <ul className="space-y-2 text-[10px] text-slate-400 dark:text-slate-400 light:text-slate-600 font-semibold font-sans leading-relaxed">
+              <li><a href="#o-que-e" className="hover:text-slate-200 dark:hover:text-slate-200 light:hover:text-slate-900 transition-colors block">O que é o Vocentro</a></li>
+              <li><a href="#como-funciona" className="hover:text-slate-200 dark:hover:text-slate-200 light:hover:text-slate-900 transition-colors block">Como funciona</a></li>
+              <li><a href="#recursos" className="hover:text-slate-200 dark:hover:text-slate-200 light:hover:text-slate-900 transition-colors block">Recursos da Plataforma</a></li>
+              <li><a href="#planos" className="hover:text-slate-200 dark:hover:text-slate-200 light:hover:text-slate-900 transition-colors block">Planos & Preços</a></li>
             </ul>
           </div>
+
           <div>
-            <h4 className="text-[10px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-400 light:text-slate-800 mb-4 font-mono">Institucional</h4>
-            <ul className="space-y-2 text-[10px] text-slate-500 dark:text-slate-500 light:text-slate-600 font-semibold font-sans leading-relaxed">
-              <li><a href="/about.html" className="hover:text-slate-200 dark:hover:text-slate-200 light:hover:text-slate-900 transition-colors block w-full">Sobre o Vocentro</a></li>
-              <li><a href="/privacy.html" target="_blank" rel="noopener noreferrer" className="hover:text-slate-200 dark:hover:text-slate-200 light:hover:text-slate-900 transition-colors block w-full">Política de Privacidade</a></li>
-              <li><a href="/terms.html" target="_blank" rel="noopener noreferrer" className="hover:text-slate-200 dark:hover:text-slate-200 light:hover:text-slate-900 transition-colors block w-full">Termos de Uso</a></li>
+            <h3 className="text-[10px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-400 light:text-slate-800 mb-4 font-mono">Institucional</h3>
+            <ul className="space-y-2 text-[10px] text-slate-400 dark:text-slate-400 light:text-slate-600 font-semibold font-sans leading-relaxed">
+              <li><a href="/about.html" className="hover:text-slate-200 dark:hover:text-slate-200 light:hover:text-slate-900 transition-colors block">Sobre o Vocentro</a></li>
+              <li><a href="/privacy.html" target="_blank" rel="noopener noreferrer" className="hover:text-slate-200 dark:hover:text-slate-200 light:hover:text-slate-900 transition-colors block">Política de Privacidade</a></li>
+              <li><a href="/terms.html" target="_blank" rel="noopener noreferrer" className="hover:text-slate-200 dark:hover:text-slate-200 light:hover:text-slate-900 transition-colors block">Termos de Uso</a></li>
             </ul>
           </div>
+
           <div>
-            <h4 className="text-[10px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-400 light:text-slate-800 mb-4 font-mono">Contato & Suporte</h4>
-            <a href="mailto:suporte@vocentro.com" className="text-[10px] text-slate-500 dark:text-slate-500 light:text-slate-600 font-semibold font-sans leading-relaxed hover:text-slate-200 transition-colors inline-flex items-center gap-1.5 mb-2 block">
-              <Mail size={12} className="text-brand-accent" />
-              suporte@vocentro.com
-            </a>
-            <p className="text-[10px] text-slate-500">Atendimento e suporte ao candidato</p>
+            <h3 className="text-[10px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-400 light:text-slate-800 mb-4 font-mono">Contato & Suporte</h3>
+            <ul className="space-y-2 text-[10px] text-slate-400 dark:text-slate-400 light:text-slate-600 font-semibold font-sans leading-relaxed">
+              <li>
+                <a href="mailto:contato@vocentro.com.br" className="hover:text-slate-200 transition-colors inline-flex items-center gap-1.5">
+                  <Mail size={12} className="text-brand-accent" />
+                  contato@vocentro.com.br
+                </a>
+              </li>
+              <li>
+                <a href="mailto:suporte@vocentro.com.br" className="hover:text-slate-200 transition-colors inline-flex items-center gap-1.5">
+                  <Mail size={12} className="text-brand-accent" />
+                  suporte@vocentro.com.br
+                </a>
+              </li>
+            </ul>
+            <p className="text-[10px] text-slate-500 mt-2">Atendimento e suporte institucional</p>
           </div>
         </div>
-        <div className="max-w-6xl mx-auto border-t border-slate-900 dark:border-slate-900 light:border-slate-100 mt-12 pt-8 flex flex-col sm:flex-row items-center justify-between text-[9px] text-slate-500 dark:text-slate-500 light:text-slate-600 gap-4 font-sans leading-relaxed font-normal">
+
+        <div className="max-w-6xl mx-auto border-t border-slate-900 dark:border-slate-900 light:border-slate-100 mt-12 pt-8 flex flex-col sm:flex-row items-center justify-between text-[9px] text-slate-400 dark:text-slate-400 light:text-slate-600 gap-4 font-sans leading-relaxed font-normal">
           <span className="shrink-0">© 2026 Vocentro. Todos os direitos reservados.</span>
-          <span className="text-center sm:text-right">Plataforma inteligente para desenvolvimento profissional e gestão de candidaturas.</span>
+          <span className="text-center sm:text-right">Plataforma inteligente para desenvolvimento profissional e gestão de candidaturas de carreira.</span>
         </div>
       </footer>
     </div>

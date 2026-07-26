@@ -17,9 +17,9 @@ interface HeroProductMockupProps {
 
 export function HeroProductMockup({ onSimulateClick }: HeroProductMockupProps) {
   return (
-    <div className="relative w-full max-w-xl mx-auto font-sans select-none">
+    <div className="relative w-full max-w-2xl mx-auto font-sans select-none">
       {/* Background Ambient Glow */}
-      <div className="absolute -inset-1 bg-gradient-to-r from-brand-500/30 via-indigo-500/20 to-emerald-500/30 rounded-3xl blur-xl opacity-70 group-hover:opacity-100 transition duration-1000 animate-pulse pointer-events-none" />
+      <div className="absolute -inset-1 bg-gradient-to-r from-brand-500/30 via-indigo-500/20 to-emerald-500/30 rounded-3xl blur-2xl opacity-80 group-hover:opacity-100 transition duration-1000 animate-pulse pointer-events-none" />
 
       {/* Main SaaS Interface Card */}
       <div className="relative rounded-2xl bg-slate-900/90 dark:bg-slate-900/95 light:bg-white border border-slate-800 dark:border-slate-800 light:border-slate-200 shadow-2xl backdrop-blur-xl overflow-hidden transition-all duration-300">

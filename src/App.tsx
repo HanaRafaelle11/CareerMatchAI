@@ -20,6 +20,7 @@ import type { Job } from './domain/models/types';
 const LandingPage = lazy(() => import('./presentation/pages/LandingPage').then(m => ({ default: m.LandingPage })));
 const Login = lazy(() => import('./presentation/pages/Login').then(m => ({ default: m.Login })));
 const AboutPage = lazy(() => import('./presentation/pages/AboutPage').then(m => ({ default: m.AboutPage })));
+const GoogleAuthPage = lazy(() => import('./presentation/pages/GoogleAuthPage').then(m => ({ default: m.GoogleAuthPage })));
 const Dashboard = lazy(() => import('./presentation/pages/Dashboard').then(m => ({ default: m.Dashboard })));
 const Profile = lazy(() => import('./presentation/pages/Profile').then(m => ({ default: m.Profile })));
 const JobMatchHub = lazy(() => import('./presentation/pages/JobMatchHub').then(m => ({ default: m.JobMatchHub })));
@@ -51,6 +52,9 @@ function App() {
   const [showAuth, setShowAuth] = useState(false);
   const [authMode, setAuthMode] = useState<'login' | 'signup'>('login');
   const [isAboutView, setIsAboutView] = useState(window.location.pathname === '/about');
+  const [isGoogleAuthView, setIsGoogleAuthView] = useState(
+    window.location.pathname === '/google-auth' || window.location.pathname === '/google-auth.html'
+  );
 
   const { preferences, updatePreferences } = useUserPreferences(user?.id);
 
@@ -93,8 +97,13 @@ function App() {
     const handlePopState = () => {
       if (window.location.pathname === '/about') {
         setIsAboutView(true);
+        setIsGoogleAuthView(false);
+      } else if (window.location.pathname === '/google-auth' || window.location.pathname === '/google-auth.html') {
+        setIsGoogleAuthView(true);
+        setIsAboutView(false);
       } else {
         setIsAboutView(false);
+        setIsGoogleAuthView(false);
       }
     };
     window.addEventListener('popstate', handlePopState);
@@ -131,6 +140,19 @@ function App() {
           onBack={() => {
             window.history.pushState(null, '', '/');
             setIsAboutView(false);
+          }}
+        />
+      </Suspense>
+    );
+  }
+
+  if (isGoogleAuthView) {
+    return (
+      <Suspense fallback={<LazyFallback />}>
+        <GoogleAuthPage
+          onBack={() => {
+            window.history.pushState(null, '', '/');
+            setIsGoogleAuthView(false);
           }}
         />
       </Suspense>

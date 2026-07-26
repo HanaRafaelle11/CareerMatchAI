@@ -67,13 +67,12 @@ export function LandingPage({ onNavigateToAuth }: LandingPageProps) {
         <VocentroLogo className="h-7 text-white dark:text-white light:text-slate-900" showText={true} />
         
         <nav className="hidden md:flex items-center gap-5">
-          <a href="#o-que-e" className="text-xs font-medium text-slate-400 hover:text-slate-100 transition-colors py-1.5 px-1 min-h-[32px] inline-flex items-center">O que é</a>
+          <a href="#sobre" className="text-xs font-medium text-slate-400 hover:text-slate-100 transition-colors py-1.5 px-1 min-h-[32px] inline-flex items-center">Sobre o Vocentro</a>
           <a href="#como-funciona" className="text-xs font-medium text-slate-400 hover:text-slate-100 transition-colors py-1.5 px-1 min-h-[32px] inline-flex items-center">Como funciona</a>
-          <a href="#autenticacao-google" className="text-xs font-medium text-slate-400 hover:text-slate-100 transition-colors py-1.5 px-1 min-h-[32px] inline-flex items-center">Entrar com Google</a>
           <a href="#recursos" className="text-xs font-medium text-slate-400 hover:text-slate-100 transition-colors py-1.5 px-1 min-h-[32px] inline-flex items-center">Recursos</a>
           <a href="#quem-somos" className="text-xs font-medium text-slate-400 hover:text-slate-100 transition-colors py-1.5 px-1 min-h-[32px] inline-flex items-center">Quem somos</a>
           <a href="#planos" className="text-xs font-medium text-slate-400 hover:text-slate-100 transition-colors py-1.5 px-1 min-h-[32px] inline-flex items-center">Planos</a>
-          <a href="/about.html" className="text-xs font-medium text-slate-400 hover:text-slate-100 transition-colors py-1.5 px-1 min-h-[32px] inline-flex items-center">Sobre</a>
+          <a href="/about.html" className="text-xs font-medium text-slate-400 hover:text-slate-100 transition-colors py-1.5 px-1 min-h-[32px] inline-flex items-center">Institucional</a>
         </nav>
 
         <div className="flex items-center gap-3">
@@ -93,7 +92,7 @@ export function LandingPage({ onNavigateToAuth }: LandingPageProps) {
         </div>
       </header>
 
-      {/* ── 1. HERO SECTION (ULTRA-COMPACT FOLD) ── */}
+      {/* ── 1. HERO SECTION ── */}
       <section className="relative pt-20 pb-8 px-6 md:px-12 z-10 w-full max-w-7xl mx-auto font-sans">
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-center w-full">
           {/* Left Hero Copy */}
@@ -109,19 +108,19 @@ export function LandingPage({ onNavigateToAuth }: LandingPageProps) {
               Vocentro
             </h1>
 
-            <h2 className="text-lg sm:text-xl font-bold text-brand-accent dark:text-brand-accent light:text-brand-600 font-display leading-snug w-full block">
-              A plataforma inteligente para acelerar sua carreira.
+            <h2 className="text-base sm:text-lg font-bold text-brand-accent dark:text-brand-accent light:text-brand-600 font-display leading-snug w-full block">
+              Encontre vagas compatíveis, aumente seu Match Score e prepare-se para entrevistas com Inteligência Artificial.
             </h2>
             
             <div className="w-full max-w-lg">
-              <p className="text-slate-200 dark:text-slate-200 light:text-slate-800 text-xs sm:text-sm leading-relaxed font-semibold w-full block">
-                Encontre vagas compatíveis, aumente seu Match Score e prepare-se para entrevistas com IA. Tudo em uma única plataforma.
+              <p className="text-slate-300 dark:text-slate-300 light:text-slate-700 text-xs sm:text-sm leading-relaxed font-normal w-full block">
+                O Vocentro é uma plataforma de carreira que utiliza Inteligência Artificial para ajudar profissionais a encontrar vagas, otimizar currículos ATS, preparar entrevistas e acompanhar candidaturas em um único lugar.
               </p>
             </div>
 
             <div className="flex items-center gap-2 text-xs text-slate-400 font-medium">
               <ShieldCheck size={15} className="text-brand-accent shrink-0" />
-              <span>Autenticação rápida e segura via Conta Google ou E-mail</span>
+              <span>Autenticação simples e segura por E-mail ou Conta Google</span>
             </div>
             
             {/* Prominent Hero CTA Button */}
@@ -141,7 +140,7 @@ export function LandingPage({ onNavigateToAuth }: LandingPageProps) {
               </button>
             </div>
 
-            {/* Social Proof (Prova Social) */}
+            {/* Social Proof */}
             <div className="w-full pt-3 border-t border-slate-900/80 dark:border-slate-900/80 light:border-slate-200 font-sans flex flex-wrap items-center gap-2 text-xs">
               <div className="flex text-amber-400 text-sm font-bold tracking-tight">★★★★★</div>
               <span className="text-slate-300 dark:text-slate-300 light:text-slate-700 font-medium text-[11px]">
@@ -154,66 +153,44 @@ export function LandingPage({ onNavigateToAuth }: LandingPageProps) {
             </div>
           </div>
 
-          {/* Right Hero - Product Mockup (10-15% Larger & SaaS Aesthetic) */}
+          {/* Right Hero - Product Mockup */}
           <div className="lg:col-span-7 flex justify-center relative w-full font-sans">
             <HeroProductMockup onSimulateClick={() => onNavigateToAuth('signup')} />
           </div>
         </div>
       </section>
 
-      {/* ── 2. O QUE É O VOCENTRO? (INSTITUCIONAL COMPACTO) ── */}
-      <section id="o-que-e" className="py-8 sm:py-9 px-6 max-w-7xl mx-auto relative z-10 w-full min-w-0">
-        <div className="flex flex-col items-center gap-1.5 text-center max-w-2xl mx-auto mb-6">
-          <span className="px-3 py-0.5 rounded-full bg-brand-500/10 border border-brand-500/20 text-brand-400 text-[10px] font-bold tracking-wider uppercase font-mono">
-            Apresentação Institucional
-          </span>
-          <h2 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-slate-100 dark:text-white light:text-slate-900 font-display">
-            O que é o Vocentro?
-          </h2>
-          <p className="text-xs text-slate-300 dark:text-slate-300 light:text-slate-700 leading-relaxed font-sans max-w-lg">
-            Uma plataforma de Inteligência Artificial para apoiar profissionais na busca de vagas, otimização de currículo e treino para entrevistas.
-          </p>
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3.5 max-w-6xl mx-auto font-sans">
-          <div className="p-4 rounded-xl bg-slate-900/40 dark:bg-slate-900/40 light:bg-white border border-slate-850 dark:border-slate-850 light:border-slate-200 space-y-1.5 shadow-xs">
-            <div className="w-7 h-7 rounded-lg bg-brand-500/10 text-brand-accent flex items-center justify-center">
-              <Building size={15} />
-            </div>
-            <h3 className="text-xs font-bold text-slate-100 dark:text-white light:text-slate-900 font-display">Quem somos</h3>
-            <p className="text-[11px] text-slate-300 leading-relaxed">
-              Plataforma institucional focada em capacitar trabalhadores com inteligência semântica e orientação contínua.
-            </p>
+      {/* ── 2. SEÇÃO INSTITUCIONAL OBRIGATÓRIA: SOBRE O VOCENTRO (LOGO APÓS O HERO) ── */}
+      <section id="sobre" className="py-8 sm:py-9 px-6 max-w-5xl mx-auto relative z-10 w-full min-w-0 font-sans">
+        <div className="p-6 sm:p-8 rounded-2xl bg-slate-900/50 dark:bg-slate-900/50 light:bg-white border border-slate-800 dark:border-slate-800 light:border-slate-200 space-y-4 shadow-md">
+          <div className="flex flex-col items-center gap-1.5 text-center max-w-2xl mx-auto mb-2">
+            <span className="px-3 py-0.5 rounded-full bg-brand-500/10 border border-brand-500/20 text-brand-400 text-[10px] font-bold tracking-wider uppercase font-mono">
+              Institucional
+            </span>
+            <h2 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-slate-100 dark:text-white light:text-slate-900 font-display">
+              Sobre o Vocentro
+            </h2>
           </div>
 
-          <div className="p-4 rounded-xl bg-slate-900/40 dark:bg-slate-900/40 light:bg-white border border-slate-850 dark:border-slate-850 light:border-slate-200 space-y-1.5 shadow-xs">
-            <div className="w-7 h-7 rounded-lg bg-brand-500/10 text-brand-accent flex items-center justify-center">
-              <Zap size={15} />
-            </div>
-            <h3 className="text-xs font-bold text-slate-100 dark:text-white light:text-slate-900 font-display">O que a plataforma faz</h3>
-            <p className="text-[11px] text-slate-300 leading-relaxed">
-              Centraliza busca de vagas, analisa compatibilidade (Match Score), otimiza currículos ATS e simula entrevistas.
+          <div className="text-xs sm:text-sm text-slate-300 dark:text-slate-300 light:text-slate-700 leading-relaxed space-y-3.5 max-w-4xl mx-auto font-normal">
+            <p>
+              O <strong>Vocentro</strong> é uma plataforma de desenvolvimento profissional e apoio à carreira projetada para otimizar e estruturar toda a jornada de busca por oportunidades de trabalho. Utilizando tecnologia de Inteligência Artificial semântica, o Vocentro atua como uma central inteligente de gestão de candidaturas para trabalhadores e profissionais de diferentes áreas de atuação.
             </p>
-          </div>
-
-          <div className="p-4 rounded-xl bg-slate-900/40 dark:bg-slate-900/40 light:bg-white border border-slate-850 dark:border-slate-850 light:border-slate-200 space-y-1.5 shadow-xs">
-            <div className="w-7 h-7 rounded-lg bg-brand-500/10 text-brand-accent flex items-center justify-center">
-              <Target size={15} />
-            </div>
-            <h3 className="text-xs font-bold text-slate-100 dark:text-white light:text-slate-900 font-display">Quais problemas resolve</h3>
-            <p className="text-[11px] text-slate-300 leading-relaxed">
-              Elimina envios massivos sem resposta, desmistifica robôs de triagem de RH e prepara para entrevistas.
+            <p>
+              A aplicação permite que o candidato cadastre seu perfil e faça upload do seu currículo profissional em formato PDF. A partir dessas informações, o motor de Inteligência Artificial do Vocentro analisa a compatibilidade entre as experiências do usuário e os requisitos das vagas de emprego cadastradas, calculando um <strong>Match Score</strong> percentual de afinidade e identificando pontos fortes e lacunas técnicas a serem aprimoradas.
             </p>
-          </div>
-
-          <div className="p-4 rounded-xl bg-slate-900/40 dark:bg-slate-900/40 light:bg-white border border-slate-850 dark:border-slate-850 light:border-slate-200 space-y-1.5 shadow-xs">
-            <div className="w-7 h-7 rounded-lg bg-brand-500/10 text-brand-accent flex items-center justify-center">
-              <CheckSquare size={15} />
-            </div>
-            <h3 className="text-xs font-bold text-slate-100 dark:text-white light:text-slate-900 font-display">Funcionalidades principais</h3>
-            <p className="text-[11px] text-slate-300 leading-relaxed">
-              Mapeamento de vagas, cálculo de Match Score, Otimizador STAR, Treino com Recrutadora IA e Gestão Kanban.
+            <p>
+              Além do mapeamento de oportunidades, o Vocentro oferece ferramentas de otimização de currículo focadas na aprovação em robôs de triagem de Recursos Humanos (sistemas ATS), reestruturando conquistas profissionais no método STAR (Situação, Tarefa, Ação, Resultado). A plataforma dispõe também de um simulador interativo de entrevistas conduzido pela Recrutadora IA e de um painel Kanban para acompanhamento de candidaturas ativas.
             </p>
+            <p>
+              Para a conveniência e segurança dos usuários, o Vocentro oferece autenticação simples por e-mail ou integração segura com a Conta Google (Google OAuth 2.0).
+            </p>
+            <div className="p-3.5 rounded-xl bg-slate-950/70 border border-slate-800 text-[11px] text-slate-300 space-y-1">
+              <span className="font-bold text-white block">📌 Ferramenta de Apoio ao Candidato</span>
+              <p>
+                O Vocentro opera exclusivamente como uma ferramenta consultiva e de orientação para o candidato. O Vocentro <strong>não</strong> publica vagas automaticamente em portais externos e <strong>não</strong> envia currículos a empresas ou recrutadores sem o consentimento e o comando explícito do usuário.
+              </p>
+            </div>
           </div>
         </div>
       </section>
@@ -297,85 +274,7 @@ export function LandingPage({ onNavigateToAuth }: LandingPageProps) {
         </div>
       </section>
 
-      {/* ── 4. SEÇÃO INSTITUCIONAL: FINALIDADE DO APP & TRANSPARÊNCIA GOOGLE OAUTH ── */}
-      <section id="autenticacao-google" className="py-8 sm:py-9 px-6 max-w-5xl mx-auto relative z-10">
-        <div className="p-6 sm:p-8 rounded-2xl bg-slate-900/60 dark:bg-slate-900/60 light:bg-white border border-brand-500/30 dark:border-brand-500/30 light:border-slate-200 space-y-5 shadow-lg font-sans">
-          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border-b border-slate-800/80 pb-4">
-            <div className="flex items-center gap-3.5">
-              {/* Google Colored Logo */}
-              <div className="w-11 h-11 rounded-xl bg-white flex items-center justify-center shrink-0 shadow-sm border border-slate-200">
-                <svg className="w-6 h-6" viewBox="0 0 24 24">
-                  <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" />
-                  <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" />
-                  <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z" />
-                  <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z" />
-                </svg>
-              </div>
-              <div>
-                <span className="text-[10px] font-bold uppercase tracking-wider text-brand-accent font-mono block">Google Auth Platform Verification</span>
-                <h2 className="text-lg sm:text-xl font-extrabold text-slate-100 dark:text-white light:text-slate-900 font-display">
-                  Finalidade do Aplicativo Vocentro (vocentro) e Uso de Dados do Google
-                </h2>
-              </div>
-            </div>
-            <span className="px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-[10px] font-bold font-mono shrink-0">
-              ✓ OAuth 2.0 Transparência Garantida
-            </span>
-          </div>
-
-          {/* Institutional Statement Box */}
-          <div className="p-4 rounded-xl bg-slate-950/70 dark:bg-slate-950/70 light:bg-slate-50 border border-slate-800 text-xs leading-relaxed space-y-3">
-            <div>
-              <span className="font-bold text-white text-xs block mb-1">
-                📌 Identificação e Nome do Aplicativo
-              </span>
-              <p className="text-slate-300 text-[11px] leading-relaxed">
-                Este aplicativo é oficialmente identificado como <strong>Vocentro</strong> (nome configurado na Tela de Consentimento do Google OAuth: <strong>vocentro</strong>). Domínio oficial verificado: <a href="https://vocentro.com.br" className="text-brand-accent underline font-semibold">https://vocentro.com.br</a>.
-              </p>
-            </div>
-
-            <div className="border-t border-slate-800/80 pt-2.5">
-              <span className="font-bold text-white text-xs block mb-1">
-                🎯 Finalidade do Aplicativo Vocentro (vocentro)
-              </span>
-              <p className="text-slate-300 text-[11px] leading-relaxed">
-                O <strong>Vocentro (vocentro)</strong> é uma plataforma SaaS de Inteligência Artificial voltada para gestão de carreira e desenvolvimento profissional. A aplicação permite que os candidatos:
-              </p>
-              <ul className="list-disc pl-4 mt-1 space-y-1 text-[11px] text-slate-300">
-                <li>Encontrem vagas de emprego compatíveis com seu perfil em portais integrados;</li>
-                <li>Otimizem seus currículos para aprovação em filtros robóticos de RH (ATS) no padrão STAR;</li>
-                <li>Realizem simulações interativas de entrevistas de emprego com a Recrutadora IA;</li>
-                <li>Gerenciem e acompanhem o fluxo completo de suas candidaturas em um painel Kanban.</li>
-              </ul>
-            </div>
-
-            <div className="border-t border-slate-800/80 pt-2.5">
-              <span className="font-bold text-white text-xs block mb-1">
-                🔒 Transparência e Escopo do Google OAuth 2.0
-              </span>
-              <p className="text-slate-300 text-[11px] leading-relaxed">
-                O aplicativo <strong>Vocentro (vocentro)</strong> solicita autenticação via Conta do Google exclusivamente para permitir que o usuário crie sua conta e faça login na plataforma de forma rápida, segura e sem a necessidade de gerenciar senhas adicionais.
-              </p>
-              <ul className="list-disc pl-4 mt-1 space-y-1 text-[11px] text-slate-300">
-                <li><strong>Dados Coletados:</strong> Apens o endereço de e-mail, nome público de perfil e foto do usuário.</li>
-                <li><strong>Garantia de Privacidade:</strong> O Vocentro (vocentro) <strong>NÃO</strong> solicita, não lê, não edita, não armazena e não compartilha e-mails do Gmail, arquivos do Google Drive ou contatos.</li>
-                <li><strong>Conformidade:</strong> O uso dos dados recebidos das APIs do Google obedece integralmente à <a href="https://developers.google.com/terms/api-services-user-data-policy" target="_blank" rel="noopener noreferrer" className="text-brand-accent underline font-semibold">Política de Dados do Usuário dos Serviços de API do Google</a>, incluindo os requisitos de Uso Limitado.</li>
-              </ul>
-            </div>
-
-            <div className="border-t border-slate-800/80 pt-2.5 flex flex-wrap gap-4 text-[11px]">
-              <a href="/privacy.html" target="_blank" rel="noopener noreferrer" className="text-brand-accent hover:underline font-bold inline-flex items-center gap-1">
-                📄 Ler Política de Privacidade do Vocentro
-              </a>
-              <a href="/terms.html" target="_blank" rel="noopener noreferrer" className="text-brand-accent hover:underline font-bold inline-flex items-center gap-1">
-                ⚖️ Ler Termos de Uso do Vocentro
-              </a>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* ── 5. RECURSOS DA PLATAFORMA (4 CARDS ESSENCIAIS SAAS) ── */}
+      {/* ── 4. RECURSOS DA PLATAFORMA (EXATAMENTE 4 CARDS ESSENCIAIS) ── */}
       <section id="recursos" className="py-8 sm:py-9 px-6 max-w-7xl mx-auto relative z-10 w-full min-w-0">
         <div className="flex flex-col items-center gap-1.5 text-center max-w-2xl mx-auto mb-6">
           <span className="px-3 py-0.5 rounded-full bg-brand-500/10 border border-brand-500/20 text-brand-400 text-[10px] font-bold tracking-wider uppercase font-mono">
@@ -385,7 +284,7 @@ export function LandingPage({ onNavigateToAuth }: LandingPageProps) {
             Recursos da Plataforma
           </h2>
           <p className="text-xs text-slate-300 dark:text-slate-300 light:text-slate-700 leading-relaxed font-sans max-w-lg">
-            As quatro ferramentas de IA focadas na sua aceleração profissional.
+            As quatro ferramentas de Inteligência Artificial focadas na sua aceleração profissional.
           </p>
         </div>
 
@@ -425,102 +324,84 @@ export function LandingPage({ onNavigateToAuth }: LandingPageProps) {
         </div>
       </section>
 
-      {/* ── 6. QUEM SOMOS, PRIVACIDADE & SEGURANÇA (CONTRASTE MELHORADO) ── */}
-      <section id="quem-somos" className="py-8 sm:py-9 px-6 max-w-5xl mx-auto relative z-10">
-        <div className="p-6 sm:p-7 rounded-2xl bg-slate-900/50 dark:bg-slate-900/50 light:bg-white border border-slate-850 dark:border-slate-850 light:border-slate-200 text-center space-y-4 shadow-lg font-sans">
-          <span className="px-3 py-0.5 rounded-full bg-brand-500/10 border border-brand-500/20 text-brand-400 text-[10px] font-bold tracking-wider uppercase font-mono">
-            Quem somos & Compromisso Institucional
-          </span>
-          <h2 className="text-2xl sm:text-3xl font-extrabold text-slate-100 dark:text-white light:text-slate-900 font-display">
-            Quem somos
-          </h2>
-          <p className="text-xs sm:text-sm text-slate-200 dark:text-slate-200 light:text-slate-800 leading-relaxed max-w-3xl mx-auto font-medium">
-            O Vocentro é uma plataforma desenvolvida para apoiar profissionais durante toda a jornada de busca por oportunidades de trabalho, utilizando Inteligência Artificial para aumentar a eficiência na preparação de currículos, identificação de vagas compatíveis e preparação para processos seletivos.
-          </p>
-
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-left pt-4 border-t border-slate-800/80">
-            <div className="space-y-1">
-              <h3 className="text-[10px] font-bold text-brand-accent uppercase tracking-wider font-mono">Nossa Missão</h3>
-              <p className="text-[11px] text-slate-300 leading-relaxed">
-                Empoderar trabalhadores de todas as áreas com inteligência semântica e automação ética.
-              </p>
-            </div>
-
-            <div className="space-y-1">
-              <h3 className="text-[10px] font-bold text-brand-accent uppercase tracking-wider font-mono">Nossa Visão</h3>
-              <p className="text-[11px] text-slate-300 leading-relaxed">
-                Ser o ecossistema de referência nacional para preparação profissional e transparência em recrutamento.
-              </p>
-            </div>
-
-            <div className="space-y-1">
-              <h3 className="text-[10px] font-bold text-brand-accent uppercase tracking-wider font-mono">Privacidade & LGPD</h3>
-              <p className="text-[11px] text-slate-300 leading-relaxed">
-                Seus dados pertencem 100% a você. Criptografia ponta a ponta e zero compartilhamento com terceiros.
-              </p>
-            </div>
+      {/* ── 5. QUEM SOMOS ── */}
+      <section id="quem-somos" className="py-8 sm:py-9 px-6 max-w-5xl mx-auto relative z-10 w-full min-w-0 font-sans">
+        <div className="p-6 sm:p-8 rounded-2xl bg-slate-900/40 border border-slate-850 space-y-4 shadow-sm">
+          <div className="flex flex-col items-center gap-1.5 text-center max-w-2xl mx-auto mb-2">
+            <span className="px-3 py-0.5 rounded-full bg-brand-500/10 border border-brand-500/20 text-brand-400 text-[10px] font-bold tracking-wider uppercase font-mono">
+              Institucional
+            </span>
+            <h2 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-slate-100 dark:text-white light:text-slate-900 font-display">
+              Quem somos
+            </h2>
           </div>
+
+          <p className="text-xs sm:text-sm text-slate-300 dark:text-slate-300 light:text-slate-700 leading-relaxed font-normal text-center max-w-3xl mx-auto">
+            O Vocentro foi criado por especialistas em tecnologia e desenvolvimento de carreira para nivelar o jogo nos processos seletivos modernos. Combinando IA de última geração com princípios sólidos de recrutamento, capacitamos trabalhadores a apresentar seu real valor às empresas de forma transparente e eficiente.
+          </p>
         </div>
       </section>
 
-      {/* ── 7. PLANOS & PREÇOS (DESTAQUE PREMIUM) ── */}
-      <section id="planos" className="py-8 sm:py-9 px-6 max-w-7xl mx-auto relative z-10 space-y-6">
-        <div className="flex flex-col items-center gap-1.5 text-center max-w-xl mx-auto">
+      {/* ── 6. PLANOS & PREÇOS ── */}
+      <section id="planos" className="py-8 sm:py-9 px-6 max-w-5xl mx-auto relative z-10 space-y-6 w-full min-w-0">
+        <div className="flex flex-col items-center gap-1.5 text-center max-w-2xl mx-auto font-sans">
           <span className="px-3 py-0.5 rounded-full bg-brand-500/10 border border-brand-500/20 text-brand-400 text-[10px] font-bold tracking-wider uppercase font-mono">
             Planos
           </span>
           <h2 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-slate-100 dark:text-white light:text-slate-900 font-display">
-            Simplicidade e transparência
+            Planos para cada momento de carreira
           </h2>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-5 max-w-4xl mx-auto font-sans">
-          {/* Free Plan */}
-          <div className="p-6 rounded-2xl bg-slate-900/20 dark:bg-slate-900/20 light:bg-white border border-slate-850 dark:border-slate-850 light:border-slate-200 flex flex-col justify-between space-y-6 shadow-xs">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 max-w-3xl mx-auto font-sans">
+          {/* Plano Gratuito */}
+          <div className="p-5 rounded-2xl bg-slate-900/20 dark:bg-slate-900/20 light:bg-white border border-slate-850 dark:border-slate-850 light:border-slate-200 flex flex-col justify-between space-y-4 shadow-xs">
             <div className="space-y-3">
-              <div className="flex justify-between items-start gap-4">
-                <div className="flex-1">
-                  <h3 className="text-base font-bold text-slate-100 dark:text-white light:text-slate-900 font-display">Plano Básico</h3>
-                  <p className="text-[11px] text-slate-400">O básico essencial para iniciar sua recolocação.</p>
+              <div className="flex items-center justify-between">
+                <div>
+                  <h3 className="text-base font-bold text-slate-100 dark:text-white light:text-slate-900 font-display">Plano Gratuito</h3>
+                  <p className="text-[11px] text-slate-400">Para iniciar sua busca e testar a plataforma</p>
                 </div>
-                <span className="text-xl font-black text-slate-200 dark:text-white light:text-slate-900 font-display shrink-0">Grátis</span>
+                <div className="text-right shrink-0 font-display">
+                  <span className="text-2xl font-black text-white dark:text-white light:text-slate-900">R$ 0</span>
+                </div>
               </div>
-              
-              <ul className="space-y-2 text-xs text-slate-300 dark:text-slate-300 light:text-slate-700 leading-relaxed font-medium">
+
+              <ul className="space-y-2 text-xs text-slate-200 dark:text-slate-200 light:text-slate-800 leading-relaxed font-medium">
                 <li className="flex items-center gap-2">
-                  <Check size={12} className="text-brand-accent" /> Pipeline Kanban de candidaturas
+                  <Check size={14} className="text-emerald-400 shrink-0 font-bold" /> Cadastro de perfil profissional
                 </li>
                 <li className="flex items-center gap-2">
-                  <Check size={12} className="text-brand-accent" /> Cadastro estruturado de currículo
+                  <Check size={14} className="text-emerald-400 shrink-0 font-bold" /> Leitura e parsing de currículo PDF
                 </li>
                 <li className="flex items-center gap-2">
-                  <Check size={12} className="text-brand-accent" /> Match Score de afinidade
+                  <Check size={14} className="text-emerald-400 shrink-0 font-bold" /> Busca básica de vagas e Match Score
                 </li>
                 <li className="flex items-center gap-2">
-                  <Check size={12} className="text-brand-accent" /> Treinos com a Recrutadora IA
+                  <Check size={14} className="text-emerald-400 shrink-0 font-bold" /> 1 simulação de entrevista com Recrutadora IA
                 </li>
               </ul>
             </div>
 
             <button 
               onClick={() => onNavigateToAuth('signup')}
-              className="w-full py-3 px-4 rounded-xl border border-slate-800 dark:border-slate-800 light:border-slate-200 bg-slate-900/50 hover:bg-slate-900 text-slate-200 font-semibold text-xs transition-all cursor-pointer shadow-xs"
+              className="w-full py-3.5 px-4 rounded-xl border border-slate-750 dark:border-slate-750 light:border-slate-300 hover:bg-slate-900 text-slate-200 font-bold text-xs transition-colors cursor-pointer"
             >
-              Começar agora
+              Criar Conta Grátis
             </button>
           </div>
 
-          {/* Premium Plan (Destacado com Borda Azul + Selo "Mais Escolhido") */}
-          <div className="p-6 rounded-2xl bg-slate-900/80 dark:bg-slate-900/90 light:bg-white border-2 border-brand-500 flex flex-col justify-between space-y-6 relative shadow-2xl shadow-brand-500/20 scale-[1.02]">
-            <div className="absolute -top-3 right-5 px-3 py-0.5 rounded-full bg-gradient-to-r from-brand-500 to-indigo-600 text-white text-[9px] font-bold uppercase tracking-wider font-mono shadow-md">
+          {/* Plano Premium (Com Borda Brand e Selo "★ Mais escolhido") */}
+          <div className="p-5 rounded-2xl bg-slate-900/60 dark:bg-slate-900/60 light:bg-white border-2 border-brand-500 scale-[1.02] shadow-2xl shadow-brand-500/20 flex flex-col justify-between space-y-4 relative">
+            <div className="absolute -top-3 left-5 bg-brand-500 text-white text-[9px] font-extrabold uppercase px-2.5 py-0.5 rounded-full font-mono shadow-md tracking-wider">
               ★ Mais escolhido
             </div>
 
-            <div className="space-y-3">
-              <div className="flex justify-between items-start gap-4">
-                <div className="flex-1">
-                  <h3 className="text-base font-extrabold text-slate-100 dark:text-white light:text-slate-900 font-display">Plano Premium</h3>
-                  <p className="text-[11px] text-brand-400 font-bold">Acelere sua aprovação com IA ilimitada.</p>
+            <div className="space-y-3 pt-1">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h3 className="text-base font-bold text-slate-100 dark:text-white light:text-slate-900 font-display">Plano Premium</h3>
+                  <p className="text-[11px] text-brand-400 font-medium">Aceleração completa com IA ilimitada</p>
                 </div>
                 <div className="text-right shrink-0 font-display">
                   <span className="text-2xl font-black text-white dark:text-white light:text-slate-900">R$ 29</span>
@@ -554,7 +435,7 @@ export function LandingPage({ onNavigateToAuth }: LandingPageProps) {
         </div>
       </section>
 
-      {/* ── 8. PERGUNTAS FREQUENTES (FAQ COMPACTO) ── */}
+      {/* ── 7. PERGUNTAS FREQUENTES (FAQ COMPACTO) ── */}
       <section id="faq" className="py-8 sm:py-9 px-6 max-w-3xl mx-auto relative z-10 space-y-6 w-full min-w-0">
         <div className="flex flex-col items-center gap-1.5 text-center max-w-2xl mx-auto font-sans">
           <span className="px-3 py-0.5 rounded-full bg-brand-500/10 border border-brand-500/20 text-brand-400 text-[10px] font-bold tracking-wider uppercase font-mono">
@@ -575,7 +456,7 @@ export function LandingPage({ onNavigateToAuth }: LandingPageProps) {
               >
                 <button
                   onClick={() => toggleFaq(idx)}
-                  className="w-full py-3.5 px-4 flex items-center justify-between text-left text-xs font-bold text-slate-200 dark:text-slate-200 light:text-slate-800 hover:text-white transition-colors cursor-pointer select-none gap-3"
+                  className="w-full py-3.5 px-4 flex items-center justify-between text-left text-xs font-bold text-slate-200 dark:text-slate-200 light:text-slate-800 hover:text-white transition-colors cursor-pointer select-none gap-3 min-h-[36px]"
                 >
                   <span className="flex items-center gap-2.5 font-sans">
                     <HelpCircle size={13} className="text-brand-accent shrink-0" />
@@ -600,7 +481,7 @@ export function LandingPage({ onNavigateToAuth }: LandingPageProps) {
         </div>
       </section>
 
-      {/* ── 9. CTA FINAL ÚNICO (IMPACTANTE & COMPACTO) ── */}
+      {/* ── 8. CTA FINAL ÚNICO ── */}
       <section className="py-10 sm:py-12 px-6 text-center max-w-3xl mx-auto relative z-10 space-y-5 font-sans leading-relaxed w-full min-w-0">
         <div className="space-y-2.5 w-full max-w-xl mx-auto flex flex-col items-center text-center">
           <h2 className="text-3xl sm:text-4xl font-extrabold tracking-tight text-slate-100 dark:text-white light:text-slate-900 leading-tight font-display text-center">
@@ -620,7 +501,7 @@ export function LandingPage({ onNavigateToAuth }: LandingPageProps) {
         </button>
       </section>
 
-      {/* ── 10. RODAPÉ INSTITUCIONAL COMPACTO (TOUCH TARGETS OPTIMIZED >= 32px) ── */}
+      {/* ── 9. RODAPÉ INSTITUCIONAL (LINKS >= 32px TOUCH TARGETS) ── */}
       <footer className="border-t border-slate-900 dark:border-slate-900 light:border-slate-200 bg-slate-950/80 dark:bg-slate-950/80 light:bg-white backdrop-blur-md py-10 px-6 relative z-10 transition-colors duration-300">
         <div className="max-w-6xl mx-auto grid grid-cols-1 sm:grid-cols-2 md:grid-cols-5 gap-8">
           <div className="md:col-span-2 space-y-3">
@@ -633,7 +514,7 @@ export function LandingPage({ onNavigateToAuth }: LandingPageProps) {
           <div>
             <h3 className="text-[10px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-400 light:text-slate-800 mb-3 font-mono">Produto</h3>
             <ul className="space-y-2 text-xs text-slate-400 dark:text-slate-400 light:text-slate-600 font-medium font-sans leading-relaxed">
-              <li><a href="#o-que-e" className="hover:text-slate-200 transition-colors py-1.5 px-1 min-h-[32px] inline-flex items-center">O que é o Vocentro</a></li>
+              <li><a href="#sobre" className="hover:text-slate-200 transition-colors py-1.5 px-1 min-h-[32px] inline-flex items-center">Sobre o Vocentro</a></li>
               <li><a href="#como-funciona" className="hover:text-slate-200 transition-colors py-1.5 px-1 min-h-[32px] inline-flex items-center">Como funciona</a></li>
               <li><a href="#recursos" className="hover:text-slate-200 transition-colors py-1.5 px-1 min-h-[32px] inline-flex items-center">Recursos da Plataforma</a></li>
               <li><a href="#planos" className="hover:text-slate-200 transition-colors py-1.5 px-1 min-h-[32px] inline-flex items-center">Planos & Preços</a></li>
@@ -643,6 +524,7 @@ export function LandingPage({ onNavigateToAuth }: LandingPageProps) {
           <div>
             <h3 className="text-[10px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-400 light:text-slate-800 mb-3 font-mono">Institucional</h3>
             <ul className="space-y-2 text-xs text-slate-400 dark:text-slate-400 light:text-slate-600 font-medium font-sans leading-relaxed">
+              <li><a href="/google-auth" className="hover:text-slate-200 transition-colors py-1.5 px-1 min-h-[32px] inline-flex items-center">Autenticação Google</a></li>
               <li><a href="/about.html" className="hover:text-slate-200 transition-colors py-1.5 px-1 min-h-[32px] inline-flex items-center">Sobre o Vocentro</a></li>
               <li><a href="/privacy.html" target="_blank" rel="noopener noreferrer" className="hover:text-slate-200 transition-colors py-1.5 px-1 min-h-[32px] inline-flex items-center">Política de Privacidade</a></li>
               <li><a href="/terms.html" target="_blank" rel="noopener noreferrer" className="hover:text-slate-200 transition-colors py-1.5 px-1 min-h-[32px] inline-flex items-center">Termos de Uso</a></li>

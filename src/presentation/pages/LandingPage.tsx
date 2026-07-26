@@ -298,14 +298,14 @@ export function LandingPage({ onNavigateToAuth }: LandingPageProps) {
         </div>
       </section>
 
-      {/* ── 4. SEÇÃO: ENTRAR COM GOOGLE (OAUTH TRANSPARENCY COM ÍCONE GOOGLE EM DESTAQUE) ── */}
+      {/* ── 4. SEÇÃO INSTITUCIONAL: FINALIDADE DO APP & TRANSPARÊNCIA GOOGLE OAUTH ── */}
       <section id="autenticacao-google" className="py-8 sm:py-9 px-6 max-w-5xl mx-auto relative z-10">
-        <div className="p-5 sm:p-7 rounded-2xl bg-slate-900/50 dark:bg-slate-900/50 light:bg-white border border-brand-500/20 dark:border-brand-500/20 light:border-slate-200 space-y-4 shadow-md font-sans">
-          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 border-b border-slate-800/80 pb-3">
-            <div className="flex items-center gap-3">
+        <div className="p-6 sm:p-8 rounded-2xl bg-slate-900/60 dark:bg-slate-900/60 light:bg-white border border-brand-500/30 dark:border-brand-500/30 light:border-slate-200 space-y-5 shadow-lg font-sans">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border-b border-slate-800/80 pb-4">
+            <div className="flex items-center gap-3.5">
               {/* Google Colored Logo */}
-              <div className="w-10 h-10 rounded-xl bg-white flex items-center justify-center shrink-0 shadow-sm border border-slate-200">
-                <svg className="w-5 h-5" viewBox="0 0 24 24">
+              <div className="w-11 h-11 rounded-xl bg-white flex items-center justify-center shrink-0 shadow-sm border border-slate-200">
+                <svg className="w-6 h-6" viewBox="0 0 24 24">
                   <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" />
                   <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" />
                   <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z" />
@@ -313,36 +313,64 @@ export function LandingPage({ onNavigateToAuth }: LandingPageProps) {
                 </svg>
               </div>
               <div>
-                <span className="text-[9px] font-bold uppercase tracking-wider text-brand-accent font-mono block">Segurança & Autenticação</span>
+                <span className="text-[10px] font-bold uppercase tracking-wider text-brand-accent font-mono block">Google Auth Platform Verification</span>
                 <h2 className="text-lg sm:text-xl font-extrabold text-slate-100 dark:text-white light:text-slate-900 font-display">
-                  Entrar com o Google no Vocentro
+                  Finalidade do Aplicativo Vocentro (vocentro) e Uso de Dados do Google
                 </h2>
               </div>
             </div>
-            <span className="px-2.5 py-0.5 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-[10px] font-bold font-mono">
-              ✓ OAuth 2.0 Verificado
+            <span className="px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-[10px] font-bold font-mono shrink-0">
+              ✓ OAuth 2.0 Transparência Garantida
             </span>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs text-slate-200 leading-relaxed">
-            <div className="space-y-1">
-              <h3 className="font-bold text-white text-xs flex items-center gap-2">
-                <UserCheck size={14} className="text-brand-accent" />
-                Autenticação Simples em 1 Clique
-              </h3>
-              <p className="text-[11px] text-slate-300">
-                A integração com o Google permite criar sua conta ou fazer login em segundos, sem memorizar senhas adicionais.
+          {/* Institutional Statement Box */}
+          <div className="p-4 rounded-xl bg-slate-950/70 dark:bg-slate-950/70 light:bg-slate-50 border border-slate-800 text-xs leading-relaxed space-y-3">
+            <div>
+              <span className="font-bold text-white text-xs block mb-1">
+                📌 Identificação e Nome do Aplicativo
+              </span>
+              <p className="text-slate-300 text-[11px] leading-relaxed">
+                Este aplicativo é oficialmente identificado como <strong>Vocentro</strong> (nome configurado na Tela de Consentimento do Google OAuth: <strong>vocentro</strong>). Domínio oficial verificado: <a href="https://vocentro.com.br" className="text-brand-accent underline font-semibold">https://vocentro.com.br</a>.
               </p>
             </div>
 
-            <div className="space-y-1">
-              <h3 className="font-bold text-white text-xs flex items-center gap-2">
-                <EyeOff size={14} className="text-brand-accent" />
-                Privacidade Total & Escopo Mínimo
-              </h3>
-              <p className="text-[11px] text-slate-300">
-                O Vocentro não acessa e-mails do Gmail, contatos ou Google Drive. Utilizamos apenas seu nome, e-mail e foto pública de perfil.
+            <div className="border-t border-slate-800/80 pt-2.5">
+              <span className="font-bold text-white text-xs block mb-1">
+                🎯 Finalidade do Aplicativo Vocentro (vocentro)
+              </span>
+              <p className="text-slate-300 text-[11px] leading-relaxed">
+                O <strong>Vocentro (vocentro)</strong> é uma plataforma SaaS de Inteligência Artificial voltada para gestão de carreira e desenvolvimento profissional. A aplicação permite que os candidatos:
               </p>
+              <ul className="list-disc pl-4 mt-1 space-y-1 text-[11px] text-slate-300">
+                <li>Encontrem vagas de emprego compatíveis com seu perfil em portais integrados;</li>
+                <li>Otimizem seus currículos para aprovação em filtros robóticos de RH (ATS) no padrão STAR;</li>
+                <li>Realizem simulações interativas de entrevistas de emprego com a Recrutadora IA;</li>
+                <li>Gerenciem e acompanhem o fluxo completo de suas candidaturas em um painel Kanban.</li>
+              </ul>
+            </div>
+
+            <div className="border-t border-slate-800/80 pt-2.5">
+              <span className="font-bold text-white text-xs block mb-1">
+                🔒 Transparência e Escopo do Google OAuth 2.0
+              </span>
+              <p className="text-slate-300 text-[11px] leading-relaxed">
+                O aplicativo <strong>Vocentro (vocentro)</strong> solicita autenticação via Conta do Google exclusivamente para permitir que o usuário crie sua conta e faça login na plataforma de forma rápida, segura e sem a necessidade de gerenciar senhas adicionais.
+              </p>
+              <ul className="list-disc pl-4 mt-1 space-y-1 text-[11px] text-slate-300">
+                <li><strong>Dados Coletados:</strong> Apens o endereço de e-mail, nome público de perfil e foto do usuário.</li>
+                <li><strong>Garantia de Privacidade:</strong> O Vocentro (vocentro) <strong>NÃO</strong> solicita, não lê, não edita, não armazena e não compartilha e-mails do Gmail, arquivos do Google Drive ou contatos.</li>
+                <li><strong>Conformidade:</strong> O uso dos dados recebidos das APIs do Google obedece integralmente à <a href="https://developers.google.com/terms/api-services-user-data-policy" target="_blank" rel="noopener noreferrer" className="text-brand-accent underline font-semibold">Política de Dados do Usuário dos Serviços de API do Google</a>, incluindo os requisitos de Uso Limitado.</li>
+              </ul>
+            </div>
+
+            <div className="border-t border-slate-800/80 pt-2.5 flex flex-wrap gap-4 text-[11px]">
+              <a href="/privacy.html" target="_blank" rel="noopener noreferrer" className="text-brand-accent hover:underline font-bold inline-flex items-center gap-1">
+                📄 Ler Política de Privacidade do Vocentro
+              </a>
+              <a href="/terms.html" target="_blank" rel="noopener noreferrer" className="text-brand-accent hover:underline font-bold inline-flex items-center gap-1">
+                ⚖️ Ler Termos de Uso do Vocentro
+              </a>
             </div>
           </div>
         </div>

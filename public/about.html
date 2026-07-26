@@ -100,10 +100,11 @@
     </ul>
 
     <h2>3. Como Funciona o Login Google (OAuth)</h2>
-    <p>O recurso de entrada via Google (Google OAuth) no <strong>Vocentro</strong> é utilizado <strong>exclusivamente para autenticação segura e criação de conta do usuário</strong>. Ao utilizar sua conta Google para entrar:</p>
+    <p>O recurso de entrada via Google (Google OAuth 2.0) no aplicativo <strong>Vocentro</strong> (oficialmente cadastrado como <strong>vocentro</strong> na Tela de Consentimento do Google OAuth) é utilizado <strong>exclusivamente para autenticação segura e criação de conta do usuário</strong>. Ao utilizar sua conta Google para entrar:</p>
     <ul>
-      <li>Solicitamos apenas escopos básicos de identificação pública (nome e e-mail).</li>
-      <li>Não solicitamos nem acessamos permissões adicionais de leitura ou modificação no Google Drive, Gmail, Agenda ou outros serviços pessoais.</li>
+      <li>Solicitamos apenas escopos básicos de identificação pública (nome, e-mail e foto de perfil via escopos <code>openid</code>, <code>email</code> e <code>profile</code>).</li>
+      <li>O Vocentro (vocentro) <strong>NÃO</strong> solicita nem acessa permissões adicionais de leitura ou modificação no Google Drive, Gmail, Agenda, Contatos ou outros serviços pessoais.</li>
+      <li>O uso e a transferência de informações recebidas das APIs do Google para qualquer outro aplicativo por parte do Vocentro (vocentro) aderem à <a href="https://developers.google.com/terms/api-services-user-data-policy" target="_blank" rel="noopener noreferrer">Política de Dados do Usuário dos Serviços de API do Google</a>.</li>
       <li>Sua senha do Google nunca é compartilhada nem armazenada pelo Vocentro.</li>
     </ul>
 

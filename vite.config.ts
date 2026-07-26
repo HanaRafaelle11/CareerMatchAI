@@ -9,7 +9,31 @@ export default defineConfig({
     tailwindcss()
   ],
   build: {
-    chunkSizeWarningLimit: 650,
+    chunkSizeWarningLimit: 600,
+    rollupOptions: {
+      output: {
+        manualChunks(id) {
+          if (id.includes('node_modules')) {
+            if (id.includes('react') || id.includes('react-dom')) {
+              return 'vendor-react';
+            }
+            if (id.includes('@supabase') || id.includes('supabase')) {
+              return 'vendor-supabase';
+            }
+            if (id.includes('framer-motion')) {
+              return 'vendor-framer';
+            }
+            if (id.includes('lucide-react')) {
+              return 'vendor-lucide';
+            }
+            if (id.includes('@tanstack')) {
+              return 'vendor-tanstack';
+            }
+            return 'vendor-deps';
+          }
+        }
+      }
+    }
   },
   define: {
     __BUILD_TIME__: JSON.stringify(new Date().toISOString())

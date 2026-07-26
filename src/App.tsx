@@ -9,9 +9,6 @@ import { useRoadmapServices } from './application/hooks/useRoadmapServices';
 import { useUserPreferences } from './application/hooks/useUserPreferences';
 import { Navbar } from './presentation/components/Navbar';
 import { CompactHeader } from './presentation/components/ds/CompactHeader';
-import { Login } from './presentation/pages/Login';
-import { LandingPage } from './presentation/pages/LandingPage';
-import { AboutPage } from './presentation/pages/AboutPage';
 import { Menu, Loader2 } from 'lucide-react';
 import { VocentroLogo } from './presentation/components/ds/MyCareerIcons';
 import { isSupabaseConfigured, supabase } from './infrastructure/api/supabaseClient';
@@ -19,7 +16,10 @@ import { BetaFeedbackWidget } from './presentation/components/BetaFeedbackWidget
 import { JourneyPipelineView } from './presentation/components/JourneyPipelineView';
 import type { Job } from './domain/models/types';
 
-// ── Code Splitting: Lazy-load das páginas pesadas ──
+// ── Code Splitting: Lazy-load de todas as páginas ──
+const LandingPage = lazy(() => import('./presentation/pages/LandingPage').then(m => ({ default: m.LandingPage })));
+const Login = lazy(() => import('./presentation/pages/Login').then(m => ({ default: m.Login })));
+const AboutPage = lazy(() => import('./presentation/pages/AboutPage').then(m => ({ default: m.AboutPage })));
 const Dashboard = lazy(() => import('./presentation/pages/Dashboard').then(m => ({ default: m.Dashboard })));
 const Profile = lazy(() => import('./presentation/pages/Profile').then(m => ({ default: m.Profile })));
 const JobMatchHub = lazy(() => import('./presentation/pages/JobMatchHub').then(m => ({ default: m.JobMatchHub })));
@@ -319,34 +319,40 @@ function App() {
 
   if (isAboutView) {
     return (
-      <AboutPage
-        onBack={() => {
-          window.history.pushState(null, '', '/');
-          setIsAboutView(false);
-        }}
-      />
+      <Suspense fallback={<LazyFallback />}>
+        <AboutPage
+          onBack={() => {
+            window.history.pushState(null, '', '/');
+            setIsAboutView(false);
+          }}
+        />
+      </Suspense>
     );
   }
 
   if (!user) {
     if (showAuth) {
       return (
-        <Login
-          initialMode={authMode}
-          onLogin={loginWithEmail}
-          onSignUp={signUpWithEmail}
-          onOAuth={loginWithOAuth}
-          onBack={() => setShowAuth(false)}
-        />
+        <Suspense fallback={<LazyFallback />}>
+          <Login
+            initialMode={authMode}
+            onLogin={loginWithEmail}
+            onSignUp={signUpWithEmail}
+            onOAuth={loginWithOAuth}
+            onBack={() => setShowAuth(false)}
+          />
+        </Suspense>
       );
     }
     return (
-      <LandingPage 
-        onNavigateToAuth={(mode = 'login') => {
-          setAuthMode(mode);
-          setShowAuth(true);
-        }}
-      />
+      <Suspense fallback={<LazyFallback />}>
+        <LandingPage 
+          onNavigateToAuth={(mode = 'login') => {
+            setAuthMode(mode);
+            setShowAuth(true);
+          }}
+        />
+      </Suspense>
     );
   }
 

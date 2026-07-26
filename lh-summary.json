@@ -1,0 +1,13 @@
+{
+  "performanceScore": 73,
+  "accessibilityScore": 93,
+  "bestPracticesScore": 100,
+  "seoScore": 100,
+  "fcp": "1.0 s",
+  "lcp": "1.0 s",
+  "cls": "0",
+  "tbt": "580 ms",
+  "speedIndex": "1.2 s",
+  "jsTransferSize": "N/A",
+  "lcpElement": "N/A"
+}

@@ -10,24 +10,22 @@ export default defineConfig({
   ],
   build: {
     chunkSizeWarningLimit: 600,
+    cssCodeSplit: true,
     rollupOptions: {
       output: {
         manualChunks(id) {
           if (id.includes('node_modules')) {
-            if (id.includes('react') || id.includes('react-dom')) {
+            if (id.includes('react') || id.includes('react-dom') || id.includes('scheduler')) {
               return 'vendor-react';
             }
             if (id.includes('@supabase') || id.includes('supabase')) {
               return 'vendor-supabase';
             }
-            if (id.includes('framer-motion')) {
-              return 'vendor-framer';
-            }
-            if (id.includes('lucide-react')) {
-              return 'vendor-lucide';
-            }
             if (id.includes('@tanstack')) {
               return 'vendor-tanstack';
+            }
+            if (id.includes('framer-motion')) {
+              return 'vendor-framer';
             }
             return 'vendor-deps';
           }

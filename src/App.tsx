@@ -187,7 +187,7 @@ function AuthenticatedApp({
   user: any;
   profile: any;
   logout: () => void;
-  updateProfile: (newUpdates: any) => Promise<void>;
+  updateProfile: (updated: any) => void;
   preferences: any;
   updatePreferences: (data: any) => void;
 }) {
@@ -515,7 +515,7 @@ function AuthenticatedApp({
             <StrategyPage
               userId={user?.id}
               preferences={preferences}
-              updatePreferences={updatePreferences}
+              updatePreferences={async (data) => updatePreferences(data)}
               careerProfile={careerProfile}
               careerProfileNew={careerProfileNew}
               resumes={resumes}
@@ -633,7 +633,7 @@ function AuthenticatedApp({
               onUpdateProfileState={updateProfile}
               initialTab={settingsInitialSubTab}
               preferences={preferences}
-              updatePreferences={updatePreferences}
+              updatePreferences={async (data) => updatePreferences(data)}
             />
           </Suspense>
         )}

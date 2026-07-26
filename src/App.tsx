@@ -213,6 +213,159 @@ function App() {
     }
   }, [loading, profile]);
 
+  if (loading) {
+    return (
+      <div className="min-h-screen w-full flex flex-col items-center justify-center bg-slate-950 text-slate-100 font-sans relative overflow-hidden">
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(99,102,241,0.05)_0%,transparent_70%)]" />
+        <div className="max-w-md w-full p-8 mx-4 rounded-3xl bg-slate-900/30 border border-slate-850 backdrop-blur-md flex flex-col items-center text-center space-y-6 relative">
+          <div className="relative flex flex-col items-center">
+            <div className="absolute inset-0 rounded-full bg-brand-accent/15 blur-2xl animate-pulse" />
+            <div className="p-5 rounded-full bg-slate-950 border border-slate-800 text-brand-accent shadow-2xl relative z-10 flex items-center justify-center">
+              <VocentroLogo className="h-12 w-12 animate-pulse" showText={false} variant="symbol" />
+            </div>
+          </div>
+          <div className="space-y-2 font-sans">
+            <h3 className="font-display font-bold text-lg text-slate-200">Iniciando Vocentro</h3>
+            <p className="text-xs text-slate-500">Conectando ao banco de dados e autenticando sessão de usuário...</p>
+          </div>
+          <div className="w-full max-w-[200px] h-1 bg-slate-950 border border-slate-850 rounded-full overflow-hidden">
+            <div className="h-full bg-brand-accent rounded-full animate-progress-loading" />
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (isAboutView) {
+    return (
+      <Suspense fallback={<LazyFallback />}>
+        <AboutPage
+          onBack={() => {
+            window.history.pushState(null, '', '/');
+            setIsAboutView(false);
+          }}
+        />
+      </Suspense>
+    );
+  }
+
+  if (!user) {
+    if (showAuth) {
+      return (
+        <Suspense fallback={<LazyFallback />}>
+          <Login
+            initialMode={authMode}
+            onLogin={loginWithEmail}
+            onSignUp={signUpWithEmail}
+            onOAuth={loginWithOAuth}
+            onBack={() => setShowAuth(false)}
+          />
+        </Suspense>
+      );
+    }
+    return (
+      <Suspense fallback={<LazyFallback />}>
+        <LandingPage 
+          onNavigateToAuth={(mode = 'login') => {
+            setAuthMode(mode);
+            setShowAuth(true);
+          }}
+        />
+      </Suspense>
+    );
+  }
+
+  return (
+    <AuthenticatedApp 
+      user={user}
+      profile={profile}
+      logout={logout}
+      updateProfile={updateProfile}
+      preferences={preferences}
+      updatePreferences={updatePreferences}
+    />
+  );
+}
+
+// ── Componente Interno da Aplicação Autenticada (Carregado apenas pós-login) ──
+function AuthenticatedApp({
+  user,
+  profile,
+  logout,
+  updateProfile,
+  preferences,
+  updatePreferences
+}: {
+  user: any;
+  profile: any;
+  logout: () => void;
+  updateProfile: (data: any) => Promise<any>;
+  preferences: any;
+  updatePreferences: (data: any) => void;
+}) {
+  const [activeTab, setActiveTab] = useState('dashboard');
+  const [activeProfileTab, setActiveProfileTab] = useState<'profile' | 'ai-profile' | 'transparency'>('profile');
+  const [settingsInitialSubTab, setSettingsInitialSubTab] = useState<'account' | 'resumes' | 'preferences' | 'notifications' | 'appearance' | 'privacy' | 'billing'>('account');
+  const [strategyInitialSubTab, setStrategyInitialSubTab] = useState<'strategy' | 'planner' | 'pipeline' | 'journal'>('strategy');
+  const [matchHubInitialSubTab, setMatchHubInitialSubTab] = useState<'my-jobs' | 'discover'>('discover');
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const [isAdmin, setIsAdmin] = useState(false);
+  const queryClient = useQueryClient();
+  const [selectedJobId, setSelectedJobId] = useState<string | null>(null);
+  const [activeSimulationAppId, setActiveSimulationAppId] = useState<string | null>(null);
+
+  // Avalia perfil administrativo
+  useEffect(() => {
+    if (!isSupabaseConfigured || !supabase) {
+      setIsAdmin(true);
+      return;
+    }
+    if (profile) {
+      const hasAdminRole = ['administrador', 'suporte', 'financeiro', 'somente_leitura'].includes(profile.role || '');
+      setIsAdmin(hasAdminRole);
+    } else {
+      setIsAdmin(false);
+    }
+  }, [profile]);
+
+  const handleSetActiveTab = (tab: string) => {
+    if (tab === 'admin') {
+      window.history.pushState(null, '', '/admin');
+      setActiveTab('admin');
+      return;
+    } else {
+      window.history.pushState(null, '', '/');
+    }
+
+    if (tab === 'settings') {
+      setSettingsInitialSubTab('account');
+      setActiveTab('settings');
+    } else if (tab === 'career-profile') {
+      setSettingsInitialSubTab('preferences');
+      setActiveTab('settings');
+    } else if (tab === 'strategy') {
+      setStrategyInitialSubTab('strategy');
+      setActiveTab('strategy');
+    } else if (tab === 'pipeline') {
+      setStrategyInitialSubTab('pipeline');
+      setActiveTab('strategy');
+    } else if (tab === 'planner') {
+      setStrategyInitialSubTab('planner');
+      setActiveTab('strategy');
+    } else if (tab === 'journal') {
+      setStrategyInitialSubTab('journal');
+      setActiveTab('strategy');
+    } else if (tab === 'match') {
+      setMatchHubInitialSubTab('my-jobs');
+      setActiveTab('match');
+    } else if (tab === 'discover') {
+      setMatchHubInitialSubTab('discover');
+      setActiveTab('match');
+    } else {
+      setActiveTab(tab);
+    }
+  };
+
   const { resumes, uploadResume, deleteResume, isUploading, pipelineSteps, selectActiveResume } = useResumes(user?.id);
   
   // Sincronizar o currículo/versão selecionado
@@ -294,67 +447,35 @@ function App() {
     careerGoals
   } = useRoadmapServices(user?.id);
 
-  if (loading) {
-    return (
-      <div className="min-h-screen w-full flex flex-col items-center justify-center bg-slate-950 text-slate-100 font-sans relative overflow-hidden">
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(99,102,241,0.05)_0%,transparent_70%)]" />
-        <div className="max-w-md w-full p-8 mx-4 rounded-3xl bg-slate-900/30 border border-slate-850 backdrop-blur-md flex flex-col items-center text-center space-y-6 relative">
-          <div className="relative flex flex-col items-center">
-            <div className="absolute inset-0 rounded-full bg-brand-accent/15 blur-2xl animate-pulse" />
-            <div className="p-5 rounded-full bg-slate-950 border border-slate-800 text-brand-accent shadow-2xl relative z-10 flex items-center justify-center">
-              <VocentroLogo className="h-12 w-12 animate-pulse" showText={false} variant="symbol" />
-            </div>
-          </div>
-          <div className="space-y-2 font-sans">
-            <h3 className="font-display font-bold text-lg text-slate-200">Iniciando Vocentro</h3>
-            <p className="text-xs text-slate-500">Conectando ao banco de dados e autenticando sessão de usuário...</p>
-          </div>
-          <div className="w-full max-w-[200px] h-1 bg-slate-950 border border-slate-850 rounded-full overflow-hidden">
-            <div className="h-full bg-brand-accent rounded-full animate-progress-loading" />
-          </div>
-        </div>
-      </div>
-    );
-  }
+  const handleStartSimulation = async (target: Job | string, reset?: boolean) => {
+    if (!profile?.id) return;
+    try {
+      let appId: string;
+      if (typeof target === 'string') {
+        appId = target;
+      } else {
+        const job = target;
+        let app = applications.find(a => String(a.jobId) === String(job.id));
+        if (!app) {
+          app = await createApplication({
+            jobId: job.id,
+            companyName: job.companyName || 'Empresa Confidencial',
+            jobTitle: job.title,
+            status: '📝 Vou me candidatar',
+            resumeVersionId: selectedResumeVersionId || undefined
+          });
+        }
+        appId = app.id;
+      }
 
-  if (isAboutView) {
-    return (
-      <Suspense fallback={<LazyFallback />}>
-        <AboutPage
-          onBack={() => {
-            window.history.pushState(null, '', '/');
-            setIsAboutView(false);
-          }}
-        />
-      </Suspense>
-    );
-  }
-
-  if (!user) {
-    if (showAuth) {
-      return (
-        <Suspense fallback={<LazyFallback />}>
-          <Login
-            initialMode={authMode}
-            onLogin={loginWithEmail}
-            onSignUp={signUpWithEmail}
-            onOAuth={loginWithOAuth}
-            onBack={() => setShowAuth(false)}
-          />
-        </Suspense>
-      );
+      await startSimulation({ applicationId: appId, reset });
+      setActiveSimulationAppId(appId);
+      setActiveTab('coach');
+    } catch (err) {
+      console.error('Erro ao iniciar simulação de entrevista:', err);
+      alert('Não foi possível iniciar a simulação no momento.');
     }
-    return (
-      <Suspense fallback={<LazyFallback />}>
-        <LandingPage 
-          onNavigateToAuth={(mode = 'login') => {
-            setAuthMode(mode);
-            setShowAuth(true);
-          }}
-        />
-      </Suspense>
-    );
-  }
+  };
 
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100 dark:bg-slate-950 dark:text-slate-100 light:bg-slate-50 light:text-slate-900 transition-colors duration-300 font-sans flex">

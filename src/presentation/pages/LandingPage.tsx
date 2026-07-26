@@ -23,6 +23,7 @@ import {
 } from 'lucide-react';
 import { VocentroLogo } from '../components/ds/MyCareerIcons';
 import { ThemeToggle } from '../components/ThemeToggle';
+import { HeroProductMockup } from '../components/HeroProductMockup';
 
 interface LandingPageProps {
   onNavigateToAuth: (mode?: 'login' | 'signup') => void;
@@ -160,36 +161,9 @@ export function LandingPage({ onNavigateToAuth }: LandingPageProps) {
             </div>
           </div>
 
-          {/* Right Hero - Candidate Illustration (WebP + Responsive srcset + Explicit attributes) */}
+          {/* Right Hero - Product Mockup (Linear / Vercel SaaS Aesthetic) */}
           <div className="lg:col-span-6 flex justify-center relative w-full font-sans">
-            <div className="relative max-w-sm w-full">
-              <img 
-                src="/professional_happy_illustration_mobile.webp"
-                srcSet="/professional_happy_illustration_mobile.webp 400w, /professional_happy_illustration.webp 600w"
-                sizes="(max-width: 640px) 400px, 600px"
-                alt="Profissional Vocentro sorrindo e trabalhando com sucesso" 
-                width={400}
-                height={400}
-                loading="eager"
-                // @ts-ignore
-                fetchpriority="high"
-                className="w-full h-auto object-contain rounded-2xl shadow-xl border border-slate-850 dark:border-slate-850 light:border-slate-200"
-              />
-              <div className="absolute top-6 -left-3 bg-slate-900/90 border border-slate-800 rounded-xl p-2.5 shadow-lg backdrop-blur-md flex items-center gap-2 leading-tight">
-                <span className="text-lg">🏆</span>
-                <div>
-                  <span className="text-[8px] text-slate-300 dark:text-slate-300 light:text-slate-600 block font-mono">Match de Carreira</span>
-                  <span className="text-xs font-bold text-brand-accent">98% Compatível</span>
-                </div>
-              </div>
-              <div className="absolute bottom-6 -right-3 bg-slate-900/90 border border-slate-800 rounded-xl p-2.5 shadow-lg backdrop-blur-md flex items-center gap-2 leading-tight">
-                <span className="text-lg">🤝</span>
-                <div>
-                  <span className="text-[8px] text-slate-300 dark:text-slate-300 light:text-slate-600 block font-mono">Feedback da Entrevista</span>
-                  <span className="text-xs font-bold text-slate-200">Aprovado no Processo</span>
-                </div>
-              </div>
-            </div>
+            <HeroProductMockup onSimulateClick={() => onNavigateToAuth('signup')} />
           </div>
         </div>
       </section>

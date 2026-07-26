@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { 
   FileText, 
   Search, 
-  MessageSquare, 
+  MessagesSquare, 
   Trophy, 
   HelpCircle, 
   ChevronDown, 
@@ -12,11 +12,22 @@ import {
   UserCheck,
   ShieldCheck,
   Mail,
-  CheckSquare
+  CheckSquare,
+  Target,
+  ScanSearch,
+  BriefcaseBusiness,
+  Crown
 } from 'lucide-react';
 import { VocentroLogo } from '../components/ds/MyCareerIcons';
 import { ThemeToggle } from '../components/ThemeToggle';
 import { HeroProductMockup } from '../components/HeroProductMockup';
+import { 
+  BrandIcon, 
+  FeatureIcon, 
+  StepIcon, 
+  SecurityIcon, 
+  PremiumBadge 
+} from '../components/ds/VdsIcons';
 
 interface LandingPageProps {
   onNavigateToAuth: (mode?: 'login' | 'signup') => void;
@@ -137,15 +148,19 @@ export function LandingPage({ onNavigateToAuth }: LandingPageProps) {
               </button>
             </div>
 
-            {/* Social Proof */}
+            {/* Technical Verified Metrics (No fictional numbers) */}
             <div className="w-full pt-3 border-t border-slate-900/80 dark:border-slate-900/80 light:border-slate-200 font-sans flex flex-wrap items-center gap-2 text-xs">
-              <div className="flex text-amber-400 text-sm font-bold tracking-tight">★★★★★</div>
-              <span className="text-slate-300 dark:text-slate-300 light:text-slate-700 font-medium text-[11px]">
-                <strong className="text-white dark:text-white light:text-slate-900 font-bold">2.300+ profissionais</strong> já usaram o Vocentro
+              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-brand-500/10 border border-brand-500/20 text-brand-300 font-mono text-[11px] font-bold">
+                <BriefcaseBusiness size={13} className="text-brand-400" />
+                21 conectores de vagas
               </span>
-              <span className="hidden sm:inline text-slate-600">•</span>
-              <span className="text-emerald-400 font-semibold font-mono text-[10px] bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/20">
-                94% de aprovação
+              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-emerald-300 font-mono text-[11px] font-bold">
+                <Check size={13} className="text-emerald-400" />
+                17 provedores ativos
+              </span>
+              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-indigo-500/10 border border-indigo-500/20 text-indigo-300 font-mono text-[11px] font-bold">
+                <Sparkles size={13} className="text-indigo-400" />
+                Ranking por IA
               </span>
             </div>
           </div>
@@ -157,7 +172,7 @@ export function LandingPage({ onNavigateToAuth }: LandingPageProps) {
         </div>
       </section>
 
-      {/* ── 2. SEÇÃO INSTITUCIONAL OBRIGATÓRIA: SOBRE O VOCENTRO (LOGO APÓS O HERO) ── */}
+      {/* ── 2. SEÇÃO INSTITUCIONAL: SOBRE O VOCENTRO ── */}
       <section id="sobre" className="py-8 sm:py-9 px-6 max-w-5xl mx-auto relative z-10 w-full min-w-0 font-sans">
         <div className="p-6 sm:p-8 rounded-2xl bg-slate-900/50 dark:bg-slate-900/50 light:bg-white border border-slate-800 dark:border-slate-800 light:border-slate-200 space-y-4 shadow-md">
           <div className="flex flex-col items-center gap-1.5 text-center max-w-2xl mx-auto mb-2">
@@ -182,17 +197,22 @@ export function LandingPage({ onNavigateToAuth }: LandingPageProps) {
             <p>
               Para a conveniência e segurança dos usuários, o Vocentro oferece autenticação simples por e-mail ou integração segura com a Conta Google (Google OAuth 2.0).
             </p>
-            <div className="p-3.5 rounded-xl bg-slate-950/70 border border-slate-800 text-[11px] text-slate-300 space-y-1">
-              <span className="font-bold text-white block">📌 Ferramenta de Apoio ao Candidato</span>
-              <p>
-                O Vocentro opera exclusivamente como uma ferramenta consultiva e de orientação para o candidato. O Vocentro <strong>não</strong> publica vagas automaticamente em portais externos e <strong>não</strong> envia currículos a empresas ou recrutadores sem o consentimento e o comando explícito do usuário.
-              </p>
+            
+            {/* VDS Security Notice Box */}
+            <div className="p-4 rounded-xl bg-slate-950/70 border border-slate-800 text-[11px] text-slate-300 flex items-start gap-3">
+              <SecurityIcon size={18} />
+              <div className="space-y-1">
+                <span className="font-bold text-white block">Ferramenta de Apoio ao Candidato</span>
+                <p>
+                  O Vocentro opera exclusivamente como uma ferramenta consultiva e de orientação para o candidato. O Vocentro <strong>não</strong> publica vagas automaticamente em portais externos e <strong>não</strong> envia currículos a empresas ou recrutadores sem o consentimento e o comando explícito do usuário.
+                </p>
+              </div>
             </div>
           </div>
         </div>
       </section>
 
-      {/* ── 3. COMO FUNCIONA (FLUXO EM 6 ETAPAS COMPACTAS) ── */}
+      {/* ── 3. COMO FUNCIONA (VDS ICON SYSTEM) ── */}
       <section id="como-funciona" className="py-8 sm:py-9 px-6 max-w-7xl mx-auto relative z-10 w-full min-w-0">
         <div className="flex flex-col items-center gap-1.5 text-center max-w-2xl mx-auto mb-6">
           <span className="px-3 py-0.5 rounded-full bg-brand-500/10 border border-brand-500/20 text-brand-400 text-[10px] font-bold tracking-wider uppercase font-mono">
@@ -206,44 +226,44 @@ export function LandingPage({ onNavigateToAuth }: LandingPageProps) {
           </p>
         </div>
 
-        {/* 6-Step Visual Grid (3 cols x 2 rows) */}
+        {/* 6-Step Visual Grid */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3.5 max-w-6xl mx-auto font-sans">
           {[
             {
               step: '01',
               title: 'Cadastrar',
               desc: 'Crie sua conta no Vocentro de forma rápida e segura utilizando sua Conta Google ou e-mail.',
-              icon: <UserCheck className="w-4 h-4 text-brand-accent" />
+              icon: UserCheck
             },
             {
               step: '02',
               title: 'Enviar currículo',
               desc: 'Suba seu arquivo original em PDF para que o Vocentro leia e estruture seu perfil de competências.',
-              icon: <FileText className="w-4 h-4 text-brand-accent" />
+              icon: FileText
             },
             {
               step: '03',
               title: 'Encontrar vagas',
               desc: 'Mapeie oportunidades de trabalho alinhadas ao seu objetivo em múltiplos portais e empresas.',
-              icon: <Search className="w-4 h-4 text-brand-accent" />
+              icon: Search
             },
             {
               step: '04',
               title: 'Receber análises',
               desc: 'Visualize seu Match Score percentual de afinidade, pontos fortes e lacunas técnicas para a vaga.',
-              icon: <Trophy className="w-4 h-4 text-brand-accent" />
+              icon: Trophy
             },
             {
               step: '05',
               title: 'Preparar entrevistas',
               desc: 'Simule entrevistas reais no método STAR com a Recrutadora IA e receba feedback em tempo real.',
-              icon: <MessageSquare className="w-4 h-4 text-brand-accent" />
+              icon: MessagesSquare
             },
             {
               step: '06',
               title: 'Acompanhar candidaturas',
               desc: 'Gerencie todo o seu pipeline de processos seletivos em um painel Kanban intuitivo.',
-              icon: <CheckSquare className="w-4 h-4 text-brand-accent" />
+              icon: CheckSquare
             }
           ].map((item, idx) => (
             <div 
@@ -252,9 +272,7 @@ export function LandingPage({ onNavigateToAuth }: LandingPageProps) {
             >
               <div>
                 <div className="flex justify-between items-center mb-2.5">
-                  <div className="p-1.5 rounded-lg bg-brand-accent/10 text-brand-accent border border-brand-accent/15">
-                    {item.icon}
-                  </div>
+                  <StepIcon icon={item.icon} size={18} />
                   <span className="text-lg font-black text-slate-700 dark:text-slate-700 light:text-slate-300 font-mono">
                     {item.step}
                   </span>
@@ -271,7 +289,7 @@ export function LandingPage({ onNavigateToAuth }: LandingPageProps) {
         </div>
       </section>
 
-      {/* ── 4. RECURSOS DA PLATAFORMA (EXATAMENTE 4 CARDS ESSENCIAIS) ── */}
+      {/* ── 4. RECURSOS DA PLATAFORMA (4 CARDS COM VDS FEATURE ICONS) ── */}
       <section id="recursos" className="py-8 sm:py-9 px-6 max-w-7xl mx-auto relative z-10 w-full min-w-0">
         <div className="flex flex-col items-center gap-1.5 text-center max-w-2xl mx-auto mb-6">
           <span className="px-3 py-0.5 rounded-full bg-brand-500/10 border border-brand-500/20 text-brand-400 text-[10px] font-bold tracking-wider uppercase font-mono">
@@ -289,25 +307,27 @@ export function LandingPage({ onNavigateToAuth }: LandingPageProps) {
           {[
             {
               title: 'Busca Inteligente de Vagas',
-              desc: 'Mapeamento automatizado e centralizado de oportunidades alinhadas ao seu perfil em múltiplos portais.'
+              desc: 'Mapeamento automatizado e centralizado de oportunidades alinhadas ao seu perfil em múltiplos portais.',
+              icon: Search
             },
             {
               title: 'Match Score Semântico',
-              desc: 'Análise semântica de afinidade com nota percentual de compatibilidade e diagnóstico de lacunas.'
+              desc: 'Análise semântica de afinidade com nota percentual de compatibilidade e diagnóstico de lacunas.',
+              icon: Target
             },
             {
               title: 'Otimização ATS (Método STAR)',
-              desc: 'Reescrita estratégica de experiências com foco em aprovação por robôs de triagem de RH.'
+              desc: 'Reescrita estratégica de experiências com foco em aprovação por robôs de triagem de RH.',
+              icon: ScanSearch
             },
             {
               title: 'Simulador de Entrevistas com IA',
-              desc: 'Treine perguntas reais do seu cargo por chat com a Recrutadora IA e receba feedback imediato.'
+              desc: 'Treine perguntas reais do seu cargo por chat com a Recrutadora IA e receba feedback imediato.',
+              icon: MessagesSquare
             }
           ].map((feature, idx) => (
-            <div key={idx} className="p-4 rounded-xl bg-slate-900/30 dark:bg-slate-900/30 light:bg-white border border-slate-850 dark:border-slate-850 light:border-slate-200 flex flex-col justify-between shadow-xs space-y-2">
-              <div className="w-8 h-8 rounded-lg bg-brand-500/10 text-brand-400 flex items-center justify-center font-bold text-xs font-mono">
-                0{idx + 1}
-              </div>
+            <div key={idx} className="p-4 rounded-xl bg-slate-900/30 dark:bg-slate-900/30 light:bg-white border border-slate-850 dark:border-slate-850 light:border-slate-200 flex flex-col justify-between shadow-xs space-y-3">
+              <FeatureIcon icon={feature.icon} size={20} />
               <div>
                 <h3 className="text-xs font-bold text-slate-100 dark:text-white light:text-slate-900 font-display mb-1">
                   {feature.title}
@@ -382,16 +402,16 @@ export function LandingPage({ onNavigateToAuth }: LandingPageProps) {
 
             <button 
               onClick={() => onNavigateToAuth('signup')}
-              className="w-full py-3.5 px-4 rounded-xl border border-slate-750 dark:border-slate-750 light:border-slate-300 hover:bg-slate-900 text-slate-200 font-bold text-xs transition-colors cursor-pointer"
+              className="w-full py-3.5 px-4 rounded-xl border border-slate-750 dark:border-slate-750 light:border-slate-300 hover:bg-slate-900 text-slate-200 font-bold text-xs transition-colors cursor-pointer min-h-[44px]"
             >
               Criar Conta Grátis
             </button>
           </div>
 
-          {/* Plano Premium (Com Borda Brand e Selo "★ Mais escolhido") */}
+          {/* Plano Premium (Com Borda Brand e VDS Premium Badge) */}
           <div className="p-5 rounded-2xl bg-slate-900/60 dark:bg-slate-900/60 light:bg-white border-2 border-brand-500 scale-[1.02] shadow-2xl shadow-brand-500/20 flex flex-col justify-between space-y-4 relative">
-            <div className="absolute -top-3 left-5 bg-brand-500 text-white text-[9px] font-extrabold uppercase px-2.5 py-0.5 rounded-full font-mono shadow-md tracking-wider">
-              ★ Mais escolhido
+            <div className="absolute -top-3 left-5 bg-brand-500 text-white text-[9px] font-extrabold uppercase px-2.5 py-0.5 rounded-full font-mono shadow-md tracking-wider flex items-center gap-1">
+              <Crown size={10} /> Mais escolhido
             </div>
 
             <div className="space-y-3 pt-1">
@@ -424,7 +444,7 @@ export function LandingPage({ onNavigateToAuth }: LandingPageProps) {
 
             <button 
               onClick={() => onNavigateToAuth('signup')}
-              className="w-full py-3.5 px-4 rounded-xl bg-gradient-to-r from-brand-500 to-indigo-600 hover:from-brand-600 hover:to-indigo-700 text-white font-extrabold text-xs transition-all shadow-lg shadow-brand-500/30 cursor-pointer"
+              className="w-full py-3.5 px-4 rounded-xl bg-gradient-to-r from-brand-500 to-indigo-600 hover:from-brand-600 hover:to-indigo-700 text-white font-extrabold text-xs transition-all shadow-lg shadow-brand-500/30 cursor-pointer min-h-[44px]"
             >
               Aderir ao Premium
             </button>
@@ -432,7 +452,7 @@ export function LandingPage({ onNavigateToAuth }: LandingPageProps) {
         </div>
       </section>
 
-      {/* ── 7. PERGUNTAS FREQUENTES (FAQ COMPACTO) ── */}
+      {/* ── 7. PERGUNTAS FREQUENTES (FAQ) ── */}
       <section id="faq" className="py-8 sm:py-9 px-6 max-w-3xl mx-auto relative z-10 space-y-6 w-full min-w-0">
         <div className="flex flex-col items-center gap-1.5 text-center max-w-2xl mx-auto font-sans">
           <span className="px-3 py-0.5 rounded-full bg-brand-500/10 border border-brand-500/20 text-brand-400 text-[10px] font-bold tracking-wider uppercase font-mono">
@@ -456,7 +476,7 @@ export function LandingPage({ onNavigateToAuth }: LandingPageProps) {
                   className="w-full py-3.5 px-4 flex items-center justify-between text-left text-xs font-bold text-slate-200 dark:text-slate-200 light:text-slate-800 hover:text-white transition-colors cursor-pointer select-none gap-3 min-h-[36px]"
                 >
                   <span className="flex items-center gap-2.5 font-sans">
-                    <HelpCircle size={13} className="text-brand-accent shrink-0" />
+                    <HelpCircle size={14} className="text-brand-accent shrink-0" />
                     {faq.q}
                   </span>
                   <ChevronDown 
@@ -531,12 +551,6 @@ export function LandingPage({ onNavigateToAuth }: LandingPageProps) {
           <div>
             <h3 className="text-[10px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-400 light:text-slate-800 mb-3 font-mono">Contato & Suporte</h3>
             <ul className="space-y-2 text-xs text-slate-400 dark:text-slate-400 light:text-slate-600 font-medium font-sans leading-relaxed">
-              <li>
-                <a href="mailto:contato@vocentro.com.br" className="hover:text-slate-200 transition-colors py-1.5 px-1 min-h-[32px] inline-flex items-center gap-1.5">
-                  <Mail size={13} className="text-brand-accent" />
-                  contato@vocentro.com.br
-                </a>
-              </li>
               <li>
                 <a href="mailto:suporte@vocentro.com.br" className="hover:text-slate-200 transition-colors py-1.5 px-1 min-h-[32px] inline-flex items-center gap-1.5">
                   <Mail size={13} className="text-brand-accent" />

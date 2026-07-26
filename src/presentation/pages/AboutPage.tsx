@@ -105,8 +105,8 @@ export function AboutPage({ onBack }: AboutPageProps) {
             </p>
             <div className="pt-2 flex items-center gap-2">
               <Mail className="text-brand-accent" size={16} />
-              <a href="mailto:suporte@vocentro.com" className="text-brand-accent hover:underline font-semibold">
-                suporte@vocentro.com
+              <a href="mailto:suporte@vocentro.com.br" className="text-brand-accent hover:underline font-semibold">
+                suporte@vocentro.com.br
               </a>
             </div>
           </div>

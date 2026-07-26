@@ -335,6 +335,19 @@ export function useAuth() {
     });
   };
 
+  const resetPasswordForEmail = async (email: string) => {
+    if (!email || !email.includes('@')) {
+      throw new Error('Por favor, informe um e-mail válido para redefinição de senha.');
+    }
+    if (isSupabaseConfigured && supabase) {
+      const { error } = await supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: `${window.location.origin}`
+      });
+      if (error) throw error;
+    }
+    return true;
+  };
+
   return {
     user,
     profile,
@@ -342,6 +355,7 @@ export function useAuth() {
     loginWithEmail,
     signUpWithEmail,
     loginWithOAuth,
+    resetPasswordForEmail,
     logout,
     updateProfile
   };

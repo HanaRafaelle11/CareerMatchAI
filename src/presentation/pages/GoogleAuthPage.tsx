@@ -1,5 +1,5 @@
 import { VocentroLogo } from '../components/ds/MyCareerIcons';
-import { ShieldCheck, UserCheck, Mail, ArrowLeft, CheckCircle2, Lock } from 'lucide-react';
+import { ShieldCheck, UserCheck, Mail, ArrowLeft, CheckCircle2, Lock, FileText } from 'lucide-react';
 
 interface GoogleAuthPageProps {
   onBack?: () => void;
@@ -150,14 +150,16 @@ export function GoogleAuthPage({ onBack }: GoogleAuthPageProps) {
 
           <div className="flex flex-wrap gap-4 text-xs font-semibold">
             <a href="/privacy.html" target="_blank" rel="noopener noreferrer" className="text-brand-accent hover:underline inline-flex items-center gap-1.5 py-1 px-2 min-h-[32px]">
-              📄 Política de Privacidade do Vocentro
+              <FileText size={14} className="text-brand-accent" />
+              Política de Privacidade do Vocentro
             </a>
             <a href="/terms.html" target="_blank" rel="noopener noreferrer" className="text-brand-accent hover:underline inline-flex items-center gap-1.5 py-1 px-2 min-h-[32px]">
-              ⚖️ Termos de Uso do Vocentro
+              <ShieldCheck size={14} className="text-brand-accent" />
+              Termos de Uso do Vocentro
             </a>
-            <a href="mailto:contato@vocentro.com.br" className="text-brand-accent hover:underline inline-flex items-center gap-1.5 py-1 px-2 min-h-[32px]">
+            <a href="mailto:suporte@vocentro.com.br" className="text-brand-accent hover:underline inline-flex items-center gap-1.5 py-1 px-2 min-h-[32px]">
               <Mail size={14} />
-              contato@vocentro.com.br
+              suporte@vocentro.com.br
             </a>
           </div>
         </div>

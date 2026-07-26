@@ -48,7 +48,7 @@ function LazyFallback() {
 import { useQueryClient } from '@tanstack/react-query';
 
 function App() {
-  const { user, profile, loading, loginWithEmail, signUpWithEmail, loginWithOAuth, logout, updateProfile } = useAuth();
+  const { user, profile, loading, loginWithEmail, signUpWithEmail, loginWithOAuth, resetPasswordForEmail, logout, updateProfile } = useAuth();
   const [showAuth, setShowAuth] = useState(false);
   const [authMode, setAuthMode] = useState<'login' | 'signup'>('login');
   const [isAboutView, setIsAboutView] = useState(window.location.pathname === '/about');
@@ -168,6 +168,7 @@ function App() {
             onLogin={loginWithEmail}
             onSignUp={signUpWithEmail}
             onOAuth={loginWithOAuth}
+            onResetPassword={resetPasswordForEmail}
             onBack={() => setShowAuth(false)}
           />
         </Suspense>

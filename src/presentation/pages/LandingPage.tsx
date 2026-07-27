@@ -132,29 +132,45 @@ export function LandingPage({ onNavigateToAuth }: LandingPageProps) {
             
             {/* Lado Esquerdo: Textos & CTAs */}
             <div className="lg:col-span-6 space-y-6">
-              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-blue-500/10 border border-blue-500/20 text-[#3B82F6] text-xs font-bold font-mono">
+              <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-blue-500/10 border border-blue-500/20 text-[#3B82F6] text-xs font-bold font-mono">
                 <Sparkles size={14} />
-                <span>Inteligência de Carreira Avançada</span>
+                <span>Vocentro — Plataforma de Carreira com IA</span>
               </div>
 
               <h1 className="text-4xl sm:text-5xl font-black font-display tracking-tight text-[#F8FAFC] dark:text-[#F8FAFC] light:text-slate-900 leading-[1.15]">
-                vocentro — Encontre vagas melhores.<br />
+                <strong>Vocentro</strong> — Encontre vagas melhores.<br />
                 <span className="bg-gradient-to-r from-[#3B82F6] to-[#22C55E] bg-clip-text text-transparent">
                   Aumente suas chances com IA.
                 </span>
               </h1>
 
-              {/* Banner de Finalidade Explicita exigido pelo Google OAuth Reviewer */}
-              <div className="p-4 sm:p-5 rounded-2xl bg-blue-500/10 dark:bg-blue-500/10 light:bg-blue-50 border border-blue-500/30 text-xs sm:text-sm space-y-2 shadow-xs">
-                <span className="font-bold text-[#3B82F6] font-mono flex items-center gap-1.5 uppercase tracking-wider text-xs">
-                  📌 Finalidade do aplicativo e Uso da Conta Google
-                </span>
+              {/* Banner Institucional de Finalidade Explicita exigido pela Verificação do Google OAuth */}
+              <div className="p-5 rounded-2xl bg-blue-500/10 dark:bg-blue-500/10 light:bg-blue-50 border border-blue-500/30 text-xs sm:text-sm space-y-3 shadow-md">
+                <h2 className="font-extrabold text-[#3B82F6] font-mono uppercase tracking-wider text-xs sm:text-sm flex items-center gap-2 border-b border-blue-500/20 pb-2">
+                  📌 SOBRE O VOCENTRO &amp; USO DE DADOS GOOGLE
+                </h2>
+                
                 <p className="text-[#CBD5E1] dark:text-[#CBD5E1] light:text-slate-700 leading-relaxed font-sans">
-                  O <strong>vocentro</strong> é uma plataforma de Inteligência Artificial voltada ao desenvolvimento profissional, ajudando candidatos na busca inteligente por vagas, otimização de currículos para sistemas ATS e simulação de entrevistas.
+                  O <strong>Vocentro</strong> é uma plataforma completa de desenvolvimento profissional que utiliza Inteligência Artificial para ajudar candidatos a encontrar vagas, otimizar currículos para sistemas ATS, simular entrevistas de emprego e gerenciar candidaturas.
                 </p>
-                <p className="text-slate-400 dark:text-slate-400 light:text-slate-600 text-xs leading-relaxed">
-                  A autenticação pelo Google é utilizada estritamente para autenticar seu acesso de forma rápida e segura, identificando seu perfil (nome, e-mail e foto avatar) para gestão do seu painel e acompanhamento de candidaturas. Não acessamos, lemos ou solicitamos dados do seu Gmail, Google Drive ou qualquer outro serviço privado do Google.
-                </p>
+
+                <div className="space-y-1.5 pt-1">
+                  <p className="font-bold text-xs uppercase tracking-wider text-[#3B82F6]">Como utilizamos seus dados:</p>
+                  <ul className="space-y-1 text-slate-300 dark:text-slate-300 light:text-slate-700 text-xs leading-relaxed">
+                    <li className="flex items-start gap-2">
+                      <span className="text-[#3B82F6] font-bold">•</span>
+                      <span><strong>Login Seguro:</strong> O login via Google é utilizado exclusivamente para autenticar seu acesso de forma rápida e criar seu perfil no Vocentro.</span>
+                    </li>
+                    <li className="flex items-start gap-2">
+                      <span className="text-[#3B82F6] font-bold">•</span>
+                      <span><strong>Dados Acessados:</strong> Solicitamos apenas suas informações públicas de perfil (Nome, E-mail e Foto de Avatar).</span>
+                    </li>
+                    <li className="flex items-start gap-2">
+                      <span className="text-[#22C55E] font-bold">•</span>
+                      <span><strong>Privacidade Garantida:</strong> Não lemos, não acessamos e não armazenamos e-mails do seu Gmail, arquivos do Google Drive ou outros dados pessoais da sua conta Google.</span>
+                    </li>
+                  </ul>
+                </div>
               </div>
 
               <div className="flex flex-col sm:flex-row gap-4 pt-2">

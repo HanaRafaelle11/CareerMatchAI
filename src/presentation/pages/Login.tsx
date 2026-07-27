@@ -125,6 +125,7 @@ export function Login({ initialMode = 'login', onLogin, onSignUp, onOAuth, onRes
     }
   };
 
+  /*
   const handleOAuthClick = async (provider: 'google' | 'github') => {
     setErrorMsg('');
     setSuccessMsg('');
@@ -137,6 +138,7 @@ export function Login({ initialMode = 'login', onLogin, onSignUp, onOAuth, onRes
       setLoading(false);
     }
   };
+  */
 
   return (
     <div className="min-h-screen w-full flex flex-col items-center justify-center bg-slate-950 text-slate-100 p-6 relative overflow-hidden font-sans">

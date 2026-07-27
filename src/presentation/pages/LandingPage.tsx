@@ -145,12 +145,15 @@ export function LandingPage({ onNavigateToAuth }: LandingPageProps) {
               </h1>
 
               {/* Banner de Finalidade Explicita exigido pelo Google OAuth Reviewer */}
-              <div className="p-4 rounded-xl bg-blue-500/10 dark:bg-blue-500/10 light:bg-blue-50 border border-blue-500/30 text-xs space-y-1.5 shadow-xs">
-                <span className="font-bold text-[#3B82F6] font-mono flex items-center gap-1.5 uppercase tracking-wider text-[11px]">
-                  📌 Finalidade da Aplicação vocentro
+              <div className="p-4 sm:p-5 rounded-2xl bg-blue-500/10 dark:bg-blue-500/10 light:bg-blue-50 border border-blue-500/30 text-xs sm:text-sm space-y-2 shadow-xs">
+                <span className="font-bold text-[#3B82F6] font-mono flex items-center gap-1.5 uppercase tracking-wider text-xs">
+                  📌 Finalidade do aplicativo e Uso da Conta Google
                 </span>
                 <p className="text-[#CBD5E1] dark:text-[#CBD5E1] light:text-slate-700 leading-relaxed font-sans">
-                  O <strong>vocentro</strong> é uma plataforma de desenvolvimento profissional e busca de emprego que utiliza Inteligência Artificial para analisar seu currículo, encontrar vagas compatíveis no mercado, otimizar a estrutura do seu perfil para recrutadores (ATS) e realizar simulações de entrevistas.
+                  O <strong>vocentro</strong> é uma plataforma de Inteligência Artificial voltada ao desenvolvimento profissional, ajudando candidatos na busca inteligente por vagas, otimização de currículos para sistemas ATS e simulação de entrevistas.
+                </p>
+                <p className="text-slate-400 dark:text-slate-400 light:text-slate-600 text-xs leading-relaxed">
+                  A autenticação pelo Google é utilizada estritamente para autenticar seu acesso de forma rápida e segura, identificando seu perfil (nome, e-mail e foto avatar) para gestão do seu painel e acompanhamento de candidaturas. Não acessamos, lemos ou solicitamos dados do seu Gmail, Google Drive ou qualquer outro serviço privado do Google.
                 </p>
               </div>
 
@@ -320,35 +323,54 @@ export function LandingPage({ onNavigateToAuth }: LandingPageProps) {
 
         {/* ── 5. GOOGLE OAUTH & SEGURANÇA (Dedicated Section) ── */}
         <section id="google-auth" className="py-16 px-6 max-w-7xl mx-auto border-t border-slate-800/60">
-          <div className="p-8 rounded-2xl bg-[#0F172A] border border-slate-800 max-w-4xl mx-auto space-y-6">
+          <div className="p-8 rounded-2xl bg-[#0F172A] dark:bg-[#0F172A] light:bg-white border border-slate-800 dark:border-slate-800 light:border-slate-200 max-w-4xl mx-auto space-y-6 shadow-xs">
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 rounded-xl bg-blue-500/10 border border-blue-500/20 text-[#3B82F6] flex items-center justify-center shrink-0">
                 <ShieldCheck size={22} />
               </div>
               <div>
-                <h2 className="text-xl sm:text-2xl font-bold font-display text-[#F8FAFC]">
-                  Entrar com Google é opcional e seguro
+                <h2 className="text-xl sm:text-2xl font-bold font-display text-[#F8FAFC] dark:text-[#F8FAFC] light:text-slate-900">
+                  Finalidade do aplicativo e Uso da Conta Google
                 </h2>
-                <p className="text-xs text-[#CBD5E1]">Transparência total e respeito à sua privacidade de dados.</p>
+                <p className="text-xs text-[#CBD5E1] dark:text-[#CBD5E1] light:text-slate-600">Transparência total e respeito à sua privacidade de dados.</p>
               </div>
             </div>
 
-            <div className="p-4 rounded-xl bg-blue-500/10 border border-blue-500/20 text-xs sm:text-sm text-[#CBD5E1] leading-relaxed">
-              Entrar com o Google no Vocentro é simples e seguro. Utilizamos suas informações básicas de perfil (nome, e-mail e foto) exclusivamente para criar sua conta, autenticar seu acesso e personalizar seu painel. O Vocentro não acessa nem solicita dados do seu Gmail ou Drive.
+            <div className="space-y-4 text-xs sm:text-sm text-[#CBD5E1] dark:text-[#CBD5E1] light:text-slate-700 leading-relaxed">
+              <div className="p-4 rounded-xl bg-slate-900/60 dark:bg-slate-900/60 light:bg-slate-50 border border-slate-800 dark:border-slate-800 light:border-slate-200 space-y-1">
+                <h3 className="font-bold text-xs uppercase tracking-wider text-[#3B82F6]">Descrição do Aplicativo</h3>
+                <p>
+                  O <strong>vocentro</strong> é uma plataforma de Inteligência Artificial voltada ao desenvolvimento profissional, ajudando candidatos na busca inteligente por vagas, otimização de currículos para sistemas ATS e simulação de entrevistas.
+                </p>
+              </div>
+
+              <div className="p-4 rounded-xl bg-slate-900/60 dark:bg-slate-900/60 light:bg-slate-50 border border-slate-800 dark:border-slate-800 light:border-slate-200 space-y-1">
+                <h3 className="font-bold text-xs uppercase tracking-wider text-[#3B82F6]">Justificativa da Autenticação Google OAuth</h3>
+                <p>
+                  A autenticação pelo Google é utilizada estritamente para autenticar seu acesso de forma rápida e segura, identificando seu perfil (nome, e-mail e foto avatar) para gestão do seu painel e acompanhamento de candidaturas.
+                </p>
+              </div>
+
+              <div className="p-4 rounded-xl bg-emerald-500/10 dark:bg-emerald-500/10 light:bg-emerald-50 border border-emerald-500/30 text-emerald-300 dark:text-emerald-300 light:text-emerald-800 space-y-1 font-medium">
+                <h3 className="font-bold text-xs uppercase tracking-wider text-[#22C55E]">Garantia de Privacidade</h3>
+                <p>
+                  Não acessamos, lemos ou solicitamos dados do seu Gmail, Google Drive ou qualquer outro serviço privado do Google.
+                </p>
+              </div>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-2 border-t border-slate-800/80">
-              <div className="flex items-center gap-2 text-xs font-semibold text-[#CBD5E1]">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-2 border-t border-slate-800/80 dark:border-slate-800/80 light:border-slate-200">
+              <div className="flex items-center gap-2 text-xs font-semibold text-[#CBD5E1] dark:text-[#CBD5E1] light:text-slate-700">
                 <Check size={16} className="text-[#22C55E]" />
-                <span>Zero acesso a e-mails</span>
+                <span>Zero acesso a e-mails ou Drive</span>
               </div>
-              <div className="flex items-center gap-2 text-xs font-semibold text-[#CBD5E1]">
+              <div className="flex items-center gap-2 text-xs font-semibold text-[#CBD5E1] dark:text-[#CBD5E1] light:text-slate-700">
                 <Check size={16} className="text-[#22C55E]" />
                 <span>Sem postagens em seu nome</span>
               </div>
-              <div className="flex items-center gap-2 text-xs font-semibold text-[#CBD5E1]">
+              <div className="flex items-center gap-2 text-xs font-semibold text-[#CBD5E1] dark:text-[#CBD5E1] light:text-slate-700">
                 <Check size={16} className="text-[#22C55E]" />
-                <span>Cadastro alternativo por e-mail</span>
+                <span>Login opcional e cadastro seguro</span>
               </div>
             </div>
           </div>

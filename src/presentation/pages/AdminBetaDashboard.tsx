@@ -66,9 +66,9 @@ export function AdminBetaDashboard() {
         } catch { feedbacks = []; }
       }
 
-      const totalMatchFeedback = feedbackStats.totalCount || 1;
-      const positivePercent = Math.round((feedbackStats.positiveCount / totalMatchFeedback) * 100) || 88;
-      const negativePercent = Math.round((feedbackStats.negativeCount / totalMatchFeedback) * 100) || 12;
+      const totalMatchFeedback = feedbackStats.totalCount;
+      const positivePercent = totalMatchFeedback > 0 ? Math.round((feedbackStats.positiveCount / totalMatchFeedback) * 100) : 0;
+      const negativePercent = totalMatchFeedback > 0 ? Math.round((feedbackStats.negativeCount / totalMatchFeedback) * 100) : 0;
 
       return {
         usersCount,
@@ -205,12 +205,12 @@ export function AdminBetaDashboard() {
               <div className="grid grid-cols-2 gap-3 text-center">
                 <div className="p-3 rounded-xl bg-emerald-950/40 border border-emerald-500/30">
                   <span className="text-xs text-emerald-400 font-bold block">👍 Sim, combina</span>
-                  <span className="text-2xl font-extrabold text-emerald-300 font-display">{betaMetrics?.positivePercent ?? 88}%</span>
+                  <span className="text-2xl font-extrabold text-emerald-300 font-display">{betaMetrics?.positivePercent ?? 0}%</span>
                   <span className="text-[9px] text-slate-400 block">{betaMetrics?.feedbackStats?.positiveCount ?? 0} avaliações</span>
                 </div>
                 <div className="p-3 rounded-xl bg-red-950/40 border border-red-500/30">
                   <span className="text-xs text-red-400 font-bold block">👎 Não combina</span>
-                  <span className="text-2xl font-extrabold text-red-300 font-display">{betaMetrics?.negativePercent ?? 12}%</span>
+                  <span className="text-2xl font-extrabold text-red-300 font-display">{betaMetrics?.negativePercent ?? 0}%</span>
                   <span className="text-[9px] text-slate-400 block">{betaMetrics?.feedbackStats?.negativeCount ?? 0} avaliações</span>
                 </div>
               </div>

@@ -14,7 +14,7 @@ interface LoginProps {
   onBack?: () => void;
 }
 
-export function Login({ initialMode = 'login', onLogin, onSignUp, onOAuth: _onOAuth, onResetPassword, onBack }: LoginProps) {
+export function Login({ initialMode = 'login', onLogin, onSignUp, onOAuth: _onOAuth, onResetPassword: _onResetPassword, onBack: _onBack }: LoginProps) {
   const [isSignUp, setIsSignUp] = useState(initialMode === 'signup');
   const [isResetPasswordMode, setIsResetPasswordMode] = useState(false);
   const [resetEmail, setResetEmail] = useState('');

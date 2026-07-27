@@ -138,15 +138,21 @@ export function LandingPage({ onNavigateToAuth }: LandingPageProps) {
               </div>
 
               <h1 className="text-4xl sm:text-5xl font-black font-display tracking-tight text-[#F8FAFC] leading-[1.15]">
-                Encontre vagas melhores.<br />
+                vocentro — Encontre vagas melhores.<br />
                 <span className="bg-gradient-to-r from-[#3B82F6] to-[#22C55E] bg-clip-text text-transparent">
                   Aumente suas chances com IA.
                 </span>
               </h1>
 
-              <p className="text-base text-[#CBD5E1] leading-relaxed max-w-xl">
-                O Vocentro analisa seu currículo, encontra oportunidades compatíveis, melhora seu currículo para ATS e prepara você para entrevistas.
-              </p>
+              {/* Banner de Finalidade Explicita exigido pelo Google OAuth Reviewer */}
+              <div className="p-4 rounded-xl bg-blue-500/10 border border-blue-500/30 text-xs space-y-1.5">
+                <span className="font-bold text-[#3B82F6] font-mono flex items-center gap-1.5 uppercase tracking-wider text-[11px]">
+                  📌 Finalidade da Aplicação vocentro
+                </span>
+                <p className="text-[#CBD5E1] leading-relaxed">
+                  O <strong>vocentro</strong> é uma plataforma de desenvolvimento profissional e busca de emprego que utiliza Inteligência Artificial para analisar seu currículo, encontrar vagas compatíveis no mercado, otimizar a estrutura do seu perfil para recrutadores (ATS) e realizar simulações de entrevistas.
+                </p>
+              </div>
 
               <div className="flex flex-col sm:flex-row gap-4 pt-2">
                 <button

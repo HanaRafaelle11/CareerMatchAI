@@ -215,7 +215,7 @@ export function Navbar({
           </div>
 
           {/* Utility Links */}
-          <div className="px-3.5 mt-4">
+          <div className="px-3.5 mt-4 space-y-1">
             <div className="px-3 mb-1.5">
               <span className="text-[10px] font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider">Geral</span>
             </div>
@@ -225,7 +225,7 @@ export function Navbar({
                 <button
                   key={item.id}
                   onClick={() => { setActiveTab(item.id); onClose(); }}
-                  className={`w-full flex items-center gap-2.5 px-3 py-1.5 rounded-md text-xs font-medium transition-colors ${
+                  className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-md text-xs font-medium transition-colors ${
                     isActive
                       ? 'text-[#4F8EF7] font-medium'
                       : 'text-slate-600 dark:text-[#B8C2CC] hover:text-slate-900 dark:hover:text-white'
@@ -236,6 +236,15 @@ export function Navbar({
                 </button>
               );
             })}
+
+            {/* Botao de Sair visivel no menu para facil acesso mobile */}
+            <button
+              onClick={() => { onClose(); onLogout(); }}
+              className="w-full flex items-center gap-2.5 px-3 py-2 rounded-md text-xs font-semibold text-red-500 hover:text-red-600 dark:text-red-400 dark:hover:text-red-300 hover:bg-red-500/10 transition-colors cursor-pointer"
+            >
+              <LogOut className="w-4 h-4 shrink-0 text-red-500 dark:text-red-400" size={16} strokeWidth={1.5} />
+              <span>Sair da conta</span>
+            </button>
           </div>
         </div>
 

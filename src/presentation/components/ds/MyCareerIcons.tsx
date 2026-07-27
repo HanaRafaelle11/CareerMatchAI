@@ -18,9 +18,9 @@ export function VocentroLogo({
   const isVertical = variant === 'vertical';
   const isSymbolOnly = variant === 'symbol';
   
-  let textColorClass = "text-slate-100 dark:text-slate-100 light:text-slate-900";
-  if (colorMode === 'white') textColorClass = "text-white";
-  if (colorMode === 'black') textColorClass = "text-black";
+  let textColorClass = "text-slate-900 dark:text-[#F8FAFC] light:text-[#0F172A]";
+  if (colorMode === 'white') textColorClass = "text-white dark:text-white light:text-white";
+  if (colorMode === 'black') textColorClass = "text-slate-950 dark:text-slate-950 light:text-slate-950";
 
   // Símbolo do Vocentro: Círculo com um ponto verde no centro
   const symbolSvg = (

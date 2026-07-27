@@ -9,6 +9,7 @@ import { useRoadmapServices } from './application/hooks/useRoadmapServices';
 import { useUserPreferences } from './application/hooks/useUserPreferences';
 import { Navbar } from './presentation/components/Navbar';
 import { CompactHeader } from './presentation/components/ds/CompactHeader';
+import { ThemeToggle } from './presentation/components/ThemeToggle';
 import { Menu, Loader2 } from 'lucide-react';
 import { VocentroLogo } from './presentation/components/ds/MyCareerIcons';
 import { isSupabaseConfigured, supabase } from './infrastructure/api/supabaseClient';
@@ -485,6 +486,7 @@ function AuthenticatedApp({
           <VocentroLogo className="h-7" showText={false} />
         </div>
         <div className="flex items-center gap-2">
+          <ThemeToggle />
           {profile?.avatarUrl ? (
             <img
               src={profile.avatarUrl}

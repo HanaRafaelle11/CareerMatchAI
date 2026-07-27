@@ -2,6 +2,7 @@ import type { Profile } from '../../domain/models/types';
 import { useEffect } from 'react';
 import { ProgressRing } from './ds/ProgressRing';
 import { VocentroLogo } from './ds/MyCareerIcons';
+import { ThemeToggle } from './ThemeToggle';
 import { 
   LayoutDashboard, 
   User, 
@@ -267,13 +268,16 @@ export function Navbar({
               </div>
             </div>
 
-            <button
-              onClick={onLogout}
-              className="p-1 rounded-md text-slate-400 hover:text-red-500 transition-colors flex items-center justify-center shrink-0"
-              title="Sair"
-            >
-              <LogOut size={14} strokeWidth={1.5} />
-            </button>
+            <div className="flex items-center gap-1.5 shrink-0">
+              <ThemeToggle className="p-1" />
+              <button
+                onClick={onLogout}
+                className="p-1 rounded-md text-slate-400 hover:text-red-500 transition-colors flex items-center justify-center shrink-0"
+                title="Sair"
+              >
+                <LogOut size={14} strokeWidth={1.5} />
+              </button>
+            </div>
           </div>
         </div>
       </aside>

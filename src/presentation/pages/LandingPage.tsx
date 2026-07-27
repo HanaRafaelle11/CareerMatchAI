@@ -84,7 +84,7 @@ export function LandingPage({ onNavigateToAuth }: LandingPageProps) {
   };
 
   return (
-    <div className="min-h-screen bg-[#020617] text-[#F8FAFC] font-sans relative selection:bg-blue-500/30 selection:text-white">
+    <div className="min-h-screen bg-[#020617] dark:bg-[#020617] light:bg-slate-50 text-[#F8FAFC] dark:text-[#F8FAFC] light:text-slate-900 font-sans relative selection:bg-blue-500/30 selection:text-white transition-colors duration-200">
       
       {/* Schema JSON-LD para SEO */}
       <script
@@ -93,24 +93,24 @@ export function LandingPage({ onNavigateToAuth }: LandingPageProps) {
       />
 
       {/* ── HEADER / NAVBAR ── */}
-      <header className="fixed top-0 left-0 right-0 h-16 bg-[#020617]/90 backdrop-blur-md border-b border-slate-800 flex items-center justify-between px-6 z-50">
+      <header className="fixed top-0 left-0 right-0 h-16 bg-[#020617]/90 dark:bg-[#020617]/90 light:bg-white/95 backdrop-blur-md border-b border-slate-800 dark:border-slate-800 light:border-slate-200 flex items-center justify-between px-4 sm:px-6 z-50 transition-colors">
         <div className="flex items-center gap-2">
-          <VocentroLogo className="h-7 text-white" showText={true} />
+          <VocentroLogo className="h-7" showText={true} />
         </div>
 
         <nav className="hidden md:flex items-center gap-6" aria-label="Navegação Principal">
-          <a href="#o-que-e" className="text-xs font-semibold text-[#CBD5E1] hover:text-white transition-colors focus:ring-2 focus:ring-blue-500 focus:outline-none rounded-md px-2 py-1">O que é</a>
-          <a href="#beneficios" className="text-xs font-semibold text-[#CBD5E1] hover:text-white transition-colors focus:ring-2 focus:ring-blue-500 focus:outline-none rounded-md px-2 py-1">Benefícios</a>
-          <a href="#como-funciona" className="text-xs font-semibold text-[#CBD5E1] hover:text-white transition-colors focus:ring-2 focus:ring-blue-500 focus:outline-none rounded-md px-2 py-1">Como funciona</a>
-          <a href="#google-auth" className="text-xs font-semibold text-[#CBD5E1] hover:text-white transition-colors focus:ring-2 focus:ring-blue-500 focus:outline-none rounded-md px-2 py-1">Segurança</a>
-          <a href="#planos" className="text-xs font-semibold text-[#CBD5E1] hover:text-white transition-colors focus:ring-2 focus:ring-blue-500 focus:outline-none rounded-md px-2 py-1">Planos</a>
+          <a href="#o-que-e" className="text-xs font-semibold text-[#CBD5E1] dark:text-[#CBD5E1] light:text-slate-700 hover:text-white dark:hover:text-white light:hover:text-blue-600 transition-colors focus:ring-2 focus:ring-blue-500 focus:outline-none rounded-md px-2 py-1">O que é</a>
+          <a href="#beneficios" className="text-xs font-semibold text-[#CBD5E1] dark:text-[#CBD5E1] light:text-slate-700 hover:text-white dark:hover:text-white light:hover:text-blue-600 transition-colors focus:ring-2 focus:ring-blue-500 focus:outline-none rounded-md px-2 py-1">Benefícios</a>
+          <a href="#como-funciona" className="text-xs font-semibold text-[#CBD5E1] dark:text-[#CBD5E1] light:text-slate-700 hover:text-white dark:hover:text-white light:hover:text-blue-600 transition-colors focus:ring-2 focus:ring-blue-500 focus:outline-none rounded-md px-2 py-1">Como funciona</a>
+          <a href="#google-auth" className="text-xs font-semibold text-[#CBD5E1] dark:text-[#CBD5E1] light:text-slate-700 hover:text-white dark:hover:text-white light:hover:text-blue-600 transition-colors focus:ring-2 focus:ring-blue-500 focus:outline-none rounded-md px-2 py-1">Segurança</a>
+          <a href="#planos" className="text-xs font-semibold text-[#CBD5E1] dark:text-[#CBD5E1] light:text-slate-700 hover:text-white dark:hover:text-white light:hover:text-blue-600 transition-colors focus:ring-2 focus:ring-blue-500 focus:outline-none rounded-md px-2 py-1">Planos</a>
         </nav>
 
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2 sm:gap-3">
           <ThemeToggle />
           <button 
             onClick={() => onNavigateToAuth('login')}
-            className="text-xs font-bold text-[#CBD5E1] hover:text-white transition-colors cursor-pointer px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:outline-none rounded-lg"
+            className="text-xs font-bold text-[#CBD5E1] dark:text-[#CBD5E1] light:text-slate-700 hover:text-white dark:hover:text-white light:hover:text-blue-600 transition-colors cursor-pointer px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:outline-none rounded-lg"
           >
             Entrar
           </button>
@@ -137,7 +137,7 @@ export function LandingPage({ onNavigateToAuth }: LandingPageProps) {
                 <span>Inteligência de Carreira Avançada</span>
               </div>
 
-              <h1 className="text-4xl sm:text-5xl font-black font-display tracking-tight text-[#F8FAFC] leading-[1.15]">
+              <h1 className="text-4xl sm:text-5xl font-black font-display tracking-tight text-[#F8FAFC] dark:text-[#F8FAFC] light:text-slate-900 leading-[1.15]">
                 vocentro — Encontre vagas melhores.<br />
                 <span className="bg-gradient-to-r from-[#3B82F6] to-[#22C55E] bg-clip-text text-transparent">
                   Aumente suas chances com IA.
@@ -145,11 +145,11 @@ export function LandingPage({ onNavigateToAuth }: LandingPageProps) {
               </h1>
 
               {/* Banner de Finalidade Explicita exigido pelo Google OAuth Reviewer */}
-              <div className="p-4 rounded-xl bg-blue-500/10 border border-blue-500/30 text-xs space-y-1.5">
+              <div className="p-4 rounded-xl bg-blue-500/10 dark:bg-blue-500/10 light:bg-blue-50 border border-blue-500/30 text-xs space-y-1.5 shadow-xs">
                 <span className="font-bold text-[#3B82F6] font-mono flex items-center gap-1.5 uppercase tracking-wider text-[11px]">
                   📌 Finalidade da Aplicação vocentro
                 </span>
-                <p className="text-[#CBD5E1] leading-relaxed">
+                <p className="text-[#CBD5E1] dark:text-[#CBD5E1] light:text-slate-700 leading-relaxed font-sans">
                   O <strong>vocentro</strong> é uma plataforma de desenvolvimento profissional e busca de emprego que utiliza Inteligência Artificial para analisar seu currículo, encontrar vagas compatíveis no mercado, otimizar a estrutura do seu perfil para recrutadores (ATS) e realizar simulações de entrevistas.
                 </p>
               </div>
@@ -164,7 +164,7 @@ export function LandingPage({ onNavigateToAuth }: LandingPageProps) {
                 </button>
                 <a
                   href="#como-funciona"
-                  className="px-6 py-3.5 text-sm font-bold text-[#CBD5E1] hover:text-white bg-[#0F172A] hover:bg-[#172554] border border-slate-800 rounded-xl transition-all flex items-center justify-center gap-2 focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                  className="px-6 py-3.5 text-sm font-bold text-[#CBD5E1] dark:text-[#CBD5E1] light:text-slate-700 hover:text-white bg-[#0F172A] dark:bg-[#0F172A] light:bg-white hover:bg-[#172554] border border-slate-800 dark:border-slate-800 light:border-slate-300 rounded-xl transition-all flex items-center justify-center gap-2 focus:ring-2 focus:ring-blue-500 focus:outline-none shadow-xs"
                 >
                   <span>Ver como funciona</span>
                 </a>

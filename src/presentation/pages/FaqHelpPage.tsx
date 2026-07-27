@@ -13,8 +13,7 @@ import {
   Settings, 
   FileText,
   Award,
-  Bot,
-  Mail
+  Bot
 } from 'lucide-react';
 import { VocentroLogo } from '../components/ds/MyCareerIcons';
 

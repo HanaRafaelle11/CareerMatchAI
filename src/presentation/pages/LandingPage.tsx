@@ -479,8 +479,32 @@ export function LandingPage({ onNavigateToAuth }: LandingPageProps) {
           <div className="space-y-2">
             <h4 className="font-bold text-xs uppercase tracking-wider text-[#F8FAFC]">Privacidade & OAuth</h4>
             <ul className="space-y-1.5 text-xs text-[#CBD5E1]">
-              <li><a href="/politica-de-privacidade" className="hover:text-white transition-colors">Política de Privacidade</a></li>
-              <li><a href="/termos-de-uso" className="hover:text-white transition-colors">Termos de Uso</a></li>
+              <li>
+                <a
+                  href="/politica-de-privacidade"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    window.history.pushState(null, '', '/politica-de-privacidade');
+                    window.dispatchEvent(new PopStateEvent('popstate'));
+                  }}
+                  className="hover:text-white transition-colors cursor-pointer"
+                >
+                  Política de Privacidade
+                </a>
+              </li>
+              <li>
+                <a
+                  href="/termos-de-uso"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    window.history.pushState(null, '', '/termos-de-uso');
+                    window.dispatchEvent(new PopStateEvent('popstate'));
+                  }}
+                  className="hover:text-white transition-colors cursor-pointer"
+                >
+                  Termos de Uso
+                </a>
+              </li>
               <li><a href="#google-auth" className="hover:text-white transition-colors">Autenticação Google</a></li>
               <li><span className="text-[#22C55E] font-semibold">● Status: Operacional</span></li>
             </ul>

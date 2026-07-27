@@ -30,6 +30,8 @@ const CoachDashboard = lazy(() => import('./presentation/pages/CoachDashboard').
 const AdminDashboard = lazy(() => import('./presentation/pages/AdminDashboard').then(m => ({ default: m.AdminDashboard })));
 const SettingsPage = lazy(() => import('./presentation/pages/Settings').then(m => ({ default: m.Settings })));
 const NotificationsPage = lazy(() => import('./presentation/pages/Notifications').then(m => ({ default: m.Notifications })));
+const PrivacyPolicyPage = lazy(() => import('./presentation/pages/PrivacyPolicyPage').then(m => ({ default: m.PrivacyPolicyPage })));
+const TermsOfUsePage = lazy(() => import('./presentation/pages/TermsOfUsePage').then(m => ({ default: m.TermsOfUsePage })));
 
 function LazyFallback() {
   return (
@@ -54,6 +56,12 @@ function App() {
   const [isAboutView, setIsAboutView] = useState(window.location.pathname === '/about');
   const [isGoogleAuthView, setIsGoogleAuthView] = useState(
     window.location.pathname === '/google-auth' || window.location.pathname === '/google-auth.html'
+  );
+  const [isPrivacyPolicyView, setIsPrivacyPolicyView] = useState(
+    window.location.pathname === '/politica-de-privacidade' || window.location.pathname === '/politica-de-privacidade.html'
+  );
+  const [isTermsOfUseView, setIsTermsOfUseView] = useState(
+    window.location.pathname === '/termos-de-uso' || window.location.pathname === '/termos-de-uso.html'
   );
 
   const { preferences, updatePreferences } = useUserPreferences(user?.id);
@@ -95,15 +103,32 @@ function App() {
   // Observa mudanças de histórico (Voltar / Avançar do navegador)
   useEffect(() => {
     const handlePopState = () => {
-      if (window.location.pathname === '/about') {
+      const path = window.location.pathname;
+      if (path === '/about') {
         setIsAboutView(true);
         setIsGoogleAuthView(false);
-      } else if (window.location.pathname === '/google-auth' || window.location.pathname === '/google-auth.html') {
+        setIsPrivacyPolicyView(false);
+        setIsTermsOfUseView(false);
+      } else if (path === '/google-auth' || path === '/google-auth.html') {
         setIsGoogleAuthView(true);
         setIsAboutView(false);
+        setIsPrivacyPolicyView(false);
+        setIsTermsOfUseView(false);
+      } else if (path === '/politica-de-privacidade' || path === '/politica-de-privacidade.html') {
+        setIsPrivacyPolicyView(true);
+        setIsAboutView(false);
+        setIsGoogleAuthView(false);
+        setIsTermsOfUseView(false);
+      } else if (path === '/termos-de-uso' || path === '/termos-de-uso.html') {
+        setIsTermsOfUseView(true);
+        setIsAboutView(false);
+        setIsGoogleAuthView(false);
+        setIsPrivacyPolicyView(false);
       } else {
         setIsAboutView(false);
         setIsGoogleAuthView(false);
+        setIsPrivacyPolicyView(false);
+        setIsTermsOfUseView(false);
       }
     };
     window.addEventListener('popstate', handlePopState);
@@ -130,6 +155,32 @@ function App() {
           </div>
         </div>
       </div>
+    );
+  }
+
+  if (isPrivacyPolicyView) {
+    return (
+      <Suspense fallback={<LazyFallback />}>
+        <PrivacyPolicyPage
+          onBack={() => {
+            window.history.pushState(null, '', '/');
+            setIsPrivacyPolicyView(false);
+          }}
+        />
+      </Suspense>
+    );
+  }
+
+  if (isTermsOfUseView) {
+    return (
+      <Suspense fallback={<LazyFallback />}>
+        <TermsOfUsePage
+          onBack={() => {
+            window.history.pushState(null, '', '/');
+            setIsTermsOfUseView(false);
+          }}
+        />
+      </Suspense>
     );
   }
 

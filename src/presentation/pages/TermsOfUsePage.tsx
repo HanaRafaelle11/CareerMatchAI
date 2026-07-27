@@ -118,17 +118,21 @@ export const TermsOfUsePage: React.FC<TermsOfUsePageProps> = ({ onBack }) => {
         </section>
 
         {/* Section 5: Contato */}
-        <section className="p-6 rounded-2xl bg-[#0F172A] border border-slate-800 space-y-3">
+        <section className="p-6 rounded-2xl bg-[#0F172A] border border-slate-800 space-y-4">
           <h2 className="text-lg font-bold text-[#F8FAFC] flex items-center gap-2">
-            <Mail size={18} className="text-[#3B82F6]" />
+            <Mail size={18} className="text-[#3B82F6] shrink-0" />
             5. Alterações e Contato
           </h2>
           <p className="text-sm text-[#CBD5E1] leading-relaxed">
             Reservamo-nos o direito de atualizar estes Termos de Uso periodicamente. Em caso de dúvidas referentes a estes termos, entre em contato através do suporte:
           </p>
-          <div className="flex flex-col sm:flex-row gap-3 pt-2 text-xs font-bold">
-            <a href="mailto:suporte@vocentro.com.br" className="px-4 py-2.5 rounded-xl bg-slate-900 border border-slate-700 text-[#3B82F6] hover:underline flex items-center gap-2">
-              <Mail size={15} /> suporte@vocentro.com.br
+          <div className="pt-1">
+            <a 
+              href="mailto:suporte@vocentro.com.br" 
+              className="inline-flex items-center gap-2 px-4 py-3 rounded-xl bg-slate-900 border border-slate-700 text-[#3B82F6] hover:text-white font-bold text-xs sm:text-sm hover:border-blue-500 transition-all break-all"
+            >
+              <Mail size={16} className="shrink-0" />
+              <span>suporte@vocentro.com.br</span>
             </a>
           </div>
         </section>

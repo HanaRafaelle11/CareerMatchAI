@@ -333,9 +333,9 @@ export function LandingPage({ onNavigateToAuth }: LandingPageProps) {
               </div>
             </div>
 
-            <p className="text-sm text-[#CBD5E1] leading-relaxed">
-              O Vocentro utiliza o Login com Google apenas para autenticar sua conta de forma segura. Não acessamos seus e-mails. Não enviamos mensagens em seu nome. Não compartilhamos seus dados. Você pode utilizar login por e-mail normalmente.
-            </p>
+            <div className="p-4 rounded-xl bg-blue-500/10 border border-blue-500/20 text-xs sm:text-sm text-[#CBD5E1] leading-relaxed">
+              Entrar com o Google no Vocentro é simples e seguro. Utilizamos suas informações básicas de perfil (nome, e-mail e foto) exclusivamente para criar sua conta, autenticar seu acesso e personalizar seu painel. O Vocentro não acessa nem solicita dados do seu Gmail ou Drive.
+            </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-2 border-t border-slate-800/80">
               <div className="flex items-center gap-2 text-xs font-semibold text-[#CBD5E1]">

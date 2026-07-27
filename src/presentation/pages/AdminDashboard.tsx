@@ -745,7 +745,7 @@ export function AdminDashboard({ userId }: AdminDashboardProps) {
                                 </span>
                               </td>
                               <td className="p-3 text-right text-slate-500">
-                                {new Date(tx.created_at || tx.created_at).toLocaleDateString('pt-BR')}
+                                {tx.created_at ? new Date(tx.created_at).toLocaleDateString('pt-BR') : '-'}
                               </td>
                             </tr>
                           ))}

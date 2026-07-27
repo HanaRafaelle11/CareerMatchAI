@@ -193,7 +193,7 @@ Extraia as seguintes informações (baseando-se ESTRITAMENTE no texto e sem inve
 - salary (Descrição textual simples da remuneração)
 - salary_numeric (Valor numérico estimado mensal, caso aplicável. Ex: R$ 15000 -> 15000)
 
-Retorne OBRIGATORIAMENTE um objeto JSON correspondente a esta estrutura de forma limpa, sem tags de markdown adicionais ou formatações como ```json.
+Retorne OBRIGATORIAMENTE um objeto JSON correspondente a esta estrutura de forma limpa, sem tags de markdown adicionais.
 
 Conteúdo da vaga extraído:
 ${text}`;

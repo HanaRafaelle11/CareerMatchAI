@@ -138,56 +138,32 @@ export function LandingPage({ onNavigateToAuth }: LandingPageProps) {
               </div>
 
               <h1 className="text-4xl sm:text-5xl font-black font-display tracking-tight text-[#F8FAFC] dark:text-[#F8FAFC] light:text-slate-900 leading-[1.15]">
-                <strong>Vocentro</strong> — Encontre vagas melhores.<br />
-                <span className="bg-gradient-to-r from-[#3B82F6] to-[#22C55E] bg-clip-text text-transparent">
-                  Aumente suas chances com IA.
-                </span>
+                Vocentro — Plataforma de Carreira e IA
               </h1>
 
-              {/* Banner Institucional de Finalidade Explicita exigido pela Verificação do Google OAuth */}
-              <div className="p-5 rounded-2xl bg-blue-500/10 dark:bg-blue-500/10 light:bg-blue-50 border border-blue-500/30 text-xs sm:text-sm space-y-3 shadow-md">
-                <h2 className="font-extrabold text-[#3B82F6] font-mono uppercase tracking-wider text-xs sm:text-sm flex items-center gap-2 border-b border-blue-500/20 pb-2">
-                  📌 SOBRE O VOCENTRO &amp; USO DE DADOS GOOGLE
-                </h2>
-                
-                <p className="text-[#CBD5E1] dark:text-[#CBD5E1] light:text-slate-700 leading-relaxed font-sans">
-                  O <strong>Vocentro</strong> é uma plataforma completa de desenvolvimento profissional que utiliza Inteligência Artificial para ajudar candidatos a encontrar vagas, otimizar currículos para sistemas ATS, simular entrevistas de emprego e gerenciar candidaturas.
-                </p>
-
-                <div className="space-y-1.5 pt-1">
-                  <p className="font-bold text-xs uppercase tracking-wider text-[#3B82F6]">Como utilizamos seus dados:</p>
-                  <ul className="space-y-1 text-slate-300 dark:text-slate-300 light:text-slate-700 text-xs leading-relaxed">
-                    <li className="flex items-start gap-2">
-                      <span className="text-[#3B82F6] font-bold">•</span>
-                      <span><strong>Login Seguro:</strong> O login via Google é utilizado exclusivamente para autenticar seu acesso de forma rápida e criar seu perfil no Vocentro.</span>
-                    </li>
-                    <li className="flex items-start gap-2">
-                      <span className="text-[#3B82F6] font-bold">•</span>
-                      <span><strong>Dados Acessados:</strong> Solicitamos apenas suas informações públicas de perfil (Nome, E-mail e Foto de Avatar).</span>
-                    </li>
-                    <li className="flex items-start gap-2">
-                      <span className="text-[#22C55E] font-bold">•</span>
-                      <span><strong>Privacidade Garantida:</strong> Não lemos, não acessamos e não armazenamos e-mails do seu Gmail, arquivos do Google Drive ou outros dados pessoais da sua conta Google.</span>
-                    </li>
-                  </ul>
-                </div>
-              </div>
+              <h2 className="text-base sm:text-lg text-[#CBD5E1] dark:text-[#CBD5E1] light:text-slate-700 leading-relaxed font-normal">
+                Acelere sua recolocação profissional. Otimize seu currículo para sistemas ATS, encontre vagas compatíveis e treine para entrevistas com Inteligência Artificial.
+              </h2>
 
               <div className="flex flex-col sm:flex-row gap-4 pt-2">
                 <button
                   onClick={() => onNavigateToAuth('signup')}
                   className="px-6 py-3.5 text-sm font-bold text-white bg-[#3B82F6] hover:bg-blue-600 rounded-xl transition-all shadow-lg hover:shadow-blue-500/20 flex items-center justify-center gap-2 cursor-pointer focus:ring-2 focus:ring-blue-500 focus:outline-none"
                 >
-                  <span>Criar conta gratuitamente</span>
+                  <span>Criar Conta Gratuita</span>
                   <ArrowRight size={16} />
                 </button>
                 <a
                   href="#como-funciona"
                   className="px-6 py-3.5 text-sm font-bold text-[#CBD5E1] dark:text-[#CBD5E1] light:text-slate-700 hover:text-white bg-[#0F172A] dark:bg-[#0F172A] light:bg-white hover:bg-[#172554] border border-slate-800 dark:border-slate-800 light:border-slate-300 rounded-xl transition-all flex items-center justify-center gap-2 focus:ring-2 focus:ring-blue-500 focus:outline-none shadow-xs"
                 >
-                  <span>Ver como funciona</span>
+                  <span>Ver Como Funciona</span>
                 </a>
               </div>
+
+              <p className="text-[11px] text-slate-400 dark:text-slate-400 light:text-slate-500 font-sans pt-1">
+                🔒 <strong>Uso do Google OAuth:</strong> Utilizado apenas para autenticar sua conta de forma segura com seu nome, e-mail e foto. Não acessamos e-mails ou arquivos privados.
+              </p>
             </div>
 
             {/* Lado Direito: SaaS Product Mockup */}
@@ -337,8 +313,8 @@ export function LandingPage({ onNavigateToAuth }: LandingPageProps) {
           </div>
         </section>
 
-        {/* ── 5. GOOGLE OAUTH & SEGURANÇA (Dedicated Section) ── */}
-        <section id="google-auth" className="py-16 px-6 max-w-7xl mx-auto border-t border-slate-800/60">
+        {/* ── 5. SEGURANÇA E PRIVACIDADE DE DADOS ── */}
+        <section id="google-auth" className="py-16 px-6 max-w-7xl mx-auto border-t border-slate-800/60 dark:border-slate-800/60 light:border-slate-200">
           <div className="p-8 rounded-2xl bg-[#0F172A] dark:bg-[#0F172A] light:bg-white border border-slate-800 dark:border-slate-800 light:border-slate-200 max-w-4xl mx-auto space-y-6 shadow-xs">
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 rounded-xl bg-blue-500/10 border border-blue-500/20 text-[#3B82F6] flex items-center justify-center shrink-0">
@@ -346,24 +322,16 @@ export function LandingPage({ onNavigateToAuth }: LandingPageProps) {
               </div>
               <div>
                 <h2 className="text-xl sm:text-2xl font-bold font-display text-[#F8FAFC] dark:text-[#F8FAFC] light:text-slate-900">
-                  Finalidade do aplicativo e Uso da Conta Google
+                  Segurança e Privacidade de Dados
                 </h2>
                 <p className="text-xs text-[#CBD5E1] dark:text-[#CBD5E1] light:text-slate-600">Transparência total e respeito à sua privacidade de dados.</p>
               </div>
             </div>
 
             <div className="space-y-4 text-xs sm:text-sm text-[#CBD5E1] dark:text-[#CBD5E1] light:text-slate-700 leading-relaxed">
-              <div className="p-4 rounded-xl bg-slate-900/60 dark:bg-slate-900/60 light:bg-slate-50 border border-slate-800 dark:border-slate-800 light:border-slate-200 space-y-1">
-                <h3 className="font-bold text-xs uppercase tracking-wider text-[#3B82F6]">Descrição do Aplicativo</h3>
-                <p className="text-slate-300 dark:text-slate-300 light:text-slate-700">
-                  O <strong>Vocentro</strong> é uma plataforma de Inteligência Artificial voltada ao desenvolvimento profissional, ajudando candidatos na busca inteligente por vagas, otimização de currículos para sistemas ATS e simulação de entrevistas.
-                </p>
-              </div>
-
-              <div className="p-4 rounded-xl bg-slate-900/60 dark:bg-slate-900/60 light:bg-slate-50 border border-slate-800 dark:border-slate-800 light:border-slate-200 space-y-1">
-                <h3 className="font-bold text-xs uppercase tracking-wider text-[#3B82F6]">Justificativa da Autenticação Google OAuth</h3>
-                <p className="text-slate-300 dark:text-slate-300 light:text-slate-700">
-                  A autenticação pelo Google é utilizada estritamente para autenticar seu acesso de forma rápida e segura, identificando seu perfil (nome, e-mail e foto avatar) para gestão do seu painel e acompanhamento de candidaturas.
+              <div className="p-5 rounded-xl bg-slate-900/60 dark:bg-slate-900/60 light:bg-slate-50 border border-slate-800 dark:border-slate-800 light:border-slate-200 space-y-2">
+                <p className="text-sm text-slate-200 dark:text-slate-200 light:text-slate-800 leading-relaxed font-medium">
+                  O Vocentro é uma ferramenta de desenvolvimento e gestão de carreira. Respeitamos sua privacidade e utilizamos a autenticação do Google exclusivamente para identificação do perfil do candidato. Nenhum dado do Gmail ou Google Drive é acessado ou armazenado.
                 </p>
               </div>
 

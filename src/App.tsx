@@ -32,6 +32,7 @@ const SettingsPage = lazy(() => import('./presentation/pages/Settings').then(m =
 const NotificationsPage = lazy(() => import('./presentation/pages/Notifications').then(m => ({ default: m.Notifications })));
 const PrivacyPolicyPage = lazy(() => import('./presentation/pages/PrivacyPolicyPage').then(m => ({ default: m.PrivacyPolicyPage })));
 const TermsOfUsePage = lazy(() => import('./presentation/pages/TermsOfUsePage').then(m => ({ default: m.TermsOfUsePage })));
+const FaqHelpPage = lazy(() => import('./presentation/pages/FaqHelpPage').then(m => ({ default: m.FaqHelpPage })));
 
 function LazyFallback() {
   return (
@@ -56,6 +57,9 @@ function App() {
   const [isAboutView, setIsAboutView] = useState(window.location.pathname === '/about');
   const [isGoogleAuthView, setIsGoogleAuthView] = useState(
     window.location.pathname === '/google-auth' || window.location.pathname === '/google-auth.html'
+  );
+  const [isFaqHelpView, setIsFaqHelpView] = useState(
+    window.location.pathname === '/faq' || window.location.pathname === '/ajuda' || window.location.pathname === '/faq.html'
   );
   const [isPrivacyPolicyView, setIsPrivacyPolicyView] = useState(
     window.location.pathname === '/politica-de-privacidade' || window.location.pathname === '/politica-de-privacidade.html'
@@ -109,26 +113,37 @@ function App() {
         setIsGoogleAuthView(false);
         setIsPrivacyPolicyView(false);
         setIsTermsOfUseView(false);
+        setIsFaqHelpView(false);
       } else if (path === '/google-auth' || path === '/google-auth.html') {
         setIsGoogleAuthView(true);
         setIsAboutView(false);
         setIsPrivacyPolicyView(false);
         setIsTermsOfUseView(false);
+        setIsFaqHelpView(false);
       } else if (path === '/politica-de-privacidade' || path === '/politica-de-privacidade.html') {
         setIsPrivacyPolicyView(true);
         setIsAboutView(false);
         setIsGoogleAuthView(false);
         setIsTermsOfUseView(false);
+        setIsFaqHelpView(false);
       } else if (path === '/termos-de-uso' || path === '/termos-de-uso.html') {
         setIsTermsOfUseView(true);
         setIsAboutView(false);
         setIsGoogleAuthView(false);
         setIsPrivacyPolicyView(false);
+        setIsFaqHelpView(false);
+      } else if (path === '/faq' || path === '/ajuda' || path === '/faq.html') {
+        setIsFaqHelpView(true);
+        setIsAboutView(false);
+        setIsGoogleAuthView(false);
+        setIsPrivacyPolicyView(false);
+        setIsTermsOfUseView(false);
       } else {
         setIsAboutView(false);
         setIsGoogleAuthView(false);
         setIsPrivacyPolicyView(false);
         setIsTermsOfUseView(false);
+        setIsFaqHelpView(false);
       }
     };
     window.addEventListener('popstate', handlePopState);
@@ -155,6 +170,19 @@ function App() {
           </div>
         </div>
       </div>
+    );
+  }
+
+  if (isFaqHelpView) {
+    return (
+      <Suspense fallback={<LazyFallback />}>
+        <FaqHelpPage
+          onBack={() => {
+            window.history.pushState(null, '', '/');
+            setIsFaqHelpView(false);
+          }}
+        />
+      </Suspense>
     );
   }
 

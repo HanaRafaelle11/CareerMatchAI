@@ -145,9 +145,6 @@ export const PrivacyPolicyPage: React.FC<PrivacyPolicyPageProps> = ({ onBack }) 
             <a href="mailto:suporte@vocentro.com.br" className="px-4 py-2.5 rounded-xl bg-slate-900 border border-slate-700 text-[#3B82F6] hover:underline flex items-center gap-2">
               <Mail size={15} /> suporte@vocentro.com.br
             </a>
-            <a href="mailto:contato@vocentro.com.br" className="px-4 py-2.5 rounded-xl bg-slate-900 border border-slate-700 text-[#3B82F6] hover:underline flex items-center gap-2">
-              <Mail size={15} /> contato@vocentro.com.br
-            </a>
           </div>
         </section>
 

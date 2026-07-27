@@ -473,6 +473,19 @@ export function LandingPage({ onNavigateToAuth }: LandingPageProps) {
               <li><a href="#beneficios" className="hover:text-white transition-colors">Benefícios</a></li>
               <li><a href="#como-funciona" className="hover:text-white transition-colors">Como funciona</a></li>
               <li><a href="#planos" className="hover:text-white transition-colors">Planos</a></li>
+              <li>
+                <a
+                  href="/faq"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    window.history.pushState(null, '', '/faq');
+                    window.dispatchEvent(new PopStateEvent('popstate'));
+                  }}
+                  className="text-[#3B82F6] font-bold hover:underline cursor-pointer"
+                >
+                  Central de Ajuda & FAQ
+                </a>
+              </li>
             </ul>
           </div>
 

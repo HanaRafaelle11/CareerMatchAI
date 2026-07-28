@@ -288,7 +288,7 @@ export function useResumes(userId: string | undefined) {
                 storage_path: filePath,
                 file_name: file.name,
                 file_url: publicUrl,
-                raw_text: rawText || null,
+                raw_text: (rawText && rawText !== '__binary_upload__') ? rawText : null,
                 is_primary: true
               })
               .select()

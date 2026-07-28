@@ -637,19 +637,87 @@ serve(async (req) => {
 
     // 3. Extrair texto usando a biblioteca local (unpdf/mammoth)
     console.log(`[EDGE FUNCTION] Extraindo texto...`)
-    let textResult;
+    let text = '';
+    let pageCount = 1;
     try {
-      textResult = await ResumeParserService.extractText(fileData, contentType, storagePath);
+      const textResult = await ResumeParserService.extractText(fileData, contentType, storagePath);
+      text = textResult.text || '';
+      pageCount = textResult.pageCount || 1;
     } catch (extractErr) {
-      await logProcessingStep(supabaseClient, resumeVersionId, 'extracting_text', 'failed', extractErr.message, {}, userId);
-      throw extractErr;
+      console.warn(`[EDGE FUNCTION] Extração local unpdf/mammoth falhou (${extractErr.message}). Tentando fallback Gemini Vision OCR...`);
     }
 
-    const { text, pageCount } = textResult;
-
-    // Validar se o arquivo é um PDF escaneado (sem texto legível)
+    // ALTERNATIVA 1 (FALLBACK MULTIMODAL GEMINI 1.5):
+    // Se o PDF/imagem for escaneado (sem camada vetorial legível < 100 caracteres)
     if (!text || text.trim().length < 100) {
+      console.log(`[EDGE FUNCTION] Arquivo sem camada de texto vetorial (escaneado/foto). Ativando Gemini 1.5 Vision OCR Fallback...`);
+      try {
+        const arrayBuffer = await fileData.arrayBuffer();
+        const bytes = new Uint8Array(arrayBuffer);
+        // Base64 encode manual/compatível
+        let binary = '';
+        const len = bytes.byteLength;
+        for (let i = 0; i < len; i++) {
+          binary += String.fromCharCode(bytes[i]);
+        }
+        const base64Data = btoa(binary);
+
+        const geminiApiKey = Deno.env.get('GEMINI_API_KEY');
+        if (geminiApiKey) {
+          const mimeType = contentType.includes('pdf') || storagePath.endsWith('.pdf') ? 'application/pdf' :
+                           contentType.includes('word') || storagePath.endsWith('.docx') ? 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' :
+                           contentType || 'application/pdf';
+
+          const visionResponse = await fetch(
+            `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${geminiApiKey}`,
+            {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                contents: [{
+                  parts: [
+                    { inlineData: { mimeType, data: base64Data } },
+                    { text: "Este arquivo é um currículo escaneado, fotografado ou em formato de imagem. Faça a leitura visual completa (OCR) e transcreva todo o texto visível do currículo na íntegra em português." }
+                  ]
+                }]
+              })
+            }
+          );
+
+          if (visionResponse.ok) {
+            const visionData = await visionResponse.json();
+            const extractedVisionText = visionData.candidates?.[0]?.content?.parts?.[0]?.text;
+            if (extractedVisionText && extractedVisionText.trim().length >= 50) {
+              console.log(`[GEMINI VISION OCR SUCCESS] OCR multimodal recuperou ${extractedVisionText.length} caracteres de texto do documento escaneado!`);
+              text = cleanString(extractedVisionText.trim());
+              await logApplicationEvent(supabaseClient, userId, 'ocr_vision_fallback_success', 'Parser', 'completed', { fileName, textLength: text.length });
+            }
+          } else {
+            console.warn(`[GEMINI VISION OCR FAIL] API respondeu com status ${visionResponse.status}`);
+          }
+        }
+      } catch (visionErr: any) {
+        console.error(`[EDGE FUNCTION] Gemini Vision OCR Fallback falhou:`, visionErr.message);
+      }
+    }
+
+    // Validar se após todas as tentativas (local + Gemini Vision) o arquivo continua sem texto
+    if (!text || text.trim().length < 50) {
       await logProcessingStep(supabaseClient, resumeVersionId, 'extracting_text', 'failed', "Não conseguimos extrair texto automaticamente.", {}, userId);
+      
+      // Registrar falha crítica na tabela application_errors (Item 6)
+      if (supabaseClient && userId) {
+        try {
+          await supabaseClient.from('application_errors').insert({
+            user_id: userId,
+            component: 'Parser/OCR',
+            error_code: 'PARSING_FAILED',
+            message: "Não conseguimos extrair texto automaticamente (PDF escaneado/ilegível).",
+            metadata: { fileName, storagePath, resumeVersionId }
+          });
+        } catch (_) {}
+      }
+
       throw new Error("Não conseguimos extrair texto automaticamente.");
     }
 
@@ -848,6 +916,27 @@ serve(async (req) => {
       }
     }
 
+    // Tentar gravar erro crítico em application_errors para visibilidade total no Admin Dashboard — Item 6
+    if (supabaseClient && userIdGlobal) {
+      try {
+        await supabaseClient.from('application_errors').insert({
+          user_id: userIdGlobal,
+          component: 'Parser/EdgeFunction',
+          error_code: code,
+          message: error.message || userMessage,
+          stack: error.stack || null,
+          metadata: {
+            resumeVersionId: resumeVersionIdGlobal,
+            fileName: fileNameGlobal,
+            code,
+            userMessage
+          }
+        });
+      } catch (logErr) {
+        console.error(`[EDGE FUNCTION] Erro ao gravar em application_errors:`, logErr);
+      }
+    }
+
     // Tentar atualizar o status para 'failed'
     if (resumeVersionIdGlobal && supabaseClient) {
       try {
@@ -856,7 +945,7 @@ serve(async (req) => {
           .update({ status: 'failed' })
           .eq('id', resumeVersionIdGlobal);
       } catch (dbErr) {
-        console.error(`[EDGE FUNCTION] Erro ao marcar falha no banco:`, dbErr)
+        console.error(`[EDGE FUNCTION] Erro ao marcar falha no banco:`, dbErr);
       }
     }
 

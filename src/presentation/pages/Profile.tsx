@@ -378,7 +378,9 @@ export function Profile({
     setErrorMsg(null);
     setUploadSuccess(false);
     if (e.target.files && e.target.files[0]) {
-      await processFile(e.target.files[0]);
+      const selectedFile = e.target.files[0];
+      e.target.value = '';
+      await processFile(selectedFile);
     }
   };
 
@@ -428,7 +430,7 @@ export function Profile({
       setErrorMsg(new AppError({
         code: 'RESUME_UPLOAD_INVALID',
         title: 'Não conseguimos ler esse arquivo',
-        message: `Tipo de arquivo "${fileExtension}" não é permitido. Envie apenas PDF, DOCX ou TXT.`,
+        message: `Tipo de arquivo "${fileExtension}" não é permitido. Envie apenas PDF, DOC, DOCX ou TXT.`,
         severity: 'warning',
         retryable: false,
         action: 'Enviar novo currículo'
@@ -437,12 +439,12 @@ export function Profile({
     }
 
     // 4. Validação de tipo MIME
-    const allowedTypes = ['application/pdf', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 'text/plain'];
-    if (!allowedTypes.includes(file.type) && !file.name.endsWith('.pdf') && !file.name.endsWith('.docx') && !file.name.endsWith('.txt')) {
+    const allowedTypes = ['application/pdf', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 'text/plain'];
+    if (!allowedTypes.includes(file.type) && !file.name.endsWith('.pdf') && !file.name.endsWith('.doc') && !file.name.endsWith('.docx') && !file.name.endsWith('.txt')) {
       setErrorMsg(new AppError({
         code: 'RESUME_UPLOAD_INVALID',
         title: 'Não conseguimos ler esse arquivo',
-        message: 'Apenas arquivos PDF, DOCX ou TXT com até 10MB são suportados.',
+        message: 'Apenas arquivos PDF, DOC, DOCX ou TXT com até 10MB são suportados.',
         severity: 'warning',
         retryable: false,
         action: 'Enviar novo currículo'
@@ -482,15 +484,15 @@ export function Profile({
         setErrorMsg(new AppError({
           code: 'RESUME_UPLOAD_INVALID',
           title: 'Não conseguimos ler esse arquivo',
-          message: 'Para analisar arquivos PDF/DOCX, conecte o Supabase nas configurações. Como alternativa, salve seu currículo como .TXT e faça o upload.',
+          message: 'Para analisar arquivos PDF/DOC/DOCX, conecte o Supabase nas configurações. Como alternativa, salve seu currículo como .TXT e faça o upload.',
           severity: 'warning',
           retryable: false,
           action: 'Enviar novo currículo'
         }));
         return;
       } else {
-        // PDF/DOCX com Supabase: envia o arquivo binário; a Edge Function fará a extração
-        rawText = '__binary_upload__';
+        // PDF/DOCX com Supabase: o backend (Edge Function) fará a extração visual/texto
+        rawText = '';
       }
 
       await onUploadResume(file, rawText);
@@ -625,7 +627,7 @@ export function Profile({
                   ref={fileInputRef}
                   type="file"
                   className="hidden"
-                  accept=".pdf,.docx,.txt"
+                  accept=".pdf,.doc,.docx,.txt"
                   onChange={handleFileChange}
                 />
                 <div className="flex flex-col items-center gap-3">

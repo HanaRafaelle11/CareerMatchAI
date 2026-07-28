@@ -16,15 +16,7 @@ interface AdminDashboardProps {
   userId: string | undefined;
 }
 
-// Mock inicial para quando a conexão com Supabase estiver em fallback/offline
-const defaultMockUsers = [
-  { id: 'usr-1', full_name: 'Hana Rafaelle', email: 'hana@vocentro.com', role: 'administrador', headline: 'CEO | Founder', created_at: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString() },
-  { id: 'usr-2', full_name: 'Carlos Estevão', email: 'carlos@vocentro.com', role: 'suporte', headline: 'Customer Experience Lead', created_at: new Date(Date.now() - 25 * 24 * 60 * 60 * 1000).toISOString() },
-  { id: 'usr-3', full_name: 'Mariana Costa', email: 'mariana@vocentro.com', role: 'financeiro', headline: 'Financial Controller', created_at: new Date(Date.now() - 20 * 24 * 60 * 60 * 1000).toISOString() },
-  { id: 'usr-4', full_name: 'Davi Silva', email: 'davi@vocentro.com', role: 'somente_leitura', headline: 'Product Manager', created_at: new Date(Date.now() - 15 * 24 * 60 * 60 * 1000).toISOString() },
-  { id: 'usr-5', full_name: 'Thiago Oliveira', email: 'thiago@gmail.com', role: 'user', headline: 'React Frontend Developer', created_at: new Date(Date.now() - 10 * 24 * 60 * 60 * 1000).toISOString() },
-  { id: 'usr-6', full_name: 'Juliana Melo', email: 'juliana@yahoo.com', role: 'user', headline: 'Customer Success Analyst', created_at: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString() }
-];
+
 
 
 
@@ -140,19 +132,30 @@ export function AdminDashboard({ userId }: AdminDashboardProps) {
   const hasUsersAccess = ['administrador', 'suporte', 'somente_leitura'].includes(currentUserRole);
   const canEditRoles = isSuperAdmin;
 
-  // ── 2. BUSCAR TODOS OS USUÁRIOS/PERFIS DO SISTEMA ──
+  // ── 2. BUSCAR TODOS OS USUÁRIOS/PERFIS DO SISTEMA (Item 3 — RBAC Limpeza de Contas de Teste) ──
   const { data: users = [], isLoading: isLoadingUsers, refetch: refetchUsers } = useQuery({
     queryKey: ['admin-users-list'],
     queryFn: async () => {
       if (!isSupabaseConfigured || !supabase) {
-        return defaultMockUsers;
+        return [];
       }
       const { data, error } = await supabase
         .from('profiles')
-        .select('id, full_name, email, headline, role, created_at, updated_at')
+        .select('id, full_name, email, headline, role, created_at, updated_at, is_test_account')
         .order('created_at', { ascending: false });
       if (error) throw error;
-      return data.map((d: any) => ({
+      
+      // Filtrar apenas usuários humanos reais (Item 3 — Exclui contas fake, seed, mock e E2E)
+      const realUsers = (data || []).filter((d: any) => {
+        if (d.is_test_account === true) return false;
+        const email = (d.email || '').toLowerCase();
+        const name = (d.full_name || '').toLowerCase();
+        const isSynthetic = /example\.com|e2e|hardening|candidato\.e2e|user\.[a-z]\.|seed|mock|fake|dummy|test_user/i.test(email) ||
+                            /teste|e2e|hardening|mock|seed|fake|dummy/i.test(name);
+        return !isSynthetic;
+      });
+
+      return realUsers.map((d: any) => ({
         id: d.id,
         full_name: d.full_name,
         email: d.email,
@@ -1472,8 +1475,9 @@ export function AdminDashboard({ userId }: AdminDashboardProps) {
 
             <div className="space-y-2 max-h-[360px] overflow-y-auto pr-1">
               {jobFeedbacks.length === 0 ? (
-                <div className="py-8 text-center text-xs text-slate-500 border border-dashed border-slate-800 rounded-xl">
-                  Nenhuma rejeição com motivo registrada ainda.
+                <div className="py-8 text-center text-xs text-slate-400 border border-dashed border-slate-800 rounded-xl space-y-1.5 p-4">
+                  <p className="font-semibold text-slate-200">Nenhuma vaga foi rejeitada pelos usuários até o momento.</p>
+                  <p className="text-[11px] text-slate-500">Quando os candidatos selecionarem "Não é para mim", as vagas rejeitadas e os motivos detalhados serão registrados em tempo real nesta tela.</p>
                 </div>
               ) : (
                 jobFeedbacks.map((fb: any, idx: number) => {

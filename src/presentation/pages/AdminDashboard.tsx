@@ -108,6 +108,7 @@ export function AdminDashboard({ userId }: AdminDashboardProps) {
   const [inspectedResume, setInspectedResume] = useState<any | null>(null);
   const [analyticsTimeframe, setAnalyticsTimeframe] = useState<'7d' | '30d' | 'all'>('7d');
   const [funnelDateFilter, setFunnelDateFilter] = useState<'7d' | '30d' | 'all'>('all');
+  const [logSearchQuery, setLogSearchQuery] = useState('');
 
   // Exibir feedback temporário na tela (Toast)
   const showToast = (message: string, type: 'success' | 'error' | 'warning' = 'success') => {
@@ -163,24 +164,67 @@ export function AdminDashboard({ userId }: AdminDashboardProps) {
     enabled: hasUsersAccess
   });
 
-  // Busca de currículos anexados ao usuário selecionado para inspeção admin
+  // Busca de currículos e tentativas de upload (mesmo que falharam) do usuário selecionado — Item 1
   const { data: userResumes = [], isLoading: isLoadingUserResumes } = useQuery({
     queryKey: ['admin-user-resumes', selectedUser?.id],
     queryFn: async () => {
       if (!selectedUser?.id) return [];
       if (isSupabaseConfigured && supabase) {
         try {
-          const { data } = await supabase
-            .from('resumes')
-            .select('*')
-            .eq('user_id', selectedUser.id);
-          if (data && data.length > 0) return data;
-        } catch (_) {}
+          const [resumesRes, versionsRes, logsRes] = await Promise.all([
+            supabase.from('resumes').select('*').eq('user_id', selectedUser.id),
+            supabase.from('resume_versions').select('*').eq('user_id', selectedUser.id).order('created_at', { ascending: false }),
+            supabase.from('resume_processing_logs').select('*').eq('user_id', selectedUser.id).order('created_at', { ascending: false })
+          ]);
+
+          const resumes = resumesRes.data || [];
+          const versions = versionsRes.data || [];
+          const logs = logsRes.data || [];
+
+          if (versions.length > 0) {
+            return versions.map((v: any) => {
+              const matchingResume = resumes.find((r: any) => r.id === v.id || r.user_id === v.user_id);
+              const versionLogs = logs.filter((l: any) => l.resume_version_id === v.id);
+              const failedLog = versionLogs.find((l: any) => l.status === 'failed' || l.status === 'error' || l.step === 'failed');
+
+              return {
+                id: v.id,
+                file_name: v.file_name || 'Curriculo.pdf',
+                file_url: v.file_url,
+                created_at: v.created_at,
+                status: v.status || (failedLog ? 'failed' : 'completed'),
+                is_primary: matchingResume?.is_primary ?? true,
+                raw_text: matchingResume?.raw_text || matchingResume?.extracted_text || null,
+                error_message: failedLog?.error_message || failedLog?.message || (v.status === 'failed' ? 'Não conseguimos extrair texto automaticamente.' : null),
+                logs: versionLogs
+              };
+            });
+          }
+
+          if (logs.length > 0) {
+            const uploadLogs = logs.filter((l: any) => l.step === 'uploaded');
+            if (uploadLogs.length > 0) {
+              return uploadLogs.map((u: any) => {
+                const failedLog = logs.find((l: any) => l.resume_version_id === u.resume_version_id && (l.status === 'failed' || l.status === 'error' || l.step === 'failed'));
+                return {
+                  id: u.resume_version_id || u.id,
+                  file_name: u.metadata?.fileName || u.metadata?.file_name || 'Curriculo.pdf',
+                  created_at: u.created_at,
+                  status: failedLog ? 'failed' : u.status || 'completed',
+                  is_primary: true,
+                  error_message: failedLog?.error_message || failedLog?.message || null,
+                  logs: logs.filter((l: any) => l.resume_version_id === u.resume_version_id)
+                };
+              });
+            }
+          }
+
+          if (resumes.length > 0) return resumes;
+        } catch (e) {
+          console.error('Error fetching user resumes:', e);
+        }
       }
-      try {
-        const stored = JSON.parse(localStorage.getItem('vocentro_resumes') || '[]');
-        return stored.filter((r: any) => r.userId === selectedUser.id || r.user_id === selectedUser.id);
-      } catch (_) { return []; }
+      return [];
     },
     enabled: !!selectedUser?.id
   });
@@ -286,27 +330,26 @@ export function AdminDashboard({ userId }: AdminDashboardProps) {
     refetchInterval: 10000 // auto-refresh a cada 10 segundos
   });
 
-  // ── 5b. FEEDBACK DE VAGAS REJEITADAS (Item 8) ──
+  // ── 5b. FEEDBACK DE VAGAS REJEITADAS COM TITULO DA VAGA (Item 4) ──
   const { data: jobFeedbacks = [] } = useQuery({
     queryKey: ['admin-job-feedbacks'],
     queryFn: async () => {
       if (!isSupabaseConfigured || !supabase) return [];
       const { data, error } = await supabase
         .from('job_feedback')
-        .select('*, profiles!job_feedback_user_id_fkey(full_name, email)')
+        .select('*, profiles!job_feedback_user_id_fkey(full_name, email), jobs(title, company_name)')
         .eq('action', 'REJECTED')
         .not('reason', 'is', null)
         .order('created_at', { ascending: false })
-        .limit(50);
+        .limit(60);
       if (error) {
-        // fallback sem join
         const { data: fallback } = await supabase
           .from('job_feedback')
-          .select('*')
+          .select('*, profiles!job_feedback_user_id_fkey(full_name, email)')
           .eq('action', 'REJECTED')
           .not('reason', 'is', null)
           .order('created_at', { ascending: false })
-          .limit(50);
+          .limit(60);
         return fallback || [];
       }
       return data || [];
@@ -314,20 +357,113 @@ export function AdminDashboard({ userId }: AdminDashboardProps) {
     enabled: hasTelemetryAccess
   });
 
-  // ── 5c. HISTÓRICO DE AÇÕES DO USUÁRIO SELECIONADO (Item 5) ──
+  // ── 5c. TRILHA COMPLETA DE AÇÕES DO USUÁRIO SELECIONADO (Item 1 & Item 5) ──
   const { data: userActivityLog = [] } = useQuery({
     queryKey: ['admin-user-activity', selectedUser?.id],
     queryFn: async () => {
       if (!selectedUser?.id || !isSupabaseConfigured || !supabase) return [];
-      const { data, error } = await supabase
-        .from('analytics_events')
-        .select('id, event_name, category, metadata, created_at')
-        .eq('user_id', selectedUser.id)
-        .not('event_name', 'in', '(cache_hit,cache_miss,provider_started,provider_finished,provider_skipped,provider_failed)')
-        .order('created_at', { ascending: false })
-        .limit(60);
-      if (error) return [];
-      return data || [];
+
+      const [eventsRes, logsRes, feedbackRes, errorsRes] = await Promise.all([
+        supabase.from('analytics_events').select('*').eq('user_id', selectedUser.id).order('created_at', { ascending: false }).limit(100),
+        supabase.from('resume_processing_logs').select('*').eq('user_id', selectedUser.id).order('created_at', { ascending: false }).limit(50),
+        supabase.from('job_feedback').select('*, jobs(title, company_name)').eq('user_id', selectedUser.id).order('created_at', { ascending: false }),
+        supabase.from('application_errors').select('*').eq('user_id', selectedUser.id).order('created_at', { ascending: false })
+      ]);
+
+      const items: any[] = [];
+
+      // Analytics events
+      (eventsRes.data || []).forEach((e: any) => {
+        if (['cache_hit', 'cache_miss', 'provider_started', 'provider_finished', 'provider_skipped', 'provider_failed'].includes(e.event_name)) {
+          if (e.event_name === 'cache_miss' && e.metadata?.queryKey) {
+            const queryTerm = e.metadata.queryKey.split('|')[1] || e.metadata.queryKey;
+            items.push({
+              id: e.id,
+              created_at: e.created_at,
+              type: 'search',
+              title: `Pesquisou por vagas de "${queryTerm}"`,
+              details: `Dispositivo: ${e.device || 'Mobile'} / ${e.browser || 'Navegador'}`
+            });
+          }
+          return;
+        }
+
+        let title = `Ação: ${e.event_name}`;
+        if (e.event_name === 'career_score_viewed') title = `Visualizou Diagnóstico Career Score (${e.metadata?.score || 0} pts)`;
+        if (e.event_name === 'career_dashboard_opened') title = 'Acessou o Painel Principal de Carreira';
+        if (e.event_name === 'resume_parsed') title = 'Parsing inicial do currículo realizado';
+        if (e.event_name === 'resume_uploaded') title = 'Fez upload de um arquivo de currículo';
+        if (e.event_name === 'resume_optimized') title = 'Gerou otimização de currículo com IA';
+        if (e.event_name === 'match_generated' || e.event_name === 'job_match_viewed') title = 'Calculou/visualizou compatibilidade com vaga';
+        if (e.event_name === 'interview_started') title = 'Iniciou simulação de entrevista STAR';
+        if (e.event_name === 'interview_finished') title = 'Concluiu simulação de entrevista STAR';
+        if (e.event_name === 'coach_message') title = 'Enviou mensagem ao Coach IA';
+        if (e.event_name === 'user_registered' || e.event_name === 'signup_completed') title = 'Criou conta na plataforma';
+        if (e.event_name === 'login') title = 'Fez login no sistema';
+
+        items.push({
+          id: e.id,
+          created_at: e.created_at,
+          type: e.category || 'event',
+          title,
+          details: e.metadata && Object.keys(e.metadata).length > 0 ? JSON.stringify(e.metadata).slice(0, 100) : null
+        });
+      });
+
+      // Resume processing logs (inclusive erros de extração)
+      (logsRes.data || []).forEach((l: any) => {
+        if (l.step === 'uploaded') {
+          items.push({
+            id: l.id,
+            created_at: l.created_at,
+            type: 'upload',
+            title: `Upload de arquivo de currículo "${l.metadata?.fileName || 'Curriculo.pdf'}"`,
+            details: `Status do arquivo: ${l.status}`
+          });
+        } else if (l.status === 'failed' || l.status === 'error' || l.step === 'failed') {
+          items.push({
+            id: l.id,
+            created_at: l.created_at,
+            type: 'error',
+            title: `🔴 Falha no processamento (Etapa: ${l.step}): ${l.error_message || l.message || 'Não conseguimos extrair texto automaticamente.'}`,
+            details: `Arquivo: ${l.metadata?.fileName || 'Curriculo.pdf'}`
+          });
+        } else if (l.step === 'save_completed') {
+          items.push({
+            id: l.id,
+            created_at: l.created_at,
+            type: 'success',
+            title: '🟢 Processamento concluído com sucesso e gravado no banco de dados',
+            details: null
+          });
+        }
+      });
+
+      // Job feedback
+      (feedbackRes.data || []).forEach((f: any) => {
+        const jobLabel = f.jobs ? `${f.jobs.company_name || ''} - ${f.jobs.title || ''}` : `Vaga ID ${f.job_id?.slice(0, 8)}`;
+        items.push({
+          id: f.id,
+          created_at: f.created_at,
+          type: 'feedback',
+          title: f.action === 'REJECTED' ? `👎 Rejeitou vaga (${jobLabel}): "${f.reason || 'Sem motivo'}"` : `⭐ Interagiu com vaga (${jobLabel})`,
+          details: f.reason ? `Motivo de rejeição: ${f.reason}` : null
+        });
+      });
+
+      // Application errors
+      (errorsRes.data || []).forEach((err: any) => {
+        items.push({
+          id: err.id,
+          created_at: err.created_at,
+          type: 'error',
+          title: `🔴 Erro de sistema [${err.component || 'App'}]: ${err.message || err.error_code}`,
+          details: null
+        });
+      });
+
+      items.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+      return items;
     },
     enabled: !!selectedUser?.id
   });
@@ -368,22 +504,54 @@ export function AdminDashboard({ userId }: AdminDashboardProps) {
     enabled: hasTelemetryAccess
   });
 
-  // ── 6. BUSCAR TELEMETRIA DE ERROS DE PRODUÇÃO ──
+  // ── 6. BUSCAR TELEMETRIA DE ERROS DE PRODUÇÃO (Item 2 — Combina application_errors + resume_processing_logs) ──
   const { data: _systemErrors = [], refetch: refetchTelemetry } = useQuery({
     queryKey: ['admin-telemetry-errors'],
     queryFn: async () => {
-      if (!isSupabaseConfigured || !supabase) {
-        return [
-          { id: 'err-1', created_at: new Date().toISOString(), component: 'Gemini API', error_code: 'AI_TIMEOUT', message: 'Gemini demorou mais do que 15000ms para responder.', resolved: false }
-        ];
-      }
-      const { data, error } = await supabase
-        .from('application_errors')
-        .select('*, profiles(full_name)')
-        .order('created_at', { ascending: false })
-        .limit(40);
-      if (error) throw error;
-      return data;
+      if (!isSupabaseConfigured || !supabase) return [];
+      
+      const [appErrorsRes, logErrorsRes] = await Promise.all([
+        supabase
+          .from('application_errors')
+          .select('*, profiles(full_name, email)')
+          .order('created_at', { ascending: false })
+          .limit(50),
+        supabase
+          .from('resume_processing_logs')
+          .select('*, profiles!resume_processing_logs_user_id_fkey(full_name, email)')
+          .or('status.eq.failed,status.eq.error,step.eq.failed')
+          .order('created_at', { ascending: false })
+          .limit(50)
+      ]);
+
+      const items: any[] = [];
+
+      (appErrorsRes.data || []).forEach((e: any) => {
+        items.push({
+          id: e.id,
+          created_at: e.created_at,
+          component: e.component || 'App System',
+          error_code: e.error_code || 'APP_ERROR',
+          message: e.message || 'Erro inesperado na aplicação.',
+          profiles: e.profiles || null,
+          user_id: e.user_id
+        });
+      });
+
+      (logErrorsRes.data || []).forEach((l: any) => {
+        items.push({
+          id: l.id,
+          created_at: l.created_at,
+          component: `OCR/Parsing (Etapa: ${l.step})`,
+          error_code: 'PARSING_FAILED',
+          message: l.error_message || l.message || 'Não conseguimos extrair texto automaticamente.',
+          profiles: l.profiles || null,
+          user_id: l.user_id
+        });
+      });
+
+      items.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+      return items;
     },
     enabled: hasTelemetryAccess
   });
@@ -1266,109 +1434,180 @@ export function AdminDashboard({ userId }: AdminDashboardProps) {
             </div>
           </CardGlass>
 
-          {/* FEEDBACK DE VAGAS REJEITADAS — Item 8 */}
+          {/* FEEDBACK DE VAGAS REJEITADAS — Item 4 */}
           <CardGlass className="p-5 space-y-4">
-            <div className="flex justify-between items-center pb-2 border-b border-slate-900">
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 pb-2 border-b border-slate-900">
               <div>
                 <h3 className="text-sm font-bold text-white uppercase tracking-wider flex items-center gap-2">
                   <AlertCircle size={16} className="text-amber-400" />
                   Feedback: Vagas Rejeitadas pelos Usuários
                 </h3>
-                <p className="text-xs text-slate-400 mt-0.5">Vagas que usuários marcaram como "não é pra mim" com motivo escrito.</p>
+                <p className="text-xs text-slate-400 mt-0.5">Vagas que usuários marcaram como "não é pra mim" com o motivo escrito na íntegra.</p>
               </div>
-              <span className="text-[10px] font-bold text-slate-500 bg-slate-900 px-2 py-1 rounded-lg border border-slate-800">
-                {jobFeedbacks.length} registro(s)
+              <span className="text-[10px] font-bold text-slate-400 bg-slate-900 px-3 py-1.5 rounded-lg border border-slate-800">
+                {jobFeedbacks.length} rejeição(ões) registrada(s)
               </span>
             </div>
-            <div className="space-y-2 max-h-[320px] overflow-y-auto pr-1">
+
+            {/* Agrupamento Resumido por Motivo — Item 4 */}
+            {jobFeedbacks.length > 0 && (
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 pt-1 text-xs">
+                {['seniority_mismatch', 'skill_gap', 'location', 'other'].map((mKey) => {
+                  const count = jobFeedbacks.filter((f: any) => f.reason === mKey || (mKey === 'other' && f.reason && !['seniority_mismatch', 'skill_gap', 'location'].includes(f.reason))).length;
+                  const labelMap: Record<string, string> = {
+                    seniority_mismatch: 'Senioridade incompatível',
+                    skill_gap: 'Habilidades requeridas',
+                    location: 'Localização',
+                    other: 'Outro motivo'
+                  };
+                  return (
+                    <div key={mKey} className="p-2.5 rounded-xl bg-slate-900/60 border border-slate-800">
+                      <span className="text-[10px] text-slate-400 font-bold uppercase block">{labelMap[mKey]}</span>
+                      <span className="text-lg font-bold text-amber-400">{count}</span>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+
+            <div className="space-y-2 max-h-[360px] overflow-y-auto pr-1">
               {jobFeedbacks.length === 0 ? (
                 <div className="py-8 text-center text-xs text-slate-500 border border-dashed border-slate-800 rounded-xl">
                   Nenhuma rejeição com motivo registrada ainda.
                 </div>
               ) : (
-                jobFeedbacks.map((fb: any, idx: number) => (
-                  <div key={fb.id || idx} className="p-3.5 rounded-xl bg-slate-950/60 border border-slate-900 space-y-1.5 text-xs">
-                    <div className="flex justify-between items-center">
-                      <span className="font-bold text-slate-200">
-                        {fb.profiles?.full_name || fb.user_id?.slice(0,8) || 'Usuário'}
-                        {fb.profiles?.email && <span className="ml-1.5 text-slate-500 font-mono text-[10px]">({fb.profiles.email})</span>}
-                      </span>
-                      <span className="text-[10px] text-slate-500 font-mono">
-                        {fb.created_at ? new Date(fb.created_at).toLocaleDateString('pt-BR') : 'Recente'}
-                      </span>
+                jobFeedbacks.map((fb: any, idx: number) => {
+                  const userName = fb.profiles?.full_name || 'Usuário';
+                  const userEmail = fb.profiles?.email || fb.user_id?.slice(0, 8);
+                  const jobTitle = fb.jobs ? `${fb.jobs.company_name || 'Empresa'} — ${fb.jobs.title || 'Vaga'}` : `Vaga ID ${fb.job_id?.slice(0, 12)}...`;
+
+                  return (
+                    <div key={fb.id || idx} className="p-4 rounded-xl bg-slate-950/60 border border-slate-900 space-y-2 text-xs">
+                      <div className="flex justify-between items-start">
+                        <div>
+                          <span className="font-bold text-slate-100 text-sm block">{userName}</span>
+                          <span className="text-[10px] text-slate-400 font-mono">{userEmail}</span>
+                        </div>
+                        <span className="text-[10px] text-slate-500 font-mono">
+                          {fb.created_at ? new Date(fb.created_at).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' }) : 'Recente'}
+                        </span>
+                      </div>
+
+                      <div className="p-2.5 rounded-lg bg-slate-900/80 border border-slate-800 space-y-1">
+                        <span className="text-[10px] text-brand-400 font-bold block uppercase tracking-wider">Vaga Rejeitada:</span>
+                        <span className="font-semibold text-slate-200 block text-xs">{jobTitle}</span>
+                      </div>
+
+                      <div className="flex items-start gap-2 pt-0.5">
+                        <span className="px-2 py-1 rounded bg-amber-500/10 text-amber-400 text-[10px] font-bold border border-amber-500/20 shrink-0 uppercase">
+                          Motivo:
+                        </span>
+                        <p className="text-slate-300 font-sans text-xs italic leading-relaxed pt-0.5">
+                          "{fb.reason || 'Motivo não informado'}"
+                        </p>
+                      </div>
                     </div>
-                    <div className="flex items-center gap-2">
-                      <span className="px-2 py-0.5 rounded bg-amber-500/10 text-amber-400 text-[10px] font-bold border border-amber-500/20 uppercase">
-                        {fb.reason || 'Motivo não informado'}
-                      </span>
-                      {fb.job_id && (
-                        <span className="text-slate-500 text-[10px] font-mono">vaga: {String(fb.job_id).slice(0,12)}...</span>
-                      )}
-                    </div>
-                  </div>
-                ))
+                  );
+                })
               )}
             </div>
           </CardGlass>
         </div>
       )}
 
-      {/* MÓDULO: LOGS DE ERROS — Item 6 */}
+      {/* MÓDULO: LOGS DE ERROS DE PRODUÇÃO COM CAMPO DE BUSCA — Item 3 */}
       {activeSubTab === 'logs' && hasTelemetryAccess && (
         <div className="space-y-6 animate-fade-in font-sans">
           <CardGlass className="p-5 space-y-4">
-            <div className="flex justify-between items-center pb-2 border-b border-slate-900">
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 pb-2 border-b border-slate-900">
               <div>
                 <h3 className="text-sm font-bold text-white uppercase tracking-wider flex items-center gap-2">
                   <AlertCircle size={16} className="text-red-400" />
                   Logs de Erros de Produção
                 </h3>
-                <p className="text-xs text-slate-400 mt-0.5">Erros registrados na tabela application_errors, ordenados por data.</p>
+                <p className="text-xs text-slate-400 mt-0.5">Erros de sistema e falhas de extração OCR/parsing de todos os usuários.</p>
+              </div>
+
+              {/* Campo de Busca de Logs — Item 3 */}
+              <div className="relative w-full sm:w-72">
+                <Search size={14} className="absolute left-3 top-3 text-slate-500" />
+                <input
+                  type="text"
+                  placeholder="Buscar por usuário, e-mail, erro..."
+                  value={logSearchQuery}
+                  onChange={(e) => setLogSearchQuery(e.target.value)}
+                  className="w-full pl-9 pr-4 py-2 rounded-xl bg-slate-955 border border-slate-800 focus:border-brand-500 outline-none text-xs text-slate-200"
+                />
               </div>
             </div>
+
             <div className="space-y-3">
-              {_systemErrors.length === 0 ? (
-                <div className="text-center py-12 text-slate-500 text-xs border border-dashed border-slate-900 rounded-xl">
-                  Nenhum erro registrado em produção.
-                </div>
-              ) : (
-                <div className="overflow-x-auto rounded-xl border border-slate-900 bg-slate-955/20">
-                  <table className="w-full border-collapse text-left text-xs text-slate-400">
-                    <thead>
-                      <tr className="border-b border-slate-900 bg-slate-950/60 font-semibold text-slate-300">
-                        <th className="p-3">Data / Hora</th>
-                        <th className="p-3">Componente</th>
-                        <th className="p-3">Código</th>
-                        <th className="p-3">Mensagem</th>
-                        <th className="p-3">Usuário</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-slate-900">
-                      {_systemErrors.map((err: any, idx: number) => (
-                        <tr key={err.id || idx} className="hover:bg-slate-900/20">
-                          <td className="p-3 font-mono text-[11px] text-slate-400">
-                            {err.created_at ? new Date(err.created_at).toLocaleString('pt-BR') : 'Agora'}
-                          </td>
-                          <td className="p-3">
-                            <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-amber-500/10 text-amber-400 border border-amber-500/20">
-                              {err.component || 'Sistema'}
-                            </span>
-                          </td>
-                          <td className="p-3 font-mono text-[11px] text-red-400 font-bold">
-                            {err.error_code || 'ERROR'}
-                          </td>
-                          <td className="p-3 text-slate-200 font-mono text-[11px] max-w-md truncate" title={err.message}>
-                            {err.message || 'Sem mensagem'}
-                          </td>
-                          <td className="p-3 text-slate-400 font-mono text-[11px]">
-                            {err.profiles?.full_name || err.user_id?.slice(0, 8) || 'Sistema / Anônimo'}
-                          </td>
+              {(() => {
+                const filtered = _systemErrors.filter((err: any) => {
+                  if (!logSearchQuery) return true;
+                  const q = logSearchQuery.toLowerCase();
+                  const userName = (err.profiles?.full_name || '').toLowerCase();
+                  const userEmail = (err.profiles?.email || '').toLowerCase();
+                  const msg = (err.message || '').toLowerCase();
+                  const code = (err.error_code || '').toLowerCase();
+                  const comp = (err.component || '').toLowerCase();
+                  return userName.includes(q) || userEmail.includes(q) || msg.includes(q) || code.includes(q) || comp.includes(q);
+                });
+
+                if (filtered.length === 0) {
+                  return (
+                    <div className="text-center py-12 text-slate-500 text-xs border border-dashed border-slate-900 rounded-xl">
+                      {logSearchQuery ? `Nenhum erro encontrado para "${logSearchQuery}".` : 'Nenhum erro registrado em produção.'}
+                    </div>
+                  );
+                }
+
+                return (
+                  <div className="overflow-x-auto rounded-xl border border-slate-900 bg-slate-955/20">
+                    <table className="w-full border-collapse text-left text-xs text-slate-400">
+                      <thead>
+                        <tr className="border-b border-slate-900 bg-slate-950/60 font-semibold text-slate-300">
+                          <th className="p-3">Data / Hora</th>
+                          <th className="p-3">Componente / Etapa</th>
+                          <th className="p-3">Código</th>
+                          <th className="p-3">Mensagem do Erro</th>
+                          <th className="p-3">Usuário Afetado</th>
                         </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              )}
+                      </thead>
+                      <tbody className="divide-y divide-slate-900">
+                        {filtered.map((err: any, idx: number) => (
+                          <tr key={err.id || idx} className="hover:bg-slate-900/20">
+                            <td className="p-3 font-mono text-[11px] text-slate-400 shrink-0">
+                              {err.created_at ? new Date(err.created_at).toLocaleString('pt-BR') : 'Agora'}
+                            </td>
+                            <td className="p-3">
+                              <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-amber-500/10 text-amber-400 border border-amber-500/20">
+                                {err.component || 'Sistema'}
+                              </span>
+                            </td>
+                            <td className="p-3 font-mono text-[11px] text-red-400 font-bold">
+                              {err.error_code || 'ERROR'}
+                            </td>
+                            <td className="p-3 text-slate-200 font-mono text-[11px] max-w-md truncate" title={err.message}>
+                              {err.message || 'Sem mensagem'}
+                            </td>
+                            <td className="p-3 text-slate-300 font-semibold text-[11px]">
+                              {err.profiles?.full_name ? (
+                                <div>
+                                  <span className="block font-bold text-slate-200">{err.profiles.full_name}</span>
+                                  <span className="block text-[10px] text-slate-500 font-mono">{err.profiles.email}</span>
+                                </div>
+                              ) : (
+                                <span className="font-mono text-slate-500">{err.user_id ? `ID: ${err.user_id.slice(0, 8)}...` : 'Sistema / Anônimo'}</span>
+                              )}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                );
+              })()}
             </div>
           </CardGlass>
         </div>
@@ -1835,11 +2074,11 @@ export function AdminDashboard({ userId }: AdminDashboardProps) {
               </div>
             </div>
 
-            {/* Seção de Currículos Anexados com Auditoria (Fase 2) */}
+            {/* Seção de Currículos e Tentativas de Upload — Item 1 */}
             <div className="space-y-4 border-t border-slate-800 pt-4">
               <h4 className="font-bold text-sm text-white flex items-center gap-2">
                 <FileText size={16} className="text-brand-400" />
-                Currículos Anexados pelo Candidato
+                Currículos & Tentativas de Upload ({userResumes.length})
               </h4>
 
               {isLoadingUserResumes ? (
@@ -1849,103 +2088,140 @@ export function AdminDashboard({ userId }: AdminDashboardProps) {
                 </div>
               ) : userResumes.length === 0 ? (
                 <div className="p-4 rounded-xl border border-dashed border-slate-800 text-center text-slate-400 text-xs italic">
-                  Nenhum currículo cadastrado para este candidato.
+                  Nenhuma tentativa de upload registrada para este candidato.
                 </div>
               ) : (
                 <div className="space-y-3">
-                  {userResumes.map((res: any, idx: number) => (
-                    <div key={res.id || idx} className="p-4 rounded-xl bg-slate-900/80 border border-slate-800 space-y-3">
-                      <div className="flex justify-between items-start">
-                        <div>
-                          <span className="font-bold text-sm text-slate-100 block">{res.file_name || res.fileName || 'Curriculo.pdf'}</span>
-                          <span className="text-[10px] text-slate-400 font-mono">
-                            Cadastrado em {res.created_at ? new Date(res.created_at).toLocaleDateString('pt-BR') : 'Data recente'} • {res.is_primary ? 'Ativo Padrão' : 'Secundário'}
-                          </span>
+                  {userResumes.map((res: any, idx: number) => {
+                    const isFailed = res.status === 'failed' || res.status === 'error';
+                    return (
+                      <div key={res.id || idx} className="p-4 rounded-xl bg-slate-900/80 border border-slate-800 space-y-3">
+                        <div className="flex justify-between items-start gap-3">
+                          <div>
+                            <div className="flex items-center gap-2">
+                              <span className="font-bold text-sm text-slate-100">{res.file_name || res.fileName || 'Curriculo.pdf'}</span>
+                              <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase border ${
+                                isFailed ? 'bg-red-500/10 text-red-400 border-red-500/30' : 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30'
+                              }`}>
+                                {isFailed ? '🔴 Falhou' : '🟢 Processado'}
+                              </span>
+                            </div>
+                            <span className="text-[10px] text-slate-400 font-mono block mt-1">
+                              Enviado em {res.created_at ? new Date(res.created_at).toLocaleString('pt-BR') : 'Recente'}
+                            </span>
+                          </div>
+                          
+                          <div className="flex gap-2">
+                            {res.raw_text && (
+                              <button
+                                onClick={async () => {
+                                  await AdminAuditService.logAccess({
+                                    adminId: userId || 'admin',
+                                    targetUserId: selectedUser.id,
+                                    action: 'view_resume',
+                                    details: `Visualizou texto: ${res.file_name || 'Curriculo.pdf'}`
+                                  });
+                                  setInspectedResume(res);
+                                }}
+                                className="px-3 py-1.5 rounded-lg bg-blue-500/10 border border-blue-500/30 text-blue-400 hover:bg-blue-500/20 text-xs font-bold transition cursor-pointer"
+                              >
+                                👁 Visualizar Texto
+                              </button>
+                            )}
+                            {res.file_url && (
+                              <a
+                                href={res.file_url}
+                                target="_blank"
+                                rel="noreferrer"
+                                onClick={async () => {
+                                  await AdminAuditService.logAccess({
+                                    adminId: userId || 'admin',
+                                    targetUserId: selectedUser.id,
+                                    action: 'download_resume',
+                                    details: `Acessou arquivo PDF: ${res.file_name || 'Curriculo.pdf'}`
+                                  });
+                                }}
+                                className="px-3 py-1.5 rounded-lg bg-brand-600 hover:bg-brand-500 text-white text-xs font-bold transition cursor-pointer inline-flex items-center gap-1"
+                              >
+                                📥 Abrir PDF
+                              </a>
+                            )}
+                          </div>
                         </div>
-                        <div className="flex gap-2">
-                          <button
-                            onClick={async () => {
-                              await AdminAuditService.logAccess({
-                                adminId: userId || 'admin',
-                                targetUserId: selectedUser.id,
-                                action: 'view_resume',
-                                details: `Visualizou currículo: ${res.file_name || res.fileName || 'Curriculo.pdf'}`
-                              });
-                              setInspectedResume(res);
-                            }}
-                            className="px-3 py-1.5 rounded-lg bg-blue-500/10 border border-blue-500/30 text-blue-400 hover:bg-blue-500/20 text-xs font-bold transition cursor-pointer"
-                          >
-                            👁 Visualizar Texto
-                          </button>
-                          <button
-                            onClick={async () => {
-                              await AdminAuditService.logAccess({
-                                adminId: userId || 'admin',
-                                targetUserId: selectedUser.id,
-                                action: 'download_resume',
-                                details: `Baixou currículo: ${res.file_name || res.fileName || 'Curriculo.pdf'}`
-                              });
-                              // Item 3: campo real é raw_text (diagnóstico confirmou)
-                              const text = res.raw_text || res.rawText || res.extracted_text || res.extractedText || 'Texto não disponível para este currículo.';
-                              const blob = new Blob([text], { type: 'text/plain;charset=utf-8' });
-                              const url = URL.createObjectURL(blob);
-                              const a = document.createElement('a');
-                              a.href = url;
-                              a.download = `${selectedUser.full_name || 'Candidato'}_Curriculo.txt`;
-                              document.body.appendChild(a);
-                              a.click();
-                              a.remove();
-                              showToast('✓ Acesso registrado em log de auditoria e arquivo baixado com sucesso.', 'success');
-                            }}
-                            className="px-3 py-1.5 rounded-lg bg-brand-600 hover:bg-brand-500 text-white text-xs font-bold transition cursor-pointer"
-                          >
-                            📥 Baixar Arquivo
-                          </button>
-                        </div>
-                      </div>
 
-                      {/* Exibição do Texto Extraído no Inspetor — Item 3 */}
-                      {inspectedResume?.id === res.id && (
-                        <div className="p-3.5 rounded-xl bg-slate-950 border border-slate-800 space-y-2 text-xs animate-fade-in">
-                          <span className="font-bold text-slate-300 block border-b border-slate-900 pb-1">Texto Bruto Extraído (raw_text):</span>
-                          <p className="text-slate-400 font-mono text-[11px] max-h-60 overflow-y-auto whitespace-pre-wrap leading-relaxed">
-                            {res.raw_text || res.rawText || res.extracted_text || res.extractedText || 'Nenhum texto extraído disponível para este currículo.'}
-                          </p>
-                        </div>
-                      )}
-                    </div>
-                  ))}
+                        {/* Exibição Clara do Erro na Tentativa de Upload — Item 1 */}
+                        {isFailed && res.error_message && (
+                          <div className="p-3 rounded-lg bg-red-950/40 border border-red-500/30 text-xs space-y-1">
+                            <span className="font-bold text-red-400 block text-[11px]">Mensagem do Erro de Processamento:</span>
+                            <p className="text-red-200 font-mono text-[11px] leading-relaxed">
+                              {res.error_message}
+                            </p>
+                          </div>
+                        )}
+
+                        {/* Visualizador de Texto Extraído */}
+                        {inspectedResume?.id === res.id && (
+                          <div className="p-3.5 rounded-xl bg-slate-950 border border-slate-800 space-y-2 text-xs animate-fade-in">
+                            <span className="font-bold text-slate-300 block border-b border-slate-900 pb-1">Texto Bruto Extraído:</span>
+                            <p className="text-slate-400 font-mono text-[11px] max-h-60 overflow-y-auto whitespace-pre-wrap leading-relaxed">
+                              {res.raw_text || 'Nenhum texto extraído disponível para este currículo.'}
+                            </p>
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
                 </div>
               )}
             </div>
 
-            {/* HISTÓRICO DE AÇÕES DO USUÁRIO — Item 5 */}
+            {/* TRILHA COMPLETA DE AÇÕES DO USUÁRIO — Item 1 & Item 5 */}
             <div className="space-y-3 border-t border-slate-800 pt-4">
-              <h4 className="font-bold text-sm text-white flex items-center gap-2">
-                <Activity size={16} className="text-emerald-400" />
-                Histórico de Ações ({userActivityLog.length} eventos)
-              </h4>
+              <div className="flex justify-between items-center">
+                <h4 className="font-bold text-sm text-white flex items-center gap-2">
+                  <Activity size={16} className="text-emerald-400" />
+                  Trilha Completa de Ações do Candidato ({userActivityLog.length} eventos)
+                </h4>
+                <span className="text-[10px] text-slate-400 font-mono">Linha do tempo cronológica</span>
+              </div>
+
               {userActivityLog.length === 0 ? (
                 <div className="p-4 rounded-xl border border-dashed border-slate-800 text-center text-slate-400 text-xs italic">
-                  Nenhuma ação registrada para este usuário.
+                  Nenhuma ação registrada na linha do tempo deste usuário.
                 </div>
               ) : (
-                <div className="space-y-2 max-h-[300px] overflow-y-auto pr-1">
-                  {userActivityLog.map((evt: any, idx: number) => (
-                    <div key={evt.id || idx} className="p-2.5 rounded-lg bg-slate-900/60 border border-slate-800 flex justify-between items-center text-xs">
-                      <div>
-                        <span className="font-semibold text-slate-200 block">{getEventMsg({ ...evt, profiles: { full_name: selectedUser.full_name, email: selectedUser.email } })}</span>
-                        {evt.metadata && Object.keys(evt.metadata).length > 0 && (
-                          <span className="text-[10px] text-slate-500 font-mono">
-                            {JSON.stringify(evt.metadata).slice(0, 80)}
+                <div className="space-y-2 max-h-[350px] overflow-y-auto pr-1">
+                  {userActivityLog.map((item: any, idx: number) => {
+                    const isErr = item.type === 'error';
+                    const isFeedback = item.type === 'feedback';
+                    const isSearch = item.type === 'search';
+
+                    return (
+                      <div 
+                        key={item.id || idx} 
+                        className={`p-3 rounded-xl border space-y-1 text-xs transition-all ${
+                          isErr ? 'bg-red-950/20 border-red-500/30' :
+                          isFeedback ? 'bg-amber-950/20 border-amber-500/30' :
+                          isSearch ? 'bg-blue-950/20 border-blue-500/30' :
+                          'bg-slate-900/60 border-slate-800'
+                        }`}
+                      >
+                        <div className="flex justify-between items-start">
+                          <span className={`font-semibold ${isErr ? 'text-red-300' : isFeedback ? 'text-amber-300' : 'text-slate-200'}`}>
+                            {item.title}
                           </span>
+                          <span className="text-[10px] text-slate-500 font-mono shrink-0 ml-2">
+                            {new Date(item.created_at).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}
+                          </span>
+                        </div>
+                        {item.details && (
+                          <p className="text-[11px] text-slate-400 font-mono bg-slate-950/40 p-1.5 rounded border border-slate-900 truncate" title={item.details}>
+                            {item.details}
+                          </p>
                         )}
                       </div>
-                      <span className="text-[10px] text-slate-500 font-mono shrink-0 ml-3">
-                        {new Date(evt.created_at).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}
-                      </span>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               )}
             </div>

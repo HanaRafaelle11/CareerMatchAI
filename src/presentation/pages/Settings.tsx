@@ -6,6 +6,7 @@ import { isSupabaseConfigured, supabase } from '../../infrastructure/api/supabas
 import { localDB } from '../../infrastructure/storage/localDatabase';
 import type { Profile, Resume } from '../../domain/models/types';
 import type { CareerProfileNew } from '../../application/hooks/useMyProfileAi';
+import { PLAN_PRICING } from '../../domain/config/pricing';
 import { 
   User, FileText, Settings as SettingsIcon, Bell, 
   Palette, ShieldAlert, CreditCard, Trash2, Download, Check,
@@ -76,7 +77,7 @@ export function Settings({
     billingHistory.push({
       dateStr: invoiceDate.toLocaleDateString('pt-BR'),
       plan: 'Premium Copilot - Mensal',
-      price: 'R$ 49,90'
+      price: PLAN_PRICING.proMonthlyFormatted
     });
     // Add 1 month
     invoiceDate = new Date(invoiceDate.getFullYear(), invoiceDate.getMonth() + 1, invoiceDay);
@@ -86,7 +87,7 @@ export function Settings({
     billingHistory.push({
       dateStr: new Date().toLocaleDateString('pt-BR'),
       plan: 'Premium Copilot - Mensal',
-      price: 'R$ 49,90'
+      price: PLAN_PRICING.proMonthlyFormatted
     });
   }
   
@@ -714,7 +715,7 @@ export function Settings({
                   <button
                     type="button"
                     onClick={handleResetPassword}
-                    className="px-5 py-2.5 rounded-xl bg-slate-100 dark:bg-slate-850 hover:bg-slate-200 dark:hover:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 text-xs font-bold transition-all cursor-pointer"
+                    className="px-5 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-100 dark:bg-slate-800 dark:hover:bg-slate-700 dark:text-white light:bg-slate-100 light:text-slate-900 border border-slate-700 light:border-slate-300 text-xs font-bold transition-all cursor-pointer shadow-xs"
                   >
                     Redefinir Senha
                   </button>
@@ -1058,7 +1059,8 @@ export function Settings({
                   <button
                     type="button"
                     onClick={handleExportData}
-                    className="px-4 py-2.5 rounded-xl bg-slate-100 dark:bg-slate-850 hover:bg-slate-200 dark:hover:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 text-xs font-bold transition-all border flex items-center gap-1.5 cursor-pointer"
+                    title="Exporta um arquivo no formato JSON contendo todos os seus currículos, histórico de análises e preferências gravadas."
+                    className="px-4 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-white dark:bg-slate-800 dark:hover:bg-slate-700 dark:text-white light:bg-slate-100 light:text-slate-900 border border-slate-700 light:border-slate-300 text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer shadow-xs"
                   >
                     <Download size={14} />
                     Exportar Meus Dados (JSON)

@@ -569,35 +569,13 @@ export function CoachDashboard({
                                 </div>
                               </div>
 
-                              {/* Cost Metrics */}
-                              <div className="flex items-center justify-between text-[9px] text-slate-500 border-t border-slate-900 pt-3">
-                                <span>Tokens de Execução: <strong className="text-slate-400">{(evaluations.tokens_used || simulation.tokens_used || 0).toLocaleString()} tokens</strong></span>
-                                <span>Custo Estimado da IA: <strong className="text-slate-450">USD ${(evaluations.estimated_cost || simulation.estimated_cost || 0).toFixed(4)}</strong></span>
-                              </div>
-
                               {/* Action Buttons */}
-                              <div className="flex gap-3 pt-2">
+                              <div className="flex gap-3 pt-4">
                                 <button
                                   onClick={handleRestartSim}
                                   className="flex-1 py-2.5 rounded-xl border border-slate-800 hover:bg-slate-900 text-slate-350 font-bold text-xs transition-all cursor-pointer"
                                 >
                                   Treinar Novamente
-                                </button>
-                                <button
-                                  onClick={() => {
-                                    const jsonString = `data:text/json;charset=utf-8,${encodeURIComponent(
-                                      JSON.stringify(simulation, null, 2)
-                                    )}`;
-                                    const downloadAnchor = document.createElement('a');
-                                    downloadAnchor.setAttribute('href', jsonString);
-                                    downloadAnchor.setAttribute('download', `feedback_entrevista_${simulation.id}.json`);
-                                    document.body.appendChild(downloadAnchor);
-                                    downloadAnchor.click();
-                                    downloadAnchor.remove();
-                                  }}
-                                  className="flex-1 py-2.5 bg-slate-900 hover:bg-slate-850 border border-slate-800 rounded-xl text-slate-300 font-bold text-xs transition-all cursor-pointer"
-                                >
-                                  Exportar JSON
                                 </button>
                                 <button
                                   onClick={handleExportSimulationPDF}
@@ -742,13 +720,18 @@ export function CoachDashboard({
                               type="button"
                               disabled={isSending}
                               onClick={async () => {
+                                const userMsgs = simulation.chatHistory ? simulation.chatHistory.filter((m: any) => m.role === 'candidate' || m.role === 'user') : [];
+                                if (!userMsgs || userMsgs.length === 0) {
+                                  alert('Nenhuma resposta foi registrada. Envie ao menos uma resposta no chat antes de encerrar.');
+                                  return;
+                                }
                                 const confirm = window.confirm("Deseja realmente encerrar a simulação e gerar seu relatório de avaliação com base nas respostas fornecidas até agora?");
                                 if (!confirm) return;
                                 setIsSending(true);
                                 try {
                                   await finalizeSimulation({ sim: simulation });
                                 } catch (err: any) {
-                                  alert("Erro ao encerrar a simulação: " + err.message);
+                                  alert("Erro ao encerrar a simulação: " + (err.message || String(err)));
                                 } finally {
                                   setIsSending(false);
                                 }

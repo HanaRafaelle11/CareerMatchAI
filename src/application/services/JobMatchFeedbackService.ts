@@ -101,6 +101,8 @@ export class JobMatchFeedbackService {
             }
             if (r && rejectionReasons[r] !== undefined) {
               rejectionReasons[r]++;
+            } else if (r === 'negative' || (r && r !== 'positive')) {
+              rejectionReasons.other++;
             }
           });
           return {
@@ -123,6 +125,8 @@ export class JobMatchFeedbackService {
         if (item.feedbackType === 'negative') negativeCount++;
         if (item.reason && rejectionReasons[item.reason] !== undefined) {
           rejectionReasons[item.reason]++;
+        } else if (item.feedbackType === 'negative') {
+          rejectionReasons.other++;
         }
       });
       return {
@@ -133,6 +137,37 @@ export class JobMatchFeedbackService {
       };
     } catch (_) {
       return { positiveCount: 0, negativeCount: 0, totalCount: 0, rejectionReasons };
+    }
+  }
+
+  /**
+   * Traz histórico detalhado de rastreabilidade de avaliações por usuário para o Admin
+   */
+  static async getEvaluationsTraceability(): Promise<any[]> {
+    if (isSupabaseConfigured && supabase) {
+      try {
+        const { data } = await supabase
+          .from('job_feedback')
+          .select('*, profiles(full_name, email), jobs(title, company_name)')
+          .order('created_at', { ascending: false })
+          .limit(50);
+        if (data && data.length > 0) return data;
+      } catch (_) {}
+    }
+
+    try {
+      const stored: JobMatchFeedbackRecord[] = JSON.parse(localStorage.getItem('vocentro_job_match_feedback') || '[]');
+      return stored.map(item => ({
+        id: item.id,
+        created_at: item.createdAt,
+        user_id: item.userId || 'usr-beta',
+        reason: item.reason || 'other',
+        feedback_type: item.feedbackType,
+        profiles: { full_name: 'Usuário Beta', email: 'beta@vocentro.com.br' },
+        jobs: { title: 'Vaga Avaliada', company_name: 'Empresa' }
+      }));
+    } catch (_) {
+      return [];
     }
   }
 }

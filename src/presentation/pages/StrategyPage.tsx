@@ -186,6 +186,9 @@ export function StrategyPage({
   // Rejection Modal State
   const [rejectingApp, setRejectingApp] = useState<Application | null>(null);
 
+  // Strategy Job Details Modal State
+  const [viewingStrategyJob, setViewingStrategyJob] = useState<Job | null>(null);
+
   // Company Intelligence states
   const [showCompanyForm, setShowCompanyForm] = useState(false);
   const [companyName, setCompanyName] = useState('');
@@ -760,6 +763,69 @@ export function StrategyPage({
         </div>
       )}
 
+      {/* Modal de Descrição Completa da Vaga (Prioridades ROI) */}
+      {viewingStrategyJob && (
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-md z-50 flex items-center justify-center p-4">
+          <CardGlass className="w-full max-w-2xl max-h-[85vh] overflow-y-auto rounded-2xl p-6 space-y-6 relative border border-slate-800 bg-[#121927] text-white shadow-2xl">
+            <button
+              onClick={() => setViewingStrategyJob(null)}
+              className="absolute top-4 right-4 text-slate-400 hover:text-white p-1 rounded-lg hover:bg-slate-800 cursor-pointer"
+            >
+              <X size={18} />
+            </button>
+
+            <div className="space-y-2 border-b border-slate-800 pb-4">
+              <span className="text-[10px] px-2 py-0.5 rounded bg-blue-500/10 text-blue-400 font-extrabold uppercase tracking-wider">
+                {viewingStrategyJob.workMode === 'remote' ? 'Remoto' : viewingStrategyJob.workMode === 'hybrid' ? 'Híbrido' : 'Presencial'} • {viewingStrategyJob.seniority}
+              </span>
+              <h3 className="font-display font-bold text-xl text-white">{viewingStrategyJob.title}</h3>
+              <p className="text-xs text-slate-400 font-medium">{viewingStrategyJob.companyName} — {viewingStrategyJob.location}</p>
+            </div>
+
+            <div className="space-y-4 text-xs text-slate-300 leading-relaxed font-sans">
+              <div>
+                <h4 className="font-bold text-white uppercase tracking-wider text-[11px] mb-1">Descrição Completa</h4>
+                <p className="whitespace-pre-wrap">{viewingStrategyJob.description}</p>
+              </div>
+
+              {viewingStrategyJob.requirements && viewingStrategyJob.requirements.length > 0 && (
+                <div>
+                  <h4 className="font-bold text-white uppercase tracking-wider text-[11px] mb-2">Requisitos Exigidos</h4>
+                  <div className="flex flex-wrap gap-1.5">
+                    {viewingStrategyJob.requirements.map((req, i) => (
+                      <span key={i} className="px-2.5 py-1 rounded-lg bg-slate-900 border border-slate-800 text-[10px] text-slate-200 font-semibold">
+                        {req}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+
+            <div className="pt-4 border-t border-slate-800 flex justify-end gap-3">
+              {onStartSimulation && (
+                <button
+                  onClick={() => {
+                    const j = viewingStrategyJob;
+                    setViewingStrategyJob(null);
+                    onStartSimulation(j);
+                  }}
+                  className="px-4 py-2 rounded-xl bg-brand-500/10 hover:bg-brand-500/20 border border-brand-500/30 text-brand-400 font-bold text-xs flex items-center gap-1.5 cursor-pointer"
+                >
+                  🎤 Simular Entrevista
+                </button>
+              )}
+              <button
+                onClick={() => setViewingStrategyJob(null)}
+                className="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-white font-bold text-xs cursor-pointer"
+              >
+                Fechar
+              </button>
+            </div>
+          </CardGlass>
+        </div>
+      )}
+
       {/* ==========================================
           SUB TAB 1: PRIORITIES CPI & ROI
           ========================================== */}
@@ -804,8 +870,8 @@ export function StrategyPage({
                   onDragStart={(e) => e.dataTransfer.setData('text/plain', (rec.job as any).id)}
                 >
                   <div className="flex justify-between items-start gap-2">
-                    <div>
-                      <h4 className="font-bold text-sm text-slate-900 dark:text-slate-100 truncate max-w-[150px]">{rec.job.title}</h4>
+                    <div className="cursor-pointer group" onClick={() => setViewingStrategyJob(rec.job as Job)}>
+                      <h4 className="font-bold text-sm text-slate-900 dark:text-slate-100 group-hover:text-brand-500 transition-colors truncate max-w-[150px]">{rec.job.title}</h4>
                       <span className="text-xs text-slate-500 dark:text-slate-400 font-medium block mt-0.5">{rec.job.companyName}</span>
                     </div>
                     <div className="flex flex-col items-end gap-1">
@@ -918,8 +984,8 @@ export function StrategyPage({
                   onDragStart={(e) => e.dataTransfer.setData('text/plain', (rec.job as any).id)}
                 >
                   <div className="flex justify-between items-start gap-2">
-                    <div>
-                      <h4 className="font-bold text-sm text-slate-900 dark:text-slate-100 truncate max-w-[150px]">{rec.job.title}</h4>
+                    <div className="cursor-pointer group" onClick={() => setViewingStrategyJob(rec.job as Job)}>
+                      <h4 className="font-bold text-sm text-slate-900 dark:text-slate-100 group-hover:text-brand-500 transition-colors truncate max-w-[150px]">{rec.job.title}</h4>
                       <span className="text-xs text-slate-700 dark:text-slate-400 font-medium block mt-0.5">{rec.job.companyName}</span>
                     </div>
                     <div className="flex flex-col items-end gap-1">

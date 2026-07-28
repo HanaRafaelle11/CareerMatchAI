@@ -150,10 +150,12 @@ export function JobMatchHub({
   const [subTab, setSubTab] = useState<'my-jobs' | 'discover'>(initialSubTab || 'discover');
   
   useEffect(() => {
-    if (initialSubTab) {
-      setSubTab(initialSubTab);
+    const triggerDiscovery = localStorage.getItem('vocentro_trigger_discovery');
+    if (triggerDiscovery === 'true') {
+      setSubTab('discover');
+      localStorage.removeItem('vocentro_trigger_discovery');
     }
-  }, [initialSubTab]);
+  }, []);
 
   const [coachTab, setCoachTab] = useState<'coach-evaluation' | 'optimize-cv' | 'cover-letter' | 'interview-questions'>('coach-evaluation');
   const [isDeletingAnalyses, setIsDeletingAnalyses] = useState(false);
@@ -2098,30 +2100,30 @@ export function JobMatchHub({
                       </div>
                       
                       <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 shrink-0">
-                        {/* Secondary Score Card: Job Score */}
+                        {/* Secondary Score Card: Match Score Técnico */}
                         <div 
                           className="p-2.5 rounded-xl bg-slate-800/80 border border-slate-700 text-right space-y-0.5 relative group cursor-help"
-                          title="Job Score: Mede a qualidade da vaga considerando fonte, atualidade, empresa e confiabilidade do anúncio."
+                          title="Match Score Técnico: Avalia a aderência direta entre suas competências e os requisitos exigidos pela vaga."
                         >
                           <span className="text-[9px] uppercase font-bold text-slate-300 flex items-center gap-1 justify-end">
-                            🏢 Job Score
+                            ⚙️ Match Técnico
                           </span>
                           <span className="text-sm font-extrabold text-emerald-400 block">
                             {selectedJob?.scores?.overall ? `${selectedJob.scores.overall}%` : '92%'}
                           </span>
-                          <span className="text-[8px] text-slate-400 block">Qualidade da oportunidade no mercado</span>
+                          <span className="text-[8px] text-slate-400 block">Aderência técnica de habilidades</span>
                         </div>
 
-                        {/* Primary Score Circle: Career Fit Score */}
+                        {/* Primary Score Circle: Career Fit Score Holístico */}
                         <div 
                           className="flex items-center gap-3 bg-blue-950/40 p-2.5 rounded-2xl border border-blue-500/30 relative group cursor-help"
-                          title="Career Fit Score: Mede o alinhamento entre seu currículo, experiência, habilidades e objetivos profissionais."
+                          title="Career Fit Score Holístico: Combina match técnico com senioridade, pretensão salarial, localização e objetivo de carreira."
                         >
                           <div className="text-right">
                             <span className="text-[10px] uppercase font-bold text-blue-300 flex items-center gap-1 justify-end">
                               🎯 Career Fit Score
                             </span>
-                            <span className="text-xs text-slate-300 block">Quanto essa vaga combina com seu perfil</span>
+                            <span className="text-xs text-slate-300 block">Fit estratégico e de carreira</span>
                           </div>
                           <div className="w-14 h-14 rounded-full border-2 border-blue-400 bg-blue-500/20 flex items-center justify-center text-blue-300 font-extrabold text-base font-display shadow-lg shadow-blue-500/20">
                             {explanation ? `${explanation.careerFitScore}%` : '76%'}
@@ -2492,10 +2494,15 @@ export function JobMatchHub({
                         ].map((item) => (
                           <button
                             key={item.id}
-                            onClick={() => {
+                            onClick={async () => {
                               recordFeedback({ jobId: selectedJob.id, action: 'REJECTED', reason: item.id as JobFeedbackReason });
-                              updateApplicationStatus({ job: selectedJob, status: 'REJECTED' });
+                              await updateApplicationStatus({ job: selectedJob, status: 'REJECTED' });
+                              if (onDeleteJob && selectedJob) {
+                                onDeleteJob(selectedJob.id);
+                              }
+                              setSelectedJobId(null);
                               setRejectReasonModal(false);
+                              showToast('✓ Vaga rejeitada e removida do seu painel.', 'warning');
                             }}
                             className="w-full text-left p-3.5 rounded-xl bg-slate-900/90 border border-slate-800 hover:border-blue-500/50 hover:bg-slate-800 text-slate-100 font-medium transition cursor-pointer flex items-center justify-between min-w-0 gap-3"
                           >
@@ -3309,10 +3316,10 @@ export function JobMatchHub({
                   <ProcessingState 
                     title="🎯 Comparando seu perfil com os requisitos da vaga..." 
                     subtitle={showDelayWarning
-                      ? "Essa análise pode levar alguns segundos porque estamos comparando sua trajetória com inteligência artificial."
-                      : "Encontramos pontos fortes no seu perfil..."
+                      ? "Essa análise pode levar alguns segundos porque estamos comparando sua trajetória profissional."
+                      : "Identificando seus pontos fortes e competências técnicas..."
                     }
-                    expectedTime="Tempo esperado: ~12 segundos"
+                    expectedTime="Tempo estimado: alguns segundos"
                     steps={matchSteps}
                   />
                 ) : (
@@ -3379,9 +3386,35 @@ export function JobMatchHub({
           };
         });
 
+        const targetLoc = (activeFilters.location || '').toLowerCase().trim();
+        const targetModes = activeFilters.workModes || [];
+
         const scoredDiscoveredJobs = rawScored.filter(job => {
           if (filterActiveOnly && job.isActive === false) return false;
           if (filterScoreOver80 && job.scoreOverall < 80 && job.cpi < 80) return false;
+
+          // Filtragem estrita de Modelo de Trabalho
+          if (targetModes.length > 0) {
+            const jMode = (job.workMode || 'onsite').toLowerCase();
+            const titleLower = (job.title || '').toLowerCase();
+            const modeMatches = targetModes.some(m => {
+              if (m === 'remote') return jMode.includes('remot') || titleLower.includes('remot');
+              if (m === 'hybrid') return jMode.includes('hibrid') || jMode.includes('híbrid') || titleLower.includes('híbrid') || titleLower.includes('hibrid');
+              if (m === 'onsite') return jMode === 'onsite' || (!jMode.includes('remot') && !jMode.includes('hibrid'));
+              return false;
+            });
+            if (!modeMatches) return false;
+          }
+
+          // Filtragem estrita de Localidade
+          if (targetLoc && targetLoc !== 'brasil' && targetLoc !== 'remoto') {
+            const jLoc = (job.location || '').toLowerCase();
+            const cleanTarget = targetLoc.replace(', sp', '').replace(', rj', '').replace(', mg', '').trim();
+            if (!jLoc.includes(cleanTarget) && job.workMode !== 'remote') {
+              return false;
+            }
+          }
+
           return true;
         }).sort((a, b) => b.cpi - a.cpi);
 
@@ -3598,7 +3631,7 @@ export function JobMatchHub({
                 {isLoadingDiscovery ? (
                   <ProcessingState
                     title="🔎 Procurando oportunidades compatíveis..."
-                    subtitle="Consultando bases de dados do Adzuna e unificando vagas com IA."
+                    subtitle="Buscando e unificando as melhores oportunidades do mercado..."
                   />
                 ) : scoredDiscoveredJobs.length > 0 ? (
                   <div className="space-y-6">

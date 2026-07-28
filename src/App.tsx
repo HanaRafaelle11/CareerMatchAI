@@ -78,7 +78,7 @@ function App() {
   // Synchronize visual theme on mount and on 'theme-change' / preferences update
   useEffect(() => {
     const applyTheme = () => {
-      const savedTheme = preferences.theme || localStorage.getItem('theme') || 'dark';
+      const savedTheme = localStorage.getItem('theme') || preferences.theme || 'dark';
       if (savedTheme === 'light') {
         document.documentElement.classList.add('light');
         document.documentElement.classList.remove('dark');

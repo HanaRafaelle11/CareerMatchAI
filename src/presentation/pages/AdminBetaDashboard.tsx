@@ -70,6 +70,8 @@ export function AdminBetaDashboard() {
       const positivePercent = totalMatchFeedback > 0 ? Math.round((feedbackStats.positiveCount / totalMatchFeedback) * 100) : 0;
       const negativePercent = totalMatchFeedback > 0 ? Math.round((feedbackStats.negativeCount / totalMatchFeedback) * 100) : 0;
 
+      const traceabilityList = await JobMatchFeedbackService.getEvaluationsTraceability();
+
       return {
         usersCount,
         uploadedResumesCount,
@@ -84,7 +86,8 @@ export function AdminBetaDashboard() {
         positivePercent,
         negativePercent,
         feedbacks,
-        recentErrors
+        recentErrors,
+        traceabilityList
       };
     }
   });
@@ -273,6 +276,35 @@ export function AdminBetaDashboard() {
                           "{fb.comment}"
                         </p>
                       )}
+                    </div>
+                  ))
+                )}
+              </div>
+            </CardGlass>
+
+            {/* Rastreabilidade de Avaliações por Usuário */}
+            <CardGlass className="p-5 space-y-3 border border-slate-800">
+              <h3 className="font-bold text-xs uppercase tracking-wider text-slate-300 flex items-center gap-1.5">
+                <BarChart2 size={14} className="text-purple-400" />
+                Rastreabilidade de Avaliações por Usuário
+              </h3>
+              <div className="space-y-2 max-h-[220px] overflow-y-auto pr-1">
+                {!betaMetrics?.traceabilityList || betaMetrics.traceabilityList.length === 0 ? (
+                  <p className="text-xs text-slate-500 italic py-4 text-center">Nenhuma avaliação registrada.</p>
+                ) : (
+                  betaMetrics.traceabilityList.map((item: any, i: number) => (
+                    <div key={item.id || i} className="p-2.5 rounded-lg bg-slate-900/60 border border-slate-800 text-xs flex justify-between items-center gap-2">
+                      <div>
+                        <span className="font-bold text-slate-200 block text-[11px]">
+                          {item.profiles?.full_name || 'Usuário Beta'} ({item.profiles?.email || 'N/A'})
+                        </span>
+                        <span className="text-[10px] text-slate-400 block mt-0.5">
+                          Motivo: <strong className="text-amber-400 font-semibold">{item.reason || 'Não informado'}</strong>
+                        </span>
+                      </div>
+                      <span className="text-[9px] text-slate-500 font-mono shrink-0">
+                        {item.created_at ? new Date(item.created_at).toLocaleDateString('pt-BR') : 'Hoje'}
+                      </span>
                     </div>
                   ))
                 )}

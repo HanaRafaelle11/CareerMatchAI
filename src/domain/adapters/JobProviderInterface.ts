@@ -1,6 +1,7 @@
 import type { Job } from '../models/types';
 import type { JobSearchFilters } from './BaseJobConnector';
 import { extractSeniorityFromJob } from '../models/seniorityUtils';
+import { extractKeywordsFromText } from '../../application/utils/keywordExtractor';
 
 export interface NormalizedJobResult {
   id: string; // Prefixed identifier (e.g., 'adzuna_123', 'jooble_456', 'serp_789')
@@ -34,12 +35,16 @@ export interface JobProviderInterface {
 export function mapNormalizedToVocentroJob(
   normalized: NormalizedJobResult
 ): Omit<Job, 'id' | 'userId' | 'createdAt' | 'updatedAt'> {
+  const reqs = normalized.requirements && normalized.requirements.length > 0 && !normalized.requirements.includes('Geral')
+    ? normalized.requirements
+    : extractKeywordsFromText(normalized.description, normalized.title);
+
   return {
     companyId: normalized.company.toLowerCase().replace(/\s+/g, '_'),
     companyName: normalized.company || 'Empresa Confidencial',
     title: normalized.title,
     description: normalized.description,
-    requirements: normalized.requirements && normalized.requirements.length > 0 ? normalized.requirements : ['Geral'],
+    requirements: reqs,
     location: normalized.location || 'Brasil',
     workMode: normalized.workMode || 'onsite',
     seniority: extractSeniorityFromJob(normalized.title, normalized.description),

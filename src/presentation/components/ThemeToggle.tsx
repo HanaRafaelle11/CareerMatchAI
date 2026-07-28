@@ -19,12 +19,17 @@ export function ThemeToggle({ className = '' }: { className?: string }) {
   };
 
   useEffect(() => {
-    const savedTheme = localStorage.getItem('theme');
-    const systemPrefersLight = window.matchMedia('(prefers-color-scheme: light)').matches;
-    const isLightMode = savedTheme === 'light' || (!savedTheme && systemPrefersLight);
-    
-    setIsLight(isLightMode);
-    applyTheme(isLightMode);
+    const syncThemeState = () => {
+      const savedTheme = localStorage.getItem('theme');
+      const hasLightClass = document.documentElement.classList.contains('light');
+      const isLightMode = savedTheme === 'light' || hasLightClass;
+      setIsLight(isLightMode);
+      applyTheme(isLightMode);
+    };
+
+    syncThemeState();
+    window.addEventListener('theme-change', syncThemeState);
+    return () => window.removeEventListener('theme-change', syncThemeState);
   }, []);
 
   const toggleTheme = () => {

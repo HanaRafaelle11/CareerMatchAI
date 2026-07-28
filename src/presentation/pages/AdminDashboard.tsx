@@ -104,6 +104,7 @@ export function AdminDashboard({ userId }: AdminDashboardProps) {
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' | 'warning' } | null>(null);
   const [selectedUser, setSelectedUser] = useState<any | null>(null);
   const [userDetailTab, setUserDetailTab] = useState('profile');
+  const [isSyncingEvents, setIsSyncingEvents] = useState(false);
 
   // Exibir feedback temporário na tela (Toast)
   const showToast = (message: string, type: 'success' | 'error' | 'warning' = 'success') => {
@@ -1514,15 +1515,15 @@ export function AdminDashboard({ userId }: AdminDashboardProps) {
                     <button
                       onClick={() => setUserPage(p => Math.max(1, p - 1))}
                       disabled={userPage === 1}
-                      className="px-3 py-1.5 rounded-lg bg-slate-900 border border-slate-800 disabled:opacity-40 text-[10px] font-bold transition-all"
+                      className="px-3 py-1.5 rounded-lg bg-slate-800 border border-slate-700 text-slate-200 hover:text-white disabled:opacity-40 text-[10px] font-bold transition-all cursor-pointer"
                     >
                       Anterior
                     </button>
-                    <span className="py-1 px-2.5 bg-slate-955 border border-slate-900 rounded-lg text-slate-300 font-bold">{userPage} / {totalUserPages}</span>
+                    <span className="py-1 px-2.5 bg-slate-955 border border-slate-900 rounded-lg text-slate-200 font-bold">{userPage} / {totalUserPages}</span>
                     <button
                       onClick={() => setUserPage(p => Math.min(totalUserPages, p + 1))}
                       disabled={userPage === totalUserPages}
-                      className="px-3 py-1.5 rounded-lg bg-slate-900 border border-slate-800 disabled:opacity-40 text-[10px] font-bold transition-all"
+                      className="px-3 py-1.5 rounded-lg bg-slate-800 border border-slate-700 text-slate-200 hover:text-white disabled:opacity-40 text-[10px] font-bold transition-all cursor-pointer"
                     >
                       Próxima
                     </button>
@@ -1551,10 +1552,22 @@ export function AdminDashboard({ userId }: AdminDashboardProps) {
                 <p className="text-[10px] text-slate-550">Lista detalhada dos últimos 40 eventos processados pelo Analytics Event Engine.</p>
               </div>
               <button
-                onClick={() => refetchEvents()}
-                className="px-3 py-1.5 rounded-lg bg-slate-900 border border-slate-800 text-[10px] font-bold text-slate-300 flex items-center gap-1 transition-all"
+                disabled={isSyncingEvents}
+                onClick={async () => {
+                  setIsSyncingEvents(true);
+                  try {
+                    await refetchEvents();
+                    showToast('✓ Eventos analíticos sincronizados com sucesso.', 'success');
+                  } catch (err: any) {
+                    showToast('Erro ao sincronizar eventos: ' + (err.message || String(err)), 'error');
+                  } finally {
+                    setIsSyncingEvents(false);
+                  }
+                }}
+                className="px-3 py-1.5 rounded-lg bg-slate-800 border border-slate-700 text-[10px] font-bold text-slate-100 hover:text-white flex items-center gap-1.5 transition-all cursor-pointer disabled:opacity-50"
               >
-                <RefreshCw size={10} /> Sincronizar
+                <RefreshCw size={12} className={isSyncingEvents ? 'animate-spin text-brand-500' : ''} />
+                <span>{isSyncingEvents ? 'Sincronizando...' : 'Sincronizar'}</span>
               </button>
             </div>
 

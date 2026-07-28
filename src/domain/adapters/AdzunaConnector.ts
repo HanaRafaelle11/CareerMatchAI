@@ -1,6 +1,7 @@
 import type { Job } from '../models/types';
 import { BaseJobConnector, type JobSearchFilters } from './BaseJobConnector';
 import { isSupabaseConfigured, supabase } from '../../infrastructure/api/supabaseClient';
+import { extractKeywordsFromText } from '../../application/utils/keywordExtractor';
 
 export class AdzunaConnector extends BaseJobConnector {
   readonly platformName = 'Adzuna';
@@ -49,10 +50,21 @@ export class AdzunaConnector extends BaseJobConnector {
           const title = (result.title || '').replace(/<\/?[^>]+(>|$)/g, "");
           const description = (result.description || '').replace(/<\/?[^>]+(>|$)/g, "");
           
-          // Trust the aggregator's normalized fields, with client-side fallbacks
-          const workMode = result.workModeNormalized || result.workMode || 'onsite';
+          // Normalizar modalidade de trabalho
+          let workMode: 'remote' | 'hybrid' | 'onsite' = 'onsite';
+          const rawMode = (result.workModeNormalized || result.workMode || '').toLowerCase();
+          if (rawMode.includes('remot') || title.toLowerCase().includes('remot') || description.toLowerCase().includes('remot')) {
+            workMode = 'remote';
+          } else if (rawMode.includes('hibrid') || rawMode.includes('híbrid') || title.toLowerCase().includes('híbrid') || title.toLowerCase().includes('hibrid')) {
+            workMode = 'hybrid';
+          }
+
           const seniority = result.seniorityNormalized || result.seniority || 'pleno';
-          const requirements = result.requirementsNormalized || result.requirements || [];
+          const rawRequirements = result.requirementsNormalized || result.requirements || [];
+          const requirements = rawRequirements.length > 0 && !rawRequirements.includes('Geral')
+            ? rawRequirements 
+            : extractKeywordsFromText(description, title);
+
           const location = result.locationNormalized || 
             (typeof result.location === 'object' ? result.location?.display_name : result.location) || 'Brasil';
 
@@ -61,7 +73,7 @@ export class AdzunaConnector extends BaseJobConnector {
             companyName: result.companyNameNormalized || result.companyName || result.company?.display_name || 'Empresa Confidencial',
             title,
             description,
-            requirements: requirements.length > 0 ? requirements : ['Geral'],
+            requirements,
             location,
             workMode,
             seniority,

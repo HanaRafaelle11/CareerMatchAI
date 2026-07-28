@@ -194,6 +194,7 @@ export function Dashboard({
         {/* Discreet Action Button (+ Explorar vagas) */}
         <button
           onClick={() => {
+            localStorage.setItem('vocentro_trigger_discovery', 'true');
             setActiveTab('match');
             window.scrollTo({ top: 0, behavior: 'smooth' });
           }}
@@ -209,6 +210,7 @@ export function Dashboard({
         resume={resumes[0]}
         careerProfileNew={careerProfileNew}
         onExploreJobs={() => {
+          localStorage.setItem('vocentro_trigger_discovery', 'true');
           setActiveTab('match');
           window.scrollTo({ top: 0, behavior: 'smooth' });
         }}

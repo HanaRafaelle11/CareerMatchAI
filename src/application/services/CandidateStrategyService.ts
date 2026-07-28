@@ -156,11 +156,19 @@ export class CandidateStrategyService {
       minSalaryExpectation
     );
 
-    // Categorização por faixa de pontuação baseada no Match (scoreOverall)
+    // Categorização por faixa de pontuação baseada no Score Efetivo (Match técnico / CPI / CareerFit)
+    const effectiveScore = Math.max(
+      scoreOverall,
+      (job as any).scores?.overall || 0,
+      (job as any).scoreOverall || 0,
+      (job as any).careerFitScore || 0,
+      cpi
+    );
+
     let priority: StrategyRecommendation['priority'] = '📚 Baixa aderência';
-    if (scoreOverall >= 80) {
+    if (effectiveScore >= 75) {
       priority = '🔥 Aplicar hoje';
-    } else if (scoreOverall >= 50) {
+    } else if (effectiveScore >= 45) {
       priority = '⚡ Preparar antes de aplicar';
     }
 
@@ -177,7 +185,7 @@ export class CandidateStrategyService {
     });
 
     if (matchedReasons.length === 0) {
-      matchedReasons.push('Experiência geral em engenharia/gestão de valor');
+      matchedReasons.push('Experiência relevante com perfil compatível');
     }
 
     // Adiciona fit de empresa se houver
@@ -187,7 +195,9 @@ export class CandidateStrategyService {
 
     // Mapear alertas/gaps
     matchAnalysis.missingSkills.slice(0, 2).forEach(req => {
-      warnings.push(`${req} solicitado na vaga`);
+      if (req && req.toLowerCase() !== 'geral') {
+        warnings.push(`${req} solicitado na vaga`);
+      }
     });
 
     if (seniorityScore === 50 && activeProfile) {
@@ -196,18 +206,18 @@ export class CandidateStrategyService {
 
     return {
       job,
-      scoreOverall,
+      scoreOverall: Math.max(scoreOverall, effectiveScore),
       cpi,
       roi,
       priority,
       matchedReasons,
       warnings,
-      missingSkills: matchAnalysis.missingSkills
+      missingSkills: matchAnalysis.missingSkills.filter(s => s && s.toLowerCase() !== 'geral')
     };
   }
 
   /**
-   * Agrupa e ordena as vagas com base nas colunas CPI da raia Kanban
+   * Agrupa e ordena as vagas com base nas colunas CPI da raia Kanban (com deduplicação prévia)
    */
   static groupJobs(
     resume: Resume | null,
@@ -223,7 +233,17 @@ export class CandidateStrategyService {
 
     if (!resume) return result;
 
-    jobsList.forEach(job => {
+    // Deduplicação estrita por ID ou Título + Empresa
+    const seenKeys = new Set<string>();
+    const uniqueJobs = jobsList.filter(job => {
+      const jobId = (job as any).id;
+      const key = jobId ? `id-${jobId}` : `${(job.title || '').trim().toLowerCase()}_${(job.companyName || '').trim().toLowerCase()}`;
+      if (seenKeys.has(key)) return false;
+      seenKeys.add(key);
+      return true;
+    });
+
+    uniqueJobs.forEach(job => {
       const rec = this.calculateCPI(resume, job, profile, careerProfileNew);
       if (rec.priority === '🔥 Aplicar hoje') {
         result.hot.push(rec);

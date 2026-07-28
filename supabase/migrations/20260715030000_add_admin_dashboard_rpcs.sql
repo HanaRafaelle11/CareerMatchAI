@@ -50,45 +50,39 @@ BEGIN
      OR p.email ILIKE '%test%'
      OR p.email ILIKE '%hardening%';
   
-  -- 3. ETAPA CONCLUSIVA — APENAS USUÁRIOS REAIS
-  SELECT count(*) INTO v_total_uploads 
+  -- 3. ETAPA CONCLUSIVA DEDUPLICADA POR CURRÍCULO (COUNT DISTINCT resume_version_id) — APENAS USUÁRIOS REAIS
+  SELECT count(DISTINCT l.resume_version_id) INTO v_total_uploads 
   FROM public.resume_processing_logs l
   INNER JOIN public.profiles p ON p.id = l.user_id
   WHERE l.step = 'uploaded'
+    AND l.resume_version_id IS NOT NULL
     AND COALESCE(p.is_test_account, false) = false
     AND p.email NOT ILIKE '%example.com%'
     AND p.email NOT ILIKE '%test%'
     AND p.email NOT ILIKE '%hardening%';
 
-  SELECT count(*) INTO v_completed_pipeline 
+  SELECT count(DISTINCT l.resume_version_id) INTO v_completed_pipeline 
   FROM public.resume_processing_logs l
   INNER JOIN public.profiles p ON p.id = l.user_id
   WHERE l.step IN ('save_completed', 'completed') 
     AND l.status IN ('completed', 'success')
+    AND l.resume_version_id IS NOT NULL
     AND COALESCE(p.is_test_account, false) = false
     AND p.email NOT ILIKE '%example.com%'
     AND p.email NOT ILIKE '%test%'
     AND p.email NOT ILIKE '%hardening%';
 
-  SELECT count(*) INTO v_failed_pipeline 
+  SELECT count(DISTINCT l.resume_version_id) INTO v_failed_pipeline 
   FROM public.resume_processing_logs l
   INNER JOIN public.profiles p ON p.id = l.user_id
   WHERE (l.step = 'failed' OR l.status IN ('failed', 'error'))
+    AND l.resume_version_id IS NOT NULL
     AND COALESCE(p.is_test_account, false) = false
     AND p.email NOT ILIKE '%example.com%'
     AND p.email NOT ILIKE '%test%'
     AND p.email NOT ILIKE '%hardening%';
 
-  SELECT count(*) INTO v_running_pipeline 
-  FROM public.resume_processing_logs l
-  INNER JOIN public.profiles p ON p.id = l.user_id
-  WHERE l.status = 'running'
-    AND COALESCE(p.is_test_account, false) = false
-    AND p.email NOT ILIKE '%example.com%'
-    AND p.email NOT ILIKE '%test%'
-    AND p.email NOT ILIKE '%hardening%';
-
-  -- Taxa de sucesso real (usuários reais)
+  -- Taxa de sucesso real deduplicada (usuários reais)
   IF v_total_uploads > 0 THEN
     v_success_rate := round((v_completed_pipeline * 100.0) / nullif(v_total_uploads, 0), 1);
     IF v_success_rate > 100.0 THEN v_success_rate := 100.0; END IF;
@@ -108,7 +102,6 @@ BEGIN
       'total_uploads', v_total_uploads,
       'completed_pipeline', v_completed_pipeline,
       'failed_pipeline', v_failed_pipeline,
-      'running_pipeline', v_running_pipeline,
       'excluded_test_logs', v_excluded_test_logs
     )
   );

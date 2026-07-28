@@ -11,6 +11,12 @@ DECLARE
   v_avg_processing_time numeric;
   v_total_tokens bigint;
   v_success_rate numeric;
+  v_success_cnt bigint;
+  v_completed_cnt bigint;
+  v_running_cnt bigint;
+  v_failed_cnt bigint;
+  v_error_cnt bigint;
+  v_total_logs bigint;
 BEGIN
   -- Segurança: Apenas administradores podem executar esta função
   IF NOT public.check_user_role(ARRAY['administrador']) THEN
@@ -28,11 +34,17 @@ BEGIN
   SELECT COALESCE(sum(input_tokens + output_tokens), 0) INTO v_total_tokens 
   FROM public.ai_usage_logs;
   
-  SELECT COALESCE(
-    count(case when status = 'success' then 1 end) * 100.0 / nullif(count(*), 0),
+  SELECT count(*) INTO v_total_logs FROM public.resume_processing_logs;
+  SELECT count(case when status = 'success' then 1 end) INTO v_success_cnt FROM public.resume_processing_logs;
+  SELECT count(case when status = 'completed' then 1 end) INTO v_completed_cnt FROM public.resume_processing_logs;
+  SELECT count(case when status = 'running' then 1 end) INTO v_running_cnt FROM public.resume_processing_logs;
+  SELECT count(case when status = 'failed' then 1 end) INTO v_failed_cnt FROM public.resume_processing_logs;
+  SELECT count(case when status = 'error' then 1 end) INTO v_error_cnt FROM public.resume_processing_logs;
+
+  v_success_rate := COALESCE(
+    (v_success_cnt + v_completed_cnt) * 100.0 / nullif(v_total_logs, 0),
     100.0
-  ) INTO v_success_rate 
-  FROM public.resume_processing_logs;
+  );
 
   RETURN json_build_object(
     'users_count', v_users_count,
@@ -41,7 +53,15 @@ BEGIN
     'matches_count', v_matches_count,
     'avg_processing_time', round(v_avg_processing_time, 2),
     'total_tokens', v_total_tokens,
-    'success_rate', round(v_success_rate, 1)
+    'success_rate', round(v_success_rate, 1),
+    'status_breakdown', json_build_object(
+      'success', v_success_cnt,
+      'completed', v_completed_cnt,
+      'running', v_running_cnt,
+      'failed', v_failed_cnt,
+      'error', v_error_cnt,
+      'total', v_total_logs
+    )
   );
 END;
 $$ LANGUAGE plpgsql;

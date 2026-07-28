@@ -107,6 +107,7 @@ export function AdminDashboard({ userId }: AdminDashboardProps) {
   const [_userDetailTab, setUserDetailTab] = useState('profile');
   const [inspectedResume, setInspectedResume] = useState<any | null>(null);
   const [analyticsTimeframe, setAnalyticsTimeframe] = useState<'7d' | '30d' | 'all'>('7d');
+  const [funnelDateFilter, setFunnelDateFilter] = useState<'7d' | '30d' | 'all'>('all');
 
   // Exibir feedback temporário na tela (Toast)
   const showToast = (message: string, type: 'success' | 'error' | 'warning' = 'success') => {
@@ -266,16 +267,110 @@ export function AdminDashboard({ userId }: AdminDashboardProps) {
           { id: 'ev-3', created_at: new Date(Date.now() - 7200000).toISOString(), event_name: 'subscription_started', user_id: 'usr-5', profiles: { full_name: 'Thiago Oliveira', email: 'thiago@gmail.com' }, details: 'Premium Copilot - Mensal' }
         ];
       }
+      // LEFT JOIN: traz eventos de todos os usuários, incluindo system/bot users sem profile
       const { data, error } = await supabase
         .from('analytics_events')
-        .select('*, profiles(full_name, email)')
+        .select('*, profiles!analytics_events_user_id_fkey(full_name, email)')
+        .not('event_name', 'in', '(cache_hit,cache_miss)')
         .order('created_at', { ascending: false })
-        .limit(40);
-      if (error) throw error;
-      return data;
+        .limit(50);
+      if (error) {
+        // fallback sem join se foreign key falhar
+        const { data: fallback, error: err2 } = await supabase
+          .from('analytics_events')
+          .select('*')
+          .not('event_name', 'in', '(cache_hit,cache_miss)')
+          .order('created_at', { ascending: false })
+          .limit(50);
+        if (err2) throw err2;
+        return fallback || [];
+      }
+      return data || [];
     },
     enabled: hasTelemetryAccess,
     refetchInterval: 10000 // auto-refresh a cada 10 segundos
+  });
+
+  // ── 5b. FEEDBACK DE VAGAS REJEITADAS (Item 8) ──
+  const { data: jobFeedbacks = [] } = useQuery({
+    queryKey: ['admin-job-feedbacks'],
+    queryFn: async () => {
+      if (!isSupabaseConfigured || !supabase) return [];
+      const { data, error } = await supabase
+        .from('job_feedback')
+        .select('*, profiles!job_feedback_user_id_fkey(full_name, email)')
+        .eq('action', 'REJECTED')
+        .not('reason', 'is', null)
+        .order('created_at', { ascending: false })
+        .limit(50);
+      if (error) {
+        // fallback sem join
+        const { data: fallback } = await supabase
+          .from('job_feedback')
+          .select('*')
+          .eq('action', 'REJECTED')
+          .not('reason', 'is', null)
+          .order('created_at', { ascending: false })
+          .limit(50);
+        return fallback || [];
+      }
+      return data || [];
+    },
+    enabled: hasTelemetryAccess
+  });
+
+  // ── 5c. HISTÓRICO DE AÇÕES DO USUÁRIO SELECIONADO (Item 5) ──
+  const { data: userActivityLog = [] } = useQuery({
+    queryKey: ['admin-user-activity', selectedUser?.id],
+    queryFn: async () => {
+      if (!selectedUser?.id || !isSupabaseConfigured || !supabase) return [];
+      const { data, error } = await supabase
+        .from('analytics_events')
+        .select('id, event_name, category, metadata, created_at')
+        .eq('user_id', selectedUser.id)
+        .not('event_name', 'in', '(cache_hit,cache_miss,provider_started,provider_finished,provider_skipped,provider_failed)')
+        .order('created_at', { ascending: false })
+        .limit(60);
+      if (error) return [];
+      return data || [];
+    },
+    enabled: !!selectedUser?.id
+  });
+
+  // ── 5d. FUNIL COM FILTRO DE DATAS (Item 2) ──
+  const { data: funnelStats } = useQuery({
+    queryKey: ['admin-funnel-stats', funnelDateFilter],
+    queryFn: async () => {
+      if (!isSupabaseConfigured || !supabase) return null;
+      const cutoff = funnelDateFilter === '7d'
+        ? new Date(Date.now() - 7 * 86400000).toISOString()
+        : funnelDateFilter === '30d'
+        ? new Date(Date.now() - 30 * 86400000).toISOString()
+        : null;
+
+      const addCutoff = (q: any) => cutoff ? q.gte('created_at', cutoff) : q;
+
+      const [usersRes, resumesRes, matchesRes, optsRes, simsRes, lettersRes, appsRes] = await Promise.all([
+        addCutoff(supabase.from('profiles').select('id', { count: 'exact', head: true })),
+        addCutoff(supabase.from('resumes').select('id', { count: 'exact', head: true })),
+        addCutoff(supabase.from('matches').select('id', { count: 'exact', head: true })),
+        addCutoff(supabase.from('resume_optimizations').select('id', { count: 'exact', head: true })),
+        addCutoff(supabase.from('interview_simulations').select('id', { count: 'exact', head: true })),
+        addCutoff(supabase.from('cover_letters').select('id', { count: 'exact', head: true })),
+        addCutoff(supabase.from('job_applications').select('id', { count: 'exact', head: true }).eq('status', 'APPLIED')),
+      ]);
+
+      return {
+        users: usersRes.count ?? 0,
+        resumes: resumesRes.count ?? 0,
+        matches: matchesRes.count ?? 0,
+        optimizations: optsRes.count ?? 0,
+        simulations: simsRes.count ?? 0,
+        letters: lettersRes.count ?? 0,
+        applications: appsRes.count ?? 0,
+      };
+    },
+    enabled: hasTelemetryAccess
   });
 
   // ── 6. BUSCAR TELEMETRIA DE ERROS DE PRODUÇÃO ──
@@ -564,7 +659,8 @@ export function AdminDashboard({ userId }: AdminDashboardProps) {
     hasUsersAccess && { id: 'users', label: '4. Usuários & RBAC' },
     hasTelemetryAccess && { id: 'infra', label: '5. Infraestrutura & Ops' },
     { id: 'financeiro', label: '6. Financeiro (Asaas)' },
-    hasTelemetryAccess && { id: 'analytics', label: '7. Product Analytics' }
+    hasTelemetryAccess && { id: 'analytics', label: '7. Product Analytics' },
+    hasTelemetryAccess && { id: 'logs', label: '8. Logs de Erros' }
   ].filter(Boolean) as { id: string; label: string }[];
 
 
@@ -734,17 +830,27 @@ export function AdminDashboard({ userId }: AdminDashboardProps) {
                     </h2>
                   </div>
                   
-                  {/* Score Gauge Badge */}
-                  <div className="flex items-center gap-3 bg-slate-950/80 px-4 py-2 rounded-xl border border-slate-800">
-                    <span className="text-xs text-slate-400 font-bold">Status do App:</span>
-                    <span className={`text-2xl font-extrabold font-display ${
-                      (overviewStats?.success_rate || 98) >= 90 ? 'text-emerald-400' : (overviewStats?.success_rate || 98) >= 70 ? 'text-amber-400' : 'text-red-400'
-                    }`}>
-                      {Math.round(overviewStats?.success_rate || 98)}/100
-                    </span>
-                    <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 uppercase">
-                      Operacional
-                    </span>
+                  {/* Score Gauge Badge — Taxa de Sucesso de Processamento (Item 7) */}
+                  <div className="flex flex-col gap-1.5 bg-slate-950/80 px-4 py-3 rounded-xl border border-slate-800">
+                    <div className="flex items-center gap-3">
+                      <span className="text-xs text-slate-400 font-bold">Taxa de Sucesso de Parsing:</span>
+                      <span className={`text-2xl font-extrabold font-display ${
+                        (overviewStats?.success_rate || 0) >= 80 ? 'text-emerald-400' : (overviewStats?.success_rate || 0) >= 50 ? 'text-amber-400' : 'text-red-400'
+                      }`}>
+                        {Math.round(overviewStats?.success_rate || 0)}%
+                      </span>
+                      <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-slate-700/40 text-slate-400 border border-slate-700 uppercase">
+                        Processamento de Currículo
+                      </span>
+                    </div>
+                    {overviewStats?.status_breakdown && (
+                      <div className="flex gap-2 text-[10px] font-mono">
+                        <span className="text-emerald-400">✓ sucesso: {overviewStats.status_breakdown.success ?? 0}</span>
+                        <span className="text-blue-400">⟳ completado: {overviewStats.status_breakdown.completed ?? 0}</span>
+                        <span className="text-amber-400">⏳ running: {overviewStats.status_breakdown.running ?? 0}</span>
+                        <span className="text-red-400">✗ falha: {(overviewStats.status_breakdown.failed ?? 0) + (overviewStats.status_breakdown.error ?? 0)}</span>
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>
@@ -787,17 +893,16 @@ export function AdminDashboard({ userId }: AdminDashboardProps) {
 
                 <CardGlass className="p-4 flex flex-col justify-between">
                   <div className="flex justify-between items-start">
-                    <span className="text-[10px] text-slate-400 font-extrabold uppercase tracking-wider">Matches Executados</span>
+                    <span className="text-[10px] text-slate-400 font-extrabold uppercase tracking-wider">Ações de IA (Total)</span>
                     <Activity size={16} className="text-purple-400" />
                   </div>
                   <div className="mt-3">
                     <span className="text-3xl font-extrabold text-purple-300 font-display">
-                      {overviewStats?.matches_count ?? 0}
+                      {(overviewStats?.matches_count ?? 0) + (iaStats?.optimizations_count ?? 0) + (iaStats?.simulations_count ?? 0) + (iaStats?.letters_count ?? 0)}
                     </span>
-                    <div className="flex items-center gap-2 text-[10px] mt-1">
-                      <span className="text-emerald-400 font-bold flex items-center gap-0.5">↑ +15% <span className="text-slate-500 font-normal">7d</span></span>
-                      <span className="text-slate-600 dark:text-slate-500">•</span>
-                      <span className="text-slate-400 font-semibold">Análises IA</span>
+                    <div className="flex flex-col gap-0.5 text-[9px] mt-1 text-slate-500 font-mono">
+                      <span>Match: {overviewStats?.matches_count ?? 0} · Otimiz.: {iaStats?.optimizations_count ?? 0}</span>
+                      <span>Entrevistas: {iaStats?.simulations_count ?? 0} · Cartas: {iaStats?.letters_count ?? 0}</span>
                     </div>
                   </div>
                 </CardGlass>
@@ -945,7 +1050,7 @@ export function AdminDashboard({ userId }: AdminDashboardProps) {
                     onClick={() => setActiveSubTab('logs')}
                     className="w-full text-center py-2.5 rounded-xl border border-slate-900 hover:border-slate-800 text-[10px] font-bold text-slate-400 hover:text-slate-200 transition-all"
                   >
-                    Ver Logs de Produção & Erros
+                    Ver Logs de Erros →
                   </button>
                 </CardGlass>
               </div>
@@ -1104,7 +1209,7 @@ export function AdminDashboard({ userId }: AdminDashboardProps) {
       {activeSubTab === 'produto' && (
         <div className="space-y-6 animate-fade-in font-sans">
           <CardGlass className="p-5 space-y-4">
-            <div className="flex justify-between items-center pb-2 border-b border-slate-900">
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 pb-2 border-b border-slate-900">
               <div>
                 <h3 className="text-sm font-bold text-white uppercase tracking-wider flex items-center gap-2">
                   <Layers size={16} className="text-brand-400" />
@@ -1112,30 +1217,43 @@ export function AdminDashboard({ userId }: AdminDashboardProps) {
                 </h3>
                 <p className="text-xs text-slate-400 mt-0.5">Mapeamento de conversão e taxas de abandono (drop-off) etapa por etapa.</p>
               </div>
+              {/* Filtro de Datas — Item 2 */}
+              <div className="flex items-center gap-1.5 bg-slate-950/80 p-1 rounded-xl border border-slate-800" role="group" aria-label="Período do Funil">
+                {(['7d', '30d', 'all'] as const).map(tf => (
+                  <button
+                    key={tf}
+                    onClick={() => setFunnelDateFilter(tf)}
+                    className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                      funnelDateFilter === tf
+                        ? 'bg-brand-500 text-white shadow-sm'
+                        : 'text-slate-400 hover:text-slate-200 hover:bg-slate-900'
+                    }`}
+                  >
+                    {tf === '7d' ? 'Últimos 7 dias' : tf === '30d' ? 'Últimos 30 dias' : 'Todo o Período'}
+                  </button>
+                ))}
+              </div>
             </div>
 
             <div className="space-y-3 pt-2">
               {[
-                { step: '1. Cadastro de Conta', count: overviewStats?.users_count || 0, drop: '0%' },
-                { step: '2. Upload do Currículo', count: overviewStats?.resumes_count || 0, drop: '-12%' },
-                { step: '3. Primeiro Match Calculado', count: overviewStats?.matches_count || 0, drop: '-8%' },
-                { step: '4. Primeira Análise de Vaga', count: Math.max(0, Math.round((overviewStats?.matches_count || 0) * 0.85)), drop: '-15%' },
-                { step: '5. Primeira Otimização de CV', count: iaStats?.optimizations_count || 0, drop: '-22%' },
-                { step: '6. Primeira Candidatura Enviada', count: Math.max(0, Math.round((overviewStats?.users_count || 1) * 0.3)), drop: '-18%' },
-                { step: '7. Retenção D1 (24h)', count: Math.max(0, Math.round((overviewStats?.users_count || 1) * 0.5)), drop: '-50%' },
-                { step: '8. Retenção D7 (7 dias)', count: Math.max(0, Math.round((overviewStats?.users_count || 1) * 0.35)), drop: '-30%' },
-                { step: '9. Retenção D30 (30 dias)', count: Math.max(0, Math.round((overviewStats?.users_count || 1) * 0.25)), drop: '-28%' }
+                { step: '1. Cadastro de Conta', count: funnelStats?.users ?? overviewStats?.users_count ?? 0 },
+                { step: '2. Upload do Currículo', count: funnelStats?.resumes ?? overviewStats?.resumes_count ?? 0 },
+                { step: '3. Primeiro Match Calculado', count: funnelStats?.matches ?? overviewStats?.matches_count ?? 0 },
+                { step: '4. Primeira Otimização de CV', count: funnelStats?.optimizations ?? iaStats?.optimizations_count ?? 0 },
+                { step: '5. Simulação de Entrevista STAR', count: funnelStats?.simulations ?? iaStats?.simulations_count ?? 0 },
+                { step: '6. Carta de Apresentação Gerada', count: funnelStats?.letters ?? iaStats?.letters_count ?? 0 },
+                { step: '7. Candidatura Registrada', count: funnelStats?.applications ?? 0 },
               ].map((item, idx) => {
-                const total = overviewStats?.users_count || 1;
+                const total = (funnelStats?.users ?? overviewStats?.users_count) || 1;
                 const pct = Math.min(100, Math.round((item.count * 100) / (total || 1)));
                 return (
                   <div key={idx} className="p-3.5 rounded-xl bg-slate-950/60 border border-slate-900 space-y-1.5">
                     <div className="flex justify-between items-center text-xs font-bold">
                       <span className="text-slate-200">{item.step}</span>
                       <div className="flex items-center gap-3 font-mono">
-                        <span className="text-emerald-400">{item.count} usuários</span>
+                        <span className="text-emerald-400">{item.count}</span>
                         <span className="text-slate-400">({pct}%)</span>
-                        {idx > 0 && <span className="text-amber-400 text-[10px]">{item.drop} abandono</span>}
                       </div>
                     </div>
                     <div className="h-2 w-full bg-slate-900 rounded-full overflow-hidden">
@@ -1144,6 +1262,112 @@ export function AdminDashboard({ userId }: AdminDashboardProps) {
                   </div>
                 );
               })}
+            </div>
+          </CardGlass>
+
+          {/* FEEDBACK DE VAGAS REJEITADAS — Item 8 */}
+          <CardGlass className="p-5 space-y-4">
+            <div className="flex justify-between items-center pb-2 border-b border-slate-900">
+              <div>
+                <h3 className="text-sm font-bold text-white uppercase tracking-wider flex items-center gap-2">
+                  <AlertCircle size={16} className="text-amber-400" />
+                  Feedback: Vagas Rejeitadas pelos Usuários
+                </h3>
+                <p className="text-xs text-slate-400 mt-0.5">Vagas que usuários marcaram como "não é pra mim" com motivo escrito.</p>
+              </div>
+              <span className="text-[10px] font-bold text-slate-500 bg-slate-900 px-2 py-1 rounded-lg border border-slate-800">
+                {jobFeedbacks.length} registro(s)
+              </span>
+            </div>
+            <div className="space-y-2 max-h-[320px] overflow-y-auto pr-1">
+              {jobFeedbacks.length === 0 ? (
+                <div className="py-8 text-center text-xs text-slate-500 border border-dashed border-slate-800 rounded-xl">
+                  Nenhuma rejeição com motivo registrada ainda.
+                </div>
+              ) : (
+                jobFeedbacks.map((fb: any, idx: number) => (
+                  <div key={fb.id || idx} className="p-3.5 rounded-xl bg-slate-950/60 border border-slate-900 space-y-1.5 text-xs">
+                    <div className="flex justify-between items-center">
+                      <span className="font-bold text-slate-200">
+                        {fb.profiles?.full_name || fb.user_id?.slice(0,8) || 'Usuário'}
+                        {fb.profiles?.email && <span className="ml-1.5 text-slate-500 font-mono text-[10px]">({fb.profiles.email})</span>}
+                      </span>
+                      <span className="text-[10px] text-slate-500 font-mono">
+                        {fb.created_at ? new Date(fb.created_at).toLocaleDateString('pt-BR') : 'Recente'}
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span className="px-2 py-0.5 rounded bg-amber-500/10 text-amber-400 text-[10px] font-bold border border-amber-500/20 uppercase">
+                        {fb.reason || 'Motivo não informado'}
+                      </span>
+                      {fb.job_id && (
+                        <span className="text-slate-500 text-[10px] font-mono">vaga: {String(fb.job_id).slice(0,12)}...</span>
+                      )}
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+          </CardGlass>
+        </div>
+      )}
+
+      {/* MÓDULO: LOGS DE ERROS — Item 6 */}
+      {activeSubTab === 'logs' && hasTelemetryAccess && (
+        <div className="space-y-6 animate-fade-in font-sans">
+          <CardGlass className="p-5 space-y-4">
+            <div className="flex justify-between items-center pb-2 border-b border-slate-900">
+              <div>
+                <h3 className="text-sm font-bold text-white uppercase tracking-wider flex items-center gap-2">
+                  <AlertCircle size={16} className="text-red-400" />
+                  Logs de Erros de Produção
+                </h3>
+                <p className="text-xs text-slate-400 mt-0.5">Erros registrados na tabela application_errors, ordenados por data.</p>
+              </div>
+            </div>
+            <div className="space-y-3">
+              {_systemErrors.length === 0 ? (
+                <div className="text-center py-12 text-slate-500 text-xs border border-dashed border-slate-900 rounded-xl">
+                  Nenhum erro registrado em produção.
+                </div>
+              ) : (
+                <div className="overflow-x-auto rounded-xl border border-slate-900 bg-slate-955/20">
+                  <table className="w-full border-collapse text-left text-xs text-slate-400">
+                    <thead>
+                      <tr className="border-b border-slate-900 bg-slate-950/60 font-semibold text-slate-300">
+                        <th className="p-3">Data / Hora</th>
+                        <th className="p-3">Componente</th>
+                        <th className="p-3">Código</th>
+                        <th className="p-3">Mensagem</th>
+                        <th className="p-3">Usuário</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-900">
+                      {_systemErrors.map((err: any, idx: number) => (
+                        <tr key={err.id || idx} className="hover:bg-slate-900/20">
+                          <td className="p-3 font-mono text-[11px] text-slate-400">
+                            {err.created_at ? new Date(err.created_at).toLocaleString('pt-BR') : 'Agora'}
+                          </td>
+                          <td className="p-3">
+                            <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-amber-500/10 text-amber-400 border border-amber-500/20">
+                              {err.component || 'Sistema'}
+                            </span>
+                          </td>
+                          <td className="p-3 font-mono text-[11px] text-red-400 font-bold">
+                            {err.error_code || 'ERROR'}
+                          </td>
+                          <td className="p-3 text-slate-200 font-mono text-[11px] max-w-md truncate" title={err.message}>
+                            {err.message || 'Sem mensagem'}
+                          </td>
+                          <td className="p-3 text-slate-400 font-mono text-[11px]">
+                            {err.profiles?.full_name || err.user_id?.slice(0, 8) || 'Sistema / Anônimo'}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
             </div>
           </CardGlass>
         </div>
@@ -1632,9 +1856,9 @@ export function AdminDashboard({ userId }: AdminDashboardProps) {
                     <div key={res.id || idx} className="p-4 rounded-xl bg-slate-900/80 border border-slate-800 space-y-3">
                       <div className="flex justify-between items-start">
                         <div>
-                          <span className="font-bold text-sm text-slate-100 block">{res.fileName || res.file_name || 'Curriculo.pdf'}</span>
+                          <span className="font-bold text-sm text-slate-100 block">{res.file_name || res.fileName || 'Curriculo.pdf'}</span>
                           <span className="text-[10px] text-slate-400 font-mono">
-                            Cadastrado em {res.createdAt ? new Date(res.createdAt).toLocaleDateString('pt-BR') : 'Data recente'} • {res.isPrimary ? 'Ativo Padrão' : 'Secundário'}
+                            Cadastrado em {res.created_at ? new Date(res.created_at).toLocaleDateString('pt-BR') : 'Data recente'} • {res.is_primary ? 'Ativo Padrão' : 'Secundário'}
                           </span>
                         </div>
                         <div className="flex gap-2">
@@ -1644,7 +1868,7 @@ export function AdminDashboard({ userId }: AdminDashboardProps) {
                                 adminId: userId || 'admin',
                                 targetUserId: selectedUser.id,
                                 action: 'view_resume',
-                                details: `Visualizou currículo: ${res.fileName || res.file_name || 'Curriculo.pdf'}`
+                                details: `Visualizou currículo: ${res.file_name || res.fileName || 'Curriculo.pdf'}`
                               });
                               setInspectedResume(res);
                             }}
@@ -1658,9 +1882,10 @@ export function AdminDashboard({ userId }: AdminDashboardProps) {
                                 adminId: userId || 'admin',
                                 targetUserId: selectedUser.id,
                                 action: 'download_resume',
-                                details: `Baixou currículo: ${res.fileName || res.file_name || 'Curriculo.pdf'}`
+                                details: `Baixou currículo: ${res.file_name || res.fileName || 'Curriculo.pdf'}`
                               });
-                              const text = res.extractedText || res.extracted_text || res.rawText || 'Conteúdo do currículo extraído';
+                              // Item 3: campo real é raw_text (diagnóstico confirmou)
+                              const text = res.raw_text || res.rawText || res.extracted_text || res.extractedText || 'Texto não disponível para este currículo.';
                               const blob = new Blob([text], { type: 'text/plain;charset=utf-8' });
                               const url = URL.createObjectURL(blob);
                               const a = document.createElement('a');
@@ -1678,15 +1903,46 @@ export function AdminDashboard({ userId }: AdminDashboardProps) {
                         </div>
                       </div>
 
-                      {/* Exibição do Texto Extraído no Inspetor */}
+                      {/* Exibição do Texto Extraído no Inspetor — Item 3 */}
                       {inspectedResume?.id === res.id && (
                         <div className="p-3.5 rounded-xl bg-slate-950 border border-slate-800 space-y-2 text-xs animate-fade-in">
-                          <span className="font-bold text-slate-300 block border-b border-slate-900 pb-1">Texto Bruto Extraído (OCR/Parser):</span>
+                          <span className="font-bold text-slate-300 block border-b border-slate-900 pb-1">Texto Bruto Extraído (raw_text):</span>
                           <p className="text-slate-400 font-mono text-[11px] max-h-60 overflow-y-auto whitespace-pre-wrap leading-relaxed">
-                            {res.extractedText || res.extracted_text || res.rawText || 'Nenhum texto formatado extraído.'}
+                            {res.raw_text || res.rawText || res.extracted_text || res.extractedText || 'Nenhum texto extraído disponível para este currículo.'}
                           </p>
                         </div>
                       )}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* HISTÓRICO DE AÇÕES DO USUÁRIO — Item 5 */}
+            <div className="space-y-3 border-t border-slate-800 pt-4">
+              <h4 className="font-bold text-sm text-white flex items-center gap-2">
+                <Activity size={16} className="text-emerald-400" />
+                Histórico de Ações ({userActivityLog.length} eventos)
+              </h4>
+              {userActivityLog.length === 0 ? (
+                <div className="p-4 rounded-xl border border-dashed border-slate-800 text-center text-slate-400 text-xs italic">
+                  Nenhuma ação registrada para este usuário.
+                </div>
+              ) : (
+                <div className="space-y-2 max-h-[300px] overflow-y-auto pr-1">
+                  {userActivityLog.map((evt: any, idx: number) => (
+                    <div key={evt.id || idx} className="p-2.5 rounded-lg bg-slate-900/60 border border-slate-800 flex justify-between items-center text-xs">
+                      <div>
+                        <span className="font-semibold text-slate-200 block">{getEventMsg({ ...evt, profiles: { full_name: selectedUser.full_name, email: selectedUser.email } })}</span>
+                        {evt.metadata && Object.keys(evt.metadata).length > 0 && (
+                          <span className="text-[10px] text-slate-500 font-mono">
+                            {JSON.stringify(evt.metadata).slice(0, 80)}
+                          </span>
+                        )}
+                      </div>
+                      <span className="text-[10px] text-slate-500 font-mono shrink-0 ml-3">
+                        {new Date(evt.created_at).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}
+                      </span>
                     </div>
                   ))}
                 </div>

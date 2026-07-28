@@ -40,7 +40,7 @@ export const HeroProductMockup: React.FC<HeroProductMockupProps> = ({ onSimulate
               <Target size={18} />
             </div>
             <div>
-              <h4 className="text-xs font-bold text-slate-50 font-display">Desenvolvedor(a) Frontend Sênior</h4>
+              <h3 className="text-xs font-bold text-slate-50 font-display">Desenvolvedor(a) Frontend Sênior</h3>
               <p className="text-[11px] text-slate-300 font-sans">TechCorp • São Paulo, SP • Remoto</p>
             </div>
           </div>
@@ -54,7 +54,7 @@ export const HeroProductMockup: React.FC<HeroProductMockupProps> = ({ onSimulate
           {/* Match Score Card */}
           <div className="p-4 rounded-xl bg-slate-950/60 border border-blue-500/30 space-y-2 relative overflow-hidden">
             <div className="flex items-center justify-between">
-              <span className="text-[10px] font-mono uppercase tracking-wider text-slate-300 font-bold">Match Score</span>
+              <span className="text-[10px] font-mono uppercase tracking-wider text-slate-300 font-bold">Compatibilidade</span>
               <span className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
                 Alta Afinidade
               </span>
@@ -63,7 +63,7 @@ export const HeroProductMockup: React.FC<HeroProductMockupProps> = ({ onSimulate
               <span className="text-3xl sm:text-4xl font-black font-display text-emerald-400 tracking-tight">
                 94%
               </span>
-              <span className="text-[11px] text-slate-300 font-medium">Compatibilidade ATS</span>
+              <span className="text-[11px] text-slate-300 font-medium">Afinidade com a vaga</span>
             </div>
             <div className="w-full bg-slate-800 h-1.5 rounded-full overflow-hidden">
               <div className="bg-gradient-to-r from-blue-500 to-emerald-400 h-full w-[94%]" />
@@ -73,12 +73,12 @@ export const HeroProductMockup: React.FC<HeroProductMockupProps> = ({ onSimulate
           {/* Otimização ATS Card */}
           <div className="p-4 rounded-xl bg-slate-950/60 border border-slate-800 space-y-2">
             <div className="flex items-center justify-between">
-              <span className="text-[10px] font-mono uppercase tracking-wider text-slate-300 font-bold">Status ATS</span>
+              <span className="text-[10px] font-mono uppercase tracking-wider text-slate-300 font-bold">Status do Currículo</span>
               <CheckCircle2 size={13} className="text-emerald-400" />
             </div>
-            <p className="text-xs font-bold text-slate-100">Currículo Otimizado (STAR)</p>
+            <p className="text-xs font-bold text-slate-100">Currículo Otimizado</p>
             <p className="text-[10px] text-slate-300 leading-normal">
-              12 palavras-chave identificadas e formatadas para robôs de RH.
+              12 pontos de destaque mapeados para a vaga.
             </p>
           </div>
         </div>
@@ -93,7 +93,7 @@ export const HeroProductMockup: React.FC<HeroProductMockupProps> = ({ onSimulate
           </div>
           <button
             onClick={onSimulateClick}
-            aria-label="Testar simulador de entrevistas do Vocentro"
+            aria-label="Simular - Treinar entrevista no Vocentro"
             className="px-3.5 py-1.5 rounded-lg bg-blue-500 hover:bg-blue-600 text-slate-50 font-bold text-xs transition-colors shrink-0 flex items-center gap-1.5 cursor-pointer min-h-[36px] focus:ring-2 focus:ring-blue-500 focus:outline-none"
           >
             <span>Simular</span>

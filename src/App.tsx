@@ -34,6 +34,7 @@ const NotificationsPage = lazy(() => import('./presentation/pages/Notifications'
 const PrivacyPolicyPage = lazy(() => import('./presentation/pages/PrivacyPolicyPage').then(m => ({ default: m.PrivacyPolicyPage })));
 const TermsOfUsePage = lazy(() => import('./presentation/pages/TermsOfUsePage').then(m => ({ default: m.TermsOfUsePage })));
 const FaqHelpPage = lazy(() => import('./presentation/pages/FaqHelpPage').then(m => ({ default: m.FaqHelpPage })));
+const HowGoogleLoginWorksPage = lazy(() => import('./presentation/pages/HowGoogleLoginWorksPage').then(m => ({ default: m.HowGoogleLoginWorksPage })));
 
 function LazyFallback() {
   return (
@@ -58,6 +59,9 @@ function App() {
   const [isAboutView, setIsAboutView] = useState(window.location.pathname === '/about');
   const [isGoogleAuthView, setIsGoogleAuthView] = useState(
     window.location.pathname === '/google-auth' || window.location.pathname === '/google-auth.html'
+  );
+  const [isHowGoogleLoginWorksView, setIsHowGoogleLoginWorksView] = useState(
+    window.location.pathname === '/how-google-login-works' || window.location.pathname === '/how-google-login-works.html'
   );
   const [isFaqHelpView, setIsFaqHelpView] = useState(
     window.location.pathname === '/faq' || window.location.pathname === '/ajuda' || window.location.pathname === '/faq.html'
@@ -112,12 +116,21 @@ function App() {
       if (path === '/about') {
         setIsAboutView(true);
         setIsGoogleAuthView(false);
+        setIsHowGoogleLoginWorksView(false);
+        setIsPrivacyPolicyView(false);
+        setIsTermsOfUseView(false);
+        setIsFaqHelpView(false);
+      } else if (path === '/how-google-login-works' || path === '/how-google-login-works.html') {
+        setIsHowGoogleLoginWorksView(true);
+        setIsAboutView(false);
+        setIsGoogleAuthView(false);
         setIsPrivacyPolicyView(false);
         setIsTermsOfUseView(false);
         setIsFaqHelpView(false);
       } else if (path === '/google-auth' || path === '/google-auth.html') {
         setIsGoogleAuthView(true);
         setIsAboutView(false);
+        setIsHowGoogleLoginWorksView(false);
         setIsPrivacyPolicyView(false);
         setIsTermsOfUseView(false);
         setIsFaqHelpView(false);
@@ -125,23 +138,27 @@ function App() {
         setIsPrivacyPolicyView(true);
         setIsAboutView(false);
         setIsGoogleAuthView(false);
+        setIsHowGoogleLoginWorksView(false);
         setIsTermsOfUseView(false);
         setIsFaqHelpView(false);
       } else if (path === '/termos-de-uso' || path === '/termos-de-uso.html') {
         setIsTermsOfUseView(true);
         setIsAboutView(false);
         setIsGoogleAuthView(false);
+        setIsHowGoogleLoginWorksView(false);
         setIsPrivacyPolicyView(false);
         setIsFaqHelpView(false);
       } else if (path === '/faq' || path === '/ajuda' || path === '/faq.html') {
         setIsFaqHelpView(true);
         setIsAboutView(false);
         setIsGoogleAuthView(false);
+        setIsHowGoogleLoginWorksView(false);
         setIsPrivacyPolicyView(false);
         setIsTermsOfUseView(false);
       } else {
         setIsAboutView(false);
         setIsGoogleAuthView(false);
+        setIsHowGoogleLoginWorksView(false);
         setIsPrivacyPolicyView(false);
         setIsTermsOfUseView(false);
         setIsFaqHelpView(false);
@@ -171,6 +188,19 @@ function App() {
           </div>
         </div>
       </div>
+    );
+  }
+
+  if (isHowGoogleLoginWorksView) {
+    return (
+      <Suspense fallback={<LazyFallback />}>
+        <HowGoogleLoginWorksPage
+          onBack={() => {
+            window.history.pushState(null, '', '/');
+            setIsHowGoogleLoginWorksView(false);
+          }}
+        />
+      </Suspense>
     );
   }
 

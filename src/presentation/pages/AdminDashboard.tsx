@@ -3,12 +3,13 @@ import { CardGlass } from '../components/CardGlass';
 import { isSupabaseConfigured, supabase } from '../../infrastructure/api/supabaseClient';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { AdminBetaDashboard } from './AdminBetaDashboard';
+import { AdminAuditService } from '../../application/services/AdminAuditService';
 import { 
   Activity, Loader2, ShieldAlert, RefreshCw, 
   Users, CreditCard, Search, Filter, 
   ShieldCheck, UserCheck, AlertTriangle, AlertCircle, 
   ArrowLeft, Calendar, Clock, Laptop, Key, FileText, 
-  Layers, Bot, Video, History, Terminal, UploadCloud
+  Layers, Bot, Video, History, Terminal, UploadCloud, X
 } from 'lucide-react';
 
 interface AdminDashboardProps {
@@ -106,6 +107,8 @@ export function AdminDashboard({ userId }: AdminDashboardProps) {
   const [userDetailTab, setUserDetailTab] = useState('profile');
   const [isSyncingEvents, setIsSyncingEvents] = useState(false);
 
+  const [inspectedResume, setInspectedResume] = useState<any | null>(null);
+
   // Exibir feedback temporário na tela (Toast)
   const showToast = (message: string, type: 'success' | 'error' | 'warning' = 'success') => {
     setToast({ message, type });
@@ -158,6 +161,28 @@ export function AdminDashboard({ userId }: AdminDashboardProps) {
       }));
     },
     enabled: hasUsersAccess
+  });
+
+  // Busca de currículos anexados ao usuário selecionado para inspeção admin
+  const { data: userResumes = [], isLoading: isLoadingUserResumes } = useQuery({
+    queryKey: ['admin-user-resumes', selectedUser?.id],
+    queryFn: async () => {
+      if (!selectedUser?.id) return [];
+      if (isSupabaseConfigured && supabase) {
+        try {
+          const { data } = await supabase
+            .from('resumes')
+            .select('*')
+            .eq('user_id', selectedUser.id);
+          if (data && data.length > 0) return data;
+        } catch (_) {}
+      }
+      try {
+        const stored = JSON.parse(localStorage.getItem('vocentro_resumes') || '[]');
+        return stored.filter((r: any) => r.userId === selectedUser.id || r.user_id === selectedUser.id);
+      } catch (_) { return []; }
+    },
+    enabled: !!selectedUser?.id
   });
 
   // Mutação para Alterar Papéis de Usuários (RBAC)
@@ -1899,6 +1924,146 @@ export function AdminDashboard({ userId }: AdminDashboardProps) {
               </CardGlass>
             </>
           )}
+        </div>
+      )}
+      {/* MODAL DE DETALHES DO USUÁRIO & INSPEÇÃO DE CURRÍCULO (FASE 2) */}
+      {selectedUser && (
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-md z-50 flex items-center justify-center p-4">
+          <CardGlass className="w-full max-w-3xl max-h-[85vh] overflow-y-auto rounded-2xl p-6 space-y-6 relative border border-slate-800 bg-[#121927] text-white shadow-2xl">
+            <button
+              onClick={() => {
+                setSelectedUser(null);
+                setInspectedResume(null);
+              }}
+              className="absolute top-4 right-4 text-slate-400 hover:text-white p-1 rounded-lg hover:bg-slate-800 cursor-pointer"
+            >
+              <X size={18} />
+            </button>
+
+            {/* Cabeçalho do Perfil */}
+            <div className="space-y-2 border-b border-slate-800 pb-4">
+              <div className="flex items-center gap-3">
+                <div className="h-12 w-12 rounded-full bg-brand-500/20 text-brand-400 border border-brand-500/30 flex items-center justify-center font-bold text-lg">
+                  {selectedUser.full_name?.charAt(0).toUpperCase() || 'U'}
+                </div>
+                <div>
+                  <h3 className="font-display font-bold text-xl text-white">{selectedUser.full_name || 'Usuário Sem Nome'}</h3>
+                  <p className="text-xs text-slate-400 font-mono">{selectedUser.email || 'E-mail não informado'}</p>
+                </div>
+              </div>
+            </div>
+
+            {/* Detalhes da Conta */}
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 text-xs">
+              <div className="p-3 rounded-xl bg-slate-900/60 border border-slate-800">
+                <span className="text-[10px] text-slate-500 font-semibold block">Papel / Perfil</span>
+                <span className="font-bold text-brand-400 uppercase text-[11px]">{selectedUser.role || 'user'}</span>
+              </div>
+              <div className="p-3 rounded-xl bg-slate-900/60 border border-slate-800">
+                <span className="text-[10px] text-slate-500 font-semibold block">Cadastro</span>
+                <span className="font-bold text-slate-200">{selectedUser.created_at ? new Date(selectedUser.created_at).toLocaleDateString('pt-BR') : 'Recente'}</span>
+              </div>
+              <div className="p-3 rounded-xl bg-slate-900/60 border border-slate-800">
+                <span className="text-[10px] text-slate-500 font-semibold block">Provedor Auth</span>
+                <span className="font-bold text-emerald-400">{selectedUser.email?.includes('gmail') ? 'Google OAuth' : 'E-mail / Senha'}</span>
+              </div>
+            </div>
+
+            {/* Seção de Currículos Anexados com Auditoria (Fase 2) */}
+            <div className="space-y-4 border-t border-slate-800 pt-4">
+              <h4 className="font-bold text-sm text-white flex items-center gap-2">
+                <FileText size={16} className="text-brand-400" />
+                Currículos Anexados pelo Candidato
+              </h4>
+
+              {isLoadingUserResumes ? (
+                <div className="py-6 text-center text-slate-400 text-xs flex justify-center items-center gap-2">
+                  <Loader2 size={16} className="animate-spin text-brand-500" />
+                  <span>Buscando arquivos de currículo...</span>
+                </div>
+              ) : userResumes.length === 0 ? (
+                <div className="p-4 rounded-xl border border-dashed border-slate-800 text-center text-slate-400 text-xs italic">
+                  Nenhum currículo cadastrado para este candidato.
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {userResumes.map((res: any, idx: number) => (
+                    <div key={res.id || idx} className="p-4 rounded-xl bg-slate-900/80 border border-slate-800 space-y-3">
+                      <div className="flex justify-between items-start">
+                        <div>
+                          <span className="font-bold text-sm text-slate-100 block">{res.fileName || res.file_name || 'Curriculo.pdf'}</span>
+                          <span className="text-[10px] text-slate-400 font-mono">
+                            Cadastrado em {res.createdAt ? new Date(res.createdAt).toLocaleDateString('pt-BR') : 'Data recente'} • {res.isPrimary ? 'Ativo Padrão' : 'Secundário'}
+                          </span>
+                        </div>
+                        <div className="flex gap-2">
+                          <button
+                            onClick={async () => {
+                              await AdminAuditService.logAccess({
+                                adminId: userId || 'admin',
+                                targetUserId: selectedUser.id,
+                                action: 'view_resume',
+                                details: `Visualizou currículo: ${res.fileName || res.file_name || 'Curriculo.pdf'}`
+                              });
+                              setInspectedResume(res);
+                            }}
+                            className="px-3 py-1.5 rounded-lg bg-blue-500/10 border border-blue-500/30 text-blue-400 hover:bg-blue-500/20 text-xs font-bold transition cursor-pointer"
+                          >
+                            👁 Visualizar Texto
+                          </button>
+                          <button
+                            onClick={async () => {
+                              await AdminAuditService.logAccess({
+                                adminId: userId || 'admin',
+                                targetUserId: selectedUser.id,
+                                action: 'download_resume',
+                                details: `Baixou currículo: ${res.fileName || res.file_name || 'Curriculo.pdf'}`
+                              });
+                              const text = res.extractedText || res.extracted_text || res.rawText || 'Conteúdo do currículo extraído';
+                              const blob = new Blob([text], { type: 'text/plain;charset=utf-8' });
+                              const url = URL.createObjectURL(blob);
+                              const a = document.createElement('a');
+                              a.href = url;
+                              a.download = `${selectedUser.full_name || 'Candidato'}_Curriculo.txt`;
+                              document.body.appendChild(a);
+                              a.click();
+                              a.remove();
+                              showToast('✓ Acesso registrado em log de auditoria e arquivo baixado com sucesso.', 'success');
+                            }}
+                            className="px-3 py-1.5 rounded-lg bg-brand-600 hover:bg-brand-500 text-white text-xs font-bold transition cursor-pointer"
+                          >
+                            📥 Baixar Arquivo
+                          </button>
+                        </div>
+                      </div>
+
+                      {/* Exibição do Texto Extraído no Inspetor */}
+                      {inspectedResume?.id === res.id && (
+                        <div className="p-3.5 rounded-xl bg-slate-950 border border-slate-800 space-y-2 text-xs animate-fade-in">
+                          <span className="font-bold text-slate-300 block border-b border-slate-900 pb-1">Texto Bruto Extraído (OCR/Parser):</span>
+                          <p className="text-slate-400 font-mono text-[11px] max-h-60 overflow-y-auto whitespace-pre-wrap leading-relaxed">
+                            {res.extractedText || res.extracted_text || res.rawText || 'Nenhum texto formatado extraído.'}
+                          </p>
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            <div className="pt-4 border-t border-slate-800 flex justify-end">
+              <button
+                onClick={() => {
+                  setSelectedUser(null);
+                  setInspectedResume(null);
+                }}
+                className="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-white font-bold text-xs cursor-pointer"
+              >
+                Fechar
+              </button>
+            </div>
+          </CardGlass>
         </div>
       )}
     </div>

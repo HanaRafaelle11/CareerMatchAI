@@ -1,0 +1,21 @@
+# Vocentro - https://vocentro.com.br
+# Robots.txt — permite rastreamento das páginas públicas informativas.
+
+User-agent: *
+Allow: /
+Allow: /politica-de-privacidade
+Allow: /termos-de-uso
+Allow: /google-auth
+Allow: /about
+Allow: /faq
+
+# Bloquear rotas autenticadas e endpoints internos
+Disallow: /dashboard
+Disallow: /perfil
+Disallow: /vagas
+Disallow: /coach
+Disallow: /admin
+Disallow: /api/
+Disallow: /assets/
+
+Sitemap: https://vocentro.com.br/sitemap.xml

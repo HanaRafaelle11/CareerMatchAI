@@ -1,5 +1,18 @@
 {
   "cleanUrls": true,
+  "redirects": [
+    {
+      "source": "/:path*",
+      "has": [
+        {
+          "type": "host",
+          "value": "www.vocentro.com.br"
+        }
+      ],
+      "destination": "https://vocentro.com.br/:path*",
+      "permanent": true
+    }
+  ],
   "rewrites": [
     {
       "source": "/((?!api/|assets/|favicon|manifest|robots\\.txt|sitemap\\.xml|og-image|apple-touch-icon|pwa-icon|splash-screen|professional_happy).*)",

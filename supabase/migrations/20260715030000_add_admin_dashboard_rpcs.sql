@@ -11,12 +11,10 @@ DECLARE
   v_avg_processing_time numeric;
   v_total_tokens bigint;
   v_success_rate numeric;
-  v_success_cnt bigint;
-  v_completed_cnt bigint;
-  v_running_cnt bigint;
-  v_failed_cnt bigint;
-  v_error_cnt bigint;
-  v_total_logs bigint;
+  v_total_uploads bigint;
+  v_completed_pipeline bigint;
+  v_failed_pipeline bigint;
+  v_running_pipeline bigint;
 BEGIN
   -- Segurança: Apenas administradores podem executar esta função
   IF NOT public.check_user_role(ARRAY['administrador']) THEN
@@ -34,17 +32,30 @@ BEGIN
   SELECT COALESCE(sum(input_tokens + output_tokens), 0) INTO v_total_tokens 
   FROM public.ai_usage_logs;
   
-  SELECT count(*) INTO v_total_logs FROM public.resume_processing_logs;
-  SELECT count(case when status = 'success' then 1 end) INTO v_success_cnt FROM public.resume_processing_logs;
-  SELECT count(case when status = 'completed' then 1 end) INTO v_completed_cnt FROM public.resume_processing_logs;
-  SELECT count(case when status = 'running' then 1 end) INTO v_running_cnt FROM public.resume_processing_logs;
-  SELECT count(case when status = 'failed' then 1 end) INTO v_failed_cnt FROM public.resume_processing_logs;
-  SELECT count(case when status = 'error' then 1 end) INTO v_error_cnt FROM public.resume_processing_logs;
+  -- ETAPA CONCLUSIVA: Mede uploads iniciados vs finalizados no banco (save_completed / completed step)
+  SELECT count(*) INTO v_total_uploads 
+  FROM public.resume_processing_logs 
+  WHERE step = 'uploaded';
 
-  v_success_rate := COALESCE(
-    (v_success_cnt + v_completed_cnt) * 100.0 / nullif(v_total_logs, 0),
-    100.0
-  );
+  SELECT count(*) INTO v_completed_pipeline 
+  FROM public.resume_processing_logs 
+  WHERE step IN ('save_completed', 'completed') AND status IN ('completed', 'success');
+
+  SELECT count(*) INTO v_failed_pipeline 
+  FROM public.resume_processing_logs 
+  WHERE step = 'failed' OR status IN ('failed', 'error');
+
+  SELECT count(*) INTO v_running_pipeline 
+  FROM public.resume_processing_logs 
+  WHERE status = 'running';
+
+  -- Se houver uploads iniciados, calcula a conversão de ponta a ponta (uploads que concluíram o salvamento)
+  IF v_total_uploads > 0 THEN
+    v_success_rate := round((v_completed_pipeline * 100.0) / nullif(v_total_uploads, 0), 1);
+    IF v_success_rate > 100.0 THEN v_success_rate := 100.0; END IF;
+  ELSE
+    v_success_rate := 100.0;
+  END IF;
 
   RETURN json_build_object(
     'users_count', v_users_count,
@@ -53,14 +64,12 @@ BEGIN
     'matches_count', v_matches_count,
     'avg_processing_time', round(v_avg_processing_time, 2),
     'total_tokens', v_total_tokens,
-    'success_rate', round(v_success_rate, 1),
+    'success_rate', v_success_rate,
     'status_breakdown', json_build_object(
-      'success', v_success_cnt,
-      'completed', v_completed_cnt,
-      'running', v_running_cnt,
-      'failed', v_failed_cnt,
-      'error', v_error_cnt,
-      'total', v_total_logs
+      'total_uploads', v_total_uploads,
+      'completed_pipeline', v_completed_pipeline,
+      'failed_pipeline', v_failed_pipeline,
+      'running_pipeline', v_running_pipeline
     )
   );
 END;

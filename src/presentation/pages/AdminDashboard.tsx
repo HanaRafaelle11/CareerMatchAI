@@ -267,25 +267,20 @@ export function AdminDashboard({ userId }: AdminDashboardProps) {
           { id: 'ev-3', created_at: new Date(Date.now() - 7200000).toISOString(), event_name: 'subscription_started', user_id: 'usr-5', profiles: { full_name: 'Thiago Oliveira', email: 'thiago@gmail.com' }, details: 'Premium Copilot - Mensal' }
         ];
       }
-      // LEFT JOIN: traz eventos de todos os usuários, incluindo system/bot users sem profile
+      // LEFT JOIN: traz eventos de todos os usuários, filtrando ruidos e contas de teste/automação
       const { data, error } = await supabase
         .from('analytics_events')
         .select('*, profiles!analytics_events_user_id_fkey(full_name, email)')
-        .not('event_name', 'in', '(cache_hit,cache_miss)')
+        .not('event_name', 'in', '(cache_hit,cache_miss,provider_started,provider_finished,provider_skipped,provider_failed)')
         .order('created_at', { ascending: false })
-        .limit(50);
-      if (error) {
-        // fallback sem join se foreign key falhar
-        const { data: fallback, error: err2 } = await supabase
-          .from('analytics_events')
-          .select('*')
-          .not('event_name', 'in', '(cache_hit,cache_miss)')
-          .order('created_at', { ascending: false })
-          .limit(50);
-        if (err2) throw err2;
-        return fallback || [];
-      }
-      return data || [];
+        .limit(60);
+
+      const list = error ? [] : (data || []);
+      // Filtrar contas de teste/automação (E2E / @example.com)
+      return list.filter((evt: any) => {
+        const email = evt.profiles?.email || '';
+        return !/example\.com|hardening|test|dummy|fake|demo/i.test(email);
+      });
     },
     enabled: hasTelemetryAccess,
     refetchInterval: 10000 // auto-refresh a cada 10 segundos
@@ -843,12 +838,15 @@ export function AdminDashboard({ userId }: AdminDashboardProps) {
                         Processamento de Currículo
                       </span>
                     </div>
-                    {overviewStats?.status_breakdown && (
-                      <div className="flex gap-2 text-[10px] font-mono">
-                        <span className="text-emerald-400">✓ sucesso: {overviewStats.status_breakdown.success ?? 0}</span>
-                        <span className="text-blue-400">⟳ completado: {overviewStats.status_breakdown.completed ?? 0}</span>
-                        <span className="text-amber-400">⏳ running: {overviewStats.status_breakdown.running ?? 0}</span>
-                        <span className="text-red-400">✗ falha: {(overviewStats.status_breakdown.failed ?? 0) + (overviewStats.status_breakdown.error ?? 0)}</span>
+                    {overviewStats?.status_breakdown ? (
+                      <div className="flex gap-2.5 text-[10px] font-mono">
+                        <span className="text-slate-400">Uploads: {overviewStats.status_breakdown.total_uploads ?? 0}</span>
+                        <span className="text-emerald-400">✓ Concluídos: {overviewStats.status_breakdown.completed_pipeline ?? 0}</span>
+                        <span className="text-red-400">✗ Falhas: {overviewStats.status_breakdown.failed_pipeline ?? 0}</span>
+                      </div>
+                    ) : (
+                      <div className="flex gap-2 text-[10px] font-mono text-slate-400">
+                        <span>Medido no salvamento final do banco (save_completed)</span>
                       </div>
                     )}
                   </div>

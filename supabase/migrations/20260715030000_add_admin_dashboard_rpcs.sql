@@ -15,13 +15,21 @@ DECLARE
   v_completed_pipeline bigint;
   v_failed_pipeline bigint;
   v_running_pipeline bigint;
+  v_excluded_test_logs bigint;
 BEGIN
   -- Segurança: Apenas administradores podem executar esta função
   IF NOT public.check_user_role(ARRAY['administrador']) THEN
     RAISE EXCEPTION 'Acesso negado. Apenas administradores podem acessar estatísticas do sistema.';
   END IF;
 
-  SELECT count(*) INTO v_users_count FROM public.profiles;
+  -- 1. Contagem de Usuários Reais (exclui contas de teste)
+  SELECT count(*) INTO v_users_count 
+  FROM public.profiles
+  WHERE COALESCE(is_test_account, false) = false
+    AND email NOT ILIKE '%example.com%'
+    AND email NOT ILIKE '%test%'
+    AND email NOT ILIKE '%hardening%';
+
   SELECT count(*) INTO v_resumes_count FROM public.resumes;
   SELECT count(*) INTO v_jobs_count FROM public.jobs;
   SELECT count(*) INTO v_matches_count FROM public.matches;
@@ -31,25 +39,56 @@ BEGIN
   
   SELECT COALESCE(sum(input_tokens + output_tokens), 0) INTO v_total_tokens 
   FROM public.ai_usage_logs;
+
+  -- 2. Logs Excluídos por pertencerem a contas de teste / automação E2E
+  SELECT count(*) INTO v_excluded_test_logs
+  FROM public.resume_processing_logs l
+  LEFT JOIN public.profiles p ON p.id = l.user_id
+  WHERE p.id IS NULL 
+     OR COALESCE(p.is_test_account, false) = true
+     OR p.email ILIKE '%example.com%'
+     OR p.email ILIKE '%test%'
+     OR p.email ILIKE '%hardening%';
   
-  -- ETAPA CONCLUSIVA: Mede uploads iniciados vs finalizados no banco (save_completed / completed step)
+  -- 3. ETAPA CONCLUSIVA — APENAS USUÁRIOS REAIS
   SELECT count(*) INTO v_total_uploads 
-  FROM public.resume_processing_logs 
-  WHERE step = 'uploaded';
+  FROM public.resume_processing_logs l
+  INNER JOIN public.profiles p ON p.id = l.user_id
+  WHERE l.step = 'uploaded'
+    AND COALESCE(p.is_test_account, false) = false
+    AND p.email NOT ILIKE '%example.com%'
+    AND p.email NOT ILIKE '%test%'
+    AND p.email NOT ILIKE '%hardening%';
 
   SELECT count(*) INTO v_completed_pipeline 
-  FROM public.resume_processing_logs 
-  WHERE step IN ('save_completed', 'completed') AND status IN ('completed', 'success');
+  FROM public.resume_processing_logs l
+  INNER JOIN public.profiles p ON p.id = l.user_id
+  WHERE l.step IN ('save_completed', 'completed') 
+    AND l.status IN ('completed', 'success')
+    AND COALESCE(p.is_test_account, false) = false
+    AND p.email NOT ILIKE '%example.com%'
+    AND p.email NOT ILIKE '%test%'
+    AND p.email NOT ILIKE '%hardening%';
 
   SELECT count(*) INTO v_failed_pipeline 
-  FROM public.resume_processing_logs 
-  WHERE step = 'failed' OR status IN ('failed', 'error');
+  FROM public.resume_processing_logs l
+  INNER JOIN public.profiles p ON p.id = l.user_id
+  WHERE (l.step = 'failed' OR l.status IN ('failed', 'error'))
+    AND COALESCE(p.is_test_account, false) = false
+    AND p.email NOT ILIKE '%example.com%'
+    AND p.email NOT ILIKE '%test%'
+    AND p.email NOT ILIKE '%hardening%';
 
   SELECT count(*) INTO v_running_pipeline 
-  FROM public.resume_processing_logs 
-  WHERE status = 'running';
+  FROM public.resume_processing_logs l
+  INNER JOIN public.profiles p ON p.id = l.user_id
+  WHERE l.status = 'running'
+    AND COALESCE(p.is_test_account, false) = false
+    AND p.email NOT ILIKE '%example.com%'
+    AND p.email NOT ILIKE '%test%'
+    AND p.email NOT ILIKE '%hardening%';
 
-  -- Se houver uploads iniciados, calcula a conversão de ponta a ponta (uploads que concluíram o salvamento)
+  -- Taxa de sucesso real (usuários reais)
   IF v_total_uploads > 0 THEN
     v_success_rate := round((v_completed_pipeline * 100.0) / nullif(v_total_uploads, 0), 1);
     IF v_success_rate > 100.0 THEN v_success_rate := 100.0; END IF;
@@ -69,7 +108,8 @@ BEGIN
       'total_uploads', v_total_uploads,
       'completed_pipeline', v_completed_pipeline,
       'failed_pipeline', v_failed_pipeline,
-      'running_pipeline', v_running_pipeline
+      'running_pipeline', v_running_pipeline,
+      'excluded_test_logs', v_excluded_test_logs
     )
   );
 END;

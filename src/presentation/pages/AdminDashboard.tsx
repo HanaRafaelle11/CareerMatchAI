@@ -839,10 +839,13 @@ export function AdminDashboard({ userId }: AdminDashboardProps) {
                       </span>
                     </div>
                     {overviewStats?.status_breakdown ? (
-                      <div className="flex gap-2.5 text-[10px] font-mono">
-                        <span className="text-slate-400">Uploads: {overviewStats.status_breakdown.total_uploads ?? 0}</span>
+                      <div className="flex flex-wrap gap-2.5 text-[10px] font-mono">
+                        <span className="text-slate-400">Uploads Reais: {overviewStats.status_breakdown.total_uploads ?? 0}</span>
                         <span className="text-emerald-400">✓ Concluídos: {overviewStats.status_breakdown.completed_pipeline ?? 0}</span>
                         <span className="text-red-400">✗ Falhas: {overviewStats.status_breakdown.failed_pipeline ?? 0}</span>
+                        {overviewStats.status_breakdown.excluded_test_logs > 0 && (
+                          <span className="text-amber-400/80">⨂ Testes Excluídos: {overviewStats.status_breakdown.excluded_test_logs}</span>
+                        )}
                       </div>
                     ) : (
                       <div className="flex gap-2 text-[10px] font-mono text-slate-400">

@@ -5,9 +5,11 @@ import type { Application, CareerProfile, Job } from '../../domain/models/types'
 import type { CareerProfileNew } from '../../application/hooks/useMyProfileAi';
 import { 
   Award, Play, MessageSquare, Send, 
-  RefreshCcw, Star, Loader2, BarChart3, ChevronDown, Search, Sparkles
+  RefreshCcw, Star, Loader2, BarChart3, ChevronDown, Search, Sparkles,
+  ArrowRight, Bot
 } from 'lucide-react';
 import { ProgressRing, Badge, Toast, type ToastMessage } from '../components/ds';
+import { useCopilotEngine } from '../../application/hooks/useCopilotEngine';
 import { printElementHtml } from '../../application/utils/pdfExport';
 
 /** Converts **bold** markdown markers in text to <strong> tags */
@@ -193,6 +195,13 @@ export function CoachDashboard({
 
   const [toast, setToast] = useState<ToastMessage | null>(null);
 
+  const { recommendations, greetingHeadline } = useCopilotEngine({
+    applications,
+    jobs,
+    matches,
+    careerProfileNew
+  });
+
   const handleStartSim = async () => {
     if (!selectedAppId) return;
     try {
@@ -257,11 +266,12 @@ export function CoachDashboard({
       {/* Cabeçalho */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight text-slate-900 dark:text-slate-100">
-            Simulador de Entrevista STAR
+          <h1 className="text-3xl font-bold tracking-tight text-slate-900 dark:text-slate-100 flex items-center gap-2.5">
+            <Sparkles size={28} className="text-brand-400 animate-pulse" />
+            <span>Copiloto IA & Central de Inteligência</span>
           </h1>
           <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
-            Prepare-se para seus processos seletivos treinando com entrevistas simuladas específicas para cada vaga.
+            Seu assistente único inteligente para recomendações do dia, simulação STAR e aceleração de candidaturas.
           </p>
         </div>
         <button
@@ -274,40 +284,53 @@ export function CoachDashboard({
         </button>
       </div>
 
-      {/* Top AI Guidance Banner */}
-      <div className="bg-white dark:bg-[#162032] border border-slate-200/90 dark:border-slate-800/90 rounded-2xl p-6 shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-4 w-full min-w-0">
-        <div className="flex items-start gap-3.5 min-w-0">
-          <div className="w-9 h-9 rounded-xl bg-blue-50 dark:bg-blue-500/10 text-[#4F8EF7] flex items-center justify-center shrink-0 mt-0.5">
-            <Sparkles size={18} strokeWidth={1.75} />
+      {/* Agenda de Inteligência do Dia: Hoje eu faria estas 3 ações... */}
+      <div className="bg-gradient-to-br from-brand-950/60 via-slate-900 to-indigo-950/40 border border-brand-500/30 rounded-2xl p-6 shadow-xl space-y-4">
+        <div className="flex items-center gap-2.5">
+          <div className="w-8 h-8 rounded-xl bg-brand-500/20 text-brand-400 flex items-center justify-center border border-brand-500/30">
+            <Bot size={18} />
           </div>
-          <div className="min-w-0">
-            <div className="flex items-center gap-2 flex-wrap">
-              <span className="text-xs font-semibold text-[#4F8EF7] uppercase tracking-wider">Recomendação da IA</span>
-              <Badge variant="premium" size="sm">Recrutador IA</Badge>
-            </div>
-            <h2 className="text-base font-semibold text-slate-900 dark:text-slate-100 mt-1 block break-normal whitespace-normal">
-              {simulation 
-                ? 'Simulação em andamento. Responda às perguntas comportamentais utilizando a técnica STAR.' 
-                : 'Selecione uma vaga no menu abaixo e inicie uma simulação realista de entrevista.'}
-            </h2>
-            <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 block break-normal whitespace-normal">
-              O recrutador IA avalia clareza, objetividade e aderência técnica das suas respostas em tempo real.
-            </p>
+          <div>
+            <h2 className="text-sm font-bold text-slate-100">{greetingHeadline}</h2>
+            <p className="text-[11px] text-slate-400">Recomendações proativas baseadas na sua atividade recente.</p>
           </div>
         </div>
-        <button
-          onClick={() => {
-            if (activeApps.length > 0) {
-              handleStartSim();
-            } else {
-              setActiveTab?.('match');
-            }
-          }}
-          className="btn-primary text-xs shrink-0 self-start md:self-center"
-        >
-          <Sparkles size={14} />
-          <span>{simulation ? 'Continuar Simulação' : 'Iniciar Treino'}</span>
-        </button>
+
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+          {recommendations.map(rec => (
+            <div
+              key={rec.id}
+              className="p-3.5 rounded-xl bg-slate-950/70 border border-slate-800 hover:border-brand-500/50 transition-all space-y-2 flex flex-col justify-between"
+            >
+              <div>
+                <div className="flex justify-between items-start gap-1">
+                  <h3 className="font-bold text-xs text-slate-100">{rec.title}</h3>
+                  <span className={`text-[9px] px-1.5 py-0.5 rounded uppercase font-extrabold ${
+                    rec.priority === 'high' ? 'bg-amber-500/10 text-amber-400 border border-amber-500/20' : 'bg-blue-500/10 text-blue-400 border border-blue-500/20'
+                  }`}>
+                    {rec.priority}
+                  </span>
+                </div>
+                <p className="text-[11px] text-slate-400 mt-1 leading-snug">{rec.description}</p>
+              </div>
+
+              <button
+                onClick={() => {
+                  if (rec.targetAppId) {
+                    setSelectedAppId(rec.targetAppId);
+                    handleStartSim();
+                  } else if (rec.targetTab && setActiveTab) {
+                    setActiveTab(rec.targetTab);
+                  }
+                }}
+                className="mt-2 text-xs font-bold text-brand-400 hover:text-brand-300 flex items-center gap-1.5 self-start cursor-pointer"
+              >
+                <span>{rec.actionLabel}</span>
+                <ArrowRight size={13} />
+              </button>
+            </div>
+          ))}
+        </div>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 w-full min-w-0">

@@ -80,11 +80,11 @@ export function Navbar({
     },
     {
       id: 'coach',
-      label: 'Treinamento',
+      label: 'Copiloto IA',
       icon: 'psychology',
       completed: interviewCount > 0,
       active: activeTab === 'coach',
-      description: interviewCount > 0 ? `${interviewCount} simulaç${interviewCount > 1 ? 'ões' : 'ão'}` : 'Prepare-se com IA'
+      description: interviewCount > 0 ? `${interviewCount} simulaç${interviewCount > 1 ? 'ões' : 'ão'}` : 'Assistente & Treino'
     },
   ];
 

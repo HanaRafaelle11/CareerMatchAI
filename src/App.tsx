@@ -15,6 +15,7 @@ import { VocentroLogo } from './presentation/components/ds/MyCareerIcons';
 import { isSupabaseConfigured, supabase } from './infrastructure/api/supabaseClient';
 import { BetaFeedbackWidget } from './presentation/components/BetaFeedbackWidget';
 import { OnboardingModal } from './presentation/components/OnboardingModal';
+import { GlobalCopilotDrawer } from './presentation/components/GlobalCopilotDrawer';
 import { Toast, type ToastMessage } from './presentation/components/ds';
 import type { Job } from './domain/models/types';
 
@@ -788,6 +789,16 @@ function AuthenticatedApp({
           </Suspense>
         )}
       </main>
+
+      {/* Copiloto Flutuante Global — Opção A (Presente em todas as telas) */}
+      <GlobalCopilotDrawer
+        applications={applications}
+        jobs={jobs}
+        matches={matches}
+        careerProfileNew={careerProfileNew}
+        setActiveTab={handleSetActiveTab}
+        onStartSimulation={handleStartSimulation}
+      />
 
       {/* Beta Feedback Widget — Floating Global */}
       {user && <BetaFeedbackWidget userId={user.id} feature="career_intelligence" />}

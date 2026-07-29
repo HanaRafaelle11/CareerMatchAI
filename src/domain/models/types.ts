@@ -365,6 +365,28 @@ export interface Notification {
   createdAt: string;
 }
 
+export interface CopilotRecommendation {
+  id: string;
+  type: 'action' | 'warning' | 'priority_job' | 'interview_prep';
+  title: string;
+  description: string;
+  actionLabel: string;
+  targetTab?: string;
+  targetAppId?: string;
+  targetJobId?: string;
+  priority: 'high' | 'medium' | 'low';
+}
+
+export interface CopilotMessage {
+  id: string;
+  role: 'assistant' | 'user';
+  text: string;
+  timestamp: string;
+  widget?: 'star_prep' | 'resume_optimize' | 'cover_letter' | 'gap_analysis';
+  targetAppId?: string;
+  targetJobId?: string;
+}
+
 export interface CompanyProfile {
   id: string;
   userId: string;

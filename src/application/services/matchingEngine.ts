@@ -648,15 +648,15 @@ export class MatchingEngine {
     const weaknesses: string[] = [];
 
     if (scoreTechnical > 80) {
-      strengths.push(`Excelente compatibilidade técnica: encontramos ${matchedSkillsList.length} das ${job.requirements.length} competências solicitadas, incluindo ${matchedSkillsList.slice(0, 4).join(', ')}.`);
+      strengths.push(`Match alto com a vaga: encontramos ${matchedSkillsList.length} das ${job.requirements.length} competências solicitadas, incluindo ${matchedSkillsList.slice(0, 4).join(', ')}.`);
     } else if (scoreTechnical > 50) {
-      strengths.push(`Boa aderência técnica: ${matchedSkillsList.length} de ${job.requirements.length} competências mapeadas no seu perfil, como ${matchedSkillsList.slice(0, 3).join(', ')}.`);
+      strengths.push(`Match moderado com a vaga: ${matchedSkillsList.length} de ${job.requirements.length} competências mapeadas no seu perfil, como ${matchedSkillsList.slice(0, 3).join(', ')}.`);
       if (missingSkillsList.length > 0) {
-        weaknesses.push(`Para aumentar ainda mais a aderência, vale destacar ou desenvolver: ${missingSkillsList.slice(0, 3).join(', ')}.`);
+        weaknesses.push(`Para elevar seu Match com a vaga, vale destacar ou desenvolver: ${missingSkillsList.slice(0, 3).join(', ')}.`);
       }
     } else {
       if (matchedSkillsList.length > 0) {
-        strengths.push(`Identificamos ${matchedSkillsList.length} competência(s) compatível(is): ${matchedSkillsList.join(', ')}.`);
+        strengths.push(`Identificamos ${matchedSkillsList.length} competência(s) em sintonia: ${matchedSkillsList.join(', ')}.`);
       }
       weaknesses.push(`A vaga requer competências adicionais: ${missingSkillsList.slice(0, 4).join(', ')}.`);
     }
@@ -664,7 +664,7 @@ export class MatchingEngine {
     if (exp >= range.min) {
       strengths.push(`Experiência de ${exp} anos é ideal para o nível ${job.seniority} buscado pela vaga.`);
     } else if (exp > 0) {
-      weaknesses.push(`Sua experiência (${exp} anos) está levemente abaixo do esperado para nível ${job.seniority}. Isso raramente é bloqueador quando a aderência técnica é alta.`);
+      weaknesses.push(`Sua experiência (${exp} anos) está levemente abaixo do esperado para nível ${job.seniority}. Isso raramente é bloqueador quando o Match com a vaga é alto.`);
     }
 
     if (job.workMode === 'remote') {

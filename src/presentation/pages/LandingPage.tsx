@@ -238,7 +238,7 @@ export function LandingPage({ onNavigateToAuth }: LandingPageProps) {
               { icon: FileText, title: 'Diagnóstico do Currículo', desc: 'Descubra pontos fortes e oportunidades de melhoria no seu perfil.' },
               { icon: ScanSearch, title: 'Currículo de Alto Impacto', desc: 'Destaque suas conquistas com termos relevantes para os recrutadores.' },
               { icon: Sparkles, title: 'Treino de Entrevistas com IA', desc: 'Pratique perguntas comportamentais e ganhe confiança antes da entrevista.' },
-              { icon: Activity, title: 'Teste de Compatibilidade', desc: 'Saiba se seu currículo atende aos requisitos exigidos pelas empresas.' },
+              { icon: Activity, title: 'Teste de Match da vaga', desc: 'Saiba se seu currículo atende aos requisitos exigidos pelas empresas.' },
               { icon: CheckCircle2, title: 'Histórias Profissionais', desc: 'Estruture seus cases de sucesso de forma clara e convincente.' },
               { icon: Target, title: 'Evolução Semanal', desc: 'Metas e acompanhamento contínuo para acelerar sua contratação.' }
             ].map((card, idx) => (

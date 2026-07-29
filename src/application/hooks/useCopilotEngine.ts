@@ -77,7 +77,7 @@ export function useCopilotEngine({
           id: `rec-high-match-${job.id}`,
           type: 'priority_job',
           title: `Vaga de alta prioridade: ${job.title}`,
-          description: `Identificamos ${topMatch.overallScore || topMatch.score}% de alinhamento com seu perfil na ${job.companyName}.`,
+          description: `Identificamos ${topMatch.overallScore || topMatch.score}% de Match com a vaga na ${job.companyName}.`,
           actionLabel: 'Candidatar-se agora',
           targetTab: 'match',
           targetJobId: job.id,

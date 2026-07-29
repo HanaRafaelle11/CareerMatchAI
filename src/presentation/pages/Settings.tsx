@@ -1051,7 +1051,7 @@ export function Settings({
                     className="h-4 w-4 accent-brand-500 rounded bg-slate-900 cursor-pointer mt-0.5"
                   />
                   <label htmlFor="gdpr-consent" className="text-[11px] text-slate-400 cursor-pointer">
-                    Consinto com o processamento dos meus currículos via inteligência artificial para fins de cálculo de compatibilidade, geração de roteiros de entrevista e otimização. (Obrigatório para o funcionamento do app)
+                    Consinto com o processamento dos meus currículos via inteligência artificial para fins de cálculo do Match da vaga, geração de roteiros de entrevista e otimização. (Obrigatório para o funcionamento do app)
                   </label>
                 </div>
 

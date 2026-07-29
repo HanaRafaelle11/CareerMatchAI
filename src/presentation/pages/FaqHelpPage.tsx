@@ -44,14 +44,14 @@ export const FaqHelpPage: React.FC<FaqHelpPageProps> = ({ onBack }) => {
   const faqScores = [
     {
       id: 'score-1',
-      title: '📈 Match Score Semântico (%)',
+      title: '📈 Match da vaga (%)',
       icon: Target,
-      desc: 'O Match Score Semântico é a porcentagem que mede o alinhamento tridimensional entre seu perfil e uma vaga específica.',
-      details: 'Ele analisa simultaneamente: (1) Hard Skills exigidas na vaga vs. competências do seu currículo, (2) Compatibilidade de cargo e área de atuação, (3) Exigências de senioridade. Vagas fora da sua área principal (ex: vaga de TI para candidatas com histórico em Cozinha/Administração) recebem uma trava de compatibilidade com pontuação ajustada (< 15%) para evitar falsos positivos.'
+      desc: 'O Match da vaga é a porcentagem que mede a sintonia entre seu perfil e uma vaga específica.',
+      details: 'Ele analisa simultaneamente: (1) Hard Skills exigidas na vaga vs. competências do seu currículo, (2) Match de cargo e área de atuação, (3) Exigências de senioridade. Vagas fora da sua área principal recebem uma trava de Match com pontuação ajustada (< 15%) para evitar falsos positivos.'
     },
     {
       id: 'score-2',
-      title: '🤖 Score ATS & Compatibilidade de Robôs (%)',
+      title: '🤖 Score ATS & Leitura de Robôs (%)',
       icon: ScanSearch,
       desc: 'Mede a capacidade do seu currículo ser lido e aprovado pelos sistemas automatizados de seleção (Applicant Tracking Systems).',
       details: 'Avalia a estrutura do documento, termos técnicos de alto impacto, palavras-chave exatas da vaga e a estruturação das suas experiências no método STAR (Situação, Tarefa, Ação e Resultado).'

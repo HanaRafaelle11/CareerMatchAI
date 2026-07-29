@@ -438,7 +438,7 @@ export function JobMatchHub({
     const currentResume = (activeResumeVersionId ? resumes.find(r => r.resumeVersionId === activeResumeVersionId) : null) || resumes.find(r => r.isPrimary) || resumes[0];
     if (!userId || !currentResume) return;
     
-    const confirm = window.confirm("Você irá remover todas as análises feitas pela IA deste currículo (compatibilidade, otimizações, STAR questions). O currículo físico continuará ativo. Deseja continuar?");
+    const confirm = window.confirm("Você irá remover todas as análises feitas pela IA deste currículo (Match da vaga, otimizações, STAR questions). O currículo físico continuará ativo. Deseja continuar?");
     if (!confirm) return;
 
     try {
@@ -570,7 +570,7 @@ export function JobMatchHub({
       queryClient.invalidateQueries({ queryKey: ['career-insights'] });
       queryClient.invalidateQueries({ queryKey: ['jobs'] });
 
-      setToast({ message: "Análises e vagas importadas apagadas com sucesso! Você pode recalcular compatibilidades.", type: 'info' });
+      setToast({ message: "Análises e vagas importadas apagadas com sucesso! Você pode recalcular o Match da vaga.", type: 'info' });
     } catch (err: any) {
       console.error("Erro ao apagar análises:", err);
       const formatted = AppError.from(err);
@@ -586,7 +586,7 @@ export function JobMatchHub({
   const handleDeleteSelectedAnalysis = async () => {
     if (!userId || !selectedJob || !currentMatch) return;
 
-    const confirm = window.confirm(`Deseja realmente apagar a análise de compatibilidade e otimizações criadas especificamente para a vaga "${selectedJob.title}" em "${selectedJob.companyName}"? O currículo físico e a vaga permanecerão intactos.`);
+    const confirm = window.confirm(`Deseja realmente apagar a análise de Match da vaga e otimizações criadas especificamente para a vaga "${selectedJob.title}" em "${selectedJob.companyName}"? O currículo físico e a vaga permanecerão intactos.`);
     if (!confirm) return;
 
     try {
@@ -725,7 +725,7 @@ export function JobMatchHub({
       queryClient.invalidateQueries({ queryKey: ['interview-prep'] });
       queryClient.invalidateQueries({ queryKey: ['applications'] });
 
-      setToast({ message: "Análise desta vaga excluída com sucesso! Você pode recalcular a compatibilidade quando desejar.", type: 'info' });
+      setToast({ message: "Análise desta vaga excluída com sucesso! Você pode recalcular o Match da vaga quando desejar.", type: 'info' });
     } catch (err: any) {
       console.error("Erro ao apagar análise selecionada:", err);
       const formatted = AppError.from(err);
@@ -1377,11 +1377,11 @@ export function JobMatchHub({
             </div>
             <h2 className="text-base font-semibold text-slate-900 dark:text-slate-100 mt-1">
               {discoveredJobs.length > 0 
-                ? `Identificamos ${discoveredJobs.length} vaga(s) com alto potencial de compatibilidade para seu perfil.` 
-                : 'Insira palavras-chave ou cole o link de uma vaga para analisar seu alinhamento com a IA.'}
+                ? `Identificamos ${discoveredJobs.length} vaga(s) com alto potencial de Match para seu perfil.` 
+                : 'Insira palavras-chave ou cole o link de uma vaga para analisar o Match da vaga com a IA.'}
             </h2>
             <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
-              O copiloto calcula a aderência semântica e lacunas técnicas comparando com seu currículo selecionado.
+              O copiloto calcula o Match da vaga e lacunas técnicas comparando com seu currículo selecionado.
             </p>
           </div>
         </div>
@@ -2156,7 +2156,7 @@ export function JobMatchHub({
                           <AlertTriangle size={20} className="shrink-0 text-amber-400 mt-0.5 sm:mt-0" />
                           <div>
                             <span className="font-bold block text-amber-200">Sem dados suficientes para análise profunda</span>
-                            <span className="text-[11px] text-amber-300/80">Envie seu currículo em PDF para calcularmos a compatibilidade de 7 fatores e ativarmos a IA.</span>
+                            <span className="text-[11px] text-amber-300/80">Envie seu currículo em PDF para calcularmos o Match da vaga e ativarmos a IA.</span>
                           </div>
                         </div>
                         {setActiveTab && (
@@ -2172,7 +2172,7 @@ export function JobMatchHub({
                       <div className="py-8 text-center text-slate-400 space-y-2">
                         <Loader2 size={24} className="animate-spin text-blue-400 mx-auto" />
                         <p className="text-xs font-semibold text-slate-200">Calculando match & gerando análise IA...</p>
-                        <p className="text-[10px] text-slate-500">Sintetizando 7 fatores de compatibilidade e pontos fortes...</p>
+                        <p className="text-[10px] text-slate-500">Sintetizando os fatores de Match da vaga e pontos fortes...</p>
                       </div>
                     ) : (
                       <>
@@ -2667,10 +2667,10 @@ export function JobMatchHub({
                             )}
                             <p className="text-xs text-slate-400 mt-3 leading-relaxed">
                               {currentMatch.scoreOverall >= 90
-                                ? 'Seu currículo possui um excelente alinhamento com os requisitos técnicos e comportamentais exigidos por esta oportunidade.'
+                                ? 'Seu currículo possui um Match alto com os requisitos técnicos e comportamentais exigidos por esta oportunidade.'
                                 : currentMatch.scoreOverall >= 70
-                                ? 'Há uma boa compatibilidade com os requisitos principais. Com pequenos ajustes, suas chances podem aumentar ainda mais.'
-                                : 'Compatibilidade moderada. Recomendamos otimizar as seções e palavras-chave de seu currículo para esta oportunidade.'}
+                                ? 'Há um bom Match com os requisitos principais. Com pequenos ajustes, suas chances podem aumentar ainda mais.'
+                                : 'Match moderado com a vaga. Recomendamos otimizar as seções e palavras-chave de seu currículo para esta oportunidade.'}
                             </p>
                           </div>
                           
@@ -3371,7 +3371,7 @@ export function JobMatchHub({
                 ) : (
                   <div className="h-64 rounded-2xl border border-dashed border-slate-800 dark:border-slate-800 light:border-slate-300 flex flex-col items-center justify-center text-center p-6 text-slate-500 text-xs">
                     <Clipboard size={28} className="mb-2 text-slate-600" />
-                    <span>Nenhum match calculado para esta vaga. Clique em "Calcular Compatibilidade" no painel acima.</span>
+                    <span>Nenhum match calculado para esta vaga. Clique em "Calcular Match" no painel acima.</span>
                   </div>
                 )}
               </div>
@@ -3649,7 +3649,7 @@ export function JobMatchHub({
                           onChange={e => setFilterScoreOver80(e.target.checked)}
                           className="h-3.5 w-3.5 accent-brand-500 rounded bg-slate-900 border-slate-800"
                         />
-                        <span className="text-emerald-400 font-semibold">Match Superior a 80% (Alta Aderência)</span>
+                        <span className="text-emerald-400 font-semibold">Match Superior a 80% (Match alto com a vaga)</span>
                       </label>
                     </div>
                     <span className="text-[11px] text-slate-500 font-mono">

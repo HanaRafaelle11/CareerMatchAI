@@ -74,7 +74,7 @@ export const TermsOfUsePage: React.FC<TermsOfUsePageProps> = ({ onBack }) => {
           </p>
           <ul className="list-disc list-inside space-y-1.5 text-xs text-[#CBD5E1] pl-2">
             <li>Busca inteligente e agregação de vagas de trabalho;</li>
-            <li>Análise semântica e cálculo de pontuação de compatibilidade (Match Score);</li>
+            <li>Análise semântica e cálculo do Match da vaga (Match Score);</li>
             <li>Otimização de currículos para sistemas automatizados de seleção (ATS);</li>
             <li>Simulador interativo de entrevistas com feedback inteligente;</li>
             <li>Organização e acompanhamento de candidaturas em funil (Kanban).</li>

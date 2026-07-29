@@ -322,7 +322,7 @@ export function Dashboard({
             <div className="flex items-center justify-between mb-2">
               <span className="text-xs font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider">Match Médio do Mercado</span>
               <span className={`text-xs font-semibold ${hasMarketData ? 'text-[#22C7A8]' : 'text-amber-500 dark:text-amber-400'}`}>
-                {hasMarketData ? (avgMatch >= 75 ? 'Excelente Alinhamento' : avgMatch >= 50 ? 'Bom Alinhamento' : 'Em Desenvolvimento') : 'Pendente de Dados'}
+                {hasMarketData ? (avgMatch >= 75 ? 'Match alto com o mercado' : avgMatch >= 50 ? 'Match moderado com o mercado' : 'Em Desenvolvimento') : 'Pendente de Dados'}
               </span>
             </div>
 
@@ -336,7 +336,7 @@ export function Dashboard({
 
             <p className="text-xs text-slate-600 dark:text-[#B8C2CC] leading-relaxed mt-2">
               {hasMatches ? (
-                <>Seu perfil possui alinhamento superior a <strong>{Math.min(95, Math.max(10, avgMatch - 5))}% das oportunidades</strong> analisadas para {targetRole}.</>
+                <>Seu perfil possui Match alto com <strong>{Math.min(95, Math.max(10, avgMatch - 5))}% das oportunidades</strong> analisadas para {targetRole}.</>
               ) : hasResume ? (
                 <>Seu currículo foi analisado com sucesso! Match estimado em <strong>{avgMatch}%</strong>. Explore as vagas para calcular o Match exato de cada uma.</>
               ) : (

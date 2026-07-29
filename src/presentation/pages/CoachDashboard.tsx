@@ -491,7 +491,7 @@ export function CoachDashboard({
                                 </div>
                                 <div className="p-4 rounded-2xl bg-slate-900/40 border border-slate-850 flex flex-col items-center justify-center text-center space-y-1">
                                   <ProgressRing value={evaluations.jobAdherence || 0} size={50} strokeWidth={5} />
-                                  <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block pt-2">Aderência à Vaga</span>
+                                  <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block pt-2">Match com a Vaga</span>
                                   <strong className="text-lg text-slate-200">{evaluations.jobAdherence}%</strong>
                                 </div>
                                 <div className="p-4 rounded-2xl bg-slate-900/40 border border-slate-850 flex flex-col items-center justify-center text-center space-y-1">
@@ -509,82 +509,69 @@ export function CoachDashboard({
                                 </div>
 
                                 <div className="p-4 bg-slate-900/20 border border-slate-900 rounded-2xl space-y-1">
-                                  <strong className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Avaliação de Adequação Técnica</strong>
+                                  <strong className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Adequação Técnica</strong>
                                   <p className="text-slate-350 leading-relaxed font-sans">{evaluations.technicalAnalysis}</p>
                                 </div>
 
-                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                   <div className="p-4 bg-slate-900/20 border border-slate-900 rounded-2xl space-y-1">
                                     <strong className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Comunicação & Expressão</strong>
                                     <p className="text-slate-350 leading-relaxed font-sans">{evaluations.communicationAnalysis}</p>
-                                    <p className="text-slate-400 text-[10px] mt-1.5 italic font-sans">{evaluations.postureAnalysis}</p>
+                                    <p className="text-[10px] text-slate-500 italic mt-1">{evaluations.postureAnalysis}</p>
                                   </div>
                                   <div className="p-4 bg-slate-900/20 border border-slate-900 rounded-2xl space-y-1">
                                     <strong className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Clareza & Segurança</strong>
                                     <p className="text-slate-350 leading-relaxed font-sans">{evaluations.clarityAnalysis}</p>
-                                    <p className="text-slate-400 text-[10px] mt-1.5 italic font-sans">Foco: {evaluations.objectivityAnalysis} | Confiança: {evaluations.confidenceAnalysis}</p>
                                   </div>
                                 </div>
-                              </div>
 
-                              {/* Strengths / Weaknesses Grid */}
-                              <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 border-t border-slate-900 pt-4">
-                                <div className="space-y-2">
-                                  <strong className="text-emerald-400 font-semibold block text-[10px] uppercase tracking-wider">✓ Pontos Fortes Identificados:</strong>
-                                  <ul className="list-disc pl-4 space-y-1.5 text-slate-350 font-sans">
-                                    {evaluations.strengths?.map((s: string, idx: number) => <li key={idx}>{s}</li>)}
-                                  </ul>
-                                </div>
-                                <div className="space-y-2">
-                                  <strong className="text-amber-400 font-semibold block text-[10px] uppercase tracking-wider">⚠️ Gaps e Pontos Fracos:</strong>
-                                  <ul className="list-disc pl-4 space-y-1.5 text-slate-350 font-sans">
-                                    {evaluations.weaknesses?.map((s: string, idx: number) => <li key={idx}>{s}</li>)}
-                                  </ul>
-                                </div>
-                              </div>
-
-                              {/* Key Highlights */}
-                              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                                <div className="p-4 rounded-2xl bg-emerald-500/5 border border-emerald-500/10 space-y-1">
-                                  <strong className="text-emerald-400 font-semibold block text-[10px] uppercase tracking-wider">🌟 Melhor Resposta:</strong>
-                                  <p className="text-slate-350 leading-relaxed font-sans">{evaluations.bestAnswers?.[0] || 'Respostas consistentes e alinhadas.'}</p>
-                                </div>
-                                <div className="p-4 rounded-2xl bg-amber-500/5 border border-amber-500/10 space-y-1">
-                                  <strong className="text-amber-400 font-semibold block text-[10px] uppercase tracking-wider">🚨 Maior Desafio:</strong>
-                                  <p className="text-slate-350 leading-relaxed font-sans">{evaluations.worstAnswers?.[0] || 'Gaps textuais não identificados.'}</p>
-                                </div>
-                              </div>
-
-                              {/* Improvement Plan */}
-                              <div className="p-4.5 bg-brand-500/5 border border-brand-500/10 rounded-2xl space-y-2">
-                                <strong className="text-brand-400 font-bold text-[10px] uppercase tracking-wider block">📋 Plano de Preparação e Ação</strong>
-                                <ul className="list-decimal pl-4 space-y-1.5 text-slate-350 font-sans">
-                                  {evaluations.improvementPlan?.map((item: string, idx: number) => <li key={idx}>{item}</li>)}
-                                </ul>
-                              </div>
-
-                              {/* Extended Diagnostic Metrics */}
-                              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                {evaluations.gapAnalysis && evaluations.gapAnalysis.length > 0 && (
-                                  <div className="p-4.5 bg-red-950/10 border border-red-500/10 rounded-2xl space-y-2">
-                                    <strong className="text-red-450 font-bold text-[10px] uppercase tracking-wider block">⚠️ Gap Analysis (Lacunas)</strong>
-                                    <ul className="list-disc pl-4 space-y-1 text-slate-350 font-sans text-xs">
-                                      {evaluations.gapAnalysis.map((g: string, idx: number) => <li key={idx}>{g}</li>)}
+                                {/* Strengths & Weaknesses */}
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                  <div className="p-4 bg-emerald-950/20 border border-emerald-500/20 rounded-2xl space-y-2">
+                                    <strong className="text-xs font-bold text-emerald-400 flex items-center gap-1.5">
+                                      <span>✓</span> Pontos Fortes
+                                    </strong>
+                                    <ul className="space-y-1 text-slate-300 font-sans text-xs">
+                                      {(evaluations.strengths || []).map((item: string, idx: number) => (
+                                        <li key={idx} className="flex items-start gap-1.5">
+                                          <span className="text-emerald-400 font-bold">•</span>
+                                          <span>{item}</span>
+                                        </li>
+                                      ))}
                                     </ul>
                                   </div>
-                                )}
-                                
-                                {evaluations.recommendedQuestions && evaluations.recommendedQuestions.length > 0 && (
-                                  <div className="p-4.5 bg-indigo-950/10 border border-indigo-500/10 rounded-2xl space-y-2">
-                                    <strong className="text-indigo-400 font-bold text-[10px] uppercase tracking-wider block">💡 Perguntas Recomendadas</strong>
-                                    <ul className="list-disc pl-4 space-y-1 text-slate-350 font-sans text-xs">
-                                      {evaluations.recommendedQuestions.map((q: string, idx: number) => <li key={idx}>{q}</li>)}
+                                  <div className="p-4 bg-amber-950/20 border border-amber-500/20 rounded-2xl space-y-2">
+                                    <strong className="text-xs font-bold text-amber-400 flex items-center gap-1.5">
+                                      <span>⚠️</span> Oportunidades de Melhoria
+                                    </strong>
+                                    <ul className="space-y-1 text-slate-300 font-sans text-xs">
+                                      {(evaluations.weaknesses || []).map((item: string, idx: number) => (
+                                        <li key={idx} className="flex items-start gap-1.5">
+                                          <span className="text-amber-400 font-bold">•</span>
+                                          <span>{item}</span>
+                                        </li>
+                                      ))}
                                     </ul>
+                                  </div>
+                                </div>
+
+                                {/* Plano de Ação */}
+                                {evaluations.improvementPlan && evaluations.improvementPlan.length > 0 && (
+                                  <div className="p-4 bg-slate-900/30 border border-slate-850 rounded-2xl space-y-2">
+                                    <strong className="text-xs font-bold text-brand-400 flex items-center gap-1.5">
+                                      <span>🎯</span> Plano de Ação Recomendado
+                                    </strong>
+                                    <ol className="space-y-1.5 text-slate-300 font-sans text-xs list-decimal pl-4">
+                                      {evaluations.improvementPlan.map((step: string, idx: number) => (
+                                        <li key={idx}>{step}</li>
+                                      ))}
+                                    </ol>
                                   </div>
                                 )}
                               </div>
 
-                              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                              {/* Perceived Seniority & Risk Assessment */}
+                              <div className="grid grid-cols-1 md:grid-cols-3 gap-3 pt-2">
                                 <div className="p-4.5 bg-slate-950/40 border border-slate-900 rounded-2xl flex flex-col justify-between">
                                   <span className="text-slate-500 text-[8px] uppercase tracking-wider font-bold">Senioridade Percebida</span>
                                   <strong className="text-slate-200 text-xs mt-1 uppercase font-mono">{evaluations.seniorityPerceived || 'pleno'}</strong>
@@ -595,7 +582,7 @@ export function CoachDashboard({
                                 </div>
                                 <div className="p-4.5 bg-slate-950/40 border border-slate-900 rounded-2xl flex flex-col justify-between">
                                   <span className="text-slate-500 text-[8px] uppercase tracking-wider font-bold">Comparação Vaga vs Perfil</span>
-                                  <p className="text-slate-300 text-[10px] mt-1 font-sans leading-relaxed">{evaluations.jobFitComparison || 'Aderência compatível.'}</p>
+                                  <p className="text-slate-300 text-[10px] mt-1 font-sans leading-relaxed">{evaluations.jobFitComparison || 'Match com a vaga verificado.'}</p>
                                 </div>
                               </div>
 
@@ -643,7 +630,7 @@ export function CoachDashboard({
                             <div className="grid grid-cols-1 sm:grid-cols-4 gap-4 items-center p-3 rounded-xl bg-surface-container-high/40 border border-outline-variant/10">
                               <div className="flex flex-col items-center sm:border-r border-outline-variant/10 shrink-0 py-1">
                                 <ProgressRing value={avgScore} size={40} strokeWidth={4} />
-                                <span className="text-[10px] font-bold text-on-surface mt-1 block">Aderência Geral</span>
+                                <span className="text-[10px] font-bold text-on-surface mt-1 block">Match Geral</span>
                               </div>
 
                               <div className="sm:col-span-3 grid grid-cols-3 gap-2 text-center">
@@ -656,7 +643,7 @@ export function CoachDashboard({
                                   <strong className="text-xs text-on-surface">{evaluations.objectivity}%</strong>
                                 </div>
                                 <div className="p-2 rounded bg-surface-container-highest/20 border border-outline-variant/10">
-                                  <span className="text-[9px] text-on-surface-variant font-medium block">Aderência STAR</span>
+                                  <span className="text-[9px] text-on-surface-variant font-medium block">Pontuação STAR</span>
                                   <strong className="text-xs text-on-surface">{evaluations.adherence}%</strong>
                                 </div>
                               </div>

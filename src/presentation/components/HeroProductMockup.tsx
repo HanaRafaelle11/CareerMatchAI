@@ -54,7 +54,7 @@ export const HeroProductMockup: React.FC<HeroProductMockupProps> = ({ onSimulate
           {/* Match Score Card */}
           <div className="p-4 rounded-xl bg-slate-950/60 border border-blue-500/30 space-y-2 relative overflow-hidden">
             <div className="flex items-center justify-between">
-              <span className="text-[10px] font-mono uppercase tracking-wider text-slate-300 font-bold">Compatibilidade</span>
+              <span className="text-[10px] font-mono uppercase tracking-wider text-slate-300 font-bold">Match da vaga</span>
               <span className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
                 Alta Afinidade
               </span>

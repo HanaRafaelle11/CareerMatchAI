@@ -7,7 +7,7 @@ export interface StrategyRecommendation {
   scoreOverall: number;
   cpi: number;
   roi: number;
-  priority: '🔥 Aplicar hoje' | '⚡ Preparar antes de aplicar' | '📚 Baixa aderência';
+  priority: '🔥 Aplicar hoje' | '⚡ Preparar antes de aplicar' | '📚 Match baixo com a vaga';
   matchedReasons: string[];
   warnings: string[];
   missingSkills: string[];
@@ -165,7 +165,7 @@ export class CandidateStrategyService {
       cpi
     );
 
-    let priority: StrategyRecommendation['priority'] = '📚 Baixa aderência';
+    let priority: StrategyRecommendation['priority'] = '📚 Match baixo com a vaga';
     if (effectiveScore >= 75) {
       priority = '🔥 Aplicar hoje';
     } else if (effectiveScore >= 45) {

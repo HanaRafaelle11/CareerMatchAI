@@ -6,10 +6,13 @@ import {
   Mail, Clock, CheckCircle2, Zap
 } from 'lucide-react';
 import { ChurnIntelligenceService, type UserChurnProfile } from '../../application/services/ChurnIntelligenceService';
+import { ContactActionModal, type ContactTargetUser } from './ContactActionModal';
 
 export function ChurnIntelligenceDashboard() {
   const [riskFilter, setRiskFilter] = useState<string>('all');
   const [searchTerm, setSearchTerm] = useState<string>('');
+  const [contactUser, setContactUser] = useState<ContactTargetUser | null>(null);
+  const [actionSuccessMsg, setActionSuccessMsg] = useState<string | null>(null);
 
   const { data: churnData, isLoading, refetch, isRefetching } = useQuery({
     queryKey: ['churn-intelligence-metrics'],
@@ -263,13 +266,13 @@ export function ChurnIntelligenceDashboard() {
                         </p>
                       </div>
 
-                      <a
-                        href={`mailto:${user.email}?subject=Suporte%20Vocentro%20-%20Acompanhamento&body=Olá%20${encodeURIComponent(user.name)},%0A%0A`}
+                      <button
+                        onClick={() => setContactUser({ userId: user.userId, name: user.name, email: user.email, contextMessage: `Olá, ${user.name}!\n\n${user.nextBestAction}` })}
                         className="self-end px-3 py-1.5 rounded-lg bg-brand-600 hover:bg-brand-500 text-white font-bold text-[11px] flex items-center gap-1.5 transition cursor-pointer shadow-md shadow-brand-600/20"
                       >
                         <span>Executar Ação</span>
                         <ArrowRight size={12} />
-                      </a>
+                      </button>
                     </div>
                   </div>
                 </div>
@@ -277,6 +280,22 @@ export function ChurnIntelligenceDashboard() {
             )}
           </div>
         </>
+      )}
+
+      {/* Modal de Contato / Registro de Ação */}
+      {contactUser && (
+        <ContactActionModal
+          user={contactUser}
+          onClose={() => setContactUser(null)}
+          onSuccess={(msg) => setActionSuccessMsg(msg)}
+        />
+      )}
+
+      {actionSuccessMsg && (
+        <div className="fixed bottom-6 right-6 p-4 rounded-xl bg-emerald-500/20 border border-emerald-500/40 text-white text-xs font-bold shadow-2xl z-[1001] flex items-center gap-2 animate-bounce">
+          <span>✅ {actionSuccessMsg}</span>
+          <button onClick={() => setActionSuccessMsg(null)} className="text-slate-400 hover:text-white text-xs font-mono ml-2">✕</button>
+        </div>
       )}
     </div>
   );

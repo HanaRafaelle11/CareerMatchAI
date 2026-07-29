@@ -14,8 +14,8 @@ try {
     const urlMatch = envContent.match(/VITE_SUPABASE_URL=(.+)/);
     const keyMatch = envContent.match(/VITE_SUPABASE_ANON_KEY=(.+)/);
     
-    if (urlMatch) supabaseUrl = urlMatch[1].trim();
-    if (keyMatch) supabaseAnonKey = keyMatch[1].trim();
+    if (urlMatch) supabaseUrl = urlMatch[1].trim().replace(/^["']|["']$/g, '');
+    if (keyMatch) supabaseAnonKey = keyMatch[1].trim().replace(/^["']|["']$/g, '');
   }
 } catch (e: any) {
   console.error("Erro ao carregar .env:", e.message);

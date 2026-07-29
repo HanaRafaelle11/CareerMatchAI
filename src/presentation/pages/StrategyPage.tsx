@@ -57,11 +57,11 @@ export function StrategyPage({
   careerProfileNew,
   resumes,
   jobs,
-  onDeleteJob: _onDeleteJob,
+  onDeleteJob,
   applications,
   onCreateApplication,
   onUpdateApplication,
-  onDeleteApplication: _onDeleteApplication,
+  onDeleteApplication,
   getStagesQuery,
   addStage,
   deleteStage,
@@ -149,16 +149,20 @@ export function StrategyPage({
   const handleSoftDelete = async () => {
     if (!deletingApp) return;
     try {
-      await onUpdateApplication({
-        ...deletingApp,
-        status: 'deleted',
-        updatedAt: new Date().toISOString()
-      });
+      if (onDeleteApplication) {
+        await onDeleteApplication(deletingApp.id);
+      } else {
+        await onUpdateApplication({
+          ...deletingApp,
+          status: 'deleted',
+          updatedAt: new Date().toISOString()
+        });
+      }
       if (selectedAppId === deletingApp.id) {
         setSelectedAppId(null);
       }
       setDeletingApp(null);
-      setToast({ message: 'Candidatura removida com sucesso.', type: 'info' });
+      setToast({ message: 'Candidatura excluída com sucesso.', type: 'info' });
       tracker.track('application_removed', 'StrategyPage', {
         appId: deletingApp.id,
         user_id: userId
@@ -932,8 +936,12 @@ export function StrategyPage({
               {REJECTION_REASONS.map(reason => (
                 <button
                   key={reason}
-                  onClick={() => handleSaveRejectionReason(reason)}
-                  className="px-4 py-2.5 rounded-xl border border-slate-800 bg-slate-900/60 text-xs text-slate-300 hover:bg-red-500/20 hover:text-white transition-all text-left font-medium"
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleSaveRejectionReason(reason);
+                  }}
+                  className="px-4 py-2.5 rounded-xl border border-slate-800 bg-slate-900/60 text-xs text-slate-300 hover:bg-red-500/20 hover:text-white transition-all text-left font-medium cursor-pointer"
                 >
                   {reason}
                 </button>
@@ -1067,19 +1075,11 @@ export function StrategyPage({
               />
             </div>
 
-            <div className="flex justify-between items-center pt-2">
-              <button
-                type="button"
-                onClick={() => handleQuickStatusChange(selectedApp, 'rejected')}
-                className="px-3 py-2 rounded-xl bg-red-950/40 hover:bg-red-900/60 border border-red-800 text-red-300 font-bold text-xs flex items-center gap-1.5"
-              >
-                <Trash2 size={13} />
-                Encerrar / Arquivar Candidatura
-              </button>
+            <div className="flex justify-end pt-2">
               <button
                 type="submit"
                 disabled={isSavingCardDetails}
-                className="px-5 py-2 rounded-xl bg-brand-600 hover:bg-brand-500 text-white font-bold text-xs shadow-lg shadow-brand-500/20 disabled:opacity-50"
+                className="px-5 py-2 rounded-xl bg-brand-600 hover:bg-brand-500 text-white font-bold text-xs shadow-lg shadow-brand-500/20 disabled:opacity-50 cursor-pointer"
               >
                 {isSavingCardDetails ? 'Salvando...' : 'Salvar Alterações'}
               </button>
@@ -1201,11 +1201,17 @@ export function StrategyPage({
                 <div
                   key={colId}
                   className={`space-y-3 rounded-2xl p-3 min-h-[500px] border flex flex-col justify-between ${col.color}`}
-                  onDragOver={e => e.preventDefault()}
+                  onDragOver={e => {
+                    e.preventDefault();
+                    e.dataTransfer.dropEffect = 'move';
+                  }}
                   onDrop={e => {
-                    const appId = e.dataTransfer.getData('text/plain');
+                    e.preventDefault();
+                    const appId = e.dataTransfer.getData('text/plain') || draggedAppId;
+                    if (!appId) return;
                     const targetApp = applications.find(a => a.id === appId);
                     if (targetApp) handleQuickStatusChange(targetApp, colId);
+                    setDraggedAppId(null);
                   }}
                 >
                   <div className="space-y-2">
@@ -1237,6 +1243,7 @@ export function StrategyPage({
                               key={app.id}
                               draggable
                               onDragStart={e => {
+                                e.dataTransfer.effectAllowed = 'move';
                                 e.dataTransfer.setData('text/plain', app.id);
                                 setDraggedAppId(app.id);
                               }}
@@ -1356,6 +1363,28 @@ export function StrategyPage({
                       Match {rec.cpi}%
                     </span>
                   </div>
+                  <div className="flex items-center justify-between pt-2 border-t border-slate-800/60 text-[10px]">
+                    <div className="flex items-center gap-1">
+                      <span className="text-slate-500">Mover:</span>
+                      <select
+                        value="hot"
+                        onChange={(e) => setColumnOverrides(prev => ({ ...prev, [(rec.job as any).id]: e.target.value as any }))}
+                        className="bg-slate-900 border border-slate-800 rounded px-1.5 py-0.5 text-slate-300 text-[10px] outline-none"
+                      >
+                        <option value="hot">🔥 Alta Prioridade</option>
+                        <option value="warm">⚡ Ajustar antes</option>
+                        <option value="cold">❄️ Match baixo</option>
+                      </select>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => onDeleteJob?.((rec.job as any).id)}
+                      className="text-slate-500 hover:text-red-400 p-1 transition-colors"
+                      title="Remover card da matriz"
+                    >
+                      <Trash2 size={12} />
+                    </button>
+                  </div>
                 </CardGlass>
               ))}
             </div>
@@ -1377,6 +1406,28 @@ export function StrategyPage({
                       Match {rec.cpi}%
                     </span>
                   </div>
+                  <div className="flex items-center justify-between pt-2 border-t border-slate-800/60 text-[10px]">
+                    <div className="flex items-center gap-1">
+                      <span className="text-slate-500">Mover:</span>
+                      <select
+                        value="warm"
+                        onChange={(e) => setColumnOverrides(prev => ({ ...prev, [(rec.job as any).id]: e.target.value as any }))}
+                        className="bg-slate-900 border border-slate-800 rounded px-1.5 py-0.5 text-slate-300 text-[10px] outline-none"
+                      >
+                        <option value="hot">🔥 Alta Prioridade</option>
+                        <option value="warm">⚡ Ajustar antes</option>
+                        <option value="cold">❄️ Match baixo</option>
+                      </select>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => onDeleteJob?.((rec.job as any).id)}
+                      className="text-slate-500 hover:text-red-400 p-1 transition-colors"
+                      title="Remover card da matriz"
+                    >
+                      <Trash2 size={12} />
+                    </button>
+                  </div>
                 </CardGlass>
               ))}
             </div>
@@ -1397,6 +1448,28 @@ export function StrategyPage({
                     <span className="text-[10px] px-2 py-0.5 rounded bg-slate-800 text-slate-400 font-bold">
                       Match {rec.cpi}%
                     </span>
+                  </div>
+                  <div className="flex items-center justify-between pt-2 border-t border-slate-800/60 text-[10px]">
+                    <div className="flex items-center gap-1">
+                      <span className="text-slate-500">Mover:</span>
+                      <select
+                        value="cold"
+                        onChange={(e) => setColumnOverrides(prev => ({ ...prev, [(rec.job as any).id]: e.target.value as any }))}
+                        className="bg-slate-900 border border-slate-800 rounded px-1.5 py-0.5 text-slate-300 text-[10px] outline-none"
+                      >
+                        <option value="hot">🔥 Alta Prioridade</option>
+                        <option value="warm">⚡ Ajustar antes</option>
+                        <option value="cold">❄️ Match baixo</option>
+                      </select>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => onDeleteJob?.((rec.job as any).id)}
+                      className="text-slate-500 hover:text-red-400 p-1 transition-colors"
+                      title="Remover card da matriz"
+                    >
+                      <Trash2 size={12} />
+                    </button>
                   </div>
                 </CardGlass>
               ))}

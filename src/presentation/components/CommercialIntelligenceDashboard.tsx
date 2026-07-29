@@ -7,9 +7,13 @@ import {
   RefreshCw, Search, Loader2, Info, HelpCircle
 } from 'lucide-react';
 
+import { ContactActionModal, type ContactTargetUser } from './ContactActionModal';
+
 export function CommercialIntelligenceDashboard() {
   const [activeTab, setActiveTab] = useState<'all' | 'upgrade' | 'desconto' | 'oferta' | 'embaixador' | 'engajados' | 'nps'>('all');
   const [searchQuery, setSearchQuery] = useState('');
+  const [contactUser, setContactUser] = useState<ContactTargetUser | null>(null);
+  const [actionSuccessMsg, setActionSuccessMsg] = useState<string | null>(null);
 
   const { data: summary, isLoading, isRefetching, refetch } = useQuery({
     queryKey: ['commercial-intelligence-summary'],
@@ -330,21 +334,33 @@ export function CommercialIntelligenceDashboard() {
                       {/* Action */}
                       <td className="p-3 text-right">
                         {c.isAmbassadorCandidate ? (
-                          <span className="inline-flex items-center gap-1 text-[10px] font-bold text-amber-400 bg-amber-500/10 border border-amber-500/20 px-2.5 py-1 rounded-lg">
+                          <button
+                            onClick={() => setContactUser({ userId: c.userId, name: c.name, email: c.email, contextMessage: `Olá, ${c.name}!\n\nVimos que você é um dos usuários mais engajados no VoCentro. Gostaria de te convidar para o nosso programa de Embaixadores!` })}
+                            className="inline-flex items-center gap-1 text-[10px] font-bold text-amber-400 bg-amber-500/10 border border-amber-500/20 px-2.5 py-1 rounded-lg hover:bg-amber-500/20 transition-all cursor-pointer"
+                          >
                             <Award size={11} /> Convidar p/ Embaixador
-                          </span>
+                          </button>
                         ) : c.discountEligible ? (
-                          <span className="inline-flex items-center gap-1 text-[10px] font-bold text-blue-400 bg-blue-500/10 border border-blue-500/20 px-2.5 py-1 rounded-lg">
+                          <button
+                            onClick={() => setContactUser({ userId: c.userId, name: c.name, email: c.email, contextMessage: `Olá, ${c.name}!\n\nVocê ganhou um cupom exclusivo de 20% OFF para liberar o acesso ilimitado ao VoCentro Pro com cupom VOCENTRO20.` })}
+                            className="inline-flex items-center gap-1 text-[10px] font-bold text-blue-400 bg-blue-500/10 border border-blue-500/20 px-2.5 py-1 rounded-lg hover:bg-blue-500/20 transition-all cursor-pointer"
+                          >
                             <Tag size={11} /> Oferecer Cupom 20%
-                          </span>
+                          </button>
                         ) : c.offerEligible ? (
-                          <span className="inline-flex items-center gap-1 text-[10px] font-bold text-purple-300 bg-purple-500/10 border border-purple-500/20 px-2.5 py-1 rounded-lg">
+                          <button
+                            onClick={() => setContactUser({ userId: c.userId, name: c.name, email: c.email, contextMessage: `Olá, ${c.name}!\n\nParabéns pelo seu progresso no pipeline. Liberamos 7 dias de degustação gratuita do plano Pro para sua conta.` })}
+                            className="inline-flex items-center gap-1 text-[10px] font-bold text-purple-300 bg-purple-500/10 border border-purple-500/20 px-2.5 py-1 rounded-lg hover:bg-purple-500/20 transition-all cursor-pointer"
+                          >
                             <Gift size={11} /> Oferecer Trial 7d
-                          </span>
+                          </button>
                         ) : (
-                          <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-slate-400 bg-slate-900 border border-slate-800 px-2.5 py-1 rounded-lg">
-                            <Activity size={11} /> Acompanhar Engajamento
-                          </span>
+                          <button
+                            onClick={() => setContactUser({ userId: c.userId, name: c.name, email: c.email })}
+                            className="inline-flex items-center gap-1 text-[10px] font-semibold text-slate-400 bg-slate-900 border border-slate-800 px-2.5 py-1 rounded-lg hover:text-white hover:border-slate-700 transition-all cursor-pointer"
+                          >
+                            <Activity size={11} /> Contatar Usuário
+                          </button>
                         )}
                       </td>
                     </tr>
@@ -355,6 +371,22 @@ export function CommercialIntelligenceDashboard() {
           </div>
         )}
       </CardGlass>
+
+      {/* Modal de Ação / Contato */}
+      {contactUser && (
+        <ContactActionModal
+          user={contactUser}
+          onClose={() => setContactUser(null)}
+          onSuccess={(msg) => setActionSuccessMsg(msg)}
+        />
+      )}
+
+      {actionSuccessMsg && (
+        <div className="fixed bottom-6 right-6 p-4 rounded-xl bg-emerald-500/20 border border-emerald-500/40 text-white text-xs font-bold shadow-2xl z-[1001] flex items-center gap-2 animate-bounce">
+          <span>✅ {actionSuccessMsg}</span>
+          <button onClick={() => setActionSuccessMsg(null)} className="text-slate-400 hover:text-white text-xs font-mono ml-2">✕</button>
+        </div>
+      )}
 
       {/* Uninstrumented Data Signals / Future Integration Map */}
       <CardGlass className="p-5 space-y-3 border-dashed border-slate-800 bg-slate-950/40">

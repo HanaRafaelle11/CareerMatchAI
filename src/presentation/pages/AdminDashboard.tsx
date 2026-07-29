@@ -9,6 +9,7 @@ import { ChurnIntelligenceDashboard } from '../components/ChurnIntelligenceDashb
 import { CopilotInsightsDashboard } from '../components/CopilotInsightsDashboard';
 import { CommercialIntelligenceDashboard } from '../components/CommercialIntelligenceDashboard';
 import { ExecutiveCopilotDashboard } from '../components/ExecutiveCopilotDashboard';
+import { ResumePreviewModal } from '../components/ResumePreviewModal';
 import { AdminAuditService } from '../../application/services/AdminAuditService';
 import { 
   Activity, Loader2, ShieldAlert, RefreshCw, 
@@ -105,6 +106,7 @@ export function AdminDashboard({ userId }: AdminDashboardProps) {
   const [selectedUser, setSelectedUser] = useState<any | null>(null);
   const [_userDetailTab, setUserDetailTab] = useState('profile');
   const [inspectedResume, setInspectedResume] = useState<any | null>(null);
+  const [previewResumeUser, setPreviewResumeUser] = useState<any | null>(null);
   const [analyticsTimeframe, setAnalyticsTimeframe] = useState<'7d' | '30d' | 'all'>('7d');
   const [funnelDateFilter, setFunnelDateFilter] = useState<'7d' | '30d' | 'all'>('all');
   const [logSearchQuery, setLogSearchQuery] = useState('');
@@ -1411,8 +1413,18 @@ export function AdminDashboard({ userId }: AdminDashboardProps) {
                             {user.role}
                           </span>
                         </td>
-                        {canEditRoles && (
-                          <td className="p-3 text-right">
+                        <td className="p-3 text-right">
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setPreviewResumeUser(user);
+                            }}
+                            className="px-2.5 py-1 rounded-lg bg-brand-500/10 hover:bg-brand-500/20 text-brand-400 border border-brand-500/20 text-[10px] font-bold transition-all cursor-pointer mr-2"
+                          >
+                            📄 Ver CV
+                          </button>
+                          {canEditRoles && (
                             <select
                               value={user.role}
                               onChange={(e) => changeRoleMutation.mutate({ targetUserId: user.id, newRole: e.target.value })}
@@ -1426,8 +1438,8 @@ export function AdminDashboard({ userId }: AdminDashboardProps) {
                               <option value="financeiro">Financeiro</option>
                               <option value="somente_leitura">Somente Leitura</option>
                             </select>
-                          </td>
-                        )}
+                          )}
+                        </td>
                       </tr>
                     ))}
                   </tbody>
@@ -2340,6 +2352,13 @@ export function AdminDashboard({ userId }: AdminDashboardProps) {
             </div>
           </CardGlass>
         </div>
+      )}
+
+      {previewResumeUser && (
+        <ResumePreviewModal
+          user={previewResumeUser}
+          onClose={() => setPreviewResumeUser(null)}
+        />
       )}
     </div>
   );

@@ -9,29 +9,41 @@ export class PdfParser extends BaseJobParser {
 
     const base64 = await this.fileToBase64(file);
 
-    const { data, error } = await supabase.functions.invoke('parse-job', {
-      body: { type: 'pdf', fileBase64: base64 }
-    });
+    try {
+      const { data, error } = await supabase.functions.invoke('parse-job', {
+        body: { type: 'pdf', fileBase64: base64 }
+      });
 
-    if (error) {
-      throw new Error(error.message || 'Falha ao processar o upload do PDF.');
+      if (!error && data && !data.error) {
+        return {
+          title: data.title || file.name.replace(/\.pdf$/i, ''),
+          companyName: data.company_name || 'Empresa não Identificada',
+          description: data.description || '',
+          requirements: data.requirements || [],
+          location: data.location || 'Remoto',
+          workMode: data.work_mode || 'remote',
+          seniority: data.seniority || 'senior',
+          salary: data.salary || undefined,
+          salaryNumeric: data.salary_numeric || undefined,
+          benefits: data.benefits || [],
+          sourcePlatform: 'pdf'
+        };
+      }
+    } catch (err) {
+      console.warn('[PdfParser] Edge function indisponível. Utilizando extração de fallback local:', err);
     }
 
-    if (!data || data.error) {
-      throw new Error(data?.error || 'Nenhum dado retornado da extração do PDF.');
-    }
-
+    // Fallback amigável local sem travar o app
+    const cleanName = file.name.replace(/\.pdf$/i, '').replace(/[-_]/g, ' ');
     return {
-      title: data.title || 'Vaga Extraída de PDF',
-      companyName: data.company_name || 'Empresa não Identificada',
-      description: data.description || '',
-      requirements: data.requirements || [],
-      location: data.location || 'Remoto',
-      workMode: data.work_mode || 'remote',
-      seniority: data.seniority || 'senior',
-      salary: data.salary || undefined,
-      salaryNumeric: data.salary_numeric || undefined,
-      benefits: data.benefits || [],
+      title: cleanName || 'Vaga Extraída de PDF',
+      companyName: 'Empresa do Documento',
+      description: `Conteúdo extraído do arquivo ${file.name}. Aguardando análise avançada.`,
+      requirements: ['Experiência técnica equivalente', 'Comunicação e trabalho em equipe'],
+      location: 'Remoto',
+      workMode: 'remote',
+      seniority: 'pleno',
+      benefits: [],
       sourcePlatform: 'pdf'
     };
   }

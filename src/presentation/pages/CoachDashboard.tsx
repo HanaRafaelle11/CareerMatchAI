@@ -7,7 +7,7 @@ import {
   Award, Play, MessageSquare, Send, 
   RefreshCcw, Star, Loader2, BarChart3, ChevronDown, Search, Sparkles
 } from 'lucide-react';
-import { ProgressRing, Badge } from '../components/ds';
+import { ProgressRing, Badge, Toast, type ToastMessage } from '../components/ds';
 import { printElementHtml } from '../../application/utils/pdfExport';
 
 /** Converts **bold** markdown markers in text to <strong> tags */
@@ -191,12 +191,15 @@ export function CoachDashboard({
   const activeJobs = jobs.filter(j => matchedJobIds.has(j.id));
   const marketTrends = MarketIntelligenceService.getMarketTrends(activeJobs, careerProfileNew);
 
+  const [toast, setToast] = useState<ToastMessage | null>(null);
+
   const handleStartSim = async () => {
     if (!selectedAppId) return;
     try {
       await startSimulation(selectedAppId);
-    } catch (err) {
+    } catch (err: any) {
       console.error(err);
+      setToast({ message: 'Não foi possível iniciar a simulação. Tente novamente.', type: 'error' });
     }
   };
 
@@ -206,8 +209,10 @@ export function CoachDashboard({
     if (!confirm) return;
     try {
       await startSimulation(selectedAppId, true);
-    } catch (err) {
+      setToast({ message: 'Simulação reiniciada com sucesso.', type: 'info' });
+    } catch (err: any) {
       console.error(err);
+      setToast({ message: 'Não foi possível reiniciar a simulação.', type: 'error' });
     }
   };
 
@@ -224,8 +229,9 @@ export function CoachDashboard({
         role: 'candidate',
         text: textToSend
       });
-    } catch (err) {
+    } catch (err: any) {
       console.error(err);
+      setToast({ message: 'Erro ao enviar resposta. Tente novamente.', type: 'error' });
     } finally {
       setIsSending(false);
     }
@@ -235,18 +241,19 @@ export function CoachDashboard({
     try {
       setIsCheckingVagas(true);
       await triggerDailyChecks();
-      alert('Vagas verificadas com sucesso! Redirecionando para descoberta de vagas.');
+      setToast({ message: 'Vagas verificadas com sucesso! Redirecionando para descoberta de vagas.', type: 'success' });
       setActiveTab?.('match');
-    } catch (err) {
+    } catch (err: any) {
       console.error(err);
-      alert('Erro ao verificar novas vagas.');
+      setToast({ message: 'Erro ao verificar novas vagas.', type: 'error' });
     } finally {
       setIsCheckingVagas(false);
     }
   };
 
   return (
-    <div className="space-y-6 animate-fade-in font-sans p-0">
+    <div className="space-y-6 animate-fade-in font-sans p-0 relative">
+      <Toast toast={toast} onClose={() => setToast(null)} />
       {/* Cabeçalho */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>

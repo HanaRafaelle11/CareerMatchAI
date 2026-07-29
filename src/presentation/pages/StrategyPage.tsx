@@ -18,6 +18,8 @@ import { Badge } from '../components/ds';
 import { tracker } from '../../infrastructure/analytics/tracker';
 import { isSupabaseConfigured, supabase } from '../../infrastructure/api/supabaseClient';
 
+import { Toast, type ToastMessage } from '../components/ds';
+
 interface StrategyPageProps {
   careerProfile: CareerProfile | null;
   careerProfileNew: CareerProfileNew | null;
@@ -141,6 +143,9 @@ export function StrategyPage({
     'hired'
   ];
 
+  // Toast State
+  const [toast, setToast] = useState<ToastMessage | null>(null);
+
   const handleSoftDelete = async () => {
     if (!deletingApp) return;
     try {
@@ -153,13 +158,14 @@ export function StrategyPage({
         setSelectedAppId(null);
       }
       setDeletingApp(null);
+      setToast({ message: 'Candidatura removida com sucesso.', type: 'info' });
       tracker.track('application_removed', 'StrategyPage', {
         appId: deletingApp.id,
         user_id: userId
       });
     } catch (err) {
       console.error('Erro ao remover candidatura:', err);
-      alert('Não foi possível remover a candidatura. Tente novamente.');
+      setToast({ message: 'Não foi possível remover a candidatura. Tente novamente.', type: 'error' });
     }
   };
 
@@ -352,6 +358,7 @@ export function StrategyPage({
       });
     } catch (err) {
       console.error('Erro ao atualizar estágio:', err);
+      setToast({ message: 'Erro ao mover estágio da candidatura. Tente novamente.', type: 'error' });
     }
   };
 
@@ -388,12 +395,13 @@ export function StrategyPage({
       });
 
       setRejectingApp(null);
+      setToast({ message: 'Vaga arquivada com sucesso.', type: 'info' });
       if (selectedAppId === rejectingApp.id) {
         setSelectedAppId(null);
       }
     } catch (err) {
       console.error('Erro ao salvar rejeição:', err);
-      alert('Não foi possível registrar o motivo da recusa. Tente novamente.');
+      setToast({ message: 'Não foi possível registrar o motivo da recusa. Tente novamente.', type: 'error' });
     }
   };
 
@@ -435,9 +443,10 @@ export function StrategyPage({
         });
       }
 
-      alert('Detalhes salvos com sucesso!');
+      setToast({ message: 'Detalhes salvos com sucesso!', type: 'success' });
     } catch (err) {
       console.error('Erro ao salvar detalhes do card:', err);
+      setToast({ message: 'Erro ao salvar detalhes da candidatura.', type: 'error' });
     } finally {
       setIsSavingCardDetails(false);
     }
@@ -461,8 +470,10 @@ export function StrategyPage({
       setManualTitle('');
       setManualNotes('');
       setShowAddForm(false);
+      setToast({ message: 'Candidatura adicionada com sucesso!', type: 'success' });
     } catch (err) {
-      console.error(err);
+      console.error('Erro ao criar candidatura:', err);
+      setToast({ message: 'Não foi possível criar a candidatura. Tente novamente.', type: 'error' });
     }
   };
 
@@ -482,6 +493,7 @@ export function StrategyPage({
         }
       });
       setNewStageNotes('');
+      setToast({ message: 'Etapa registrada no histórico!', type: 'success' });
 
       // Sync: if stage registered is a pipeline status, also advance the application
       const stageToStatusMap: Record<string, string> = {
@@ -510,7 +522,8 @@ export function StrategyPage({
         }
       }
     } catch (err) {
-      console.error(err);
+      console.error('Erro ao adicionar etapa:', err);
+      setToast({ message: 'Não foi possível registrar a etapa.', type: 'error' });
     }
   };
 
@@ -518,8 +531,10 @@ export function StrategyPage({
     if (!selectedAppId) return;
     try {
       await deleteStage({ appId: selectedAppId, stageId });
+      setToast({ message: 'Etapa removida com sucesso.', type: 'info' });
     } catch (err) {
-      console.error(err);
+      console.error('Erro ao remover etapa:', err);
+      setToast({ message: 'Não foi possível remover a etapa.', type: 'error' });
     }
   };
 
@@ -1527,6 +1542,8 @@ export function StrategyPage({
           </div>
         </div>
       )}
+      {/* Toast Notification */}
+      <Toast toast={toast} onClose={() => setToast(null)} />
     </div>
   );
 }

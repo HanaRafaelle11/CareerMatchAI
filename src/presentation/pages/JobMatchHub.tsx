@@ -758,10 +758,10 @@ export function JobMatchHub({
         resumeVersionId: primaryResume.resumeVersionId || primaryResume.id,
         jobId: selectedJob.id
       });
-      alert('Currículo otimizado com sucesso!');
+      setToast({ message: 'Currículo otimizado com sucesso!', type: 'success' });
     } catch (err: any) {
       console.error(err);
-      alert('Erro ao gerar otimização: ' + (err.message || err));
+      setToast({ message: 'Erro ao gerar otimização: ' + (err.message || err), type: 'error' });
     }
   };
 
@@ -790,10 +790,10 @@ export function JobMatchHub({
         jobId: selectedJob.id,
         applicationId: appId
       });
-      alert('Cartas de apresentação geradas com sucesso!');
+      setToast({ message: 'Cartas de apresentação geradas com sucesso!', type: 'success' });
     } catch (err: any) {
       console.error(err);
-      alert('Erro ao gerar cartas: ' + (err.message || err));
+      setToast({ message: 'Erro ao gerar cartas: ' + (err.message || err), type: 'error' });
     }
   };
 
@@ -805,10 +805,10 @@ export function JobMatchHub({
         resumeVersionId: primaryResume.resumeVersionId || primaryResume.id,
         jobId: selectedJob.id
       });
-      alert('Roteiro STAR gerado com sucesso!');
+      setToast({ message: 'Roteiro STAR gerado com sucesso!', type: 'success' });
     } catch (err: any) {
       console.error(err);
-      alert('Erro ao gerar roteiro STAR: ' + (err.message || err));
+      setToast({ message: 'Erro ao gerar roteiro STAR: ' + (err.message || err), type: 'error' });
     }
   };
 

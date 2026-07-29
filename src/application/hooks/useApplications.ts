@@ -82,12 +82,12 @@ export function mapStatusFromDb(dbStatus: string): Application['status'] {
     case 'hr':
     case '👥 Entrevista com recrutador':
     case '👥 Entrevista RH':
-      return '👥 Entrevista com recrutador';
+      return '👥 Entrevista RH';
 
     case 'interview':
     case '🎯 Entrevista com gestor':
     case '🎯 Entrevista Gestor':
-      return '🎯 Entrevista com gestor';
+      return '🎯 Entrevista Gestor';
 
     case 'offer':
     case '🏆 Oferta recebida':

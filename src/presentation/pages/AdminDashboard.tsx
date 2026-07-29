@@ -3,6 +3,7 @@ import { CardGlass } from '../components/CardGlass';
 import { isSupabaseConfigured, supabase } from '../../infrastructure/api/supabaseClient';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { ProductAtRiskDashboard } from '../components/ProductAtRiskDashboard';
+import { ProductHealthDashboard } from '../components/ProductHealthDashboard';
 import { AdminAuditService } from '../../application/services/AdminAuditService';
 import { 
   Activity, Loader2, ShieldAlert, RefreshCw, 
@@ -1444,9 +1445,10 @@ export function AdminDashboard({ userId }: AdminDashboardProps) {
       )}
 
 
-      {/* MÓDULO 2: PRODUTO ANALYTICS (FUNIL COMPLETO) */}
+      {/* MÓDULO 2: PRODUTO ANALYTICS (SAÚDE DO PRODUTO MÓDULO 2.6) */}
       {activeSubTab === 'produto' && (
         <div className="space-y-6 animate-fade-in font-sans">
+          <ProductHealthDashboard />
           <CardGlass className="p-5 space-y-4">
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 pb-2 border-b border-slate-900">
               <div>

@@ -159,7 +159,7 @@ export function StrategyPage({
   }, [selectedAppId]);
 
   // Form for new Stage
-  const [newStageName, setNewStageName] = useState('👥 Entrevista RH');
+  const [newStageName, setNewStageName] = useState('applied');
   const [newStageStatus, setNewStageStatus] = useState<'pending' | 'passed' | 'failed'>('pending');
   const [newStageNotes, setNewStageNotes] = useState('');
 
@@ -450,6 +450,31 @@ export function StrategyPage({
         }
       });
       setNewStageNotes('');
+
+      // Sync: if stage registered is a pipeline status, also advance the application
+      const stageToStatusMap: Record<string, string> = {
+        applied: 'applied',
+        hr: 'hr',
+        interview: 'interview',
+        offer: 'offer',
+        hired: 'hired'
+      };
+      const mappedStatus = stageToStatusMap[newStageName];
+      if (mappedStatus && selectedApp) {
+        const statusOrder = ['found', 'saved', 'applied', 'hr', 'interview', 'offer', 'hired'];
+        const currentIdx = statusOrder.indexOf(String(selectedApp.status).toLowerCase());
+        const targetIdx = statusOrder.indexOf(mappedStatus);
+        // Only advance forward, never backward
+        if (targetIdx > currentIdx) {
+          await onUpdateApplication({ ...selectedApp, status: mappedStatus as Application['status'] });
+          tracker.track('application_stage_updated', 'Pipeline', {
+            applicationId: selectedAppId,
+            fromStatus: String(selectedApp.status),
+            toStatus: mappedStatus,
+            source: 'stage_form_sync'
+          });
+        }
+      }
     } catch (err) {
       console.error(err);
     }
@@ -736,8 +761,8 @@ export function StrategyPage({
                     <option value="found">🔎 Encontradas</option>
                     <option value="saved">⭐ Salvas</option>
                     <option value="applied">📨 Aplicadas</option>
-                    <option value="hr">👥 RH</option>
-                    <option value="interview">🎯 Entrevistas</option>
+                    <option value="hr">👥 Entrevista RH</option>
+                    <option value="interview">🎯 Entrevista Gestor</option>
                     <option value="offer">🏆 Oferta</option>
                   </select>
                 </div>
@@ -1024,10 +1049,11 @@ export function StrategyPage({
                   onChange={e => setNewStageName(e.target.value)}
                   className="bg-slate-900 border border-slate-800 text-xs rounded-xl p-2 text-slate-200 outline-none"
                 >
-                  <option value="📨 Aplicadas">📨 Aplicada</option>
-                  <option value="👥 RH">👥 Entrevista RH</option>
-                  <option value="🎯 Entrevistas">🎯 Entrevista Gestor</option>
-                  <option value="🏆 Oferta">🏆 Oferta Recebida</option>
+                  <option value="applied">📨 Aplicada</option>
+                  <option value="hr">👥 Entrevista RH</option>
+                  <option value="interview">🎯 Entrevista Gestor</option>
+                  <option value="offer">🏆 Oferta Recebida</option>
+                  <option value="hired">✅ Contratado</option>
                 </select>
                 <select
                   value={newStageStatus}
@@ -1143,8 +1169,8 @@ export function StrategyPage({
                                   <option value="found">Encontradas</option>
                                   <option value="saved">Salvas</option>
                                   <option value="applied">Aplicadas</option>
-                                  <option value="hr">RH</option>
-                                  <option value="interview">Entrevistas</option>
+                                  <option value="hr">Entrevista RH</option>
+                                  <option value="interview">Entrevista Gestor</option>
                                   <option value="offer">Oferta</option>
                                   <option value="hired">Contratado</option>
                                   <option value="rejected">Arquivar / Rejeitar</option>

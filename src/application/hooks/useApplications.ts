@@ -28,11 +28,13 @@ export function mapStatusToDb(frontendStatus: string): string {
 
     case 'hr':
     case '👥 Entrevista com recrutador':
+    case '👥 Entrevista RH':
     case 'Entrevista RH':
       return 'hr';
 
     case 'interview':
     case '🎯 Entrevista com gestor':
+    case '🎯 Entrevista Gestor':
     case '🧩 Case técnico':
     case '🤝 Fit cultural':
     case 'Entrevista Gestor':
@@ -79,10 +81,12 @@ export function mapStatusFromDb(dbStatus: string): Application['status'] {
 
     case 'hr':
     case '👥 Entrevista com recrutador':
+    case '👥 Entrevista RH':
       return '👥 Entrevista com recrutador';
 
     case 'interview':
     case '🎯 Entrevista com gestor':
+    case '🎯 Entrevista Gestor':
       return '🎯 Entrevista com gestor';
 
     case 'offer':

@@ -48,7 +48,7 @@ export class ApplicationPipelineService {
       },
       hr: {
         id: 'hr',
-        title: '👥 RH',
+        title: '👥 Entrevista RH',
         apps: [],
         color: 'border-purple-500/20 bg-purple-500/5',
         defaultStatus: 'hr' as any,
@@ -56,7 +56,7 @@ export class ApplicationPipelineService {
       },
       interview: {
         id: 'interview',
-        title: '🎯 Entrevistas',
+        title: '🎯 Entrevista Gestor',
         apps: [],
         color: 'border-amber-500/20 bg-amber-500/5',
         defaultStatus: 'interview' as any,

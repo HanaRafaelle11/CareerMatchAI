@@ -58,7 +58,7 @@ export function StrategyPage({
   applications,
   onCreateApplication,
   onUpdateApplication,
-  onDeleteApplication: _onDeleteApplication,
+  onDeleteApplication,
   getStagesQuery,
   addStage,
   deleteStage,
@@ -88,6 +88,18 @@ export function StrategyPage({
 
   const [_intelSubTab, _setIntelSubTab] = useState<'companies' | 'diary'>('companies');
   const [showArchived, setShowArchived] = useState(false);
+
+  // Modals for confirmation
+  const [backwardConfirmApp, setBackwardConfirmApp] = useState<{ app: Application; targetStatus: string } | null>(null);
+  const [advancedRejectConfirmApp, setAdvancedRejectConfirmApp] = useState<{ app: Application } | null>(null);
+
+  // Rejection Modal State
+  const [rejectingApp, setRejectingApp] = useState<Application | null>(null);
+
+  // Drag-and-Drop and Permanent Delete States
+  const [draggedAppId, setDraggedAppId] = useState<string | null>(null);
+  const [deletingApp, setDeletingApp] = useState<Application | null>(null);
+
   const primaryResume = resumes.find(r => r.isPrimary) || resumes[0];
   const currentWeekNumber = 202628;
 
@@ -128,12 +140,19 @@ export function StrategyPage({
     'hired'
   ];
 
-  // Modals for confirmation
-  const [backwardConfirmApp, setBackwardConfirmApp] = useState<{ app: Application; targetStatus: string } | null>(null);
-  const [advancedRejectConfirmApp, setAdvancedRejectConfirmApp] = useState<{ app: Application } | null>(null);
-
-  // Rejection Modal State
-  const [rejectingApp, setRejectingApp] = useState<Application | null>(null);
+  const handlePermanentDelete = async () => {
+    if (!deletingApp) return;
+    try {
+      await onDeleteApplication(deletingApp.id);
+      if (selectedAppId === deletingApp.id) {
+        setSelectedAppId(null);
+      }
+      setDeletingApp(null);
+    } catch (err) {
+      console.error('Erro ao excluir candidatura:', err);
+      alert('Não foi possível excluir a candidatura. Tente novamente.');
+    }
+  };
 
   // Detailed Card Drawer State
   const [selectedAppId, setSelectedAppId] = useState<string | null>(null);
@@ -266,13 +285,15 @@ export function StrategyPage({
 
   // Execute status change with unidirectional/backward checks
   const handleQuickStatusChange = async (app: Application, targetStatus: string) => {
-    const currentStatus = String(app.status || 'found').toLowerCase();
-    const targetStatusClean = String(targetStatus).toLowerCase();
+    const cleanCurrentStatus = ApplicationPipelineService.getCleanStatus(app.status);
+    const cleanTargetStatus = ApplicationPipelineService.getCleanStatus(targetStatus);
+
+    if (cleanCurrentStatus === cleanTargetStatus) return;
 
     // Check if target is rejected
-    if (targetStatusClean === 'rejected' || targetStatusClean.includes('rejeitada')) {
-      const advancedStatuses = ['hr', 'interview', 'offer', '👥 entrevista com recrutador', '🎯 entrevista com gestor', '🏆 oferta recebida'];
-      if (advancedStatuses.some(s => currentStatus.includes(s))) {
+    if (cleanTargetStatus === 'rejected') {
+      const advancedStatuses: PipelineColumnId[] = ['hr', 'interview', 'offer'];
+      if (advancedStatuses.includes(cleanCurrentStatus)) {
         setAdvancedRejectConfirmApp({ app });
         return;
       }
@@ -281,22 +302,23 @@ export function StrategyPage({
     }
 
     // Check if moving backward
-    const currentIndex = activeColumnsOrder.indexOf(currentStatus as any);
-    const targetIndex = activeColumnsOrder.indexOf(targetStatusClean as any);
+    const currentIndex = activeColumnsOrder.indexOf(cleanCurrentStatus);
+    const targetIndex = activeColumnsOrder.indexOf(cleanTargetStatus);
 
     if (currentIndex !== -1 && targetIndex !== -1 && targetIndex < currentIndex) {
-      setBackwardConfirmApp({ app, targetStatus });
+      setBackwardConfirmApp({ app, targetStatus: cleanTargetStatus });
       return;
     }
 
-    await executeStatusChange(app, targetStatus);
+    await executeStatusChange(app, cleanTargetStatus);
   };
 
   const executeStatusChange = async (app: Application, targetStatus: string) => {
     try {
-      const updatedApp = {
+      const cleanTarget = ApplicationPipelineService.getCleanStatus(targetStatus);
+      const updatedApp: Application = {
         ...app,
-        status: targetStatus as any,
+        status: cleanTarget,
         updatedAt: new Date().toISOString()
       };
       await onUpdateApplication(updatedApp);
@@ -305,9 +327,9 @@ export function StrategyPage({
       if (isSupabaseConfigured && supabase) {
         await supabase.from('application_stages').insert({
           application_id: app.id,
-          stage_name: targetStatus,
+          stage_name: cleanTarget,
           from_status: app.status,
-          to_status: targetStatus,
+          to_status: cleanTarget,
           status: 'passed',
           stage_date: new Date().toISOString()
         });
@@ -316,7 +338,7 @@ export function StrategyPage({
       tracker.track('application_stage_updated', 'StrategyPage', {
         appId: app.id,
         fromStatus: app.status,
-        toStatus: targetStatus,
+        toStatus: cleanTarget,
         user_id: userId
       });
     } catch (err) {
@@ -344,7 +366,7 @@ export function StrategyPage({
     try {
       await onUpdateApplication({
         ...rejectingApp,
-        status: 'rejected' as any,
+        status: 'rejected',
         rejectionReason: reason,
         updatedAt: new Date().toISOString()
       });
@@ -362,6 +384,7 @@ export function StrategyPage({
       }
     } catch (err) {
       console.error('Erro ao salvar rejeição:', err);
+      alert('Não foi possível registrar o motivo da recusa. Tente novamente.');
     }
   };
 
@@ -876,9 +899,8 @@ export function StrategyPage({
             </div>
             <div className="grid grid-cols-1 gap-2 pt-2 text-left">
               {[
-                'Senioridade incompatível', 'Pretensão salarial', 'Localização / Modelo de Trabalho',
-                'Falta de conhecimento técnico', 'Idioma / Requisitos', 'Empresa pausou vaga',
-                'Sem retorno / Desistência', 'Outro'
+                'Senioridade incompatível', 'Pretensão salarial', 'Falta de conhecimento técnico',
+                'Idioma', 'Cultura', 'Empresa pausou vaga', 'Sem retorno', 'Experiência insuficiente', 'Outro'
               ].map(reason => (
                 <button
                   key={reason}
@@ -895,6 +917,37 @@ export function StrategyPage({
             >
               Cancelar
             </button>
+          </CardGlass>
+        </div>
+      )}
+
+      {/* 4b. Modal: Confirmação de Exclusão Permanente */}
+      {deletingApp && (
+        <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-[1000] flex items-center justify-center p-4">
+          <CardGlass className="w-full max-w-sm space-y-4 border border-red-500/40 text-center p-6 bg-[#162032]">
+            <div className="mx-auto w-12 h-12 rounded-full bg-red-500/10 text-red-400 flex items-center justify-center">
+              <Trash2 size={24} />
+            </div>
+            <div>
+              <h3 className="font-display font-bold text-base text-slate-100">Excluir Permanentemente?</h3>
+              <p className="text-xs text-slate-400 mt-1">
+                Deseja remover <strong>{deletingApp.jobTitle}</strong> ({deletingApp.companyName}) do banco de dados? Esta ação não pode ser desfeita.
+              </p>
+            </div>
+            <div className="flex gap-3 justify-center pt-2">
+              <button
+                onClick={() => setDeletingApp(null)}
+                className="px-4 py-2 rounded-xl border border-slate-700 text-slate-300 text-xs font-semibold"
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={handlePermanentDelete}
+                className="px-4 py-2 rounded-xl bg-red-600 hover:bg-red-500 text-white text-xs font-bold shadow-md"
+              >
+                Excluir Definitivamente
+              </button>
+            </div>
           </CardGlass>
         </div>
       )}
@@ -1077,6 +1130,26 @@ export function StrategyPage({
                 Registrar no Histórico
               </button>
             </form>
+
+            {/* Ações de Encerramento e Exclusão no Rodapé do Drawer */}
+            <div className="pt-4 border-t border-slate-800 flex justify-between items-center text-xs">
+              <button
+                type="button"
+                onClick={() => setRejectingApp(selectedApp)}
+                className="text-red-400 hover:text-red-300 font-semibold flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-red-500/20 bg-red-500/10"
+              >
+                <AlertTriangle size={14} />
+                <span>Arquivar / Rejeitar Vaga</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setDeletingApp(selectedApp)}
+                className="text-slate-400 hover:text-red-400 font-semibold flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-slate-800 bg-slate-900"
+              >
+                <Trash2 size={14} />
+                <span>Excluir Permanentemente</span>
+              </button>
+            </div>
           </div>
         </div>
       )}
@@ -1135,9 +1208,15 @@ export function StrategyPage({
                             <CardGlass
                               key={app.id}
                               draggable
-                              onDragStart={e => e.dataTransfer.setData('text/plain', app.id)}
+                              onDragStart={e => {
+                                e.dataTransfer.setData('text/plain', app.id);
+                                setDraggedAppId(app.id);
+                              }}
+                              onDragEnd={() => setDraggedAppId(null)}
                               onClick={() => setSelectedAppId(app.id)}
-                              className="p-3.5 space-y-2.5 hover:border-brand-500/40 cursor-pointer active:cursor-grabbing text-xs border-slate-800/80 bg-slate-900/60 transition-all relative group"
+                              className={`p-3.5 space-y-2.5 hover:border-brand-500/40 cursor-grab active:cursor-grabbing text-xs border-slate-800/80 bg-slate-900/60 transition-all relative group ${
+                                draggedAppId === app.id ? 'opacity-40 border-brand-500 border-dashed' : ''
+                              }`}
                             >
                               <div className="flex justify-between items-start gap-1">
                                 <div className="truncate flex-1">

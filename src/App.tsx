@@ -14,7 +14,6 @@ import { Menu, Loader2 } from 'lucide-react';
 import { VocentroLogo } from './presentation/components/ds/MyCareerIcons';
 import { isSupabaseConfigured, supabase } from './infrastructure/api/supabaseClient';
 import { BetaFeedbackWidget } from './presentation/components/BetaFeedbackWidget';
-import { JourneyPipelineView } from './presentation/components/JourneyPipelineView';
 import { OnboardingModal } from './presentation/components/OnboardingModal';
 import type { Job } from './domain/models/types';
 
@@ -667,7 +666,7 @@ function AuthenticatedApp({
           </Suspense>
         )}
 
-        {activeTab === 'strategy' && (
+        {(activeTab === 'strategy' || activeTab === 'jornada') && (
           <Suspense fallback={<LazyFallback />}>
             <StrategyPage
               userId={user?.id}
@@ -761,15 +760,6 @@ function AuthenticatedApp({
               setSelectedJobId={setSelectedJobId}
             />
           </Suspense>
-        )}
-
-        {activeTab === 'jornada' && (
-          <JourneyPipelineView
-            applications={applications}
-            jobs={jobs}
-            onNavigateToDiscover={() => setActiveTab('match')}
-            setActiveTab={setActiveTab}
-          />
         )}
 
         {activeTab === 'admin' && isAdmin && (

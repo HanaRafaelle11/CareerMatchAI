@@ -20,6 +20,19 @@ export interface PipelineColumn {
 }
 
 export class ApplicationPipelineService {
+  static getCleanStatus(statusStr?: string): PipelineColumnId {
+    const status = String(statusStr || 'found').toLowerCase();
+    if (status === 'found' || status.includes('encontrad') || status.includes('ajustar')) return 'found';
+    if (status === 'saved' || status.includes('salv') || status.includes('interesse') || status.includes('prioridade')) return 'saved';
+    if (status === 'applied' || status.includes('aplicad') || status.includes('candidatei') || status.includes('candidatar')) return 'applied';
+    if (status === 'hr' || status.includes('rh') || status.includes('recrutador') || status.includes('retorno')) return 'hr';
+    if (status === 'interview' || status.includes('gestor') || status.includes('case') || status.includes('cultural')) return 'interview';
+    if (status === 'offer' || status.includes('oferta')) return 'offer';
+    if (status === 'hired' || status.includes('contratad') || status.includes('aceita')) return 'hired';
+    if (status === 'rejected' || status.includes('rejeitad') || status.includes('recusad') || status.includes('fora') || status.includes('arquiv')) return 'rejected';
+    return 'found';
+  }
+
   static getColumnMap(apps: Application[]): Record<PipelineColumnId, PipelineColumn> {
     const columns: Record<PipelineColumnId, PipelineColumn> = {
       found: {
@@ -89,26 +102,8 @@ export class ApplicationPipelineService {
     };
 
     apps.forEach(app => {
-      const status = String(app.status || 'found').toLowerCase();
-      if (status === 'found' || status.includes('encontrada') || status.includes('ajustar')) {
-        columns.found.apps.push(app);
-      } else if (status === 'saved' || status.includes('interesse') || status.includes('prioridade')) {
-        columns.saved.apps.push(app);
-      } else if (status === 'applied' || status.includes('candidatei') || status.includes('candidatar')) {
-        columns.applied.apps.push(app);
-      } else if (status === 'hr' || status.includes('recrutador') || status.includes('retorno')) {
-        columns.hr.apps.push(app);
-      } else if (status === 'interview' || status.includes('gestor') || status.includes('case') || status.includes('cultural')) {
-        columns.interview.apps.push(app);
-      } else if (status === 'offer' || status.includes('oferta')) {
-        columns.offer.apps.push(app);
-      } else if (status === 'hired' || status.includes('aceita') || status.includes('contratado')) {
-        columns.hired.apps.push(app);
-      } else if (status === 'rejected' || status.includes('rejeitada') || status.includes('recusada') || status.includes('fora')) {
-        columns.rejected.apps.push(app);
-      } else {
-        columns.found.apps.push(app);
-      }
+      const colId = ApplicationPipelineService.getCleanStatus(app.status);
+      columns[colId].apps.push(app);
     });
 
     return columns;

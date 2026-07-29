@@ -6,6 +6,7 @@ import { ProductAtRiskDashboard } from '../components/ProductAtRiskDashboard';
 import { ProductHealthDashboard } from '../components/ProductHealthDashboard';
 import { FeatureAdoptionDashboard } from '../components/FeatureAdoptionDashboard';
 import { ChurnIntelligenceDashboard } from '../components/ChurnIntelligenceDashboard';
+import { CopilotInsightsDashboard } from '../components/CopilotInsightsDashboard';
 import { AdminAuditService } from '../../application/services/AdminAuditService';
 import { 
   Activity, Loader2, ShieldAlert, RefreshCw, 
@@ -1046,9 +1047,10 @@ export function AdminDashboard({ userId }: AdminDashboardProps) {
       {/* VIEW RISCO: Produto em Risco */}
       {activeSubTab === 'risco' && hasTelemetryAccess && <ProductAtRiskDashboard />}
 
-      {/* VIEW 1: Command Overview */}
+      {/* VIEW 1: Command Overview + INSIGHTS DO COPILOTO (MÓDULO 2.2) */}
       {activeSubTab === 'overview' && (
         <div className="space-y-6 animate-fade-in">
+          {hasTelemetryAccess && <CopilotInsightsDashboard />}
           {isLoadingOverview ? (
             <div className="flex flex-col items-center justify-center py-24 gap-3 text-slate-600 dark:text-slate-400">
               <Loader2 className="animate-spin text-brand-500" size={28} />

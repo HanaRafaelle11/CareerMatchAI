@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { CardGlass } from '../components/CardGlass';
 import { isSupabaseConfigured, supabase } from '../../infrastructure/api/supabaseClient';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { AdminBetaDashboard } from './AdminBetaDashboard';
+import { ProductAtRiskDashboard } from '../components/ProductAtRiskDashboard';
 import { AdminAuditService } from '../../application/services/AdminAuditService';
 import { 
   Activity, Loader2, ShieldAlert, RefreshCw, 
@@ -886,6 +886,7 @@ export function AdminDashboard({ userId }: AdminDashboardProps) {
 
   const tabs = [
     { id: 'overview', label: '1. Executive Overview' },
+    { id: 'risco', label: '⚠️ Produto em Risco' },
     { id: 'produto', label: '2. Produto Analytics' },
     hasTelemetryAccess && { id: 'ia', label: '3. Inteligência IA' },
     hasUsersAccess && { id: 'users', label: '4. Usuários & RBAC' },
@@ -1039,8 +1040,8 @@ export function AdminDashboard({ userId }: AdminDashboardProps) {
         ))}
       </div>
 
-      {/* VIEW BETA: Operations */}
-      {activeSubTab === 'beta' && <AdminBetaDashboard />}
+      {/* VIEW RISCO: Produto em Risco */}
+      {activeSubTab === 'risco' && <ProductAtRiskDashboard />}
 
       {/* VIEW 1: Command Overview */}
       {activeSubTab === 'overview' && (

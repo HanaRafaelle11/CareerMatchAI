@@ -890,14 +890,16 @@ export function AdminDashboard({ userId }: AdminDashboardProps) {
 
   const tabs = [
     { id: 'overview', label: '1. Executive Overview' },
-    hasTelemetryAccess && { id: 'risco', label: '⚠️ Produto em Risco' },
-    { id: 'produto', label: '2. Produto Analytics' },
-    hasTelemetryAccess && { id: 'ia', label: '3. Inteligência IA' },
-    hasUsersAccess && { id: 'users', label: '4. Usuários & RBAC' },
-    hasTelemetryAccess && { id: 'infra', label: '5. Infraestrutura & Ops' },
-    { id: 'financeiro', label: '6. Financeiro (Asaas)' },
-    hasTelemetryAccess && { id: 'analytics', label: '7. Product Analytics' },
-    hasTelemetryAccess && { id: 'logs', label: '8. Logs de Erros' }
+    hasTelemetryAccess && { id: 'risco', label: '2. Produto em Risco' },
+    hasTelemetryAccess && { id: 'copilot_insights', label: '3. Insights do Copiloto' },
+    hasTelemetryAccess && { id: 'feature_adoption', label: '4. Feature Adoption' },
+    hasUsersAccess && { id: 'churn_intelligence', label: '5. Churn Intelligence' },
+    { id: 'financeiro', label: '6. Saúde do Negócio' },
+    { id: 'saude_produto', label: '7. Saúde do Produto' },
+    hasTelemetryAccess && { id: 'comercial', label: '8. Inteligência Comercial' },
+    hasTelemetryAccess && { id: 'executive_copilot', label: '9. Executive Copilot' },
+    hasUsersAccess && { id: 'users', label: '10. Usuários & Permissões (RBAC)' },
+    hasTelemetryAccess && { id: 'infra_logs', label: '11. Infraestrutura & Logs Auditáveis' }
   ].filter(Boolean) as { id: string; label: string }[];
 
 
@@ -1047,10 +1049,16 @@ export function AdminDashboard({ userId }: AdminDashboardProps) {
       {/* VIEW RISCO: Produto em Risco */}
       {activeSubTab === 'risco' && hasTelemetryAccess && <ProductAtRiskDashboard />}
 
-      {/* VIEW 1: Command Overview + INSIGHTS DO COPILOTO (MÓDULO 2.2) */}
+      {/* MÓDULO 2.2: INSIGHTS DO COPILOTO */}
+      {activeSubTab === 'copilot_insights' && hasTelemetryAccess && (
+        <div className="space-y-6 animate-fade-in font-sans">
+          <CopilotInsightsDashboard />
+        </div>
+      )}
+
+      {/* VIEW 1: Command Overview */}
       {activeSubTab === 'overview' && (
         <div className="space-y-6 animate-fade-in">
-          {hasTelemetryAccess && <CopilotInsightsDashboard />}
           {isLoadingOverview ? (
             <div className="flex flex-col items-center justify-center py-24 gap-3 text-slate-600 dark:text-slate-400">
               <Loader2 className="animate-spin text-brand-500" size={28} />
@@ -1291,7 +1299,7 @@ export function AdminDashboard({ userId }: AdminDashboardProps) {
                     ))}
                   </div>
                   <button
-                    onClick={() => setActiveSubTab('logs')}
+                    onClick={() => setActiveSubTab('infra_logs')}
                     className="w-full text-center py-2.5 rounded-xl border border-slate-900 hover:border-slate-800 text-[10px] font-bold text-slate-400 hover:text-slate-200 transition-all"
                   >
                     Ver Logs de Erros →
@@ -1303,10 +1311,16 @@ export function AdminDashboard({ userId }: AdminDashboardProps) {
         </div>
       )}
 
-      {/* VIEW 2: Users & RBAC + CHURN INTELLIGENCE (MÓDULO 2.4) */}
-      {activeSubTab === 'users' && hasUsersAccess && (
+      {/* MÓDULO 2.4: CHURN INTELLIGENCE */}
+      {activeSubTab === 'churn_intelligence' && hasUsersAccess && (
         <div className="space-y-6 animate-fade-in font-sans">
           <ChurnIntelligenceDashboard />
+        </div>
+      )}
+
+      {/* VIEW 10: USUÁRIOS & PERMISSÕES (RBAC) */}
+      {activeSubTab === 'users' && hasUsersAccess && (
+        <div className="space-y-6 animate-fade-in font-sans">
           <CardGlass className="p-6 space-y-6">
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
             <div>
@@ -1452,8 +1466,8 @@ export function AdminDashboard({ userId }: AdminDashboardProps) {
       )}
 
 
-      {/* MÓDULO 2: PRODUTO ANALYTICS (SAÚDE DO PRODUTO MÓDULO 2.6) */}
-      {activeSubTab === 'produto' && (
+      {/* MÓDULO 2.6: SAÚDE DO PRODUTO */}
+      {activeSubTab === 'saude_produto' && (
         <div className="space-y-6 animate-fade-in font-sans">
           <ProductHealthDashboard />
           <CardGlass className="p-5 space-y-4">
@@ -1687,9 +1701,129 @@ export function AdminDashboard({ userId }: AdminDashboardProps) {
         </div>
       )}
 
-      {/* MÓDULO: LOGS DE ERROS DE PRODUÇÃO COM CAMPO DE BUSCA — Item 3 */}
-      {activeSubTab === 'logs' && hasTelemetryAccess && (
+      {/* MÓDULO 2.7: INTELIGÊNCIA COMERCIAL (PLACEHOLDER) */}
+      {activeSubTab === 'comercial' && (
         <div className="space-y-6 animate-fade-in font-sans">
+          <CardGlass className="p-8 text-center space-y-4 border border-brand-500/20 bg-slate-900/40">
+            <div className="p-3 rounded-2xl bg-brand-500/10 text-brand-400 border border-brand-500/30 inline-flex">
+              <Activity size={24} />
+            </div>
+            <div className="space-y-1">
+              <h3 className="text-base font-bold text-white">Módulo 2.7 — Inteligência Comercial</h3>
+              <p className="text-xs text-slate-400 max-w-md mx-auto">
+                Previsões de upgrade, usuários elegíveis para desconto/oferta, embaixadores e NPS potencial. Aguardando liberação para implementação.
+              </p>
+            </div>
+          </CardGlass>
+        </div>
+      )}
+
+      {/* MÓDULO 2.8: EXECUTIVE COPILOT (PLACEHOLDER) */}
+      {activeSubTab === 'executive_copilot' && (
+        <div className="space-y-6 animate-fade-in font-sans">
+          <CardGlass className="p-8 text-center space-y-4 border border-purple-500/20 bg-slate-900/40">
+            <div className="p-3 rounded-2xl bg-purple-500/10 text-purple-400 border border-purple-500/30 inline-flex">
+              <Bot size={24} />
+            </div>
+            <div className="space-y-1">
+              <h3 className="text-base font-bold text-white">Módulo 2.8 — Executive Copilot</h3>
+              <p className="text-xs text-slate-400 max-w-md mx-auto">
+                Síntese preditiva cruzada e inteligência executiva unificada do Command Center. Agendado para o fechamento master do Bloco 2.
+              </p>
+            </div>
+          </CardGlass>
+        </div>
+      )}
+
+      {/* MÓDULO 11: INFRAESTRUTURA & LOGS AUDITÁVEIS */}
+      {activeSubTab === 'infra_logs' && hasTelemetryAccess && (
+        <div className="space-y-6 animate-fade-in font-sans">
+          {/* Status dos Serviços de Infraestrutura */}
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+            {[
+              { name: 'Supabase DB', status: 'Operacional', color: 'emerald' },
+              { name: 'Edge Functions', status: 'Operacional', color: 'emerald' },
+              { name: 'Storage Buckets', status: 'Operacional', color: 'emerald' },
+              { name: 'Cache & Session', status: 'Operacional', color: 'emerald' }
+            ].map((srv, idx) => (
+              <CardGlass key={idx} className="p-4 space-y-1">
+                <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider block">{srv.name}</span>
+                <span className="text-sm font-extrabold text-emerald-400 block">{srv.status}</span>
+              </CardGlass>
+            ))}
+          </div>
+
+          {/* Logs de Auditoria de Acesso a Currículos */}
+          <CardGlass className="p-5 space-y-4">
+            <h3 className="text-xs font-bold text-white uppercase tracking-wider border-b border-slate-900 pb-2 flex items-center gap-2">
+              <ShieldCheck size={16} className="text-brand-400" />
+              Auditoria de Acesso a Currículos (admin_access_logs)
+            </h3>
+            <div className="p-4 rounded-xl bg-slate-950/60 border border-slate-900 text-xs space-y-2">
+              <p className="text-slate-400">Todos os acessos e downloads de currículos efetuados por administradores são registrados com timestamp e ID do usuário afetado.</p>
+              <div className="p-3 bg-slate-900 rounded-lg text-slate-300 font-mono text-[11px]">
+                Log Ativo: Conexão com Supabase admin_access_logs habilitada.
+              </div>
+            </div>
+          </CardGlass>
+
+          {/* Distribuição por Tipo de Interação */}
+          <CardGlass className="p-5 space-y-4">
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 border-b border-slate-900 pb-2">
+              <h3 className="text-xs font-bold text-white uppercase tracking-wider flex items-center gap-2">
+                <Activity size={14} className="text-brand-400" />
+                Distribuição de Interações de Telemetria
+              </h3>
+              <div className="flex items-center gap-1.5 bg-slate-950/80 p-1 rounded-xl border border-slate-800" role="group" aria-label="Seletor de Período Temporal">
+                {(['7d', '30d', 'all'] as const).map(tf => (
+                  <button
+                    key={tf}
+                    onClick={() => setAnalyticsTimeframe(tf)}
+                    className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                      analyticsTimeframe === tf ? 'bg-brand-500 text-white shadow-sm' : 'text-slate-400 hover:text-slate-200 hover:bg-slate-900'
+                    }`}
+                  >
+                    {tf === '7d' ? 'Últimos 7 dias' : tf === '30d' ? 'Últimos 30 dias' : 'Todo o Período'}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {liveEvents.length === 0 ? (
+              <div className="p-8 text-center text-xs text-slate-400 border border-dashed border-slate-800 rounded-xl space-y-2">
+                <AlertCircle size={24} className="mx-auto text-amber-400" />
+                <p className="font-semibold text-slate-300">Aguardando volume de eventos de telemetria.</p>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {[
+                  { label: 'Otimização de Currículos & Análise STAR', key: 'resume_optimized', color: 'from-brand-600 to-brand-400' },
+                  { label: 'Cálculo de Match & Compatibilidade', key: 'match_generated', color: 'from-emerald-600 to-emerald-400' },
+                  { label: 'Upload e Processamento de CV', key: 'resume_uploaded', color: 'from-blue-600 to-blue-400' },
+                  { label: 'Sessões de Autenticação / Login', key: 'login', color: 'from-amber-600 to-amber-400' }
+                ].map(trend => {
+                  const count = liveEvents.filter((e: any) => e.event_name === trend.key || e.event_type === trend.key).length;
+                  const pct = liveEvents.length ? Math.round((count * 100) / liveEvents.length) : 0;
+                  return (
+                    <div key={trend.key} className="space-y-1.5 text-xs">
+                      <div className="flex justify-between font-semibold">
+                        <span className="text-slate-300">{trend.label}</span>
+                        <div className="flex gap-2 font-mono">
+                          <span className="text-white font-bold">{count} eventos</span>
+                          <span className="text-slate-400">({pct}%)</span>
+                        </div>
+                      </div>
+                      <div className="h-3 w-full bg-slate-950 rounded-lg overflow-hidden border border-slate-900">
+                        <div className={`h-full bg-gradient-to-r ${trend.color} rounded-lg transition-all duration-500`} style={{ width: `${Math.max(3, pct)}%` }} />
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </CardGlass>
+
+          {/* Logs de Erros de Produção com Campo de Busca */}
           <CardGlass className="p-5 space-y-4">
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 pb-2 border-b border-slate-900">
               <div>
@@ -1700,7 +1834,6 @@ export function AdminDashboard({ userId }: AdminDashboardProps) {
                 <p className="text-xs text-slate-400 mt-0.5">Erros de sistema e falhas de extração OCR/parsing de todos os usuários.</p>
               </div>
 
-              {/* Campo de Busca de Logs — Item 3 */}
               <div className="relative w-full sm:w-72">
                 <Search size={14} className="absolute left-3 top-3 text-slate-500" />
                 <input
@@ -1785,192 +1918,9 @@ export function AdminDashboard({ userId }: AdminDashboardProps) {
         </div>
       )}
 
-      {/* MÓDULO 5: INFRAESTRUTURA & OPERAÇÕES */}
-      {activeSubTab === 'infra' && hasTelemetryAccess && (
-        <div className="space-y-6 animate-fade-in font-sans">
-          {/* Status dos Serviços */}
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-            {[
-              { name: 'Supabase DB', status: 'Operacional', color: 'emerald' },
-              { name: 'Edge Functions', status: 'Operacional', color: 'emerald' },
-              { name: 'Storage Buckets', status: 'Operacional', color: 'emerald' },
-              { name: 'Cache & Session', status: 'Operacional', color: 'emerald' }
-            ].map((srv, idx) => (
-              <CardGlass key={idx} className="p-4 space-y-1">
-                <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider block">{srv.name}</span>
-                <span className="text-sm font-extrabold text-emerald-400 block">{srv.status}</span>
-              </CardGlass>
-            ))}
-          </div>
 
-          {/* Logs de Auditoria de Acesso a Currículos (Fase 2) */}
-          <CardGlass className="p-5 space-y-4">
-            <h3 className="text-xs font-bold text-white uppercase tracking-wider border-b border-slate-900 pb-2 flex items-center gap-2">
-              <ShieldCheck size={16} className="text-brand-400" />
-              Auditoria de Acesso a Currículos (admin_access_logs)
-            </h3>
-            <div className="p-4 rounded-xl bg-slate-950/60 border border-slate-900 text-xs space-y-2">
-              <p className="text-slate-400">Todos os acessos e downloads de currículos efetuados por administradores são registrados com timestamp e ID do usuário afetado.</p>
-              <div className="p-3 bg-slate-900 rounded-lg text-slate-300 font-mono text-[11px]">
-                Log Ativo: Conexão com Supabase admin_access_logs habilitada.
-              </div>
-            </div>
-          </CardGlass>
-        </div>
-      )}
-
-      {/* MÓDULO 6: FINANCEIRO (ASAAS EM PREPARAÇÃO) */}
-      {activeSubTab === 'financeiro' && (
-        <div className="space-y-6 animate-fade-in font-sans">
-          <CardGlass className="p-6 space-y-4 border border-amber-500/20 bg-slate-900/40">
-            <div className="flex items-center gap-3">
-              <div className="p-2.5 rounded-xl bg-amber-500/10 text-amber-400 border border-amber-500/30">
-                <CreditCard size={20} />
-              </div>
-              <div>
-                <h3 className="text-base font-bold text-white">Módulo Financeiro em Preparação (Integração Asaas)</h3>
-                <p className="text-xs text-slate-400 mt-0.5">Sem simulações ou mocks. Apenas métricas reais derivadas do banco de dados.</p>
-              </div>
-            </div>
-
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-2">
-              <div className="p-4 rounded-xl bg-slate-950 border border-slate-800">
-                <span className="text-[10px] text-slate-400 font-bold uppercase block">Usuários Cadastrados</span>
-                <span className="text-2xl font-bold text-white">{overviewStats?.users_count || 0}</span>
-              </div>
-              <div className="p-4 rounded-xl bg-slate-950 border border-slate-800">
-                <span className="text-[10px] text-slate-400 font-bold uppercase block">Elegíveis para Plano Pago</span>
-                <span className="text-2xl font-bold text-emerald-400">{Math.max(1, overviewStats?.users_count || 0)}</span>
-              </div>
-              <div className="p-4 rounded-xl bg-slate-950 border border-slate-800">
-                <span className="text-[10px] text-slate-400 font-bold uppercase block">Usuários Ativos em Beta</span>
-                <span className="text-2xl font-bold text-brand-400">{overviewStats?.users_count || 0}</span>
-              </div>
-            </div>
-
-            <div className="p-4 rounded-xl bg-slate-950/80 border border-slate-800 text-xs text-slate-400 space-y-2">
-              <span className="font-bold text-slate-200 block">Arquitetura Desacoplada Pronta:</span>
-              <p>As interfaces TypeScript <code className="text-brand-400 font-mono">IBillingProvider</code>, <code className="text-brand-400 font-mono">IPaymentGateway</code> e <code className="text-brand-400 font-mono">AsaasBillingAdapter</code> foram criadas no projeto. Quando a chave de API do Asaas for ativada, a cobrança entrará em produção sem alterar nenhuma tela da interface do usuário.</p>
-            </div>
-          </CardGlass>
-        </div>
-      )}
-
-      {/* MÓDULO 7: PRODUCT ANALYTICS & TENDÊNCIAS */}
-      {activeSubTab === 'analytics' && hasTelemetryAccess && (
-        <div className="space-y-6 animate-fade-in font-sans">
-          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-            <div>
-              <h2 className="text-base font-bold text-slate-100 flex items-center gap-2">
-                <Activity size={18} className="text-brand-400" />
-                Product Analytics & Tendências de Uso
-              </h2>
-              <p className="text-xs text-slate-400">Análise de engajamento e métricas de retenção derivadas de eventos reais.</p>
-            </div>
-
-            {/* Timeframe Selector with WCAG AA labels */}
-            <div className="flex items-center gap-1.5 bg-slate-950/80 p-1 rounded-xl border border-slate-800" role="group" aria-label="Seletor de Período Temporal">
-              {(['7d', '30d', 'all'] as const).map(tf => (
-                <button
-                  key={tf}
-                  onClick={() => setAnalyticsTimeframe(tf)}
-                  className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer focus:outline-none focus:ring-2 focus:ring-brand-500 ${
-                    analyticsTimeframe === tf
-                      ? 'bg-brand-500 text-white shadow-sm'
-                      : 'text-slate-400 hover:text-slate-200 hover:bg-slate-900'
-                  }`}
-                  aria-pressed={analyticsTimeframe === tf}
-                >
-                  {tf === '7d' ? 'Últimos 7 dias' : tf === '30d' ? 'Últimos 30 dias' : 'Todo o Período'}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          {/* Key Metrics Overview Cards */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-            <CardGlass className="p-4 flex flex-col justify-between space-y-2">
-              <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Eventos de Telemetria</span>
-              <div>
-                <span className="text-2xl font-extrabold text-white font-mono">{liveEvents.length}</span>
-                <span className="text-[10px] text-slate-400 block mt-0.5">Eventos capturados em {analyticsTimeframe}</span>
-              </div>
-            </CardGlass>
-
-            <CardGlass className="p-4 flex flex-col justify-between space-y-2">
-              <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Usuários Ativos (Beta)</span>
-              <div>
-                <span className="text-2xl font-extrabold text-brand-400 font-mono">{overviewStats?.users_count || 0}</span>
-                <span className="text-[10px] text-slate-400 block mt-0.5">Base real em produção</span>
-              </div>
-            </CardGlass>
-
-            <CardGlass className="p-4 flex flex-col justify-between space-y-2">
-              <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Taxa de Conversão CV → Match</span>
-              <div>
-                <span className="text-2xl font-extrabold text-emerald-400 font-mono">
-                  {overviewStats?.resumes_count ? Math.round(((overviewStats?.matches_count || 0) * 100) / overviewStats.resumes_count) : 0}%
-                </span>
-                <span className="text-[10px] text-slate-400 block mt-0.5">Conversão direta de currículos</span>
-              </div>
-            </CardGlass>
-
-            <CardGlass className="p-4 flex flex-col justify-between space-y-2">
-              <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Saúde Geral da Telemetria</span>
-              <div>
-                <span className="text-2xl font-extrabold text-emerald-400 font-mono">100%</span>
-                <span className="text-[10px] text-slate-400 block mt-0.5">Pipeline analítico 0% perda</span>
-              </div>
-            </CardGlass>
-          </div>
-
-          {/* Dynamic Trend Distribution Chart / Progress Bars */}
-          <CardGlass className="p-5 space-y-4">
-            <h3 className="text-xs font-bold text-white uppercase tracking-wider border-b border-slate-900 pb-2 flex items-center gap-2">
-              <Activity size={14} className="text-brand-400" />
-              Distribuição por Tipo de Interação ({analyticsTimeframe})
-            </h3>
-            
-            {liveEvents.length === 0 ? (
-              <div className="p-8 text-center text-xs text-slate-400 border border-dashed border-slate-800 rounded-xl space-y-2">
-                <AlertCircle size={24} className="mx-auto text-amber-400" />
-                <p className="font-semibold text-slate-300">Aguardando volume suficiente para gerar insights estatísticos avançados.</p>
-                <p className="text-[11px] text-slate-400">Novos eventos de navegação e uso de IA alimentarão automaticamente este gráfico.</p>
-              </div>
-            ) : (
-              <div className="space-y-4">
-                {[
-                  { label: 'Otimização de Currículos & Análise STAR', key: 'resume_optimized', color: 'from-brand-600 to-brand-400' },
-                  { label: 'Cálculo de Match & Compatibilidade', key: 'match_generated', color: 'from-emerald-600 to-emerald-400' },
-                  { label: 'Upload e Processamento de CV', key: 'resume_uploaded', color: 'from-blue-600 to-blue-400' },
-                  { label: 'Sessões de Autenticação / Login', key: 'login', color: 'from-amber-600 to-amber-400' }
-                ].map(trend => {
-                  const count = liveEvents.filter((e: any) => e.event_name === trend.key || e.event_type === trend.key).length;
-                  const pct = liveEvents.length ? Math.round((count * 100) / liveEvents.length) : 0;
-                  return (
-                    <div key={trend.key} className="space-y-1.5 text-xs">
-                      <div className="flex justify-between font-semibold">
-                        <span className="text-slate-300">{trend.label}</span>
-                        <div className="flex gap-2 font-mono">
-                          <span className="text-white font-bold">{count} eventos</span>
-                          <span className="text-slate-400">({pct}%)</span>
-                        </div>
-                      </div>
-                      <div className="h-3 w-full bg-slate-950 rounded-lg overflow-hidden border border-slate-900">
-                        <div className={`h-full bg-gradient-to-r ${trend.color} rounded-lg transition-all duration-500`} style={{ width: `${Math.max(3, pct)}%` }} />
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            )}
-          </CardGlass>
-        </div>
-      )}
-
-
-      {/* VIEW 4: IA (FEATURE ADOPTION MÓDULO 2.5) */}
-      {activeSubTab === 'ia' && hasTelemetryAccess && (
+      {/* MÓDULO 2.3: FEATURE ADOPTION */}
+      {activeSubTab === 'feature_adoption' && hasTelemetryAccess && (
         <div className="space-y-6 animate-fade-in font-sans">
           <FeatureAdoptionDashboard />
           {isLoadingIaStats ? (

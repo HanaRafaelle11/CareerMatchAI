@@ -8,7 +8,7 @@ import { ResumeOptimizationService } from '../../application/services/ResumeOpti
 import { isSupabaseConfigured } from '../../infrastructure/api/supabaseClient';
 import { ProcessingState, ErrorState } from '../components/ErrorVisuals';
 import { AppError } from '../../application/errors/AppError';
-import { ProgressRing, SkillChip, Badge } from '../components/ds';
+import { ProgressRing, SkillChip, Badge, Toast, type ToastMessage } from '../components/ds';
 import { printElementHtml } from '../../application/utils/pdfExport';
 
 interface ProfileProps {
@@ -267,6 +267,9 @@ export function Profile({
     ? calcYearsFromExperiences(careerProfileNew.experience)
     : (primaryResume?.yearsOfExperience || 0);
 
+  // Toast State
+  const [toast, setToast] = useState<ToastMessage | null>(null);
+
   // Skills a exibir: usar career_profiles como fonte primária
   const displaySkills = careerProfileNew?.skills || [];
   const displaySoftSkills = careerProfileNew?.soft_skills || [];
@@ -275,7 +278,7 @@ export function Profile({
 
   const handleExportPDF = () => {
     if (!careerProfileNew) {
-      alert("Não há dados estruturados de perfil para exportar. Por favor, aguarde o processamento do currículo.");
+      setToast({ message: "Não há dados estruturados de perfil para exportar. Aguarde o processamento do currículo.", type: 'warning' });
       return;
     }
 
@@ -717,9 +720,10 @@ export function Profile({
                           if (window.confirm(`Tem certeza que deseja deletar permanentemente o currículo "${res.fileName}"?`)) {
                             try {
                               await onDeleteResume(res.id);
+                              setToast({ message: 'Currículo excluído com sucesso.', type: 'info' });
                             } catch (err) {
                               console.error(err);
-                              alert('Erro ao excluir currículo. Verifique se ele não é o currículo ativo ou está em uso.');
+                              setToast({ message: 'Erro ao excluir currículo. Verifique se ele não é o currículo ativo.', type: 'error' });
                             }
                           }
                         }}
@@ -1316,6 +1320,7 @@ export function Profile({
         </div>
       </div>
       )}
+      <Toast toast={toast} onClose={() => setToast(null)} />
     </div>
   );
 }

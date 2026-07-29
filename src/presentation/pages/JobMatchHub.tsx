@@ -175,9 +175,9 @@ export function JobMatchHub({
   const [matchRejectionModal, setMatchRejectionModal] = useState(false);
   const [matchFeedbackGiven, setMatchFeedbackGiven] = useState<'positive' | 'negative' | null>(null);
   const ahaMomentTriggered = useRef(false);
-  const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' | 'warning' } | null>(null);
+  const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' | 'warning' | 'info' } | null>(null);
 
-  const showToast = (message: string, type: 'success' | 'error' | 'warning' = 'success') => {
+  const showToast = (message: string, type: 'success' | 'error' | 'warning' | 'info' = 'success') => {
     setToast({ message, type });
     setTimeout(() => setToast(null), 3000);
   };
@@ -570,7 +570,7 @@ export function JobMatchHub({
       queryClient.invalidateQueries({ queryKey: ['career-insights'] });
       queryClient.invalidateQueries({ queryKey: ['jobs'] });
 
-      alert("Análises e vagas importadas apagadas com sucesso! Você pode recalcular compatibilidades.");
+      setToast({ message: "Análises e vagas importadas apagadas com sucesso! Você pode recalcular compatibilidades.", type: 'info' });
     } catch (err: any) {
       console.error("Erro ao apagar análises:", err);
       const formatted = AppError.from(err);
@@ -725,7 +725,7 @@ export function JobMatchHub({
       queryClient.invalidateQueries({ queryKey: ['interview-prep'] });
       queryClient.invalidateQueries({ queryKey: ['applications'] });
 
-      alert("Análise desta vaga excluída com sucesso! Você pode recalcular a compatibilidade quando desejar.");
+      setToast({ message: "Análise desta vaga excluída com sucesso! Você pode recalcular a compatibilidade quando desejar.", type: 'info' });
     } catch (err: any) {
       console.error("Erro ao apagar análise selecionada:", err);
       const formatted = AppError.from(err);
@@ -1028,7 +1028,7 @@ export function JobMatchHub({
       }
     } catch (err: any) {
       console.error(err);
-      alert('Erro ao adicionar vaga à estratégia.');
+      setToast({ message: 'Erro ao adicionar vaga à estratégia.', type: 'error' });
     } finally {
       setIsAddingToStrategy(false);
     }
@@ -3239,7 +3239,7 @@ export function JobMatchHub({
                                         ? ((coverLetter as any).textDirect || (coverLetter as any).content)
                                         : ((coverLetter as any).textExecutive || (coverLetter as any).content);
                                       navigator.clipboard.writeText(text);
-                                      alert('Carta de apresentação copiada!');
+                                      setToast({ message: 'Carta de apresentação copiada!', type: 'success' });
                                     }}
                                     className="px-2.5 py-1 rounded bg-slate-900 hover:bg-slate-850 text-slate-300 text-[10px] font-bold border border-slate-850 flex items-center gap-1 transition cursor-pointer"
                                   >

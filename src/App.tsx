@@ -15,6 +15,7 @@ import { VocentroLogo } from './presentation/components/ds/MyCareerIcons';
 import { isSupabaseConfigured, supabase } from './infrastructure/api/supabaseClient';
 import { BetaFeedbackWidget } from './presentation/components/BetaFeedbackWidget';
 import { OnboardingModal } from './presentation/components/OnboardingModal';
+import { Toast, type ToastMessage } from './presentation/components/ds';
 import type { Job } from './domain/models/types';
 
 // ── Code Splitting: Lazy-load de todas as páginas ──
@@ -432,6 +433,8 @@ function AuthenticatedApp({
     }
   };
 
+  const [globalToast, setGlobalToast] = useState<ToastMessage | null>(null);
+
   const selectedResume = resumes.find(r => r.resumeVersionId === selectedResumeVersionId) || resumes[0];
   const selectedResumeId = selectedResume?.id || null;
 
@@ -505,7 +508,7 @@ function AuthenticatedApp({
       setActiveTab('coach');
     } catch (err) {
       console.error('Erro ao iniciar simulação de entrevista:', err);
-      alert('Não foi possível iniciar a simulação no momento.');
+      setGlobalToast({ message: 'Não foi possível iniciar a simulação no momento.', type: 'error' });
     }
   };
 
@@ -788,6 +791,7 @@ function AuthenticatedApp({
 
       {/* Beta Feedback Widget — Floating Global */}
       {user && <BetaFeedbackWidget userId={user.id} feature="career_intelligence" />}
+      <Toast toast={globalToast} onClose={() => setGlobalToast(null)} />
     </div>
   );
 }

@@ -59,7 +59,7 @@ export function CoachDashboard({
 
   const handleExportSimulationPDF = () => {
     if (!simulation || !simulation.evaluations) {
-      alert("Não há diagnóstico de simulação disponível para exportar.");
+      setToast({ message: "Não há diagnóstico de simulação disponível para exportar.", type: 'warning' });
       return;
     }
 
@@ -729,7 +729,7 @@ export function CoachDashboard({
                               onClick={async () => {
                                 const userMsgs = simulation.chatHistory ? simulation.chatHistory.filter((m: any) => m.role === 'candidate' || m.role === 'user') : [];
                                 if (!userMsgs || userMsgs.length === 0) {
-                                  alert('Nenhuma resposta foi registrada. Envie ao menos uma resposta no chat antes de encerrar.');
+                                  setToast({ message: 'Nenhuma resposta foi registrada. Envie ao menos uma resposta no chat antes de encerrar.', type: 'warning' });
                                   return;
                                 }
                                 const confirm = window.confirm("Deseja realmente encerrar a simulação e gerar seu relatório de avaliação com base nas respostas fornecidas até agora?");
@@ -738,7 +738,7 @@ export function CoachDashboard({
                                 try {
                                   await finalizeSimulation({ sim: simulation });
                                 } catch (err: any) {
-                                  alert("Erro ao encerrar a simulação: " + (err.message || String(err)));
+                                  setToast({ message: "Erro ao encerrar a simulação: " + (err.message || String(err)), type: 'error' });
                                 } finally {
                                   setIsSending(false);
                                 }

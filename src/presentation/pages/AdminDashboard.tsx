@@ -8,6 +8,7 @@ import { FeatureAdoptionDashboard } from '../components/FeatureAdoptionDashboard
 import { ChurnIntelligenceDashboard } from '../components/ChurnIntelligenceDashboard';
 import { CopilotInsightsDashboard } from '../components/CopilotInsightsDashboard';
 import { CommercialIntelligenceDashboard } from '../components/CommercialIntelligenceDashboard';
+import { ExecutiveCopilotDashboard } from '../components/ExecutiveCopilotDashboard';
 import { AdminAuditService } from '../../application/services/AdminAuditService';
 import { 
   Activity, Loader2, ShieldAlert, RefreshCw, 
@@ -1707,21 +1708,9 @@ export function AdminDashboard({ userId }: AdminDashboardProps) {
         <CommercialIntelligenceDashboard />
       )}
 
-      {/* MÓDULO 2.8: EXECUTIVE COPILOT (PLACEHOLDER) */}
-      {activeSubTab === 'executive_copilot' && (
-        <div className="space-y-6 animate-fade-in font-sans">
-          <CardGlass className="p-8 text-center space-y-4 border border-purple-500/20 bg-slate-900/40">
-            <div className="p-3 rounded-2xl bg-purple-500/10 text-purple-400 border border-purple-500/30 inline-flex">
-              <Bot size={24} />
-            </div>
-            <div className="space-y-1">
-              <h3 className="text-base font-bold text-white">Módulo 2.8 — Executive Copilot</h3>
-              <p className="text-xs text-slate-400 max-w-md mx-auto">
-                Síntese preditiva cruzada e inteligência executiva unificada do Command Center. Agendado para o fechamento master do Bloco 2.
-              </p>
-            </div>
-          </CardGlass>
-        </div>
+      {/* MÓDULO 2.8: EXECUTIVE COPILOT */}
+      {activeSubTab === 'executive_copilot' && (hasUsersAccess || hasTelemetryAccess) && (
+        <ExecutiveCopilotDashboard />
       )}
 
       {/* MÓDULO 11: INFRAESTRUTURA & LOGS AUDITÁVEIS */}

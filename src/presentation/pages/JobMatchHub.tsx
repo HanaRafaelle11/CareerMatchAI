@@ -634,7 +634,7 @@ export function JobMatchHub({
             .in('application_id', appIds);
 
           // Remover candidaturas geradas exclusivamente pela análise do match
-          const autoApps = apps.filter((a: any) => a.status === '🎯 Alta Prioridade' || a.status === '🔎 Encontrada');
+          const autoApps = apps.filter((a: any) => a.status === '🎯 Alta Prioridade' || a.status === '🔎 Encontrada' || a.status === 'found');
           if (autoApps.length > 0) {
             await supabase
               .from('applications')
@@ -771,13 +771,13 @@ export function JobMatchHub({
       // 1. Verificar se já existe uma candidatura real para este job
       let activeApp = applications.find((app: any) => app.jobId === selectedJob.id);
       
-      // 2. Se não existir, criar uma automaticamente com status '🔎 Encontrada'
+      // 2. Se não existir, criar uma automaticamente com status 'found'
       if (!activeApp && onCreateApplication) {
         activeApp = await onCreateApplication({
           jobId: selectedJob.id,
           companyName: selectedJob.companyName,
           jobTitle: selectedJob.title,
-          status: '🔎 Encontrada',
+          status: 'found',
           resumeVersionId: primaryResume.resumeVersionId || undefined
         });
       }
@@ -1222,24 +1222,32 @@ export function JobMatchHub({
       const matchResult = await onCalculateMatch({
         resume: primaryResume,
         job: jobToMatch,
-        consolidatedProfile: careerProfileNew  // injeta o perfil consolidado
+        consolidatedProfile: careerProfileNew
       });
 
-      // Auto-add to "Alta Prioridade" column if score is above 80%
       const score = matchResult?.score_overall ?? matchResult?.scoreOverall ?? 0;
-      if (score > 80 && onCreateApplication) {
-        const isAlreadyAdded = applications.some((app: any) => app.jobId === jobToMatch.id);
-        if (!isAlreadyAdded) {
+      
+      // Inserção Idempotente: Se a vaga ainda não estiver no Pipeline, insere com status 'found'
+      if (onCreateApplication) {
+        const existingApp = applications.find((app: any) => String(app.jobId) === String(jobToMatch.id));
+        if (!existingApp) {
           await onCreateApplication({
             jobId: jobToMatch.id,
-            companyName: jobToMatch.companyName || 'Vaga Manual',
+            companyName: jobToMatch.companyName || 'Vaga Selecionada',
             jobTitle: jobToMatch.title,
-            status: '🎯 Alta Prioridade',
-            notes: `Adicionado automaticamente por atingir compatibilidade de ${score}% (> 80%).`,
+            status: 'found',
+            notes: `Calculado Match de ${score}%.`,
             resumeVersionId: activeResumeVersionId || primaryResume?.resumeVersionId
           });
         }
       }
+
+      tracker.track('match_calculated', 'JobMatchHub', { 
+        jobId: jobToMatch.id, 
+        score,
+        user_id: userId 
+      });
+      showToast(`Match calculado com sucesso: ${score}%!`, 'success');
     } catch (err: any) {
       const formatted = AppError.from(err);
       setAppError(formatted);

@@ -6,47 +6,100 @@ import { applicationTrackerService } from '../services/ApplicationTrackerService
 import type { Application, ApplicationStage } from '../../domain/models/types';
 
 export function mapStatusToDb(frontendStatus: string): string {
-  const validDbStatuses = [
-    '🔎 Encontrada', '⭐ Tenho interesse', '📝 Vou me candidatar', '📨 Me candidatei', 
-    '⏳ Aguardando retorno', '👥 Entrevista com recrutador', '🎯 Entrevista com gestor', 
-    '🧩 Case técnico', '🤝 Fit cultural', '🏆 Oferta recebida', '✅ Aceita', 
-    '❌ Rejeitada', '🚫 Fora do meu objetivo', '👻 Sem resposta'
-  ];
-  if (validDbStatuses.includes(frontendStatus)) {
-    return frontendStatus;
-  }
-
-  // Mapeamentos de colunas da Estratégia / Kanban
   switch (frontendStatus) {
-    case '🎯 Alta Prioridade': return '⭐ Tenho interesse';
-    case '📝 Candidatura planejada': return '📝 Vou me candidatar';
-    case '🔧 Ajustar antes': return '🔎 Encontrada';
-    case '⚠️ Baixa aderência': return '🚫 Fora do meu objetivo';
-    default: return '🔎 Encontrada';
+    case 'found':
+    case '🔎 Encontrada':
+    case 'Encontrada':
+    case '🔧 Ajustar antes':
+      return 'found';
+
+    case 'saved':
+    case '⭐ Tenho interesse':
+    case 'Interessante':
+    case '🎯 Alta Prioridade':
+      return 'saved';
+
+    case 'applied':
+    case '📨 Me candidatei':
+    case '📝 Vou me candidatar':
+    case '📝 Candidatura planejada':
+    case 'Aplicada':
+      return 'applied';
+
+    case 'hr':
+    case '👥 Entrevista com recrutador':
+    case 'Entrevista RH':
+      return 'hr';
+
+    case 'interview':
+    case '🎯 Entrevista com gestor':
+    case '🧩 Case técnico':
+    case '🤝 Fit cultural':
+    case 'Entrevista Gestor':
+      return 'interview';
+
+    case 'offer':
+    case '🏆 Oferta recebida':
+    case 'Oferta':
+      return 'offer';
+
+    case 'hired':
+    case '✅ Aceita':
+    case 'Contratado':
+      return 'hired';
+
+    case 'rejected':
+    case '❌ Rejeitada':
+    case '🚫 Fora do meu objetivo':
+    case '👻 Sem resposta':
+    case 'Recusada':
+      return 'rejected';
+
+    default:
+      return 'found';
   }
 }
 
 export function mapStatusFromDb(dbStatus: string): Application['status'] {
-  const validDbStatuses = [
-    '🔎 Encontrada', '⭐ Tenho interesse', '📝 Vou me candidatar', '📨 Me candidatei', 
-    '⏳ Aguardando retorno', '👥 Entrevista com recrutador', '🎯 Entrevista com gestor', 
-    '🧩 Case técnico', '🤝 Fit cultural', '🏆 Oferta recebida', '✅ Aceita', 
-    '❌ Rejeitada', '🚫 Fora do meu objetivo', '👻 Sem resposta'
-  ];
-  if (validDbStatuses.includes(dbStatus)) {
-    return dbStatus as any;
-  }
-
-  // Fallback para compatibilidade de dados legados sem emojis
   switch (dbStatus) {
-    case 'Encontrada': return '🔎 Encontrada';
-    case 'Interessante': return '⭐ Tenho interesse';
-    case 'Aplicada': return '📨 Me candidatei';
-    case 'Entrevista RH': return '👥 Entrevista com recrutador';
-    case 'Entrevista Gestor': return '🎯 Entrevista com gestor';
-    case 'Oferta': return '🏆 Oferta recebida';
-    case 'Recusada': return '❌ Rejeitada';
-    default: return '🔎 Encontrada';
+    case 'found':
+    case '🔎 Encontrada':
+    case 'Encontrada':
+      return '🔎 Encontrada';
+
+    case 'saved':
+    case '⭐ Tenho interesse':
+    case 'Interessante':
+      return '⭐ Tenho interesse';
+
+    case 'applied':
+    case '📨 Me candidatei':
+    case 'Aplicada':
+      return '📨 Me candidatei';
+
+    case 'hr':
+    case '👥 Entrevista com recrutador':
+      return '👥 Entrevista com recrutador';
+
+    case 'interview':
+    case '🎯 Entrevista com gestor':
+      return '🎯 Entrevista com gestor';
+
+    case 'offer':
+    case '🏆 Oferta recebida':
+      return '🏆 Oferta recebida';
+
+    case 'hired':
+    case '✅ Aceita':
+      return '✅ Aceita';
+
+    case 'rejected':
+    case '❌ Rejeitada':
+    case '🚫 Fora do meu objetivo':
+      return '❌ Rejeitada';
+
+    default:
+      return '🔎 Encontrada';
   }
 }
 

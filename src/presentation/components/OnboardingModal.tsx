@@ -26,8 +26,8 @@ export function OnboardingModal({ isOpen, onClose, onNavigateTab }: OnboardingMo
     },
     {
       title: "2. Descoberta & Match de Vagas",
-      subtitle: "Algoritmo de Compatibilidade Semântica",
-      description: "O VoCentro varre agregadores de vagas e calcula instantaneamente sua pontuação de aderência (Match Score %), destacando pontos fortes e requisitos exigidos.",
+      subtitle: "Cálculo Inteligente do Match da vaga",
+      description: "O VoCentro varre agregadores de vagas e calcula instantaneamente o Match da vaga (%), destacando pontos fortes e requisitos exigidos.",
       icon: Target,
       color: "from-[#22C7A8] to-emerald-600",
       actionText: "Avançar para Copiloto IA",

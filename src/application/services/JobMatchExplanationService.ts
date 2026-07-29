@@ -71,12 +71,12 @@ export class JobMatchExplanationService {
         id: `exp-empty-${Date.now()}`,
         userId,
         jobId: job.id,
-        overallMatchReason: 'Faça upload do seu currículo para calcularmos a compatibilidade exata e gerar diagnósticos com IA.',
+        overallMatchReason: 'Faça upload do seu currículo para calcularmos o Match da vaga e gerar diagnósticos com IA.',
         strengths: [
           { skill: job.title, reason: 'Vaga identificada pelo motor de busca.' }
         ],
         gaps: [
-          { requirement: 'Currículo não cadastrado', impact: 'Alto', suggestion: 'Envie seu currículo em PDF na aba Perfil para liberar o Career Fit Score.' }
+          { requirement: 'Currículo não cadastrado', impact: 'Alto', suggestion: 'Envie seu currículo em PDF na aba Perfil para liberar o Match da vaga.' }
         ],
         recommendation: 'Cadastre seu currículo primário para que o Copiloto identifique seus pontos fortes e sugira estratégias de candidatura.',
         confidenceScore: 40,
@@ -217,10 +217,10 @@ export class JobMatchExplanationService {
       overallMatchReason = `Essa vaga combina altamente com você (${careerFitScore}%)! Você possui experiência sólida em ${job.title}, histórico comprovado na área e atende aos principais requisitos estratégicos solicitados.`;
       confidenceScore = 95;
     } else if (careerFitScore >= 65) {
-      overallMatchReason = `Boa compatibilidade de ${careerFitScore}%. Seu perfil atende a maior parte dos requisitos essenciais da posição de ${job.title}, necessitando apenas destacar competências complementares no currículo.`;
+      overallMatchReason = `Match alto com a vaga (${careerFitScore}%)! Seu perfil atende a maior parte dos requisitos essenciais da posição de ${job.title}, necessitando apenas destacar competências complementares no currículo.`;
       confidenceScore = 85;
     } else {
-      overallMatchReason = `Compatibilidade moderada de ${careerFitScore}%. O anúncio exige competências ou senioridade específicas que necessitam de maior destaque ou evolução em seu perfil.`;
+      overallMatchReason = `Match moderado com a vaga (${careerFitScore}%). O anúncio exige competências ou senioridade específicas que necessitam de maior destaque ou evolução em seu perfil.`;
       confidenceScore = 70;
     }
 

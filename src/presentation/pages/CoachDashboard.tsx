@@ -88,7 +88,7 @@ export function CoachDashboard({
           </div>
           <div class="score-card">
             <div class="score-val">${evaluations.jobAdherence || 0}%</div>
-            <div class="score-label">Aderência à Vaga</div>
+            <div class="score-label">Match com a Vaga</div>
           </div>
           <div class="score-card">
             <div class="score-val">${evaluations.approvalProbability || 0}%</div>
@@ -143,7 +143,7 @@ export function CoachDashboard({
         <div class="score-grid">
           <div class="score-card" style="width: 100%;">
             <div class="score-val">${Math.round(((evaluations.clarity || 0) + (evaluations.objectivity || 0) + (evaluations.adherence || 0)) / 3)}%</div>
-            <div class="score-label">Aderência Geral</div>
+            <div class="score-label">Match Geral</div>
           </div>
         </div>
 

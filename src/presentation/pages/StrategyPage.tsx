@@ -356,6 +356,13 @@ export function StrategyPage({
         toStatus: cleanTarget,
         user_id: userId
       });
+
+      if (cleanTarget === 'hr' || cleanTarget === 'interview') {
+        setToast({ 
+          message: 'Candidatura avançou para fase de Entrevista! Recomenda-se realizar o Treino STAR no Copiloto IA.', 
+          type: 'success' 
+        });
+      }
     } catch (err) {
       console.error('Erro ao atualizar estágio:', err);
       setToast({ message: 'Erro ao mover estágio da candidatura. Tente novamente.', type: 'error' });
@@ -1378,7 +1385,7 @@ export function StrategyPage({
             <div className="space-y-4 rounded-2xl p-3 bg-slate-900/20 border border-slate-800">
               <div className="flex items-center gap-2 pb-1 border-b border-slate-800">
                 <AlertCircle size={16} className="text-slate-400" />
-                <h3 className="font-bold text-sm text-slate-200">Baixa Aderência ({finalGrouped.cold.length})</h3>
+                <h3 className="font-bold text-sm text-slate-200">Match baixo com a vaga ({finalGrouped.cold.length})</h3>
               </div>
               {finalGrouped.cold.map((rec, idx) => (
                 <CardGlass key={idx} className="p-4 space-y-3">

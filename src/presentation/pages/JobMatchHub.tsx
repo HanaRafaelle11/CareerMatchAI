@@ -1009,7 +1009,7 @@ export function JobMatchHub({
         } else if (matchScore >= 20) {
           status = '🔧 Ajustar antes';
         } else {
-          status = '⚠️ Baixa aderência';
+          status = '⚠️ Match baixo com a vaga';
         }
       }
       
@@ -1018,9 +1018,9 @@ export function JobMatchHub({
         companyName: selectedJob.companyName || 'Empresa Confidencial',
         jobTitle: selectedJob.title,
         status,
-        notes: `Adicionado a partir do Match Manual (Score: ${matchScore}%)`,
-        resumeVersionId: activeResumeVersionId || primaryResume?.resumeVersionId
+        resumeVersionId: primaryResume?.resumeVersionId
       });
+      setToast({ message: 'Vaga adicionada ao Pipeline! Redirecionando para a Jornada.', type: 'success' });
       
       // Redirect to strategy tab
       if (setActiveTab) {
@@ -1405,7 +1405,7 @@ export function JobMatchHub({
         </div>
         <div className="premium-card rounded-xl p-4 flex flex-col justify-between">
           <div className="flex items-center justify-between mb-2">
-            <span className="text-[10px] text-on-surface-variant font-bold uppercase tracking-wider">Compatibilidade</span>
+            <span className="text-[10px] text-on-surface-variant font-bold uppercase tracking-wider">Match da vaga</span>
             <Heart size={16} className="text-emerald-400" />
           </div>
           <p className="text-xl font-bold text-on-surface">{avgOverallMatch > 0 ? `${avgOverallMatch}%` : '--'}</p>
@@ -2078,7 +2078,7 @@ export function JobMatchHub({
                         ) : (
                           <Play size={12} />
                         )}
-                        Calcular Compatibilidade
+                        Calcular Match
                       </button>
                     )}
                   </div>
@@ -2118,24 +2118,24 @@ export function JobMatchHub({
                       </div>
                       
                       <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 shrink-0">
-                        {/* Secondary Score Card: Match Score Técnico */}
+                        {/* Secondary Score Card: Match da vaga */}
                         <div 
                           className="p-2.5 rounded-xl bg-slate-800/80 border border-slate-700 text-right space-y-0.5 relative group cursor-help"
-                          title="Match Score Técnico: Avalia a aderência direta entre suas competências e os requisitos exigidos pela vaga."
+                          title="Match da vaga: Avalia a sintonia entre suas competências e os requisitos exigidos pela vaga."
                         >
                           <span className="text-[9px] uppercase font-bold text-slate-300 flex items-center gap-1 justify-end">
-                            ⚙️ Match Técnico
+                            ⚙️ Match da vaga
                           </span>
                           <span className="text-sm font-extrabold text-emerald-400 block">
                             {selectedJob?.scores?.overall ? `${selectedJob.scores.overall}%` : '92%'}
                           </span>
-                          <span className="text-[8px] text-slate-400 block">Aderência técnica de habilidades</span>
+                          <span className="text-[8px] text-slate-400 block">Sintonia com a vaga</span>
                         </div>
 
-                        {/* Primary Score Circle: Career Fit Score Holístico */}
+                        {/* Primary Score Circle: Match da vaga (Holístico) */}
                         <div 
                           className="flex items-center gap-3 bg-blue-950/40 p-2.5 rounded-2xl border border-blue-500/30 relative group cursor-help"
-                          title="Career Fit Score Holístico: Combina match técnico com senioridade, pretensão salarial, localização e objetivo de carreira."
+                          title="Match da vaga (Holístico): Combina competências técnicas com senioridade, pretensão salarial e localização."
                         >
                           <div className="text-right">
                             <span className="text-[10px] uppercase font-bold text-blue-300 flex items-center gap-1 justify-end">
@@ -2751,7 +2751,7 @@ export function JobMatchHub({
                                           <option value="🎯 Alta Prioridade">🎯 Alta Prioridade</option>
                                           <option value="📝 Candidatura planejada">📝 Candidatura planejada</option>
                                           <option value="🔧 Ajustar antes">🔧 Ajustar antes</option>
-                                          <option value="⚠️ Baixa aderência">⚠️ Baixa aderência</option>
+                                          <option value="⚠️ Match baixo com a vaga">⚠️ Match baixo com a vaga</option>
                                         </select>
                                       </div>
                                       <button
@@ -3464,34 +3464,19 @@ export function JobMatchHub({
           return true;
         }).sort((a, b) => b.cpi - a.cpi);
 
-        console.log('[STAGE 5: JOB_MATCH_HUB RENDER DATA]', JSON.stringify({
-          totalJobs: scoredDiscoveredJobs.length,
-          sampleFirst5: scoredDiscoveredJobs.slice(0, 5).map(j => ({
-            title: j.title,
-            company: j.companyName,
-            provider: j.sourcePlatform,
-            sourcePlatform: j.sourcePlatform,
-            sources: j.sources,
-            sourceUrl: j.sourceUrl,
-            redirect_url: (j as any).redirect_url,
-            applyUrl: (j as any).applyUrl,
-            url: (j as any).url
-          }))
-        }, null, 2));
-
         const getPriorityBadge = (score: number) => {
           if (score >= 80) {
             return (
               <span className="inline-flex items-center gap-1 text-[9px] px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 font-extrabold border border-emerald-500/20">
                 <Flame size={10} className="fill-emerald-400 shrink-0" />
-                Alta Aderência (Aplicar Hoje)
+                Match alto com a vaga (Aplicar Hoje)
               </span>
             );
           } else if (score >= 50) {
             return (
               <span className="inline-flex items-center gap-1 text-[9px] px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-400 font-bold border border-amber-500/20">
                 <Sparkles size={10} className="shrink-0" />
-                Aderência Média (Otimizar CV)
+                Match moderado com a vaga (Otimizar CV)
               </span>
             );
           } else {

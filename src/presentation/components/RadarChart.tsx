@@ -115,7 +115,7 @@ export function RadarChart({ scores, labels = ['Técnico', 'Comportamental', 'Se
       <div className="mt-4 flex gap-4 text-xs font-medium text-slate-400 dark:text-slate-500">
         <div className="flex items-center gap-1.5">
           <span className="h-2.5 w-2.5 rounded-full bg-brand-500" />
-          <span>Aderência Semântica</span>
+          <span>Match da vaga</span>
         </div>
       </div>
     </div>

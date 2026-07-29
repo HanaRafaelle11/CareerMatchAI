@@ -155,7 +155,7 @@ function getLocalFallbackInsights(profile: CareerProfileNew | null): CareerInsig
     missing_skills: {
       value: ['Análise de Métricas SaaS', 'SQL Básico', 'Gestão de Crises / Contas Críticas'],
       confidence: 0.85,
-      reason: 'Competências que expandiriam sua aderência para posições premium.',
+      reason: 'Competências que elevariam seu Match para posições premium.',
       source_type: 'recommended'
     },
     confidence_scores: {

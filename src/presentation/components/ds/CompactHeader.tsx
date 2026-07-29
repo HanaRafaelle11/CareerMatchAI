@@ -57,14 +57,14 @@ export function CompactHeader({
         <div className="flex flex-col min-w-0">
           <span className="text-[9px] uppercase font-semibold text-on-surface-variant tracking-wider flex items-center gap-1 select-none">
             Currículo em Análise
-            <span title="Todas as sugestões de vagas, compatibilidades e simulações do copiloto são calculadas com base neste currículo selecionado.">
+            <span title="Todas as sugestões de vagas, Match e simulações do copiloto são calculadas com base neste currículo selecionado.">
               <HelpCircle size={10} className="cursor-help opacity-60 hover:opacity-100" />
             </span>
           </span>
           <div className="flex items-center gap-2 flex-wrap min-w-0">
             {activeResume ? (
               <>
-                <span className="text-xs font-semibold text-on-surface truncate max-w-[200px] hover:underline cursor-help" title="Todas as sugestões de vagas, compatibilidades e simulações do copiloto são calculadas com base neste currículo selecionado.">
+                <span className="text-xs font-semibold text-on-surface truncate max-w-[200px] hover:underline cursor-help" title="Todas as sugestões de vagas, Match e simulações do copiloto são calculadas com base neste currículo selecionado.">
                   {activeResume.fileName || 'Currículo ativo'}
                 </span>
                 {aiScore !== undefined && aiScore > 0 && (

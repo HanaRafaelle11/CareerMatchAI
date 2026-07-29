@@ -208,7 +208,7 @@ export interface InterviewPrep {
   createdAt: string;
 }
 
-export type ApplicationStatus = 'found' | 'saved' | 'applied' | 'hr' | 'interview' | 'offer' | 'hired' | 'rejected' | '🔎 Encontrada' | '⭐ Tenho interesse' | '📝 Vou me candidatar' | '📨 Me candidatei' | '⏳ Aguardando retorno' | '👥 Entrevista com recrutador' | '👥 Entrevista RH' | '🎯 Entrevista com gestor' | '🎯 Entrevista Gestor' | '🧩 Case técnico' | '🤝 Fit cultural' | '🏆 Oferta recebida' | '✅ Aceita' | '❌ Rejeitada' | '🚫 Fora do meu objetivo' | '👻 Sem resposta';
+export type ApplicationStatus = 'found' | 'saved' | 'applied' | 'hr' | 'interview' | 'offer' | 'hired' | 'rejected';
 
 export interface Application {
   id: string;

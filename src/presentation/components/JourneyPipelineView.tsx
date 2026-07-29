@@ -37,15 +37,10 @@ export function JourneyPipelineView({
 
   // Contagem estritamente real sem qualquer valor fictício ou fallback fixo
   const countEncontradas = jobs.length;
-  const countInteressantes = applications.filter(a => a.status === '⭐ Tenho interesse' || a.status === '📝 Vou me candidatar').length;
-  const countCandidatadas = applications.filter(a => a.status === '📨 Me candidatei' || a.status === '⏳ Aguardando retorno').length;
-  const countEntrevistas = applications.filter(a => [
-    '👥 Entrevista com recrutador',
-    '🎯 Entrevista com gestor',
-    '🧩 Case técnico',
-    '🤝 Fit cultural'
-  ].includes(a.status)).length;
-  const countOfertas = applications.filter(a => a.status === '🏆 Oferta recebida' || a.status === '✅ Aceita').length;
+  const countInteressantes = applications.filter(a => a.status === 'saved').length;
+  const countCandidatadas = applications.filter(a => a.status === 'applied').length;
+  const countEntrevistas = applications.filter(a => a.status === 'hr' || a.status === 'interview').length;
+  const countOfertas = applications.filter(a => a.status === 'offer' || a.status === 'hired').length;
 
   const hasApplications = applications.length > 0;
 

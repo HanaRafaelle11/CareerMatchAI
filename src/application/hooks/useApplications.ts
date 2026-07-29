@@ -218,7 +218,7 @@ export function useApplications(userId: string | undefined, resumeVersionId?: st
     },
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ['applications', userId] });
-      if (data.status === '📨 Me candidatei') {
+      if (data.status === 'applied') {
         tracker.track('job_applied', 'applications');
       } else {
         tracker.track('job_saved', 'applications');
@@ -250,8 +250,8 @@ export function useApplications(userId: string | undefined, resumeVersionId?: st
           id: `stage-${Date.now()}`,
           applicationId: saved.id,
           stageName: app.status,
-          status: app.status === '❌ Rejeitada' ? 'failed' : 'passed',
-          notes: app.status === '❌ Rejeitada' ? `Processo encerrado: ${app.rejectionReason}` : 'Mudança de etapa registrada.',
+          status: app.status === 'rejected' ? 'failed' : 'passed',
+          notes: app.status === 'rejected' ? `Processo encerrado: ${app.rejectionReason}` : 'Mudança de etapa registrada.',
           stageDate: new Date().toISOString(),
           createdAt: new Date().toISOString()
         });
@@ -260,7 +260,7 @@ export function useApplications(userId: string | undefined, resumeVersionId?: st
     },
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ['applications', userId] });
-      if (data.status === '📨 Me candidatei') {
+      if (data.status === 'applied') {
         tracker.track('job_applied', 'applications');
       }
     }

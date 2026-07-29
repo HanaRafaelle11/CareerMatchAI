@@ -494,7 +494,7 @@ function AuthenticatedApp({
             jobId: job.id,
             companyName: job.companyName || 'Empresa Confidencial',
             jobTitle: job.title,
-            status: '📝 Vou me candidatar',
+            status: 'applied',
             resumeVersionId: selectedResumeVersionId || undefined
           });
         }

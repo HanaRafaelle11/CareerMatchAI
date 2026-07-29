@@ -130,7 +130,7 @@ class LocalDatabase {
           jobId: 'job-1',
           jobTitle: 'Desenvolvedor Full Stack Senior (React & Node)',
           companyName: 'Stripe Brasil',
-          status: '📨 Me candidatei',
+          status: 'applied',
           appliedAt: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString(),
           notes: 'Conexão via recrutador no LinkedIn. Primeira conversa agendada para semana que vem.',
           createdAt: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString(),

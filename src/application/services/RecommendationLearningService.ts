@@ -38,9 +38,9 @@ export class RecommendationLearningService {
     }
 
     const insights: LearningInsight[] = [];
-    const rejections = apps.filter(a => a.status === '❌ Rejeitada');
+    const rejections = apps.filter(a => a.status === 'rejected');
     const successes = apps.filter(a => 
-      ['👥 Entrevista com recrutador', '🎯 Entrevista com gestor', '🧩 Case técnico', '🤝 Fit cultural', '🏆 Oferta recebida', '✅ Aceita'].includes(a.status)
+      ['hr', 'interview', 'offer', 'hired'].includes(a.status)
     );
 
     // 1. Analisa sucesso em modelos de trabalho

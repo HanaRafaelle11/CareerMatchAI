@@ -33,21 +33,21 @@ export class CareerAnalyticsService {
     }
 
     const analyzed = apps.length + 10; // Adiciona um offset para simular vagas vistas no dashboard
-    const interested = apps.filter(a => a.status !== '🚫 Fora do meu objetivo').length;
+    const interested = apps.filter(a => a.status !== 'rejected').length;
     const applied = apps.filter(a => 
-      !['🔎 Encontrada', '⭐ Tenho interesse', '📝 Vou me candidatar', '🚫 Fora do meu objetivo'].includes(a.status)
+      !['found', 'saved'].includes(a.status)
     ).length;
 
     const interviews = apps.filter(a => 
-      ['👥 Entrevista com recrutador', '🎯 Entrevista com gestor', '🧩 Case técnico', '🤝 Fit cultural', '🏆 Oferta recebida', '✅ Aceita'].includes(a.status)
+      ['hr', 'interview', 'offer', 'hired'].includes(a.status)
     ).length;
 
     const cases = apps.filter(a => 
-      ['🧩 Case técnico', '🏆 Oferta recebida', '✅ Aceita'].includes(a.status)
+      ['interview', 'offer', 'hired'].includes(a.status)
     ).length;
 
     const offers = apps.filter(a => 
-      ['🏆 Oferta recebida', '✅ Aceita'].includes(a.status)
+      ['offer', 'hired'].includes(a.status)
     ).length;
 
     const interestToApply = interested > 0 ? Math.round((applied / interested) * 100) : 0;
@@ -87,7 +87,7 @@ export class CareerAnalyticsService {
 
     let total = 0;
     apps.forEach(app => {
-      if (app.status === '❌ Rejeitada' && app.rejectionReason) {
+      if (app.status === 'rejected' && app.rejectionReason) {
         counts[app.rejectionReason] = (counts[app.rejectionReason] || 0) + 1;
         total++;
       }

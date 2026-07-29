@@ -142,19 +142,15 @@ export function AdminDashboard({ userId }: AdminDashboardProps) {
       }
       const { data, error } = await supabase
         .from('profiles')
-        .select('id, full_name, email, headline, role, created_at, updated_at')
+        .select('id, full_name, email, headline, role, created_at, updated_at, is_test_account')
         .order('created_at', { ascending: false });
       if (error) {
         console.error('[AdminDashboard] Erro ao buscar lista de usuários:', error);
         return [];
       }
       
-      // Filtrar apenas usuários humanos reais (Exclui contas sintéticas/e2e de teste)
-      const realUsers = (data || []).filter((d: any) => {
-        const email = (d.email || '').toLowerCase();
-        if (email === 'hardening.e2e@example.com' || email.endsWith('@example.com')) return false;
-        return true;
-      });
+      // Filtrar usando a coluna is_test_account do banco como fonte de verdade
+      const realUsers = (data || []).filter((d: any) => d.is_test_account !== true);
 
       return realUsers.map((d: any) => ({
         id: d.id,

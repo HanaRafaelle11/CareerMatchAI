@@ -2117,34 +2117,34 @@ export function JobMatchHub({
                         </h2>
                       </div>
                       
-                      <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 shrink-0">
-                        {/* Secondary Score Card: Match da vaga */}
+                      <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 shrink-0">
+                        {/* Secondary Score Badge: Career Fit (Objetivo de Carreira) */}
                         <div 
-                          className="p-2.5 rounded-xl bg-slate-800/80 border border-slate-700 text-right space-y-0.5 relative group cursor-help"
-                          title="Match da vaga: Avalia a sintonia entre suas competências e os requisitos exigidos pela vaga."
+                          className="p-2.5 rounded-xl bg-slate-900/80 border border-slate-800 text-right space-y-0.5 relative group cursor-help"
+                          title="Career Fit: Avalia o alinhamento de longo prazo entre esta vaga e o seu objetivo profissional de carreira."
                         >
                           <span className="text-[9px] uppercase font-bold text-slate-300 flex items-center gap-1 justify-end">
-                            ⚙️ Match da vaga
+                            💼 Career Fit Score
                           </span>
-                          <span className="text-sm font-extrabold text-emerald-400 block">
-                            {selectedJob?.scores?.overall ? `${selectedJob.scores.overall}%` : '92%'}
+                          <span className="text-xs font-extrabold text-blue-300 block">
+                            {explanation ? `${explanation.careerFitScore}%` : '76%'}
                           </span>
-                          <span className="text-[8px] text-slate-400 block">Sintonia com a vaga</span>
+                          <span className="text-[8px] text-slate-400 block">Alinhamento de objetivo</span>
                         </div>
 
-                        {/* Primary Score Circle: Match da vaga (Holístico) */}
+                        {/* Primary Score Circle: Match da Vaga (Compatibilidade Geral) */}
                         <div 
-                          className="flex items-center gap-3 bg-blue-950/40 p-2.5 rounded-2xl border border-blue-500/30 relative group cursor-help"
-                          title="Match da vaga (Holístico): Combina competências técnicas com senioridade, pretensão salarial e localização."
+                          className="flex items-center gap-3 bg-brand-950/40 p-2.5 rounded-2xl border border-brand-500/30 relative group cursor-help"
+                          title="Match da Vaga (Compatibilidade Geral): Pontuação master que calcula a aderência de requisitos técnicos, experiência e competências do seu currículo em relação à vaga."
                         >
                           <div className="text-right">
-                            <span className="text-[10px] uppercase font-bold text-blue-300 flex items-center gap-1 justify-end">
-                              🎯 Career Fit Score
+                            <span className="text-[10px] uppercase font-bold text-brand-300 flex items-center gap-1 justify-end">
+                              🎯 Match da Vaga
                             </span>
-                            <span className="text-xs text-slate-300 block">Fit estratégico e de carreira</span>
+                            <span className="text-[10px] text-slate-300 block font-semibold">Compatibilidade Geral</span>
                           </div>
-                          <div className="w-14 h-14 rounded-full border-2 border-blue-400 bg-blue-500/20 flex items-center justify-center text-blue-300 font-extrabold text-base font-display shadow-lg shadow-blue-500/20">
-                            {explanation ? `${explanation.careerFitScore}%` : '76%'}
+                          <div className="w-14 h-14 rounded-full border-2 border-emerald-400 bg-emerald-500/20 flex items-center justify-center text-emerald-400 font-extrabold text-lg font-display shadow-lg shadow-emerald-500/20">
+                            {selectedJob?.scores?.overall ? `${selectedJob.scores.overall}%` : '92%'}
                           </div>
                         </div>
                       </div>

@@ -739,27 +739,37 @@ export function Profile({
             )}
           </CardGlass>
 
-          {/* Seção de Versões & Performance */}
+          {/* Seção de Versões & Performance (Item 13) */}
           {resumes.length > 0 && (
             <CardGlass className="space-y-4 border border-slate-900">
-              <h3 className="font-display font-bold text-sm text-slate-200 flex items-center gap-2">
-                <Clock size={16} className="text-brand-500" />
-                Versões do Currículo
-              </h3>
-              <p className="text-[10px] text-slate-500">Mapeamento da conversão de convite para entrevista.</p>
+              <div className="space-y-1">
+                <h3 className="font-display font-bold text-sm text-slate-200 flex items-center gap-2">
+                  <Clock size={16} className="text-brand-500" />
+                  Versões do Currículo & Taxa de Conversão
+                </h3>
+                <p className="text-[11px] text-slate-400 leading-relaxed">
+                  💡 <strong>Como funciona a Taxa de Conversão?</strong> Este indicador calcula qual percentual das candidaturas enviadas com esta versão do currículo avançaram para a etapa de <strong>Entrevista</strong> no seu Pipeline.
+                </p>
+              </div>
               
               <div className="space-y-3">
                 {versionStats.map(stat => (
-                  <div key={stat.resumeId} className="p-3 rounded-xl bg-slate-900/40 border border-slate-900 space-y-2">
+                  <div key={stat.resumeId} className="p-3.5 rounded-xl bg-slate-900/40 border border-slate-800 space-y-2">
                     <div className="flex justify-between items-center text-xs">
-                      <span className="font-bold text-slate-300">{stat.versionLabel}</span>
-                      <span className="text-[10px] px-2 py-0.5 rounded bg-brand-500/10 text-brand-400 font-extrabold border border-brand-500/20">
-                        {stat.conversionRate}% Conversão
-                      </span>
+                      <span className="font-bold text-slate-200">{stat.versionLabel}</span>
+                      {stat.applicationsCount > 0 ? (
+                        <span className="text-[10px] px-2.5 py-0.5 rounded-lg bg-emerald-500/10 text-emerald-400 font-extrabold border border-emerald-500/20">
+                          {stat.conversionRate}% de Conversão
+                        </span>
+                      ) : (
+                        <span className="text-[10px] px-2 py-0.5 rounded bg-slate-800 text-slate-400 font-semibold border border-slate-700">
+                          Aguardando candidaturas no pipeline
+                        </span>
+                      )}
                     </div>
-                    <div className="flex justify-between items-center text-[9px] text-slate-500">
-                      <span>Candidaturas: {stat.applicationsCount}</span>
-                      <span>Entrevistas: {stat.interviewsCount}</span>
+                    <div className="flex justify-between items-center text-[10px] text-slate-400 pt-1 border-t border-slate-900 font-mono">
+                      <span>📨 Candidaturas Enviadas: <strong>{stat.applicationsCount}</strong></span>
+                      <span>👥 Entrevistas Agendadas: <strong className="text-emerald-400">{stat.interviewsCount}</strong></span>
                     </div>
                   </div>
                 ))}

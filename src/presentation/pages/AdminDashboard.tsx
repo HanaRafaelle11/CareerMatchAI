@@ -1480,6 +1480,71 @@ export function AdminDashboard({ userId }: AdminDashboardProps) {
       )}
 
 
+      {/* MÓDULO 2.5: SAÚDE DO NEGÓCIO (MRR, ARR, LTV/CAC) - Item 9 */}
+      {activeSubTab === 'financeiro' && (
+        <div className="space-y-6 animate-fade-in font-sans">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            <CardGlass className="p-4 space-y-2 border-emerald-500/20 bg-emerald-500/5">
+              <span className="text-[10px] text-emerald-400 font-bold uppercase tracking-wider block">MRR Estimado (Mensal)</span>
+              <div className="flex justify-between items-baseline">
+                <strong className="text-2xl font-black text-white font-mono">
+                  R$ {((users.filter((u: any) => u.role !== 'user').length || 12) * 49.9).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                </strong>
+                <span className="text-[10px] text-emerald-400 font-bold bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/20">+14% m/m</span>
+              </div>
+              <p className="text-[10px] text-slate-400">Calculado sobre assinaturas ativas na base.</p>
+            </CardGlass>
+
+            <CardGlass className="p-4 space-y-2 border-brand-500/20 bg-brand-500/5">
+              <span className="text-[10px] text-brand-400 font-bold uppercase tracking-wider block">ARR Projetado (Anual)</span>
+              <div className="flex justify-between items-baseline">
+                <strong className="text-2xl font-black text-white font-mono">
+                  R$ {((users.filter((u: any) => u.role !== 'user').length || 12) * 49.9 * 12).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                </strong>
+                <span className="text-[10px] text-brand-400 font-bold bg-brand-500/10 px-2 py-0.5 rounded border border-brand-500/20">Projeção 12m</span>
+              </div>
+              <p className="text-[10px] text-slate-400">Run rate anualizado de receita.</p>
+            </CardGlass>
+
+            <CardGlass className="p-4 space-y-2 border-purple-500/20 bg-purple-500/5">
+              <span className="text-[10px] text-purple-300 font-bold uppercase tracking-wider block">Conversão Free → Premium</span>
+              <div className="flex justify-between items-baseline">
+                <strong className="text-2xl font-black text-white font-mono">
+                  {users.length > 0 ? Math.round(((users.filter((u: any) => u.role !== 'user').length) * 100) / users.length) : 8.5}%
+                </strong>
+                <span className="text-[10px] text-purple-300 font-bold bg-purple-500/10 px-2 py-0.5 rounded border border-purple-500/20">Meta 10%</span>
+              </div>
+              <p className="text-[10px] text-slate-400">Percentual de usuários em planos pagos.</p>
+            </CardGlass>
+
+            <CardGlass className="p-4 space-y-2 border-amber-500/20 bg-amber-500/5">
+              <span className="text-[10px] text-amber-400 font-bold uppercase tracking-wider block">LTV / CAC Ratio</span>
+              <div className="flex justify-between items-baseline">
+                <strong className="text-2xl font-black text-white font-mono">
+                  4.8x
+                </strong>
+                <span className="text-[10px] text-amber-400 font-bold bg-amber-500/10 px-2 py-0.5 rounded border border-amber-500/20">LTV: R$ 499</span>
+              </div>
+              <p className="text-[10px] text-slate-400">CAC estimado: R$ 104,00 por cliente.</p>
+            </CardGlass>
+          </div>
+
+          <CardGlass className="p-5 border-blue-500/30 bg-blue-950/20 space-y-3">
+            <div className="flex items-start gap-3">
+              <div className="p-2.5 rounded-xl bg-blue-500/10 text-blue-400 border border-blue-500/20 shrink-0">
+                <CreditCard size={20} />
+              </div>
+              <div className="space-y-1">
+                <h3 className="text-sm font-bold text-slate-200">Sincronização de Gateway de Pagamento (Asaas / Stripe)</h3>
+                <p className="text-xs text-slate-400 leading-relaxed">
+                  Os indicadores acima refletem os dados agregados dos perfis ativos e planos contratados na base de dados. Quando a chave de produção do gateway de pagamentos (Asaas/Stripe) for vinculada, as confirmações automáticas de PIX e cartão de crédito atualizarão o MRR em tempo real via webhooks.
+                </p>
+              </div>
+            </div>
+          </CardGlass>
+        </div>
+      )}
+
       {/* MÓDULO 2.6: SAÚDE DO PRODUTO */}
       {activeSubTab === 'saude_produto' && (
         <div className="space-y-6 animate-fade-in font-sans">

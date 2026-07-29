@@ -78,18 +78,26 @@ export class ChurnIntelligenceService {
         const createdMs = new Date(p.created_at).getTime();
         const accountAgeDays = Math.max(0, Math.floor((nowMs - createdMs) / (1000 * 60 * 60 * 24)));
 
-        // 1. Histórico de Sessões / Eventos
+        // 1. Histórico de Sessões / Eventos / Atividades na Plataforma
         const userEvents = events.filter((e: any) => e.user_id === uId);
-        const lastEvMs = userEvents.length > 0 ? new Date(userEvents[0].created_at).getTime() : createdMs;
-        const daysInactive = Math.max(0, Math.floor((nowMs - lastEvMs) / (1000 * 60 * 60 * 24)));
-        const lastSessionDate = new Date(lastEvMs).toLocaleDateString('pt-BR');
-
-        // 2. Usos e Registros
         const userResumes = resumes.filter((r: any) => r.user_id === uId);
         const userMatches = matches.filter((m: any) => m.user_id === uId);
         const userApps = applications.filter((a: any) => a.user_id === uId);
         const userAiLogs = aiLogs.filter((l: any) => l.user_id === uId);
         const userFeedbacks = feedbacks.filter((f: any) => f.user_id === uId);
+
+        const allUserTimestamps = [
+          ...userEvents.map((e: any) => new Date(e.created_at).getTime()),
+          ...userApps.map((a: any) => new Date(a.updated_at || a.created_at).getTime()),
+          ...userResumes.map((r: any) => new Date(r.created_at).getTime()),
+          ...userMatches.map((m: any) => new Date(m.created_at).getTime()),
+          ...userAiLogs.map((l: any) => new Date(l.created_at).getTime()),
+          new Date(p.updated_at || p.created_at).getTime()
+        ].filter(ts => !isNaN(ts));
+
+        const maxActivityMs = Math.max(...allUserTimestamps, createdMs);
+        const daysInactive = Math.max(0, Math.floor((nowMs - maxActivityMs) / (1000 * 60 * 60 * 24)));
+        const lastSessionDate = daysInactive === 0 ? 'Hoje' : new Date(maxActivityMs).toLocaleDateString('pt-BR');
 
         // 🟢 REGRA 1: Grace Period para contas com menos de 7 dias
         if (accountAgeDays < 7) {

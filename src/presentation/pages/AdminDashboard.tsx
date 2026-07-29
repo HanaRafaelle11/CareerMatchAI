@@ -7,6 +7,7 @@ import { ProductHealthDashboard } from '../components/ProductHealthDashboard';
 import { FeatureAdoptionDashboard } from '../components/FeatureAdoptionDashboard';
 import { ChurnIntelligenceDashboard } from '../components/ChurnIntelligenceDashboard';
 import { CopilotInsightsDashboard } from '../components/CopilotInsightsDashboard';
+import { CommercialIntelligenceDashboard } from '../components/CommercialIntelligenceDashboard';
 import { AdminAuditService } from '../../application/services/AdminAuditService';
 import { 
   Activity, Loader2, ShieldAlert, RefreshCw, 
@@ -1701,21 +1702,9 @@ export function AdminDashboard({ userId }: AdminDashboardProps) {
         </div>
       )}
 
-      {/* MÓDULO 2.7: INTELIGÊNCIA COMERCIAL (PLACEHOLDER) */}
-      {activeSubTab === 'comercial' && (
-        <div className="space-y-6 animate-fade-in font-sans">
-          <CardGlass className="p-8 text-center space-y-4 border border-brand-500/20 bg-slate-900/40">
-            <div className="p-3 rounded-2xl bg-brand-500/10 text-brand-400 border border-brand-500/30 inline-flex">
-              <Activity size={24} />
-            </div>
-            <div className="space-y-1">
-              <h3 className="text-base font-bold text-white">Módulo 2.7 — Inteligência Comercial</h3>
-              <p className="text-xs text-slate-400 max-w-md mx-auto">
-                Previsões de upgrade, usuários elegíveis para desconto/oferta, embaixadores e NPS potencial. Aguardando liberação para implementação.
-              </p>
-            </div>
-          </CardGlass>
-        </div>
+      {/* MÓDULO 2.7: INTELIGÊNCIA COMERCIAL */}
+      {activeSubTab === 'comercial' && (hasUsersAccess || hasTelemetryAccess) && (
+        <CommercialIntelligenceDashboard />
       )}
 
       {/* MÓDULO 2.8: EXECUTIVE COPILOT (PLACEHOLDER) */}

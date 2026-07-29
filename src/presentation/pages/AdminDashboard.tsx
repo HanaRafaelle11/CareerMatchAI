@@ -4,6 +4,7 @@ import { isSupabaseConfigured, supabase } from '../../infrastructure/api/supabas
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { ProductAtRiskDashboard } from '../components/ProductAtRiskDashboard';
 import { ProductHealthDashboard } from '../components/ProductHealthDashboard';
+import { FeatureAdoptionDashboard } from '../components/FeatureAdoptionDashboard';
 import { AdminAuditService } from '../../application/services/AdminAuditService';
 import { 
   Activity, Loader2, ShieldAlert, RefreshCw, 
@@ -1962,9 +1963,10 @@ export function AdminDashboard({ userId }: AdminDashboardProps) {
       )}
 
 
-      {/* VIEW 4: IA */}
+      {/* VIEW 4: IA (FEATURE ADOPTION MÓDULO 2.5) */}
       {activeSubTab === 'ia' && hasTelemetryAccess && (
         <div className="space-y-6 animate-fade-in font-sans">
+          <FeatureAdoptionDashboard />
           {isLoadingIaStats ? (
             <div className="flex flex-col items-center justify-center py-24 gap-3 text-slate-400">
               <Loader2 className="animate-spin text-brand-500" size={28} />

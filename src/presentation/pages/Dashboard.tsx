@@ -165,7 +165,6 @@ export function Dashboard({
   const avgMatch = hasMatches 
     ? Math.round(matches.reduce((acc, m) => acc + m.scoreOverall, 0) / matches.length) 
     : baselineScore;
-  const hasMarketData = hasMatches || hasResume;
 
   // ── 100% DYNAMIC COPILOT IA INSIGHT & CTA DOMINANTE DA HOME ──
   const getAIInsight = () => {
@@ -313,76 +312,34 @@ export function Dashboard({
         </div>
       </div>
 
-      {/* ── 4. PLANO DO DIA E RECOMENDAÇÃO EDITORIAL DO COPILOTO IA ── */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+      {/* ── 4. ORIENTAÇÃO DO COPILOTO IA (CTA DOMINANTE 100% DINÂMICO) ── */}
+      <section className="bg-white dark:bg-[#242B36] border border-slate-200/90 dark:border-white/8 rounded-2xl p-6 flex flex-col justify-between shadow-xs">
+        <div className="space-y-3">
+          <div className="flex items-center gap-2 text-slate-700 dark:text-[#F8FAFC]">
+            <Sparkles size={16} className="text-[#4F8EF7]" strokeWidth={1.5} />
+            <span className="text-xs font-semibold uppercase tracking-wider">💡 Orientação do Copiloto IA</span>
+          </div>
+
+          <h2 className="text-lg font-semibold text-slate-900 dark:text-[#F8FAFC] leading-snug">{insight.title}</h2>
+          <p className="text-xs text-slate-600 dark:text-[#B8C2CC] leading-relaxed">{insight.text}</p>
+        </div>
         
-        {/* CARD MATCH MEDIO DAS VAGAS */}
-        <section className="lg:col-span-5 bg-white dark:bg-[#242B36] border border-slate-200/90 dark:border-white/8 rounded-2xl p-6 flex flex-col justify-between shadow-xs">
-          <div>
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-xs font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider">Match Médio do Mercado</span>
-              <span className={`text-xs font-semibold ${hasMarketData ? 'text-[#22C7A8]' : 'text-amber-500 dark:text-amber-400'}`}>
-                {hasMarketData ? (avgMatch >= 75 ? 'Match alto com o mercado' : avgMatch >= 50 ? 'Match moderado com o mercado' : 'Em Desenvolvimento') : 'Pendente de Dados'}
-              </span>
-            </div>
-
-            <div className="my-3">
-              <span className="text-5xl font-extrabold text-slate-900 dark:text-[#F8FAFC] tracking-tight">{avgMatch}%</span>
-            </div>
-
-            <div className="w-full bg-slate-100 dark:bg-slate-800 h-2 rounded-full overflow-hidden my-3">
-              <div className="bg-[#22C7A8] h-full rounded-full transition-all duration-500" style={{ width: `${avgMatch}%` }} />
-            </div>
-
-            <p className="text-xs text-slate-600 dark:text-[#B8C2CC] leading-relaxed mt-2">
-              {hasMatches ? (
-                <>Seu perfil possui Match alto com <strong>{Math.min(95, Math.max(10, avgMatch - 5))}% das oportunidades</strong> analisadas para {targetRole}.</>
-              ) : hasResume ? (
-                <>Seu currículo foi analisado com sucesso! Match estimado em <strong>{avgMatch}%</strong>. Explore as vagas para calcular o Match exato de cada uma.</>
-              ) : (
-                <>Envie seu currículo em PDF e explore vagas para calcular seu Match com o mercado.</>
-              )}
-            </p>
-          </div>
-
-          <button
-            onClick={() => setActiveTab('match')}
-            className="mt-6 pt-4 border-t border-slate-100 dark:border-white/6 text-xs text-[#4F8EF7] font-medium hover:underline flex items-center justify-between w-full cursor-pointer"
+        <div className="mt-6 pt-4 border-t border-slate-100 dark:border-white/6 flex items-center justify-between gap-4">
+          <span className="text-[11px] text-slate-400 dark:text-slate-500">Ação imediata sugerida para seu progresso</span>
+          <button 
+            onClick={() => {
+              if (insight.tab === 'match') {
+                localStorage.setItem('vocentro_trigger_discovery', 'true');
+              }
+              setActiveTab(insight.tab);
+            }}
+            className="btn-primary text-xs shrink-0 cursor-pointer font-semibold"
           >
-            <span>Ver detalhes de Match</span>
-            <ChevronRight size={14} strokeWidth={1.5} />
+            <span>{insight.actionLabel}</span>
+            <ArrowRight size={14} strokeWidth={1.5} />
           </button>
-        </section>
-
-        {/* CARD EDITORIAL DA IA (CTA DOMINANTE 100% DINÂMICO) */}
-        <section className="lg:col-span-7 bg-white dark:bg-[#242B36] border border-slate-200/90 dark:border-white/8 rounded-2xl p-6 flex flex-col justify-between shadow-xs">
-          <div className="space-y-3">
-            <div className="flex items-center gap-2 text-slate-700 dark:text-[#F8FAFC]">
-              <Sparkles size={16} className="text-[#4F8EF7]" strokeWidth={1.5} />
-              <span className="text-xs font-semibold uppercase tracking-wider">💡 Orientação do Copiloto IA</span>
-            </div>
-
-            <h2 className="text-lg font-semibold text-slate-900 dark:text-[#F8FAFC] leading-snug">{insight.title}</h2>
-            <p className="text-xs text-slate-600 dark:text-[#B8C2CC] leading-relaxed">{insight.text}</p>
-          </div>
-          
-          <div className="mt-6 pt-4 border-t border-slate-100 dark:border-white/6 flex items-center justify-between gap-4">
-            <span className="text-[11px] text-slate-400 dark:text-slate-500">Ação imediata sugerida</span>
-            <button 
-              onClick={() => {
-                if (insight.tab === 'match') {
-                  localStorage.setItem('vocentro_trigger_discovery', 'true');
-                }
-                setActiveTab(insight.tab);
-              }}
-              className="btn-primary text-xs shrink-0 cursor-pointer font-semibold"
-            >
-              <span>{insight.actionLabel}</span>
-              <ArrowRight size={14} strokeWidth={1.5} />
-            </button>
-          </div>
-        </section>
-      </div>
+        </div>
+      </section>
 
       {/* ── 5. SEU PLANO DE HOJE (CHECKLIST 15-MIN) ── */}
       <section className="bg-white dark:bg-[#242B36] border border-slate-200/90 dark:border-white/8 rounded-2xl p-6 shadow-xs">

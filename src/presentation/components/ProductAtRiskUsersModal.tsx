@@ -26,8 +26,8 @@ export function ProductAtRiskUsersModal({ alert, onClose }: ProductAtRiskUsersMo
   );
 
   return (
-    <div className="fixed inset-0 z-[9999] bg-slate-950/80 backdrop-blur-md flex items-center justify-center p-4 sm:p-6 animate-fade-in">
-      <div className="bg-slate-900 border border-slate-800 w-full max-w-3xl rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
+    <div className="fixed inset-0 z-[9999] bg-slate-955/80 backdrop-blur-md flex items-center justify-center p-4 font-sans animate-fade-in">
+      <div className="bg-[#121929] border border-slate-800 w-full max-w-2xl rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[85vh]">
         {/* Header */}
         <div className="p-5 border-b border-slate-800 flex items-start justify-between gap-4 bg-slate-950/50">
           <div>

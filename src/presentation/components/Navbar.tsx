@@ -72,10 +72,10 @@ export function Navbar({
     },
     {
       id: 'strategy',
-      label: 'Candidaturas',
+      label: 'Jornada & Pipeline',
       icon: 'track_changes',
       completed: applicationCount > 0,
-      active: activeTab === 'strategy',
+      active: activeTab === 'strategy' || activeTab === 'jornada',
       description: applicationCount > 0 ? `${applicationCount} ativa${applicationCount > 1 ? 's' : ''}` : 'Acompanhe processos'
     },
     {
@@ -93,7 +93,6 @@ export function Navbar({
 
   const utilityItems = [
     { id: 'dashboard', label: 'Meu Copiloto', icon: 'dashboard' },
-    { id: 'jornada', label: 'Minha Jornada', icon: 'target' },
     { id: 'settings', label: 'Ajustes', icon: 'settings' },
   ];
 

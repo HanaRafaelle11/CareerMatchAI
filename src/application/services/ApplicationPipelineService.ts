@@ -102,6 +102,7 @@ export class ApplicationPipelineService {
     };
 
     apps.forEach(app => {
+      if (app.status === 'deleted') return;
       const colId = ApplicationPipelineService.getCleanStatus(app.status);
       columns[colId].apps.push(app);
     });

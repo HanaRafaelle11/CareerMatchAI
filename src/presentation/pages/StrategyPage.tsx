@@ -2,6 +2,7 @@ import { useState, useEffect, type FormEvent } from 'react';
 import { CardGlass } from '../components/CardGlass';
 import { CandidateStrategyService } from '../../application/services/CandidateStrategyService';
 import { ApplicationPipelineService, type PipelineColumnId } from '../../application/services/ApplicationPipelineService';
+import { REJECTION_REASONS } from '../../domain/models/types';
 import type { 
   Job, Resume, CareerProfile, Application, ApplicationStage,
   CompanyProfile, WeeklyPlanner, WeeklyGoal
@@ -58,7 +59,7 @@ export function StrategyPage({
   applications,
   onCreateApplication,
   onUpdateApplication,
-  onDeleteApplication,
+  onDeleteApplication: _onDeleteApplication,
   getStagesQuery,
   addStage,
   deleteStage,
@@ -140,17 +141,25 @@ export function StrategyPage({
     'hired'
   ];
 
-  const handlePermanentDelete = async () => {
+  const handleSoftDelete = async () => {
     if (!deletingApp) return;
     try {
-      await onDeleteApplication(deletingApp.id);
+      await onUpdateApplication({
+        ...deletingApp,
+        status: 'deleted',
+        updatedAt: new Date().toISOString()
+      });
       if (selectedAppId === deletingApp.id) {
         setSelectedAppId(null);
       }
       setDeletingApp(null);
+      tracker.track('application_removed', 'StrategyPage', {
+        appId: deletingApp.id,
+        user_id: userId
+      });
     } catch (err) {
-      console.error('Erro ao excluir candidatura:', err);
-      alert('Não foi possível excluir a candidatura. Tente novamente.');
+      console.error('Erro ao remover candidatura:', err);
+      alert('Não foi possível remover a candidatura. Tente novamente.');
     }
   };
 
@@ -897,14 +906,11 @@ export function StrategyPage({
               <h3 className="font-display font-bold text-base text-slate-200">Qual foi o motivo da recusa?</h3>
               <p className="text-xs text-slate-400 mt-1">Essa informação calibra o copiloto para futuras buscas.</p>
             </div>
-            <div className="grid grid-cols-1 gap-2 pt-2 text-left">
-              {[
-                'Senioridade incompatível', 'Pretensão salarial', 'Falta de conhecimento técnico',
-                'Idioma', 'Cultura', 'Empresa pausou vaga', 'Sem retorno', 'Experiência insuficiente', 'Outro'
-              ].map(reason => (
+            <div className="grid grid-cols-1 gap-2 pt-2 text-left max-h-60 overflow-y-auto pr-1">
+              {REJECTION_REASONS.map(reason => (
                 <button
                   key={reason}
-                  onClick={() => handleSaveRejectionReason(reason as any)}
+                  onClick={() => handleSaveRejectionReason(reason)}
                   className="px-4 py-2.5 rounded-xl border border-slate-800 bg-slate-900/60 text-xs text-slate-300 hover:bg-red-500/20 hover:text-white transition-all text-left font-medium"
                 >
                   {reason}
@@ -929,9 +935,9 @@ export function StrategyPage({
               <Trash2 size={24} />
             </div>
             <div>
-              <h3 className="font-display font-bold text-base text-slate-100">Excluir Permanentemente?</h3>
+              <h3 className="font-display font-bold text-base text-slate-100">Remover do Acompanhamento?</h3>
               <p className="text-xs text-slate-400 mt-1">
-                Deseja remover <strong>{deletingApp.jobTitle}</strong> ({deletingApp.companyName}) do banco de dados? Esta ação não pode ser desfeita.
+                Deseja remover <strong>{deletingApp.jobTitle}</strong> ({deletingApp.companyName}) do acompanhamento ativo? O registro será arquivado mantendo o histórico de métricas.
               </p>
             </div>
             <div className="flex gap-3 justify-center pt-2">
@@ -942,10 +948,10 @@ export function StrategyPage({
                 Cancelar
               </button>
               <button
-                onClick={handlePermanentDelete}
+                onClick={handleSoftDelete}
                 className="px-4 py-2 rounded-xl bg-red-600 hover:bg-red-500 text-white text-xs font-bold shadow-md"
               >
-                Excluir Definitivamente
+                Remover Candidatura
               </button>
             </div>
           </CardGlass>

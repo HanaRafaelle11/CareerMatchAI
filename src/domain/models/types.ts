@@ -208,7 +208,21 @@ export interface InterviewPrep {
   createdAt: string;
 }
 
-export type ApplicationStatus = 'found' | 'saved' | 'applied' | 'hr' | 'interview' | 'offer' | 'hired' | 'rejected';
+export const REJECTION_REASONS = [
+  'Senioridade incompatível',
+  'Pretensão salarial',
+  'Falta de conhecimento técnico',
+  'Idioma',
+  'Cultura',
+  'Empresa pausou vaga',
+  'Sem retorno',
+  'Experiência insuficiente',
+  'Outro'
+] as const;
+
+export type RejectionReason = typeof REJECTION_REASONS[number];
+
+export type ApplicationStatus = 'found' | 'saved' | 'applied' | 'hr' | 'interview' | 'offer' | 'hired' | 'rejected' | 'deleted';
 
 export interface Application {
   id: string;
@@ -218,7 +232,7 @@ export interface Application {
   companyName: string;
   jobTitle: string;
   status: ApplicationStatus;
-  rejectionReason?: 'Experiência insuficiente' | 'Senioridade incompatível' | 'Pretensão salarial' | 'Falta de conhecimento técnico' | 'Idioma' | 'Cultura' | 'Empresa pausou vaga' | 'Sem retorno' | 'Outro';
+  rejectionReason?: RejectionReason;
   sourcePlatform?: string;
   resumeVersionId?: string;
   notes?: string;

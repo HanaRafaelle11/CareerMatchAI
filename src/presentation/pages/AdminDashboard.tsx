@@ -886,7 +886,7 @@ export function AdminDashboard({ userId }: AdminDashboardProps) {
 
   const tabs = [
     { id: 'overview', label: '1. Executive Overview' },
-    { id: 'risco', label: '⚠️ Produto em Risco' },
+    hasTelemetryAccess && { id: 'risco', label: '⚠️ Produto em Risco' },
     { id: 'produto', label: '2. Produto Analytics' },
     hasTelemetryAccess && { id: 'ia', label: '3. Inteligência IA' },
     hasUsersAccess && { id: 'users', label: '4. Usuários & RBAC' },
@@ -1041,7 +1041,7 @@ export function AdminDashboard({ userId }: AdminDashboardProps) {
       </div>
 
       {/* VIEW RISCO: Produto em Risco */}
-      {activeSubTab === 'risco' && <ProductAtRiskDashboard />}
+      {activeSubTab === 'risco' && hasTelemetryAccess && <ProductAtRiskDashboard />}
 
       {/* VIEW 1: Command Overview */}
       {activeSubTab === 'overview' && (

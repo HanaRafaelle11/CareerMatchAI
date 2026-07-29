@@ -5,6 +5,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { ProductAtRiskDashboard } from '../components/ProductAtRiskDashboard';
 import { ProductHealthDashboard } from '../components/ProductHealthDashboard';
 import { FeatureAdoptionDashboard } from '../components/FeatureAdoptionDashboard';
+import { ChurnIntelligenceDashboard } from '../components/ChurnIntelligenceDashboard';
 import { AdminAuditService } from '../../application/services/AdminAuditService';
 import { 
   Activity, Loader2, ShieldAlert, RefreshCw, 
@@ -1300,9 +1301,11 @@ export function AdminDashboard({ userId }: AdminDashboardProps) {
         </div>
       )}
 
-      {/* VIEW 2: Users & RBAC */}
+      {/* VIEW 2: Users & RBAC + CHURN INTELLIGENCE (MÓDULO 2.4) */}
       {activeSubTab === 'users' && hasUsersAccess && (
-        <CardGlass className="p-6 space-y-6">
+        <div className="space-y-6 animate-fade-in font-sans">
+          <ChurnIntelligenceDashboard />
+          <CardGlass className="p-6 space-y-6">
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
             <div>
               <h2 className="text-base font-bold text-slate-200 flex items-center gap-2">
@@ -1443,6 +1446,7 @@ export function AdminDashboard({ userId }: AdminDashboardProps) {
             </div>
           )}
         </CardGlass>
+        </div>
       )}
 
 

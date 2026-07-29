@@ -339,6 +339,11 @@ function AuthenticatedApp({
   const [activeSimulationAppId, setActiveSimulationAppId] = useState<string | null>(null);
   const [showOnboarding, setShowOnboarding] = useState(false);
 
+  const handleCompleteOnboarding = () => {
+    localStorage.setItem('vocentro_onboarding_completed', 'true');
+    setShowOnboarding(false);
+  };
+
   useEffect(() => {
     if (user) {
       const hasCompleted = localStorage.getItem('vocentro_onboarding_completed') === 'true';
@@ -517,8 +522,9 @@ function AuthenticatedApp({
     <div className="min-h-screen bg-slate-950 text-slate-100 dark:bg-slate-950 dark:text-slate-100 light:bg-slate-50 light:text-slate-900 transition-colors duration-300 font-sans flex">
       {/* Onboarding Modal para novos usuários */}
       <OnboardingModal
-        isOpen={showOnboarding}
-        onClose={() => setShowOnboarding(false)}
+        isOpen={showOnboarding && !!user}
+        onClose={handleCompleteOnboarding}
+        onStartUpload={() => handleSetActiveTab('profile')}
         onNavigateTab={handleSetActiveTab}
       />
 

@@ -460,12 +460,14 @@ export function StrategyPage({
         hired: 'hired'
       };
       const mappedStatus = stageToStatusMap[newStageName];
-      if (mappedStatus && selectedApp) {
+      const isAppRejected = String(selectedApp?.status || '').toLowerCase().includes('reject') || String(selectedApp?.status || '').toLowerCase().includes('rejeit');
+      
+      if (mappedStatus && selectedApp && !isAppRejected) {
         const statusOrder = ['found', 'saved', 'applied', 'hr', 'interview', 'offer', 'hired'];
         const currentIdx = statusOrder.indexOf(String(selectedApp.status).toLowerCase());
         const targetIdx = statusOrder.indexOf(mappedStatus);
-        // Only advance forward, never backward
-        if (targetIdx > currentIdx) {
+        // Only advance active applications forward, never backward or out of rejected automatically
+        if (currentIdx !== -1 && targetIdx > currentIdx) {
           await onUpdateApplication({ ...selectedApp, status: mappedStatus as Application['status'] });
           tracker.track('application_stage_updated', 'Pipeline', {
             applicationId: selectedAppId,

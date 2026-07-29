@@ -208,6 +208,8 @@ export interface InterviewPrep {
   createdAt: string;
 }
 
+export type ApplicationStatus = 'found' | 'saved' | 'applied' | 'hr' | 'interview' | 'offer' | 'hired' | 'rejected' | '🔎 Encontrada' | '⭐ Tenho interesse' | '📝 Vou me candidatar' | '📨 Me candidatei' | '⏳ Aguardando retorno' | '👥 Entrevista com recrutador' | '👥 Entrevista RH' | '🎯 Entrevista com gestor' | '🎯 Entrevista Gestor' | '🧩 Case técnico' | '🤝 Fit cultural' | '🏆 Oferta recebida' | '✅ Aceita' | '❌ Rejeitada' | '🚫 Fora do meu objetivo' | '👻 Sem resposta';
+
 export interface Application {
   id: string;
   userId: string;
@@ -215,7 +217,7 @@ export interface Application {
   matchId?: string;
   companyName: string;
   jobTitle: string;
-  status: 'found' | 'saved' | 'applied' | 'hr' | 'interview' | 'offer' | 'hired' | 'rejected' | '🔎 Encontrada' | '⭐ Tenho interesse' | '📝 Vou me candidatar' | '📨 Me candidatei' | '⏳ Aguardando retorno' | '👥 Entrevista com recrutador' | '👥 Entrevista RH' | '🎯 Entrevista com gestor' | '🎯 Entrevista Gestor' | '🧩 Case técnico' | '🤝 Fit cultural' | '🏆 Oferta recebida' | '✅ Aceita' | '❌ Rejeitada' | '🚫 Fora do meu objetivo' | '👻 Sem resposta';
+  status: ApplicationStatus;
   rejectionReason?: 'Experiência insuficiente' | 'Senioridade incompatível' | 'Pretensão salarial' | 'Falta de conhecimento técnico' | 'Idioma' | 'Cultura' | 'Empresa pausou vaga' | 'Sem retorno' | 'Outro';
   sourcePlatform?: string;
   resumeVersionId?: string;

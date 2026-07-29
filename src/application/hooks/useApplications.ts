@@ -3,9 +3,9 @@ import { isSupabaseConfigured, supabase } from '../../infrastructure/api/supabas
 import { localDB } from '../../infrastructure/storage/localDatabase';
 import { tracker } from '../../infrastructure/analytics/tracker';
 import { applicationTrackerService } from '../services/ApplicationTrackerService';
-import type { Application, ApplicationStage } from '../../domain/models/types';
+import type { Application, ApplicationStage, ApplicationStatus } from '../../domain/models/types';
 
-export function mapStatusToDb(frontendStatus: string): string {
+export function mapStatusToDb(frontendStatus: string): ApplicationStatus {
   switch (frontendStatus) {
     case 'found':
     case '🔎 Encontrada':
@@ -62,7 +62,7 @@ export function mapStatusToDb(frontendStatus: string): string {
   }
 }
 
-export function mapStatusFromDb(dbStatus: string): Application['status'] {
+export function mapStatusFromDb(dbStatus: string): string {
   switch (dbStatus) {
     case 'found':
     case '🔎 Encontrada':
@@ -133,7 +133,7 @@ export function useApplications(userId: string | undefined, resumeVersionId?: st
           matchId: d.match_id || undefined,
           companyName: d.company_name,
           jobTitle: d.job_title,
-          status: mapStatusFromDb(d.status),
+          status: mapStatusFromDb(d.status) as ApplicationStatus,
           rejectionReason: d.rejection_reason || undefined,
           sourcePlatform: d.source_platform || undefined,
           resumeVersionId: d.resume_version_id || undefined,
@@ -184,7 +184,7 @@ export function useApplications(userId: string | undefined, resumeVersionId?: st
           matchId: data.match_id || undefined,
           companyName: data.company_name,
           jobTitle: data.job_title,
-          status: mapStatusFromDb(data.status),
+          status: mapStatusFromDb(data.status) as ApplicationStatus,
           rejectionReason: data.rejection_reason || undefined,
           sourcePlatform: data.source_platform || undefined,
           resumeVersionId: data.resume_version_id || undefined,

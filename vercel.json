@@ -1,5 +1,4 @@
 {
-  "cleanUrls": true,
   "redirects": [
     {
       "source": "/:path*",
@@ -15,7 +14,7 @@
   ],
   "rewrites": [
     {
-      "source": "/(.*)",
+      "source": "/((?!assets/|favicon.ico).*)",
       "destination": "/index.html"
     }
   ]

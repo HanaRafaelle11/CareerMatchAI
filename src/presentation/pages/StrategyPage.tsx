@@ -1,8 +1,7 @@
 import { useState, useEffect, type FormEvent } from 'react';
 import { CardGlass } from '../components/CardGlass';
 import { CandidateStrategyService } from '../../application/services/CandidateStrategyService';
-import { ApplicationPipelineService } from '../../application/services/ApplicationPipelineService';
-import { CareerAnalyticsService } from '../../application/services/CareerAnalyticsService';
+import { ApplicationPipelineService, type PipelineColumnId } from '../../application/services/ApplicationPipelineService';
 import type { 
   Job, Resume, CareerProfile, Application, ApplicationStage,
   CompanyProfile, WeeklyPlanner, WeeklyGoal
@@ -10,11 +9,13 @@ import type {
 import type { CareerProfileNew } from '../../application/hooks/useMyProfileAi';
 import { 
   Flame, Sparkles, AlertCircle, Clock, Plus, Trash2, 
-  Compass, CheckCircle2, ChevronRight, ChevronLeft,
-  X, Briefcase, Layout, AlertTriangle,
-  Smile, Meh, Frown, CheckSquare, Square, Building2, BookOpen, Target, Loader2, List
+  X, Layout, AlertTriangle,
+  CheckSquare, Square, BookOpen, Target, Loader2,
+  Calendar, UserCheck, MessageSquare, ShieldAlert, Archive
 } from 'lucide-react';
 import { Badge } from '../components/ds';
+import { tracker } from '../../infrastructure/analytics/tracker';
+import { isSupabaseConfigured, supabase } from '../../infrastructure/api/supabaseClient';
 
 interface StrategyPageProps {
   careerProfile: CareerProfile | null;
@@ -53,28 +54,28 @@ export function StrategyPage({
   careerProfileNew,
   resumes,
   jobs,
-  onDeleteJob,
+  onDeleteJob: _onDeleteJob,
   applications,
   onCreateApplication,
   onUpdateApplication,
-  onDeleteApplication,
+  onDeleteApplication: _onDeleteApplication,
   getStagesQuery,
   addStage,
   deleteStage,
-  setActiveTab,
+  setActiveTab: _setActiveTab,
   userId,
   preferences,
   updatePreferences,
-  companyProfiles,
+  companyProfiles: _companyProfiles,
   saveCompanyProfile,
-  deleteCompanyProfile,
+  deleteCompanyProfile: _deleteCompanyProfile,
   getWeeklyPlannerQuery,
   saveWeeklyPlanner,
   getWeeklyGoalQuery,
-  saveWeeklyGoal,
+  saveWeeklyGoal: _saveWeeklyGoal,
   getPostLogQuery,
   savePostLog,
-  onStartSimulation,
+  onStartSimulation: _onStartSimulation,
   initialSubTab
 }: StrategyPageProps) {
   const [subTab, setSubTab] = useState<'strategy' | 'planner' | 'pipeline' | 'journal'>(initialSubTab || 'pipeline');
@@ -85,128 +86,113 @@ export function StrategyPage({
     }
   }, [initialSubTab]);
 
-  const [viewMode, setViewMode] = useState<'kanban' | 'list'>('kanban');
-  const [intelSubTab, setIntelSubTab] = useState<'companies' | 'diary'>('companies');
+  const [_intelSubTab, _setIntelSubTab] = useState<'companies' | 'diary'>('companies');
+  const [showArchived, setShowArchived] = useState(false);
   const primaryResume = resumes.find(r => r.isPrimary) || resumes[0];
-
-  // Week configuration (default is week 202628)
   const currentWeekNumber = 202628;
 
   // Local overrides for job metrics (ROI calculation)
-  const [jobMetricsOverride, setJobMetricsOverride] = useState<Record<string, { stagesCount: number, caseHours: number }>>({});
-
+  const [jobMetricsOverride] = useState<Record<string, { stagesCount: number, caseHours: number }>>({});
   const [columnOverrides, setColumnOverrides] = useState<Record<string, 'hot' | 'warm' | 'cold'>>({});
 
-  // Sync preferences column overrides on load/change
   useEffect(() => {
     if (preferences?.strategy_column_overrides) {
       setColumnOverrides(preferences.strategy_column_overrides);
     }
   }, [preferences?.strategy_column_overrides]);
 
-  const handleMoveJobColumn = (jobId: string, targetCol: 'hot' | 'warm' | 'cold') => {
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const _handleMoveJobColumn = (jobId: string, targetCol: 'hot' | 'warm' | 'cold') => {
     const updated = { ...columnOverrides, [jobId]: targetCol };
     setColumnOverrides(updated);
     if (updatePreferences) {
       updatePreferences({ strategy_column_overrides: updated });
     }
   };
+  void _handleMoveJobColumn; // reserved for future Strategy tab
 
   // Fetch planner and goals queries
   const { data: planner } = getWeeklyPlannerQuery(currentWeekNumber);
-  const { data: goal } = getWeeklyGoalQuery(currentWeekNumber);
+  const { data: _goal } = getWeeklyGoalQuery(currentWeekNumber);
 
   // Kanban Pipeline Map
   const pipelineColumns = ApplicationPipelineService.getColumnMap(applications);
 
-  const columnsOrder = [
-    'encontradas',
-    'aplicar_depois',
-    'cv_enviado',
-    'triagem',
-    'entrevista_rh',
-    'entrevista_tecnica',
-    'case_tecnico',
-    'oferta',
-    'contratado',
-    'recusado',
-    'arquivado'
+  const activeColumnsOrder: PipelineColumnId[] = [
+    'found',
+    'saved',
+    'applied',
+    'hr',
+    'interview',
+    'offer',
+    'hired'
   ];
 
-  const handleMoveStage = async (app: Application, direction: 'prev' | 'next') => {
-    const currentColumnId = Object.keys(pipelineColumns).find(key => 
-      (pipelineColumns as any)[key].apps.some((a: any) => a.id === app.id)
-    );
+  // Modals for confirmation
+  const [backwardConfirmApp, setBackwardConfirmApp] = useState<{ app: Application; targetStatus: string } | null>(null);
+  const [advancedRejectConfirmApp, setAdvancedRejectConfirmApp] = useState<{ app: Application } | null>(null);
 
-    if (!currentColumnId) return;
+  // Rejection Modal State
+  const [rejectingApp, setRejectingApp] = useState<Application | null>(null);
 
-    const currentIndex = columnsOrder.indexOf(currentColumnId);
-    let targetIndex = direction === 'next' ? currentIndex + 1 : currentIndex - 1;
+  // Detailed Card Drawer State
+  const [selectedAppId, setSelectedAppId] = useState<string | null>(null);
+  const selectedApp = applications.find(a => a.id === selectedAppId);
+  const { data: activeStages = [], isLoading: loadingStages } = getStagesQuery(selectedAppId || '');
 
-    if (targetIndex >= 0 && targetIndex < columnsOrder.length) {
-      const targetColumnId = columnsOrder[targetIndex];
-      const targetStatus = (pipelineColumns as any)[targetColumnId].defaultStatus;
-      await handleQuickStatusChange(app, targetStatus);
+  // Card Drawer Form States
+  const [cardNextAction, setCardNextAction] = useState('');
+  const [cardNextActionDate, setCardNextActionDate] = useState('');
+  const [cardRecruiterName, setCardRecruiterName] = useState('');
+  const [cardFeedback, setCardFeedback] = useState('');
+  const [cardNotes, setCardNotes] = useState('');
+  const [isSavingCardDetails, setIsSavingCardDetails] = useState(false);
+
+  useEffect(() => {
+    if (selectedApp) {
+      setCardNextAction((selectedApp as any).nextAction || (selectedApp as any).next_action || '');
+      setCardNextActionDate((selectedApp as any).nextActionDate || (selectedApp as any).next_action_date || '');
+      setCardRecruiterName((selectedApp as any).recruiterName || (selectedApp as any).recruiter_name || '');
+      setCardFeedback((selectedApp as any).feedback || '');
+      setCardNotes(selectedApp.notes || '');
     }
-  };
+  }, [selectedAppId]);
 
-  const handleApplyFromStrategy = async (job: Job) => {
-    const app = applications.find(a => a.jobId === job.id);
-    if (app) {
-      await handleQuickStatusChange(app, '📨 Me candidatei');
-    } else {
-      await onCreateApplication({
-        jobId: job.id,
-        companyName: job.companyName,
-        jobTitle: job.title,
-        status: '📨 Me candidatei',
-        resumeVersionId: primaryResume?.resumeVersionId || undefined
-      });
-    }
-  };
+  // Form for new Stage
+  const [newStageName, setNewStageName] = useState('👥 Entrevista RH');
+  const [newStageStatus, setNewStageStatus] = useState<'pending' | 'passed' | 'failed'>('pending');
+  const [newStageNotes, setNewStageNotes] = useState('');
 
   // States for manual creation
   const [showAddForm, setShowAddForm] = useState(false);
   const [manualCompany, setManualCompany] = useState('');
   const [manualTitle, setManualTitle] = useState('');
   const [manualNotes, setManualNotes] = useState('');
-  const [manualStatus, setManualStatus] = useState<Application['status']>('📨 Me candidatei');
+  const [manualStatus, setManualStatus] = useState<Application['status']>('applied');
   const [manualSource, setManualSource] = useState('LinkedIn');
 
-  // Stages/Timeline Modal States
-  const [selectedAppId, setSelectedAppId] = useState<string | null>(null);
-  const selectedApp = applications.find(a => a.id === selectedAppId);
-  const { data: activeStages = [], isLoading: loadingStages } = getStagesQuery(selectedAppId || '');
-
-  // Form for new Stage
-  const [newStageName, setNewStageName] = useState('👥 Entrevista com recrutador');
-  const [newStageStatus, setNewStageStatus] = useState<'pending' | 'passed' | 'failed'>('pending');
-  const [newStageNotes, setNewStageNotes] = useState('');
-
-  // Rejection Modal State
-  const [rejectingApp, setRejectingApp] = useState<Application | null>(null);
-
   // Strategy Job Details Modal State
-  const [viewingStrategyJob, setViewingStrategyJob] = useState<Job | null>(null);
+  const [_viewingStrategyJob, _setViewingStrategyJob] = useState<Job | null>(null);
 
   // Company Intelligence states
   const [showCompanyForm, setShowCompanyForm] = useState(false);
+  void showCompanyForm; // reserved for Company Intelligence tab
   const [companyName, setCompanyName] = useState('');
   const [companyIndustry, setCompanyIndustry] = useState('');
-  const [companySize, setCompanySize] = useState('Média');
-  const [companyRating, setCompanyRating] = useState('4.0');
+  const [companySize, _setCompanySize] = useState('Média');
+  const [companyRating, _setCompanyRating] = useState('4.0');
   const [companyProcess, setCompanyProcess] = useState('');
   const [companyBenefits, setCompanyBenefits] = useState('');
-  const [companyRemote, setCompanyRemote] = useState('Híbrido');
+  const [companyRemote, _setCompanyRemote] = useState('Híbrido');
   const [companySalary, setCompanySalary] = useState('');
   const [companyNotes, setCompanyNotes] = useState('');
-  const [companyCulture, setCompanyCulture] = useState(4);
-  const [companyApplyAgain, setCompanyApplyAgain] = useState(true);
+  const [companyCulture, _setCompanyCulture] = useState(4);
+  const [companyApplyAgain, _setCompanyApplyAgain] = useState(true);
 
   // AI Journal reflection log states
   const [journalAppId, setJournalAppId] = useState<string>('');
   const [journalFeeling, setJournalFeeling] = useState<string>('😐');
-  const [journalConfidence, setJournalConfidence] = useState<number>(7);
+  const [journalConfidence, _setJournalConfidence] = useState<number>(7);
   const [journalDiff, setJournalDiff] = useState<string>('');
   const [journalLearned, setJournalLearned] = useState<string>('');
   const [journalDifferent, setJournalDifferent] = useState<string>('');
@@ -219,58 +205,210 @@ export function StrategyPage({
         setRejectingApp(null);
         setSelectedAppId(null);
         setShowCompanyForm(false);
+        setBackwardConfirmApp(null);
+        setAdvancedRejectConfirmApp(null);
       }
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, []);
 
-  // Calculate dynamic list of jobs with metrics overrides & deduplication (Item 15)
-  const mappedJobs = jobs.map(j => {
-    const override = jobMetricsOverride[j.id];
-    return {
-      ...j,
-      stagesCount: override ? override.stagesCount : (j.stagesCount || 3),
-      caseHours: override ? override.caseHours : (j.caseHours || 0)
-    };
-  });
-
-  const uniqueMappedJobs = mappedJobs.filter((j, index, self) => 
-    index === self.findIndex(t => (
-      (t.id && t.id === j.id) ||
-      (t.title.toLowerCase().trim() === j.title.toLowerCase().trim() &&
-       t.companyName.toLowerCase().trim() === j.companyName.toLowerCase().trim())
-    ))
-  );
-
-  const grouped = CandidateStrategyService.groupJobs(primaryResume, uniqueMappedJobs, careerProfile, careerProfileNew);
-
-  const finalGrouped = {
-    hot: [...grouped.hot],
-    warm: [...grouped.warm],
-    cold: [...grouped.cold]
+  // Helper function: Helper to match job score
+  const getJobMatchScore = (jobId?: string): number => {
+    if (!jobId) return 75;
+    const job = jobs.find(j => j.id === jobId);
+    if (!job) return 75;
+    return job.scores?.overall || 75;
   };
 
-  Object.entries(columnOverrides).forEach(([jobId, targetCol]) => {
-    let foundRec: any = null;
-    for (const colKey of ['hot', 'warm', 'cold'] as const) {
-      const idx = finalGrouped[colKey].findIndex(rec => (rec.job as any).id === jobId);
-      if (idx !== -1) {
-        foundRec = finalGrouped[colKey][idx];
-        finalGrouped[colKey].splice(idx, 1);
-        break;
-      }
-    }
-    if (foundRec && targetCol) {
-      finalGrouped[targetCol].push(foundRec);
-    }
-  });
+  // Helper function: Calculate average duration in column
+  const getAverageDaysInColumn = (colApps: Application[]): string => {
+    if (!colApps || colApps.length === 0) return ' — ';
+    let totalDays = 0;
+    let validCount = 0;
+    const now = new Date().getTime();
 
-  const handleUpdateJobMetrics = (jobId: string, stages: number, hours: number) => {
-    setJobMetricsOverride(prev => ({
-      ...prev,
-      [jobId]: { stagesCount: stages, caseHours: hours }
-    }));
+    colApps.forEach(app => {
+      const dateStr = app.updatedAt || app.createdAt || app.appliedAt;
+      if (dateStr) {
+        const time = new Date(dateStr).getTime();
+        if (!isNaN(time)) {
+          const diffDays = Math.max(0, Math.floor((now - time) / (1000 * 60 * 60 * 24)));
+          totalDays += diffDays;
+          validCount++;
+        }
+      }
+    });
+
+    if (validCount === 0) return ' — ';
+    const avg = Math.round(totalDays / validCount);
+    return avg === 0 ? '< 1 dia' : `${avg}d`;
+  };
+
+  // Helper function: Calculate probability of advancement
+  const getAverageProbability = (colApps: Application[], baseStageScore: number): string => {
+    if (!colApps || colApps.length === 0) return ' — ';
+    let sumProbs = 0;
+
+    colApps.forEach(app => {
+      const matchScore = getJobMatchScore(app.jobId);
+      const prob = baseStageScore * (0.5 + (0.5 * (matchScore / 100)));
+      sumProbs += prob;
+    });
+
+    return `${Math.round(sumProbs / colApps.length)}%`;
+  };
+
+  // Helper function: Sort apps in column by IA Match Score
+  const sortAppsByIA = (colApps: Application[]): Application[] => {
+    return [...colApps].sort((a, b) => getJobMatchScore(b.jobId) - getJobMatchScore(a.jobId));
+  };
+
+  // Execute status change with unidirectional/backward checks
+  const handleQuickStatusChange = async (app: Application, targetStatus: string) => {
+    const currentStatus = String(app.status || 'found').toLowerCase();
+    const targetStatusClean = String(targetStatus).toLowerCase();
+
+    // Check if target is rejected
+    if (targetStatusClean === 'rejected' || targetStatusClean.includes('rejeitada')) {
+      const advancedStatuses = ['hr', 'interview', 'offer', '👥 entrevista com recrutador', '🎯 entrevista com gestor', '🏆 oferta recebida'];
+      if (advancedStatuses.some(s => currentStatus.includes(s))) {
+        setAdvancedRejectConfirmApp({ app });
+        return;
+      }
+      setRejectingApp(app);
+      return;
+    }
+
+    // Check if moving backward
+    const currentIndex = activeColumnsOrder.indexOf(currentStatus as any);
+    const targetIndex = activeColumnsOrder.indexOf(targetStatusClean as any);
+
+    if (currentIndex !== -1 && targetIndex !== -1 && targetIndex < currentIndex) {
+      setBackwardConfirmApp({ app, targetStatus });
+      return;
+    }
+
+    await executeStatusChange(app, targetStatus);
+  };
+
+  const executeStatusChange = async (app: Application, targetStatus: string) => {
+    try {
+      const updatedApp = {
+        ...app,
+        status: targetStatus as any,
+        updatedAt: new Date().toISOString()
+      };
+      await onUpdateApplication(updatedApp);
+
+      // Record stage transition log in database if Supabase configured
+      if (isSupabaseConfigured && supabase) {
+        await supabase.from('application_stages').insert({
+          application_id: app.id,
+          stage_name: targetStatus,
+          from_status: app.status,
+          to_status: targetStatus,
+          status: 'passed',
+          stage_date: new Date().toISOString()
+        });
+      }
+
+      tracker.track('application_stage_updated', 'StrategyPage', {
+        appId: app.id,
+        fromStatus: app.status,
+        toStatus: targetStatus,
+        user_id: userId
+      });
+    } catch (err) {
+      console.error('Erro ao atualizar estágio:', err);
+    }
+  };
+
+  const handleConfirmBackwardMove = async () => {
+    if (!backwardConfirmApp) return;
+    const { app, targetStatus } = backwardConfirmApp;
+    setBackwardConfirmApp(null);
+    await executeStatusChange(app, targetStatus);
+  };
+
+  const handleConfirmAdvancedRejection = () => {
+    if (!advancedRejectConfirmApp) return;
+    const app = advancedRejectConfirmApp.app;
+    setAdvancedRejectConfirmApp(null);
+    setRejectingApp(app);
+  };
+
+  const handleSaveRejectionReason = async (reason: Application['rejectionReason']) => {
+    if (!rejectingApp) return;
+
+    try {
+      await onUpdateApplication({
+        ...rejectingApp,
+        status: 'rejected' as any,
+        rejectionReason: reason,
+        updatedAt: new Date().toISOString()
+      });
+
+      tracker.track('application_archived', 'StrategyPage', {
+        appId: rejectingApp.id,
+        jobId: rejectingApp.jobId,
+        reason,
+        user_id: userId
+      });
+
+      setRejectingApp(null);
+      if (selectedAppId === rejectingApp.id) {
+        setSelectedAppId(null);
+      }
+    } catch (err) {
+      console.error('Erro ao salvar rejeição:', err);
+    }
+  };
+
+  const handleSaveCardDetails = async (e: FormEvent) => {
+    e.preventDefault();
+    if (!selectedApp) return;
+
+    try {
+      setIsSavingCardDetails(true);
+      const updatedApp = {
+        ...selectedApp,
+        notes: cardNotes,
+        updatedAt: new Date().toISOString()
+      };
+
+      await onUpdateApplication(updatedApp);
+
+      if (isSupabaseConfigured && supabase) {
+        await supabase.from('applications').update({
+          notes: cardNotes,
+          next_action: cardNextAction,
+          next_action_date: cardNextActionDate,
+          recruiter_name: cardRecruiterName,
+          feedback: cardFeedback,
+          updated_at: new Date().toISOString()
+        }).eq('id', selectedApp.id);
+      }
+
+      tracker.track('application_notes_saved', 'StrategyPage', {
+        appId: selectedApp.id,
+        user_id: userId
+      });
+
+      if (cardNextActionDate) {
+        tracker.track('interview_scheduled', 'StrategyPage', {
+          appId: selectedApp.id,
+          nextActionDate: cardNextActionDate,
+          user_id: userId
+        });
+      }
+
+      alert('Detalhes salvos com sucesso!');
+    } catch (err) {
+      console.error('Erro ao salvar detalhes do card:', err);
+    } finally {
+      setIsSavingCardDetails(false);
+    }
   };
 
   const handleCreateManualApp = async (e: FormEvent) => {
@@ -284,47 +422,13 @@ export function StrategyPage({
         status: manualStatus,
         sourcePlatform: manualSource,
         notes: manualNotes || undefined,
-        appliedAt: manualStatus.includes('Me candidatei') ? new Date().toISOString() : undefined,
+        appliedAt: new Date().toISOString(),
         resumeVersionId: primaryResume?.resumeVersionId
       });
       setManualCompany('');
       setManualTitle('');
       setManualNotes('');
       setShowAddForm(false);
-    } catch (err) {
-      console.error(err);
-    }
-  };
-
-  const handleSaveRejectionReason = async (reason: Application['rejectionReason']) => {
-    if (!rejectingApp) return;
-
-    try {
-      await onUpdateApplication({
-        ...rejectingApp,
-        status: '❌ Rejeitada',
-        rejectionReason: reason,
-        updatedAt: new Date().toISOString()
-      });
-      setRejectingApp(null);
-    } catch (err) {
-      console.error(err);
-    }
-  };
-
-  const handleQuickStatusChange = async (app: Application, newStatus: Application['status']) => {
-    if (newStatus === '❌ Rejeitada') {
-      setRejectingApp(app);
-      return;
-    }
-
-    try {
-      await onUpdateApplication({
-        ...app,
-        status: newStatus,
-        appliedAt: newStatus.includes('Me candidatei') && !app.appliedAt ? new Date().toISOString() : app.appliedAt,
-        updatedAt: new Date().toISOString()
-      });
     } catch (err) {
       console.error(err);
     }
@@ -346,21 +450,6 @@ export function StrategyPage({
         }
       });
       setNewStageNotes('');
-      
-      let finalStatus: Application['status'] = selectedApp!.status;
-      if (newStageName.includes('Oferta') && newStageStatus === 'passed') {
-        finalStatus = '🏆 Oferta recebida';
-      } else if (newStageName.includes('Rejeitada') || newStageStatus === 'failed') {
-        finalStatus = '❌ Rejeitada';
-      }
-      
-      if (finalStatus !== selectedApp!.status) {
-        await onUpdateApplication({
-          ...selectedApp!,
-          status: finalStatus,
-          updatedAt: new Date().toISOString()
-        });
-      }
     } catch (err) {
       console.error(err);
     }
@@ -375,7 +464,6 @@ export function StrategyPage({
     }
   };
 
-  // Weekly Planner tasks toggler
   const handleToggleTask = async (dayName: string, taskId: string) => {
     if (!planner) return;
     const updatedPlannerData = { ...planner.plannerData };
@@ -383,12 +471,8 @@ export function StrategyPage({
     updatedPlannerData[dayName] = {
       tasks: dayTasks.map((t: any) => t.id === taskId ? { ...t, completed: !t.completed } : t)
     };
-
     try {
-      await saveWeeklyPlanner({
-        ...planner,
-        plannerData: updatedPlannerData
-      });
+      await saveWeeklyPlanner({ ...planner, plannerData: updatedPlannerData });
     } catch (err) {
       console.error(err);
     }
@@ -399,17 +483,10 @@ export function StrategyPage({
     const updatedPlannerData = { ...planner.plannerData };
     const dayTasks = updatedPlannerData[dayName]?.tasks || [];
     updatedPlannerData[dayName] = {
-      tasks: [
-        ...dayTasks,
-        { id: `task-${Date.now()}`, text, completed: false }
-      ]
+      tasks: [...dayTasks, { id: `task-${Date.now()}`, text, completed: false }]
     };
-
     try {
-      await saveWeeklyPlanner({
-        ...planner,
-        plannerData: updatedPlannerData
-      });
+      await saveWeeklyPlanner({ ...planner, plannerData: updatedPlannerData });
     } catch (err) {
       console.error(err);
     }
@@ -429,7 +506,8 @@ export function StrategyPage({
     }
   };
 
-  const handleSaveCompany = async (e: FormEvent) => {
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const _handleSaveCompany = async (e: FormEvent) => {
     e.preventDefault();
     if (!companyName) return;
 
@@ -451,7 +529,7 @@ export function StrategyPage({
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString()
       });
-      setShowCompanyForm(false);
+      setShowCompanyForm(false); // reset form
       setCompanyName('');
       setCompanyIndustry('');
       setCompanyProcess('');
@@ -462,6 +540,7 @@ export function StrategyPage({
       console.error(err);
     }
   };
+  void _handleSaveCompany; // reserved for Company Intelligence tab
 
   const handleSaveJournal = async (e: FormEvent) => {
     e.preventDefault();
@@ -488,8 +567,47 @@ export function StrategyPage({
     }
   };
 
-  // Compile Dynamic Funnel Stats
-  const funnel = CareerAnalyticsService.getFunnel(applications);
+  // Mapeamento das recomendações ROI para a aba 'strategy'
+  const mappedJobs = jobs.map(j => {
+    const override = jobMetricsOverride[j.id];
+    return {
+      ...j,
+      stagesCount: override ? override.stagesCount : (j.stagesCount || 3),
+      caseHours: override ? override.caseHours : (j.caseHours || 0)
+    };
+  });
+
+  const uniqueMappedJobs = mappedJobs.filter((j, index, self) => 
+    index === self.findIndex(t => (
+      (t.id && t.id === j.id) ||
+      (t.title.toLowerCase().trim() === j.title.toLowerCase().trim() &&
+       t.companyName.toLowerCase().trim() === j.companyName.toLowerCase().trim())
+    ))
+  );
+
+  const grouped = CandidateStrategyService.groupJobs(primaryResume, uniqueMappedJobs, careerProfile, careerProfileNew);
+  const finalGrouped = {
+    hot: [...grouped.hot],
+    warm: [...grouped.warm],
+    cold: [...grouped.cold]
+  };
+
+  Object.entries(columnOverrides).forEach(([jobId, targetCol]) => {
+    let foundRec: any = null;
+    for (const colKey of ['hot', 'warm', 'cold'] as const) {
+      const idx = finalGrouped[colKey].findIndex(rec => (rec.job as any).id === jobId);
+      if (idx !== -1) {
+        foundRec = finalGrouped[colKey][idx];
+        finalGrouped[colKey].splice(idx, 1);
+        break;
+      }
+    }
+    if (foundRec && targetCol) {
+      finalGrouped[targetCol].push(foundRec);
+    }
+  });
+
+  const rejectedCount = pipelineColumns.rejected?.apps?.length || 0;
 
   return (
     <div className="space-y-6 w-full min-w-0 max-w-7xl mx-auto animate-fade-in font-sans block">
@@ -497,10 +615,10 @@ export function StrategyPage({
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 w-full min-w-0">
         <div className="min-w-0">
           <h1 className="text-3xl font-bold tracking-tight text-slate-900 dark:text-slate-100">
-            Minha Estratégia de Busca
+            Jornada de Carreira & Pipeline
           </h1>
           <p className="text-slate-500 dark:text-slate-400 text-sm mt-1 block break-normal whitespace-normal">
-            CRM inteligente que planeja, calcula o ROI e monitora a performance da sua recolocação.
+            Acompanhe o ciclo de vida de suas candidaturas em 7 etapas estratégicas sem ruído.
           </p>
         </div>
       </div>
@@ -514,31 +632,41 @@ export function StrategyPage({
           <div>
             <div className="flex items-center gap-2">
               <span className="text-xs font-semibold text-[#4F8EF7] uppercase tracking-wider">Recomendação da IA</span>
-              <Badge variant="premium" size="sm">Estratégia de Carreira</Badge>
+              <Badge variant="premium" size="sm">Pipeline de Vagas</Badge>
             </div>
             <h2 className="text-base font-semibold text-slate-900 dark:text-slate-100 mt-1">
               {applications.length > 0
-                ? `Você tem ${applications.length} candidatura(s) ativas no seu Kanban. Mantenha o acompanhamento atualizado.`
-                : 'Adicione suas candidaturas ao Kanban para que a IA acompanhe prazos e taxas de resposta.'}
+                ? `Você possui ${applications.filter(a => a.status !== 'rejected').length} candidatura(s) ativa(s) em acompanhamento.`
+                : 'Adicione suas candidaturas ao Pipeline para monitorar prazos e métricas de avanço.'}
             </h2>
             <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
-              O CRM calcula a probabilidade e prioridade de retorno de cada empresa.
+              O copiloto recalcula as probabilidades de conversão em tempo real conforme você atualiza o status.
             </p>
           </div>
         </div>
-        <button
-          onClick={() => setShowAddForm(true)}
-          className="btn-secondary text-xs shrink-0 self-start md:self-center"
-        >
-          <Plus size={14} />
-          <span>Nova Candidatura</span>
-        </button>
+        <div className="flex gap-2 shrink-0 self-start md:self-center">
+          <button
+            onClick={() => setShowArchived(!showArchived)}
+            className={`btn-secondary text-xs ${showArchived ? 'border-brand-500 text-brand-400' : ''}`}
+            title="Alternar exibição de vagas arquivadas/rejeitadas"
+          >
+            <Archive size={14} />
+            <span>{showArchived ? 'Ocultar Arquivadas' : `Ver Arquivadas (${rejectedCount})`}</span>
+          </button>
+          <button
+            onClick={() => setShowAddForm(true)}
+            className="btn-primary text-xs"
+          >
+            <Plus size={14} />
+            <span>Nova Candidatura</span>
+          </button>
+        </div>
       </div>
 
       {/* Sub Tabs Switcher */}
       <div className="flex flex-wrap border-b border-slate-800 dark:border-slate-800 light:border-slate-200 gap-6">
         {[
-          { id: 'pipeline', label: 'Pipeline (Kanban)', icon: Layout },
+          { id: 'pipeline', label: 'Pipeline (CRM Kanban)', icon: Layout },
           { id: 'strategy', label: 'Prioridades (ROI)', icon: Flame },
           { id: 'planner', label: 'Planner Semanal', icon: CheckSquare },
           { id: 'journal', label: 'Diário & Journal', icon: BookOpen }
@@ -570,7 +698,7 @@ export function StrategyPage({
             </button>
             <div>
               <h3 className="font-display font-bold text-lg text-slate-200">Acompanhar Nova Vaga</h3>
-              <p className="text-xs text-slate-500 mt-1">Registre o status atual do processo.</p>
+              <p className="text-xs text-slate-500 mt-1">Registre a empresa e o cargo no Pipeline.</p>
             </div>
             <form onSubmit={handleCreateManualApp} className="space-y-4">
               <div className="grid grid-cols-2 gap-4">
@@ -578,7 +706,7 @@ export function StrategyPage({
                   <label className="text-xs font-semibold text-slate-400">Empresa</label>
                   <input
                     type="text"
-                    placeholder="Ex: Pipefy"
+                    placeholder="Ex: Nubank"
                     value={manualCompany}
                     onChange={e => setManualCompany(e.target.value)}
                     className="w-full px-4 py-2 rounded-xl bg-slate-900/50 border border-slate-800 focus:border-brand-500 outline-none text-xs text-slate-200"
@@ -589,7 +717,7 @@ export function StrategyPage({
                   <label className="text-xs font-semibold text-slate-400">Cargo</label>
                   <input
                     type="text"
-                    placeholder="Ex: CSM Lead"
+                    placeholder="Ex: Frontend Engineer"
                     value={manualTitle}
                     onChange={e => setManualTitle(e.target.value)}
                     className="w-full px-4 py-2 rounded-xl bg-slate-900/50 border border-slate-800 focus:border-brand-500 outline-none text-xs text-slate-200"
@@ -599,17 +727,18 @@ export function StrategyPage({
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-1">
-                  <label className="text-xs font-semibold text-slate-400">Status</label>
+                  <label className="text-xs font-semibold text-slate-400">Etapa Inicial</label>
                   <select
                     value={manualStatus}
                     onChange={e => setManualStatus(e.target.value as any)}
-                    className="w-full px-3 py-2 rounded-xl bg-slate-900/50 border border-slate-800 focus:border-brand-500 outline-none text-xs text-slate-200"
+                    className="w-full px-3 py-2 rounded-xl bg-slate-900 border border-slate-800 text-xs text-slate-200 outline-none focus:border-brand-500"
                   >
-                    <option value="🔎 Encontrada">🔎 Encontrada</option>
-                    <option value="⭐ Tenho interesse">⭐ Tenho interesse</option>
-                    <option value="📝 Vou me candidatar">📝 Vou me candidatar</option>
-                    <option value="📨 Me candidatei">📨 Me candidatei</option>
-                    <option value="👥 Entrevista com recrutador">👥 Entrevista RH</option>
+                    <option value="found">🔎 Encontradas</option>
+                    <option value="saved">⭐ Salvas</option>
+                    <option value="applied">📨 Aplicadas</option>
+                    <option value="hr">👥 RH</option>
+                    <option value="interview">🎯 Entrevistas</option>
+                    <option value="offer">🏆 Oferta</option>
                   </select>
                 </div>
                 <div className="space-y-1">
@@ -626,7 +755,7 @@ export function StrategyPage({
               <div className="space-y-1">
                 <label className="text-xs font-semibold text-slate-400">Observações</label>
                 <textarea
-                  placeholder="Observações..."
+                  placeholder="Anotações gerais..."
                   value={manualNotes}
                   onChange={e => setManualNotes(e.target.value)}
                   className="w-full px-4 py-2 rounded-xl bg-slate-900/50 border border-slate-800 focus:border-brand-500 outline-none text-xs text-slate-200 resize-none h-20"
@@ -637,7 +766,7 @@ export function StrategyPage({
                   Cancelar
                 </button>
                 <button type="submit" className="px-4 py-2 rounded-xl bg-brand-600 hover:bg-brand-500 text-white font-semibold text-xs shadow-lg">
-                  Confirmar Registro
+                  Adicionar ao Pipeline
                 </button>
               </div>
             </form>
@@ -645,464 +774,504 @@ export function StrategyPage({
         </div>
       )}
 
-      {/* 2. Modal: Rejeição */}
-      {rejectingApp && (
-        <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <CardGlass className="w-full max-w-sm min-w-[300px] sm:min-w-[360px] space-y-6 relative border border-slate-800 text-center">
-            <div className="mx-auto w-12 h-12 rounded-full bg-red-500/10 text-red-400 flex items-center justify-center">
-              <AlertTriangle size={24} />
+      {/* 2. Modal: Confirmação de Movimento para Trás */}
+      {backwardConfirmApp && (
+        <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-[1000] flex items-center justify-center p-4">
+          <CardGlass className="w-full max-w-md space-y-4 border border-amber-500/30 text-center p-6 bg-[#162032]">
+            <div className="mx-auto w-12 h-12 rounded-full bg-amber-500/10 text-amber-400 flex items-center justify-center">
+              <ShieldAlert size={24} />
             </div>
             <div>
-              <h3 className="font-display font-bold text-base text-slate-200">Qual foi o motivo da recusa?</h3>
-              <p className="text-xs text-slate-400 mt-1">Ajuda a IA a calibrar suas recomendações.</p>
+              <h3 className="font-display font-bold text-base text-slate-100">Mover Candidatura para Trás?</h3>
+              <p className="text-xs text-slate-400 mt-1">
+                Deseja mover a candidatura em <strong>{backwardConfirmApp.app.jobTitle}</strong> ({backwardConfirmApp.app.companyName}) de volta para a etapa anterior?
+              </p>
             </div>
-            <div className="grid grid-cols-1 gap-2 pt-2 text-left">
-              {[
-                'Experiência insuficiente', 'Senioridade incompatível', 'Pretensão salarial',
-                'Falta de conhecimento técnico', 'Idioma', 'Cultura', 'Empresa pausou vaga',
-                'Sem retorno', 'Outro'
-              ].map(reason => (
-                <button
-                  key={reason}
-                  onClick={() => handleSaveRejectionReason(reason as any)}
-                  className="px-4 py-2.5 rounded-xl border border-slate-800 bg-slate-900/40 text-xs text-slate-300 hover:bg-slate-850 hover:text-white transition-all text-left"
-                >
-                  {reason}
-                </button>
-              ))}
-            </div>
-          </CardGlass>
-        </div>
-      )}
-
-      {/* 3. Modal: Timeline stages */}
-      {selectedAppId && selectedApp && (
-        <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <CardGlass className="w-full max-w-xl min-w-[320px] sm:min-w-[500px] space-y-6 relative border border-slate-800 flex flex-col md:flex-row gap-6 max-h-[85vh] overflow-y-auto">
-            <button onClick={() => setSelectedAppId(null)} className="absolute top-4 right-4 text-slate-500 hover:text-slate-300">
-              <X size={18} />
-            </button>
-            <div className="flex-1 space-y-4">
-              <div>
-                <span className="text-[10px] px-2 py-0.5 rounded bg-slate-800 text-slate-400 font-extrabold uppercase">Detalhes da Vaga</span>
-                <h3 className="font-display font-bold text-lg text-slate-200 mt-1">{selectedApp.jobTitle}</h3>
-                <p className="text-xs text-slate-400">{selectedApp.companyName}</p>
-              </div>
-              <div className="space-y-1.5">
-                <label className="text-[10px] uppercase font-bold text-slate-500">Anotações da Jornada</label>
-                <textarea
-                  value={selectedApp.notes || ''}
-                  onChange={e => onUpdateApplication({ ...selectedApp, notes: e.target.value, updatedAt: new Date().toISOString() })}
-                  placeholder="Insira notas de acompanhamento..."
-                  className="w-full px-3 py-2 rounded-xl bg-slate-900/50 border border-slate-800 focus:border-brand-500 outline-none text-xs text-slate-300 h-32 resize-none"
-                />
-              </div>
-            </div>
-            <div className="flex-1 space-y-4 border-t md:border-t-0 md:border-l border-slate-900 pt-4 md:pt-0 md:pl-6 flex flex-col">
-              <h4 className="text-xs font-bold text-slate-300 flex items-center gap-1.5">
-                <Clock size={14} className="text-brand-500" />
-                Etapas
-              </h4>
-              <div className="flex-1 overflow-y-auto space-y-3 pr-1 max-h-[220px]">
-                {loadingStages ? (
-                  <div className="flex items-center gap-1.5 text-[10px] text-slate-500 py-1">
-                    <Loader2 size={12} className="animate-spin text-brand-500" />
-                    <span>Buscando etapas da candidatura...</span>
-                  </div>
-                ) : activeStages.length === 0 ? (
-                  <span className="text-[10px] text-slate-500 block">Nenhuma etapa.</span>
-                ) : (
-                  activeStages.map((st: ApplicationStage) => (
-                    <div key={st.id} className="p-2 rounded bg-slate-900/60 border border-slate-850 flex justify-between items-start gap-2">
-                      <div className="text-[11px]">
-                        <span className="font-bold text-slate-200 block">{st.stageName}</span>
-                        {st.notes && <span className="text-[10px] text-slate-400 block mt-0.5">{st.notes}</span>}
-                      </div>
-                      <div className="flex items-center gap-1">
-                        <span className={`text-[8px] px-1 rounded uppercase font-extrabold ${
-                          st.status === 'passed' ? 'bg-emerald-500/10 text-emerald-400' : 'bg-amber-500/10 text-amber-400'
-                        }`}>
-                          {st.status}
-                        </span>
-                        <button onClick={() => handleDeleteStage(st.id)} className="text-slate-500 hover:text-red-400">
-                          <Trash2 size={11} />
-                        </button>
-                      </div>
-                    </div>
-                  ))
-                )}
-              </div>
-              <form onSubmit={handleAddStage} className="space-y-2 border-t border-slate-900 pt-3">
-                <div className="grid grid-cols-2 gap-2">
-                  <select
-                    value={newStageName}
-                    onChange={e => setNewStageName(e.target.value)}
-                    className="bg-slate-900 border border-slate-800 text-[10px] rounded p-1.5 text-slate-200 outline-none"
-                  >
-                    <option value="📨 Me candidatei">📨 Aplicada</option>
-                    <option value="👥 Entrevista com recrutador">👥 Entrevista RH</option>
-                    <option value="🎯 Entrevista com gestor">🎯 Entrevista Gestor</option>
-                    <option value="🧩 Case técnico">🧩 Case Técnico</option>
-                    <option value="🤝 Fit cultural">🤝 Fit Cultural</option>
-                    <option value="🏆 Oferta recebida">🏆 Oferta Recebida</option>
-                  </select>
-                  <select
-                    value={newStageStatus}
-                    onChange={e => setNewStageStatus(e.target.value as any)}
-                    className="bg-slate-900 border border-slate-800 text-[10px] rounded p-1.5 text-slate-200 outline-none"
-                  >
-                    <option value="pending">Pendente</option>
-                    <option value="passed">Aprovado</option>
-                  </select>
-                </div>
-                <input
-                  type="text"
-                  placeholder="Nota..."
-                  value={newStageNotes}
-                  onChange={e => setNewStageNotes(e.target.value)}
-                  className="w-full bg-slate-900 border border-slate-800 text-[10px] rounded px-2 py-1 outline-none text-slate-200"
-                />
-                <button type="submit" className="w-full py-1.5 rounded bg-brand-600 hover:bg-brand-500 text-white font-bold text-[10px]">
-                  Gravar Etapa
-                </button>
-              </form>
-            </div>
-          </CardGlass>
-        </div>
-      )}
-
-      {/* Modal de Descrição Completa da Vaga (Prioridades ROI) */}
-      {viewingStrategyJob && (
-        <div className="fixed inset-0 bg-black/80 backdrop-blur-md z-50 flex items-center justify-center p-4">
-          <CardGlass className="w-full max-w-2xl max-h-[85vh] overflow-y-auto rounded-2xl p-6 space-y-6 relative border border-slate-800 bg-[#121927] text-white shadow-2xl">
-            <button
-              onClick={() => setViewingStrategyJob(null)}
-              className="absolute top-4 right-4 text-slate-400 hover:text-white p-1 rounded-lg hover:bg-slate-800 cursor-pointer"
-            >
-              <X size={18} />
-            </button>
-
-            <div className="space-y-2 border-b border-slate-800 pb-4">
-              <span className="text-[10px] px-2 py-0.5 rounded bg-blue-500/10 text-blue-400 font-extrabold uppercase tracking-wider">
-                {viewingStrategyJob.workMode === 'remote' ? 'Remoto' : viewingStrategyJob.workMode === 'hybrid' ? 'Híbrido' : 'Presencial'} • {viewingStrategyJob.seniority}
-              </span>
-              <h3 className="font-display font-bold text-xl text-white">{viewingStrategyJob.title}</h3>
-              <p className="text-xs text-slate-400 font-medium">{viewingStrategyJob.companyName} — {viewingStrategyJob.location}</p>
-            </div>
-
-            <div className="space-y-4 text-xs text-slate-300 leading-relaxed font-sans">
-              <div>
-                <h4 className="font-bold text-white uppercase tracking-wider text-[11px] mb-1">Descrição Completa</h4>
-                <p className="whitespace-pre-wrap">{viewingStrategyJob.description}</p>
-              </div>
-
-              {viewingStrategyJob.requirements && viewingStrategyJob.requirements.length > 0 && (
-                <div>
-                  <h4 className="font-bold text-white uppercase tracking-wider text-[11px] mb-2">Requisitos Exigidos</h4>
-                  <div className="flex flex-wrap gap-1.5">
-                    {viewingStrategyJob.requirements.map((req, i) => (
-                      <span key={i} className="px-2.5 py-1 rounded-lg bg-slate-900 border border-slate-800 text-[10px] text-slate-200 font-semibold">
-                        {req}
-                      </span>
-                    ))}
-                  </div>
-                </div>
-              )}
-            </div>
-
-            <div className="pt-4 border-t border-slate-800 flex justify-end gap-3">
-              {onStartSimulation && (
-                <button
-                  onClick={() => {
-                    const j = viewingStrategyJob;
-                    setViewingStrategyJob(null);
-                    onStartSimulation(j);
-                  }}
-                  className="px-4 py-2 rounded-xl bg-brand-500/10 hover:bg-brand-500/20 border border-brand-500/30 text-brand-400 font-bold text-xs flex items-center gap-1.5 cursor-pointer"
-                >
-                  🎤 Simular Entrevista
-                </button>
-              )}
+            <div className="flex gap-3 justify-center pt-2">
               <button
-                onClick={() => setViewingStrategyJob(null)}
-                className="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-white font-bold text-xs cursor-pointer"
+                onClick={() => setBackwardConfirmApp(null)}
+                className="px-4 py-2 rounded-xl border border-slate-700 text-slate-300 text-xs font-semibold"
               >
-                Fechar
+                Cancelar
+              </button>
+              <button
+                onClick={handleConfirmBackwardMove}
+                className="px-4 py-2 rounded-xl bg-amber-600 hover:bg-amber-500 text-white text-xs font-bold shadow-md"
+              >
+                Confirmar Retrocesso
               </button>
             </div>
           </CardGlass>
         </div>
       )}
 
+      {/* 3. Modal: Confirmação Reforçada para Rejeição em Estágios Avançados */}
+      {advancedRejectConfirmApp && (
+        <div className="fixed inset-0 bg-slate-950/85 backdrop-blur-sm z-[1000] flex items-center justify-center p-4">
+          <CardGlass className="w-full max-w-md space-y-4 border border-red-500/40 text-center p-6 bg-[#1f1624]">
+            <div className="mx-auto w-12 h-12 rounded-full bg-red-500/20 text-red-400 flex items-center justify-center animate-pulse">
+              <AlertTriangle size={24} />
+            </div>
+            <div>
+              <h3 className="font-display font-bold text-base text-white">Encerrar Processo em Estágio Avançado?</h3>
+              <p className="text-xs text-slate-300 mt-2 leading-relaxed">
+                Esta candidatura para <strong>{advancedRejectConfirmApp.app.jobTitle}</strong> ({advancedRejectConfirmApp.app.companyName}) já está em etapa avançada de entrevista. Deseja realmente arquivar esta oportunidade?
+              </p>
+            </div>
+            <div className="flex gap-3 justify-center pt-2">
+              <button
+                onClick={() => setAdvancedRejectConfirmApp(null)}
+                className="px-4 py-2 rounded-xl border border-slate-700 text-slate-300 text-xs font-semibold"
+              >
+                Manter Ativa
+              </button>
+              <button
+                onClick={handleConfirmAdvancedRejection}
+                className="px-4 py-2 rounded-xl bg-red-600 hover:bg-red-500 text-white text-xs font-bold shadow-md"
+              >
+                Confirmar Encerramento
+              </button>
+            </div>
+          </CardGlass>
+        </div>
+      )}
+
+      {/* 4. Modal: Motivo da Rejeição */}
+      {rejectingApp && (
+        <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-[1000] flex items-center justify-center p-4">
+          <CardGlass className="w-full max-w-sm space-y-6 relative border border-slate-800 text-center p-6 bg-[#162032]">
+            <div className="mx-auto w-12 h-12 rounded-full bg-red-500/10 text-red-400 flex items-center justify-center">
+              <AlertTriangle size={24} />
+            </div>
+            <div>
+              <h3 className="font-display font-bold text-base text-slate-200">Qual foi o motivo da recusa?</h3>
+              <p className="text-xs text-slate-400 mt-1">Essa informação calibra o copiloto para futuras buscas.</p>
+            </div>
+            <div className="grid grid-cols-1 gap-2 pt-2 text-left">
+              {[
+                'Senioridade incompatível', 'Pretensão salarial', 'Localização / Modelo de Trabalho',
+                'Falta de conhecimento técnico', 'Idioma / Requisitos', 'Empresa pausou vaga',
+                'Sem retorno / Desistência', 'Outro'
+              ].map(reason => (
+                <button
+                  key={reason}
+                  onClick={() => handleSaveRejectionReason(reason as any)}
+                  className="px-4 py-2.5 rounded-xl border border-slate-800 bg-slate-900/60 text-xs text-slate-300 hover:bg-red-500/20 hover:text-white transition-all text-left font-medium"
+                >
+                  {reason}
+                </button>
+              ))}
+            </div>
+            <button
+              onClick={() => setRejectingApp(null)}
+              className="text-xs text-slate-500 hover:text-slate-300 mt-2 block mx-auto"
+            >
+              Cancelar
+            </button>
+          </CardGlass>
+        </div>
+      )}
+
+      {/* 5. Drawer Completo do Card da Candidatura */}
+      {selectedAppId && selectedApp && (
+        <div className="fixed inset-y-0 right-0 w-full max-w-2xl bg-[#162032] border-l border-slate-800 shadow-2xl z-[999] overflow-y-auto p-6 transition-all space-y-6">
+          <div className="flex justify-between items-start border-b border-slate-800 pb-4">
+            <div>
+              <span className="text-[10px] px-2 py-0.5 rounded bg-brand-500/10 text-brand-400 font-extrabold uppercase">
+                {selectedApp.status}
+              </span>
+              <h3 className="font-display font-bold text-xl text-white mt-1">{selectedApp.jobTitle}</h3>
+              <p className="text-xs text-slate-400 font-semibold mt-0.5">{selectedApp.companyName}</p>
+            </div>
+            <button onClick={() => setSelectedAppId(null)} className="text-slate-400 hover:text-white p-1 rounded-lg hover:bg-slate-800">
+              <X size={20} />
+            </button>
+          </div>
+
+          {/* Form de Detalhes Estruturados */}
+          <form onSubmit={handleSaveCardDetails} className="space-y-4 text-xs text-slate-200">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="space-y-1">
+                <label className="text-[11px] font-bold text-slate-400 flex items-center gap-1">
+                  <UserCheck size={13} className="text-brand-400" />
+                  Contato / Recrutador
+                </label>
+                <input
+                  type="text"
+                  placeholder="Ex: Mariana Silva (Tech Recruiter)"
+                  value={cardRecruiterName}
+                  onChange={e => setCardRecruiterName(e.target.value)}
+                  className="w-full px-3 py-2 rounded-xl bg-slate-900 border border-slate-800 text-xs text-slate-200 outline-none focus:border-brand-500"
+                />
+              </div>
+
+              <div className="space-y-1">
+                <label className="text-[11px] font-bold text-slate-400 flex items-center gap-1">
+                  <Calendar size={13} className="text-brand-400" />
+                  Data da Próxima Ação / Entrevista
+                </label>
+                <input
+                  type="date"
+                  value={cardNextActionDate}
+                  onChange={e => setCardNextActionDate(e.target.value)}
+                  className="w-full px-3 py-2 rounded-xl bg-slate-900 border border-slate-800 text-xs text-slate-200 outline-none focus:border-brand-500"
+                />
+              </div>
+            </div>
+
+            <div className="space-y-1">
+              <label className="text-[11px] font-bold text-slate-400 flex items-center gap-1">
+                <Target size={13} className="text-brand-400" />
+                Próxima Ação Planejada
+              </label>
+              <input
+                type="text"
+                placeholder="Ex: Enviar e-mail de follow-up pós-entrevista..."
+                value={cardNextAction}
+                onChange={e => setCardNextAction(e.target.value)}
+                className="w-full px-3 py-2 rounded-xl bg-slate-900 border border-slate-800 text-xs text-slate-200 outline-none focus:border-brand-500"
+              />
+            </div>
+
+            <div className="space-y-1">
+              <label className="text-[11px] font-bold text-slate-400 flex items-center gap-1">
+                <MessageSquare size={13} className="text-brand-400" />
+                Feedback & Impressões Pós-Processo
+              </label>
+              <textarea
+                value={cardFeedback}
+                onChange={e => setCardFeedback(e.target.value)}
+                placeholder="Pontos fortes destacados pelo gestor, perguntas difíceis..."
+                className="w-full px-3 py-2 rounded-xl bg-slate-900 border border-slate-800 text-xs text-slate-200 outline-none focus:border-brand-500 h-20 resize-none"
+              />
+            </div>
+
+            <div className="space-y-1">
+              <label className="text-[11px] font-bold text-slate-400 flex items-center gap-1">
+                <BookOpen size={13} className="text-brand-400" />
+                Anotações Gerais da Jornada
+              </label>
+              <textarea
+                value={cardNotes}
+                onChange={e => setCardNotes(e.target.value)}
+                placeholder="Observações do candidato..."
+                className="w-full px-3 py-2 rounded-xl bg-slate-900 border border-slate-800 text-xs text-slate-200 outline-none focus:border-brand-500 h-20 resize-none"
+              />
+            </div>
+
+            <div className="flex justify-between items-center pt-2">
+              <button
+                type="button"
+                onClick={() => handleQuickStatusChange(selectedApp, 'rejected')}
+                className="px-3 py-2 rounded-xl bg-red-950/40 hover:bg-red-900/60 border border-red-800 text-red-300 font-bold text-xs flex items-center gap-1.5"
+              >
+                <Trash2 size={13} />
+                Encerrar / Arquivar Candidatura
+              </button>
+              <button
+                type="submit"
+                disabled={isSavingCardDetails}
+                className="px-5 py-2 rounded-xl bg-brand-600 hover:bg-brand-500 text-white font-bold text-xs shadow-lg shadow-brand-500/20 disabled:opacity-50"
+              >
+                {isSavingCardDetails ? 'Salvando...' : 'Salvar Alterações'}
+              </button>
+            </div>
+          </form>
+
+          {/* Timeline de Etapas (application_stages) */}
+          <div className="border-t border-slate-800 pt-4 space-y-3">
+            <h4 className="text-xs font-bold text-white flex items-center gap-1.5">
+              <Clock size={15} className="text-brand-400" />
+              Histórico do Processo (Timeline)
+            </h4>
+
+            <div className="space-y-2 max-h-48 overflow-y-auto pr-1">
+              {loadingStages ? (
+                <div className="flex items-center gap-2 text-xs text-slate-400 py-2">
+                  <Loader2 size={14} className="animate-spin text-brand-400" />
+                  <span>Carregando linha do tempo...</span>
+                </div>
+              ) : activeStages.length === 0 ? (
+                <span className="text-xs text-slate-500 italic block">Nenhum evento registrado no histórico ainda.</span>
+              ) : (
+                activeStages.map((st: ApplicationStage) => (
+                  <div key={st.id} className="p-3 rounded-xl bg-slate-900/80 border border-slate-800 flex justify-between items-center text-xs">
+                    <div>
+                      <span className="font-bold text-slate-200 block">{st.stageName}</span>
+                      {st.notes && <span className="text-[11px] text-slate-400 block mt-0.5">{st.notes}</span>}
+                      <span className="text-[10px] text-slate-500 block mt-0.5">{new Date(st.stageDate).toLocaleDateString()}</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span className={`text-[9px] px-2 py-0.5 rounded font-bold uppercase ${
+                        st.status === 'passed' ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' : 'bg-amber-500/10 text-amber-400 border border-amber-500/20'
+                      }`}>
+                        {st.status}
+                      </span>
+                      <button onClick={() => handleDeleteStage(st.id)} className="text-slate-500 hover:text-red-400">
+                        <Trash2 size={13} />
+                      </button>
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+
+            {/* Adicionar nova etapa */}
+            <form onSubmit={handleAddStage} className="space-y-2 pt-2 border-t border-slate-900">
+              <div className="grid grid-cols-2 gap-2">
+                <select
+                  value={newStageName}
+                  onChange={e => setNewStageName(e.target.value)}
+                  className="bg-slate-900 border border-slate-800 text-xs rounded-xl p-2 text-slate-200 outline-none"
+                >
+                  <option value="📨 Aplicadas">📨 Aplicada</option>
+                  <option value="👥 RH">👥 Entrevista RH</option>
+                  <option value="🎯 Entrevistas">🎯 Entrevista Gestor</option>
+                  <option value="🏆 Oferta">🏆 Oferta Recebida</option>
+                </select>
+                <select
+                  value={newStageStatus}
+                  onChange={e => setNewStageStatus(e.target.value as any)}
+                  className="bg-slate-900 border border-slate-800 text-xs rounded-xl p-2 text-slate-200 outline-none"
+                >
+                  <option value="pending">Pendente</option>
+                  <option value="passed">Aprovado</option>
+                </select>
+              </div>
+              <input
+                type="text"
+                placeholder="Observação da etapa..."
+                value={newStageNotes}
+                onChange={e => setNewStageNotes(e.target.value)}
+                className="w-full bg-slate-900 border border-slate-800 text-xs rounded-xl px-3 py-2 outline-none text-slate-200"
+              />
+              <button type="submit" className="w-full py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-white font-bold text-xs">
+                Registrar no Histórico
+              </button>
+            </form>
+          </div>
+        </div>
+      )}
+
       {/* ==========================================
-          SUB TAB 1: PRIORITIES CPI & ROI
+          SUB TAB 1: KANBAN PIPELINE DE CARREIRA
+          ========================================== */}
+      {subTab === 'pipeline' && (
+        <div className="space-y-6 animate-slide-in">
+          {/* Matriz das 7 Colunas do Pipeline */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 xl:grid-cols-7 gap-4 overflow-x-auto pb-4">
+            {activeColumnsOrder.map(colId => {
+              const col = pipelineColumns[colId];
+              if (!col) return null;
+
+              const colApps = sortAppsByIA(col.apps || []);
+              const avgDays = getAverageDaysInColumn(colApps);
+              const avgProb = getAverageProbability(colApps, col.baseStageScore);
+
+              return (
+                <div
+                  key={colId}
+                  className={`space-y-3 rounded-2xl p-3 min-h-[500px] border flex flex-col justify-between ${col.color}`}
+                  onDragOver={e => e.preventDefault()}
+                  onDrop={e => {
+                    const appId = e.dataTransfer.getData('text/plain');
+                    const targetApp = applications.find(a => a.id === appId);
+                    if (targetApp) handleQuickStatusChange(targetApp, colId);
+                  }}
+                >
+                  <div className="space-y-2">
+                    {/* Header da Coluna com Métricas */}
+                    <div className="border-b border-slate-800/80 pb-2 space-y-1">
+                      <div className="flex justify-between items-center">
+                        <h3 className="font-bold text-xs text-white truncate max-w-[110px]">{col.title}</h3>
+                        <span className="text-[10px] px-2 py-0.5 rounded-full bg-slate-800 text-slate-300 font-extrabold">
+                          {colApps.length}
+                        </span>
+                      </div>
+                      <div className="flex justify-between items-center text-[9px] text-slate-400 pt-0.5">
+                        <span title="Tempo médio de permanência dos cards nesta etapa">⏱ {avgDays}</span>
+                        <span title="Probabilidade de avanço ponderada pelo Match" className="text-emerald-400 font-semibold">🎯 {avgProb}</span>
+                      </div>
+                    </div>
+
+                    {/* Lista de Cards Organizada por Prioridade IA */}
+                    <div className="space-y-3 max-h-[550px] overflow-y-auto pr-1">
+                      {colApps.length === 0 ? (
+                        <div className="py-8 text-center text-[10px] text-slate-500 italic border border-dashed border-slate-800/60 rounded-xl">
+                          Nenhuma vaga
+                        </div>
+                      ) : (
+                        colApps.map(app => {
+                          const matchScore = getJobMatchScore(app.jobId);
+                          return (
+                            <CardGlass
+                              key={app.id}
+                              draggable
+                              onDragStart={e => e.dataTransfer.setData('text/plain', app.id)}
+                              onClick={() => setSelectedAppId(app.id)}
+                              className="p-3.5 space-y-2.5 hover:border-brand-500/40 cursor-pointer active:cursor-grabbing text-xs border-slate-800/80 bg-slate-900/60 transition-all relative group"
+                            >
+                              <div className="flex justify-between items-start gap-1">
+                                <div className="truncate flex-1">
+                                  <h4 className="font-bold text-slate-100 truncate text-xs">{app.jobTitle}</h4>
+                                  <span className="text-[10px] text-slate-400 block truncate">{app.companyName}</span>
+                                </div>
+                                <span className="text-[9px] px-1.5 py-0.5 rounded font-extrabold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 shrink-0">
+                                  {matchScore}%
+                                </span>
+                              </div>
+
+                              {(app as any).nextAction && (
+                                <div className="p-1.5 rounded bg-blue-950/40 border border-blue-800/40 text-[9px] text-blue-300 flex items-center gap-1">
+                                  <Target size={11} className="shrink-0 text-blue-400" />
+                                  <span className="truncate">{(app as any).nextAction}</span>
+                                </div>
+                              )}
+
+                              {/* Seletor Mobile / Ação Rápida de Estágio */}
+                              <div className="flex items-center justify-between pt-2 border-t border-slate-800/60 text-[9px]">
+                                <span className="text-slate-500">Mover para:</span>
+                                <select
+                                  value={colId}
+                                  onClick={e => e.stopPropagation()}
+                                  onChange={e => {
+                                    e.stopPropagation();
+                                    handleQuickStatusChange(app, e.target.value);
+                                  }}
+                                  className="bg-slate-950 border border-slate-800 rounded px-1.5 py-0.5 text-slate-300 text-[9px] outline-none"
+                                >
+                                  <option value="found">Encontradas</option>
+                                  <option value="saved">Salvas</option>
+                                  <option value="applied">Aplicadas</option>
+                                  <option value="hr">RH</option>
+                                  <option value="interview">Entrevistas</option>
+                                  <option value="offer">Oferta</option>
+                                  <option value="hired">Contratado</option>
+                                  <option value="rejected">Arquivar / Rejeitar</option>
+                                </select>
+                              </div>
+                            </CardGlass>
+                          );
+                        })
+                      )}
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+
+          {/* Coluna Opcional de Arquivadas / Rejeitadas */}
+          {showArchived && (
+            <div className="mt-8 border-t border-slate-800 pt-6 space-y-4">
+              <div className="flex items-center gap-2 text-red-400">
+                <Archive size={18} />
+                <h3 className="font-bold text-sm text-slate-200">Candidaturas Arquivadas / Encerradas ({rejectedCount})</h3>
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-3 xl:grid-cols-4 gap-4">
+                {pipelineColumns.rejected?.apps?.map(app => (
+                  <CardGlass key={app.id} onClick={() => setSelectedAppId(app.id)} className="p-4 space-y-2 opacity-75 border-red-900/30 hover:opacity-100 cursor-pointer">
+                    <div className="flex justify-between items-start">
+                      <div>
+                        <h4 className="font-bold text-slate-200 text-xs truncate max-w-[150px]">{app.jobTitle}</h4>
+                        <span className="text-[10px] text-slate-400 block">{app.companyName}</span>
+                      </div>
+                      <span className="text-[9px] px-2 py-0.5 rounded bg-red-500/10 text-red-400 border border-red-500/20 font-bold">
+                        Arquivada
+                      </span>
+                    </div>
+                    {app.rejectionReason && (
+                      <p className="text-[10px] text-red-300/80 bg-red-950/30 p-1.5 rounded border border-red-900/40">
+                        Motivo: {app.rejectionReason}
+                      </p>
+                    )}
+                  </CardGlass>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* ==========================================
+          SUB TAB 2: PRIORIDADES ROI
           ========================================== */}
       {subTab === 'strategy' && (
         <div className="space-y-6 animate-slide-in">
-          <div className="p-5 rounded-2xl bg-slate-900/30 border border-slate-800/80 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-            <div>
-              <span className="text-[10px] px-2 py-0.5 bg-brand-500/10 text-brand-500 font-extrabold uppercase rounded-lg">Candidacy ROI Engine</span>
-              <p className="text-xs text-slate-300 mt-2">
-                Analisamos as vagas e calculamos o <strong className="font-bold text-slate-200">ROI (Retorno sobre Tempo)</strong> para você focar no que realmente importa.
-              </p>
-            </div>
-            <button
-              onClick={() => setActiveTab && setActiveTab('discover')}
-              className="px-4 py-2 text-xs font-bold text-slate-200 bg-slate-900 border border-slate-800 hover:border-slate-700 rounded-xl flex items-center gap-1.5 transition-all shrink-0"
-            >
-              <Compass size={14} />
-              Encontrar mais vagas
-            </button>
+          <div>
+            <h3 className="font-display font-bold text-base text-slate-200">Priorização por Matriz de ROI</h3>
+            <p className="text-xs text-slate-500 mt-1">Calcule a relação entre senioridade, esforço de processo e retorno esperado.</p>
           </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
             {/* Hot priorities */}
-            <div 
-              className="space-y-4 rounded-2xl p-2 min-h-[550px] bg-slate-900/10 border border-transparent transition-all hover:border-slate-850/50"
-              onDragOver={(e) => e.preventDefault()}
-              onDrop={(e) => {
-                const jobId = e.dataTransfer.getData('text/plain');
-                if (jobId) handleMoveJobColumn(jobId, 'hot');
-              }}
-            >
-              <div className="flex items-center gap-2 px-2 pb-1 border-b border-slate-200 dark:border-slate-800">
+            <div className="space-y-4 rounded-2xl p-3 bg-slate-900/20 border border-slate-800">
+              <div className="flex items-center gap-2 pb-1 border-b border-slate-800">
                 <Flame size={16} className="text-emerald-500 fill-emerald-500" />
-                <h3 className="font-bold text-sm text-slate-800 dark:text-slate-200">Alta Prioridade ({finalGrouped.hot.length})</h3>
+                <h3 className="font-bold text-sm text-slate-200">Alta Prioridade ({finalGrouped.hot.length})</h3>
               </div>
-
               {finalGrouped.hot.map((rec, idx) => (
-                <CardGlass 
-                  key={idx} 
-                  className="p-4 space-y-4 hover:border-slate-800 cursor-grab active:cursor-grabbing"
-                  draggable
-                  onDragStart={(e) => e.dataTransfer.setData('text/plain', (rec.job as any).id)}
-                >
-                  <div className="flex justify-between items-start gap-2">
-                    <div className="cursor-pointer group" onClick={() => setViewingStrategyJob(rec.job as Job)}>
-                      <h4 className="font-bold text-sm text-slate-900 dark:text-slate-100 group-hover:text-brand-500 transition-colors truncate max-w-[150px]">{rec.job.title}</h4>
-                      <span className="text-xs text-slate-500 dark:text-slate-400 font-medium block mt-0.5">{rec.job.companyName}</span>
+                <CardGlass key={idx} className="p-4 space-y-3">
+                  <div className="flex justify-between items-start">
+                    <div>
+                      <h4 className="font-bold text-sm text-slate-100">{rec.job.title}</h4>
+                      <span className="text-xs text-slate-400 font-medium block">{rec.job.companyName}</span>
                     </div>
-                    <div className="flex flex-col items-end gap-1">
-                      <span className="text-[9px] px-1.5 py-0.5 rounded bg-emerald-500/10 text-emerald-400 font-extrabold border border-emerald-500/20">
-                        {rec.cpi}% CPI
-                      </span>
-                      <span className={`text-[9px] px-1.5 py-0.5 rounded font-extrabold border ${
-                        rec.roi >= 80 ? 'bg-blue-500/10 text-blue-400 border-blue-500/20' : 'bg-amber-500/10 text-amber-400 border-amber-500/20'
-                      }`}>
-                        ROI {rec.roi}
-                      </span>
-                    </div>
-                  </div>
-
-                  {/* Dynamic Metrics Override Inputs */}
-                  <div className="p-2 rounded bg-slate-900/50 border border-slate-900 flex justify-between items-center text-[10px] text-slate-400">
-                    <div className="flex items-center gap-1">
-                      <span>Etapas:</span>
-                      <input 
-                        type="number" 
-                        min="1" 
-                        max="10" 
-                        value={rec.job.stagesCount || 3} 
-                        onChange={e => handleUpdateJobMetrics((rec.job as any).id, parseInt(e.target.value) || 3, rec.job.caseHours || 0)}
-                        className="w-8 bg-slate-955 border border-slate-905 text-center text-slate-100 rounded"
-                      />
-                    </div>
-                    <div className="flex items-center gap-1">
-                      <span>Case (Horas):</span>
-                      <input 
-                        type="number" 
-                        min="0" 
-                        max="50" 
-                        value={rec.job.caseHours || 0} 
-                        onChange={e => handleUpdateJobMetrics((rec.job as any).id, rec.job.stagesCount || 3, parseInt(e.target.value) || 0)}
-                        className="w-10 bg-slate-955 border border-slate-905 text-center text-slate-100 rounded"
-                      />
-                    </div>
-                  </div>
-
-                  <div className="space-y-1 text-xs text-slate-300">
-                    {rec.matchedReasons.map((reason, i) => (
-                      <div key={i} className="flex gap-2 items-start">
-                        <CheckCircle2 size={12} className="text-emerald-500 shrink-0 mt-0.5" />
-                        <span>{reason}</span>
-                      </div>
-                    ))}
-                  </div>
-
-                  {rec.roi < 60 && (
-                    <div className="p-2 rounded bg-red-500/5 border border-red-500/15 text-[10px] text-red-400 flex items-center gap-1">
-                      <AlertTriangle size={12} />
-                      <span>ROI baixo devido ao case longo ou excesso de etapas. Talvez não valha o seu tempo.</span>
-                    </div>
-                  )}
-
-                  <div className="flex gap-2 pt-2 border-t border-slate-900/50">
-                    <button
-                      onClick={() => handleApplyFromStrategy(rec.job as Job)}
-                      className="flex-1 py-1.5 rounded-xl bg-brand-600 hover:bg-brand-500 text-white font-bold text-xs"
-                    >
-                      Aplicar
-                    </button>
-                    {onStartSimulation && (
-                      <button
-                        onClick={() => onStartSimulation(rec.job as Job)}
-                        className="py-1.5 px-3 rounded-xl bg-brand-500/10 hover:bg-brand-500/20 border border-brand-500/30 text-brand-400 font-bold text-xs flex items-center justify-center gap-1 transition"
-                        title="Simular Entrevista"
-                      >
-                        🎤 Simular
-                      </button>
-                    )}
-                    <button
-                      onClick={async () => {
-                        if (window.confirm(`Deseja realmente excluir a vaga "${rec.job.title}" de sua estratégia?`)) {
-                          if (onDeleteJob) {
-                            await onDeleteJob((rec.job as any).id);
-                          }
-                        }
-                      }}
-                      className="p-1.5 rounded-xl bg-red-950/20 hover:bg-red-950/40 border border-red-900/30 text-red-400 flex items-center justify-center transition"
-                      title="Excluir Vaga"
-                    >
-                      <Trash2 size={13} />
-                    </button>
+                    <span className="text-[10px] px-2 py-0.5 rounded bg-emerald-500/10 text-emerald-400 font-bold border border-emerald-500/20">
+                      Match {rec.cpi}%
+                    </span>
                   </div>
                 </CardGlass>
               ))}
             </div>
 
             {/* Warm priorities */}
-            <div 
-              className="space-y-4 rounded-2xl p-2 min-h-[550px] bg-slate-100/70 dark:bg-slate-900/20 border border-slate-200 dark:border-slate-800/60 transition-all"
-              onDragOver={(e) => e.preventDefault()}
-              onDrop={(e) => {
-                const jobId = e.dataTransfer.getData('text/plain');
-                if (jobId) handleMoveJobColumn(jobId, 'warm');
-              }}
-            >
-              <div className="flex items-center gap-2 px-2 pb-1 border-b border-slate-200 dark:border-slate-800">
+            <div className="space-y-4 rounded-2xl p-3 bg-slate-900/20 border border-slate-800">
+              <div className="flex items-center gap-2 pb-1 border-b border-slate-800">
                 <Sparkles size={16} className="text-amber-500" />
-                <h3 className="font-bold text-sm text-slate-900 dark:text-slate-100">Ajustar antes ({finalGrouped.warm.length})</h3>
+                <h3 className="font-bold text-sm text-slate-200">Ajustar antes ({finalGrouped.warm.length})</h3>
               </div>
-
               {finalGrouped.warm.map((rec, idx) => (
-                <CardGlass 
-                  key={idx} 
-                  className="p-4 space-y-4 hover:border-slate-400 dark:hover:border-slate-700 cursor-grab active:cursor-grabbing"
-                  draggable
-                  onDragStart={(e) => e.dataTransfer.setData('text/plain', (rec.job as any).id)}
-                >
-                  <div className="flex justify-between items-start gap-2">
-                    <div className="cursor-pointer group" onClick={() => setViewingStrategyJob(rec.job as Job)}>
-                      <h4 className="font-bold text-sm text-slate-900 dark:text-slate-100 group-hover:text-brand-500 transition-colors truncate max-w-[150px]">{rec.job.title}</h4>
-                      <span className="text-xs text-slate-700 dark:text-slate-400 font-medium block mt-0.5">{rec.job.companyName}</span>
+                <CardGlass key={idx} className="p-4 space-y-3">
+                  <div className="flex justify-between items-start">
+                    <div>
+                      <h4 className="font-bold text-sm text-slate-100">{rec.job.title}</h4>
+                      <span className="text-xs text-slate-400 font-medium block">{rec.job.companyName}</span>
                     </div>
-                    <div className="flex flex-col items-end gap-1">
-                      <span className="text-[9px] px-1.5 py-0.5 rounded bg-amber-500/10 text-amber-600 dark:text-amber-400 font-extrabold border border-amber-500/20">
-                        {rec.cpi}% CPI
-                      </span>
-                      <span className="text-[9px] px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-900 text-slate-700 dark:text-slate-300 font-extrabold border border-slate-200 dark:border-slate-800">
-                        ROI {rec.roi}
-                      </span>
-                    </div>
-                  </div>
-
-                  <div className="text-xs text-slate-700 dark:text-slate-300 space-y-1.5 leading-relaxed bg-slate-100 dark:bg-slate-950/40 p-2.5 rounded-xl border border-slate-200 dark:border-slate-800">
-                    <p>💡 <strong>Dica da IA:</strong> Adicione termos ausentes: <strong className="text-slate-900 dark:text-slate-100">{rec.missingSkills.slice(0, 2).join(', ')}</strong>.</p>
-                  </div>
-
-                  <div className="pt-2 flex gap-2">
-                    <button
-                      onClick={() => setActiveTab('match')}
-                      className="flex-1 py-1.5 rounded-xl bg-slate-100 dark:bg-slate-900 border border-slate-300 dark:border-slate-800 hover:border-slate-400 dark:hover:border-slate-700 text-slate-900 dark:text-slate-100 font-bold text-xs flex items-center justify-center gap-1"
-                    >
-                      Otimizar
-                      <ChevronRight size={14} />
-                    </button>
-                    {onStartSimulation && (
-                      <button
-                        onClick={() => onStartSimulation(rec.job as Job)}
-                        className="py-1.5 px-3 rounded-xl bg-brand-500/10 hover:bg-brand-500/20 border border-brand-500/30 text-brand-600 dark:text-brand-400 font-bold text-xs flex items-center justify-center gap-1 transition"
-                        title="Simular Entrevista"
-                      >
-                        🎤 Simular
-                      </button>
-                    )}
-                    <button
-                      onClick={async () => {
-                        if (window.confirm(`Deseja realmente excluir a vaga "${rec.job.title}" de sua estratégia?`)) {
-                          if (onDeleteJob) {
-                            await onDeleteJob((rec.job as any).id);
-                          }
-                        }
-                      }}
-                      className="p-1.5 rounded-xl bg-red-500/10 hover:bg-red-500/20 border border-red-500/30 text-red-600 dark:text-red-400 flex items-center justify-center transition"
-                      title="Excluir Vaga"
-                    >
-                      <Trash2 size={13} />
-                    </button>
+                    <span className="text-[10px] px-2 py-0.5 rounded bg-amber-500/10 text-amber-400 font-bold border border-amber-500/20">
+                      Match {rec.cpi}%
+                    </span>
                   </div>
                 </CardGlass>
               ))}
             </div>
 
             {/* Cold priorities */}
-            <div 
-              className="space-y-4 rounded-2xl p-2 min-h-[550px] bg-slate-100/70 dark:bg-slate-900/20 border border-slate-200 dark:border-slate-800/60 transition-all"
-              onDragOver={(e) => e.preventDefault()}
-              onDrop={(e) => {
-                const jobId = e.dataTransfer.getData('text/plain');
-                if (jobId) handleMoveJobColumn(jobId, 'cold');
-              }}
-            >
-              <div className="flex items-center gap-2 px-2 pb-1 border-b border-slate-200 dark:border-slate-800">
-                <AlertCircle size={16} className="text-slate-600 dark:text-slate-400" />
-                <h3 className="font-bold text-sm text-slate-900 dark:text-slate-100">Baixa Aderência ({finalGrouped.cold.length})</h3>
+            <div className="space-y-4 rounded-2xl p-3 bg-slate-900/20 border border-slate-800">
+              <div className="flex items-center gap-2 pb-1 border-b border-slate-800">
+                <AlertCircle size={16} className="text-slate-400" />
+                <h3 className="font-bold text-sm text-slate-200">Baixa Aderência ({finalGrouped.cold.length})</h3>
               </div>
-
-              <div className="space-y-3 max-h-[500px] overflow-y-auto pr-1">
-                {finalGrouped.cold.map((rec, idx) => (
-                  <div
-                    key={idx}
-                    draggable
-                    onDragStart={(e) => e.dataTransfer.setData('text/plain', (rec.job as any).id)}
-                    className="p-3.5 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 flex justify-between items-center text-xs gap-3 hover:border-slate-400 dark:hover:border-slate-700 cursor-grab active:cursor-grabbing shadow-xs"
-                  >
-                    <div className="truncate flex-1">
-                      <h4 className="font-bold text-slate-900 dark:text-slate-100 truncate">{rec.job.title}</h4>
-                      <p className="text-[10px] text-slate-700 dark:text-slate-400 mt-0.5 truncate">{rec.job.companyName}</p>
+              {finalGrouped.cold.map((rec, idx) => (
+                <CardGlass key={idx} className="p-4 space-y-3">
+                  <div className="flex justify-between items-start">
+                    <div>
+                      <h4 className="font-bold text-sm text-slate-100">{rec.job.title}</h4>
+                      <span className="text-xs text-slate-400 font-medium block">{rec.job.companyName}</span>
                     </div>
-                    <div className="flex items-center gap-2">
-                      <span 
-                        title="CPI (Career Potential Index): Índice de Potencial de Carreira calculado com base no alinhamento de competências, senioridade, pretensão salarial e afinidade com seu momento profissional." 
-                        className="text-[10px] px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-slate-800 dark:text-slate-200 font-bold border border-slate-300 dark:border-slate-700 flex items-center gap-1 cursor-help"
-                      >
-                        {rec.cpi}% CPI
-                      </span>
-                      <button
-                        onClick={async (e) => {
-                          e.stopPropagation();
-                          if (window.confirm(`Deseja realmente excluir a vaga "${rec.job.title}" de sua estratégia?`)) {
-                            if (onDeleteJob) {
-                              await onDeleteJob((rec.job as any).id);
-                            }
-                          }
-                        }}
-                        className="p-1 rounded bg-red-500/10 hover:bg-red-500/20 border border-red-500/30 text-red-600 dark:text-red-400 transition"
-                        title="Excluir Vaga"
-                      >
-                        <Trash2 size={11} />
-                      </button>
-                    </div>
+                    <span className="text-[10px] px-2 py-0.5 rounded bg-slate-800 text-slate-400 font-bold">
+                      Match {rec.cpi}%
+                    </span>
                   </div>
-                ))}
-              </div>
+                </CardGlass>
+              ))}
             </div>
           </div>
         </div>
       )}
 
       {/* ==========================================
-          SUB TAB 2: PLANNER SEMANAL
+          SUB TAB 3: PLANNER SEMANAL
           ========================================== */}
       {subTab === 'planner' && (
         <div className="space-y-6 animate-slide-in">
@@ -1124,10 +1293,7 @@ export function StrategyPage({
                           <span className="text-[10px] text-slate-600 block italic py-2">Sem tarefas</span>
                         ) : (
                           dayData.tasks.map((task: any) => (
-                            <div
-                              key={task.id}
-                              className="flex gap-2 items-start text-[11px] text-slate-300 group"
-                            >
+                            <div key={task.id} className="flex gap-2 items-start text-[11px] text-slate-300 group">
                               <button
                                 type="button"
                                 onClick={() => handleToggleTask(day, task.id)}
@@ -1138,12 +1304,13 @@ export function StrategyPage({
                               <span
                                 onClick={() => handleToggleTask(day, task.id)}
                                 className={`flex-1 cursor-pointer hover:text-white select-none ${task.completed ? 'line-through text-slate-600' : ''}`}
-                              >{task.text}</span>
+                              >
+                                {task.text}
+                              </span>
                               <button
                                 type="button"
                                 onClick={() => handleDeleteTask(day, task.id)}
                                 className="shrink-0 opacity-0 group-hover:opacity-100 text-red-500 hover:text-red-400 cursor-pointer transition-opacity"
-                                title="Excluir tarefa"
                               >
                                 <Trash2 size={11} />
                               </button>
@@ -1153,7 +1320,6 @@ export function StrategyPage({
                       </div>
                     </div>
                     
-                    {/* Add fast task */}
                     <form 
                       onSubmit={e => {
                         e.preventDefault();
@@ -1176,842 +1342,76 @@ export function StrategyPage({
             </div>
           ) : (
             <div className="py-12 text-center text-xs text-slate-500 border border-dashed border-slate-800 rounded-xl">
-              Nenhum planner ativo encontrado para a semana {currentWeekNumber}.
-            </div>
-          )}
-
-          {/* Fusão de Abas: Metas Semanais & Progresso */}
-          {goal && (
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 pt-6 border-t border-slate-800/60 mt-6">
-              <CardGlass className="p-5 space-y-4 border border-slate-900">
-                <div>
-                  <h4 className="font-display font-bold text-xs text-brand-400 uppercase tracking-wider">Metas Operacionais</h4>
-                  <p className="text-[10px] text-slate-500 mt-0.5">Configure seus objetivos operacionais para esta semana.</p>
-                </div>
-                <div className="grid grid-cols-3 gap-3">
-                  <div className="space-y-1.5">
-                    <label className="text-[10px] text-slate-400 font-semibold block">Candidaturas</label>
-                    <input 
-                      type="number" 
-                      value={goal.targetApplications}
-                      onChange={e => saveWeeklyGoal({ ...goal, targetApplications: parseInt(e.target.value) || 0 })}
-                      className="w-full bg-slate-955 border border-slate-900 rounded-xl px-3 py-2 text-slate-200 text-xs outline-none focus:border-brand-500"
-                    />
-                  </div>
-                  <div className="space-y-1.5">
-                    <label className="text-[10px] text-slate-400 font-semibold block">Conversas RH</label>
-                    <input 
-                      type="number" 
-                      value={goal.targetInterviewsRh}
-                      onChange={e => saveWeeklyGoal({ ...goal, targetInterviewsRh: parseInt(e.target.value) || 0 })}
-                      className="w-full bg-slate-955 border border-slate-900 rounded-xl px-3 py-2 text-slate-200 text-xs outline-none focus:border-brand-500"
-                    />
-                  </div>
-                  <div className="space-y-1.5">
-                    <label className="text-[10px] text-slate-400 font-semibold block">Entrev. Gestor</label>
-                    <input 
-                      type="number" 
-                      value={goal.targetInterviewsManager}
-                      onChange={e => saveWeeklyGoal({ ...goal, targetInterviewsManager: parseInt(e.target.value) || 0 })}
-                      className="w-full bg-slate-955 border border-slate-900 rounded-xl px-3 py-2 text-slate-200 text-xs outline-none focus:border-brand-500"
-                    />
-                  </div>
-                </div>
-              </CardGlass>
-
-              <CardGlass className="p-5 space-y-4 border border-slate-905">
-                <div>
-                  <h4 className="font-display font-bold text-xs text-brand-400 uppercase tracking-wider">Seu Progresso Real</h4>
-                  <p className="text-[10px] text-slate-500 mt-0.5">Progresso calculado automaticamente a partir de suas candidaturas.</p>
-                </div>
-                <div className="space-y-3">
-                  {/* Apps progress */}
-                  <div className="space-y-1">
-                    <div className="flex justify-between text-[10px] text-slate-400">
-                      <span>Candidaturas Realizadas</span>
-                      <span className="font-bold text-slate-200">{funnel.applied} / {goal.targetApplications}</span>
-                    </div>
-                    <div className="w-full h-2 rounded-full bg-slate-955 overflow-hidden">
-                      <div 
-                        className="h-full bg-brand-500 rounded-full" 
-                        style={{ width: `${Math.min(100, goal.targetApplications > 0 ? (funnel.applied / goal.targetApplications) * 100 : 0)}%` }}
-                      />
-                    </div>
-                  </div>
-
-                  {/* RH progress */}
-                  <div className="space-y-1">
-                    <div className="flex justify-between text-[10px] text-slate-400">
-                      <span>Entrevistas com Recrutadores</span>
-                      <span className="font-bold text-slate-200">
-                        {applications.filter(a => a.status === '👥 Entrevista com recrutador').length} / {goal.targetInterviewsRh}
-                      </span>
-                    </div>
-                    <div className="w-full h-2 rounded-full bg-slate-955 overflow-hidden">
-                      <div 
-                        className="h-full bg-amber-500 rounded-full" 
-                        style={{ width: `${Math.min(100, goal.targetInterviewsRh > 0 ? (applications.filter(a => a.status === '👥 Entrevista com recrutador').length / goal.targetInterviewsRh) * 100 : 0)}%` }}
-                      />
-                    </div>
-                  </div>
-
-                  {/* Manager progress */}
-                  <div className="space-y-1">
-                    <div className="flex justify-between text-[10px] text-slate-400">
-                      <span>Entrevistas com Gestores</span>
-                      <span className="font-bold text-slate-200">
-                        {applications.filter(a => a.status === '🎯 Entrevista com gestor').length} / {goal.targetInterviewsManager}
-                      </span>
-                    </div>
-                    <div className="w-full h-2 rounded-full bg-slate-955 overflow-hidden">
-                      <div 
-                        className="h-full bg-purple-500 rounded-full" 
-                        style={{ width: `${Math.min(100, goal.targetInterviewsManager > 0 ? (applications.filter(a => a.status === '🎯 Entrevista com gestor').length / goal.targetInterviewsManager) * 100 : 0)}%` }}
-                      />
-                    </div>
-                  </div>
-                </div>
-              </CardGlass>
+              Nenhum planner ativo para esta semana.
             </div>
           )}
         </div>
       )}
 
-
-
       {/* ==========================================
-          SUB TAB 4: INTELIGÊNCIA DE EMPRESAS (COMPANY INTEL) & AI JOURNAL
+          SUB TAB 4: JOURNAL & REFLEXÕES
           ========================================== */}
       {subTab === 'journal' && (
         <div className="space-y-6 animate-slide-in">
-          {/* Inner Tab Selector */}
-          <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-3 bg-slate-900/40 p-4 rounded-2xl border border-slate-900">
-            <div className="flex bg-slate-900 border border-slate-800 p-0.5 rounded-xl shrink-0">
-              <button
-                type="button"
-                onClick={() => setIntelSubTab('companies')}
-                className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
-                  intelSubTab === 'companies'
-                    ? 'bg-brand-600 text-white shadow-md'
-                    : 'text-slate-400 hover:text-slate-200'
-                }`}
-              >
-                <Building2 size={13} />
-                Empresas Monitoradas
-              </button>
-              <button
-                type="button"
-                onClick={() => setIntelSubTab('diary')}
-                className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
-                  intelSubTab === 'diary'
-                    ? 'bg-brand-600 text-white shadow-md'
-                    : 'text-slate-400 hover:text-slate-200'
-                }`}
-              >
-                <BookOpen size={13} />
-                Diário / AI Journal
-              </button>
-            </div>
-            
-            {intelSubTab === 'companies' && (
-              <button 
-                type="button"
-                onClick={() => setShowCompanyForm(true)}
-                className="inline-flex items-center gap-2 px-3 py-1.5 rounded-xl bg-brand-600 hover:bg-brand-500 text-white font-bold text-xs shadow-lg cursor-pointer"
-              >
-                <Plus size={13} />
-                Avaliar Empresa
-              </button>
-            )}
+          <div>
+            <h3 className="font-display font-bold text-base text-slate-200">Diário de Bordo & AI Journal</h3>
+            <p className="text-xs text-slate-500 mt-1">Registre reflexões pós-entrevista para refinar sua comunicação.</p>
           </div>
 
-          {intelSubTab === 'companies' && (
-            <div className="space-y-6 animate-slide-in">
-              <div className="flex justify-between items-center">
-                <div>
-                  <h3 className="font-display font-bold text-base text-slate-200">Inteligência de Empresas</h3>
-                  <p className="text-xs text-slate-500 mt-1">Monitore e analise o fit corporativo das empresas com quem você interage.</p>
-                </div>
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+            <CardGlass className="p-6 space-y-6">
+              <div>
+                <h4 className="font-bold text-sm text-slate-200">Refletir sobre uma Entrevista</h4>
+                <p className="text-xs text-slate-500 mt-1">Selecione uma candidatura e registre impressões do processo.</p>
               </div>
 
-          {/* Form Modal for Company */}
-          {showCompanyForm && (
-            <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-              <CardGlass className="w-full max-w-md min-w-[320px] sm:min-w-[400px] space-y-4 relative border border-slate-800 max-h-[85vh] overflow-y-auto">
-                <button onClick={() => setShowCompanyForm(false)} className="absolute top-4 right-4 text-slate-500 hover:text-slate-300">
-                  <X size={18} />
-                </button>
-                <div>
-                  <h3 className="font-display font-bold text-base text-slate-200">Nova Inteligência Corporativa</h3>
-                  <p className="text-xs text-slate-500 mt-1">Colete dados para futuras análises de conversão.</p>
-                </div>
-                <form onSubmit={handleSaveCompany} className="space-y-3.5 text-xs text-left">
-                  <div className="grid grid-cols-2 gap-3">
-                    <div className="space-y-1">
-                      <label className="text-slate-400">Nome da Empresa</label>
-                      <input 
-                        type="text" 
-                        required 
-                        placeholder="Ex: Stripe"
-                        value={companyName}
-                        onChange={e => setCompanyName(e.target.value)}
-                        className="w-full bg-slate-900 border border-slate-800 rounded px-2.5 py-1.5 text-slate-200"
-                      />
-                    </div>
-                    <div className="space-y-1">
-                      <label className="text-slate-400">Indústria / Segmento</label>
-                      <input 
-                        type="text" 
-                        placeholder="Ex: Finanças, SaaS"
-                        value={companyIndustry}
-                        onChange={e => setCompanyIndustry(e.target.value)}
-                        className="w-full bg-slate-900 border border-slate-800 rounded px-2.5 py-1.5 text-slate-200"
-                      />
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-3 gap-3">
-                    <div className="space-y-1">
-                      <label className="text-slate-400">Glassdoor</label>
-                      <input 
-                        type="number" 
-                        step="0.1" 
-                        min="1" 
-                        max="5"
-                        value={companyRating}
-                        onChange={e => setCompanyRating(e.target.value)}
-                        className="w-full bg-slate-900 border border-slate-800 rounded px-2.5 py-1.5 text-slate-200"
-                      />
-                    </div>
-                    <div className="space-y-1">
-                      <label className="text-slate-400">Tamanho</label>
-                      <select 
-                        value={companySize} 
-                        onChange={e => setCompanySize(e.target.value)}
-                        className="w-full bg-slate-900 border border-slate-800 rounded px-2 py-1.5 text-slate-200"
-                      >
-                        <option value="Pequena">Pequena</option>
-                        <option value="Média">Média</option>
-                        <option value="Grande">Grande</option>
-                      </select>
-                    </div>
-                    <div className="space-y-1">
-                      <label className="text-slate-400">Modelo Trabalho</label>
-                      <select 
-                        value={companyRemote} 
-                        onChange={e => setCompanyRemote(e.target.value)}
-                        className="w-full bg-slate-900 border border-slate-800 rounded px-2 py-1.5 text-slate-200"
-                      >
-                        <option value="Remoto">Remoto</option>
-                        <option value="Híbrido">Híbrido</option>
-                        <option value="Presencial">Presencial</option>
-                      </select>
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-3">
-                    <div className="space-y-1">
-                      <label className="text-slate-400">Faixa Salarial</label>
-                      <input 
-                        type="text" 
-                        placeholder="Ex: 14k - 18k"
-                        value={companySalary}
-                        onChange={e => setCompanySalary(e.target.value)}
-                        className="w-full bg-slate-900 border border-slate-800 rounded px-2.5 py-1.5 text-slate-200"
-                      />
-                    </div>
-                    <div className="space-y-1">
-                      <label className="text-slate-400">Benefícios (separar por vírgula)</label>
-                      <input 
-                        type="text" 
-                        placeholder="VR, Saúde, Gympass"
-                        value={companyBenefits}
-                        onChange={e => setCompanyBenefits(e.target.value)}
-                        className="w-full bg-slate-900 border border-slate-800 rounded px-2.5 py-1.5 text-slate-200"
-                      />
-                    </div>
-                  </div>
-
-                  <div className="space-y-1">
-                    <label className="text-slate-400">Processo Seletivo (Resumo)</label>
-                    <input 
-                      type="text" 
-                      placeholder="RH -> Teste Técnico -> Painel Gestor"
-                      value={companyProcess}
-                      onChange={e => setCompanyProcess(e.target.value)}
-                      className="w-full bg-slate-900 border border-slate-800 rounded px-2.5 py-1.5 text-slate-200"
-                    />
-                  </div>
-
-                  <div className="space-y-1">
-                    <label className="text-slate-400">Minhas Notas / Fit Cultural</label>
-                    <textarea 
-                      placeholder="O time parece organizado..."
-                      value={companyNotes}
-                      onChange={e => setCompanyNotes(e.target.value)}
-                      className="w-full bg-slate-900 border border-slate-800 rounded px-2.5 py-1.5 text-slate-200 h-16 resize-none"
-                    />
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-3 pt-2">
-                    <div className="flex items-center gap-2">
-                      <input 
-                        type="checkbox" 
-                        checked={companyApplyAgain}
-                        onChange={e => setCompanyApplyAgain(e.target.checked)}
-                        className="scale-110"
-                      />
-                      <label className="text-slate-300 font-semibold">Candidataria de novo?</label>
-                    </div>
-                    <div className="flex items-center gap-2 justify-end">
-                      <label className="text-slate-400">Score Cultura:</label>
-                      <select 
-                        value={companyCulture}
-                        onChange={e => setCompanyCulture(parseInt(e.target.value) || 4)}
-                        className="bg-slate-900 border border-slate-800 rounded px-1.5 py-1 text-slate-200"
-                      >
-                        <option value="1">1/5</option>
-                        <option value="2">2/5</option>
-                        <option value="3">3/5</option>
-                        <option value="4">4/5</option>
-                        <option value="5">5/5</option>
-                      </select>
-                    </div>
-                  </div>
-
-                  <div className="flex gap-3 justify-end pt-2">
-                    <button type="button" onClick={() => setShowCompanyForm(false)} className="px-3 py-1.5 text-slate-400">Cancelar</button>
-                    <button type="submit" className="px-4 py-1.5 bg-brand-600 hover:bg-brand-500 text-white rounded font-bold">Salvar Avaliação</button>
-                  </div>
-                </form>
-              </CardGlass>
-            </div>
-          )}
-
-          {/* Companies List */}
-          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
-            {companyProfiles.map(comp => (
-              <CardGlass key={comp.id} className="p-5 flex flex-col justify-between space-y-4 hover:border-slate-800 relative group">
-                <button 
-                  onClick={() => deleteCompanyProfile(comp.id)}
-                  className="absolute top-4 right-4 text-slate-500 hover:text-red-400 transition-colors"
-                >
-                  <Trash2 size={13} />
-                </button>
-                <div className="space-y-2">
-                  <div className="flex justify-between items-start pr-6">
-                    <div>
-                      <h4 className="font-bold text-sm text-slate-100">{comp.companyName}</h4>
-                      <span className="text-[10px] text-slate-400 block mt-0.5">{comp.industry || 'Tecnologia'} • {comp.size || 'Média'}</span>
-                    </div>
-                    <span className="text-[10px] px-2 py-0.5 bg-brand-500/10 text-brand-400 font-extrabold border border-brand-500/20 rounded shrink-0">
-                      ★ {comp.glassdoorRating || '4.0'} Glassdoor
-                    </span>
-                  </div>
-
-                  <div className="p-2.5 rounded bg-slate-900/50 border border-slate-900 text-[11px] text-slate-400 space-y-1">
-                    <div><strong>Modelo:</strong> {comp.remotePolicy || 'Híbrido'}</div>
-                    {comp.salaryRange && <div><strong>Salário:</strong> {comp.salaryRange}</div>}
-                    {comp.interviewProcess && <div><strong>Processo:</strong> {comp.interviewProcess}</div>}
-                  </div>
-
-                  {comp.userNotes && (
-                    <p className="text-[11px] text-slate-500 italic mt-2 leading-relaxed">
-                      "{comp.userNotes}"
-                    </p>
-                  )}
-                </div>
-
-                <div className="flex justify-between items-center pt-2.5 border-t border-slate-900/60 text-[10px]">
-                  <span className={`px-2 py-0.5 rounded font-extrabold uppercase ${
-                    comp.wouldApplyAgain ? 'bg-emerald-500/10 text-emerald-400' : 'bg-red-500/10 text-red-400'
-                  }`}>
-                    {comp.wouldApplyAgain ? '✔ Aplicaria de novo' : '✖ Não aplicaria'}
-                  </span>
-                  <span className="text-slate-400">
-                    Cultura: <strong className="text-brand-500">{comp.cultureScore || 4}/5</strong>
-                  </span>
-                </div>
-              </CardGlass>
-            ))}
-          </div>
-          </div>
-          )}
-
-          {intelSubTab === 'diary' && (
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 animate-slide-in">
-          {/* Reflections Logger */}
-          <CardGlass className="p-6 space-y-6">
-            <div>
-              <h3 className="font-display font-bold text-base text-slate-200">Refletir sobre a Entrevista</h3>
-              <p className="text-xs text-slate-500 mt-1">Ao mapear suas sensações, a IA ajuda a calibrar suas falas técnicas.</p>
-            </div>
-
-            <form onSubmit={handleSaveJournal} className="space-y-4 text-xs text-left">
-              <div className="space-y-1.5">
-                <label className="text-slate-400 font-semibold">Para qual processo seletivo?</label>
-                <select 
-                  required 
-                  value={journalAppId} 
-                  onChange={e => setJournalAppId(e.target.value)}
-                  className="w-full bg-slate-900 border border-slate-800 rounded-xl px-3 py-2 text-slate-200"
-                >
-                  <option value="">Selecione a candidatura...</option>
-                  {applications
-                    .filter(a => !['🔎 Encontrada', '⭐ Tenho interesse', '🚫 Fora do meu objetivo'].includes(a.status))
-                    .map(app => (
-                      <option key={app.id} value={app.id}>{app.companyName} - {app.jobTitle}</option>
+              <form onSubmit={handleSaveJournal} className="space-y-4 text-xs text-slate-200">
+                <div className="space-y-1">
+                  <label className="text-slate-400">Selecione a Candidatura</label>
+                  <select
+                    value={journalAppId}
+                    onChange={e => setJournalAppId(e.target.value)}
+                    className="w-full bg-slate-900 border border-slate-800 rounded-xl px-3 py-2 text-xs text-slate-200 outline-none"
+                  >
+                    <option value="">Selecione uma vaga...</option>
+                    {applications.map(app => (
+                      <option key={app.id} value={app.id}>{app.jobTitle} - {app.companyName}</option>
                     ))}
-                </select>
-              </div>
+                  </select>
+                </div>
 
-              <div className="flex flex-col sm:flex-row items-end gap-4">
-                <div className="space-y-1.5 flex-1 w-full text-left">
-                  <label className="text-slate-400 font-semibold block">Como se sentiu?</label>
-                  <div className="flex gap-2">
-                    {[
-                      { icon: Smile, val: 'happy', label: '😄' },
-                      { icon: Meh, val: 'neutral', label: '😐' },
-                      { icon: Frown, val: 'sad', label: '😔' }
-                    ].map(f => (
-                      <button 
-                        key={f.val}
-                        type="button" 
-                        onClick={() => setJournalFeeling(f.label)}
-                        className={`flex-1 p-2.5 rounded-xl border flex items-center justify-center gap-1.5 transition-all text-base ${
-                          journalFeeling === f.label ? 'border-brand-500 bg-brand-500/10 text-brand-400' : 'border-slate-800 bg-slate-900/40 text-slate-500 hover:text-slate-300'
-                        }`}
+                <div className="space-y-1">
+                  <label className="text-slate-400">Qual foi a sensação da conversa?</label>
+                  <div className="flex gap-4 pt-1">
+                    {['😃', '🙂', '😐', '🙁', '😰'].map(emoji => (
+                      <button
+                        key={emoji}
+                        type="button"
+                        onClick={() => setJournalFeeling(emoji)}
+                        className={`text-xl p-2 rounded-xl border transition-all ${journalFeeling === emoji ? 'border-brand-500 bg-brand-500/10' : 'border-slate-800 bg-slate-900/50'}`}
                       >
-                        <f.icon size={18} />
-                        {f.label}
+                        {emoji}
                       </button>
                     ))}
                   </div>
                 </div>
 
-                <div className="space-y-1.5 w-full sm:w-1/3 text-left">
-                  <label className="text-slate-400 font-semibold block">Score de Confiança (1-10)</label>
-                  <input 
-                    type="number" 
-                    min="1" 
-                    max="10" 
-                    value={journalConfidence}
-                    onChange={e => setJournalConfidence(parseInt(e.target.value) || 7)}
-                    className="w-full bg-slate-900 border border-slate-800 rounded-xl px-4 py-2.5 text-slate-200 font-semibold"
+                <div className="space-y-1">
+                  <label className="text-slate-400">Perguntas complexas ou desafiadoras</label>
+                  <textarea
+                    value={journalDiff}
+                    onChange={e => setJournalDiff(e.target.value)}
+                    placeholder="Quais perguntas te pegaram de surpresa?"
+                    className="w-full bg-slate-900 border border-slate-800 rounded-xl px-3 py-2 text-xs text-slate-200 outline-none h-20 resize-none"
                   />
                 </div>
-              </div>
 
-              <div className="space-y-1.5">
-                <label className="text-slate-400 font-semibold">O que achou difícil? (Ex: SQL, Salesforce...)</label>
-                <textarea 
-                  required
-                  placeholder="Perguntaram sobre Churn negativo e fiquei travado..."
-                  value={journalDiff}
-                  onChange={e => setJournalDiff(e.target.value)}
-                  className="w-full bg-slate-900 border border-slate-800 rounded-xl px-3 py-2 text-slate-200 h-20 resize-none outline-none focus:border-brand-500"
-                />
-              </div>
-
-              <div className="space-y-1.5">
-                <label className="text-slate-400 font-semibold">O que aprendeu?</label>
-                <textarea 
-                  required
-                  placeholder="Preciso estudar a forma como o Stripe lida com chargeback..."
-                  value={journalLearned}
-                  onChange={e => setJournalLearned(e.target.value)}
-                  className="w-full bg-slate-900 border border-slate-800 rounded-xl px-3 py-2 text-slate-200 h-20 resize-none outline-none focus:border-brand-500"
-                />
-              </div>
-
-              <div className="space-y-1.5">
-                <label className="text-slate-400 font-semibold">O que faria diferente?</label>
-                <textarea 
-                  required
-                  placeholder="Deveria ter citado o framework STAR logo no início..."
-                  value={journalDifferent}
-                  onChange={e => setJournalDifferent(e.target.value)}
-                  className="w-full bg-slate-900 border border-slate-800 rounded-xl px-3 py-2 text-slate-200 h-20 resize-none outline-none focus:border-brand-500"
-                />
-              </div>
-
-              <button 
-                type="submit" 
-                className="w-full py-2.5 rounded-xl bg-brand-600 hover:bg-brand-500 text-white font-bold text-xs transition-all shadow-lg"
-              >
-                Registrar no Diário
-              </button>
-            </form>
-          </CardGlass>
-
-          {/* Reflections analysis / Dynamic AI Advisor */}
-          <div className="space-y-6">
-            <CardGlass className="p-6 bg-gradient-to-br from-brand-600/10 to-indigo-600/10 border border-brand-500/15 flex gap-4">
-              <div className="p-3 rounded-2xl bg-brand-500/15 text-brand-400 shrink-0">
-                <Target size={24} />
-              </div>
-              <div className="space-y-1.5">
-                <h3 className="font-display font-bold text-sm text-slate-100">Análise de Padrões Pós-Entrevista</h3>
-                <p className="text-xs text-slate-400 leading-relaxed font-medium">
-                  Após 15 reflexões salvas, o coach identificará medos técnicos ocultos ou barreiras. Atualmente, com base nas notas:
-                </p>
-                <div className="p-3 rounded-xl bg-slate-950/40 border border-slate-900 text-[10px] text-slate-400 leading-relaxed space-y-1">
-                  {(() => {
-                    const isPharmacy = /farmac|estet|saude|saúde|cosmet/i.test(careerProfileNew?.personal?.headline || '');
-                    if (isPharmacy) {
-                      return (
-                        <>
-                          <div>💡 <strong>Insegurança detectada:</strong> Você costuma perder confiança quando perguntado sobre procedimentos clínicos complexos ou regulamentações da ANVISA.</div>
-                          <div className="mt-1">📚 <strong>Dica de Ação:</strong> Treine no módulo Coach com simulador voltado para perguntas de biossegurança, atendimento a pacientes e farmacologia clínica.</div>
-                        </>
-                      );
-                    }
-                    return (
-                      <>
-                        <div>💡 <strong>Insegurança detectada:</strong> Você costuma perder confiança quando perguntado sobre frameworks operacionais pesados como **SQL** ou **Salesforce**.</div>
-                        <div className="mt-1">📚 <strong>Dica de Ação:</strong> Treine no módulo Coach com simulador voltado para perguntas de banco de dados e controle de pipeline de vendas.</div>
-                      </>
-                    );
-                  })()}
-                </div>
-              </div>
+                <button type="submit" className="w-full py-2.5 rounded-xl bg-brand-600 hover:bg-brand-500 text-white font-bold text-xs shadow-lg">
+                  Salvar Reflexão no Diário
+                </button>
+              </form>
             </CardGlass>
-
-            {/* List of journal reflections */}
-            <div className="space-y-3 max-h-[350px] overflow-y-auto pr-1">
-              {applications
-                .filter(a => a.status === '❌ Rejeitada' || a.status === '👥 Entrevista com recrutador')
-                .map(app => (
-                  <div key={app.id} className="p-4 rounded-xl bg-slate-900/30 border border-slate-900 flex justify-between items-center gap-4">
-                    <div>
-                      <h4 className="font-bold text-xs text-slate-200">{app.companyName}</h4>
-                      <span className="text-[10px] text-slate-400 block mt-0.5">{app.jobTitle}</span>
-                    </div>
-                    <span className="text-lg p-2 rounded bg-slate-900 border border-slate-800">
-                      {app.status === '❌ Rejeitada' ? '😔' : '😄'}
-                    </span>
-                  </div>
-                ))}
-            </div>
           </div>
-        </div>
-        )}
-      </div>
-      )}
-
-      {/* ==========================================
-          SUB TAB 6: PIPELINE DE VAGAS (KANBAN & LISTA INTEGRADOS)
-          ========================================== */}
-      {subTab === 'pipeline' && (
-        <div className="space-y-6 animate-slide-in">
-          {/* Alternância de Visualização (Toggle) */}
-          <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-3 bg-slate-100 dark:bg-slate-900/40 p-4 rounded-2xl border border-slate-200 dark:border-slate-900">
-            <div>
-              <h3 className="font-display font-bold text-sm text-slate-900 dark:text-slate-200">Pipeline de Vagas</h3>
-              <p className="text-[10px] text-slate-700 dark:text-slate-400 mt-0.5 font-medium">Acompanhe e movimente o status de seus processos seletivos.</p>
-            </div>
-            <div className="flex bg-slate-200 dark:bg-slate-900 border border-slate-300 dark:border-slate-800 p-0.5 rounded-xl shrink-0">
-              <button
-                type="button"
-                onClick={() => setViewMode('kanban')}
-                className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
-                  viewMode === 'kanban'
-                    ? 'bg-brand-600 text-white shadow-md'
-                    : 'text-slate-700 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'
-                }`}
-              >
-                <Layout size={13} />
-                Kanban
-              </button>
-              <button
-                type="button"
-                onClick={() => setViewMode('list')}
-                className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
-                  viewMode === 'list'
-                    ? 'bg-brand-600 text-white shadow-md'
-                    : 'text-slate-700 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'
-                }`}
-              >
-                <List size={13} />
-                Lista
-              </button>
-            </div>
-          </div>
-
-          {viewMode === 'kanban' ? (
-            <div className="flex gap-4 overflow-x-auto pb-6 items-start scrollbar-thin select-none">
-              {Object.values(pipelineColumns).map(col => (
-            <div 
-              key={col.id} 
-              onDragOver={(e) => e.preventDefault()}
-              onDrop={(e) => {
-                const appId = e.dataTransfer.getData('text/plain');
-                if (appId) {
-                  const appObj = applications.find(a => a.id === appId);
-                  if (appObj) {
-                    handleQuickStatusChange(appObj, col.defaultStatus);
-                  }
-                }
-              }}
-              className={`p-3 rounded-2xl border ${col.color} min-w-[220px] flex flex-col gap-3 min-h-[550px] transition-all hover:bg-slate-100/50 dark:hover:bg-slate-900/5`}
-            >
-              <div className="flex justify-between items-center pb-2 border-b border-slate-300 dark:border-slate-800">
-                <span className="font-bold text-xs text-slate-900 dark:text-slate-100">{col.title}</span>
-                <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-slate-200 dark:bg-slate-900/40 text-slate-900 dark:text-slate-100 border border-slate-300 dark:border-slate-800">{col.apps.length}</span>
-              </div>
-
-              {col.apps.length === 0 ? (
-                <div className="py-16 border border-dashed border-slate-300 dark:border-slate-800 rounded-xl text-center text-[10px] text-slate-700 dark:text-slate-400 font-semibold">
-                  Sem processos
-                </div>
-              ) : (
-                col.apps.map(app => (
-                  <div
-                    key={app.id}
-                    onClick={() => setSelectedAppId(app.id)}
-                    draggable
-                    onDragStart={(e) => {
-                      e.dataTransfer.setData('text/plain', app.id);
-                    }}
-                    className="p-3 rounded-xl bg-slate-950 border border-slate-900 hover:border-slate-800 transition-all cursor-grab active:cursor-grabbing space-y-3 relative group text-left"
-                  >
-                    {/* Hover actions */}
-                    <div className="absolute top-2 right-2 hidden group-hover:flex items-center gap-1 bg-slate-950/90 pl-1 py-0.5 rounded-lg border border-slate-900/60 z-10" onClick={e => e.stopPropagation()}>
-                      <button
-                        type="button"
-                        title="Retirar da fila (Arquivar)"
-                        onClick={() => handleQuickStatusChange(app, '🚫 Fora do meu objetivo')}
-                        className="p-1 hover:bg-slate-900 text-slate-400 hover:text-amber-500 rounded transition-all"
-                      >
-                        <AlertCircle size={11} />
-                      </button>
-                      <button
-                        type="button"
-                        title="Apagar Candidatura"
-                        onClick={async () => {
-                          if (window.confirm(`Excluir permanentemente o acompanhamento de ${app.jobTitle} em ${app.companyName}?`)) {
-                            try {
-                              await onDeleteApplication(app.id);
-                            } catch (e) {
-                              alert("Erro ao excluir candidatura.");
-                            }
-                          }
-                        }}
-                        className="p-1 hover:bg-slate-900 text-slate-400 hover:text-red-500 rounded transition-all"
-                      >
-                        <Trash2 size={11} />
-                      </button>
-                    </div>
-
-                    <div>
-                      <h4 className="font-bold text-[11px] text-slate-100 truncate pr-4">{app.jobTitle}</h4>
-                      <span className="text-[10px] text-slate-400 block mt-0.5">{app.companyName}</span>
-                    </div>
-
-                    <div className="flex justify-between items-center gap-1 text-[9px] text-slate-500">
-                      <span>{app.sourcePlatform || 'Discover'}</span>
-                      {app.appliedAt && <span>{new Date(app.appliedAt).toLocaleDateString()}</span>}
-                    </div>
-
-                    {/* Ações Visíveis da Vaga (Simular e Remover da Estratégia) */}
-                    <div onClick={e => e.stopPropagation()} className="pt-0.5 space-y-1">
-                      {onStartSimulation && (
-                        <button
-                          type="button"
-                          onClick={() => onStartSimulation(app.id)}
-                          className="w-full py-1 rounded-lg bg-brand-500/10 hover:bg-brand-500/20 border border-brand-500/30 text-brand-400 font-bold text-[9px] uppercase flex items-center justify-center gap-1 transition"
-                        >
-                          🎤 Simular Entrevista
-                        </button>
-                      )}
-                      <button
-                        type="button"
-                        onClick={async () => {
-                          if (window.confirm(`Remover permanentemente a vaga "${app.jobTitle}" de "${app.companyName}" da sua estratégia?`)) {
-                            try {
-                              await onDeleteApplication(app.id);
-                            } catch (e) {
-                              alert("Erro ao remover vaga da estratégia.");
-                            }
-                          }
-                        }}
-                        className="w-full py-1 rounded-lg bg-red-950/15 hover:bg-red-950/30 border border-red-900/25 text-red-400 font-bold text-[9px] uppercase flex items-center justify-center gap-1 transition"
-                      >
-                        <Trash2 size={10} />
-                        Remover da Estratégia
-                      </button>
-                    </div>
-
-                    {/* Controles de Etapa (Setas + Dropdown) */}
-                    <div className="flex items-center justify-between gap-1 pt-1" onClick={e => e.stopPropagation()}>
-                      <button
-                        type="button"
-                        onClick={() => handleMoveStage(app, 'prev')}
-                        disabled={app.status === '🔎 Encontrada'}
-                        className="p-1 hover:bg-slate-900 text-slate-400 hover:text-white rounded disabled:opacity-30 disabled:hover:text-slate-400"
-                        title="Voltar Etapa"
-                      >
-                        <ChevronLeft size={14} />
-                      </button>
-
-                      <select
-                        value={app.status}
-                        onChange={e => handleQuickStatusChange(app, e.target.value as any)}
-                        className="bg-slate-900 border border-slate-855 text-[9px] text-slate-350 rounded p-1 cursor-pointer focus:outline-none flex-1 max-w-[120px]"
-                      >
-                        <option value="🔎 Encontrada">🔎 Encontrada</option>
-                        <option value="⭐ Tenho interesse">⭐ Tenho interesse</option>
-                        <option value="📝 Vou me candidatar">📝 Vou me candidatar</option>
-                        <option value="📨 Me candidatei">📨 Me candidatei</option>
-                        <option value="⏳ Aguardando retorno">⏳ Retorno</option>
-                        <option value="👥 Entrevista com recrutador">👥 Entrevista RH</option>
-                        <option value="🎯 Entrevista com gestor">🎯 Entrevista Gestor</option>
-                        <option value="🧩 Case técnico">🧩 Case Técnico</option>
-                        <option value="🤝 Fit cultural">🤝 Fit Cultural</option>
-                        <option value="🏆 Oferta recebida">🏆 Oferta Recebida</option>
-                        <option value="✅ Aceita">✅ Aceita</option>
-                        <option value="❌ Rejeitada">❌ Rejeitada</option>
-                      </select>
-
-                      <button
-                        type="button"
-                        onClick={() => handleMoveStage(app, 'next')}
-                        disabled={app.status === '🚫 Fora do meu objetivo'}
-                        className="p-1 hover:bg-slate-900 text-slate-400 hover:text-white rounded disabled:opacity-30 disabled:hover:text-slate-400"
-                        title="Próxima Etapa"
-                      >
-                        <ChevronRight size={14} />
-                      </button>
-                    </div>
-
-                    {/* Ações Rápidas Persistentes (Arquivar / Excluir) */}
-                    <div className="flex justify-between items-center gap-1.5 pt-1.5 border-t border-slate-900/60" onClick={e => e.stopPropagation()}>
-                      <button
-                        type="button"
-                        onClick={() => handleQuickStatusChange(app, '🚫 Fora do meu objetivo')}
-                        className="text-[9px] text-slate-500 hover:text-amber-500 flex items-center gap-0.5 transition-all"
-                        title="Remover da estratégia (Arquivar)"
-                      >
-                        <AlertCircle size={12} />
-                        <span>Arquivar</span>
-                      </button>
-
-                      <button
-                        type="button"
-                        onClick={async () => {
-                          if (window.confirm(`Excluir permanentemente o acompanhamento de ${app.jobTitle} em ${app.companyName}?`)) {
-                            try {
-                              await onDeleteApplication(app.id);
-                            } catch (e) {
-                              alert("Erro ao excluir candidatura.");
-                            }
-                          }
-                        }}
-                        className="text-[9px] text-slate-500 hover:text-red-500 flex items-center gap-0.5 transition-all"
-                        title="Excluir permanentemente"
-                      >
-                        <Trash2 size={12} />
-                        <span>Excluir</span>
-                      </button>
-                    </div>
-                  </div>
-                ))
-              )}
-            </div>
-          ))}
-        </div>
-      ) : (
-        <CardGlass className="p-6 space-y-6">
-          <div className="flex justify-between items-center pb-3 border-b border-slate-900">
-            <h3 className="font-display font-bold text-base text-slate-200 flex items-center gap-2">
-              <Briefcase size={18} className="text-brand-500" />
-              Processos em Andamento
-            </h3>
-          </div>
-
-          {applications.length === 0 ? (
-            <div className="py-16 text-center text-xs text-slate-500 flex flex-col items-center justify-center border border-dashed border-slate-800 rounded-xl">
-              <span>Nenhuma candidatura registrada.</span>
-            </div>
-          ) : (
-            <div className="overflow-x-auto w-full">
-              <table className="w-full text-left border-collapse text-xs">
-                <thead>
-                  <tr className="border-b border-slate-900 text-slate-500 uppercase tracking-wider text-[10px]">
-                    <th className="py-3 px-4 font-bold">Empresa / Vaga</th>
-                    <th className="py-3 px-4 font-bold">Origem</th>
-                    <th className="py-3 px-4 font-bold">Status</th>
-                    <th className="py-3 px-4 font-bold">Data</th>
-                    <th className="py-3 px-4 font-bold text-right">Ações</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-900/50">
-                  {applications.map(app => (
-                    <tr key={app.id} className="hover:bg-slate-900/10 transition-colors">
-                      <td className="py-3.5 px-4">
-                        <span className="font-bold text-slate-200 block">{app.jobTitle}</span>
-                        <span className="text-[10px] text-slate-500 block mt-0.5">{app.companyName}</span>
-                      </td>
-                      <td className="py-3.5 px-4 text-slate-400 font-medium">
-                        {app.sourcePlatform || 'Discover'}
-                      </td>
-                      <td className="py-3.5 px-4">
-                        <select
-                          value={app.status}
-                          onChange={e => handleQuickStatusChange(app, e.target.value as any)}
-                          className="bg-slate-900 border border-slate-800 text-slate-300 text-xs rounded px-2 py-1 focus:outline-none"
-                        >
-                          <option value="🔎 Encontrada">🔎 Encontrada</option>
-                          <option value="⭐ Tenho interesse">⭐ Tenho interesse</option>
-                          <option value="📝 Vou me candidatar">📝 Vou me candidatar</option>
-                          <option value="📨 Me candidatei">📨 Me candidatei</option>
-                          <option value="⏳ Aguardando retorno">⏳ Retorno</option>
-                          <option value="👥 Entrevista com recrutador">👥 Entrevista RH</option>
-                          <option value="🎯 Entrevista com gestor">🎯 Entrevista Gestor</option>
-                          <option value="🧩 Case técnico">🧩 Case Técnico</option>
-                          <option value="🤝 Fit cultural">🤝 Fit Cultural</option>
-                          <option value="🏆 Oferta recebida">🏆 Oferta Recebida</option>
-                          <option value="✅ Aceita">✅ Aceita</option>
-                          <option value="❌ Rejeitada">❌ Rejeitada</option>
-                        </select>
-                      </td>
-                      <td className="py-3.5 px-4 text-slate-400">
-                        {app.appliedAt ? new Date(app.appliedAt).toLocaleDateString() : '—'}
-                      </td>
-                      <td className="py-3.5 px-4 text-right flex justify-end gap-2">
-                        {onStartSimulation && (
-                          <button
-                            onClick={() => onStartSimulation(app.id)}
-                            className="px-2.5 py-1 rounded bg-brand-500/10 hover:bg-brand-500/20 text-brand-400 border border-brand-500/30 font-bold transition-colors"
-                          >
-                            🎤 Simular
-                          </button>
-                        )}
-                        <button
-                          onClick={() => setSelectedAppId(app.id)}
-                          className="px-2.5 py-1 rounded bg-slate-900 hover:bg-slate-800 text-slate-350 hover:text-white border border-slate-800 transition-colors"
-                        >
-                          Linha do Tempo
-                        </button>
-                        <button
-                          onClick={() => {
-                            if (window.confirm(`Tem certeza que deseja excluir a candidatura para a vaga "${app.jobTitle}" na empresa "${app.companyName}"? Todos os estágios e logs desta candidatura serão removidos permanentemente.`)) {
-                              onDeleteApplication(app.id);
-                            }
-                          }}
-                          className="p-1.5 rounded-lg text-slate-500 hover:text-red-400 hover:bg-red-500/10 transition-colors cursor-pointer"
-                        >
-                          <Trash2 size={14} />
-                        </button>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
-        </CardGlass>
-      )}
         </div>
       )}
     </div>

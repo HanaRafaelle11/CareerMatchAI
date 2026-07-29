@@ -1,17 +1,14 @@
 import type { Application } from '../../domain/models/types';
 
 export type PipelineColumnId = 
-  | 'encontradas' 
-  | 'aplicar_depois' 
-  | 'cv_enviado' 
-  | 'triagem' 
-  | 'entrevista_rh' 
-  | 'entrevista_tecnica' 
-  | 'case_tecnico' 
-  | 'oferta' 
-  | 'contratado' 
-  | 'recusado' 
-  | 'arquivado';
+  | 'found' 
+  | 'saved' 
+  | 'applied' 
+  | 'hr' 
+  | 'interview' 
+  | 'offer' 
+  | 'hired'
+  | 'rejected';
 
 export interface PipelineColumn {
   id: PipelineColumnId;
@@ -19,114 +16,98 @@ export interface PipelineColumn {
   apps: Application[];
   color: string;
   defaultStatus: Application['status'];
+  baseStageScore: number;
 }
 
 export class ApplicationPipelineService {
   static getColumnMap(apps: Application[]): Record<PipelineColumnId, PipelineColumn> {
     const columns: Record<PipelineColumnId, PipelineColumn> = {
-      encontradas: {
-        id: 'encontradas',
+      found: {
+        id: 'found',
         title: '🔎 Encontradas',
         apps: [],
         color: 'border-slate-800 bg-slate-900/10',
-        defaultStatus: '🔎 Encontrada'
+        defaultStatus: 'found' as any,
+        baseStageScore: 30
       },
-      aplicar_depois: {
-        id: 'aplicar_depois',
-        title: '⭐ Aplicar Depois',
+      saved: {
+        id: 'saved',
+        title: '⭐ Salvas',
         apps: [],
-        color: 'border-blue-500/10 bg-blue-500/5',
-        defaultStatus: '⭐ Tenho interesse'
+        color: 'border-blue-500/20 bg-blue-500/5',
+        defaultStatus: 'saved' as any,
+        baseStageScore: 45
       },
-      cv_enviado: {
-        id: 'cv_enviado',
-        title: '📨 CV Enviado',
+      applied: {
+        id: 'applied',
+        title: '📨 Aplicadas',
         apps: [],
-        color: 'border-cyan-500/10 bg-cyan-500/5',
-        defaultStatus: '📨 Me candidatei'
+        color: 'border-cyan-500/20 bg-cyan-500/5',
+        defaultStatus: 'applied' as any,
+        baseStageScore: 60
       },
-      triagem: {
-        id: 'triagem',
-        title: '⏳ Triagem',
+      hr: {
+        id: 'hr',
+        title: '👥 RH',
         apps: [],
-        color: 'border-purple-500/10 bg-purple-500/5',
-        defaultStatus: '⏳ Aguardando retorno' as any // status unificado
+        color: 'border-purple-500/20 bg-purple-500/5',
+        defaultStatus: 'hr' as any,
+        baseStageScore: 75
       },
-      entrevista_rh: {
-        id: 'entrevista_rh',
-        title: '👥 Entrevista RH',
+      interview: {
+        id: 'interview',
+        title: '🎯 Entrevistas',
         apps: [],
-        color: 'border-amber-500/10 bg-amber-500/5',
-        defaultStatus: '👥 Entrevista com recrutador'
+        color: 'border-amber-500/20 bg-amber-500/5',
+        defaultStatus: 'interview' as any,
+        baseStageScore: 85
       },
-      entrevista_tecnica: {
-        id: 'entrevista_tecnica',
-        title: '🎯 Entr. Técnica',
-        apps: [],
-        color: 'border-orange-500/10 bg-orange-500/5',
-        defaultStatus: '🎯 Entrevista com gestor' as any
-      },
-      case_tecnico: {
-        id: 'case_tecnico',
-        title: '🧩 Case Técnico',
-        apps: [],
-        color: 'border-violet-500/10 bg-violet-500/5',
-        defaultStatus: '🧩 Case técnico'
-      },
-      oferta: {
-        id: 'oferta',
+      offer: {
+        id: 'offer',
         title: '🏆 Oferta',
         apps: [],
-        color: 'border-pink-500/10 bg-pink-500/5',
-        defaultStatus: '🏆 Oferta recebida'
+        color: 'border-pink-500/20 bg-pink-500/5',
+        defaultStatus: 'offer' as any,
+        baseStageScore: 95
       },
-      contratado: {
-        id: 'contratado',
+      hired: {
+        id: 'hired',
         title: '✅ Contratado',
         apps: [],
-        color: 'border-emerald-500/15 bg-emerald-500/5',
-        defaultStatus: '✅ Aceita' as any
+        color: 'border-emerald-500/25 bg-emerald-500/5',
+        defaultStatus: 'hired' as any,
+        baseStageScore: 100
       },
-      recusado: {
-        id: 'recusado',
-        title: '❌ Recusado',
+      rejected: {
+        id: 'rejected',
+        title: '❌ Arquivadas / Rejeitadas',
         apps: [],
-        color: 'border-red-500/10 bg-red-500/5',
-        defaultStatus: '❌ Rejeitada' as any
-      },
-      arquivado: {
-        id: 'arquivado',
-        title: '🚫 Arquivado',
-        apps: [],
-        color: 'border-slate-700 bg-slate-900/5',
-        defaultStatus: '🚫 Fora do meu objetivo' as any
+        color: 'border-red-500/20 bg-red-500/5',
+        defaultStatus: 'rejected' as any,
+        baseStageScore: 0
       }
     };
 
     apps.forEach(app => {
-      const status = app.status;
-      if (status === '🔎 Encontrada') {
-        columns.encontradas.apps.push(app);
-      } else if (status === '⭐ Tenho interesse' || status === '📝 Vou me candidatar') {
-        columns.aplicar_depois.apps.push(app);
-      } else if (status === '📨 Me candidatei') {
-        columns.cv_enviado.apps.push(app);
-      } else if (status === '⏳ Aguardando retorno' || (status as string) === '⏳ Retorno') {
-        columns.triagem.apps.push(app);
-      } else if (status === '👥 Entrevista com recrutador' || (status as string) === '👥 Entrevista RH') {
-        columns.entrevista_rh.apps.push(app);
-      } else if (status === '🎯 Entrevista com gestor' || (status as string) === '🎯 Entrevista Gestor') {
-        columns.entrevista_tecnica.apps.push(app);
-      } else if (status === '🧩 Case técnico' || (status as string) === '🧩 Case Técnico' || status === '🤝 Fit cultural' || (status as string) === '🤝 Fit Cultural') {
-        columns.case_tecnico.apps.push(app);
-      } else if (status === '🏆 Oferta recebida' || (status as string) === '🏆 Oferta Recebida') {
-        columns.oferta.apps.push(app);
-      } else if (status === '✅ Aceita') {
-        columns.contratado.apps.push(app);
-      } else if (status === '❌ Rejeitada') {
-        columns.recusado.apps.push(app);
+      const status = String(app.status || 'found').toLowerCase();
+      if (status === 'found' || status.includes('encontrada') || status.includes('ajustar')) {
+        columns.found.apps.push(app);
+      } else if (status === 'saved' || status.includes('interesse') || status.includes('prioridade')) {
+        columns.saved.apps.push(app);
+      } else if (status === 'applied' || status.includes('candidatei') || status.includes('candidatar')) {
+        columns.applied.apps.push(app);
+      } else if (status === 'hr' || status.includes('recrutador') || status.includes('retorno')) {
+        columns.hr.apps.push(app);
+      } else if (status === 'interview' || status.includes('gestor') || status.includes('case') || status.includes('cultural')) {
+        columns.interview.apps.push(app);
+      } else if (status === 'offer' || status.includes('oferta')) {
+        columns.offer.apps.push(app);
+      } else if (status === 'hired' || status.includes('aceita') || status.includes('contratado')) {
+        columns.hired.apps.push(app);
+      } else if (status === 'rejected' || status.includes('rejeitada') || status.includes('recusada') || status.includes('fora')) {
+        columns.rejected.apps.push(app);
       } else {
-        columns.arquivado.apps.push(app);
+        columns.found.apps.push(app);
       }
     });
 

@@ -38,18 +38,35 @@ export function useJobDiscovery(
       if (careerProfileNew) {
         const preferences = (careerProfileNew.personal as any)?.preferences || {};
 
+        const cleanSearchTerm = (raw: string): string => {
+          if (!raw) return '';
+          let clean = raw.replace(/\(.*?\)/g, '');
+          if (clean.includes('|')) clean = clean.split('|')[0];
+          if (clean.includes('-') && clean.length > 35) clean = clean.split('-')[0];
+          if (clean.includes('/')) clean = clean.split('/')[0];
+          clean = clean
+            .replace(/Profissional\s+(especialista\s+)?com\s+foco\s+em/i, '')
+            .replace(/Especialista\s+em/i, '')
+            .trim();
+          if (clean.length > 40) {
+            const words = clean.split(/\s+/);
+            clean = words.slice(0, 3).join(' ');
+          }
+          return clean.trim();
+        };
+
         if (filters.keyword) {
           // Se o usuário digitou uma busca manual, foca estritamente nela
-          finalKeywords = [filters.keyword];
+          finalKeywords = [cleanSearchTerm(filters.keyword)];
         } else {
           // 1. Gerar múltiplas palavras-chave/sinônimos dos cargos-alvo
-          const targetRoles = preferences.targetRoles || [];
-          const searchKeywordsPref = preferences.searchKeywords || [];
+          const targetRoles = (preferences.targetRoles || []).map(cleanSearchTerm).filter(Boolean);
+          const searchKeywordsPref = (preferences.searchKeywords || []).map(cleanSearchTerm).filter(Boolean);
           finalKeywords = [...searchKeywordsPref, ...targetRoles];
 
           if (finalKeywords.length === 0) {
-            const headline = careerProfileNew.personal?.headline;
-            const lastRole = careerProfileNew.experience?.[0]?.role;
+            const headline = cleanSearchTerm(careerProfileNew.personal?.headline || '');
+            const lastRole = cleanSearchTerm(careerProfileNew.experience?.[0]?.role || '');
             finalKeywords = [headline, lastRole].filter((v): v is string => !!v);
           }
         }

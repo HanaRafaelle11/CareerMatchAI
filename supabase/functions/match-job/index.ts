@@ -730,16 +730,36 @@ serve(async (req) => {
       }
     }
 
+    // Allow passing job payload directly in request body for transient/discovered jobs
+    const bodyJob = reqBody.job || reqBody.jobData || null;
+
     if (actualJobId && !jobData) {
       const { data, error } = await supabaseClient
         .from('jobs')
         .select('*')
         .eq('id', actualJobId)
-        .single();
-      if (error || !data) {
-        throw new Error(`Vaga não encontrada: ${error?.message || 'ID inválido'}`);
+        .maybeSingle();
+      
+      if (data) {
+        jobData = data;
+      } else if (bodyJob) {
+        jobData = {
+          id: actualJobId,
+          title: bodyJob.title || bodyJob.jobTitle || 'Vaga Sem Título',
+          company_name: bodyJob.companyName || bodyJob.company_name || 'Empresa Confidencial',
+          description: bodyJob.description || 'Sem descrição detalhada.',
+          requirements: bodyJob.requirements || []
+        };
+      } else {
+        throw new Error(`Vaga não encontrada no sistema. Por favor, selecione uma vaga válida.`);
       }
-      jobData = data;
+    } else if (!jobData && bodyJob) {
+      jobData = {
+        title: bodyJob.title || bodyJob.jobTitle || 'Vaga Sem Título',
+        company_name: bodyJob.companyName || bodyJob.company_name || 'Empresa Confidencial',
+        description: bodyJob.description || 'Sem descrição detalhada.',
+        requirements: bodyJob.requirements || []
+      };
     }
 
     if (!jobData && operation !== 'cover-letter') {

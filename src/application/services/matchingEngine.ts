@@ -369,6 +369,13 @@ export class MatchingEngine {
             resumeId: resume.id,
             resumeVersionId: resume.resumeVersionId,
             jobId: job.id,
+            job: {
+              id: job.id,
+              title: job.title,
+              companyName: job.companyName,
+              description: job.description,
+              requirements: job.requirements || []
+            },
             mockGemini: isE2EUser
           }
         });
@@ -616,6 +623,9 @@ export class MatchingEngine {
 
     if (scoreRoleCompatibility <= 30) {
       scoreOverall = Math.min(scoreOverall, scoreRoleCompatibility + 15);
+    } else if (scoreSeniority <= 35) {
+      // Trava de Senioridade: Evita recomendar vaga Júnior para Sênior ou vice-versa (Item 10)
+      scoreOverall = Math.min(scoreOverall, 35);
     } else if (containsOnlyGenericReqs && !hasRoleMatch) {
       scoreOverall = Math.min(scoreOverall, 25);
     } else if (scoreTechnical === 0) {

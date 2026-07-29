@@ -225,7 +225,7 @@ export function StrategyPage({
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, []);
 
-  // Calculate dynamic list of jobs with metrics overrides
+  // Calculate dynamic list of jobs with metrics overrides & deduplication (Item 15)
   const mappedJobs = jobs.map(j => {
     const override = jobMetricsOverride[j.id];
     return {
@@ -235,7 +235,15 @@ export function StrategyPage({
     };
   });
 
-  const grouped = CandidateStrategyService.groupJobs(primaryResume, mappedJobs, careerProfile, careerProfileNew);
+  const uniqueMappedJobs = mappedJobs.filter((j, index, self) => 
+    index === self.findIndex(t => (
+      (t.id && t.id === j.id) ||
+      (t.title.toLowerCase().trim() === j.title.toLowerCase().trim() &&
+       t.companyName.toLowerCase().trim() === j.companyName.toLowerCase().trim())
+    ))
+  );
+
+  const grouped = CandidateStrategyService.groupJobs(primaryResume, uniqueMappedJobs, careerProfile, careerProfileNew);
 
   const finalGrouped = {
     hot: [...grouped.hot],
@@ -1064,7 +1072,12 @@ export function StrategyPage({
                       <p className="text-[10px] text-slate-700 dark:text-slate-400 mt-0.5 truncate">{rec.job.companyName}</p>
                     </div>
                     <div className="flex items-center gap-2">
-                      <span className="text-[10px] px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-slate-800 dark:text-slate-200 font-bold border border-slate-300 dark:border-slate-700">{rec.cpi}% CPI</span>
+                      <span 
+                        title="CPI (Career Potential Index): Índice de Potencial de Carreira calculado com base no alinhamento de competências, senioridade, pretensão salarial e afinidade com seu momento profissional." 
+                        className="text-[10px] px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-slate-800 dark:text-slate-200 font-bold border border-slate-300 dark:border-slate-700 flex items-center gap-1 cursor-help"
+                      >
+                        {rec.cpi}% CPI
+                      </span>
                       <button
                         onClick={async (e) => {
                           e.stopPropagation();

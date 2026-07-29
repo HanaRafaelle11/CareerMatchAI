@@ -9,7 +9,8 @@ import {
   Users, CreditCard, Search, Filter, 
   ShieldCheck, UserCheck, AlertTriangle, AlertCircle, 
   Clock, Laptop, Key, FileText, 
-  Layers, Bot, UploadCloud, X
+  Layers, Bot, UploadCloud, X,
+  ThumbsUp, ThumbsDown, MessageSquare
 } from 'lucide-react';
 
 interface AdminDashboardProps {
@@ -145,19 +146,17 @@ export function AdminDashboard({ userId }: AdminDashboardProps) {
         .order('created_at', { ascending: false });
       if (error) throw error;
       
-      // Filtrar apenas usuários humanos reais (Item 3 — Exclui contas fake, seed, mock e E2E)
+      // Filtrar apenas usuários humanos reais (Item 1 — Exclui contas fake e E2E)
       const realUsers = (data || []).filter((d: any) => {
         if (d.is_test_account === true) return false;
         const email = (d.email || '').toLowerCase();
-        const name = (d.full_name || '').toLowerCase();
-        const isSynthetic = /example\.com|e2e|hardening|candidato\.e2e|user\.[a-z]\.|seed|mock|fake|dummy|test_user/i.test(email) ||
-                            /teste|e2e|hardening|mock|seed|fake|dummy/i.test(name);
-        return !isSynthetic;
+        if (email === 'hardening.e2e@example.com' || email.endsWith('@example.com')) return false;
+        return true;
       });
 
       return realUsers.map((d: any) => ({
         id: d.id,
-        full_name: d.full_name,
+        full_name: d.full_name || d.email?.split('@')[0] || 'Usuário Sem Nome',
         email: d.email,
         headline: d.headline,
         role: d.role || 'user',
@@ -333,29 +332,84 @@ export function AdminDashboard({ userId }: AdminDashboardProps) {
     refetchInterval: 10000 // auto-refresh a cada 10 segundos
   });
 
-  // ── 5b. FEEDBACK DE VAGAS REJEITADAS COM TITULO DA VAGA (Item 4) ──
+  // ── 5b. FEEDBACK DE VAGAS REJEITADAS COM TITULO DA VAGA (Item 6) ──
   const { data: jobFeedbacks = [] } = useQuery({
     queryKey: ['admin-job-feedbacks'],
     queryFn: async () => {
       if (!isSupabaseConfigured || !supabase) return [];
       const { data, error } = await supabase
         .from('job_feedback')
-        .select('*, profiles!job_feedback_user_id_fkey(full_name, email), jobs(title, company_name)')
+        .select('*, profiles!job_feedback_user_id_fkey(full_name, email)')
         .eq('action', 'REJECTED')
-        .not('reason', 'is', null)
         .order('created_at', { ascending: false })
-        .limit(60);
-      if (error) {
+        .limit(100);
+
+      if (error || !data) {
         const { data: fallback } = await supabase
           .from('job_feedback')
-          .select('*, profiles!job_feedback_user_id_fkey(full_name, email)')
+          .select('*')
           .eq('action', 'REJECTED')
-          .not('reason', 'is', null)
           .order('created_at', { ascending: false })
-          .limit(60);
+          .limit(100);
         return fallback || [];
       }
-      return data || [];
+
+      // Buscar títulos de vagas separadamente para evitar erro de JOIN no PostgREST
+      const jobIds = [...new Set(data.map((f: any) => f.job_id).filter(Boolean))];
+      let jobsMap: Record<string, { title: string; company_name: string }> = {};
+      if (jobIds.length > 0) {
+        const { data: jobsData } = await supabase
+          .from('jobs')
+          .select('id, title, company_name')
+          .in('id', jobIds);
+        (jobsData || []).forEach((j: any) => {
+          jobsMap[j.id] = { title: j.title, company_name: j.company_name };
+        });
+      }
+
+      return data.map((f: any) => ({
+        ...f,
+        jobs: jobsMap[f.job_id] || { title: `Vaga Rejeitada (ID: ${f.job_id?.slice(0, 8) || 'vaga'})`, company_name: 'Empresa' }
+      }));
+    },
+    enabled: hasTelemetryAccess
+  });
+
+  // ── 5c. FEEDBACK BETA DO PRODUTO (Item 4) ──
+  const { data: betaFeedbacks = [] } = useQuery({
+    queryKey: ['admin-beta-feedbacks'],
+    queryFn: async () => {
+      if (!isSupabaseConfigured || !supabase) return [];
+      const { data } = await supabase
+        .from('beta_feedback')
+        .select('*')
+        .order('created_at', { ascending: false })
+        .limit(50);
+
+      if (!data || data.length === 0) return [];
+      const uIds = [...new Set(data.map((b: any) => b.user_id).filter(Boolean))];
+      let uMap: Record<string, { full_name: string; email: string }> = {};
+      if (uIds.length > 0) {
+        const { data: profs } = await supabase.from('profiles').select('id, full_name, email').in('id', uIds);
+        (profs || []).forEach((p: any) => { uMap[p.id] = p; });
+      }
+      return data.map((b: any) => ({ ...b, profiles: uMap[b.user_id] }));
+    },
+    enabled: hasTelemetryAccess
+  });
+
+  // ── 5d. ESTATÍSTICAS DE FEEDBACK DE RECOMENDAÇÃO (👍 / 👎) (Item 5) ──
+  const { data: recStats = { positive: 0, negative: 0, total: 0, positiveRate: 100 } } = useQuery({
+    queryKey: ['admin-rec-feedback-stats'],
+    queryFn: async () => {
+      if (!isSupabaseConfigured || !supabase) return { positive: 0, negative: 0, total: 0, positiveRate: 100 };
+      const { data } = await supabase.from('job_feedback').select('action, reason');
+      const list = data || [];
+      const positive = list.filter((f: any) => f.reason === 'positive' || f.action === 'SAVED' || f.action === 'APPLIED').length;
+      const negative = list.filter((f: any) => f.action === 'REJECTED' || f.reason === 'negative').length;
+      const total = positive + negative;
+      const positiveRate = total > 0 ? Math.round((positive / total) * 100) : 100;
+      return { positive, negative, total, positiveRate };
     },
     enabled: hasTelemetryAccess
   });
@@ -507,7 +561,7 @@ export function AdminDashboard({ userId }: AdminDashboardProps) {
     enabled: hasTelemetryAccess
   });
 
-  // ── 6. BUSCAR TELEMETRIA DE ERROS DE PRODUÇÃO (Item 2 — Combina application_errors + resume_processing_logs) ──
+  // ── 6. BUSCAR TELEMETRIA DE ERROS DE PRODUÇÃO (Item 8 — Combina application_errors + resume_processing_logs) ──
   const { data: _systemErrors = [], refetch: refetchTelemetry } = useQuery({
     queryKey: ['admin-telemetry-errors'],
     queryFn: async () => {
@@ -516,16 +570,30 @@ export function AdminDashboard({ userId }: AdminDashboardProps) {
       const [appErrorsRes, logErrorsRes] = await Promise.all([
         supabase
           .from('application_errors')
-          .select('*, profiles(full_name, email)')
+          .select('*')
           .order('created_at', { ascending: false })
           .limit(50),
         supabase
           .from('resume_processing_logs')
-          .select('*, profiles!resume_processing_logs_user_id_fkey(full_name, email)')
+          .select('*')
           .or('status.eq.failed,status.eq.error,step.eq.failed')
           .order('created_at', { ascending: false })
           .limit(50)
       ]);
+
+      const rawLogs = [...(appErrorsRes.data || []), ...(logErrorsRes.data || [])];
+      const userIds = [...new Set(rawLogs.map((r: any) => r.user_id).filter(Boolean))];
+      let userMap: Record<string, { full_name: string; email: string }> = {};
+
+      if (userIds.length > 0) {
+        const { data: profs } = await supabase
+          .from('profiles')
+          .select('id, full_name, email')
+          .in('id', userIds);
+        (profs || []).forEach((p: any) => {
+          userMap[p.id] = { full_name: p.full_name || 'Usuário Sem Nome', email: p.email || '' };
+        });
+      }
 
       const items: any[] = [];
 
@@ -536,7 +604,7 @@ export function AdminDashboard({ userId }: AdminDashboardProps) {
           component: e.component || 'App System',
           error_code: e.error_code || 'APP_ERROR',
           message: e.message || 'Erro inesperado na aplicação.',
-          profiles: e.profiles || null,
+          profiles: userMap[e.user_id] || null,
           user_id: e.user_id
         });
       });
@@ -545,10 +613,10 @@ export function AdminDashboard({ userId }: AdminDashboardProps) {
         items.push({
           id: l.id,
           created_at: l.created_at,
-          component: `OCR/Parsing (Etapa: ${l.step})`,
+          component: `OCR/Parsing (${l.step || 'extração'})`,
           error_code: 'PARSING_FAILED',
           message: l.error_message || l.message || 'Não conseguimos extrair texto automaticamente.',
-          profiles: l.profiles || null,
+          profiles: userMap[l.user_id] || null,
           user_id: l.user_id
         });
       });
@@ -1515,6 +1583,98 @@ export function AdminDashboard({ userId }: AdminDashboardProps) {
                 })
               )}
             </div>
+          </CardGlass>
+
+          {/* FEEDBACK DE RECOMENDAÇÃO DE VAGAS (Item 5: 👍 Sim, combina comigo / 👎 Não combina comigo) */}
+          <CardGlass className="p-5 space-y-4">
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 pb-2 border-b border-slate-900">
+              <div>
+                <h3 className="text-sm font-bold text-white uppercase tracking-wider flex items-center gap-2">
+                  <ThumbsUp size={16} className="text-emerald-400" />
+                  Feedback de Recomendação de Vagas (👍/👎)
+                </h3>
+                <p className="text-xs text-slate-400 mt-0.5">Contabilização do botão "Essa recomendação faz sentido para você?".</p>
+              </div>
+              <span className="text-[10px] font-bold text-emerald-400 bg-emerald-950/30 px-3 py-1.5 rounded-lg border border-emerald-500/30">
+                {recStats.positiveRate}% Aprovados
+              </span>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+              <div className="p-4 rounded-xl bg-slate-900/80 border border-slate-800 flex justify-between items-center">
+                <div>
+                  <span className="text-[10px] text-slate-400 font-bold uppercase block">👍 Sim, combina comigo</span>
+                  <span className="text-2xl font-extrabold text-emerald-400 font-mono mt-1 block">{recStats.positive}</span>
+                </div>
+                <ThumbsUp size={24} className="text-emerald-500/40" />
+              </div>
+
+              <div className="p-4 rounded-xl bg-slate-900/80 border border-slate-800 flex justify-between items-center">
+                <div>
+                  <span className="text-[10px] text-slate-400 font-bold uppercase block">👎 Não combina comigo</span>
+                  <span className="text-2xl font-extrabold text-red-400 font-mono mt-1 block">{recStats.negative}</span>
+                </div>
+                <ThumbsDown size={24} className="text-red-500/40" />
+              </div>
+
+              <div className="p-4 rounded-xl bg-slate-900/80 border border-slate-800 flex justify-between items-center">
+                <div>
+                  <span className="text-[10px] text-slate-400 font-bold uppercase block">Taxa de Afinidade</span>
+                  <span className="text-2xl font-extrabold text-brand-400 font-mono mt-1 block">{recStats.positiveRate}%</span>
+                </div>
+                <Activity size={24} className="text-brand-500/40" />
+              </div>
+            </div>
+          </CardGlass>
+
+          {/* FEEDBACK DO PRODUTO BETA (Item 4: Widget Feedback Beta) */}
+          <CardGlass className="p-5 space-y-4">
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 pb-2 border-b border-slate-900">
+              <div>
+                <h3 className="text-sm font-bold text-white uppercase tracking-wider flex items-center gap-2">
+                  <MessageSquare size={16} className="text-blue-400" />
+                  Feedback do Produto Beta (VoCentro Widget)
+                </h3>
+                <p className="text-xs text-slate-400 mt-0.5">Respostas e opiniões enviadas no botão flutuante de Feedback Beta.</p>
+              </div>
+              <span className="text-[10px] font-bold text-slate-300 bg-slate-900 px-3 py-1.5 rounded-lg border border-slate-800">
+                {betaFeedbacks.length} resposta(s) recebida(s)
+              </span>
+            </div>
+
+            {betaFeedbacks.length === 0 ? (
+              <div className="text-center py-8 text-slate-500 text-xs border border-dashed border-slate-800 rounded-xl">
+                Nenhum feedback beta enviado até o momento.
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3 max-h-80 overflow-y-auto pr-1">
+                {betaFeedbacks.map((bf: any, idx: number) => {
+                  const isPos = bf.rating === 'POSITIVE';
+                  return (
+                    <div key={bf.id || idx} className="p-3.5 rounded-xl bg-slate-900/80 border border-slate-800 space-y-2 text-xs">
+                      <div className="flex justify-between items-center">
+                        <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase border ${
+                          isPos ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30' : 'bg-red-500/10 text-red-400 border-red-500/30'
+                        }`}>
+                          {isPos ? '👍 Gostei' : '👎 Não achei relevante'}
+                        </span>
+                        <span className="text-[10px] text-slate-500 font-mono">
+                          {bf.created_at ? new Date(bf.created_at).toLocaleDateString('pt-BR') : 'Recente'}
+                        </span>
+                      </div>
+                      {bf.comment && (
+                        <p className="text-slate-200 italic bg-slate-950/60 p-2.5 rounded-lg border border-slate-900">
+                          "{bf.comment}"
+                        </p>
+                      )}
+                      <span className="text-[10px] text-slate-400 block font-mono">
+                        Usuário: {bf.profiles?.full_name || bf.profiles?.email || 'Anônimo'} (Feature: {bf.feature || 'Geral'})
+                      </span>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
           </CardGlass>
         </div>
       )}

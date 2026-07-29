@@ -619,10 +619,10 @@ export function JobMatchHub({
           .eq('job_id', selectedJob.id);
         if (optErr) throw optErr;
 
-        // 4. Apagar cover_letters associadas para esta vaga/application
+        // 4. Apagar cover_letters e candidaturas automáticas associadas para esta vaga
         const { data: apps } = await supabase
           .from('applications')
-          .select('id')
+          .select('id, status')
           .eq('user_id', userId)
           .eq('job_id', selectedJob.id);
         
@@ -632,6 +632,15 @@ export function JobMatchHub({
             .from('cover_letters')
             .delete()
             .in('application_id', appIds);
+
+          // Remover candidaturas geradas exclusivamente pela análise do match
+          const autoApps = apps.filter((a: any) => a.status === '🎯 Alta Prioridade' || a.status === '🔎 Encontrada');
+          if (autoApps.length > 0) {
+            await supabase
+              .from('applications')
+              .delete()
+              .in('id', autoApps.map(a => a.id));
+          }
         }
 
         // 5. Apagar cache específico da IA
@@ -714,6 +723,7 @@ export function JobMatchHub({
       queryClient.invalidateQueries({ queryKey: ['resume-optimization'] });
       queryClient.invalidateQueries({ queryKey: ['cover-letter'] });
       queryClient.invalidateQueries({ queryKey: ['interview-prep'] });
+      queryClient.invalidateQueries({ queryKey: ['applications'] });
 
       alert("Análise desta vaga excluída com sucesso! Você pode recalcular a compatibilidade quando desejar.");
     } catch (err: any) {
@@ -2409,39 +2419,52 @@ export function JobMatchHub({
                       ) : (
                         <div className="space-y-5 text-xs">
                           {/* Status Banner */}
-                          <div className="p-3 rounded-xl bg-blue-950/30 border border-blue-500/20 text-blue-300 flex items-center justify-between">
-                            <span>Status da Adaptação: <strong>{adaptation?.status || 'PENDING'}</strong></span>
+                          <div className="p-3.5 rounded-xl bg-blue-950/40 border border-blue-500/30 text-blue-200 flex items-center justify-between">
+                            <div className="flex items-center gap-2">
+                              <Sparkles size={16} className="text-blue-400" />
+                              <span>Status: <strong className="text-white">{adaptation?.status === 'APPLIED' ? '✅ Aplicado no Currículo' : '📋 Sugestões Prontas para Aplicação'}</strong></span>
+                            </div>
                             {adaptation?.status === 'APPLIED' && (
-                              <span className="px-2 py-0.5 bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 rounded font-bold uppercase text-[10px]">
-                                Recomendações Aprovadas
+                              <span className="px-2.5 py-1 bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 rounded-lg font-bold uppercase text-[10px]">
+                                Aprovado
                               </span>
                             )}
                           </div>
 
                           {/* Seções Recomendadas */}
                           {adaptation?.adaptedSections?.map((section, idx) => (
-                            <div key={idx} className="p-4 rounded-xl bg-slate-900/80 border border-slate-800 space-y-2">
-                              <span className="font-bold text-blue-400 block uppercase tracking-wider text-[11px]">{section.sectionName}</span>
-                              <div className="p-2.5 rounded bg-slate-950/60 border border-slate-800/80 text-slate-400 text-[11px]">
-                                <span className="font-semibold text-slate-500 block mb-0.5">Texto Atual:</span>
+                            <div key={idx} className="p-4 rounded-xl bg-slate-900/90 border border-slate-800 space-y-3">
+                              <div className="flex items-center justify-between">
+                                <span className="font-bold text-blue-400 block uppercase tracking-wider text-[11px]">{section.sectionName}</span>
+                                <button
+                                  onClick={() => handleCopySummary(section.suggestedText)}
+                                  className="text-[10px] text-slate-400 hover:text-blue-300 flex items-center gap-1 font-semibold cursor-pointer"
+                                >
+                                  <Clipboard size={12} />
+                                  <span>Copiar Texto</span>
+                                </button>
+                              </div>
+                              <div className="p-2.5 rounded-xl bg-slate-950/80 border border-slate-800/90 text-slate-400 text-[11px]">
+                                <span className="font-semibold text-slate-500 block mb-0.5 uppercase text-[9px] tracking-wider">Texto Atual no Currículo:</span>
                                 {section.originalText}
                               </div>
-                              <div className="p-2.5 rounded bg-blue-950/30 border border-blue-500/20 text-slate-200 text-[11px]">
-                                <span className="font-semibold text-blue-400 block mb-0.5">Sugestão de Otimização:</span>
+                              <div className="p-3 rounded-xl bg-blue-950/30 border border-blue-500/25 text-slate-100 text-[11px] leading-relaxed">
+                                <span className="font-bold text-blue-400 block mb-1 uppercase text-[9px] tracking-wider">Sugestão de Otimização ATS:</span>
                                 {section.suggestedText}
                               </div>
-                              <p className="text-slate-400 text-[10px]">💡 {section.reasoning}</p>
+                              <p className="text-slate-400 text-[10px] italic">💡 Justificativa da IA: {section.reasoning}</p>
                             </div>
                           ))}
 
                           {/* Palavras-chave Adicionadas */}
                           {adaptation?.keywordsAdded && adaptation.keywordsAdded.length > 0 && (
-                            <div className="p-4 rounded-xl bg-slate-900/80 border border-slate-800 space-y-2">
-                              <span className="font-bold text-emerald-400 block uppercase tracking-wider text-[11px]">Palavras-chave Relevantes para Inserir:</span>
+                            <div className="p-4 rounded-xl bg-slate-900/90 border border-slate-800 space-y-2">
+                              <span className="font-bold text-emerald-400 block uppercase tracking-wider text-[11px]">Palavras-chave ATS Sugeridas:</span>
                               <div className="flex flex-wrap gap-2">
                                 {adaptation.keywordsAdded.map((kw, i) => (
-                                  <span key={i} className="px-2.5 py-1 rounded bg-emerald-950/40 border border-emerald-500/30 text-emerald-300 font-semibold text-[11px]">
-                                    + {kw}
+                                  <span key={i} className="px-2.5 py-1 rounded-lg bg-emerald-950/50 border border-emerald-500/30 text-emerald-300 font-semibold text-[11px] flex items-center gap-1">
+                                    <Plus size={12} className="text-emerald-400" />
+                                    {kw}
                                   </span>
                                 ))}
                               </div>
@@ -2449,26 +2472,41 @@ export function JobMatchHub({
                           )}
 
                           {/* Ações de Aprovação */}
-                          <div className="flex justify-end gap-3 pt-4 border-t border-slate-800">
+                          <div className="flex flex-col sm:flex-row justify-between items-center gap-3 pt-4 border-t border-slate-800">
                             <button
                               onClick={() => {
-                                if (adaptation) updateAdaptationStatus({ adaptationId: adaptation.id, status: 'DISMISSED' });
-                                setShowAdaptationModal(false);
+                                const allTexts = (adaptation?.adaptedSections || []).map(s => `=== ${s.sectionName} ===\n${s.suggestedText}`).join('\n\n');
+                                handleCopySummary(allTexts);
+                                showToast('✓ Todas as sugestões copiadas para a área de transferência!', 'success');
                               }}
-                              className="px-4 py-2 rounded-xl border border-slate-800 text-slate-400 hover:text-white text-xs font-semibold cursor-pointer"
+                              className="w-full sm:w-auto px-4 py-2 rounded-xl border border-slate-700 text-slate-200 hover:bg-slate-800 text-xs font-semibold flex items-center justify-center gap-1.5 cursor-pointer"
                             >
-                              Descartar Sugestões
+                              <Clipboard size={14} />
+                              Copiar Todas as Sugestões
                             </button>
-                            <button
-                              onClick={() => {
-                                if (adaptation) updateAdaptationStatus({ adaptationId: adaptation.id, status: 'APPLIED' });
-                                setShowAdaptationModal(false);
-                              }}
-                              className="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold shadow-md shadow-emerald-500/20 flex items-center gap-1.5 cursor-pointer"
-                            >
-                              <Check size={14} />
-                              Aprovar e Aplicar Otimizações
-                            </button>
+
+                            <div className="flex items-center gap-2 w-full sm:w-auto justify-end">
+                              <button
+                                onClick={() => {
+                                  if (adaptation) updateAdaptationStatus({ adaptationId: adaptation.id, status: 'DISMISSED' });
+                                  setShowAdaptationModal(false);
+                                }}
+                                className="px-3.5 py-2 rounded-xl border border-slate-800 text-slate-400 hover:text-white text-xs font-semibold cursor-pointer"
+                              >
+                                Descartar
+                              </button>
+                              <button
+                                onClick={() => {
+                                  if (adaptation) updateAdaptationStatus({ adaptationId: adaptation.id, status: 'APPLIED' });
+                                  setShowAdaptationModal(false);
+                                  showToast('✓ Otimizações marcadas como aplicadas!', 'success');
+                                }}
+                                className="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold shadow-md shadow-emerald-500/20 flex items-center gap-1.5 cursor-pointer"
+                              >
+                                <Check size={14} />
+                                Aprovar Sugestões
+                              </button>
+                            </div>
                           </div>
                         </div>
                       )}
@@ -2647,10 +2685,10 @@ export function JobMatchHub({
                                 href={selectedJob.sourceUrl}
                                 target="_blank"
                                 rel="noopener noreferrer"
-                                className="w-full py-2.5 rounded-xl bg-slate-100 dark:bg-slate-850 hover:bg-slate-200 dark:hover:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 text-[11px] font-bold tracking-wider uppercase transition flex items-center justify-center gap-1.5 cursor-pointer"
+                                className="w-full py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-white font-bold text-[11px] tracking-wider uppercase transition flex items-center justify-center gap-1.5 cursor-pointer shadow-md"
                               >
                                 <span>Ver vaga original</span>
-                                <ArrowUpRight size={12} />
+                                <ArrowUpRight size={14} className="text-blue-400" />
                               </a>
                             )}
                              <div className="flex gap-2">
@@ -3841,6 +3879,14 @@ export function JobMatchHub({
           </div>
         );
       })()}
+
+      {toast && createPortal(
+        <div className="fixed top-6 right-6 z-[10000] p-4 rounded-2xl bg-[#121927] border border-slate-700 shadow-2xl text-white text-xs font-bold flex items-center gap-3 animate-scale-up">
+          <CheckCircle size={18} className="text-emerald-400 shrink-0" />
+          <span>{toast.message}</span>
+        </div>,
+        document.body
+      )}
     </div>
   );
 }

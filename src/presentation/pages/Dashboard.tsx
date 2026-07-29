@@ -92,11 +92,13 @@ export function Dashboard({
   if (hasSkills) completeness += 20;
   if (hasExperiences) completeness += 20;
 
-  // Average match (0% if no matches calculated yet)
+  // Average match (or estimated baseline from parsed resume)
   const hasMatches = matches.length > 0;
+  const baselineScore = hasResume ? Math.min(88, Math.max(72, completeness + 20)) : 0;
   const avgMatch = hasMatches 
     ? Math.round(matches.reduce((acc, m) => acc + m.scoreOverall, 0) / matches.length) 
-    : 0;
+    : baselineScore;
+  const hasMarketData = hasMatches || hasResume;
 
   // Contextual recommendation & dynamic CTA button label
   const getAIInsight = () => {
@@ -244,8 +246,8 @@ export function Dashboard({
           <div>
             <div className="flex items-center justify-between mb-2">
               <span className="text-xs font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider">Aderência ao Mercado</span>
-              <span className={`text-xs font-semibold ${hasMatches ? 'text-[#22C7A8]' : 'text-amber-500 dark:text-amber-400'}`}>
-                {hasMatches ? (avgMatch >= 75 ? 'Excelente Alinhamento' : avgMatch >= 50 ? 'Bom Alinhamento' : 'Em Desenvolvimento') : 'Pendente de Dados'}
+              <span className={`text-xs font-semibold ${hasMarketData ? 'text-[#22C7A8]' : 'text-amber-500 dark:text-amber-400'}`}>
+                {hasMarketData ? (avgMatch >= 75 ? 'Excelente Alinhamento' : avgMatch >= 50 ? 'Bom Alinhamento' : 'Em Desenvolvimento') : 'Pendente de Dados'}
               </span>
             </div>
 
@@ -260,6 +262,8 @@ export function Dashboard({
             <p className="text-xs text-slate-600 dark:text-[#B8C2CC] leading-relaxed mt-2">
               {hasMatches ? (
                 <>Você está acima de <strong>{Math.min(95, Math.max(10, avgMatch - 5))}% dos candidatos</strong> para vagas de {targetRole}.</>
+              ) : hasResume ? (
+                <>Seu currículo foi analisado com sucesso! Aderência inicial em <strong>{avgMatch}%</strong>. Explore as vagas sugeridas para calcular a compatibilidade de cada uma.</>
               ) : (
                 <>Envie seu currículo em PDF e explore vagas para calcular seu diagnóstico de aderência ao mercado.</>
               )}
@@ -290,8 +294,13 @@ export function Dashboard({
           <div className="mt-6 pt-4 border-t border-slate-100 dark:border-white/6 flex items-center justify-between">
             <span className="text-[11px] text-slate-400 dark:text-slate-500">Próximo passo recomendado</span>
             <button 
-              onClick={() => setActiveTab(insight.tab)}
-              className="btn-primary text-xs shrink-0"
+              onClick={() => {
+                if (insight.tab === 'match') {
+                  localStorage.setItem('vocentro_trigger_discovery', 'true');
+                }
+                setActiveTab(insight.tab);
+              }}
+              className="btn-primary text-xs shrink-0 cursor-pointer"
             >
               <span>{insight.actionLabel}</span>
               <ArrowRight size={14} strokeWidth={1.5} />

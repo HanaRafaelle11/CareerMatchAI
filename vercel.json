@@ -15,7 +15,7 @@
   ],
   "rewrites": [
     {
-      "source": "/((?!api/|assets/|favicon|manifest|robots\\.txt|sitemap\\.xml|og-image|apple-touch-icon|pwa-icon|splash-screen|professional_happy).*)",
+      "source": "/(.*)",
       "destination": "/index.html"
     }
   ]

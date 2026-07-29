@@ -15,6 +15,7 @@ import { VocentroLogo } from './presentation/components/ds/MyCareerIcons';
 import { isSupabaseConfigured, supabase } from './infrastructure/api/supabaseClient';
 import { BetaFeedbackWidget } from './presentation/components/BetaFeedbackWidget';
 import { JourneyPipelineView } from './presentation/components/JourneyPipelineView';
+import { OnboardingModal } from './presentation/components/OnboardingModal';
 import type { Job } from './domain/models/types';
 
 // ── Code Splitting: Lazy-load de todas as páginas ──
@@ -54,6 +55,7 @@ import { useQueryClient } from '@tanstack/react-query';
 
 function App() {
   const { user, profile, loading, loginWithEmail, signUpWithEmail, loginWithOAuth, resetPasswordForEmail, logout, updateProfile } = useAuth();
+
   const [showAuth, setShowAuth] = useState(false);
   const [authMode, setAuthMode] = useState<'login' | 'signup'>('login');
   const [isAboutView, setIsAboutView] = useState(window.location.pathname === '/about');
@@ -334,6 +336,16 @@ function AuthenticatedApp({
   const queryClient = useQueryClient();
   const [selectedJobId, setSelectedJobId] = useState<string | null>(null);
   const [activeSimulationAppId, setActiveSimulationAppId] = useState<string | null>(null);
+  const [showOnboarding, setShowOnboarding] = useState(false);
+
+  useEffect(() => {
+    if (user) {
+      const hasCompleted = localStorage.getItem('vocentro_onboarding_completed') === 'true';
+      if (!hasCompleted) {
+        setShowOnboarding(true);
+      }
+    }
+  }, [user]);
 
   // Avalia perfil administrativo
   useEffect(() => {
@@ -500,6 +512,13 @@ function AuthenticatedApp({
 
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100 dark:bg-slate-950 dark:text-slate-100 light:bg-slate-50 light:text-slate-900 transition-colors duration-300 font-sans flex">
+      {/* Onboarding Modal para novos usuários */}
+      <OnboardingModal
+        isOpen={showOnboarding}
+        onClose={() => setShowOnboarding(false)}
+        onNavigateTab={handleSetActiveTab}
+      />
+
       {/* Luzes decorativas */}
       <div className="fixed top-[-10%] right-[-10%] w-[60vw] h-[60vh] rounded-full bg-brand-500/5 dark:bg-brand-500/5 light:bg-brand-500/2 blur-[120px] pointer-events-none z-0" />
       <div className="fixed bottom-[-10%] left-[20%] w-[50vw] h-[50vh] rounded-full bg-indigo-500/5 dark:bg-indigo-500/5 light:bg-indigo-500/2 blur-[120px] pointer-events-none z-0" />
@@ -569,7 +588,11 @@ function AuthenticatedApp({
               }}
               onReanalyze={async () => {
                 try {
-                  await triggerDailyChecks();
+                  if (selectedResumeVersionId && user?.id) {
+                    await queryClient.invalidateQueries({ queryKey: ['my-profile-ai', user.id, selectedResumeVersionId] });
+                    await queryClient.invalidateQueries({ queryKey: ['matches', user.id] });
+                    await queryClient.invalidateQueries({ queryKey: ['resumes', user.id] });
+                  }
                   handleSetActiveTab('discover');
                 } catch (err) {
                   console.error(err);

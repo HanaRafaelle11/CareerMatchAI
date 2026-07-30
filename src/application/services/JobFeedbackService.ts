@@ -11,7 +11,9 @@ export class JobFeedbackService {
     userId: string,
     jobId: string,
     action: JobFeedbackAction,
-    reason?: JobFeedbackReason
+    reason?: JobFeedbackReason,
+    jobTitle?: string,
+    companyName?: string
   ): Promise<void> {
     if (!userId || !jobId) return;
 
@@ -21,16 +23,24 @@ export class JobFeedbackService {
       jobId,
       action,
       reason,
+      jobTitle,
+      companyName,
       createdAt: new Date().toISOString()
     };
 
     if (isSupabaseConfigured && supabase) {
       try {
+        let dbReason = reason || null;
+        if (jobTitle || companyName) {
+          const rBase = reason || 'feedback';
+          dbReason = `${rBase}|jobTitle:${jobTitle || ''}|companyName:${companyName || ''}`;
+        }
+
         await supabase.from('job_feedback').insert({
           user_id: userId,
           job_id: jobId,
           action,
-          reason: reason || null
+          reason: dbReason
         });
       } catch (err) {
         console.warn('[JobFeedbackService] Erro ao registrar feedback no Supabase:', err);

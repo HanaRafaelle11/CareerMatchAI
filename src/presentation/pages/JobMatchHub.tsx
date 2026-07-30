@@ -2317,7 +2317,9 @@ export function JobMatchHub({
                                     jobId: selectedJob.id,
                                     careerFitScore: explanation?.careerFitScore || 75,
                                     jobScore: selectedJob.scores?.overall || 90,
-                                    feedbackType: 'positive'
+                                    feedbackType: 'positive',
+                                    jobTitle: selectedJob.title,
+                                    companyName: selectedJob.companyName
                                   });
                                   showToast('✓ Feedback registrado com sucesso! Obrigado.', 'success');
                                 }}
@@ -2638,7 +2640,9 @@ export function JobMatchHub({
                                 careerFitScore: explanation?.careerFitScore || 75,
                                 jobScore: selectedJob.scores?.overall || 90,
                                 feedbackType: 'negative',
-                                reason: opt.id as JobMatchRejectionReason
+                                reason: opt.id as JobMatchRejectionReason,
+                                jobTitle: selectedJob.title,
+                                companyName: selectedJob.companyName
                               });
                               setMatchRejectionModal(false);
                               showToast('✓ Motivo registrado! O algoritmo usará essa informação.', 'success');

@@ -417,16 +417,17 @@ export function AdminDashboard({ userId }: AdminDashboardProps) {
     queryFn: async () => {
       if (!isSupabaseConfigured || !supabase) return [];
       
-      const [res1, res2] = await Promise.all([
+      const [resFb, resApp] = await Promise.all([
         supabase.from('job_feedback').select('*').order('created_at', { ascending: false }).limit(50),
-        supabase.from('job_match_feedback').select('*').order('created_at', { ascending: false }).limit(50)
+        supabase.from('applications').select('*').order('created_at', { ascending: false }).limit(50)
       ]);
 
-      const rawList = [...(res1.data || []), ...(res2.data || [])];
-      if (rawList.length === 0) return [];
+      const rawFb = resFb.data || [];
+      const rawApps = resApp.data || [];
+      if (rawFb.length === 0) return [];
 
-      const uIds = [...new Set(rawList.map((f: any) => f.user_id).filter(Boolean))];
-      const jIds = [...new Set(rawList.map((f: any) => f.job_id).filter(Boolean))];
+      const uIds = [...new Set([...rawFb.map((f: any) => f.user_id), ...rawApps.map((a: any) => a.user_id)].filter(Boolean))];
+      const jIds = [...new Set(rawFb.map((f: any) => f.job_id).filter(Boolean))];
 
       const [profsRes, jobsRes] = await Promise.all([
         uIds.length > 0 ? supabase.from('profiles').select('id, full_name, email').in('id', uIds) : { data: [] },
@@ -439,11 +440,32 @@ export function AdminDashboard({ userId }: AdminDashboardProps) {
       const jMap: Record<string, { title: string; company_name: string }> = {};
       (jobsRes.data || []).forEach((j: any) => { jMap[j.id] = { title: j.title, company_name: j.company_name }; });
 
-      return rawList.map((f: any) => ({
-        ...f,
-        profiles: uMap[f.user_id] || { full_name: 'Anônimo / N/A', email: f.user_id || 'sem email' },
-        jobs: jMap[f.job_id] || { title: f.job_title || `Vaga (ID: ${f.job_id?.slice(0, 8) || 'vaga'})`, company_name: f.company_name || 'Empresa' }
-      }));
+      return rawFb.map((f: any) => {
+        const matchingApp = rawApps.find((a: any) => a.user_id === f.user_id && (a.job_id === f.job_id || a.id === f.job_id));
+
+        let title = f.job_title || jMap[f.job_id]?.title || matchingApp?.job_title || null;
+        let company = f.company_name || jMap[f.job_id]?.company_name || matchingApp?.company_name || null;
+
+        let cleanReason = f.reason || 'Sem motivo registrado';
+        if (typeof cleanReason === 'string' && cleanReason.includes('|jobTitle:')) {
+          const parts = cleanReason.split('|');
+          cleanReason = parts[0] || 'feedback';
+          parts.forEach(p => {
+            if (p.startsWith('jobTitle:')) title = title || p.replace('jobTitle:', '');
+            if (p.startsWith('companyName:')) company = company || p.replace('companyName:', '');
+          });
+        }
+
+        return {
+          ...f,
+          reason: cleanReason,
+          profiles: uMap[f.user_id] || { full_name: 'Anônimo / N/A', email: f.user_id || 'sem email' },
+          jobs: { 
+            title: title || `Vaga (ID: ${f.job_id?.slice(0, 8) || 'vaga'})`, 
+            company_name: company || 'Empresa N/A' 
+          }
+        };
+      });
     },
     enabled: hasTelemetryAccess
   });

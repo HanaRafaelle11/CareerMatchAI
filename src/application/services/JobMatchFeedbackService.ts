@@ -11,6 +11,8 @@ export interface JobMatchFeedbackRecord {
   jobScore: number;
   feedbackType: JobMatchFeedbackType;
   reason?: JobMatchRejectionReason;
+  jobTitle?: string;
+  companyName?: string;
   createdAt: string;
 }
 
@@ -25,6 +27,8 @@ export class JobMatchFeedbackService {
     jobScore: number;
     feedbackType: JobMatchFeedbackType;
     reason?: JobMatchRejectionReason;
+    jobTitle?: string;
+    companyName?: string;
   }): Promise<JobMatchFeedbackRecord> {
     const record: JobMatchFeedbackRecord = {
       id: `match-fb-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
@@ -34,12 +38,18 @@ export class JobMatchFeedbackService {
       jobScore: params.jobScore,
       feedbackType: params.feedbackType,
       reason: params.reason,
+      jobTitle: params.jobTitle,
+      companyName: params.companyName,
       createdAt: new Date().toISOString()
     };
 
     if (isSupabaseConfigured && supabase) {
       try {
-        const feedbackReason = params.reason || (params.feedbackType === 'positive' ? 'positive' : 'negative');
+        let feedbackReason = params.reason || (params.feedbackType === 'positive' ? 'positive' : 'negative');
+        if (params.jobTitle || params.companyName) {
+          feedbackReason = `${feedbackReason}|jobTitle:${params.jobTitle || ''}|companyName:${params.companyName || ''}` as any;
+        }
+
         const insertPayload: any = {
           job_id: params.jobId,
           reason: feedbackReason

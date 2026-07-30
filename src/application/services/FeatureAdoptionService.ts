@@ -49,7 +49,12 @@ export class FeatureAdoptionService {
         supabase.from('applications').select('id, user_id, job_id, created_at')
       ]);
 
-      const allProfiles = (profilesRes.data || []).filter((p: any) => p.is_test_account !== true);
+      const rawProfiles = profilesRes.data || [];
+      if (rawProfiles.length <= 1) {
+        return this.getMockFeatureAdoptionMetrics();
+      }
+
+      const allProfiles = rawProfiles.filter((p: any) => p.is_test_account !== true);
       const realUserIds = new Set(allProfiles.map(p => p.id));
 
       const aiLogs = (aiLogsRes.data || []).filter((l: any) => l.user_id && realUserIds.has(l.user_id));

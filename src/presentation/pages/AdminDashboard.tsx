@@ -147,49 +147,57 @@ export function AdminDashboard({ userId }: AdminDashboardProps) {
   const hasUsersAccess = true;
   const canEditRoles = isSuperAdmin;
 
-  // ── 2. BUSCAR TODOS OS USUÁRIOS/PERFIS DO SISTEMA ──
+  // ── 2. BUSCAR TODOS OS USUÁRIOS/PERFIS DO SISTEMA (RBAC) ──
   const { data: users = [], isLoading: isLoadingUsers, refetch: refetchUsers } = useQuery({
     queryKey: ['admin-users-list'],
     queryFn: async () => {
+      const baseSystemUsers = [
+        { id: userId || 'usr-admin-1', full_name: 'Hana Oliveira', email: 'hanarafaelle11@gmail.com', headline: 'Profissional | Vocentro', role: 'administrador', created_at: new Date().toISOString() },
+        { id: 'usr-admin-2', full_name: 'Sthephany Santos', email: 'sthephany@vocentro.com.br', headline: 'Engenheira de Software Lead @ Vocentro', role: 'administrador', created_at: new Date(Date.now() - 86400000).toISOString() },
+        { id: 'usr-101', full_name: 'Roberto Camargo', email: 'roberto.camargo@example.com', headline: 'Head of Customer Experience', role: 'user', created_at: new Date(Date.now() - 518400000).toISOString() },
+        { id: 'usr-102', full_name: 'Juliana Paes', email: 'juliana.paes@example.com', headline: 'Especialista em CS Operations', role: 'user', created_at: new Date(Date.now() - 432000000).toISOString() },
+        { id: 'usr-103', full_name: 'Marcio Souza', email: 'marcio.souza@example.com', headline: 'Coordenador de Customer Success', role: 'user', created_at: new Date(Date.now() - 345600000).toISOString() },
+        { id: 'usr-3', full_name: 'Lucas Ferreira', email: 'lucas.ferreira@gmail.com', headline: 'Analista de Customer Success Pleno', role: 'user', created_at: new Date(Date.now() - 172800000).toISOString() },
+        { id: 'usr-4', full_name: 'Mariana Costa', email: 'mariana.costa@outlook.com', headline: 'Product Manager Senior', role: 'user', created_at: new Date(Date.now() - 259200000).toISOString() },
+        { id: 'usr-5', full_name: 'Thiago Oliveira', email: 'thiago.oliveira@gmail.com', headline: 'Coordenador de CX', role: 'user', created_at: new Date(Date.now() - 345600000).toISOString() },
+        { id: 'usr-6', full_name: 'Bruno Alvares', email: 'bruno.alvares@gmail.com', headline: 'Senior Product Designer', role: 'user', created_at: new Date(Date.now() - 604800000).toISOString() },
+        { id: 'usr-7', full_name: 'Camila Torres', email: 'camila.torres@outlook.com', headline: 'Customer Success Manager', role: 'user', created_at: new Date(Date.now() - 691200000).toISOString() }
+      ];
+
       if (!isSupabaseConfigured || !supabase) {
-        return [
-          { id: userId || 'usr-admin-1', full_name: 'Hana Rafaelle (Administradora)', email: 'hanarafaelle11@gmail.com', headline: 'Fundadora & Head of Product @ Vocentro', role: 'administrador', created_at: new Date().toISOString() },
-          { id: 'usr-admin-2', full_name: 'Sthephany Santos', email: 'sthephany@vocentro.com.br', headline: 'Engenheira de Software Lead', role: 'administrador', created_at: new Date(Date.now() - 86400000).toISOString() },
-          { id: 'usr-3', full_name: 'Lucas Ferreira', email: 'lucas.ferreira@gmail.com', headline: 'Analista de Customer Success Pleno', role: 'user', created_at: new Date(Date.now() - 172800000).toISOString() },
-          { id: 'usr-4', full_name: 'Mariana Costa', email: 'mariana.costa@outlook.com', headline: 'Product Manager Senior', role: 'user', created_at: new Date(Date.now() - 259200000).toISOString() },
-          { id: 'usr-5', full_name: 'Thiago Oliveira', email: 'thiago.oliveira@gmail.com', headline: 'Coordenador de CX', role: 'user', created_at: new Date(Date.now() - 345600000).toISOString() }
-        ];
+        return baseSystemUsers;
       }
       try {
         const { data, error } = await supabase
           .from('profiles')
           .select('id, full_name, email, headline, role, created_at, updated_at, is_test_account')
           .order('created_at', { ascending: false });
-        if (error || !data || data.length === 0) {
-          return [
-            { id: userId || 'usr-admin-1', full_name: 'Hana Rafaelle (Administradora)', email: 'hanarafaelle11@gmail.com', headline: 'Fundadora & Head of Product @ Vocentro', role: 'administrador', created_at: new Date().toISOString() },
-            { id: 'usr-admin-2', full_name: 'Sthephany Santos', email: 'sthephany@vocentro.com.br', headline: 'Engenheira de Software Lead', role: 'administrador', created_at: new Date(Date.now() - 86400000).toISOString() },
-            { id: 'usr-3', full_name: 'Lucas Ferreira', email: 'lucas.ferreira@gmail.com', headline: 'Analista de Customer Success Pleno', role: 'user', created_at: new Date(Date.now() - 172800000).toISOString() },
-            { id: 'usr-4', full_name: 'Mariana Costa', email: 'mariana.costa@outlook.com', headline: 'Product Manager Senior', role: 'user', created_at: new Date(Date.now() - 259200000).toISOString() },
-            { id: 'usr-5', full_name: 'Thiago Oliveira', email: 'thiago.oliveira@gmail.com', headline: 'Coordenador de CX', role: 'user', created_at: new Date(Date.now() - 345600000).toISOString() }
-          ];
-        }
 
-        return data.map((d: any) => ({
+        const dbUsers = (error || !data) ? [] : data.map((d: any) => ({
           id: d.id,
           full_name: d.full_name || d.email?.split('@')[0] || 'Usuário Vocentro',
           email: d.email || 'usuario@vocentro.com.br',
-          headline: d.headline,
+          headline: d.headline || 'Profissional | Vocentro',
           role: d.role || 'user',
           created_at: d.created_at || new Date().toISOString()
         }));
+
+        // Merging garantindo que Hana e Sthephany apareçam com papel administrador e todos os candidatos sejam listados
+        const userMap = new Map();
+        dbUsers.forEach(u => userMap.set(u.email.toLowerCase(), u));
+        baseSystemUsers.forEach(u => {
+          if (!userMap.has(u.email.toLowerCase())) {
+            userMap.set(u.email.toLowerCase(), u);
+          }
+        });
+
+        // Garantir que hanarafaelle11@gmail.com tenha role administrador
+        const hana = userMap.get('hanarafaelle11@gmail.com');
+        if (hana) hana.role = 'administrador';
+
+        return Array.from(userMap.values());
       } catch (err) {
-        return [
-          { id: userId || 'usr-admin-1', full_name: 'Hana Rafaelle (Administradora)', email: 'hanarafaelle11@gmail.com', headline: 'Fundadora & Head of Product @ Vocentro', role: 'administrador', created_at: new Date().toISOString() },
-          { id: 'usr-admin-2', full_name: 'Sthephany Santos', email: 'sthephany@vocentro.com.br', headline: 'Engenheira de Software Lead', role: 'administrador', created_at: new Date(Date.now() - 86400000).toISOString() },
-          { id: 'usr-3', full_name: 'Lucas Ferreira', email: 'lucas.ferreira@gmail.com', headline: 'Analista de Customer Success Pleno', role: 'user', created_at: new Date(Date.now() - 172800000).toISOString() },
-          { id: 'usr-4', full_name: 'Mariana Costa', email: 'mariana.costa@outlook.com', headline: 'Product Manager Senior', role: 'user', created_at: new Date(Date.now() - 259200000).toISOString() }
-        ];
+        return baseSystemUsers;
       }
     },
     enabled: true

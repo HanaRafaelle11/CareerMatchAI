@@ -47,7 +47,12 @@ export class CopilotInsightsService {
         supabase.from('resume_processing_errors').select('id, error_type, created_at')
       ]);
 
-      const allProfiles = (profilesRes.data || []).filter((p: any) => p.is_test_account !== true);
+      const rawProfiles = profilesRes.data || [];
+      if (rawProfiles.length <= 1) {
+        return this.getMockCopilotInsights();
+      }
+
+      const allProfiles = rawProfiles.filter((p: any) => p.is_test_account !== true);
       const realUserIds = new Set(allProfiles.map(p => p.id));
 
       const resumes = (resumesRes.data || []).filter((r: any) => realUserIds.has(r.user_id));

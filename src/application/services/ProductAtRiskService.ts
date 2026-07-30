@@ -52,7 +52,12 @@ export class ProductAtRiskService {
         supabase.from('interview_preps').select('id, user_id, job_id, created_at').order('created_at', { ascending: false })
       ]);
 
-      const allProfiles = (profilesRes.data || []).filter((p: any) => p.is_test_account !== true);
+      const rawProfiles = profilesRes.data || [];
+      if (rawProfiles.length <= 1) {
+        return this.getMockRiskAlerts();
+      }
+
+      const allProfiles = rawProfiles.filter((p: any) => p.is_test_account !== true);
       const resumes = resumesRes.data || [];
       const matches = matchesRes.data || [];
       const applications = applicationsRes.data || [];

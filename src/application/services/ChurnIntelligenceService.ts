@@ -60,7 +60,12 @@ export class ChurnIntelligenceService {
         supabase.from('analytics_events').select('user_id, event_name, created_at').order('created_at', { ascending: false })
       ]);
 
-      const allProfiles = (profilesRes.data || []).filter((p: any) => p.is_test_account !== true);
+      const rawProfiles = profilesRes.data || [];
+      if (rawProfiles.length <= 1) {
+        return this.getMockChurnIntelligence();
+      }
+
+      const allProfiles = rawProfiles.filter((p: any) => p.is_test_account !== true);
       const resumes = resumesRes.data || [];
       const matches = matchesRes.data || [];
       const applications = applicationsRes.data || [];

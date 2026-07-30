@@ -11,26 +11,26 @@ export function mapStatusToDb(frontendStatus: string): ApplicationStatus {
     case '🔎 Encontrada':
     case 'Encontrada':
     case '🔧 Ajustar antes':
-      return 'found';
+      return '🔎 Encontrada' as ApplicationStatus;
 
     case 'saved':
     case '⭐ Tenho interesse':
     case 'Interessante':
     case '🎯 Alta Prioridade':
-      return 'saved';
+      return '⭐ Tenho interesse' as ApplicationStatus;
 
     case 'applied':
     case '📨 Me candidatei':
     case '📝 Vou me candidatar':
     case '📝 Candidatura planejada':
     case 'Aplicada':
-      return 'applied';
+      return '📨 Me candidatei' as ApplicationStatus;
 
     case 'hr':
     case '👥 Entrevista com recrutador':
     case '👥 Entrevista RH':
     case 'Entrevista RH':
-      return 'hr';
+      return '👥 Entrevista com recrutador' as ApplicationStatus;
 
     case 'interview':
     case '🎯 Entrevista com gestor':
@@ -38,27 +38,27 @@ export function mapStatusToDb(frontendStatus: string): ApplicationStatus {
     case '🧩 Case técnico':
     case '🤝 Fit cultural':
     case 'Entrevista Gestor':
-      return 'interview';
+      return '🎯 Entrevista com gestor' as ApplicationStatus;
 
     case 'offer':
     case '🏆 Oferta recebida':
     case 'Oferta':
-      return 'offer';
+      return '🏆 Oferta recebida' as ApplicationStatus;
 
     case 'hired':
     case '✅ Aceita':
     case 'Contratado':
-      return 'hired';
+      return '✅ Aceita' as ApplicationStatus;
 
     case 'rejected':
     case '❌ Rejeitada':
     case '🚫 Fora do meu objetivo':
     case '👻 Sem resposta':
     case 'Recusada':
-      return 'rejected';
+      return '❌ Rejeitada' as ApplicationStatus;
 
     default:
-      return 'found';
+      return '🔎 Encontrada' as ApplicationStatus;
   }
 }
 

@@ -411,44 +411,38 @@ export function AdminDashboard({ userId }: AdminDashboardProps) {
     refetchInterval: 10000 // auto-refresh a cada 10 segundos
   });
 
-  // ── 5b. FEEDBACK DE VAGAS REJEITADAS COM TITULO DA VAGA (Item 6) ──
+  // ── 5b. FEEDBACK DE VAGAS REJEITADAS/AVALIADAS COM DADOS DE USUÁRIO E VAGA ──
   const { data: jobFeedbacks = [] } = useQuery({
     queryKey: ['admin-job-feedbacks'],
     queryFn: async () => {
       if (!isSupabaseConfigured || !supabase) return [];
-      const { data, error } = await supabase
-        .from('job_feedback')
-        .select('*, profiles!job_feedback_user_id_fkey(full_name, email)')
-        .eq('action', 'REJECTED')
-        .order('created_at', { ascending: false })
-        .limit(100);
+      
+      const [res1, res2] = await Promise.all([
+        supabase.from('job_feedback').select('*').order('created_at', { ascending: false }).limit(50),
+        supabase.from('job_match_feedback').select('*').order('created_at', { ascending: false }).limit(50)
+      ]);
 
-      if (error || !data) {
-        const { data: fallback } = await supabase
-          .from('job_feedback')
-          .select('*')
-          .eq('action', 'REJECTED')
-          .order('created_at', { ascending: false })
-          .limit(100);
-        return fallback || [];
-      }
+      const rawList = [...(res1.data || []), ...(res2.data || [])];
+      if (rawList.length === 0) return [];
 
-      // Buscar títulos de vagas separadamente para evitar erro de JOIN no PostgREST
-      const jobIds = [...new Set(data.map((f: any) => f.job_id).filter(Boolean))];
-      let jobsMap: Record<string, { title: string; company_name: string }> = {};
-      if (jobIds.length > 0) {
-        const { data: jobsData } = await supabase
-          .from('jobs')
-          .select('id, title, company_name')
-          .in('id', jobIds);
-        (jobsData || []).forEach((j: any) => {
-          jobsMap[j.id] = { title: j.title, company_name: j.company_name };
-        });
-      }
+      const uIds = [...new Set(rawList.map((f: any) => f.user_id).filter(Boolean))];
+      const jIds = [...new Set(rawList.map((f: any) => f.job_id).filter(Boolean))];
 
-      return data.map((f: any) => ({
+      const [profsRes, jobsRes] = await Promise.all([
+        uIds.length > 0 ? supabase.from('profiles').select('id, full_name, email').in('id', uIds) : { data: [] },
+        jIds.length > 0 ? supabase.from('jobs').select('id, title, company_name').in('id', jIds) : { data: [] }
+      ]);
+
+      const uMap: Record<string, { full_name: string; email: string }> = {};
+      (profsRes.data || []).forEach((p: any) => { uMap[p.id] = p; });
+
+      const jMap: Record<string, { title: string; company_name: string }> = {};
+      (jobsRes.data || []).forEach((j: any) => { jMap[j.id] = { title: j.title, company_name: j.company_name }; });
+
+      return rawList.map((f: any) => ({
         ...f,
-        jobs: jobsMap[f.job_id] || { title: `Vaga Rejeitada (ID: ${f.job_id?.slice(0, 8) || 'vaga'})`, company_name: 'Empresa' }
+        profiles: uMap[f.user_id] || { full_name: 'Anônimo / N/A', email: f.user_id || 'sem email' },
+        jobs: jMap[f.job_id] || { title: f.job_title || `Vaga (ID: ${f.job_id?.slice(0, 8) || 'vaga'})`, company_name: f.company_name || 'Empresa' }
       }));
     },
     enabled: hasTelemetryAccess
@@ -1876,6 +1870,72 @@ export function AdminDashboard({ userId }: AdminDashboardProps) {
                     </div>
                   );
                 })}
+              </div>
+            )}
+          </CardGlass>
+
+          {/* TABELA DETALHADA DE FEEDBACK DE VAGAS (Item 5: Bloco 5 - Tabela Detalhada JOIN Profiles & Jobs) */}
+          <CardGlass className="p-5 space-y-4">
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 pb-2 border-b border-slate-900">
+              <div>
+                <h3 className="text-sm font-bold text-white uppercase tracking-wider flex items-center gap-2">
+                  <ThumbsDown size={16} className="text-amber-400" />
+                  Feedbacks Detalhados de Relevância de Vagas (JOIN Usuários + Vagas)
+                </h3>
+                <p className="text-xs text-slate-400 mt-0.5">Histórico de avaliações individuais enviadas pelos usuários sobre compatibilidade e motivos de rejeição de vagas.</p>
+              </div>
+              <span className="text-[10px] font-bold text-amber-400 bg-amber-950/30 px-3 py-1.5 rounded-lg border border-amber-500/30 font-mono">
+                {jobFeedbacks.length} avaliação(ões) registrada(s)
+              </span>
+            </div>
+
+            {jobFeedbacks.length === 0 ? (
+              <div className="text-center py-8 text-slate-500 text-xs border border-dashed border-slate-800 rounded-xl">
+                Nenhum feedback de relevância de vaga registrado até o momento.
+              </div>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full text-left text-xs border-collapse">
+                  <thead>
+                    <tr className="border-b border-slate-800 text-slate-400 text-[10px] uppercase tracking-wider bg-slate-950/50">
+                      <th className="p-3">Usuário</th>
+                      <th className="p-3">Vaga / Empresa</th>
+                      <th className="p-3">Ação / Relevância</th>
+                      <th className="p-3">Motivo / Detalhes</th>
+                      <th className="p-3">Data</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-800/60 text-slate-300 font-mono text-[11px]">
+                    {jobFeedbacks.map((fb: any, idx: number) => {
+                      const isRejected = fb.action === 'REJECTED' || fb.feedback_type === 'negative';
+                      return (
+                        <tr key={fb.id || idx} className="hover:bg-slate-900/50 transition-colors">
+                          <td className="p-3 font-sans">
+                            <span className="font-bold text-white block">{fb.profiles?.full_name || 'Anônimo'}</span>
+                            <span className="text-[10px] text-slate-500 block">{fb.profiles?.email || fb.user_id}</span>
+                          </td>
+                          <td className="p-3 font-sans">
+                            <span className="font-semibold text-slate-200 block">{fb.jobs?.title || 'Vaga N/A'}</span>
+                            <span className="text-[10px] text-slate-400 block">{fb.jobs?.company_name || 'Empresa'}</span>
+                          </td>
+                          <td className="p-3">
+                            <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase border ${
+                              isRejected ? 'bg-red-500/10 text-red-400 border-red-500/30' : 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30'
+                            }`}>
+                              {isRejected ? '👎 Rejeitada' : '👍 Relevante'}
+                            </span>
+                          </td>
+                          <td className="p-3 font-sans">
+                            <span className="text-slate-300 block">{fb.rejection_reason || fb.reason || fb.notes || 'Sem detalhes'}</span>
+                          </td>
+                          <td className="p-3 text-slate-500 text-[10px]">
+                            {fb.created_at ? new Date(fb.created_at).toLocaleString('pt-BR') : 'N/A'}
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
               </div>
             )}
           </CardGlass>

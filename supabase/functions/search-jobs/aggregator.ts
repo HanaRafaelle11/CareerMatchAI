@@ -103,79 +103,75 @@ function calculateSemanticMatch(
   const combinedText = `${titleLower} ${descLower}`;
   const rawQuery = (intent.raw_query || '').toLowerCase();
 
-  let score = 35;
+  const stopwords = new Set(['de', 'da', 'do', 'das', 'dos', 'em', 'para', 'com', 'por', 'sem', 'ou', 'e', 'a', 'o', 'of', 'for', 'in', 'and']);
+  const queryTokens = rawQuery.split(/\s+/).filter(w => !stopwords.has(w) && w.length >= 2);
+
+  let score = 25;
   let detail = "compatibilidade inicial";
 
-  const matchedPrimary = intent.primary_titles.some(t => {
-    const tLower = t.toLowerCase().trim();
-    return titleLower.includes(tLower) || tLower.includes(titleLower);
-  });
+  // 1. Term Matching Base & Continuous Granularity
+  const matchedTokens = queryTokens.filter(t => titleLower.includes(t));
+  const matchRatio = queryTokens.length > 0 ? matchedTokens.length / queryTokens.length : 0;
 
-  if (matchedPrimary) {
-    score = 88;
-    detail = "correspondência exata de cargo";
+  if (titleLower.includes(rawQuery) && rawQuery.length > 3) {
+    score = 92;
+    detail = "correspondência exata de frase";
+  } else if (matchRatio === 1) {
+    score = 84;
+    detail = "todos os termos-chave presentes";
+  } else if (matchRatio >= 0.66) {
+    score = 70 + Math.round(matchRatio * 15);
+    detail = `sobreposição de ${matchedTokens.length}/${queryTokens.length} termos-chave`;
+  } else if (matchRatio > 0) {
+    score = 40 + Math.round(matchRatio * 20);
+    detail = "sobreposição parcial de termos";
   } else {
-    const matchedSecondary = intent.secondary_titles.some(t => {
-      const tLower = t.toLowerCase().trim();
-      return titleLower.includes(tLower) || tLower.includes(titleLower);
-    });
-
-    if (matchedSecondary) {
-      score = 75;
-      detail = "cargo correlato relevante";
-    } else {
-      const tokensToMatch = new Set<string>();
-      intent.primary_titles.forEach(t => t.toLowerCase().split(/\s+/).forEach(w => {
-        const cleaned = w.replace(/[^\w]/g, "");
-        if (cleaned.length >= 2 && !['de', 'da', 'do', 'das', 'dos', 'em', 'para', 'com', 'e', 'a', 'o', 'of', 'for', 'in', 'and'].includes(cleaned)) {
-          tokensToMatch.add(cleaned);
-        }
-      }));
-
-      const titleWords = titleLower.split(/\s+/).map(w => w.replace(/[^\w]/g, "")).filter(w => w.length >= 2);
-      const overlapCount = titleWords.filter(w => tokensToMatch.has(w)).length;
-      if (overlapCount > 0) {
-        score = Math.min(68, 40 + (overlapCount * 14));
-        detail = "sobreposição parcial de palavra-chave";
-      }
-    }
+    score = 15;
+    detail = "sem correspondência direta de termos";
   }
 
-  // ── ALINHAMENTO DE SENIORIDADE E NÍVEL HIERÁRQUICO ──
+  // 2. ALINHAMENTO DE SENIORIDADE E NÍVEL HIERÁRQUICO
   const isSupervisorRequested = /\b(supervisor|supervisora|coordenador|coordenadora|líder|lider|gerente)\b/i.test(rawQuery);
   const isSeniorRequested = /\b(sênior|senior|sr|lead|principal)\b/i.test(rawQuery);
-  const isJuniorRequested = /\b(júnior|junior|jr|estagiário|estagiario|assistente)\b/i.test(rawQuery);
+  const isJuniorRequested = /\b(júnior|junior|jr|estagiário|estagio|estagiario|assistente)\b/i.test(rawQuery);
 
   if (isSupervisorRequested) {
-    const isSupervisorJob = /\b(supervisor|supervisora|coordenador|coordenadora|líder|lider|gerente|head)\b/i.test(titleLower);
-    const isJuniorJob = /\b(agente|assistente|estagiário|estagiario|júnior|junior|jr)\b/i.test(titleLower);
-    
-    if (isSupervisorJob) {
-      score = Math.min(99, score + 10);
-      detail += " + liderança aderente";
-    } else if (isJuniorJob) {
-      score = Math.max(5, score - 40); // Penaliza níveis operacionais/júnior em busca de supervisão
-      detail += " - penalidade por nível operacional em busca de liderança";
+    const isExactSupervisor = /\b(supervisor|supervisora)\b/i.test(titleLower);
+    const isLeadershipRole = /\b(coordenador|coordenadora|líder|lider|gerente|head)\b/i.test(titleLower);
+    const isOperationalOrJunior = /\b(agente|assistente|estágio|estagio|estagiário|estagiario|júnior|junior|jr)\b/i.test(titleLower);
+
+    if (isExactSupervisor) {
+      score += 7;
+      detail += " (+supervisor exato)";
+    } else if (isLeadershipRole) {
+      score += 3;
+      detail += " (+liderança correlata)";
+    } else if (isOperationalOrJunior) {
+      score -= 50; // Forte penalidade para nível júnior/operacional em busca de supervisão
+      detail += " (-penalidade nível júnior/operacional)";
+    } else {
+      score -= 15; // Ligeiro ajuste para analista pleno/sênior que não é cargo de supervisão
+      detail += " (-não é cargo de supervisão)";
     }
   } else if (isSeniorRequested) {
     const isSeniorJob = /\b(sênior|senior|sr|lead|principal|head)\b/i.test(titleLower);
-    const isJuniorJob = /\b(júnior|junior|jr|estagiário|estagiario)\b/i.test(titleLower);
+    const isJuniorJob = /\b(júnior|junior|jr|estagiário|estagiario|assistente)\b/i.test(titleLower);
     if (isSeniorJob) {
-      score = Math.min(99, score + 10);
+      score += 8;
     } else if (isJuniorJob) {
-      score = Math.max(5, score - 35);
+      score -= 40;
     }
   } else if (isJuniorRequested) {
     const isJuniorJob = /\b(júnior|junior|jr|estagiário|estagiario|assistente)\b/i.test(titleLower);
     const isSeniorJob = /\b(sênior|senior|sr|lead|gerente|head)\b/i.test(titleLower);
     if (isJuniorJob) {
-      score = Math.min(99, score + 10);
+      score += 8;
     } else if (isSeniorJob) {
-      score = Math.max(5, score - 35);
+      score -= 40;
     }
   }
 
-  // Bonus for matched skills
+  // 3. Bonus for matched skills in job text
   if (intent.skills && intent.skills.length > 0) {
     const matchedSkillsCount = intent.skills.filter(skill => {
       if (!skill) return false;
@@ -188,11 +184,12 @@ function calculateSemanticMatch(
       }
     }).length;
 
-    const skillBonus = Math.min(10, Math.round((matchedSkillsCount / intent.skills.length) * 10));
-    score = Math.min(99, score + skillBonus);
+    const skillBonus = Math.min(8, Math.round((matchedSkillsCount / intent.skills.length) * 8));
+    score += skillBonus;
   }
 
-  return { matchScore: score, detail };
+  const finalScore = Math.min(99, Math.max(5, score));
+  return { matchScore: finalScore, detail };
 }
 
 // Normalize Company Name

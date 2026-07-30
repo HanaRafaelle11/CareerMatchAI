@@ -219,6 +219,14 @@ function calculateSemanticMatch(
     const isSeniorJob = /\b(sênior|senior|sr|lead|gerente|head)\b/i.test(titleLower);
     if (isJuniorJob) hierarchyDelta = +0.08;
     else if (isSeniorJob) hierarchyDelta = -0.45;
+  } else {
+    // Busca Genérica (ex: "customer success"): dar preferência a posições efetivas/CSM/analistas,
+    // enquanto cargos de Estágio / Agente / Assistente recebem ajuste (-0.35) para não ficarem no topo (89-95%).
+    const isJuniorOrEntry = /\b(estágio|estagio|estagiário|estagiario|agente|assistente|júnior|junior|jr)\b/i.test(titleLower);
+    if (isJuniorOrEntry) {
+      hierarchyDelta = -0.35;
+      detail += " (-ajuste nível entrada)";
+    }
   }
 
   // 5. Bonus for matched skills in job text

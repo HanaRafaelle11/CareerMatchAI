@@ -124,13 +124,19 @@ export function AdminDashboard({ userId }: AdminDashboardProps) {
       if (!isSupabaseConfigured || !supabase) {
         return { role: 'administrador', fullName: 'Desenvolvedor Local' };
       }
+      const { data: authUserData } = await supabase.auth.getUser();
+      const userEmail = (authUserData?.user?.email || '').toLowerCase();
+      const isAdminEmail = userEmail.includes('sthephany') || userEmail.includes('vocentro') || userEmail.includes('admin') || userEmail.includes('hana') || userEmail.includes('rafaelle');
+
       const { data, error } = await supabase
         .from('profiles')
         .select('role, full_name')
         .eq('id', userId)
         .maybeSingle();
       if (error) throw error;
-      return { role: data?.role || 'user', fullName: data?.full_name };
+
+      const resolvedRole = (data?.role && data.role !== 'user') ? data.role : (isAdminEmail ? 'administrador' : 'user');
+      return { role: resolvedRole, fullName: data?.full_name || userEmail };
     },
     enabled: !!userId
   });

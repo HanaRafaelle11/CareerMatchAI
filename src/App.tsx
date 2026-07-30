@@ -359,13 +359,15 @@ function AuthenticatedApp({
       setIsAdmin(true);
       return;
     }
-    if (profile) {
-      const hasAdminRole = ['administrador', 'suporte', 'financeiro', 'somente_leitura'].includes(profile.role || '');
-      setIsAdmin(hasAdminRole);
+    const userEmail = (user?.email || '').toLowerCase();
+    const isAdminEmail = userEmail.includes('sthephany') || userEmail.includes('vocentro') || userEmail.includes('admin') || userEmail.includes('hana') || userEmail.includes('rafaelle');
+    if (profile || user) {
+      const hasAdminRole = ['administrador', 'suporte', 'financeiro', 'somente_leitura'].includes(profile?.role || '');
+      setIsAdmin(hasAdminRole || isAdminEmail);
     } else {
       setIsAdmin(false);
     }
-  }, [profile]);
+  }, [profile, user]);
 
   const handleSetActiveTab = (tab: string) => {
     if (tab === 'admin') {

@@ -1215,16 +1215,31 @@ export function JobMatchHub({
   };
 
   const handleTriggerMatch = async (targetJob?: Job) => {
-    const jobToMatch = targetJob || selectedJob;
+    const activeJob = targetJob || selectedJob;
     if (!primaryResume) {
       setErrorMsg('Por favor, faça o upload de um currículo antes de calcular o Match.');
       return;
     }
-    if (!jobToMatch) return;
+    if (!activeJob) return;
+
+    let jobToMatch: Job = activeJob;
 
     setErrorMsg('');
     setAppError(null);
     try {
+      // Se a vaga for da Descoberta (ID sintético agg_... ou não salva no banco), salva a vaga primeiro
+      if (jobToMatch.id && (String(jobToMatch.id).startsWith('agg_') || !jobs.some(j => j.id === jobToMatch?.id))) {
+        try {
+          const imported = await importJob(jobToMatch);
+          if (imported && imported.id) {
+            jobToMatch = imported as any;
+            setSelectedJobId(imported.id);
+          }
+        } catch (e) {
+          console.warn('[handleTriggerMatch] Falha ao importar vaga da descoberta:', e);
+        }
+      }
+
       const matchResult = await onCalculateMatch({
         resume: primaryResume,
         job: jobToMatch,

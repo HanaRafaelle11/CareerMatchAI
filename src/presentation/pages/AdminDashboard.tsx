@@ -15,7 +15,7 @@ import {
   Activity, Loader2, ShieldAlert, RefreshCw, 
   Users, CreditCard, Search, Filter, 
   ShieldCheck, UserCheck, AlertTriangle, AlertCircle, 
-  Clock, Laptop, Key, FileText, 
+  Clock, Laptop, Key, FileText, Eye,
   Layers, Bot, UploadCloud, X,
   ThumbsUp, ThumbsDown, MessageSquare
 } from 'lucide-react';
@@ -2473,41 +2473,56 @@ export function AdminDashboard({ userId }: AdminDashboardProps) {
                             </span>
                           </div>
                           
-                          <div className="flex gap-2">
-                            {res.raw_text && (
-                              <button
-                                onClick={async () => {
-                                  await AdminAuditService.logAccess({
-                                    adminId: userId || 'admin',
-                                    targetUserId: selectedUser.id,
-                                    action: 'view_resume',
-                                    details: `Visualizou texto: ${res.file_name || 'Curriculo.pdf'}`
-                                  });
-                                  setInspectedResume(res);
-                                }}
-                                className="px-3 py-1.5 rounded-lg bg-blue-500/10 border border-blue-500/30 text-blue-400 hover:bg-blue-500/20 text-xs font-bold transition cursor-pointer"
-                              >
-                                👁 Visualizar Texto
-                              </button>
-                            )}
-                            {res.file_url && (
-                              <a
-                                href={res.file_url}
-                                target="_blank"
-                                rel="noreferrer"
-                                onClick={async () => {
-                                  await AdminAuditService.logAccess({
-                                    adminId: userId || 'admin',
-                                    targetUserId: selectedUser.id,
-                                    action: 'download_resume',
-                                    details: `Acessou arquivo PDF: ${res.file_name || 'Curriculo.pdf'}`
-                                  });
-                                }}
-                                className="px-3 py-1.5 rounded-lg bg-brand-600 hover:bg-brand-500 text-white text-xs font-bold transition cursor-pointer inline-flex items-center gap-1"
-                              >
-                                📥 Abrir PDF
-                              </a>
-                            )}
+                          <div className="flex gap-2 shrink-0">
+                            <button
+                              onClick={async () => {
+                                await AdminAuditService.logAccess({
+                                  adminId: userId || 'admin',
+                                  targetUserId: selectedUser.id,
+                                  action: 'view_resume',
+                                  details: `Visualizou texto: ${res.file_name || res.fileName || 'Curriculo.pdf'}`
+                                });
+                                setInspectedResume(inspectedResume?.id === res.id ? null : res);
+                              }}
+                              className={`px-3 py-1.5 rounded-lg border text-xs font-bold transition cursor-pointer flex items-center gap-1.5 ${
+                                inspectedResume?.id === res.id 
+                                  ? 'bg-blue-600 text-white border-blue-500 shadow-sm' 
+                                  : 'bg-blue-500/10 border-blue-500/30 text-blue-400 hover:bg-blue-500/20'
+                              }`}
+                            >
+                              <Eye size={13} />
+                              <span>{inspectedResume?.id === res.id ? 'Ocultar Texto' : 'Visualizar Texto'}</span>
+                            </button>
+
+                            <a
+                              href={(() => {
+                                const fileName = res.file_name || res.fileName || res.file_path?.split('/').pop();
+                                const rawUrl = res.file_url || res.fileUrl || res.file_path || res.storage_path;
+                                if (rawUrl && (rawUrl.startsWith('http://') || rawUrl.startsWith('https://') || rawUrl.startsWith('blob:'))) {
+                                  return rawUrl;
+                                }
+                                const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || 'https://bdlpfrwebsmpohtclnxf.supabase.co';
+                                const cleanFileName = fileName || (rawUrl ? rawUrl.split('/').pop() : 'Curriculo.pdf');
+                                if (rawUrl && rawUrl.includes('/')) {
+                                  return `${supabaseUrl}/storage/v1/object/public/resumes/${rawUrl}`;
+                                }
+                                return `${supabaseUrl}/storage/v1/object/public/resumes/${selectedUser.id}/${cleanFileName}`;
+                              })()}
+                              target="_blank"
+                              rel="noreferrer"
+                              onClick={async () => {
+                                await AdminAuditService.logAccess({
+                                  adminId: userId || 'admin',
+                                  targetUserId: selectedUser.id,
+                                  action: 'download_resume',
+                                  details: `Acessou arquivo PDF: ${res.file_name || res.fileName || 'Curriculo.pdf'}`
+                                });
+                              }}
+                              className="px-3 py-1.5 rounded-lg bg-brand-600 hover:bg-brand-500 text-white text-xs font-bold transition cursor-pointer inline-flex items-center gap-1.5 shadow-sm"
+                            >
+                              <FileText size={13} />
+                              <span>Abrir PDF</span>
+                            </a>
                           </div>
                         </div>
 
@@ -2524,10 +2539,24 @@ export function AdminDashboard({ userId }: AdminDashboardProps) {
                         {/* Visualizador de Texto Extraído */}
                         {inspectedResume?.id === res.id && (
                           <div className="p-3.5 rounded-xl bg-slate-950 border border-slate-800 space-y-2 text-xs animate-fade-in">
-                            <span className="font-bold text-slate-300 block border-b border-slate-900 pb-1">Texto Bruto Extraído:</span>
-                            <p className="text-slate-400 font-mono text-[11px] max-h-60 overflow-y-auto whitespace-pre-wrap leading-relaxed">
-                              {res.raw_text || 'Nenhum texto extraído disponível para este currículo.'}
-                            </p>
+                            <div className="flex justify-between items-center border-b border-slate-800 pb-1.5">
+                              <span className="font-bold text-slate-300">Conteúdo do Currículo:</span>
+                              <span className="text-[10px] text-slate-500 font-mono">{res.file_name || res.fileName || 'Curriculo.pdf'}</span>
+                            </div>
+                            <pre className="text-slate-300 font-mono text-[11px] max-h-64 overflow-y-auto whitespace-pre-wrap leading-relaxed p-2.5 rounded-lg bg-slate-900/60 border border-slate-800/80">
+                              {(() => {
+                                const candidates = [res.raw_text, res.extracted_text, res.parsed_text, res.content, res.text, res.summary];
+                                for (const c of candidates) {
+                                  if (c && typeof c === 'string' && c.trim().length > 0 && c.trim() !== '__binary_upload__') {
+                                    return c.trim();
+                                  }
+                                }
+                                const fileName = res.file_name || res.fileName || 'Curriculo.pdf';
+                                const dateStr = res.created_at ? new Date(res.created_at).toLocaleString('pt-BR') : 'Recente';
+                                const statusStr = isFailed ? '🔴 Falha no parsing' : '🟢 Processado com sucesso';
+                                return `📄 Arquivo: ${fileName}\nStatus: ${statusStr}\nData de Upload: ${dateStr}\n\nℹ️ O conteúdo deste arquivo foi armazenado como PDF binário no Supabase Storage.\nUtilize o botão "Abrir PDF" ao lado para abrir e visualizar o arquivo PDF original formatado no navegador.`;
+                              })()}
+                            </pre>
                           </div>
                         )}
                       </div>

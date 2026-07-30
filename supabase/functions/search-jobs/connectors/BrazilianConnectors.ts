@@ -42,13 +42,16 @@ export class ProgramathorConnector extends BaseJobConnector {
 
   async searchJobs(keyword: string, location: string, pageNum: number): Promise<RawJob[]> {
     if (pageNum > 1) return [];
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 2500);
+
     try {
       const res = await fetch("https://programathor.com.br/jobs.xml", {
+        signal: controller.signal,
         headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)' }
       });
-      if (!res.ok) {
-        throw new Error(`HTTP ${res.status}: Erro ao carregar feed XML do ProgramaThor`);
-      }
+      clearTimeout(timeoutId);
+      if (!res.ok) return [];
       
       const xml = await res.text();
       const allJobs = parseProgramaThorXml(xml);
@@ -61,8 +64,7 @@ export class ProgramathorConnector extends BaseJobConnector {
       );
 
       return filtered;
-    } catch (err: any) {
-      console.warn("[ProgramathorConnector] Falha no feed XML (HTTP 500 ou indisponibilidade externa):", err.message);
+    } catch (_) {
       return [];
     }
   }
@@ -74,14 +76,17 @@ export class TramposConnector extends BaseJobConnector {
 
   async searchJobs(keyword: string, location: string, pageNum: number): Promise<RawJob[]> {
     const jobs: RawJob[] = [];
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 2500);
+
     try {
       const url = `https://trampos.co/api/v2/opportunities?search_term=${encodeURIComponent(keyword)}&page=${pageNum}`;
       const res = await fetch(url, {
+        signal: controller.signal,
         headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)' }
       });
-      if (!res.ok) {
-        throw new Error(`HTTP ${res.status}: Erro na API Trampos.co`);
-      }
+      clearTimeout(timeoutId);
+      if (!res.ok) return [];
 
       const data = await res.json();
       const opportunities = data.opportunities || [];
@@ -104,9 +109,8 @@ export class TramposConnector extends BaseJobConnector {
         });
       });
       return jobs;
-    } catch (err: any) {
-      console.error("[TramposConnector] Erro:", err.message);
-      throw err;
+    } catch (_) {
+      return [];
     }
   }
 }

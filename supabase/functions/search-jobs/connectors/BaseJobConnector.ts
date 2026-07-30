@@ -28,5 +28,5 @@ export interface JobIntent {
 
 export abstract class BaseJobConnector {
   abstract readonly platformName: string;
-  abstract searchJobs(keyword: string, location: string, pageNum: number): Promise<RawJob[]>;
+  abstract searchJobs(keyword: string, location: string, pageNum: number, signal?: AbortSignal): Promise<RawJob[]>;
 }

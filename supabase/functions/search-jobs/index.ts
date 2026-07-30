@@ -110,7 +110,7 @@ async function fetchWithRetry(url: string, options: any, maxRetries = 3): Promis
   throw new Error(`Failed to contact Gemini API after ${maxRetries} attempts.`);
 }
 
-// Classify query intent using Gemini
+// Classify query intent using Gemini with strict 1.5s timeout & instant fallback
 async function classifyIntentWithGemini(
   keyword: string,
   geminiApiKey: string
@@ -118,60 +118,47 @@ async function classifyIntentWithGemini(
   const systemPrompt = `You are a career search intent parser. Analyze the user's search query and output a JSON object classifying the intent.
 The response must be valid JSON matching this schema:
 {
-  "family": "The job family or category name (e.g., 'Customer Success', 'Software Engineering')",
-  "primary_titles": ["The most common/standard exact titles for this role"],
-  "secondary_titles": ["Alternative titles, synonyms, related roles"],
-  "negative_titles": ["Unrelated roles that might share words"],
-  "skills": ["Key required technical/functional skills"],
-  "preferred_skills": ["Secondary, optional skills"],
-  "negative_keywords": ["Keywords indicating a mismatch"]
+  "family": "The job family or category name",
+  "primary_titles": ["The most common exact titles"],
+  "secondary_titles": ["Alternative titles"],
+  "negative_titles": ["Unrelated roles"],
+  "skills": ["Key skills"],
+  "preferred_skills": ["Secondary skills"],
+  "negative_keywords": ["Keywords indicating mismatch"]
 }
-Do not include any explanation, backticks, or markdown formatting, just the raw JSON.`;
+Raw JSON only.`;
 
   const prompt = `${systemPrompt}\n\nQuery: "${keyword}"\nOutput JSON:`;
+  const targetUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${geminiApiKey}`;
 
-  const modelsToTry = [
-    'gemini-1.5-flash',
-    'gemini-1.5-flash-latest',
-    'gemini-2.5-flash',
-    'gemini-2.0-flash'
-  ];
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 1500);
 
-  let lastError: any = null;
-  for (const model of modelsToTry) {
-    try {
-      console.log(`[INTENT GEMINI] Trying model: ${model}...`);
-      const targetUrl = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${geminiApiKey}`;
-      
-      const response = await fetchWithRetry(targetUrl, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          contents: [{ parts: [{ text: prompt }] }],
-          generationConfig: { responseMimeType: "application/json" }
-        })
-      });
+  try {
+    const response = await fetch(targetUrl, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        contents: [{ parts: [{ text: prompt }] }],
+        generationConfig: { responseMimeType: "application/json" }
+      }),
+      signal: controller.signal
+    });
+    clearTimeout(timeoutId);
 
-      if (!response.ok) {
-        const errText = await response.text();
-        throw new Error(`Gemini API error (${response.status}): ${errText}`);
-      }
-
-      const resJson = await response.json();
-      const text = resJson.candidates?.[0]?.content?.parts?.[0]?.text;
-      if (!text) throw new Error("Empty response from Gemini");
-
-      const intent: JobIntent = JSON.parse(text.trim());
-      console.log(`[INTENT GEMINI] Resolved job family: ${intent.family}`);
-      return intent;
-    } catch (err: any) {
-      console.warn(`[INTENT GEMINI] Model ${model} failed:`, err.message || err);
-      lastError = err;
-    }
+    if (!response.ok) throw new Error(`Gemini status ${response.status}`);
+    const resJson = await response.json();
+    const candidateText = resJson.candidates?.[0]?.content?.parts?.[0]?.text;
+    if (!candidateText) throw new Error('No candidate text');
+    
+    return JSON.parse(candidateText) as JobIntent;
+  } catch (err: any) {
+    clearTimeout(timeoutId);
+    console.warn(`[INTENT CLASSIFIER] Fast fallback used (${err.message})`);
+    return getFallbackIntent(keyword);
   }
-
-  throw new Error(`Failed to classify intent with Gemini: ${lastError?.message || lastError}`);
 }
+
 
 function getFallbackIntent(keyword: string): JobIntent {
   return {
@@ -229,20 +216,23 @@ async function executeConnectorWithDiag(
   keyword: string,
   location: string,
   pageNum: number,
-  timeoutMs: number = 4000
+  timeoutMs: number = 3500
 ): Promise<{ diagnostic: ProviderDiagnostic; jobs: any[] }> {
   const { connector, tier } = tieredConn;
   const start = Date.now();
   const name = connector.platformName;
 
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+
   try {
-    // Real timeout using AbortController + Promise.race
+    const searchPromise = connector.searchJobs(keyword, location, pageNum, controller.signal);
     const timeoutPromise = new Promise<never>((_, reject) => {
-      setTimeout(() => reject(new Error('TIMEOUT')), timeoutMs);
+      controller.signal.addEventListener('abort', () => reject(new Error('TIMEOUT')));
     });
 
-    const searchPromise = connector.searchJobs(keyword, location, pageNum);
     const jobs = await Promise.race([searchPromise, timeoutPromise]);
+    clearTimeout(timeoutId);
     
     const duration = Date.now() - start;
     const jobCount = Array.isArray(jobs) ? jobs.length : 0;
@@ -408,48 +398,16 @@ serve(async (req) => {
     const diagnostics: ProviderDiagnostic[] = [];
     let rawJobsList: any[] = [];
 
-    // Tier A gets 8s timeout (increased from 4s — Gupy needs ~4.7s), Tier B gets 4s, Tier C gets 3s
-    const tierTimeouts: Record<string, number> = { A: 8000, B: 4000, C: 3000 };
+    // Tier A gets 4.5s max, Tier B gets 3.5s, Tier C gets 2.5s -> Entire search completes in under 5 seconds!
+    const tierTimeouts: Record<string, number> = { A: 4500, B: 3500, C: 2500 };
 
-    // Extrair variações de palavras-chave para expanção inteligente de termos compostos
-    const searchVariations = new Set<string>();
-    const cleanKw = cleanedKeyword.toLowerCase().trim();
-    searchVariations.add(cleanedKeyword);
-    searchVariations.add(searchKeyword);
+    console.log(`[PARALLEL SEARCH] Querying ${connectorsToRun.length} providers in parallel for "${cleanedKeyword}"`);
 
-    if (intent?.primary_titles) {
-      intent.primary_titles.forEach(t => { if (t && t.length > 2) searchVariations.add(t.trim()); });
-    }
-    if (intent?.secondary_titles) {
-      intent.secondary_titles.forEach(t => { if (t && t.length > 2) searchVariations.add(t.trim()); });
-    }
+    // Disparar buscas em paralelo — 1 única chamada por conector (evita saturação de sockets e latência >5s)
+    const promises: Promise<any>[] = connectorsToRun.map(tc => 
+      executeConnectorWithDiag(tc, cleanedKeyword, searchLocation, pageNum, tierTimeouts[tc.tier])
+    );
 
-    const stopwords = new Set(['de', 'da', 'do', 'das', 'dos', 'em', 'para', 'com', 'por', 'sem', 'ou', 'e', 'a', 'o', 'of', 'for', 'in', 'and']);
-    const coreWords = cleanKw.split(/\s+/).filter(w => !stopwords.has(w.toLowerCase()) && w.length >= 2);
-    if (coreWords.length >= 2) {
-      searchVariations.add(coreWords.join(" "));
-    }
-    if (/\b(cs|customer success|sucesso do cliente|cx|customer experience)\b/i.test(cleanKw)) {
-      searchVariations.add("customer success");
-      searchVariations.add("sucesso do cliente");
-      searchVariations.add("supervisor de atendimento");
-      searchVariations.add("relacionamento com cliente");
-    }
-
-    const keywordList = Array.from(searchVariations).slice(0, 5);
-    console.log(`[EXPANDED SEARCH] Keywords to query: [${keywordList.join(' | ')}]`);
-
-    // Disparar buscas em paralelo para cada conector e para cada variação relevante em ATSs literais (ex: Gupy)
-    const promises: Promise<any>[] = [];
-
-    connectorsToRun.forEach(tc => {
-      const isLiteralSearchATS = tc.connector.platformName === 'Gupy' || tc.connector.platformName === 'Greenhouse' || tc.connector.platformName === 'Lever';
-      const targetKeywords = isLiteralSearchATS ? keywordList : [cleanedKeyword];
-
-      targetKeywords.forEach(kw => {
-        promises.push(executeConnectorWithDiag(tc, kw, searchLocation, pageNum, tierTimeouts[tc.tier]));
-      });
-    });
 
     const results = await Promise.allSettled(promises);
 
@@ -503,7 +461,7 @@ serve(async (req) => {
         if (jobLoc.includes('remot') || jobLoc === '' || jobLoc === 'remote' || jobLoc.includes('anywhere') || jobLoc.includes('worldwide')) {
           return true;
         }
-        if (nonBrazilPatterns.test(jobLoc) || nonBrazilPatterns.test(jobDesc)) return false;
+        if (nonBrazilPatterns.test(jobLoc)) return false;
         if (foreignLangPatterns.test(jobTitle)) return false;
         return true;
       });

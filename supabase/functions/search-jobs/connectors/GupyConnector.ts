@@ -7,12 +7,12 @@ export class GupyConnector extends BaseJobConnector {
     if (pageNum > 2) return []; // Limite de 2 páginas para reduzir latência
 
     const jobs: RawJob[] = [];
-    const limit = 15; // Reduzido de 25 para 15 — resposta mais rápida, menor risco de timeout
+    const limit = 10; // 10 vagas por busca — reduz tamanho da resposta e traz latência para ~3s
     const offset = Math.max(0, (pageNum - 1) * limit);
 
     const controller = new AbortController();
-    // Timeout aumentado de 3000ms para 6500ms — Gupy responde em ~4-5s
-    const timeoutId = setTimeout(() => controller.abort(), 6500);
+    // Timeout ajustado para 4200ms para encaixar no teto de 4.5s do Tier A
+    const timeoutId = setTimeout(() => controller.abort(), 4200);
 
     try {
       const url = `https://employability-portal.gupy.io/api/v1/jobs?jobName=${encodeURIComponent(keyword)}&offset=${offset}&limit=${limit}`;

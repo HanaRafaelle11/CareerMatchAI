@@ -128,7 +128,8 @@ function calculateSemanticMatch(
   const titleLower = titleClean.toLowerCase();
   const descLower = (j.description || '').toLowerCase();
   const combinedText = `${titleLower} ${descLower}`;
-  const rawQuery = (intent.raw_query || '').toLowerCase().trim();
+  const rawQuery = (intent.family || intent.primary_titles?.[0] || '').toLowerCase().trim();
+
 
   const stopwords = new Set(['de', 'da', 'do', 'das', 'dos', 'em', 'para', 'com', 'por', 'sem', 'ou', 'e', 'a', 'o', 'of', 'for', 'in', 'and']);
   const queryTokens = Array.from(new Set(rawQuery.split(/\s+/).filter(w => !stopwords.has(w) && w.length >= 2)));
@@ -160,8 +161,27 @@ function calculateSemanticMatch(
   const isExactPhrase = titleLower.includes(rawQuery) && rawQuery.length > 3;
   const phraseBonus = isExactPhrase ? 0.28 : 0;
 
-  // Base Continuous Composite Score (0.0 to 1.0)
-  let composite = 0.32 + (effectiveJaccard * 0.38) + (bigramSim * 0.22) + phraseBonus;
+  // VERIFICAÇÃO RIGOROSA DE CORRESPONDÊNCIA TEXTUAL / SEMÂNTICA
+  const descMatches = queryTokens.filter(t => descLower.includes(t));
+  const descSemanticMatches = Array.from(expandedQueryTokens).filter(t => descLower.includes(t));
+  const hasDescMatch = descMatches.length > 0 || descSemanticMatches.length > 0;
+  const hasTitleMatch = directMatches.length > 0 || semanticMatches.length > 0 || isExactPhrase || bigramSim >= 0.40;
+
+  // Se NÃO HOUVER match nem no título nem na descrição (ex: Diretor de Arte, Analista Contábil para customer success)
+  if (!hasTitleMatch && !hasDescMatch) {
+    return { 
+      matchScore: 5, 
+      detail: `Sem correspondência textual ou semântica com o termo buscado (Jaccard: 0%)` 
+    };
+  }
+
+  // Cálculo proporcional ao match real (0.0 a 1.0)
+  let composite = 0;
+  if (hasTitleMatch) {
+    composite = (effectiveJaccard * 0.45) + (bigramSim * 0.25) + phraseBonus + 0.15;
+  } else if (hasDescMatch) {
+    composite = 0.20 + (descMatches.length / Math.max(1, queryTokens.length)) * 0.15;
+  }
 
   // 4. Seniority / Hierarchy Level Adjustment
   const isSupervisorReq = /\b(supervisor|supervisora|coordenador|coordenadora|líder|lider|gerente)\b/i.test(rawQuery);
@@ -226,6 +246,7 @@ function calculateSemanticMatch(
 
   return { matchScore: finalPercent, detail };
 }
+
 
 // Normalize Company Name
 function normalizeCompany(name: string): string {
@@ -412,13 +433,17 @@ export function aggregateAndNormalizeJobs(
     }
   }
 
-  // ── SOURCE DIVERSITY CAP ──
+  // ── 1. STRICT RELEVANCE FILTER ──
+  // Filter ONLY jobs with real candidate compatibility match >= 20%
+  const relevantJobs = rankedResults.filter(j => j.scores.overall >= 20);
+
+  // ── 2. SOURCE DIVERSITY CAP ON RELEVANT JOBS ONLY ──
   // Limit each provider to max 15 results to prevent any single source (e.g., Adzuna)
   // from dominating the final list when it returns 37+ raw jobs vs 1-8 from others.
   const sourceCountMap = new Map<string, number>();
   const diverseResults: NormalizedJob[] = [];
   const SOURCE_MAX = 15;
-  for (const job of rankedResults) {
+  for (const job of relevantJobs) {
     const src = job.provider || 'Outros';
     const count = sourceCountMap.get(src) || 0;
     if (count < SOURCE_MAX) {
@@ -427,12 +452,10 @@ export function aggregateAndNormalizeJobs(
     }
   }
 
-  // Filter ONLY jobs with candidate compatibility match >= 20%
-  const relevantJobs = diverseResults.filter(j => j.scores.overall >= 20);
 
   // Sort final array strictly by Candidate Compatibility Score (scores.overall) descending
   // Tie-breaker: ATS Provider Quality and Freshness
-  relevantJobs.sort((a, b) => {
+  diverseResults.sort((a, b) => {
     const diff = b.scores.overall - a.scores.overall;
     if (Math.abs(diff) >= 3) return diff;
     return (b.scores.providerQuality + b.scores.freshness) - (a.scores.providerQuality + a.scores.freshness);
@@ -447,7 +470,7 @@ export function aggregateAndNormalizeJobs(
   const uniqueCities = new Set<string>();
   let totalAgeDays = 0;
 
-  rankedResults.forEach(j => {
+  diverseResults.forEach(j => {
     finalProviderStats[j.provider] = (finalProviderStats[j.provider] || 0) + 1;
     if (j.ats) officialAtsCount++;
     if (j.sourceUrl.includes('adzuna.com')) redirectLinksCount++;
@@ -460,18 +483,18 @@ export function aggregateAndNormalizeJobs(
     totalAgeDays += ageDays;
   });
 
-  const avgAgeDays = rankedResults.length > 0 ? Math.round(totalAgeDays / rankedResults.length) : 0;
+  const avgAgeDays = diverseResults.length > 0 ? Math.round(totalAgeDays / diverseResults.length) : 0;
   
   // Overall Job Quality Score formula (0 - 100)
-  const officialAtsRatio = rankedResults.length > 0 ? officialAtsCount / rankedResults.length : 0;
-  const directLinkRatio = rankedResults.length > 0 ? directLinksCount / rankedResults.length : 0;
+  const officialAtsRatio = diverseResults.length > 0 ? officialAtsCount / diverseResults.length : 0;
+  const directLinkRatio = diverseResults.length > 0 ? directLinksCount / diverseResults.length : 0;
   const providerCount = Object.keys(finalProviderStats).length;
 
   let pipelineHealthScore = Math.round(
     (officialAtsRatio * 40) +
     (directLinkRatio * 30) +
     (Math.min(1, providerCount / 4) * 20) +
-    (Math.min(1, uniqueCompanies.size / Math.max(1, rankedResults.length)) * 10)
+    (Math.min(1, uniqueCompanies.size / Math.max(1, diverseResults.length)) * 10)
   );
   pipelineHealthScore = Math.max(0, Math.min(100, pipelineHealthScore));
 
@@ -480,7 +503,7 @@ export function aggregateAndNormalizeJobs(
 Busca: ${intent.family} | Terreno: ${targetLocation}
 Vagas Brutas: ${rawJobs.length}
 Após deduplicação: ${deduplicatedJobs.length} (Duplicatas removidas: ${duplicatesRemoved})
-Após ranking final: ${rankedResults.length}
+Após ranking final: ${diverseResults.length}
 
 Diversidade de Provedores:
 ${JSON.stringify(finalProviderStats, null, 2)}
@@ -497,5 +520,6 @@ Job Quality Score: ${pipelineHealthScore} / 100
 ====================================
   `);
 
-  return relevantJobs;
+  return diverseResults;
+
 }

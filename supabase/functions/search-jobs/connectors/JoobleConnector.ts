@@ -3,12 +3,16 @@ import { BaseJobConnector, type RawJob } from "./BaseJobConnector.ts";
 export class JoobleConnector extends BaseJobConnector {
   readonly platformName = "Jooble";
 
-  async searchJobs(keyword: string, location: string, pageNum: number): Promise<RawJob[]> {
+  async searchJobs(keyword: string, location: string, pageNum: number, signal?: AbortSignal): Promise<RawJob[]> {
     const apiKey = Deno.env.get('JOOBLE_API_KEY');
     if (!apiKey) {
       console.warn("[JoobleConnector] JOOBLE_API_KEY não configurada.");
       return [];
     }
+
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 3000);
+    const combinedSignal = signal || controller.signal;
 
     const url = `https://jooble.org/api/${apiKey}`;
     const joobleLoc = (!location || location.toLowerCase().includes('brasil')) ? "Brazil" : location;
@@ -20,11 +24,12 @@ export class JoobleConnector extends BaseJobConnector {
           keywords: keyword,
           location: joobleLoc,
           page: pageNum
-        })
+        }),
+        signal: combinedSignal
       });
+      clearTimeout(timeoutId);
 
       if (!res.ok) {
-        console.warn(`[JoobleConnector] Resposta com status ${res.status}`);
         return [];
       }
 

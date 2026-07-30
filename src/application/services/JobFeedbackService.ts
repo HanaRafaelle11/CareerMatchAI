@@ -40,7 +40,7 @@ export class JobFeedbackService {
           user_id: userId,
           job_id: jobId,
           action,
-          reason: dbReason
+          reason: dbReason as any
         });
       } catch (err) {
         console.warn('[JobFeedbackService] Erro ao registrar feedback no Supabase:', err);

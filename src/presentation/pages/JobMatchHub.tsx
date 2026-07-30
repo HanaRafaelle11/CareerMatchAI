@@ -3473,6 +3473,22 @@ export function JobMatchHub({
             }
           }
 
+          // Relevância Mínima: Se há palavra-chave de busca ativa, descartar vagas com score < 20 sem relevância textual
+          const currentKw = (activeFilters.keyword || '').trim().toLowerCase();
+          if (currentKw && currentKw !== 'vagas' && currentKw !== 'brasil') {
+            const titleLow = (job.title || '').toLowerCase();
+            const descLow = (job.description || '').toLowerCase();
+            const companyLow = (job.companyName || '').toLowerCase();
+            
+            const stopwords = ['de', 'da', 'do', 'das', 'dos', 'em', 'para', 'com', 'por', 'sem', 'ou', 'e', 'a', 'o'];
+            const tokens = currentKw.split(/\s+/).filter((w: string) => !stopwords.includes(w) && w.length >= 2);
+            
+            const hasKeywordMatch = tokens.some((t: string) => titleLow.includes(t) || descLow.includes(t) || companyLow.includes(t));
+            if (!hasKeywordMatch && (job.scoreOverall < 20 && job.cpi < 20)) {
+              return false;
+            }
+          }
+
           return true;
         }).sort((a, b) => b.cpi - a.cpi);
 

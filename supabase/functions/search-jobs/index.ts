@@ -403,16 +403,49 @@ serve(async (req) => {
     console.log(`[AGGREGATOR] Running ${connectorsToRun.length} connectors for "${searchKeyword}" in "${searchLocation}"`);
     console.log(`[AGGREGATOR] Connectors: ${connectorsToRun.map(tc => `${tc.connector.platformName} (${tc.tier})`).join(', ')}`);
 
-    // ── 3. EXECUTE ALL CONNECTORS IN PARALLEL WITH REAL TIMEOUT ──
+    // ── 3. EXECUTE ALL CONNECTORS IN PARALLEL WITH KEYWORD EXPANSION ──
     const diagnostics: ProviderDiagnostic[] = [];
     let rawJobsList: any[] = [];
 
     // Tier A gets 4s timeout, Tier B gets 3.5s, Tier C gets 3s
     const tierTimeouts: Record<string, number> = { A: 4000, B: 3500, C: 3000 };
 
-    const promises = connectorsToRun.map(tc => 
-      executeConnectorWithDiag(tc, searchKeyword, searchLocation, pageNum, tierTimeouts[tc.tier])
-    );
+    // Extrair variações de palavras-chave para expanção inteligente de termos compostos
+    const searchVariations = new Set<string>();
+    const cleanKw = searchKeyword.toLowerCase().trim();
+    searchVariations.add(searchKeyword);
+
+    if (intent?.primary_titles) {
+      intent.primary_titles.forEach(t => { if (t && t.length > 2) searchVariations.add(t.trim()); });
+    }
+    if (intent?.secondary_titles) {
+      intent.secondary_titles.forEach(t => { if (t && t.length > 2) searchVariations.add(t.trim()); });
+    }
+
+    const stopwords = new Set(['de', 'da', 'do', 'das', 'dos', 'em', 'para', 'com', 'por', 'sem', 'ou', 'e', 'a', 'o', 'of', 'for', 'in', 'and']);
+    const coreWords = cleanKw.split(/\s+/).filter(w => !stopwords.has(w.toLowerCase()) && w.length >= 2);
+    if (coreWords.length >= 2) {
+      searchVariations.add(coreWords.join(" "));
+    }
+    if (/\b(cs|customer success)\b/i.test(cleanKw)) {
+      searchVariations.add("customer success");
+      searchVariations.add("supervisor de atendimento");
+    }
+
+    const keywordList = Array.from(searchVariations).slice(0, 4);
+    console.log(`[EXPANDED SEARCH] Keywords to query: [${keywordList.join(' | ')}]`);
+
+    // Disparar buscas em paralelo para cada conector e para cada variação relevante em ATSs literais (ex: Gupy)
+    const promises: Promise<any>[] = [];
+
+    connectorsToRun.forEach(tc => {
+      const isLiteralSearchATS = tc.connector.platformName === 'Gupy' || tc.connector.platformName === 'Greenhouse' || tc.connector.platformName === 'Lever';
+      const targetKeywords = isLiteralSearchATS ? keywordList : [searchKeyword];
+
+      targetKeywords.forEach(kw => {
+        promises.push(executeConnectorWithDiag(tc, kw, searchLocation, pageNum, tierTimeouts[tc.tier]));
+      });
+    });
 
     const results = await Promise.allSettled(promises);
 

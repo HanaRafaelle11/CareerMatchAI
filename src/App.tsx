@@ -16,6 +16,7 @@ import { isSupabaseConfigured, supabase } from './infrastructure/api/supabaseCli
 import { BetaFeedbackWidget } from './presentation/components/BetaFeedbackWidget';
 import { OnboardingModal } from './presentation/components/OnboardingModal';
 import { GlobalCopilotDrawer } from './presentation/components/GlobalCopilotDrawer';
+import { SatisfactionSurveyModal } from './presentation/components/SatisfactionSurveyModal';
 import { Toast, type ToastMessage } from './presentation/components/ds';
 import type { Job } from './domain/models/types';
 
@@ -449,6 +450,45 @@ function AuthenticatedApp({
 
   const [globalToast, setGlobalToast] = useState<ToastMessage | null>(null);
 
+  // ── Rastreamento de Visitas para Pesquisa de Satisfação (Item 4) ──
+  const [userVisitCount, setUserVisitCount] = useState<number>(0);
+  const [showSatisfactionSurvey, setShowSatisfactionSurvey] = useState<boolean>(false);
+
+  useEffect(() => {
+    if (!user) {
+      setShowSatisfactionSurvey(false);
+      return;
+    }
+
+    const visitStorageKey = `vocentro_user_visit_count_${user.id}`;
+    const sessionKey = `vocentro_session_active_${user.id}`;
+    const surveyCompletedKey = `vocentro_survey_completed_${user.id}`;
+    const surveyDismissedKey = `vocentro_survey_dismissed_${user.id}`;
+
+    let visits = parseInt(localStorage.getItem(visitStorageKey) || '0', 10);
+    const isCurrentSessionActive = sessionStorage.getItem(sessionKey) === 'true';
+
+    if (!isCurrentSessionActive) {
+      visits += 1;
+      localStorage.setItem(visitStorageKey, String(visits));
+      sessionStorage.setItem(sessionKey, 'true');
+    }
+
+    setUserVisitCount(visits);
+
+    const isCompleted = localStorage.getItem(surveyCompletedKey) === 'true';
+    const isDismissedInSession = sessionStorage.getItem(surveyDismissedKey) === 'true';
+
+    if ((visits === 2 || visits === 3) && !isCompleted && !isDismissedInSession) {
+      const timer = setTimeout(() => {
+        setShowSatisfactionSurvey(true);
+      }, 1500);
+      return () => clearTimeout(timer);
+    } else {
+      setShowSatisfactionSurvey(false);
+    }
+  }, [user?.id]);
+
   const selectedResume = resumes.find(r => r.resumeVersionId === selectedResumeVersionId) || resumes[0];
   const selectedResumeId = selectedResume?.id || null;
 
@@ -821,6 +861,16 @@ function AuthenticatedApp({
         onStartUpload={() => handleSetActiveTab('profile')}
         onNavigateTab={handleSetActiveTab}
       />
+
+      {/* Pesquisa de Satisfação na 2ª e 3ª Visita (Item 4) */}
+      {showSatisfactionSurvey && user && (
+        <SatisfactionSurveyModal
+          userId={user.id}
+          userName={profile?.full_name || user.email?.split('@')[0] || 'Candidato'}
+          visitCount={userVisitCount}
+          onClose={() => setShowSatisfactionSurvey(false)}
+        />
+      )}
 
       {/* Beta Feedback Widget — Floating Global */}
       {user && <BetaFeedbackWidget userId={user.id} feature="career_intelligence" />}

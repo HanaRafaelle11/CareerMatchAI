@@ -1304,6 +1304,12 @@ export function JobMatchHub({
     ? Math.round(matches.reduce((acc, m) => acc + m.scoreOverall, 0) / matches.length)
     : 0;
 
+  // ── UNIFIED MATCH SCORE (SINGLE SOURCE OF TRUTH FOR SELECTED JOB) ──
+  const currentSelectedMatch = selectedJob ? matches.find(m => m.jobId === selectedJob.id) : null;
+  const unifiedJobMatchScore = selectedJob
+    ? (currentSelectedMatch?.scoreOverall ?? selectedJob.scores?.overall ?? explanation?.careerFitScore ?? 0)
+    : 0;
+
   const jobsWithSalaries = jobs.filter(j => j.salaryNumeric || j.salaryMin || j.salaryMax);
   const averageSalary = jobs.length > 0 && jobsWithSalaries.length > 0
     ? Math.round(
@@ -1405,10 +1411,16 @@ export function JobMatchHub({
         </div>
         <div className="premium-card rounded-xl p-4 flex flex-col justify-between">
           <div className="flex items-center justify-between mb-2">
-            <span className="text-[10px] text-on-surface-variant font-bold uppercase tracking-wider">Match da vaga</span>
+            <span className="text-[10px] text-on-surface-variant font-bold uppercase tracking-wider">
+              {selectedJob ? "Match da Vaga Selecionada" : "Match da vaga (Média)"}
+            </span>
             <Heart size={16} className="text-emerald-400" />
           </div>
-          <p className="text-xl font-bold text-on-surface">{avgOverallMatch > 0 ? `${avgOverallMatch}%` : '--'}</p>
+          <p className="text-xl font-bold text-on-surface">
+            {selectedJob 
+              ? (unifiedJobMatchScore > 0 ? `${unifiedJobMatchScore}%` : '--')
+              : (avgOverallMatch > 0 ? `${avgOverallMatch}%` : '--')}
+          </p>
         </div>
         <div className="premium-card rounded-xl p-4 flex flex-col justify-between">
           <div className="flex items-center justify-between mb-2">
@@ -2120,21 +2132,21 @@ export function JobMatchHub({
                       <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 shrink-0">
                         {/* Secondary Score Badge: Career Fit (Objetivo de Carreira) */}
                         <div 
-                          className="p-2.5 rounded-xl bg-slate-900/80 border border-slate-800 text-right space-y-0.5 relative group cursor-help"
-                          title="Career Fit: Avalia o alinhamento de longo prazo entre esta vaga e o seu objetivo profissional de carreira."
+                          className="p-2.5 rounded-xl bg-slate-900/80 border border-slate-800 text-right space-y-0.5 relative group cursor-help opacity-90"
+                          title="Career Fit Score: Além do match técnico direto da vaga, mede o alinhamento de carreira a longo prazo (objetivos profissionais, senioridade e expectativas)."
                         >
                           <span className="text-[9px] uppercase font-bold text-slate-300 flex items-center gap-1 justify-end">
                             💼 Career Fit Score
                           </span>
                           <span className="text-xs font-extrabold text-blue-300 block">
-                            {explanation ? `${explanation.careerFitScore}%` : '76%'}
+                            {explanation?.careerFitScore ? `${explanation.careerFitScore}%` : (unifiedJobMatchScore > 0 ? `${unifiedJobMatchScore}%` : '--')}
                           </span>
                           <span className="text-[8px] text-slate-400 block">Alinhamento de objetivo</span>
                         </div>
 
                         {/* Primary Score Circle: Match da Vaga (Compatibilidade Geral) */}
                         <div 
-                          className="flex items-center gap-3 bg-brand-950/40 p-2.5 rounded-2xl border border-brand-500/30 relative group cursor-help"
+                          className="flex items-center gap-3 bg-brand-950/40 p-2.5 rounded-2xl border border-brand-500/30 relative group cursor-help shadow-md shadow-emerald-500/5"
                           title="Match da Vaga (Compatibilidade Geral): Pontuação master que calcula a aderência de requisitos técnicos, experiência e competências do seu currículo em relação à vaga."
                         >
                           <div className="text-right">
@@ -2144,7 +2156,7 @@ export function JobMatchHub({
                             <span className="text-[10px] text-slate-300 block font-semibold">Compatibilidade Geral</span>
                           </div>
                           <div className="w-14 h-14 rounded-full border-2 border-emerald-400 bg-emerald-500/20 flex items-center justify-center text-emerald-400 font-extrabold text-lg font-display shadow-lg shadow-emerald-500/20">
-                            {selectedJob?.scores?.overall ? `${selectedJob.scores.overall}%` : '92%'}
+                            {unifiedJobMatchScore > 0 ? `${unifiedJobMatchScore}%` : '--'}
                           </div>
                         </div>
                       </div>

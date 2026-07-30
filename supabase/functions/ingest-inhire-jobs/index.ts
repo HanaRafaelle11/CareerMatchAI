@@ -8,9 +8,10 @@ const corsHeaders = {
 }
 
 const INHIRE_SEED_TENANTS = [
-  'stone', 'dock', 'farm', 'zup', 'dasa', 'vtex', 'picpay', 
-  'quintoandar', 'loft', 'olist', 'neon', 'hashdex', 'warren', 
-  'nomad', 'solfacio', 'isaac', 'soma', 'creditas'
+  'radix', 'vitru', 'v4company', 'deloitte', 'semantix', 'alun', 'matera',
+  'appmax', 'cielo', 'turbi', 'floki', 'bionexo', 'stone', 'dock', 'farm',
+  'zup', 'dasa', 'vtex', 'picpay', 'quintoandar', 'loft', 'olist', 'neon',
+  'hashdex', 'warren', 'nomad', 'solfacio', 'isaac', 'soma', 'creditas'
 ];
 
 serve(async (req) => {
@@ -19,22 +20,44 @@ serve(async (req) => {
   }
 
   try {
+    const urlObj = new URL(req.url);
+    const mode = urlObj.searchParams.get('mode') || 'ingest'; // 'ingest' (diário) ou 'discover' (semanal)
+
     const supabaseUrl = Deno.env.get('SUPABASE_URL') || '';
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || Deno.env.get('SUPABASE_ANON_KEY') || '';
 
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-    console.log("[ingest-inhire-jobs] Iniciando ciclo de ingestão de tenants e vagas da InHire...");
+    console.log(`[ingest-inhire-jobs] Executando em modo: ${mode.toUpperCase()}...`);
+
+    let tenantsToProcess: string[] = [];
+
+    if (mode === 'discover') {
+      // MODO DESCOBERTA SEMANAL: Processa lista expandida de harvesting
+      tenantsToProcess = INHIRE_SEED_TENANTS;
+    } else {
+      // MODO INGESTÃO DIÁRIA: Carrega apenas tenants ativos já validados no banco
+      const { data: dbTenants } = await supabase
+        .from('inhire_tenants')
+        .select('slug')
+        .eq('is_active', true);
+
+      if (dbTenants && dbTenants.length > 0) {
+        tenantsToProcess = dbTenants.map((t: any) => t.slug);
+      } else {
+        tenantsToProcess = INHIRE_SEED_TENANTS; // fallback
+      }
+    }
 
     let discoveredTenantsCount = 0;
     let ingestedJobsCount = 0;
     const diagnostics: any[] = [];
 
-    // 1. Processar cada tenant da lista de sementes / cadastrados
-    for (const slug of INHIRE_SEED_TENANTS) {
+    // 1. Processar cada tenant selecionado
+    for (const slug of tenantsToProcess) {
       try {
-        const url = 'https://api.inhire.app/job-posts/public/pages';
-        const res = await fetch(url, {
+        const apiUrl = 'https://api.inhire.app/job-posts/public/pages';
+        const res = await fetch(apiUrl, {
           headers: {
             'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)',
             'X-Tenant': slug,
@@ -62,7 +85,7 @@ serve(async (req) => {
 
         discoveredTenantsCount++;
 
-        // Extrair vagas da jobsPage se presentes
+        // Extrair vagas do array jobsPage
         const jobs = Array.isArray(data.jobsPage) ? data.jobsPage : 
                     Array.isArray(data.jobs) ? data.jobs : [];
 
@@ -71,9 +94,9 @@ serve(async (req) => {
           const externalId = `inhire_${slug}_${j.id || idx}`;
           const title = j.title || j.name || `Oportunidade na ${tenantName}`;
           const description = j.description || j.about || `Vaga publicada por ${tenantName} via plataforma InHire.`;
-          const location = j.location || j.city ? `${j.city || ''}, ${j.state || 'BR'}` : 'Brasil';
-          const workMode = j.isRemote ? 'remote' : 'onsite';
-          const jobUrl = j.url || j.applyUrl || `https://${slug}.inhire.app/vagas/${j.id || ''}`;
+          const location = j.city ? `${j.city || ''}, ${j.state || 'BR'}` : (j.location || 'Brasil');
+          const workMode = j.isRemoteWork || j.isRemote ? 'remote' : 'onsite';
+          const jobUrl = j.jobUrl || j.applyUrl || `https://${slug}.inhire.app/job/${j.id || ''}`;
 
           const { error: upsertErr } = await supabase
             .from('ingested_jobs')
@@ -102,46 +125,21 @@ serve(async (req) => {
       }
     }
 
-    // 2. Se nenhuma vaga foi extraída diretamente de jobsPage, gerar registros de oportunidade institucional para cada tenant ativo validado
-    if (ingestedJobsCount === 0 && discoveredTenantsCount > 0) {
-      console.log("[ingest-inhire] Criando posições institucionais verificadas dos tenants InHire descobertos...");
-      for (const slug of INHIRE_SEED_TENANTS) {
-        const tenantName = slug.charAt(0).toUpperCase() + slug.slice(1);
-        const externalId = `inhire_${slug}_portal`;
-
-        const { error } = await supabase
-          .from('ingested_jobs')
-          .upsert({
-            external_id: externalId,
-            source_platform: 'inhire',
-            title: `Banco de Talentos & Oportunidades em Tecnologia`,
-            company_name: tenantName,
-            location: 'Brasil',
-            work_mode: 'remote',
-            url: `https://${slug}.inhire.app`,
-            description: `Oportunidades em engenharia, produtos e negócios na empresa ${tenantName} via plataforma InHire.`,
-            is_active: true,
-            last_seen_at: new Date().toISOString(),
-            updated_at: new Date().toISOString()
-          }, { onConflict: 'external_id,source_platform' });
-
-        if (!error) ingestedJobsCount++;
-      }
-    }
-
-    console.log(`[ingest-inhire] Concluído! Tenants descobertos: ${discoveredTenantsCount} | Vagas ingeridas: ${ingestedJobsCount}`);
+    console.log(`[ingest-inhire] Concluído modo ${mode.toUpperCase()}! Tenants: ${discoveredTenantsCount} | Vagas: ${ingestedJobsCount}`);
 
     return new Response(
       JSON.stringify({
         success: true,
-        tenantsDiscovered: discoveredTenantsCount,
+        mode,
+        tenantsProcessed: tenantsToProcess.length,
+        tenantsValidated: discoveredTenantsCount,
         jobsIngested: ingestedJobsCount,
         diagnostics
       }),
       { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   } catch (err: any) {
-    console.error("[ingest-inhire] Erro no job agendado de ingestão:", err.message);
+    console.error("[ingest-inhire] Erro no agendamento de ingestão:", err.message);
     return new Response(
       JSON.stringify({ error: err.message }),
       { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }

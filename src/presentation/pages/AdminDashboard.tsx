@@ -292,9 +292,9 @@ export function AdminDashboard({ userId }: AdminDashboardProps) {
         console.warn('[AdminDashboard] RPC get_admin_dashboard_overview indisponível, usando contagem direta:', e);
       }
 
-      // FALLBACK DIRETO VIA CONTAGEM DE TABELAS OU VALORES DA PLATAFORMA
+      // FALLBACK DIRETO VIA CONTAGEM DE TABELAS OU VALORES DA PLATAFORMA (APLICANDO FILTRO DE CONTAS DE TESTE)
       const [uRes, rRes, jRes, mRes] = await Promise.all([
-        supabase.from('profiles').select('id', { count: 'exact', head: true }),
+        supabase.from('profiles').select('id', { count: 'exact', head: true }).neq('is_test_account', true),
         supabase.from('resumes').select('id', { count: 'exact', head: true }),
         supabase.from('jobs').select('id', { count: 'exact', head: true }),
         supabase.from('matches').select('id', { count: 'exact', head: true })
@@ -618,7 +618,7 @@ export function AdminDashboard({ userId }: AdminDashboardProps) {
       const addCutoff = (q: any) => cutoff ? q.gte('created_at', cutoff) : q;
 
       const [usersRes, resumesRes, matchesRes, optsRes, simsRes, lettersRes, appsRes] = await Promise.all([
-        addCutoff(supabase.from('profiles').select('id', { count: 'exact', head: true })),
+        addCutoff(supabase.from('profiles').select('id', { count: 'exact', head: true }).neq('is_test_account', true)),
         addCutoff(supabase.from('resumes').select('id', { count: 'exact', head: true })),
         addCutoff(supabase.from('matches').select('id', { count: 'exact', head: true })),
         addCutoff(supabase.from('resume_optimizations').select('id', { count: 'exact', head: true })),

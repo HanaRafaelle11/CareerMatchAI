@@ -723,8 +723,9 @@ export function StrategyPage({
               {applications.length > 0
                 ? (() => {
                     const appliedSt = ['📨 Me candidatei', '👥 Entrevista com recrutador', '🎯 Entrevista com gestor', '🧩 Case técnico', '🤝 Fit cultural', '🏆 Oferta recebida', '✅ Aceita', 'applied', 'hr', 'interview', 'offer', 'hired'];
+                    const savedSt = ['🔎 Encontrada', '⭐ Tenho interesse', '📝 Vou me candidatar', '📝 Candidatura planejada', 'found', 'saved'];
                     const enviadasCount = applications.filter(a => appliedSt.includes(a.status)).length;
-                    const salvasCount = applications.filter(a => !appliedSt.includes(a.status) && a.status !== 'rejected' && (a.status as string) !== '❌ Rejeitada').length;
+                    const salvasCount = applications.filter(a => savedSt.includes(a.status)).length;
                     return `Você enviou ${enviadasCount} candidatura(s) e possui ${salvasCount} vaga(s) salva(s) em prospecção.`;
                   })()
                 : 'Adicione suas candidaturas ao Pipeline para monitorar prazos e métricas de avanço.'}

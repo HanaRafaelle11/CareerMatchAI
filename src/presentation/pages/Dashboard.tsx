@@ -142,7 +142,7 @@ export function Dashboard({
 
   // Métricas separadas: candidaturas enviadas vs vagas salvas/prospecção
   const appliedStatuses = ['📨 Me candidatei', '👥 Entrevista com recrutador', '🎯 Entrevista com gestor', '🧩 Case técnico', '🤝 Fit cultural', '🏆 Oferta recebida', '✅ Aceita', 'applied', 'hr', 'interview', 'offer', 'hired'];
-  const savedStatuses = ['🔎 Encontrada', '⭐ Tenho interesse', 'found', 'saved'];
+  const savedStatuses = ['🔎 Encontrada', '⭐ Tenho interesse', '📝 Vou me candidatar', '📝 Candidatura planejada', 'found', 'saved'];
   const appliedCount = applications.filter(a => appliedStatuses.includes(a.status)).length;
   const savedCount = applications.filter(a => savedStatuses.includes(a.status)).length;
 

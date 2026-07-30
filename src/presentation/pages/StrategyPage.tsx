@@ -369,7 +369,7 @@ export function StrategyPage({
           message: 'Candidatura avançou para fase de Entrevista! Recomenda-se realizar o Treino STAR no Copiloto IA.', 
           type: 'success' 
         });
-      } else if (cleanTarget === 'hired') {
+      } else if (cleanTarget === 'hired' || cleanTarget === 'offer' || targetStatus.toLowerCase().includes('contratad') || targetStatus.toLowerCase().includes('aceita')) {
         setHiredModalApp(updatedApp);
       }
     } catch (err) {
@@ -528,7 +528,11 @@ export function StrategyPage({
         const targetIdx = statusOrder.indexOf(mappedStatus);
         // Only advance active applications forward, never backward or out of rejected automatically
         if (currentIdx !== -1 && targetIdx > currentIdx) {
-          await onUpdateApplication({ ...selectedApp, status: mappedStatus as Application['status'] });
+          const updatedApp: Application = { ...selectedApp, status: mappedStatus as Application['status'], updatedAt: new Date().toISOString() };
+          await onUpdateApplication(updatedApp);
+          if (mappedStatus === 'hired' || mappedStatus === 'offer') {
+            setHiredModalApp(updatedApp);
+          }
           tracker.track('application_stage_updated', 'Pipeline', {
             applicationId: selectedAppId,
             fromStatus: String(selectedApp.status),

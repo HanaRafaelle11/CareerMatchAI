@@ -20,6 +20,7 @@ import { isSupabaseConfigured, supabase } from '../../infrastructure/api/supabas
 import { isAppliedStatus, isSavedStatus } from '../../domain/models/applicationStatusConstants';
 
 import { Toast, type ToastMessage } from '../components/ds';
+import { HiredCongratulationModal } from '../components/HiredCongratulationModal';
 
 interface StrategyPageProps {
   careerProfile: CareerProfile | null;
@@ -97,8 +98,9 @@ export function StrategyPage({
   const [backwardConfirmApp, setBackwardConfirmApp] = useState<{ app: Application; targetStatus: string } | null>(null);
   const [advancedRejectConfirmApp, setAdvancedRejectConfirmApp] = useState<{ app: Application } | null>(null);
 
-  // Rejection Modal State
+  // Rejection & Hired Modal States
   const [rejectingApp, setRejectingApp] = useState<Application | null>(null);
+  const [hiredModalApp, setHiredModalApp] = useState<Application | null>(null);
 
   // Drag-and-Drop and Permanent Delete States
   const [draggedAppId, setDraggedAppId] = useState<string | null>(null);
@@ -367,6 +369,8 @@ export function StrategyPage({
           message: 'Candidatura avançou para fase de Entrevista! Recomenda-se realizar o Treino STAR no Copiloto IA.', 
           type: 'success' 
         });
+      } else if (cleanTarget === 'hired') {
+        setHiredModalApp(updatedApp);
       }
     } catch (err) {
       console.error('Erro ao atualizar estágio:', err);
@@ -663,15 +667,20 @@ export function StrategyPage({
     };
   });
 
-  const uniqueMappedJobs = mappedJobs.filter((j, index, self) => 
-    index === self.findIndex(t => (
-      (t.id && t.id === j.id) ||
-      (t.title.toLowerCase().trim() === j.title.toLowerCase().trim() &&
-       t.companyName.toLowerCase().trim() === j.companyName.toLowerCase().trim())
-    ))
+  // Excluir vagas finalizadas (Contratadas ou Rejeitadas) da Matriz de Prioridades ROI
+  const finalizedJobIds = new Set(
+    applications
+      .filter(a => {
+        const clean = ApplicationPipelineService.getCleanStatus(a.status);
+        return clean === 'hired' || clean === 'rejected';
+      })
+      .map(a => a.jobId || a.id)
+      .filter(Boolean)
   );
 
-  const grouped = CandidateStrategyService.groupJobs(primaryResume, uniqueMappedJobs, careerProfile, careerProfileNew);
+  const activeJobsForROI = uniqueMappedJobs.filter(j => !finalizedJobIds.has(j.id));
+
+  const grouped = CandidateStrategyService.groupJobs(primaryResume, activeJobsForROI, careerProfile, careerProfileNew);
   const finalGrouped = {
     hot: [...grouped.hot],
     warm: [...grouped.warm],
@@ -1291,9 +1300,9 @@ export function StrategyPage({
                                 </div>
                               )}
 
-                              {/* Seletor Mobile / Ação Rápida de Estágio */}
-                              <div className="flex items-center justify-between pt-2 border-t border-slate-800/60 text-[9px]">
-                                <span className="text-slate-500">Mover para:</span>
+                              {/* Seletor Rápido de Estágio (Design Limpo e Espaçoso) */}
+                              <div className="flex flex-col gap-1.5 pt-2.5 border-t border-slate-800/80 mt-2">
+                                <span className="text-[10px] font-semibold text-slate-400">Mover para estágio:</span>
                                 <select
                                   value={colId}
                                   onClick={e => e.stopPropagation()}
@@ -1301,16 +1310,16 @@ export function StrategyPage({
                                     e.stopPropagation();
                                     handleQuickStatusChange(app, e.target.value);
                                   }}
-                                  className="bg-slate-950 border border-slate-800 rounded px-1.5 py-0.5 text-slate-300 text-[9px] outline-none"
+                                  className="w-full bg-slate-900 border border-slate-700/80 rounded-lg px-2.5 py-1.5 text-slate-200 text-xs font-medium outline-none focus:border-brand-500 hover:border-slate-600 transition-colors cursor-pointer shadow-xs"
                                 >
-                                  <option value="found">Encontradas</option>
-                                  <option value="saved">Salvas</option>
-                                  <option value="applied">Aplicadas</option>
-                                  <option value="hr">Entrevista RH</option>
-                                  <option value="interview">Entrevista Gestor</option>
-                                  <option value="offer">Oferta</option>
-                                  <option value="hired">Contratado</option>
-                                  <option value="rejected">Arquivar / Rejeitar</option>
+                                  <option value="found">🔎 Encontrada</option>
+                                  <option value="saved">⭐ Tenho interesse</option>
+                                  <option value="applied">📨 Me candidatei</option>
+                                  <option value="hr">👥 Entrevista RH</option>
+                                  <option value="interview">🎯 Entrevista Gestor</option>
+                                  <option value="offer">🏆 Oferta recebida</option>
+                                  <option value="hired">✅ Contratado</option>
+                                  <option value="rejected">❌ Arquivar / Rejeitar</option>
                                 </select>
                               </div>
                             </CardGlass>
@@ -1643,6 +1652,13 @@ export function StrategyPage({
           </div>
         </div>
       )}
+      {/* Modal Celebratório de Contratação & SLA */}
+      <HiredCongratulationModal
+        isOpen={!!hiredModalApp}
+        app={hiredModalApp}
+        onClose={() => setHiredModalApp(null)}
+      />
+
       {/* Toast Notification */}
       <Toast toast={toast} onClose={() => setToast(null)} />
     </div>

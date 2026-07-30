@@ -272,18 +272,30 @@ export function Dashboard({
           </div>
         </div>
 
-        {/* Discreet Action Button (+ Explorar vagas) */}
-        <button
-          onClick={() => {
-            localStorage.setItem('vocentro_trigger_discovery', 'true');
-            setActiveTab('match');
-            window.scrollTo({ top: 0, behavior: 'smooth' });
-          }}
-          className="btn-secondary text-xs shrink-0 self-start sm:self-auto cursor-pointer"
-        >
-          <Search size={14} strokeWidth={1.5} />
-          <span>+ Explorar Vagas</span>
-        </button>
+        {/* Discreet Action Buttons (+ Explorar vagas & Tour Onboarding) */}
+        <div className="flex items-center gap-2 shrink-0 self-start sm:self-auto">
+          <button
+            onClick={() => {
+              window.dispatchEvent(new Event('vocentro_open_onboarding'));
+            }}
+            className="btn-secondary text-xs cursor-pointer flex items-center gap-1.5 text-brand-400 hover:text-brand-300 border-brand-500/30"
+            title="Reabrir onboarding interativo da plataforma"
+          >
+            <Sparkles size={14} strokeWidth={1.5} className="text-amber-400" />
+            <span>Tour da Plataforma</span>
+          </button>
+          <button
+            onClick={() => {
+              localStorage.setItem('vocentro_trigger_discovery', 'true');
+              setActiveTab('match');
+              window.scrollTo({ top: 0, behavior: 'smooth' });
+            }}
+            className="btn-secondary text-xs cursor-pointer flex items-center gap-1.5"
+          >
+            <Search size={14} strokeWidth={1.5} />
+            <span>+ Explorar Vagas</span>
+          </button>
+        </div>
       </header>
 
       {/* ── 2. HERO CARD: CAREER SCORE DASHBOARD CARD ── */}

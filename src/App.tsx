@@ -353,6 +353,12 @@ function AuthenticatedApp({
     }
   }, [user]);
 
+  useEffect(() => {
+    const handleOpenOnboarding = () => setShowOnboarding(true);
+    window.addEventListener('vocentro_open_onboarding', handleOpenOnboarding);
+    return () => window.removeEventListener('vocentro_open_onboarding', handleOpenOnboarding);
+  }, []);
+
   // Avalia perfil administrativo (Administradora principal: hanarafaelle11@gmail.com)
   useEffect(() => {
     if (!isSupabaseConfigured || !supabase) {
@@ -806,6 +812,14 @@ function AuthenticatedApp({
         careerProfileNew={careerProfileNew}
         setActiveTab={handleSetActiveTab}
         onStartSimulation={handleStartSimulation}
+      />
+
+      {/* Onboarding Modal Interativo (Desktop/Web & Mobile) */}
+      <OnboardingModal
+        isOpen={showOnboarding}
+        onClose={handleCompleteOnboarding}
+        onStartUpload={() => handleSetActiveTab('profile')}
+        onNavigateTab={handleSetActiveTab}
       />
 
       {/* Beta Feedback Widget — Floating Global */}

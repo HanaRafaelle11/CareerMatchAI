@@ -1,3 +1,9 @@
+export const HIRED_STATUSES = [
+  '✅ Aceita',
+  'Contratado',
+  'hired'
+] as const;
+
 export const APPLIED_STATUSES = [
   '📨 Me candidatei',
   '👥 Entrevista com recrutador',
@@ -5,12 +11,10 @@ export const APPLIED_STATUSES = [
   '🧩 Case técnico',
   '🤝 Fit cultural',
   '🏆 Oferta recebida',
-  '✅ Aceita',
   'applied',
   'hr',
   'interview',
-  'offer',
-  'hired'
+  'offer'
 ] as const;
 
 export const SAVED_STATUSES = [
@@ -29,6 +33,10 @@ export const REJECTED_STATUSES = [
   'rejected',
   'deleted'
 ] as const;
+
+export function isHiredStatus(status: string): boolean {
+  return (HIRED_STATUSES as readonly string[]).includes(status);
+}
 
 export function isAppliedStatus(status: string): boolean {
   return (APPLIED_STATUSES as readonly string[]).includes(status);

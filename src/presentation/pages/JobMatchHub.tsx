@@ -2048,39 +2048,53 @@ export function JobMatchHub({
             <CardGlass className="p-4 space-y-4">
               <span className="text-xs font-bold text-slate-500 uppercase tracking-wider px-2">Vagas Disponíveis</span>
               <div className="space-y-2 max-h-[500px] overflow-y-auto pr-1">
-                {jobs.filter(job => matches.some(m => m.jobId === job.id)).map(job => {
-                  const isActive = job.id === selectedJobId;
-                  const match = matches.find(m => m.jobId === job.id);
-                  return (
-                    <div
-                      key={job.id}
-                      onClick={() => setSelectedJobId(job.id)}
-                      className={`p-3 rounded-xl cursor-pointer border transition-all text-xs flex justify-between items-center ${
-                        isActive
-                          ? 'bg-brand-500/10 border-brand-500/30 text-slate-200'
-                          : 'bg-slate-900/20 dark:bg-slate-900/20 light:bg-slate-50 border-slate-900 dark:border-slate-900 light:border-slate-200 text-slate-400 dark:text-slate-400 light:text-slate-700 hover:border-slate-800'
-                      }`}
-                    >
-                      <div className="truncate max-w-[150px]">
-                        <h4 className="font-bold truncate text-slate-200 dark:text-slate-200 light:text-slate-800">{job.title}</h4>
-                        <p className="text-[10px] text-slate-500 truncate mt-0.5">{job.companyName}</p>
+                {(() => {
+                  const analyzedJobs = matches.map(m => {
+                    const existingJob = jobs.find(j => String(j.id) === String(m.jobId));
+                    if (existingJob) return existingJob;
+                    return {
+                      id: m.jobId,
+                      title: (m as any).jobTitle || (m as any).job_title || `Vaga (${m.jobId?.slice(0, 8) || 'analisada'})`,
+                      companyName: (m as any).companyName || (m as any).company_name || 'Empresa'
+                    };
+                  }).filter((job, idx, self) => idx === self.findIndex(j => String(j.id) === String(job.id)));
+
+                  const listToRender = analyzedJobs.length > 0 ? analyzedJobs : jobs;
+
+                  return listToRender.map(job => {
+                    const isActive = String(job.id) === String(selectedJobId);
+                    const match = matches.find(m => String(m.jobId) === String(job.id));
+                    return (
+                      <div
+                        key={job.id}
+                        onClick={() => setSelectedJobId(job.id)}
+                        className={`p-3 rounded-xl cursor-pointer border transition-all text-xs flex justify-between items-center ${
+                          isActive
+                            ? 'bg-brand-500/10 border-brand-500/30 text-slate-200'
+                            : 'bg-slate-900/20 dark:bg-slate-900/20 light:bg-slate-50 border-slate-900 dark:border-slate-900 light:border-slate-200 text-slate-400 dark:text-slate-400 light:text-slate-700 hover:border-slate-800'
+                        }`}
+                      >
+                        <div className="truncate max-w-[150px]">
+                          <h4 className="font-bold truncate text-slate-200 dark:text-slate-200 light:text-slate-800">{job.title}</h4>
+                          <p className="text-[10px] text-slate-500 truncate mt-0.5">{job.companyName}</p>
+                        </div>
+                        {match ? (
+                          <span className={`font-bold font-display text-xs px-2 py-0.5 rounded-lg border ${
+                            match.scoreOverall >= 85 
+                              ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' 
+                              : match.scoreOverall >= 70 
+                              ? 'bg-amber-500/10 text-amber-400 border-amber-500/20' 
+                              : 'bg-slate-500/10 text-slate-350 border-slate-700/30'
+                          }`}>
+                            {match.scoreOverall}%
+                          </span>
+                        ) : (
+                          <span className="text-[10px] text-slate-500 bg-slate-900/40 border border-slate-800 px-2 py-0.5 rounded-lg">Sem Match</span>
+                        )}
                       </div>
-                      {match ? (
-                        <span className={`font-bold font-display text-xs px-2 py-0.5 rounded-lg border ${
-                          match.scoreOverall >= 85 
-                            ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' 
-                            : match.scoreOverall >= 70 
-                            ? 'bg-amber-500/10 text-amber-400 border-amber-500/20' 
-                            : 'bg-slate-500/10 text-slate-350 border-slate-700/30'
-                        }`}>
-                          {match.scoreOverall}%
-                        </span>
-                      ) : (
-                        <span className="text-[10px] text-slate-500 bg-slate-900/40 border border-slate-800 px-2 py-0.5 rounded-lg">Sem Match</span>
-                      )}
-                    </div>
-                  );
-                })}
+                    );
+                  });
+                })()}
               </div>
             </CardGlass>
           </div>

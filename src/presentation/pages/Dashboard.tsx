@@ -2,14 +2,14 @@ import type { Resume, Match, CareerProfile, Profile, Notification, Application, 
 import type { CareerProfileNew } from '../../application/hooks/useMyProfileAi';
 import { useState, useEffect } from 'react';
 import { 
-  Sparkles, Award, ArrowRight, Search, Briefcase, BarChart3,
+  Sparkles, Award, ArrowRight, Search, Briefcase, BarChart3, Trophy,
   ChevronRight, Zap, CheckCircle2, Circle, AlertTriangle, RefreshCw, WifiOff
 } from 'lucide-react';
 import { StatCard } from '../components/ds';
 import { CareerScoreDashboardCard } from '../components/CareerScoreDashboardCard';
 import { useQuery } from '@tanstack/react-query';
 import { isSupabaseConfigured, supabase } from '../../infrastructure/api/supabaseClient';
-import { isAppliedStatus, isSavedStatus } from '../../domain/models/applicationStatusConstants';
+import { isAppliedStatus, isSavedStatus, isHiredStatus } from '../../domain/models/applicationStatusConstants';
 
 interface DashboardProps {
   profile: Profile | null;
@@ -141,7 +141,8 @@ export function Dashboard({
   );
   const interviewsCount = interviews.length;
 
-  // Métricas separadas: candidaturas enviadas vs vagas salvas/prospecção (usando constante compartilhada)
+  // Métricas separadas: candidaturas enviadas vs vagas salvas vs contratadas (usando constante compartilhada)
+  const hiredCount = applications.filter(a => isHiredStatus(a.status)).length;
   const appliedCount = applications.filter(a => isAppliedStatus(a.status)).length;
   const savedCount = applications.filter(a => isSavedStatus(a.status)).length;
 
@@ -173,6 +174,14 @@ export function Dashboard({
 
   // ── 100% DYNAMIC COPILOT IA INSIGHT & CTA DOMINANTE DA HOME ──
   const getAIInsight = () => {
+    if (hiredCount > 0) {
+      return {
+        title: "🎉 Parabéns pela sua Contratação! 🏆",
+        text: `Você possui ${hiredCount} candidatura(s) conquistada(s) como CONTRATADO! Acompanhe o histórico no seu Pipeline.`,
+        actionLabel: "Ver Conquistas no Pipeline",
+        tab: "strategy"
+      };
+    }
     if (!hasResume) {
       return {
         title: "Envie seu currículo em PDF",
@@ -341,14 +350,25 @@ export function Dashboard({
           accent="success"
           action={{ label: "Treinar STAR", onClick: () => setActiveTab('coach') }}
         />
-        <StatCard 
-          icon={<Zap size={16} strokeWidth={1.5} />} 
-          label="Preenchimento do Perfil" 
-          value={`${completeness}%`} 
-          trend={completeness === 100 ? { value: 'Completo', positive: true } : null} 
-          accent="warning"
-          action={{ label: "Ajustar perfil", onClick: () => setActiveTab('profile') }}
-        />
+        {hiredCount > 0 ? (
+          <StatCard 
+            icon={<Trophy size={16} strokeWidth={1.5} className="text-amber-400" />} 
+            label="Contratado 🏆" 
+            value={hiredCount} 
+            trend={{ value: `${hiredCount} conquista(s)`, positive: true }} 
+            accent="success"
+            action={{ label: "Ver Pipeline", onClick: () => setActiveTab('strategy') }}
+          />
+        ) : (
+          <StatCard 
+            icon={<Zap size={16} strokeWidth={1.5} />} 
+            label="Preenchimento do Perfil" 
+            value={`${completeness}%`} 
+            trend={completeness === 100 ? { value: 'Completo', positive: true } : null} 
+            accent="warning"
+            action={{ label: "Ajustar perfil", onClick: () => setActiveTab('profile') }}
+          />
+        )}
       </div>
 
       {/* ── 3b. ACESSO RÁPIDO: MONITOR DE DEMANDA REAL & BENCHMARK SALARIAL ── */}

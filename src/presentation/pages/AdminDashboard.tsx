@@ -110,6 +110,7 @@ export function AdminDashboard({ userId }: AdminDashboardProps) {
   const [analyticsTimeframe, setAnalyticsTimeframe] = useState<'7d' | '30d' | 'all'>('7d');
   const [funnelDateFilter, setFunnelDateFilter] = useState<'7d' | '30d' | 'all'>('all');
   const [logSearchQuery, setLogSearchQuery] = useState('');
+  const [showTestAccounts, setShowTestAccounts] = useState(false);
 
   // Exibir feedback temporário na tela (Toast)
   const showToast = (message: string, type: 'success' | 'error' | 'warning' = 'success') => {
@@ -147,58 +148,35 @@ export function AdminDashboard({ userId }: AdminDashboardProps) {
   const hasUsersAccess = true;
   const canEditRoles = isSuperAdmin;
 
-  // ── 2. BUSCAR TODOS OS USUÁRIOS/PERFIS DO SISTEMA (RBAC) ──
+  // ── 2. BUSCAR TODOS OS USUÁRIOS/PERFIS DO SISTEMA via RPC SECURITY DEFINER ──
+  // Usa a RPC get_all_profiles_for_admin que contorna o RLS mas valida o role do chamador
   const { data: users = [], isLoading: isLoadingUsers, refetch: refetchUsers } = useQuery({
-    queryKey: ['admin-users-list'],
+    queryKey: ['admin-users-list', showTestAccounts],
     queryFn: async () => {
-      const baseSystemUsers = [
-        { id: userId || 'usr-admin-1', full_name: 'Hana Oliveira', email: 'hanarafaelle11@gmail.com', headline: 'Profissional | Vocentro', role: 'administrador', created_at: new Date().toISOString() },
-        { id: 'usr-admin-2', full_name: 'Sthephany Santos', email: 'sthephany@vocentro.com.br', headline: 'Engenheira de Software Lead @ Vocentro', role: 'administrador', created_at: new Date(Date.now() - 86400000).toISOString() },
-        { id: 'usr-101', full_name: 'Roberto Camargo', email: 'roberto.camargo@example.com', headline: 'Head of Customer Experience', role: 'user', created_at: new Date(Date.now() - 518400000).toISOString() },
-        { id: 'usr-102', full_name: 'Juliana Paes', email: 'juliana.paes@example.com', headline: 'Especialista em CS Operations', role: 'user', created_at: new Date(Date.now() - 432000000).toISOString() },
-        { id: 'usr-103', full_name: 'Marcio Souza', email: 'marcio.souza@example.com', headline: 'Coordenador de Customer Success', role: 'user', created_at: new Date(Date.now() - 345600000).toISOString() },
-        { id: 'usr-3', full_name: 'Lucas Ferreira', email: 'lucas.ferreira@gmail.com', headline: 'Analista de Customer Success Pleno', role: 'user', created_at: new Date(Date.now() - 172800000).toISOString() },
-        { id: 'usr-4', full_name: 'Mariana Costa', email: 'mariana.costa@outlook.com', headline: 'Product Manager Senior', role: 'user', created_at: new Date(Date.now() - 259200000).toISOString() },
-        { id: 'usr-5', full_name: 'Thiago Oliveira', email: 'thiago.oliveira@gmail.com', headline: 'Coordenador de CX', role: 'user', created_at: new Date(Date.now() - 345600000).toISOString() },
-        { id: 'usr-6', full_name: 'Bruno Alvares', email: 'bruno.alvares@gmail.com', headline: 'Senior Product Designer', role: 'user', created_at: new Date(Date.now() - 604800000).toISOString() },
-        { id: 'usr-7', full_name: 'Camila Torres', email: 'camila.torres@outlook.com', headline: 'Customer Success Manager', role: 'user', created_at: new Date(Date.now() - 691200000).toISOString() }
-      ];
-
       if (!isSupabaseConfigured || !supabase) {
-        return baseSystemUsers;
+        return [];
       }
-      try {
-        const { data, error } = await supabase
-          .from('profiles')
-          .select('id, full_name, email, headline, role, created_at, updated_at, is_test_account')
-          .order('created_at', { ascending: false });
+      const { data, error } = await supabase
+        .rpc('get_all_profiles_for_admin', { include_test_accounts: showTestAccounts });
 
-        const dbUsers = (error || !data) ? [] : data.map((d: any) => ({
-          id: d.id,
-          full_name: d.full_name || d.email?.split('@')[0] || 'Usuário Vocentro',
-          email: d.email || 'usuario@vocentro.com.br',
-          headline: d.headline || 'Profissional | Vocentro',
-          role: d.role || 'user',
-          created_at: d.created_at || new Date().toISOString()
-        }));
-
-        // Merging garantindo que Hana e Sthephany apareçam com papel administrador e todos os candidatos sejam listados
-        const userMap = new Map();
-        dbUsers.forEach(u => userMap.set(u.email.toLowerCase(), u));
-        baseSystemUsers.forEach(u => {
-          if (!userMap.has(u.email.toLowerCase())) {
-            userMap.set(u.email.toLowerCase(), u);
-          }
-        });
-
-        // Garantir que hanarafaelle11@gmail.com tenha role administrador
-        const hana = userMap.get('hanarafaelle11@gmail.com');
-        if (hana) hana.role = 'administrador';
-
-        return Array.from(userMap.values());
-      } catch (err) {
-        return baseSystemUsers;
+      if (error) {
+        console.error('[AdminDashboard] Erro ao chamar get_all_profiles_for_admin:', error);
+        // Se RPC não autorizada (usuário não é admin), retornar vazio
+        if (error.code === 'P0001') {
+          return [];
+        }
+        throw error;
       }
+
+      return (data || []).map((d: any) => ({
+        id: d.id,
+        full_name: d.full_name || d.email?.split('@')[0] || 'Usuário Vocentro',
+        email: d.email || '',
+        headline: d.headline || '',
+        role: d.role || 'user',
+        created_at: d.created_at || new Date().toISOString(),
+        is_test_account: d.is_test_account || false
+      }));
     },
     enabled: true
   });
@@ -945,12 +923,11 @@ export function AdminDashboard({ userId }: AdminDashboardProps) {
     const matchesSearch = (user.full_name || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
                           (user.email || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
                           (user.headline || '').toLowerCase().includes(searchQuery.toLowerCase());
-    
     const matchesRole = roleFilter === 'all' || user.role === roleFilter;
     return matchesSearch && matchesRole;
   });
 
-  const usersPerPage = 6;
+  const usersPerPage = 20;
   const totalUserPages = Math.ceil(filteredUsers.length / usersPerPage);
   const paginatedUsers = filteredUsers.slice((userPage - 1) * usersPerPage, userPage * usersPerPage);
 
@@ -1463,8 +1440,31 @@ export function AdminDashboard({ userId }: AdminDashboardProps) {
                   <option value="user">Usuário Comum</option>
                 </select>
               </div>
+
+              <button
+                onClick={() => {
+                  setShowTestAccounts(prev => !prev);
+                  setUserPage(1);
+                }}
+                title={showTestAccounts ? 'Ocultar contas de teste (@example.com, e2e)' : 'Mostrar contas de teste (@example.com, e2e)'}
+                className={`px-3 py-2.5 rounded-xl border text-xs font-semibold flex items-center gap-1.5 cursor-pointer transition-all ${
+                  showTestAccounts
+                    ? 'bg-amber-500/10 border-amber-500/30 text-amber-300 hover:bg-amber-500/20'
+                    : 'bg-slate-950 border-slate-900 text-slate-500 hover:text-slate-300 hover:border-slate-700'
+                }`}
+              >
+                <span>{showTestAccounts ? '🧪 Ocultar testes' : '🧪 Mostrar testes'}</span>
+              </button>
             </div>
           </div>
+
+          <div className="text-[10px] text-slate-600 px-1 flex items-center gap-1.5">
+            <span>Fonte:</span>
+            <code className="text-slate-500 font-mono">get_all_profiles_for_admin(include_test_accounts={showTestAccounts.toString()})</code>
+            <span>·</span>
+            <span className="text-slate-500">{users.length} registro{users.length !== 1 ? 's' : ''} retornado{users.length !== 1 ? 's' : ''} pelo banco</span>
+          </div>
+
 
           {isLoadingUsers ? (
             <div className="flex flex-col items-center justify-center py-16 gap-2 text-slate-500">
@@ -1494,9 +1494,16 @@ export function AdminDashboard({ userId }: AdminDashboardProps) {
                           setUserDetailTab('profile');
                         }}
                       >
-                        <td className="p-3 font-semibold text-slate-200">{user.full_name || 'Sem Nome'}</td>
+                        <td className="p-3 font-semibold text-slate-200">
+                          <span className="flex items-center gap-1.5 flex-wrap">
+                            {user.full_name || 'Sem Nome'}
+                            {user.is_test_account && (
+                              <span className="px-1.5 py-0.5 rounded text-[8px] font-bold bg-amber-500/10 text-amber-400 border border-amber-500/20 uppercase tracking-wide">🧪 Teste</span>
+                            )}
+                          </span>
+                        </td>
                         <td className="p-3 text-slate-450 font-mono text-[11px]">{user.email || 'Não informado'}</td>
-                        <td className="p-3 text-slate-450 max-w-[200px] truncate" title={user.headline}>{user.headline || 'Candidato'}</td>
+                        <td className="p-3 text-slate-450 max-w-[200px] truncate" title={user.headline}>{user.headline || '—'}</td>
                         <td className="p-3">
                           <span className={`px-2 py-0.5 rounded-lg text-[9px] font-bold border uppercase tracking-wider ${
                             user.role === 'administrador' ? 'bg-red-500/10 text-red-400 border-red-500/20' :

@@ -5,48 +5,57 @@ export class GupyConnector extends BaseJobConnector {
 
   async searchJobs(keyword: string, location: string, pageNum: number): Promise<RawJob[]> {
     const jobs: RawJob[] = [];
-    // Gupy legacy public search API portal.api.gupy.io was protected with partner auth tokens.
-    // We attempt fetching, but if 404/401 is returned, throw explicit deprecation/auth error.
-    const url = `https://portal.api.gupy.io/api/v1/jobs?name=${encodeURIComponent(keyword)}&page=${pageNum}&perPage=15`;
-    const res = await fetch(url, {
-      headers: {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-        'Accept': 'application/json, text/plain, */*'
-      }
-    });
+    const limit = 25;
+    const offset = Math.max(0, (pageNum - 1) * limit);
 
-    if (!res.ok) {
-      if (res.status === 404 || res.status === 401 || res.status === 403) {
-        throw new Error(`AUTH_REQUIRED: Portal Gupy requer token de integração de parceiro (HTTP ${res.status}).`);
-      }
-      throw new Error(`HTTP ${res.status}: Erro ao consultar API Gupy.`);
-    }
-
-    const data = await res.json();
-    const rawJobs = data.data || [];
-    if (!Array.isArray(rawJobs)) return [];
-
-    rawJobs.forEach((j: any) => {
-      let mode: 'remote' | 'hybrid' | 'onsite' | undefined = undefined;
-      if (j.workMode === 'remote') mode = 'remote';
-      else if (j.workMode === 'hybrid') mode = 'hybrid';
-      else if (j.workMode === 'face_to_face') mode = 'onsite';
-
-      const subdomain = j.careerPageSubdomain || j.companySubdomain || "portal";
-      const link = `https://${subdomain}.gupy.io/jobs/${j.id}`;
-
-      jobs.push({
-        title: j.name || "Vaga Gupy",
-        description: j.description || `Oportunidade na empresa ${j.companyName || 'Confidencial'}.`,
-        companyName: j.companyName || "Empresa Parceira Gupy",
-        location: j.addressCity ? `${j.addressCity}, ${j.addressState || 'BR'}` : "Brasil",
-        workMode: mode,
-        sourceUrl: link,
-        sourcePlatform: this.platformName,
-        publishedAt: j.publishedAt
+    try {
+      const url = `https://employability-portal.gupy.io/api/v1/jobs?jobName=${encodeURIComponent(keyword)}&offset=${offset}&limit=${limit}`;
+      const res = await fetch(url, {
+        headers: {
+          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+          'Accept': 'application/json, text/plain, */*'
+        }
       });
-    });
 
-    return jobs;
+      if (!res.ok) {
+        console.warn(`[GupyConnector] Resposta com status HTTP ${res.status}`);
+        return [];
+      }
+
+      const data = await res.json();
+      const rawJobs = data.data || [];
+      if (!Array.isArray(rawJobs)) return [];
+
+      rawJobs.forEach((j: any) => {
+        let mode: 'remote' | 'hybrid' | 'onsite' | undefined = undefined;
+        const wp = (j.workplaceType || '').toLowerCase();
+        if (wp === 'remote' || j.isRemoteWork === true) mode = 'remote';
+        else if (wp === 'hybrid') mode = 'hybrid';
+        else if (wp === 'on-site' || wp === 'onsite' || wp === 'face_to_face') mode = 'onsite';
+
+        const locStr = j.city 
+          ? (j.state ? `${j.city}, ${j.state}` : j.city)
+          : (j.isRemoteWork ? 'Remoto' : 'Brasil');
+
+        const company = j.careerPageName || j.companyName || "Empresa Parceira Gupy";
+        const link = j.jobUrl || j.careerPageUrl || `https://portal.gupy.io/job/${j.id}`;
+
+        jobs.push({
+          title: j.name || "Vaga Gupy",
+          description: j.description || `Oportunidade na empresa ${company}.`,
+          companyName: company,
+          location: locStr,
+          workMode: mode,
+          sourceUrl: link,
+          sourcePlatform: this.platformName,
+          publishedAt: j.publishedDate
+        });
+      });
+
+      return jobs;
+    } catch (err: any) {
+      console.warn("[GupyConnector] Falha ao consultar endpoint da Gupy:", err.message);
+      return [];
+    }
   }
 }

@@ -502,89 +502,89 @@ export function CoachDashboard({
                               </div>
 
                               {/* Detailed Feedback Categories */}
-                              <div className="space-y-4">
-                                <div className="p-4 bg-slate-900/20 border border-slate-900 rounded-2xl space-y-1">
-                                  <strong className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Análise de Competências STAR</strong>
-                                  <p className="text-slate-350 leading-relaxed font-sans">{evaluations.starAnalysis}</p>
+                                <div className="space-y-4">
+                                  <div className="p-4 bg-slate-900/40 border border-slate-800 rounded-2xl space-y-1">
+                                    <strong className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Análise de Competências STAR</strong>
+                                    <div className="text-slate-300 leading-relaxed font-sans text-xs">{formatBoldText(evaluations.starAnalysis || '')}</div>
+                                  </div>
+
+                                  <div className="p-4 bg-slate-900/40 border border-slate-800 rounded-2xl space-y-1">
+                                    <strong className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Adequação Técnica</strong>
+                                    <div className="text-slate-300 leading-relaxed font-sans text-xs">{formatBoldText(evaluations.technicalAnalysis || '')}</div>
+                                  </div>
+
+                                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    <div className="p-4 bg-slate-900/40 border border-slate-800 rounded-2xl space-y-1">
+                                      <strong className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Comunicação & Expressão</strong>
+                                      <div className="text-slate-300 leading-relaxed font-sans text-xs">{formatBoldText(evaluations.communicationAnalysis || '')}</div>
+                                      <div className="text-[10px] text-slate-400 italic mt-1">{formatBoldText(evaluations.postureAnalysis || '')}</div>
+                                    </div>
+                                    <div className="p-4 bg-slate-900/40 border border-slate-800 rounded-2xl space-y-1">
+                                      <strong className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Clareza & Segurança</strong>
+                                      <div className="text-slate-300 leading-relaxed font-sans text-xs">{formatBoldText(evaluations.clarityAnalysis || '')}</div>
+                                    </div>
+                                  </div>
+
+                                  {/* Strengths & Weaknesses */}
+                                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    <div className="p-4 bg-emerald-950/20 border border-emerald-500/20 rounded-2xl space-y-2">
+                                      <strong className="text-xs font-bold text-emerald-400 flex items-center gap-1.5">
+                                        <span>✓</span> Pontos Fortes
+                                      </strong>
+                                      <ul className="space-y-1.5 text-slate-300 font-sans text-xs">
+                                        {(evaluations.strengths || []).map((item: string, idx: number) => (
+                                          <li key={idx} className="flex items-start gap-1.5 leading-relaxed">
+                                            <span className="text-emerald-400 font-bold">•</span>
+                                            <span>{formatBoldText(item)}</span>
+                                          </li>
+                                        ))}
+                                      </ul>
+                                    </div>
+                                    <div className="p-4 bg-amber-950/20 border border-amber-500/20 rounded-2xl space-y-2">
+                                      <strong className="text-xs font-bold text-amber-400 flex items-center gap-1.5">
+                                        <span>⚠️</span> Oportunidades de Melhoria
+                                      </strong>
+                                      <ul className="space-y-1.5 text-slate-300 font-sans text-xs">
+                                        {(evaluations.weaknesses || []).map((item: string, idx: number) => (
+                                          <li key={idx} className="flex items-start gap-1.5 leading-relaxed">
+                                            <span className="text-amber-400 font-bold">•</span>
+                                            <span>{formatBoldText(item)}</span>
+                                          </li>
+                                        ))}
+                                      </ul>
+                                    </div>
+                                  </div>
+
+                                  {/* Plano de Ação */}
+                                  {evaluations.improvementPlan && evaluations.improvementPlan.length > 0 && (
+                                    <div className="p-4 bg-slate-900/40 border border-slate-800 rounded-2xl space-y-2">
+                                      <strong className="text-xs font-bold text-brand-400 flex items-center gap-1.5">
+                                        <span>🎯</span> Plano de Ação Recomendado
+                                      </strong>
+                                      <ol className="space-y-2 text-slate-300 font-sans text-xs list-decimal pl-4 leading-relaxed">
+                                        {evaluations.improvementPlan.map((step: string, idx: number) => (
+                                          <li key={idx}>{formatBoldText(step)}</li>
+                                        ))}
+                                      </ol>
+                                    </div>
+                                  )}
                                 </div>
 
-                                <div className="p-4 bg-slate-900/20 border border-slate-900 rounded-2xl space-y-1">
-                                  <strong className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Adequação Técnica</strong>
-                                  <p className="text-slate-350 leading-relaxed font-sans">{evaluations.technicalAnalysis}</p>
-                                </div>
-
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                  <div className="p-4 bg-slate-900/20 border border-slate-900 rounded-2xl space-y-1">
-                                    <strong className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Comunicação & Expressão</strong>
-                                    <p className="text-slate-350 leading-relaxed font-sans">{evaluations.communicationAnalysis}</p>
-                                    <p className="text-[10px] text-slate-500 italic mt-1">{evaluations.postureAnalysis}</p>
+                                {/* Perceived Seniority & Risk Assessment */}
+                                <div className="grid grid-cols-1 md:grid-cols-3 gap-3 pt-2">
+                                  <div className="p-4.5 bg-slate-950/60 border border-slate-800 rounded-2xl flex flex-col justify-between">
+                                    <span className="text-slate-400 text-[9px] uppercase tracking-wider font-bold">Senioridade Percebida</span>
+                                    <strong className="text-slate-200 text-xs mt-1 uppercase font-mono">{evaluations.seniorityPerceived || 'pleno'}</strong>
                                   </div>
-                                  <div className="p-4 bg-slate-900/20 border border-slate-900 rounded-2xl space-y-1">
-                                    <strong className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Clareza & Segurança</strong>
-                                    <p className="text-slate-350 leading-relaxed font-sans">{evaluations.clarityAnalysis}</p>
+                                  <div className="p-4.5 bg-slate-950/60 border border-slate-800 rounded-2xl flex flex-col justify-between">
+                                    <span className="text-slate-400 text-[9px] uppercase tracking-wider font-bold">Mapeamento de Riscos</span>
+                                    <div className="text-slate-300 text-xs mt-1 font-sans leading-relaxed">{formatBoldText(evaluations.riskAnalysis || 'Sem riscos detectados.')}</div>
                                   </div>
-                                </div>
-
-                                {/* Strengths & Weaknesses */}
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                  <div className="p-4 bg-emerald-950/20 border border-emerald-500/20 rounded-2xl space-y-2">
-                                    <strong className="text-xs font-bold text-emerald-400 flex items-center gap-1.5">
-                                      <span>✓</span> Pontos Fortes
-                                    </strong>
-                                    <ul className="space-y-1 text-slate-300 font-sans text-xs">
-                                      {(evaluations.strengths || []).map((item: string, idx: number) => (
-                                        <li key={idx} className="flex items-start gap-1.5">
-                                          <span className="text-emerald-400 font-bold">•</span>
-                                          <span>{item}</span>
-                                        </li>
-                                      ))}
-                                    </ul>
-                                  </div>
-                                  <div className="p-4 bg-amber-950/20 border border-amber-500/20 rounded-2xl space-y-2">
-                                    <strong className="text-xs font-bold text-amber-400 flex items-center gap-1.5">
-                                      <span>⚠️</span> Oportunidades de Melhoria
-                                    </strong>
-                                    <ul className="space-y-1 text-slate-300 font-sans text-xs">
-                                      {(evaluations.weaknesses || []).map((item: string, idx: number) => (
-                                        <li key={idx} className="flex items-start gap-1.5">
-                                          <span className="text-amber-400 font-bold">•</span>
-                                          <span>{item}</span>
-                                        </li>
-                                      ))}
-                                    </ul>
+                                  <div className="p-4.5 bg-slate-950/60 border border-slate-800 rounded-2xl flex flex-col justify-between">
+                                    <span className="text-slate-400 text-[9px] uppercase tracking-wider font-bold">Comparação Vaga vs Perfil</span>
+                                    <div className="text-slate-300 text-xs mt-1 font-sans leading-relaxed">{formatBoldText(evaluations.jobFitComparison || 'Match com a vaga verificado.')}</div>
                                   </div>
                                 </div>
-
-                                {/* Plano de Ação */}
-                                {evaluations.improvementPlan && evaluations.improvementPlan.length > 0 && (
-                                  <div className="p-4 bg-slate-900/30 border border-slate-850 rounded-2xl space-y-2">
-                                    <strong className="text-xs font-bold text-brand-400 flex items-center gap-1.5">
-                                      <span>🎯</span> Plano de Ação Recomendado
-                                    </strong>
-                                    <ol className="space-y-1.5 text-slate-300 font-sans text-xs list-decimal pl-4">
-                                      {evaluations.improvementPlan.map((step: string, idx: number) => (
-                                        <li key={idx}>{step}</li>
-                                      ))}
-                                    </ol>
-                                  </div>
-                                )}
-                              </div>
-
-                              {/* Perceived Seniority & Risk Assessment */}
-                              <div className="grid grid-cols-1 md:grid-cols-3 gap-3 pt-2">
-                                <div className="p-4.5 bg-slate-950/40 border border-slate-900 rounded-2xl flex flex-col justify-between">
-                                  <span className="text-slate-500 text-[8px] uppercase tracking-wider font-bold">Senioridade Percebida</span>
-                                  <strong className="text-slate-200 text-xs mt-1 uppercase font-mono">{evaluations.seniorityPerceived || 'pleno'}</strong>
-                                </div>
-                                <div className="p-4.5 bg-slate-950/40 border border-slate-900 rounded-2xl flex flex-col justify-between">
-                                  <span className="text-slate-500 text-[8px] uppercase tracking-wider font-bold">Mapeamento de Riscos</span>
-                                  <p className="text-slate-300 text-[10px] mt-1 font-sans leading-relaxed">{evaluations.riskAnalysis || 'Sem riscos detectados.'}</p>
-                                </div>
-                                <div className="p-4.5 bg-slate-950/40 border border-slate-900 rounded-2xl flex flex-col justify-between">
-                                  <span className="text-slate-500 text-[8px] uppercase tracking-wider font-bold">Comparação Vaga vs Perfil</span>
-                                  <p className="text-slate-300 text-[10px] mt-1 font-sans leading-relaxed">{evaluations.jobFitComparison || 'Match com a vaga verificado.'}</p>
-                                </div>
-                              </div>
 
                               {/* Action Buttons */}
                               <div className="flex gap-3 pt-4">

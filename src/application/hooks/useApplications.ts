@@ -158,12 +158,16 @@ export function useApplications(userId: string | undefined, resumeVersionId?: st
       if (!userId) throw new Error('Usuário não autenticado.');
 
       if (isSupabaseConfigured && supabase) {
+        const isUuid = (val?: string | null) => !!val && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(val);
+        const safeJobId = isUuid(appData.jobId) ? appData.jobId : null;
+        const safeMatchId = isUuid(appData.matchId) ? appData.matchId : null;
+
         const { data, error } = await supabase
           .from('applications')
           .insert({
             user_id: userId,
-            job_id: appData.jobId || null,
-            match_id: appData.matchId || null,
+            job_id: safeJobId,
+            match_id: safeMatchId,
             company_name: appData.companyName,
             job_title: appData.jobTitle,
             status: mapStatusToDb(appData.status),

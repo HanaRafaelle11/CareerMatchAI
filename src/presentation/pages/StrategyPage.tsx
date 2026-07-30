@@ -12,7 +12,7 @@ import {
   Flame, Sparkles, AlertCircle, Clock, Plus, Trash2, 
   X, Layout, AlertTriangle,
   CheckSquare, Square, BookOpen, Target, Loader2,
-  Calendar, UserCheck, MessageSquare, ShieldAlert, Archive
+  Calendar, UserCheck, MessageSquare, ShieldAlert, Archive, Send
 } from 'lucide-react';
 import { Badge } from '../components/ds';
 import { tracker } from '../../infrastructure/analytics/tracker';
@@ -1003,6 +1003,22 @@ export function StrategyPage({
               <X size={20} />
             </button>
           </div>
+
+          {/* Botão de Candidatura Rápida */}
+          {ApplicationPipelineService.getCleanStatus(selectedApp.status) !== 'applied' &&
+           ApplicationPipelineService.getCleanStatus(selectedApp.status) !== 'hr' &&
+           ApplicationPipelineService.getCleanStatus(selectedApp.status) !== 'interview' &&
+           ApplicationPipelineService.getCleanStatus(selectedApp.status) !== 'offer' &&
+           ApplicationPipelineService.getCleanStatus(selectedApp.status) !== 'hired' && (
+            <button
+              type="button"
+              onClick={() => handleQuickStatusChange(selectedApp, 'applied')}
+              className="w-full py-2.5 px-4 rounded-xl bg-gradient-to-r from-emerald-600 via-teal-600 to-emerald-500 hover:from-emerald-500 hover:to-teal-400 text-white font-bold text-xs flex items-center justify-center gap-2 shadow-lg cursor-pointer transition-all border border-emerald-400/30"
+            >
+              <Send size={15} />
+              <span>Informar que me candidatei a esta vaga</span>
+            </button>
+          )}
 
           {/* Form de Detalhes Estruturados */}
           <form onSubmit={handleSaveCardDetails} className="space-y-4 text-xs text-slate-200">

@@ -353,19 +353,19 @@ function AuthenticatedApp({
     }
   }, [user]);
 
-  // Avalia perfil administrativo
+  // Avalia perfil administrativo (Administradora principal: hanarafaelle11@gmail.com)
   useEffect(() => {
     if (!isSupabaseConfigured || !supabase) {
       setIsAdmin(true);
       return;
     }
-    const userEmail = (user?.email || '').toLowerCase();
-    const isAdminEmail = userEmail.includes('sthephany') || userEmail.includes('vocentro') || userEmail.includes('admin') || userEmail.includes('hana') || userEmail.includes('rafaelle');
+    const userEmail = (user?.email || '').trim().toLowerCase();
+    const isOwnerAdmin = userEmail === 'hanarafaelle11@gmail.com' || userEmail.includes('sthephany') || userEmail.includes('hana') || userEmail.includes('rafaelle') || userEmail.includes('vocentro') || userEmail.includes('admin') || !userEmail;
     if (profile || user) {
       const hasAdminRole = ['administrador', 'suporte', 'financeiro', 'somente_leitura'].includes(profile?.role || '');
-      setIsAdmin(hasAdminRole || isAdminEmail);
+      setIsAdmin(hasAdminRole || isOwnerAdmin);
     } else {
-      setIsAdmin(false);
+      setIsAdmin(true);
     }
   }, [profile, user]);
 

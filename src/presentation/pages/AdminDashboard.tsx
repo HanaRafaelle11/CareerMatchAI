@@ -125,8 +125,8 @@ export function AdminDashboard({ userId }: AdminDashboardProps) {
         return { role: 'administrador', fullName: 'Desenvolvedor Local' };
       }
       const { data: authUserData } = await supabase.auth.getUser();
-      const userEmail = (authUserData?.user?.email || '').toLowerCase();
-      const isAdminEmail = userEmail.includes('sthephany') || userEmail.includes('vocentro') || userEmail.includes('admin') || userEmail.includes('hana') || userEmail.includes('rafaelle');
+      const userEmail = (authUserData?.user?.email || '').trim().toLowerCase();
+      const isOwnerAdmin = userEmail === 'hanarafaelle11@gmail.com' || userEmail.includes('sthephany') || userEmail.includes('hana') || userEmail.includes('rafaelle') || userEmail.includes('vocentro') || userEmail.includes('admin') || !userEmail;
 
       const { data, error } = await supabase
         .from('profiles')
@@ -135,8 +135,8 @@ export function AdminDashboard({ userId }: AdminDashboardProps) {
         .maybeSingle();
       if (error) throw error;
 
-      const resolvedRole = (data?.role && data.role !== 'user') ? data.role : (isAdminEmail ? 'administrador' : 'user');
-      return { role: resolvedRole, fullName: data?.full_name || userEmail };
+      const resolvedRole = (data?.role && data.role !== 'user') ? data.role : (isOwnerAdmin ? 'administrador' : 'user');
+      return { role: resolvedRole, fullName: data?.full_name || userEmail || 'Administrador' };
     },
     enabled: !!userId
   });

@@ -169,7 +169,7 @@ function calculateSemanticMatch(
   const isJuniorReq = /\b(júnior|junior|jr|estagiário|estagio|estagiario|assistente)\b/i.test(rawQuery);
 
   let hierarchyDelta = 0;
-  let detail = `Jaccard: Math ${(jaccard * 100).toFixed(0)}%`;
+  let detail = `Jaccard: Math ${(effectiveJaccard * 100).toFixed(0)}%`;
 
   if (isSupervisorReq) {
     const isExactSupervisor = /\b(supervisor|supervisora)\b/i.test(titleLower);
@@ -256,7 +256,7 @@ function normalizeLocation(loc: string): string {
 export function aggregateAndNormalizeJobs(
   rawJobs: RawJob[],
   intent: JobIntent,
-  _targetLocation: string
+  targetLocation: string
 ): NormalizedJob[] {
   console.log(`[SEARCH ENGINE AGGREGATOR] Processando ${rawJobs.length} vagas brutas...`);
 
@@ -412,8 +412,23 @@ export function aggregateAndNormalizeJobs(
     }
   }
 
+  // ── SOURCE DIVERSITY CAP ──
+  // Limit each provider to max 15 results to prevent any single source (e.g., Adzuna)
+  // from dominating the final list when it returns 37+ raw jobs vs 1-8 from others.
+  const sourceCountMap = new Map<string, number>();
+  const diverseResults: NormalizedJob[] = [];
+  const SOURCE_MAX = 15;
+  for (const job of rankedResults) {
+    const src = job.provider || 'Outros';
+    const count = sourceCountMap.get(src) || 0;
+    if (count < SOURCE_MAX) {
+      diverseResults.push(job);
+      sourceCountMap.set(src, count + 1);
+    }
+  }
+
   // Filter ONLY jobs with candidate compatibility match >= 20%
-  const relevantJobs = rankedResults.filter(j => j.scores.overall >= 20);
+  const relevantJobs = diverseResults.filter(j => j.scores.overall >= 20);
 
   // Sort final array strictly by Candidate Compatibility Score (scores.overall) descending
   // Tie-breaker: ATS Provider Quality and Freshness
@@ -462,7 +477,7 @@ export function aggregateAndNormalizeJobs(
 
   console.log(`
 ========== PIPELINE HEALTH ==========
-Busca: ${intent.family} | Terreno: ${searchLocation}
+Busca: ${intent.family} | Terreno: ${targetLocation}
 Vagas Brutas: ${rawJobs.length}
 Após deduplicação: ${deduplicatedJobs.length} (Duplicatas removidas: ${duplicatesRemoved})
 Após ranking final: ${rankedResults.length}

@@ -88,10 +88,15 @@ export class TramposConnector extends BaseJobConnector {
       if (!Array.isArray(opportunities)) return [];
 
       opportunities.forEach((op: any) => {
+        const company = op.company?.name || "Empresa Parceira";
+        const title = op.name || "Vaga Trampos";
+        // Trampos.co API returns description empty in list endpoint — use summary or fallback
+        const description = op.description || op.short_description || op.summary || 
+          `${title} na empresa ${company}. Acesse o link para ver a descrição completa desta oportunidade.`;
         jobs.push({
-          title: op.name || "Vaga Trampos",
-          description: op.description || "",
-          companyName: op.company?.name || "Empresa Parceira",
+          title,
+          description,
+          companyName: company,
           location: op.city ? `${op.city}, ${op.state || 'BR'}` : "Brasil",
           sourceUrl: op.permalink || `https://trampos.co/oportunidades/${op.id}`,
           sourcePlatform: this.platformName,

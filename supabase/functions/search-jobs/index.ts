@@ -317,6 +317,7 @@ serve(async (req) => {
     const { keyword, location, pageNum = 1, userId, provider } = await req.json();
     const searchKeyword = keyword || 'React';
     const searchLocation = location || 'Brasil';
+    const cleanedKeyword = (searchKeyword || '').replace(/<\/?[^>]+(>|$)/g, "").trim();
 
     const supabaseUrl = Deno.env.get('SUPABASE_URL') || '';
     const supabaseAnonKey = Deno.env.get('SUPABASE_ANON_KEY') || '';
@@ -364,7 +365,6 @@ serve(async (req) => {
     const geminiApiKey = Deno.env.get('GEMINI_API_KEY');
     if (!geminiApiKey) {
       console.warn("[search-jobs] GEMINI_API_KEY is not set. Falling back to simple keyword matching.");
-      intent = getFallbackIntent(searchKeyword);
       intent = getFallbackIntent(cleanedKeyword);
     } else {
       try {
@@ -408,8 +408,8 @@ serve(async (req) => {
     const diagnostics: ProviderDiagnostic[] = [];
     let rawJobsList: any[] = [];
 
-    // Tier A gets 4s timeout, Tier B gets 3.5s, Tier C gets 3s
-    const tierTimeouts: Record<string, number> = { A: 4000, B: 3500, C: 3000 };
+    // Tier A gets 8s timeout (increased from 4s — Gupy needs ~4.7s), Tier B gets 4s, Tier C gets 3s
+    const tierTimeouts: Record<string, number> = { A: 8000, B: 4000, C: 3000 };
 
     // Extrair variações de palavras-chave para expanção inteligente de termos compostos
     const searchVariations = new Set<string>();

@@ -17,6 +17,7 @@ import {
 import { Badge } from '../components/ds';
 import { tracker } from '../../infrastructure/analytics/tracker';
 import { isSupabaseConfigured, supabase } from '../../infrastructure/api/supabaseClient';
+import { isAppliedStatus, isSavedStatus } from '../../domain/models/applicationStatusConstants';
 
 import { Toast, type ToastMessage } from '../components/ds';
 
@@ -722,10 +723,8 @@ export function StrategyPage({
             <h2 className="text-base font-semibold text-slate-900 dark:text-slate-100 mt-1">
               {applications.length > 0
                 ? (() => {
-                    const appliedSt = ['📨 Me candidatei', '👥 Entrevista com recrutador', '🎯 Entrevista com gestor', '🧩 Case técnico', '🤝 Fit cultural', '🏆 Oferta recebida', '✅ Aceita', 'applied', 'hr', 'interview', 'offer', 'hired'];
-                    const savedSt = ['🔎 Encontrada', '⭐ Tenho interesse', '📝 Vou me candidatar', '📝 Candidatura planejada', 'found', 'saved'];
-                    const enviadasCount = applications.filter(a => appliedSt.includes(a.status)).length;
-                    const salvasCount = applications.filter(a => savedSt.includes(a.status)).length;
+                    const enviadasCount = applications.filter(a => isAppliedStatus(a.status)).length;
+                    const salvasCount = applications.filter(a => isSavedStatus(a.status)).length;
                     return `Você enviou ${enviadasCount} candidatura(s) e possui ${salvasCount} vaga(s) salva(s) em prospecção.`;
                   })()
                 : 'Adicione suas candidaturas ao Pipeline para monitorar prazos e métricas de avanço.'}

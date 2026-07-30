@@ -9,6 +9,7 @@ import { StatCard } from '../components/ds';
 import { CareerScoreDashboardCard } from '../components/CareerScoreDashboardCard';
 import { useQuery } from '@tanstack/react-query';
 import { isSupabaseConfigured, supabase } from '../../infrastructure/api/supabaseClient';
+import { isAppliedStatus, isSavedStatus } from '../../domain/models/applicationStatusConstants';
 
 interface DashboardProps {
   profile: Profile | null;
@@ -140,11 +141,9 @@ export function Dashboard({
   );
   const interviewsCount = interviews.length;
 
-  // Métricas separadas: candidaturas enviadas vs vagas salvas/prospecção
-  const appliedStatuses = ['📨 Me candidatei', '👥 Entrevista com recrutador', '🎯 Entrevista com gestor', '🧩 Case técnico', '🤝 Fit cultural', '🏆 Oferta recebida', '✅ Aceita', 'applied', 'hr', 'interview', 'offer', 'hired'];
-  const savedStatuses = ['🔎 Encontrada', '⭐ Tenho interesse', '📝 Vou me candidatar', '📝 Candidatura planejada', 'found', 'saved'];
-  const appliedCount = applications.filter(a => appliedStatuses.includes(a.status)).length;
-  const savedCount = applications.filter(a => savedStatuses.includes(a.status)).length;
+  // Métricas separadas: candidaturas enviadas vs vagas salvas/prospecção (usando constante compartilhada)
+  const appliedCount = applications.filter(a => isAppliedStatus(a.status)).length;
+  const savedCount = applications.filter(a => isSavedStatus(a.status)).length;
 
   const targetRole = (careerProfileNew?.personal as any)?.preferences?.targetRoles?.[0] || profile?.headline || 'Desenvolvimento Profissional';
 

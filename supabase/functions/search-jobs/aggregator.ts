@@ -92,7 +92,7 @@ function calculateFreshness(publishedAt?: string): { score: number; ageDays: num
   return { score: 30, ageDays, isExpired: false };                    // 61-90d: -5
 }
 
-// Calculate Semantic Similarity Match Score (0 - 100)
+// Calculate Semantic Similarity Match Score (0 - 100) — SINGLE SOURCE OF TRUTH FOR CANDIDATE MATCH
 function calculateSemanticMatch(
   j: RawJob,
   intent: JobIntent
@@ -101,21 +101,22 @@ function calculateSemanticMatch(
   const titleLower = titleClean.toLowerCase();
   const descLower = (j.description || '').toLowerCase();
   const combinedText = `${titleLower} ${descLower}`;
+  const rawQuery = (intent.raw_query || '').toLowerCase();
 
-  let score = 30;
+  let score = 35;
   let detail = "compatibilidade inicial";
 
   const matchedPrimary = intent.primary_titles.some(t => {
-    const tLower = t.toLowerCase();
+    const tLower = t.toLowerCase().trim();
     return titleLower.includes(tLower) || tLower.includes(titleLower);
   });
 
   if (matchedPrimary) {
-    score = 90;
+    score = 88;
     detail = "correspondência exata de cargo";
   } else {
     const matchedSecondary = intent.secondary_titles.some(t => {
-      const tLower = t.toLowerCase();
+      const tLower = t.toLowerCase().trim();
       return titleLower.includes(tLower) || tLower.includes(titleLower);
     });
 
@@ -126,15 +127,51 @@ function calculateSemanticMatch(
       const tokensToMatch = new Set<string>();
       intent.primary_titles.forEach(t => t.toLowerCase().split(/\s+/).forEach(w => {
         const cleaned = w.replace(/[^\w]/g, "");
-        if (cleaned.length >= 2) tokensToMatch.add(cleaned);
+        if (cleaned.length >= 2 && !['de', 'da', 'do', 'das', 'dos', 'em', 'para', 'com', 'e', 'a', 'o', 'of', 'for', 'in', 'and'].includes(cleaned)) {
+          tokensToMatch.add(cleaned);
+        }
       }));
 
       const titleWords = titleLower.split(/\s+/).map(w => w.replace(/[^\w]/g, "")).filter(w => w.length >= 2);
       const overlapCount = titleWords.filter(w => tokensToMatch.has(w)).length;
       if (overlapCount > 0) {
-        score = 60;
+        score = Math.min(68, 40 + (overlapCount * 14));
         detail = "sobreposição parcial de palavra-chave";
       }
+    }
+  }
+
+  // ── ALINHAMENTO DE SENIORIDADE E NÍVEL HIERÁRQUICO ──
+  const isSupervisorRequested = /\b(supervisor|supervisora|coordenador|coordenadora|líder|lider|gerente)\b/i.test(rawQuery);
+  const isSeniorRequested = /\b(sênior|senior|sr|lead|principal)\b/i.test(rawQuery);
+  const isJuniorRequested = /\b(júnior|junior|jr|estagiário|estagiario|assistente)\b/i.test(rawQuery);
+
+  if (isSupervisorRequested) {
+    const isSupervisorJob = /\b(supervisor|supervisora|coordenador|coordenadora|líder|lider|gerente|head)\b/i.test(titleLower);
+    const isJuniorJob = /\b(agente|assistente|estagiário|estagiario|júnior|junior|jr)\b/i.test(titleLower);
+    
+    if (isSupervisorJob) {
+      score = Math.min(99, score + 10);
+      detail += " + liderança aderente";
+    } else if (isJuniorJob) {
+      score = Math.max(5, score - 40); // Penaliza níveis operacionais/júnior em busca de supervisão
+      detail += " - penalidade por nível operacional em busca de liderança";
+    }
+  } else if (isSeniorRequested) {
+    const isSeniorJob = /\b(sênior|senior|sr|lead|principal|head)\b/i.test(titleLower);
+    const isJuniorJob = /\b(júnior|junior|jr|estagiário|estagiario)\b/i.test(titleLower);
+    if (isSeniorJob) {
+      score = Math.min(99, score + 10);
+    } else if (isJuniorJob) {
+      score = Math.max(5, score - 35);
+    }
+  } else if (isJuniorRequested) {
+    const isJuniorJob = /\b(júnior|junior|jr|estagiário|estagiario|assistente)\b/i.test(titleLower);
+    const isSeniorJob = /\b(sênior|senior|sr|lead|gerente|head)\b/i.test(titleLower);
+    if (isJuniorJob) {
+      score = Math.min(99, score + 10);
+    } else if (isSeniorJob) {
+      score = Math.max(5, score - 35);
     }
   }
 
@@ -152,7 +189,7 @@ function calculateSemanticMatch(
     }).length;
 
     const skillBonus = Math.min(10, Math.round((matchedSkillsCount / intent.skills.length) * 10));
-    score = Math.min(100, score + skillBonus);
+    score = Math.min(99, score + skillBonus);
   }
 
   return { matchScore: score, detail };
@@ -180,23 +217,14 @@ function normalizeLocation(loc: string): string {
   if (l.includes("rio de janeiro") || l.includes("rj")) {
     return "Rio de Janeiro, RJ";
   }
-  if (l.includes("belo horizonte") || l.includes("bh") || l.includes("mg")) {
-    return "Belo Horizonte, MG";
-  }
-  if (l.includes("curitiba") || l.includes("pr")) {
-    return "Curitiba, PR";
-  }
-  if (l.includes("porto alegre") || l.includes("poa") || l.includes("rs")) {
-    return "Porto Alegre, RS";
-  }
   return loc.trim();
 }
 
-// ── 2. MAIN AGGREGATOR & MULTI-PROVIDER SEARCH ENGINE ──
+// Aggregate, Normalize, Deduplicate and Rank Jobs
 export function aggregateAndNormalizeJobs(
   rawJobs: RawJob[],
   intent: JobIntent,
-  searchLocation: string = "Brasil"
+  _targetLocation: string
 ): NormalizedJob[] {
   console.log(`[SEARCH ENGINE AGGREGATOR] Processando ${rawJobs.length} vagas brutas...`);
 
@@ -225,25 +253,18 @@ export function aggregateAndNormalizeJobs(
     if (isExpired) continue;
 
     const { matchScore, detail } = calculateSemanticMatch(j, intent);
-    const companyScore = company !== "Empresa Confidencial" ? 90 : 50;
     
     const locLower = locStr.toLowerCase();
     const isBrazilLoc = locLower.includes("brasil") || locLower.includes("sp") || locLower.includes("rj") || locLower.includes("mg") || locLower.includes("pr") || locLower.includes("remoto");
-    const locationScore = isBrazilLoc ? 100 : 60;
 
-    // Weighted jobScore Formula (100% Predictable):
-    // 40% Match + 25% Freshness + 15% ATS/Link Quality + 10% Company Trust + 10% Location
-    const jobScore = Math.round(
-      (matchScore * 0.40) +
-      (freshnessScore * 0.25) +
-      (atsScore * 0.15) +
-      (companyScore * 0.10) +
-      (locationScore * 0.10)
-    );
+    // ── FONTE ÚNICA DE VERDADE ──
+    // scores.overall É O SCORE DE COMPATIBILIDADE CANDIDATO-VAGA (0 - 100%).
+    // O jobScore/rankingScore de frescor e ATS é mantido apenas como critério interno de desempate.
+    const candidateMatchScore = Math.min(99, Math.max(5, matchScore));
 
     // Calculate Confidence Score %
     let confidencePercent = 60;
-    if (matchScore >= 75) confidencePercent += 15;
+    if (candidateMatchScore >= 75) confidencePercent += 15;
     if (freshnessScore >= 80) confidencePercent += 10;
     if (atsScore >= 90) confidencePercent += 10;
     if (isBrazilLoc) confidencePercent += 5;
@@ -267,12 +288,12 @@ export function aggregateAndNormalizeJobs(
       scores: {
         providerQuality: atsScore,
         freshness: freshnessScore,
-        companyTrust: companyScore,
+        companyTrust: company !== "Empresa Confidencial" ? 90 : 50,
         salaryConfidence: 50,
         descriptionCompleteness: Math.min(100, j.description.length / 10),
         remoteConfidence: locLower.includes('remoto') ? 100 : 50,
-        overall: jobScore,
-        explanation: `${detail} | Frescor: ${ageDays}d | Link: ${ats || providerName} (${atsScore} pts)`,
+        overall: candidateMatchScore, // FONTE ÚNICA DE VERDADE PARA MATCH DO CANDIDATO
+        explanation: `${detail} | Frescor: ${ageDays}d | Link: ${ats || providerName}`,
         confidence: confidencePercent >= 85 ? 'high' : confidencePercent >= 70 ? 'medium' : 'low'
       }
     };
@@ -350,7 +371,6 @@ export function aggregateAndNormalizeJobs(
           cityPenalty = 3;
         }
 
-        candidate.scores.overall = Math.max(1, candidate.scores.overall - companyPenalty - cityPenalty);
         companyAppearanceCount.set(companyKey, prevCompCount + 1);
         lastCity = candidate.locationNormalized;
 
@@ -360,8 +380,16 @@ export function aggregateAndNormalizeJobs(
     }
   }
 
-  // Sort final array by overall jobScore preserving diversity
-  rankedResults.sort((a, b) => b.scores.overall - a.scores.overall);
+  // Filter ONLY jobs with candidate compatibility match >= 20%
+  const relevantJobs = rankedResults.filter(j => j.scores.overall >= 20);
+
+  // Sort final array strictly by Candidate Compatibility Score (scores.overall) descending
+  // Tie-breaker: ATS Provider Quality and Freshness
+  relevantJobs.sort((a, b) => {
+    const diff = b.scores.overall - a.scores.overall;
+    if (Math.abs(diff) >= 3) return diff;
+    return (b.scores.providerQuality + b.scores.freshness) - (a.scores.providerQuality + a.scores.freshness);
+  });
 
   // ── 4. PIPELINE HEALTH DASHBOARD LOG ──
   const finalProviderStats: Record<string, number> = {};
@@ -422,5 +450,5 @@ Job Quality Score: ${pipelineHealthScore} / 100
 ====================================
   `);
 
-  return rankedResults;
+  return relevantJobs;
 }

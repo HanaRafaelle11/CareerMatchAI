@@ -3423,24 +3423,17 @@ export function JobMatchHub({
             };
           }
 
-          // Usa o perfil consolidado para cálculo síncrono de compatibilidade
-          const analysis = MatchingEngine.calculateMatchSync(primaryResume, job, careerProfileNew);
-          const recencyBonus = 10;
-          const skillsGapBonus = Math.max(0, 10 - (analysis.missingSkills.length * 2.5));
-          const effectiveScore = (job as any).scoreOverall ?? (job as any).scores?.overall ?? analysis.scoreOverall;
-          const cpi = Math.round(
-            (effectiveScore * 0.60) +
-            (analysis.scoreTechnical * 0.20) +
-            recencyBonus +
-            skillsGapBonus
-          );
+          // FONTE ÚNICA DE VERDADE DO MOTOR DE MATCH:
+          // Utiliza diretamente o scoreOverall retornado pela Edge Function agregadora (backend),
+          // eliminando qualquer recálculo secundário no frontend.
+          const effectiveScore = (job as any).scoreOverall ?? (job as any).scores?.overall ?? 50;
 
           return {
             ...job,
             scoreOverall: effectiveScore,
-            cpi,
-            missingSkills: analysis.missingSkills,
-            matchedSkills: analysis.matchedSkills || []
+            cpi: effectiveScore,
+            missingSkills: (job as any).missingSkills || [],
+            matchedSkills: (job as any).matchedSkills || []
           };
         });
 

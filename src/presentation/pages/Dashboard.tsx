@@ -292,24 +292,39 @@ export function Dashboard({
         }}
       />
 
-      {/* ── 3. METRICAS ESSENCIAIS DA JORNADA (UNIFICADAS) ── */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-        <div className="p-4 rounded-xl bg-white dark:bg-[#242B36] border border-slate-200/80 dark:border-white/8">
-          <span className="text-2xl font-bold text-slate-900 dark:text-[#F8FAFC] block">{avgMatch}%</span>
-          <span className="text-xs text-slate-500 dark:text-[#B8C2CC]">Match médio com vagas</span>
-        </div>
-        <div className="p-4 rounded-xl bg-white dark:bg-[#242B36] border border-slate-200/80 dark:border-white/8">
-          <span className="text-2xl font-bold text-slate-900 dark:text-[#F8FAFC] block">{applications.length}</span>
-          <span className="text-xs text-slate-500 dark:text-[#B8C2CC]">No Pipeline</span>
-        </div>
-        <div className="p-4 rounded-xl bg-white dark:bg-[#242B36] border border-slate-200/80 dark:border-white/8">
-          <span className="text-2xl font-bold text-slate-900 dark:text-[#F8FAFC] block">{interviewsCount}</span>
-          <span className="text-xs text-slate-500 dark:text-[#B8C2CC]">Entrevistas ativas</span>
-        </div>
-        <div className="p-4 rounded-xl bg-white dark:bg-[#242B36] border border-slate-200/80 dark:border-white/8">
-          <span className="text-2xl font-bold text-[#22C7A8] block">+{matches.length}</span>
-          <span className="text-xs text-slate-500 dark:text-[#B8C2CC]">Novas vagas com Match</span>
-        </div>
+      {/* ── 3. MÉTRICAS ESSENCIAIS DA JORNADA (UNIFICADAS E SEM DUPLICAÇÃO) ── */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        <StatCard 
+          icon={<Search size={16} strokeWidth={1.5} />} 
+          label="Vagas com Match" 
+          value={matches.length} 
+          trend={{ value: `${avgMatch}% match médio`, positive: true }} 
+          action={{ label: "Ver vagas", onClick: () => setActiveTab('match') }}
+        />
+        <StatCard 
+          icon={<Briefcase size={16} strokeWidth={1.5} />} 
+          label="No Pipeline" 
+          value={applications.length} 
+          trend={applications.length > 0 ? { value: `${applications.length} em progresso`, positive: true } : null}
+          accent="secondary"
+          action={{ label: "Ver Pipeline", onClick: () => setActiveTab('strategy') }}
+        />
+        <StatCard 
+          icon={<Award size={16} strokeWidth={1.5} />} 
+          label="Entrevistas Agendadas" 
+          value={interviewsCount} 
+          trend={interviewsCount > 0 ? { value: `${interviewsCount} ativas`, positive: true } : null}
+          accent="success"
+          action={{ label: "Treinar STAR", onClick: () => setActiveTab('coach') }}
+        />
+        <StatCard 
+          icon={<Zap size={16} strokeWidth={1.5} />} 
+          label="Preenchimento do Perfil" 
+          value={`${completeness}%`} 
+          trend={completeness === 100 ? { value: 'Completo', positive: true } : null} 
+          accent="warning"
+          action={{ label: "Ajustar perfil", onClick: () => setActiveTab('profile') }}
+        />
       </div>
 
       {/* ── 4. ORIENTAÇÃO DO COPILOTO IA (CTA DOMINANTE 100% DINÂMICO) ── */}
@@ -380,40 +395,7 @@ export function Dashboard({
         </div>
       </section>
 
-      {/* ── 6. ESTATÍSTICAS RESUMIDAS ── */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <StatCard 
-          icon={<Search size={16} strokeWidth={1.5} />} 
-          label="Vagas com Match" 
-          value={matches.length} 
-          trend={{ value: `+${matches.length}`, positive: true }} 
-          action={{ label: "Ver vagas", onClick: () => setActiveTab('match') }}
-        />
-        <StatCard 
-          icon={<Briefcase size={16} strokeWidth={1.5} />} 
-          label="No Pipeline" 
-          value={applications.length} 
-          trend={null}
-          accent="secondary"
-          action={{ label: "Ver Pipeline", onClick: () => setActiveTab('strategy') }}
-        />
-        <StatCard 
-          icon={<Award size={16} strokeWidth={1.5} />} 
-          label="Entrevistas Agendadas" 
-          value={interviewsCount} 
-          trend={interviewsCount > 0 ? { value: `${interviewsCount} ativas`, positive: true } : null}
-          accent="success"
-          action={{ label: "Treinar STAR", onClick: () => setActiveTab('coach') }}
-        />
-        <StatCard 
-          icon={<Zap size={16} strokeWidth={1.5} />} 
-          label="Preenchimento do Perfil" 
-          value={`${completeness}%`} 
-          trend={completeness === 100 ? { value: 'Completo', positive: true } : null} 
-          accent="warning"
-          action={{ label: "Ajustar perfil", onClick: () => setActiveTab('profile') }}
-        />
-      </div>
+
 
       {/* ── 7. HISTÓRICO DE CONSTÂNCIA DE ATIVIDADES (HEATMAP) ── */}
       <section className="bg-white dark:bg-[#242B36] border border-slate-200/90 dark:border-white/8 rounded-2xl p-6 shadow-xs">

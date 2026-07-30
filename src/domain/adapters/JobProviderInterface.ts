@@ -20,6 +20,8 @@ export interface NormalizedJobResult {
   requirements?: string[];
   rawSource?: string;
   sources?: string[];
+  scoreOverall?: number;
+  scores?: any;
 }
 
 export interface JobProviderInterface {
@@ -55,5 +57,7 @@ export function mapNormalizedToVocentroJob(
     sourcePlatform: normalized.rawSource || 'JobAggregator',
     sources: normalized.sources && normalized.sources.length > 0 ? normalized.sources : [normalized.rawSource || 'JobAggregator'],
     isActive: normalized.is_active !== false,
-  };
+    scoreOverall: normalized.scoreOverall,
+    scores: normalized.scores,
+  } as any;
 }

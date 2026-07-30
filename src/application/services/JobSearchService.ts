@@ -110,7 +110,9 @@ export class JobSearchService {
           currency: res.currency || 'BRL',
           requirements: res.requirementsNormalized || res.requirements || [],
           rawSource: res.sourcePlatform || res.provider || 'JobAggregator',
-          sources: res.sources && res.sources.length > 0 ? res.sources : [res.sourcePlatform || 'JobAggregator']
+          sources: res.sources && res.sources.length > 0 ? res.sources : [res.sourcePlatform || 'JobAggregator'],
+          scoreOverall: res.scores?.overall ?? res.scoreOverall ?? 50,
+          scores: res.scores || { overall: res.scoreOverall || 50 }
         };
       });
 

@@ -365,17 +365,18 @@ serve(async (req) => {
     if (!geminiApiKey) {
       console.warn("[search-jobs] GEMINI_API_KEY is not set. Falling back to simple keyword matching.");
       intent = getFallbackIntent(searchKeyword);
+      intent = getFallbackIntent(cleanedKeyword);
     } else {
       try {
-        intent = await classifyIntentWithGemini(searchKeyword, geminiApiKey);
+        intent = await classifyIntentWithGemini(cleanedKeyword, geminiApiKey);
       } catch (geminiErr) {
         console.error("[search-jobs] Gemini classification failed:", geminiErr.message);
-        intent = getFallbackIntent(searchKeyword);
+        intent = getFallbackIntent(cleanedKeyword);
       }
     }
 
     // ── 2. SELECT CONNECTORS TO RUN ──
-    let connectorsToRun: TieredConnector[];
+    let connectorsToRun: TieredConnector[] = [];
     
     if (provider) {
       // Legacy: specific provider requested
@@ -388,7 +389,7 @@ serve(async (req) => {
     } else {
       // Unified aggregated mode: run Tier A + B always, Tier C only for Brazilian searches
       const locLower = searchLocation.toLowerCase();
-      const isBrazilianSearch = /brasil|brazil|br|são paulo|rio|belo horizonte|curitiba|porto alegre|sp|rj|mg/i.test(locLower);
+      const isBrazilianSearch = /brasil|brazil|br|são paulo|sao paulo|rio|belo horizonte|curitiba|porto alegre|sp|rj|mg/i.test(locLower);
       
       connectorsToRun = TIERED_CONNECTORS.filter(tc => {
         if (tc.tier === 'A' || tc.tier === 'B') return true;
@@ -400,7 +401,7 @@ serve(async (req) => {
       connectorsToRun.push({ connector: new DbIngestedJobsConnector(supabaseClient), tier: 'A' });
     }
 
-    console.log(`[AGGREGATOR] Running ${connectorsToRun.length} connectors for "${searchKeyword}" in "${searchLocation}"`);
+    console.log(`[AGGREGATOR] Running ${connectorsToRun.length} connectors for "${cleanedKeyword}" in "${searchLocation}"`);
     console.log(`[AGGREGATOR] Connectors: ${connectorsToRun.map(tc => `${tc.connector.platformName} (${tc.tier})`).join(', ')}`);
 
     // ── 3. EXECUTE ALL CONNECTORS IN PARALLEL WITH KEYWORD EXPANSION ──
@@ -412,7 +413,8 @@ serve(async (req) => {
 
     // Extrair variações de palavras-chave para expanção inteligente de termos compostos
     const searchVariations = new Set<string>();
-    const cleanKw = searchKeyword.toLowerCase().trim();
+    const cleanKw = cleanedKeyword.toLowerCase().trim();
+    searchVariations.add(cleanedKeyword);
     searchVariations.add(searchKeyword);
 
     if (intent?.primary_titles) {
@@ -442,7 +444,7 @@ serve(async (req) => {
 
     connectorsToRun.forEach(tc => {
       const isLiteralSearchATS = tc.connector.platformName === 'Gupy' || tc.connector.platformName === 'Greenhouse' || tc.connector.platformName === 'Lever';
-      const targetKeywords = isLiteralSearchATS ? keywordList : [searchKeyword];
+      const targetKeywords = isLiteralSearchATS ? keywordList : [cleanedKeyword];
 
       targetKeywords.forEach(kw => {
         promises.push(executeConnectorWithDiag(tc, kw, searchLocation, pageNum, tierTimeouts[tc.tier]));

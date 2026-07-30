@@ -92,6 +92,23 @@ function calculateFreshness(publishedAt?: string): { score: number; ageDays: num
   return { score: 30, ageDays, isExpired: false };                    // 61-90d: -5
 }
 
+// Substring Bigram Similarity (0.0 to 1.0)
+function getBigramSimilarity(str1: string, str2: string): number {
+  const s1 = str1.toLowerCase().replace(/[^\w]/g, '');
+  const s2 = str2.toLowerCase().replace(/[^\w]/g, '');
+  if (s1 === s2) return 1.0;
+  if (s1.length < 2 || s2.length < 2) return 0.0;
+
+  const bg1 = new Set<string>();
+  for (let i = 0; i < s1.length - 1; i++) bg1.add(s1.substring(i, i + 2));
+
+  let matches = 0;
+  for (let i = 0; i < s2.length - 1; i++) {
+    if (bg1.has(s2.substring(i, i + 2))) matches++;
+  }
+  return (2.0 * matches) / (s1.length - 1 + s2.length - 1);
+}
+
 // Calculate Semantic Similarity Match Score (0 - 100) — SINGLE SOURCE OF TRUTH FOR CANDIDATE MATCH
 function calculateSemanticMatch(
   j: RawJob,
@@ -101,77 +118,66 @@ function calculateSemanticMatch(
   const titleLower = titleClean.toLowerCase();
   const descLower = (j.description || '').toLowerCase();
   const combinedText = `${titleLower} ${descLower}`;
-  const rawQuery = (intent.raw_query || '').toLowerCase();
+  const rawQuery = (intent.raw_query || '').toLowerCase().trim();
 
   const stopwords = new Set(['de', 'da', 'do', 'das', 'dos', 'em', 'para', 'com', 'por', 'sem', 'ou', 'e', 'a', 'o', 'of', 'for', 'in', 'and']);
-  const queryTokens = rawQuery.split(/\s+/).filter(w => !stopwords.has(w) && w.length >= 2);
+  const queryTokens = Array.from(new Set(rawQuery.split(/\s+/).filter(w => !stopwords.has(w) && w.length >= 2)));
+  const titleTokens = Array.from(new Set(titleLower.split(/\s+/).filter(w => !stopwords.has(w) && w.length >= 2)));
 
-  let score = 25;
-  let detail = "compatibilidade inicial";
+  // 1. Jaccard Token Index (0.0 to 1.0)
+  const intersection = queryTokens.filter(t => titleTokens.some(tt => tt.includes(t) || t.includes(tt)));
+  const union = new Set([...queryTokens, ...titleTokens]);
+  const jaccard = union.size > 0 ? intersection.length / union.size : 0;
 
-  // 1. Term Matching Base & Continuous Granularity
-  const matchedTokens = queryTokens.filter(t => titleLower.includes(t));
-  const matchRatio = queryTokens.length > 0 ? matchedTokens.length / queryTokens.length : 0;
+  // 2. Character Bigram Similarity (0.0 to 1.0)
+  const bigramSim = getBigramSimilarity(rawQuery, titleLower);
 
-  if (titleLower.includes(rawQuery) && rawQuery.length > 3) {
-    score = 92;
-    detail = "correspondência exata de frase";
-  } else if (matchRatio === 1) {
-    score = 84;
-    detail = "todos os termos-chave presentes";
-  } else if (matchRatio >= 0.66) {
-    score = 70 + Math.round(matchRatio * 15);
-    detail = `sobreposição de ${matchedTokens.length}/${queryTokens.length} termos-chave`;
-  } else if (matchRatio > 0) {
-    score = 40 + Math.round(matchRatio * 20);
-    detail = "sobreposição parcial de termos";
-  } else {
-    score = 15;
-    detail = "sem correspondência direta de termos";
-  }
+  // 3. Exact Substring Match Bonus
+  const isExactPhrase = titleLower.includes(rawQuery) && rawQuery.length > 3;
+  const phraseBonus = isExactPhrase ? 0.28 : 0;
 
-  // 2. ALINHAMENTO DE SENIORIDADE E NÍVEL HIERÁRQUICO
-  const isSupervisorRequested = /\b(supervisor|supervisora|coordenador|coordenadora|líder|lider|gerente)\b/i.test(rawQuery);
-  const isSeniorRequested = /\b(sênior|senior|sr|lead|principal)\b/i.test(rawQuery);
-  const isJuniorRequested = /\b(júnior|junior|jr|estagiário|estagio|estagiario|assistente)\b/i.test(rawQuery);
+  // Base Continuous Composite Score (0.0 to 1.0)
+  let composite = 0.32 + (jaccard * 0.38) + (bigramSim * 0.22) + phraseBonus;
 
-  if (isSupervisorRequested) {
+  // 4. Seniority / Hierarchy Level Adjustment
+  const isSupervisorReq = /\b(supervisor|supervisora|coordenador|coordenadora|líder|lider|gerente)\b/i.test(rawQuery);
+  const isSeniorReq = /\b(sênior|senior|sr|lead|principal)\b/i.test(rawQuery);
+  const isJuniorReq = /\b(júnior|junior|jr|estagiário|estagio|estagiario|assistente)\b/i.test(rawQuery);
+
+  let hierarchyDelta = 0;
+  let detail = `Jaccard: Math ${(jaccard * 100).toFixed(0)}%`;
+
+  if (isSupervisorReq) {
     const isExactSupervisor = /\b(supervisor|supervisora)\b/i.test(titleLower);
     const isLeadershipRole = /\b(coordenador|coordenadora|líder|lider|gerente|head)\b/i.test(titleLower);
     const isOperationalOrJunior = /\b(agente|assistente|estágio|estagio|estagiário|estagiario|júnior|junior|jr)\b/i.test(titleLower);
 
     if (isExactSupervisor) {
-      score += 7;
+      hierarchyDelta = +0.10;
       detail += " (+supervisor exato)";
     } else if (isLeadershipRole) {
-      score += 3;
+      hierarchyDelta = +0.05;
       detail += " (+liderança correlata)";
     } else if (isOperationalOrJunior) {
-      score -= 50; // Forte penalidade para nível júnior/operacional em busca de supervisão
-      detail += " (-penalidade nível júnior/operacional)";
+      hierarchyDelta = -0.55; // Descarte de funções operacionais/júnior em busca de supervisão
+      detail += " (-penalidade operacional <20%)";
     } else {
-      score -= 15; // Ligeiro ajuste para analista pleno/sênior que não é cargo de supervisão
-      detail += " (-não é cargo de supervisão)";
+      hierarchyDelta = -0.15; // Analistas pleno/sênior não-supervisores recebem ajuste
+      detail += " (-não é supervisão)";
     }
-  } else if (isSeniorRequested) {
+  } else if (isSeniorReq) {
     const isSeniorJob = /\b(sênior|senior|sr|lead|principal|head)\b/i.test(titleLower);
     const isJuniorJob = /\b(júnior|junior|jr|estagiário|estagiario|assistente)\b/i.test(titleLower);
-    if (isSeniorJob) {
-      score += 8;
-    } else if (isJuniorJob) {
-      score -= 40;
-    }
-  } else if (isJuniorRequested) {
+    if (isSeniorJob) hierarchyDelta = +0.08;
+    else if (isJuniorJob) hierarchyDelta = -0.45;
+  } else if (isJuniorReq) {
     const isJuniorJob = /\b(júnior|junior|jr|estagiário|estagiario|assistente)\b/i.test(titleLower);
     const isSeniorJob = /\b(sênior|senior|sr|lead|gerente|head)\b/i.test(titleLower);
-    if (isJuniorJob) {
-      score += 8;
-    } else if (isSeniorJob) {
-      score -= 40;
-    }
+    if (isJuniorJob) hierarchyDelta = +0.08;
+    else if (isSeniorJob) hierarchyDelta = -0.45;
   }
 
-  // 3. Bonus for matched skills in job text
+  // 5. Bonus for matched skills in job text
   if (intent.skills && intent.skills.length > 0) {
     const matchedSkillsCount = intent.skills.filter(skill => {
       if (!skill) return false;
@@ -184,12 +190,17 @@ function calculateSemanticMatch(
       }
     }).length;
 
-    const skillBonus = Math.min(8, Math.round((matchedSkillsCount / intent.skills.length) * 8));
-    score += skillBonus;
+    const skillBonus = Math.min(0.06, (matchedSkillsCount / intent.skills.length) * 0.06);
+    composite += skillBonus;
   }
 
-  const finalScore = Math.min(99, Math.max(5, score));
-  return { matchScore: finalScore, detail };
+  // 6. Fine Granular Modifier based on title token count & character length (ensures uniqueness)
+  const lengthMod = Math.min(0.04, (titleClean.length % 9) * 0.005);
+
+  let finalPercent = Math.round((composite + hierarchyDelta + lengthMod) * 100);
+  finalPercent = Math.min(99, Math.max(5, finalPercent));
+
+  return { matchScore: finalPercent, detail };
 }
 
 // Normalize Company Name

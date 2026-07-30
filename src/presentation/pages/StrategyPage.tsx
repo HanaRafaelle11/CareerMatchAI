@@ -678,6 +678,14 @@ export function StrategyPage({
       .filter(Boolean)
   );
 
+  const uniqueMappedJobs = mappedJobs.filter((j, index, self) => 
+    index === self.findIndex(t => (
+      (t.id && t.id === j.id) ||
+      (t.title.toLowerCase().trim() === j.title.toLowerCase().trim() &&
+       t.companyName.toLowerCase().trim() === j.companyName.toLowerCase().trim())
+    ))
+  );
+
   const activeJobsForROI = uniqueMappedJobs.filter(j => !finalizedJobIds.has(j.id));
 
   const grouped = CandidateStrategyService.groupJobs(primaryResume, activeJobsForROI, careerProfile, careerProfileNew);

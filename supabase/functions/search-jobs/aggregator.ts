@@ -109,6 +109,16 @@ function getBigramSimilarity(str1: string, str2: string): number {
   return (2.0 * matches) / (s1.length - 1 + s2.length - 1);
 }
 
+// Mapa Taxonômico de Sinônimos de Domínio (PT/EN)
+const DOMAIN_SYNONYMS: Record<string, string[]> = {
+  "customer success": ["sucesso do cliente", "customer experience", "cx", "relacionamento com cliente", "relacionamento", "retenção", "pos-vendas", "pós-vendas", "atendimento ao cliente", "atendimento"],
+  "sucesso do cliente": ["customer success", "customer experience", "cx", "relacionamento com cliente", "atendimento"],
+  "customer experience": ["cx", "customer success", "sucesso do cliente", "experiência do cliente", "atendimento"],
+  "cx": ["customer experience", "customer success", "sucesso do cliente", "atendimento"],
+  "relacionamento com cliente": ["customer success", "sucesso do cliente", "atendimento", "cx"],
+  "supervisor": ["supervisora", "coordenador", "coordenadora", "líder", "lider", "gerente", "head"]
+};
+
 // Calculate Semantic Similarity Match Score (0 - 100) — SINGLE SOURCE OF TRUTH FOR CANDIDATE MATCH
 function calculateSemanticMatch(
   j: RawJob,
@@ -122,22 +132,36 @@ function calculateSemanticMatch(
 
   const stopwords = new Set(['de', 'da', 'do', 'das', 'dos', 'em', 'para', 'com', 'por', 'sem', 'ou', 'e', 'a', 'o', 'of', 'for', 'in', 'and']);
   const queryTokens = Array.from(new Set(rawQuery.split(/\s+/).filter(w => !stopwords.has(w) && w.length >= 2)));
+
+  // 1. Expansão Semântica por Taxonomia de Domínio
+  const expandedQueryTokens = new Set<string>(queryTokens);
+  for (const [key, synonyms] of Object.entries(DOMAIN_SYNONYMS)) {
+    if (rawQuery.includes(key)) {
+      synonyms.forEach(syn => syn.split(/\s+/).forEach(w => {
+        if (!stopwords.has(w) && w.length >= 2) expandedQueryTokens.add(w);
+      }));
+    }
+  }
+
   const titleTokens = Array.from(new Set(titleLower.split(/\s+/).filter(w => !stopwords.has(w) && w.length >= 2)));
 
-  // 1. Jaccard Token Index (0.0 to 1.0)
-  const intersection = queryTokens.filter(t => titleTokens.some(tt => tt.includes(t) || t.includes(tt)));
-  const union = new Set([...queryTokens, ...titleTokens]);
-  const jaccard = union.size > 0 ? intersection.length / union.size : 0;
+  // 2. Similaridade de Jaccard com Tokens Diretos e Expandidos
+  const directMatches = queryTokens.filter(t => titleTokens.some(tt => tt.includes(t) || t.includes(tt)));
+  const semanticMatches = Array.from(expandedQueryTokens).filter(t => titleTokens.some(tt => tt.includes(t) || t.includes(tt)));
 
-  // 2. Character Bigram Similarity (0.0 to 1.0)
+  const jaccardDirect = titleTokens.length > 0 ? directMatches.length / Math.max(queryTokens.length, titleTokens.length) : 0;
+  const jaccardSemantic = titleTokens.length > 0 ? semanticMatches.length / Math.max(queryTokens.length, titleTokens.length) : 0;
+  const effectiveJaccard = Math.max(jaccardDirect, jaccardSemantic * 0.85);
+
+  // 3. Character Bigram Similarity (0.0 to 1.0)
   const bigramSim = getBigramSimilarity(rawQuery, titleLower);
 
-  // 3. Exact Substring Match Bonus
+  // 4. Exact Substring Match Bonus
   const isExactPhrase = titleLower.includes(rawQuery) && rawQuery.length > 3;
   const phraseBonus = isExactPhrase ? 0.28 : 0;
 
   // Base Continuous Composite Score (0.0 to 1.0)
-  let composite = 0.32 + (jaccard * 0.38) + (bigramSim * 0.22) + phraseBonus;
+  let composite = 0.32 + (effectiveJaccard * 0.38) + (bigramSim * 0.22) + phraseBonus;
 
   // 4. Seniority / Hierarchy Level Adjustment
   const isSupervisorReq = /\b(supervisor|supervisora|coordenador|coordenadora|líder|lider|gerente)\b/i.test(rawQuery);

@@ -427,12 +427,14 @@ serve(async (req) => {
     if (coreWords.length >= 2) {
       searchVariations.add(coreWords.join(" "));
     }
-    if (/\b(cs|customer success)\b/i.test(cleanKw)) {
+    if (/\b(cs|customer success|sucesso do cliente|cx|customer experience)\b/i.test(cleanKw)) {
       searchVariations.add("customer success");
+      searchVariations.add("sucesso do cliente");
       searchVariations.add("supervisor de atendimento");
+      searchVariations.add("relacionamento com cliente");
     }
 
-    const keywordList = Array.from(searchVariations).slice(0, 4);
+    const keywordList = Array.from(searchVariations).slice(0, 5);
     console.log(`[EXPANDED SEARCH] Keywords to query: [${keywordList.join(' | ')}]`);
 
     // Disparar buscas em paralelo para cada conector e para cada variação relevante em ATSs literais (ex: Gupy)

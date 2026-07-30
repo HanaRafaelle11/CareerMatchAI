@@ -32,6 +32,17 @@ export interface NormalizedJob extends RawJob {
   };
 }
 
+// Pre-compiled regex constants for high-performance hierarchy matching
+const RX_SUPERVISOR_REQ = /\b(supervisor|supervisora|coordenador|coordenadora|líder|lider|gerente)\b/i;
+const RX_SENIOR_REQ = /\b(sênior|senior|sr|lead|principal)\b/i;
+const RX_JUNIOR_REQ = /\b(júnior|junior|jr|estagiário|estagio|estagiario|assistente)\b/i;
+const RX_EXACT_SUPERVISOR = /\b(supervisor|supervisora)\b/i;
+const RX_LEADERSHIP_ROLE = /\b(coordenador|coordenadora|líder|lider|gerente|head)\b/i;
+const RX_OPERATIONAL_JUNIOR = /\b(agente|assistente|estágio|estagio|estagiário|estagiario|júnior|junior|jr)\b/i;
+const RX_SENIOR_JOB = /\b(sênior|senior|sr|lead|principal|head)\b/i;
+const RX_JUNIOR_JOB = /\b(júnior|junior|jr|estagiário|estagiario|assistente)\b/i;
+const RX_JUNIOR_OR_ENTRY = /\b(estágio|estagio|estagiário|estagiario|agente|assistente|júnior|junior|jr)\b/i;
+
 // ── 1. TABLE OF PROVIDER / ATS QUALITY INDEX ──
 export const PROVIDER_QUALITY_INDEX: Record<string, number> = {
   workday: 100,
@@ -184,17 +195,17 @@ function calculateSemanticMatch(
   }
 
   // 4. Seniority / Hierarchy Level Adjustment
-  const isSupervisorReq = /\b(supervisor|supervisora|coordenador|coordenadora|líder|lider|gerente)\b/i.test(rawQuery);
-  const isSeniorReq = /\b(sênior|senior|sr|lead|principal)\b/i.test(rawQuery);
-  const isJuniorReq = /\b(júnior|junior|jr|estagiário|estagio|estagiario|assistente)\b/i.test(rawQuery);
+  const isSupervisorReq = RX_SUPERVISOR_REQ.test(rawQuery);
+  const isSeniorReq = RX_SENIOR_REQ.test(rawQuery);
+  const isJuniorReq = RX_JUNIOR_REQ.test(rawQuery);
 
   let hierarchyDelta = 0;
   let detail = `Jaccard: Math ${(effectiveJaccard * 100).toFixed(0)}%`;
 
   if (isSupervisorReq) {
-    const isExactSupervisor = /\b(supervisor|supervisora)\b/i.test(titleLower);
-    const isLeadershipRole = /\b(coordenador|coordenadora|líder|lider|gerente|head)\b/i.test(titleLower);
-    const isOperationalOrJunior = /\b(agente|assistente|estágio|estagio|estagiário|estagiario|júnior|junior|jr)\b/i.test(titleLower);
+    const isExactSupervisor = RX_EXACT_SUPERVISOR.test(titleLower);
+    const isLeadershipRole = RX_LEADERSHIP_ROLE.test(titleLower);
+    const isOperationalOrJunior = RX_OPERATIONAL_JUNIOR.test(titleLower);
 
     if (isExactSupervisor) {
       hierarchyDelta = +0.10;
@@ -210,19 +221,19 @@ function calculateSemanticMatch(
       detail += " (-não é supervisão)";
     }
   } else if (isSeniorReq) {
-    const isSeniorJob = /\b(sênior|senior|sr|lead|principal|head)\b/i.test(titleLower);
-    const isJuniorJob = /\b(júnior|junior|jr|estagiário|estagiario|assistente)\b/i.test(titleLower);
+    const isSeniorJob = RX_SENIOR_JOB.test(titleLower);
+    const isJuniorJob = RX_JUNIOR_JOB.test(titleLower);
     if (isSeniorJob) hierarchyDelta = +0.08;
     else if (isJuniorJob) hierarchyDelta = -0.45;
   } else if (isJuniorReq) {
-    const isJuniorJob = /\b(júnior|junior|jr|estagiário|estagiario|assistente)\b/i.test(titleLower);
-    const isSeniorJob = /\b(sênior|senior|sr|lead|gerente|head)\b/i.test(titleLower);
+    const isJuniorJob = RX_JUNIOR_JOB.test(titleLower);
+    const isSeniorJob = RX_SENIOR_JOB.test(titleLower);
     if (isJuniorJob) hierarchyDelta = +0.08;
     else if (isSeniorJob) hierarchyDelta = -0.45;
   } else {
     // Busca Genérica (ex: "customer success"): dar preferência a posições efetivas/CSM/analistas,
-    // enquanto cargos de Estágio / Agente / Assistente recebem ajuste (-0.35) para não ficarem no topo (89-95%).
-    const isJuniorOrEntry = /\b(estágio|estagio|estagiário|estagiario|agente|assistente|júnior|junior|jr)\b/i.test(titleLower);
+    // enquanto cargos de Estágio / Agente / Assistente recebem ajuste (-0.35) para não ficarem no topo.
+    const isJuniorOrEntry = RX_JUNIOR_OR_ENTRY.test(titleLower);
     if (isJuniorOrEntry) {
       hierarchyDelta = -0.35;
       detail += " (-ajuste nível entrada)";

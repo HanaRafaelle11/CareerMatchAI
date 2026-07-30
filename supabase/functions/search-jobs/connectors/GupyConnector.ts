@@ -4,18 +4,25 @@ export class GupyConnector extends BaseJobConnector {
   readonly platformName = "Gupy";
 
   async searchJobs(keyword: string, location: string, pageNum: number): Promise<RawJob[]> {
+    if (pageNum > 3) return []; // Limite estrito de no máximo 3 páginas em tempo real (evita latência)
+
     const jobs: RawJob[] = [];
     const limit = 25;
     const offset = Math.max(0, (pageNum - 1) * limit);
 
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 3000);
+
     try {
       const url = `https://employability-portal.gupy.io/api/v1/jobs?jobName=${encodeURIComponent(keyword)}&offset=${offset}&limit=${limit}`;
       const res = await fetch(url, {
+        signal: controller.signal,
         headers: {
           'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
           'Accept': 'application/json, text/plain, */*'
         }
       });
+      clearTimeout(timeoutId);
 
       if (!res.ok) {
         console.warn(`[GupyConnector] Resposta com status HTTP ${res.status}`);

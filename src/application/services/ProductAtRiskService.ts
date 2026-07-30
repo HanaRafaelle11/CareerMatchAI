@@ -60,10 +60,14 @@ export class ProductAtRiskService {
 
       const nowMs = Date.now();
 
-      // 1. Uploads de CV sem Match
+      // 1. Uploads de CV sem Match (com isenção de onboarding < 7 dias para evitar alertas falsos)
       const resumeUserIds = new Set(resumes.map((r: any) => r.user_id));
       const matchUserIds = new Set(matches.map((m: any) => m.user_id));
-      const cvWithoutMatchUsers = allProfiles.filter(p => resumeUserIds.has(p.id) && !matchUserIds.has(p.id));
+      const cvWithoutMatchUsers = allProfiles.filter(p => {
+        const createdMs = new Date(p.created_at).getTime();
+        const diffDays = (nowMs - createdMs) / (1000 * 60 * 60 * 24);
+        return diffDays >= 7 && resumeUserIds.has(p.id) && !matchUserIds.has(p.id);
+      });
 
       // 2. Match calculado sem candidatura
       const appUserIds = new Set(applications.map((a: any) => a.user_id));

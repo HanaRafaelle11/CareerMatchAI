@@ -87,7 +87,9 @@ export class CopilotInsightsService {
         title: 'Performance & Tempo de Resposta da IA',
         category: 'Latência IA',
         impactLevel: avgLatencySec > 3.0 ? 'Alto Impacto' : 'Oportunidade Positiva',
-        naturalLanguageSummary: `O tempo médio de latência da IA está calibrado em ${avgLatencySec} segundos por requisição em ${validAiLogs.length} chamadas computadas.`,
+        naturalLanguageSummary: validAiLogs.length > 0 
+          ? `O tempo médio de latência da IA está calibrado em ${avgLatencySec} segundos por requisição em ${validAiLogs.length} chamadas computadas.`
+          : `Sem chamadas registradas no período recente; latência histórica padrão mantida em ${avgLatencySec}s.`,
         actionableRecommendation: 'Manter estratégias de caching pré-calculado em banco para buscas repetidas de termos de vagas.',
         dataSourceAudit: 'Agregação da coluna processing_time_ms na tabela public.ai_usage_logs',
         isFuturePending: false,

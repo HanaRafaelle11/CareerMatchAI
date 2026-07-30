@@ -157,7 +157,10 @@ export class ProductHealthService {
         }
 
         // 2. Time to Match (Cadastro -> Primeiro Match Calculado com Vaga)
-        const userMatches = matches.filter((m: any) => m.user_id === p.id).sort((a: any, b: any) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
+        const userMatches = [
+          ...matches.filter((m: any) => m.user_id === p.id),
+          ...events.filter((e: any) => e.user_id === p.id && (e.event_name === 'match_calculated' || e.event_name === 'match_calculation' || e.event_name === 'job_match_viewed'))
+        ].sort((a: any, b: any) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
         if (userMatches.length > 0) {
           const firstMatchMs = new Date(userMatches[0].created_at).getTime();
           const diffHours = Math.max(0.1, (firstMatchMs - pCreatedMs) / (1000 * 60 * 60));

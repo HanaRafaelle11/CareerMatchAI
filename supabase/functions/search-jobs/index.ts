@@ -18,6 +18,7 @@ import { TeamtailorConnector } from "./connectors/TeamtailorConnector.ts";
 import { BambooHRConnector } from "./connectors/BambooHRConnector.ts";
 import { ComeetConnector } from "./connectors/ComeetConnector.ts";
 import { GupyConnector } from "./connectors/GupyConnector.ts";
+import { DbIngestedJobsConnector } from "./connectors/DbIngestedJobsConnector.ts";
 import { 
   ProgramathorConnector, 
   TramposConnector, 
@@ -395,6 +396,8 @@ serve(async (req) => {
         if (tc.tier === 'C' && isBrazilianSearch) return true;
         return false;
       });
+      // Injetar conector do banco local de vagas ingeridas (InHire / Crons)
+      connectorsToRun.push({ connector: new DbIngestedJobsConnector(supabaseClient), tier: 'A' });
     }
 
     console.log(`[AGGREGATOR] Running ${connectorsToRun.length} connectors for "${searchKeyword}" in "${searchLocation}"`);

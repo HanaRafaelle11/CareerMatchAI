@@ -150,6 +150,12 @@ export function JobMatchHub({
   const [subTab, setSubTab] = useState<'my-jobs' | 'discover'>(initialSubTab || 'discover');
   
   useEffect(() => {
+    if (initialSubTab) {
+      setSubTab(initialSubTab);
+    }
+  }, [initialSubTab]);
+
+  useEffect(() => {
     const triggerDiscovery = localStorage.getItem('vocentro_trigger_discovery');
     if (triggerDiscovery === 'true') {
       setSubTab('discover');

@@ -395,7 +395,7 @@ function AuthenticatedApp({
       setStrategyInitialSubTab('journal');
       setActiveTab('strategy');
     } else if (tab === 'match') {
-      setMatchHubInitialSubTab('my-jobs');
+      setMatchHubInitialSubTab('discover');
       setActiveTab('match');
     } else if (tab === 'discover') {
       setMatchHubInitialSubTab('discover');

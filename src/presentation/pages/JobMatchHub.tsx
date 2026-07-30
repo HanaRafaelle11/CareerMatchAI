@@ -3824,31 +3824,31 @@ export function JobMatchHub({
                      {/* Controles de Paginação */}
                      <div className="flex flex-col items-center gap-3 pt-6 border-t border-slate-900/60 select-none">
                        <div className="flex justify-center items-center gap-4">
-                         <button
-                           onClick={() => {
-                             setSearchPage(p => Math.max(1, p - 1));
-                             window.scrollTo({ top: 0, behavior: 'smooth' });
-                           }}
-                           disabled={searchPage === 1 || isLoadingDiscovery}
-                           className="px-4 py-2 rounded-xl bg-slate-100 dark:bg-slate-850 hover:bg-slate-200 dark:hover:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 disabled:opacity-40 disabled:cursor-not-allowed text-xs font-bold transition-all cursor-pointer"
-                         >
-                           Anterior
-                         </button>
-                         
-                         <span className="text-xs text-slate-600 dark:text-slate-400 font-bold">
-                           Página {searchPage} de {Math.max(1, Math.ceil(totalCount / 15))}
-                         </span>
+                          <button
+                            onClick={() => {
+                              setSearchPage(p => Math.max(1, p - 1));
+                              window.scrollTo({ top: 0, behavior: 'smooth' });
+                            }}
+                            disabled={searchPage === 1 || isLoadingDiscovery}
+                            className="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-white disabled:bg-slate-900 disabled:border-slate-800 disabled:text-slate-500 disabled:cursor-not-allowed text-xs font-bold transition-all shadow-sm cursor-pointer"
+                          >
+                            Anterior
+                          </button>
+                          
+                          <span className="text-xs text-slate-300 dark:text-slate-300 font-bold px-2 py-1 bg-slate-900/80 border border-slate-800 rounded-lg">
+                            Página {searchPage} de {Math.max(1, Math.ceil(totalCount / 15))}
+                          </span>
 
-                         <button
-                           onClick={() => {
-                             setSearchPage(p => p + 1);
-                             window.scrollTo({ top: 0, behavior: 'smooth' });
-                           }}
-                           disabled={isLoadingDiscovery || searchPage >= Math.ceil(totalCount / 15)}
-                           className="px-4 py-2 rounded-xl bg-slate-100 dark:bg-slate-850 hover:bg-slate-200 dark:hover:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 disabled:opacity-40 disabled:cursor-not-allowed text-xs font-bold transition-all cursor-pointer"
-                         >
-                           Próxima
-                         </button>
+                          <button
+                            onClick={() => {
+                              setSearchPage(p => p + 1);
+                              window.scrollTo({ top: 0, behavior: 'smooth' });
+                            }}
+                            disabled={isLoadingDiscovery || searchPage >= Math.ceil(totalCount / 15)}
+                            className="px-4 py-2 rounded-xl bg-brand-600 hover:bg-brand-500 text-white border border-brand-500 disabled:bg-slate-900 disabled:border-slate-800 disabled:text-slate-500 disabled:cursor-not-allowed text-xs font-bold transition-all shadow-sm shadow-brand-500/20 cursor-pointer"
+                          >
+                            Próxima
+                          </button>
                        </div>
                        <div className="text-[10px] text-slate-500 font-medium">
                          Mostrando {scoredDiscoveredJobs.length} resultados nesta página (Total encontrado: {totalCount})

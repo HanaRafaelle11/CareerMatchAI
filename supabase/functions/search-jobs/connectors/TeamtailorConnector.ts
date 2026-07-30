@@ -14,7 +14,8 @@ export class TeamtailorConnector extends BaseJobConnector {
       try {
         const res = await fetch(`https://api.teamtailor.com/v1/jobs`, {
           headers: {
-            "Accept": "application/vnd.api+json"
+            "Accept": "application/vnd.api+json",
+            "X-Api-Version": "20240904"
           }
         });
         if (!res.ok) return;

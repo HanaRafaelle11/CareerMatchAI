@@ -66,9 +66,9 @@ const TIERED_CONNECTORS: TieredConnector[] = [
   // Tier C — Brazilian niche platforms
   { connector: new ProgramathorConnector(), tier: 'C' },
   { connector: new TramposConnector(), tier: 'C' },
-  { connector: new GeekHunterConnector(), tier: 'C' },
-  { connector: new ReveloConnector(), tier: 'C' },
-  { connector: new AblerConnector(), tier: 'C' },
+  // { connector: new GeekHunterConnector(), tier: 'C' }, // Descontinuado pela plataforma
+  // { connector: new ReveloConnector(), tier: 'C' },     // Descontinuado pela plataforma
+  // { connector: new AblerConnector(), tier: 'C' },      // Descontinuado pela plataforma
   { connector: new BambooHRConnector(), tier: 'C' },
   { connector: new ComeetConnector(), tier: 'C' },
 ];

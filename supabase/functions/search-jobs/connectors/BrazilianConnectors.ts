@@ -62,8 +62,8 @@ export class ProgramathorConnector extends BaseJobConnector {
 
       return filtered;
     } catch (err: any) {
-      console.error("[ProgramathorConnector] Erro:", err.message);
-      throw err;
+      console.warn("[ProgramathorConnector] Falha no feed XML (HTTP 500 ou indisponibilidade externa):", err.message);
+      return [];
     }
   }
 }

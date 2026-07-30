@@ -73,10 +73,10 @@ export function GlobalCopilotDrawer({
 
   return (
     <>
-      {/* Opção A: Botão Flutuante Único no Canto Inferior Direito */}
+      {/* Opção A: Botão Flutuante Único no Canto Inferior Direito (Ajustado no Mobile para não cobrir a Bottom Bar) */}
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="fixed bottom-6 right-6 z-[9990] flex items-center gap-2.5 px-4 py-3 rounded-full bg-gradient-to-r from-brand-600 via-brand-500 to-indigo-600 text-white font-bold text-xs shadow-2xl hover:scale-105 active:scale-95 transition-all border border-brand-400/30 group"
+        className="fixed bottom-20 right-4 md:bottom-6 md:right-6 z-[9990] flex items-center gap-2.5 px-4 py-3 rounded-full bg-gradient-to-r from-brand-600 via-brand-500 to-indigo-600 text-white font-bold text-xs shadow-2xl hover:scale-105 active:scale-95 transition-all border border-brand-400/30 group"
       >
         <Sparkles size={16} className="animate-spin-slow text-amber-300" />
         <span>Copiloto IA</span>

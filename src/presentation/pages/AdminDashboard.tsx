@@ -986,7 +986,7 @@ export function AdminDashboard({ userId }: AdminDashboardProps) {
   };
 
   return (
-    <div className="space-y-6 w-full min-w-0 max-w-7xl mx-auto animate-fade-in font-sans text-slate-100 mb-16 block">
+    <div className="space-y-6 w-full min-w-0 max-w-7xl mx-auto animate-fade-in font-sans text-slate-100 mb-24 md:mb-16 overflow-x-auto max-w-full px-2 sm:px-4">
       
       {/* Toast Feedback */}
       {toast && (
@@ -1029,8 +1029,8 @@ export function AdminDashboard({ userId }: AdminDashboardProps) {
         </div>
       </div>
 
-      {/* Tabs Selector */}
-      <div className="flex border-b border-slate-200 dark:border-slate-900 gap-6">
+      {/* Tabs Selector (Com suporte a scroll horizontal e touch no Mobile) */}
+      <div className="flex items-center border-b border-slate-200 dark:border-slate-900 gap-3 sm:gap-6 overflow-x-auto max-w-full pb-2 scrollbar-thin scrollbar-thumb-slate-800 focus:outline-none [-webkit-overflow-scrolling:touch]">
         {tabs.map(tab => (
           <button
             key={tab.id}
@@ -1038,9 +1038,9 @@ export function AdminDashboard({ userId }: AdminDashboardProps) {
               setActiveSubTab(tab.id);
               setUserPage(1);
             }}
-            className={`pb-3 font-semibold text-xs transition-all relative ${
+            className={`pb-3 font-semibold text-xs transition-all relative whitespace-nowrap shrink-0 ${
               activeSubTab === tab.id
-                ? 'text-brand-600 dark:text-brand-500 font-bold'
+                ? 'text-brand-600 dark:text-brand-400 font-bold'
                 : 'text-slate-700 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 font-medium'
             }`}
           >

@@ -214,7 +214,7 @@ export function Navbar({
           </div>
 
           {/* Utility Links */}
-          <div className="px-3.5 mt-4 space-y-1">
+          <div className="px-3.5 mt-4 space-y-1 pb-20 md:pb-2">
             <div className="px-3 mb-1.5">
               <span className="text-[10px] font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider">Geral</span>
             </div>
@@ -247,8 +247,8 @@ export function Navbar({
           </div>
         </div>
 
-        {/* User Profile Footer */}
-        <div className="border-t border-slate-200/80 dark:border-white/8 p-3 flex-shrink-0">
+        {/* User Profile Footer (Com margem inferior no mobile para evitar sobreposicao com a Bottom Bar) */}
+        <div className="border-t border-slate-200/80 dark:border-white/8 p-3 flex-shrink-0 mb-16 md:mb-0">
           <div className="flex items-center justify-between p-1.5 rounded-md">
             <div className="flex items-center gap-2.5 min-w-0">
               {profile?.avatarUrl ? (

@@ -45,17 +45,39 @@ export function GlobalCopilotDrawer({
     setMessages(prev => [...prev, { role: 'user', text: userText }]);
     setChatInput('');
 
-    // Resposta conversacional inteligente simulada / heurística
+    // Resposta conversacional inteligente com detecção de intenção
     setTimeout(() => {
-      let reply = "Entendido! Recomendo focar na preparação para suas entrevistas ativas e manter seu perfil atualizado.";
+      let reply = "Entendido! Recomendo focar na preparação para suas entrevistas ativas e manter seu perfil atualizado. Para orientações mais detalhadas, use a Central de IA & Coach.";
       const lower = userText.toLowerCase();
 
-      if (lower.includes('pretensão') || lower.includes('salário') || lower.includes('salario')) {
-        reply = "Para negociação salarial, pesquise a média do mercado para seu nível técnico e responda focando na faixa de valor que você agrega. Quer praticar uma resposta no simulador?";
-      } else if (lower.includes('vaga') || lower.includes('candidatar') || lower.includes('aplicar')) {
-        reply = "Vou destacar as vagas de maior prioridade para o seu perfil no painel de Vagas & Match.";
-      } else if (lower.includes('currículo') || lower.includes('curriculo') || lower.includes('cv')) {
-        reply = "Seu currículo atual já possui boa estrutura. Você pode selecionar qualquer vaga ativa para gerar uma versão sob medida.";
+      // Detecção de intenção: Simulação de Entrevista → redirecionar para Coach
+      const isSimulationIntent = ['simular entrevista', 'simulação de entrevista', 'praticar entrevista', 'treinar entrevista',
+        'simulador', 'entrevista star', 'método star', 'treinamento star', 'mock interview', 'prática de entrevista',
+        'simule uma entrevista', 'quero simular', 'simula entrevista', 'simular perguntas'].some(k => lower.includes(k));
+
+      if (isSimulationIntent) {
+        reply = "🎯 Para simulação completa de entrevistas com método STAR, use a aba Coach — lá você pratica com perguntas reais geradas pela IA, recebe feedback detalhado e cronometra suas respostas. Vou te levar até lá!";
+        setMessages(prev => [...prev, { role: 'assistant', text: reply }]);
+        // Redirecionar automaticamente para a aba Coach após 2s
+        setTimeout(() => {
+          if (setActiveTab) {
+            setActiveTab('coach');
+            setIsOpen(false);
+          }
+        }, 2000);
+        return;
+      }
+
+      if (lower.includes('pretensão') || lower.includes('salário') || lower.includes('salario') || lower.includes('remuneração')) {
+        reply = "💰 Para negociação salarial, consulte o Monitor de Demanda Real na aba Coach — lá você vê as habilidades mais demandadas e pode calibrar sua pretensão. Quer ir direto para o Coach?";
+      } else if (lower.includes('vaga') || lower.includes('candidatar') || lower.includes('aplicar') || lower.includes('oportunidade')) {
+        reply = "🔍 Vou destacar as vagas de maior prioridade para o seu perfil! Acesse a aba Vagas & Match para ver o ranking de compatibilidade da IA.";
+      } else if (lower.includes('currículo') || lower.includes('curriculo') || lower.includes('cv') || lower.includes('resume')) {
+        reply = "📄 Seu currículo já está cadastrado. Você pode selecionar qualquer vaga ativa para gerar uma versão sob medida na aba Vagas & Match.";
+      } else if (lower.includes('perfil') || lower.includes('competência') || lower.includes('skill')) {
+        reply = "⚡ Recomendo revisar suas competências na aba Perfil para garantir que seu Career Score reflita todas as suas habilidades reais.";
+      } else if (lower.includes('pipeline') || lower.includes('kanban') || lower.includes('estratégia') || lower.includes('estrategia')) {
+        reply = "📋 Seu Pipeline está na aba Estratégia. Atualize o status de cada candidatura para que o Copiloto recalcule suas probabilidades de conversão.";
       }
 
       setMessages(prev => [...prev, { role: 'assistant', text: reply }]);

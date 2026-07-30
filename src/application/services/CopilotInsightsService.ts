@@ -111,7 +111,7 @@ export class CopilotInsightsService {
         naturalLanguageSummary: errorCount > 0 
           ? `Foram identificados ${errorCount} erros de leitura de PDF/imagem, concentrados em PDFs legados sem camada legível de texto.`
           : 'A taxa de erro na extração de texto e estruturação de currículos está em 0% nas últimas execuções.',
-        actionableRecommendation: 'Acionar fallback de OCR Tesseract automaticamente para arquivos que retornarem texto extraído zerado.',
+        actionableRecommendation: '⏳ Funcionalidade planejada: fallback de OCR Tesseract para PDFs digitalizados está previsto para próxima sprint. Não implementado ainda.',
         dataSourceAudit: 'Contagem de registros e tipos na tabela public.resume_processing_errors',
         isFuturePending: false,
         metricValueText: `${errorCount} falhas de OCR`
@@ -237,7 +237,7 @@ export class CopilotInsightsService {
         category: 'Qualidade Parsing',
         impactLevel: 'Oportunidade Positiva',
         naturalLanguageSummary: 'A taxa de erro na extração de texto e estruturação de currículos está em 0% nas últimas execuções.',
-        actionableRecommendation: 'Acionar fallback de OCR Tesseract automaticamente para arquivos que retornarem texto extraído zerado.',
+        actionableRecommendation: '⏳ Funcionalidade planejada: fallback de OCR Tesseract para PDFs digitalizados está previsto para próxima sprint. Não implementado ainda.',
         dataSourceAudit: 'Contagem de registros e tipos na tabela public.resume_processing_errors',
         isFuturePending: false,
         metricValueText: '0 falhas de OCR'

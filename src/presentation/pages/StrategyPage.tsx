@@ -721,7 +721,12 @@ export function StrategyPage({
             </div>
             <h2 className="text-base font-semibold text-slate-900 dark:text-slate-100 mt-1">
               {applications.length > 0
-                ? `Você possui ${applications.filter(a => a.status !== 'rejected').length} candidatura(s) ativa(s) em acompanhamento.`
+                ? (() => {
+                    const appliedSt = ['📨 Me candidatei', '👥 Entrevista com recrutador', '🎯 Entrevista com gestor', '🧩 Case técnico', '🤝 Fit cultural', '🏆 Oferta recebida', '✅ Aceita', 'applied', 'hr', 'interview', 'offer', 'hired'];
+                    const enviadasCount = applications.filter(a => appliedSt.includes(a.status)).length;
+                    const salvasCount = applications.filter(a => !appliedSt.includes(a.status) && a.status !== 'rejected' && (a.status as string) !== '❌ Rejeitada').length;
+                    return `Você enviou ${enviadasCount} candidatura(s) e possui ${salvasCount} vaga(s) salva(s) em prospecção.`;
+                  })()
                 : 'Adicione suas candidaturas ao Pipeline para monitorar prazos e métricas de avanço.'}
             </h2>
             <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">

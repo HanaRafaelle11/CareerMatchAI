@@ -30,7 +30,7 @@ export class JobFeedbackService {
 
     if (isSupabaseConfigured && supabase) {
       try {
-        let dbReason = reason || null;
+        let dbReason: any = reason || null;
         if (jobTitle || companyName) {
           const rBase = reason || 'feedback';
           dbReason = `${rBase}|jobTitle:${jobTitle || ''}|companyName:${companyName || ''}`;

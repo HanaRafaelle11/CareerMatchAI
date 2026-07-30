@@ -2,7 +2,7 @@ import type { Resume, Match, CareerProfile, Profile, Notification, Application, 
 import type { CareerProfileNew } from '../../application/hooks/useMyProfileAi';
 import { useState, useEffect } from 'react';
 import { 
-  Sparkles, Award, ArrowRight, Search, Briefcase, 
+  Sparkles, Award, ArrowRight, Search, Briefcase, BarChart3,
   ChevronRight, Zap, CheckCircle2, Circle, AlertTriangle, RefreshCw, WifiOff
 } from 'lucide-react';
 import { StatCard } from '../components/ds';
@@ -140,6 +140,12 @@ export function Dashboard({
   );
   const interviewsCount = interviews.length;
 
+  // Métricas separadas: candidaturas enviadas vs vagas salvas/prospecção
+  const appliedStatuses = ['📨 Me candidatei', '👥 Entrevista com recrutador', '🎯 Entrevista com gestor', '🧩 Case técnico', '🤝 Fit cultural', '🏆 Oferta recebida', '✅ Aceita', 'applied', 'hr', 'interview', 'offer', 'hired'];
+  const savedStatuses = ['🔎 Encontrada', '⭐ Tenho interesse', 'found', 'saved'];
+  const appliedCount = applications.filter(a => appliedStatuses.includes(a.status)).length;
+  const savedCount = applications.filter(a => savedStatuses.includes(a.status)).length;
+
   const targetRole = (careerProfileNew?.personal as any)?.preferences?.targetRoles?.[0] || profile?.headline || 'Desenvolvimento Profissional';
 
   // Real profile completeness
@@ -195,7 +201,7 @@ export function Dashboard({
     if (applications.length > 0) {
       return {
         title: "Acompanhe seu progresso de candidaturas",
-        text: `Você possui ${applications.length} candidatura(s) ativas. Atualize o status no seu Pipeline para receber orientações.`,
+        text: `Você enviou ${appliedCount} candidatura(s) e possui ${savedCount} vaga(s) em prospecção. Atualize o status no Pipeline para receber orientações.`,
         actionLabel: "Acompanhar seu Pipeline de Candidaturas",
         tab: "strategy"
       };
@@ -214,7 +220,7 @@ export function Dashboard({
   // Daily task checklist (Seu Plano de Hoje)
   const dailyTasks = [
     { id: 1, label: 'Atualizar competências estratégicas no currículo', completed: hasSkills, actionTab: 'profile' },
-    { id: 2, label: 'Candidatar-se a 2 vagas de alto Match', completed: applications.length >= 2, actionTab: 'match' },
+    { id: 2, label: 'Candidatar-se a 2 vagas de alto Match', completed: appliedCount >= 2, actionTab: 'match' },
     { id: 3, label: 'Simular 1 entrevista com método STAR', completed: interviewsCount > 0, actionTab: 'coach' },
   ];
   const completedDailyCount = dailyTasks.filter(t => t.completed).length;
@@ -293,7 +299,7 @@ export function Dashboard({
       />
 
       {/* ── 3. MÉTRICAS ESSENCIAIS DA JORNADA (UNIFICADAS E SEM DUPLICAÇÃO) ── */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">
         <StatCard 
           icon={<Search size={16} strokeWidth={1.5} />} 
           label="Vagas com Match" 
@@ -303,11 +309,18 @@ export function Dashboard({
         />
         <StatCard 
           icon={<Briefcase size={16} strokeWidth={1.5} />} 
-          label="No Pipeline" 
-          value={applications.length} 
-          trend={applications.length > 0 ? { value: `${applications.length} em progresso`, positive: true } : null}
+          label="Candidaturas Enviadas" 
+          value={appliedCount} 
+          trend={appliedCount > 0 ? { value: `${appliedCount} em progresso`, positive: true } : null}
           accent="secondary"
           action={{ label: "Ver Pipeline", onClick: () => setActiveTab('strategy') }}
+        />
+        <StatCard 
+          icon={<Search size={16} strokeWidth={1.5} />} 
+          label="Vagas Salvas" 
+          value={savedCount} 
+          trend={savedCount > 0 ? { value: `${savedCount} em prospecção`, positive: false } : null}
+          action={{ label: "Ver Salvas", onClick: () => setActiveTab('strategy') }}
         />
         <StatCard 
           icon={<Award size={16} strokeWidth={1.5} />} 
@@ -326,6 +339,23 @@ export function Dashboard({
           action={{ label: "Ajustar perfil", onClick: () => setActiveTab('profile') }}
         />
       </div>
+
+      {/* ── 3b. ACESSO RÁPIDO: MONITOR DE DEMANDA REAL & BENCHMARK SALARIAL ── */}
+      <button
+        onClick={() => setActiveTab('coach')}
+        className="w-full bg-gradient-to-r from-indigo-50 to-blue-50 dark:from-indigo-950/30 dark:to-blue-950/20 border border-indigo-200/80 dark:border-indigo-800/40 rounded-2xl p-4 flex items-center justify-between gap-3 hover:border-indigo-400/60 dark:hover:border-indigo-600/60 transition-all group cursor-pointer shadow-xs"
+      >
+        <div className="flex items-center gap-3">
+          <div className="w-9 h-9 rounded-xl bg-indigo-100 dark:bg-indigo-500/15 text-indigo-600 dark:text-indigo-400 flex items-center justify-center shrink-0">
+            <BarChart3 size={18} strokeWidth={1.75} />
+          </div>
+          <div className="text-left">
+            <span className="text-xs font-bold text-indigo-700 dark:text-indigo-300 block">Monitor de Demanda Real & Benchmark Salarial</span>
+            <span className="text-[10px] text-slate-500 dark:text-slate-400">Veja as habilidades mais exigidas pelo mercado e calibre sua pretensão salarial na aba Coach.</span>
+          </div>
+        </div>
+        <ArrowRight size={16} className="text-indigo-400 group-hover:translate-x-1 transition-transform shrink-0" />
+      </button>
 
       {/* ── 4. ORIENTAÇÃO DO COPILOTO IA (CTA DOMINANTE 100% DINÂMICO) ── */}
       <section className="bg-white dark:bg-[#242B36] border border-slate-200/90 dark:border-white/8 rounded-2xl p-6 flex flex-col justify-between shadow-xs">

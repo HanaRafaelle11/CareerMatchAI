@@ -18,6 +18,7 @@ import { OnboardingModal } from './presentation/components/OnboardingModal';
 import { GlobalCopilotDrawer } from './presentation/components/GlobalCopilotDrawer';
 import { SatisfactionSurveyModal } from './presentation/components/SatisfactionSurveyModal';
 import { Toast, type ToastMessage } from './presentation/components/ds';
+import { CheckoutModal } from './modules/billing';
 import type { Job } from './domain/models/types';
 
 // ── Code Splitting: Lazy-load de todas as páginas ──
@@ -453,6 +454,13 @@ function AuthenticatedApp({
   // ── Rastreamento de Visitas para Pesquisa de Satisfação (Item 4) ──
   const [userVisitCount, setUserVisitCount] = useState<number>(0);
   const [showSatisfactionSurvey, setShowSatisfactionSurvey] = useState<boolean>(false);
+  const [showCheckoutModal, setShowCheckoutModal] = useState<boolean>(false);
+
+  useEffect(() => {
+    const handleOpenCheckout = () => setShowCheckoutModal(true);
+    window.addEventListener('open_checkout_modal', handleOpenCheckout);
+    return () => window.removeEventListener('open_checkout_modal', handleOpenCheckout);
+  }, []);
 
   useEffect(() => {
     if (!user) {
@@ -871,6 +879,15 @@ function AuthenticatedApp({
           onClose={() => setShowSatisfactionSurvey(false)}
         />
       )}
+
+      {/* Modal de Checkout Reutilizavel (Fase 3 - Billing) */}
+      <CheckoutModal
+        isOpen={showCheckoutModal}
+        onClose={() => setShowCheckoutModal(false)}
+        userId={user?.id}
+        userEmail={user?.email}
+        userName={profile?.full_name}
+      />
 
       {/* Beta Feedback Widget — Floating Global */}
       {user && <BetaFeedbackWidget userId={user.id} feature="career_intelligence" />}

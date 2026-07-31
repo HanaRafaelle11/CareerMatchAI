@@ -3,3 +3,5 @@ export type { PaymentGatewayAdapter, CreateCustomerParams, CreateSubscriptionPar
 export * from './infrastructure/adapters/AsaasAdapter';
 export * from './application/services/BillingService';
 export * from './application/services/EntitlementsEngine';
+export * from './application/hooks/useCheckout';
+export * from './presentation/components/CheckoutModal';

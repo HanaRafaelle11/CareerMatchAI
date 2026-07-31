@@ -247,6 +247,23 @@ export function Navbar({
           </div>
         </div>
 
+        {/* CTA Banner Seja Pro */}
+        <div className="mx-3 p-3 bg-gradient-to-r from-amber-500/10 via-yellow-500/10 to-emerald-500/10 border border-amber-500/20 rounded-xl space-y-1.5 my-2">
+          <div className="flex items-center gap-1.5 text-amber-300 font-extrabold text-[11px]">
+            <Sparkles size={13} />
+            <span>VOCENTRO PRO</span>
+          </div>
+          <p className="text-[10px] text-slate-300">Destrave simulações ilimitadas e exportação em PDF.</p>
+          <button
+            type="button"
+            onClick={() => window.dispatchEvent(new CustomEvent('open_checkout_modal'))}
+            className="w-full py-1.5 px-3 rounded-lg bg-gradient-to-r from-amber-500 to-yellow-500 hover:from-amber-400 hover:to-yellow-400 text-slate-950 font-black text-xs shadow cursor-pointer transition-all flex items-center justify-center gap-1"
+          >
+            <span>Seja Pro</span>
+            <Sparkles size={12} />
+          </button>
+        </div>
+
         {/* User Profile Footer (Com margem inferior no mobile para evitar sobreposicao com a Bottom Bar) */}
         <div className="border-t border-slate-200/80 dark:border-white/8 p-3 flex-shrink-0 mb-16 md:mb-0">
           <div className="flex items-center justify-between p-1.5 rounded-md">

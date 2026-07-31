@@ -233,17 +233,45 @@ serve(async (req: Request) => {
       }
     }
 
-    // 2. Consultar Plano e Preço
-    const { data: planData, error: planError } = await adminClient
-      .from('plans')
-      .select('id, slug, name, price_monthly, price_yearly')
-      .eq('slug', planSlug)
-      .eq('active', true)
-      .single();
+    const cleanPlanSlug = (typeof planSlug === 'string' ? planSlug : 'pro').toLowerCase().trim();
 
-    if (planError || !planData) {
+    // 2. Consultar Plano e Preço
+    let { data: planData, error: planError } = await adminClient
+      .from('plans')
+      .select('id, slug, name, price_monthly, price_yearly, active')
+      .eq('slug', cleanPlanSlug)
+      .maybeSingle();
+
+    if (planError) {
+      console.error('[billing-checkout] Erro ao consultar plano no DB:', planError);
+    }
+
+    // Tentar auto-healing / auto-seed se o plano não for encontrado ou estiver inativo
+    if (!planData || !planData.active) {
+      console.warn(`[billing-checkout] Plano '${cleanPlanSlug}' não encontrado ou inativo. Executando auto-seed dos planos padrão...`);
+      
+      const defaultPlans = [
+        { slug: 'free', name: 'Plano Gratuito', price_monthly: 0.00, price_yearly: 0.00, active: true },
+        { slug: 'pro', name: 'Plano Profissional', price_monthly: 29.90, price_yearly: 299.00, active: true },
+        { slug: 'enterprise', name: 'Plano Corporativo', price_monthly: 99.90, price_yearly: 999.00, active: true }
+      ];
+
+      const { data: seededPlans, error: seedError } = await adminClient
+        .from('plans')
+        .upsert(defaultPlans, { onConflict: 'slug' })
+        .select('id, slug, name, price_monthly, price_yearly, active');
+
+      if (seedError) {
+        console.error('[billing-checkout] Erro ao fazer auto-seed dos planos:', seedError);
+      } else if (seededPlans) {
+        planData = seededPlans.find((p: any) => p.slug === cleanPlanSlug) || null;
+      }
+    }
+
+    if (!planData || !planData.active) {
+      const errDetail = planError ? ` (Erro DB: ${planError.message})` : '';
       return new Response(
-        JSON.stringify({ error: `Plano '${planSlug}' não encontrado ou inativo` }),
+        JSON.stringify({ error: `Plano '${cleanPlanSlug}' não encontrado ou inativo.${errDetail}` }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }

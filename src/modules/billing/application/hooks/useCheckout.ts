@@ -116,6 +116,37 @@ export function useCheckout(userId?: string) {
     }
   };
 
+  const recoverPendingCheckout = async () => {
+    if (!supabase || !userId) return;
+    try {
+      const { data: sessionData } = await supabase.auth.getSession();
+      const token = sessionData.session?.access_token;
+      if (!token) return;
+
+      const res = await supabase.functions.invoke('billing-portal', {
+        body: { action: 'recover_checkout' },
+        headers: { Authorization: `Bearer ${token}` }
+      });
+
+      if (res.data && res.data.hasPendingCheckout) {
+        const result: CheckoutResult = {
+          success: true,
+          subscriptionId: res.data.subscriptionId,
+          invoiceId: res.data.invoiceId,
+          amount: res.data.amount,
+          pixCopyPaste: res.data.pixCopyPaste,
+          pixQrCodeUrl: res.data.pixQrCodeUrl,
+          bankSlipUrl: res.data.bankSlipUrl,
+          billingType: res.data.pixCopyPaste ? 'PIX' : 'BOLETO'
+        };
+        setCheckoutResult(result);
+        startPolling(res.data.invoiceId, res.data.subscriptionId);
+      }
+    } catch (err) {
+      console.warn('[useCheckout] Erro ao tentar recuperar checkout pendente:', err);
+    }
+  };
+
   const startPolling = (invoiceId?: string, subscriptionId?: string) => {
     if (pollingTimerRef.current) {
       clearInterval(pollingTimerRef.current);
@@ -197,6 +228,7 @@ export function useCheckout(userId?: string) {
 
   return {
     executeCheckout,
+    recoverPendingCheckout,
     checkoutResult,
     isLoading,
     error,

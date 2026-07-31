@@ -1,4 +1,4 @@
-import { useState, type FormEvent } from 'react';
+import { useState, useEffect, type FormEvent } from 'react';
 import { 
   Sparkles, CheckCircle2, ShieldCheck, QrCode, 
   CreditCard, FileText, Copy, Check, ExternalLink, Loader2, ArrowRight, Lock
@@ -36,6 +36,7 @@ export function CheckoutModal({ isOpen, onClose, userId, userEmail, userName }: 
 
   const {
     executeCheckout,
+    recoverPendingCheckout,
     checkoutResult,
     isLoading,
     error,
@@ -43,6 +44,13 @@ export function CheckoutModal({ isOpen, onClose, userId, userEmail, userName }: 
     paymentConfirmed,
     resetCheckout
   } = useCheckout(userId);
+
+  // Recuperar checkout pendente automaticamente se houver (Item 3 - Fase 3)
+  useEffect(() => {
+    if (isOpen) {
+      recoverPendingCheckout();
+    }
+  }, [isOpen]);
 
   const handleClose = () => {
     resetCheckout();

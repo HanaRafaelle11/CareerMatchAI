@@ -6,12 +6,13 @@ import { isSupabaseConfigured, supabase } from '../../infrastructure/api/supabas
 import { localDB } from '../../infrastructure/storage/localDatabase';
 import type { Profile, Resume } from '../../domain/models/types';
 import type { CareerProfileNew } from '../../application/hooks/useMyProfileAi';
-import { PLAN_PRICING } from '../../domain/config/pricing';
+
 import { 
   User, FileText, Settings as SettingsIcon, Bell, 
   Palette, ShieldAlert, CreditCard, Trash2, Download, Check,
   Sun, Moon, Monitor
 } from 'lucide-react';
+import { CustomerPortal } from '../../modules/billing';
 
 interface SettingsProps {
   profile: Profile | null;
@@ -60,41 +61,6 @@ export function Settings({
     setTimeout(() => setToast(null), 3500);
   };
 
-  // Generate billing history dynamically based on registration date to avoid showing June if they signed up in July
-  const regDate = profile?.createdAt ? new Date(profile.createdAt) : new Date();
-  const currentDate = new Date();
-  const invoiceDay = 12; // Standard renewal day
-  
-  const billingHistory: Array<{ dateStr: string; plan: string; price: string }> = [];
-  
-  // Starting from registration month, add a monthly invoice up to the current date
-  let invoiceDate = new Date(regDate.getFullYear(), regDate.getMonth(), invoiceDay);
-  if (invoiceDate < regDate) {
-    invoiceDate = new Date(regDate);
-  }
-  
-  while (invoiceDate <= currentDate) {
-    billingHistory.push({
-      dateStr: invoiceDate.toLocaleDateString('pt-BR'),
-      plan: 'Premium Copilot - Mensal',
-      price: PLAN_PRICING.proMonthlyFormatted
-    });
-    // Add 1 month
-    invoiceDate = new Date(invoiceDate.getFullYear(), invoiceDate.getMonth() + 1, invoiceDay);
-  }
-  
-  if (billingHistory.length === 0) {
-    billingHistory.push({
-      dateStr: new Date().toLocaleDateString('pt-BR'),
-      plan: 'Premium Copilot - Mensal',
-      price: PLAN_PRICING.proMonthlyFormatted
-    });
-  }
-  
-  billingHistory.reverse();
-
-  // Next renewal date is invoiceDate (which is already incremented to the next month after the loop)
-  const nextRenewalDateStr = invoiceDate.toLocaleDateString('pt-BR', { day: '2-digit', month: 'long', year: 'numeric' });
 
   useEffect(() => {
     if (initialTab) {
@@ -1071,56 +1037,10 @@ export function Settings({
           )}
 
           {activeSubTab === 'billing' && (
-            <CardGlass className="p-6 space-y-6">
-              <h3 className="text-base font-bold text-slate-900 dark:text-slate-100 pb-3 border-b border-slate-200 dark:border-slate-800 flex items-center gap-2">
-                <CreditCard size={16} className="text-brand-500" />
-                Assinatura e Planos
-              </h3>
-
-              <div className="w-full max-w-4xl p-6 rounded-2xl bg-gradient-to-br from-indigo-950/40 via-slate-900 to-brand-950/40 light:from-slate-100 light:via-white light:to-brand-50 border border-slate-800/80 light:border-slate-200 relative overflow-hidden">
-                <div className="absolute top-0 right-0 h-32 w-32 bg-brand-500/10 rounded-full blur-3xl pointer-events-none" />
-                <div className="flex justify-between items-start gap-4 w-full min-w-0">
-                  <div className="flex-1 min-w-0">
-                    <span className="text-[9px] font-bold uppercase tracking-wider text-brand-400">Plano Ativo</span>
-                    <h4 className="text-lg font-extrabold text-slate-200 mt-1">Premium Copilot</h4>
-                    <p className="text-[11px] text-slate-400 mt-1 leading-snug w-full min-w-0 block break-normal whitespace-normal">Acesso total a buscas inteligentes no Adzuna, otimizações ATS e simulados de entrevista STAR.</p>
-                  </div>
-                  <span className="px-2.5 py-1 rounded-lg bg-emerald-500/10 text-emerald-400 text-[10px] font-bold border border-emerald-500/20">Ativo</span>
-                </div>
-                <div className="mt-6 flex justify-between items-end border-t border-slate-800/80 pt-4">
-                  <div>
-                    <span className="text-[9px] text-slate-500 uppercase font-bold block">Próxima Renovação</span>
-                    <span className="text-xs font-semibold text-slate-350">{nextRenewalDateStr}</span>
-                  </div>
-                  <button 
-                    onClick={() => showToast('Você já está no plano Premium Copilot máximo.', 'success')}
-                    className="px-3.5 py-1.5 rounded-lg bg-brand-600 hover:bg-brand-500 text-white font-bold text-[10px] transition-all shadow shadow-brand-500/10"
-                  >
-                    Gerenciar Plano
-                  </button>
-                </div>
-              </div>
-
-              <div className="space-y-3 pt-2">
-                <span className="text-xs font-bold text-slate-400 block uppercase tracking-wider">Histórico de Faturamento</span>
-                <div className="rounded-xl border border-slate-900 overflow-hidden text-xs">
-                  <div className="grid grid-cols-3 p-3 bg-slate-900/30 border-b border-slate-900 font-bold text-slate-450">
-                    <span>Data</span>
-                    <span>Plano</span>
-                    <span className="text-right">Valor</span>
-                  </div>
-                  <div className="divide-y divide-slate-900/40">
-                    {billingHistory.map((item, idx) => (
-                      <div key={idx} className="grid grid-cols-3 p-3 text-slate-300">
-                        <span>{item.dateStr}</span>
-                        <span>{item.plan}</span>
-                        <span className="text-right">{item.price}</span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              </div>
-            </CardGlass>
+            <CustomerPortal 
+              userId={profile?.id} 
+              onOpenCheckout={() => window.dispatchEvent(new CustomEvent('open_checkout_modal'))} 
+            />
           )}
         </div>
       </div>

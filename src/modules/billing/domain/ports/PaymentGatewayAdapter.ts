@@ -21,6 +21,14 @@ export interface CreateSubscriptionParams {
     expiryYear: string;
     ccv: string;
   };
+  creditCardHolderInfo?: {
+    name: string;
+    email: string;
+    cpfCnpj: string;
+    postalCode: string;
+    addressNumber: string;
+    phone?: string;
+  };
 }
 
 export interface CancelSubscriptionParams {

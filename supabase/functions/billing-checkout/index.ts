@@ -268,6 +268,20 @@ serve(async (req: Request) => {
       }
     }
 
+    // Fallback de resiliência em memória para garantir continuidade do checkout caso a tabela 'plans' ainda não exista no DB
+    if (!planData || !planData.active) {
+      const fallbackPlans: Record<string, { id?: string; slug: string; name: string; price_monthly: number; price_yearly: number; active: boolean }> = {
+        free: { slug: 'free', name: 'Plano Gratuito', price_monthly: 0.00, price_yearly: 0.00, active: true },
+        pro: { slug: 'pro', name: 'Plano Profissional', price_monthly: 29.90, price_yearly: 299.00, active: true },
+        enterprise: { slug: 'enterprise', name: 'Plano Corporativo', price_monthly: 99.90, price_yearly: 999.00, active: true }
+      };
+
+      if (fallbackPlans[cleanPlanSlug]) {
+        console.warn(`[billing-checkout] Utilizando plano de fallback em memória para '${cleanPlanSlug}'`);
+        planData = fallbackPlans[cleanPlanSlug];
+      }
+    }
+
     if (!planData || !planData.active) {
       const errDetail = planError ? ` (Erro DB: ${planError.message})` : '';
       return new Response(
@@ -295,18 +309,22 @@ serve(async (req: Request) => {
     const periodEnd = new Date(now.getTime() + periodDays * 24 * 60 * 60 * 1000);
     const isCartaoAprovado = billingType === 'CREDIT_CARD' && (asaasSubscription.status === 'ACTIVE' || asaasSubscription.status === 'RECEIVED');
 
+    const subscriptionInsertPayload: Record<string, any> = {
+      user_id: user.id,
+      payment_customer_id: customerDbId,
+      status: isCartaoAprovado ? 'active' : 'pending',
+      billing_cycle: billingCycle,
+      gateway_subscription_id: asaasSubscription.gatewaySubscriptionId,
+      current_period_start: now.toISOString(),
+      current_period_end: periodEnd.toISOString()
+    };
+    if (planData.id) {
+      subscriptionInsertPayload.plan_id = planData.id;
+    }
+
     const { data: insertedSub, error: subError } = await adminClient
       .from('subscriptions')
-      .insert({
-        user_id: user.id,
-        payment_customer_id: customerDbId,
-        plan_id: planData.id,
-        status: isCartaoAprovado ? 'active' : 'pending',
-        billing_cycle: billingCycle,
-        gateway_subscription_id: asaasSubscription.gatewaySubscriptionId,
-        current_period_start: now.toISOString(),
-        current_period_end: periodEnd.toISOString()
-      })
+      .insert(subscriptionInsertPayload)
       .select('id')
       .single();
 

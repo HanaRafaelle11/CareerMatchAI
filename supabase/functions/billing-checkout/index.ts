@@ -28,11 +28,14 @@ class AsaasEdgeAdapter {
 
   async createCustomer(params: { userId: string; name: string; email: string; taxId?: string; phone?: string }) {
     const url = `${this.baseUrl}/customers`;
+    const cleanTaxId = params.taxId ? params.taxId.replace(/\D/g, '') : undefined;
+    const cleanPhone = params.phone ? params.phone.replace(/\D/g, '') : undefined;
+
     const body = {
       name: params.name,
       email: params.email,
-      cpfCnpj: params.taxId,
-      mobilePhone: params.phone,
+      cpfCnpj: cleanTaxId,
+      mobilePhone: cleanPhone,
       externalReference: params.userId
     };
 
@@ -45,7 +48,7 @@ class AsaasEdgeAdapter {
     const data = await res.json();
     if (!res.ok) {
       const errorMsg = data.errors?.[0]?.description || data.message || 'Erro ao criar cliente no Asaas';
-      throw new Error(`[Asaas API] ${errorMsg}`);
+      throw new Error(`${errorMsg}`);
     }
 
     return { gatewayCustomerId: data.id as string };

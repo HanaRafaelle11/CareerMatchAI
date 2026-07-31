@@ -85,7 +85,16 @@ export function useCheckout(userId?: string) {
       });
 
       if (response.error) {
-        const msg = response.error.message || 'Erro ao processar o checkout.';
+        let msg = response.error.message || 'Erro ao processar o checkout.';
+        try {
+          const ctx = (response.error as any).context;
+          if (ctx && typeof ctx.json === 'function') {
+            const errorBody = await ctx.json();
+            if (errorBody && errorBody.error) {
+              msg = errorBody.error;
+            }
+          }
+        } catch (_) {}
         throw new Error(msg);
       }
 

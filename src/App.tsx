@@ -874,7 +874,7 @@ function AuthenticatedApp({
       {showSatisfactionSurvey && user && (
         <SatisfactionSurveyModal
           userId={user.id}
-          userName={profile?.full_name || user.email?.split('@')[0] || 'Candidato'}
+          userName={profile?.full_name || user.user_metadata?.full_name || user.user_metadata?.name || (user.email ? user.email.split('@')[0] : 'Candidato')}
           visitCount={userVisitCount}
           onClose={() => setShowSatisfactionSurvey(false)}
         />

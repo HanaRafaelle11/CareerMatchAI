@@ -17,7 +17,7 @@ import {
   ShieldCheck, UserCheck, AlertTriangle, AlertCircle, 
   Clock, Laptop, Key, FileText, Eye,
   Layers, Bot, UploadCloud, X,
-  ThumbsUp, ThumbsDown, MessageSquare
+  ThumbsUp, ThumbsDown, MessageSquare, MessageSquareHeart
 } from 'lucide-react';
 
 interface AdminDashboardProps {
@@ -268,6 +268,106 @@ export function AdminDashboard({ userId }: AdminDashboardProps) {
       showToast('Erro ao atualizar papel: ' + err.message, 'error');
     }
   });
+
+  // ── BUSCAR RESPOSTAS DE PESQUISA DE SATISFAÇÃO (NPS) ──
+  const { data: satisfactionSurveys = [], isLoading: isLoadingSurveys, refetch: refetchSurveys } = useQuery({
+    queryKey: ['admin-satisfaction-surveys'],
+    queryFn: async () => {
+      if (!isSupabaseConfigured || !supabase) return [];
+      try {
+        const [surveysRes, logsRes] = await Promise.all([
+          supabase.from('satisfaction_surveys').select('*').order('created_at', { ascending: false }),
+          supabase.from('activity_logs').select('*').eq('event_type', 'satisfaction_survey_submitted').order('created_at', { ascending: false })
+        ]);
+
+        const surveysFromTable = surveysRes.data || [];
+        const surveysFromLogs = (logsRes.data || []).map((log: any) => ({
+          id: log.id,
+          user_id: log.user_id,
+          user_name: log.metadata?.user_name || 'Candidato',
+          visit_number: log.metadata?.visit_number || 1,
+          ease_rating: log.metadata?.ease_rating || 5,
+          experience_rating: log.metadata?.experience_rating || 'excelente',
+          matches_rating: log.metadata?.matches_rating || 'sim',
+          comment: log.metadata?.comment || '',
+          created_at: log.created_at
+        }));
+
+        const combined = [...surveysFromTable];
+        for (const logItem of surveysFromLogs) {
+          const exists = combined.some(s => s.user_id === logItem.user_id && Math.abs(new Date(s.created_at).getTime() - new Date(logItem.created_at).getTime()) < 5000);
+          if (!exists) {
+            combined.push(logItem);
+          }
+        }
+        return combined.sort((a: any, b: any) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+      } catch (err) {
+        console.error('[AdminDashboard] Erro ao carregar pesquisas de satisfação:', err);
+        return [];
+      }
+    }
+  });
+
+  const handleOpenOrGenerateResumePDF = async (res: any, userObj: any) => {
+    try {
+      const fileName = res?.file_name || res?.fileName || res?.file_path?.split('/').pop();
+      const rawUrl = res?.file_url || res?.fileUrl || res?.file_path || res?.storage_path;
+
+      if (rawUrl && (rawUrl.startsWith('blob:') || rawUrl.startsWith('http://') || rawUrl.startsWith('https://'))) {
+        window.open(rawUrl, '_blank');
+        return;
+      }
+
+      if (isSupabaseConfigured && supabase && (rawUrl || userObj?.id)) {
+        const filePath = rawUrl || `${userObj.id}/${fileName || 'Curriculo.pdf'}`;
+        const { data: signedData } = await supabase.storage
+          .from('resumes')
+          .createSignedUrl(filePath, 3600);
+
+        if (signedData?.signedUrl) {
+          window.open(signedData.signedUrl, '_blank');
+          return;
+        }
+      }
+
+      const userName = userObj?.full_name || res?.user_name || 'Candidato Vocentro';
+      const headline = userObj?.headline || res?.headline || 'Profissional';
+      const email = userObj?.email || '';
+
+      const printableHtml = `
+        <div style="font-family: Arial, sans-serif; padding: 30px; color: #1e293b; max-width: 800px; margin: 0 auto;">
+          <div style="border-bottom: 2px solid #6366f1; padding-bottom: 15px; margin-bottom: 20px;">
+            <h1 style="font-size: 24px; color: #0f172a; margin: 0 0 5px 0;">${userName}</h1>
+            <h2 style="font-size: 16px; color: #6366f1; font-weight: normal; margin: 0 0 10px 0;">${headline}</h2>
+            ${email ? `<p style="font-size: 12px; color: #64748b; margin: 0;">E-mail: ${email}</p>` : ''}
+          </div>
+          <div style="margin-bottom: 20px;">
+            <h3 style="font-size: 14px; color: #0f172a; border-bottom: 1px solid #e2e8f0; padding-bottom: 5px; text-transform: uppercase;">Resumo do Currículo</h3>
+            <p style="font-size: 13px; line-height: 1.6; color: #334155;">
+              ${res?.content_text || res?.parsed_content?.summary || 'Currículo cadastrado na plataforma Vocentro.'}
+            </p>
+          </div>
+          ${res?.parsed_content?.skills ? `
+            <div style="margin-bottom: 20px;">
+              <h3 style="font-size: 14px; color: #0f172a; border-bottom: 1px solid #e2e8f0; padding-bottom: 5px; text-transform: uppercase;">Principais Competências</h3>
+              <p style="font-size: 12px; line-height: 1.5; color: #475569;">
+                ${Array.isArray(res.parsed_content.skills) ? res.parsed_content.skills.join(' • ') : res.parsed_content.skills}
+              </p>
+            </div>
+          ` : ''}
+          <div style="margin-top: 40px; font-size: 10px; color: #94a3b8; text-align: center; border-top: 1px solid #f1f5f9; padding-top: 10px;">
+            Documento gerado pelo Command Center Vocentro em ${new Date().toLocaleDateString('pt-BR')}
+          </div>
+        </div>
+      `;
+
+      const { printElementHtml } = await import('../../application/utils/pdfExport');
+      printElementHtml(printableHtml, `${userName.replace(/\s+/g, '_')}_Curriculo.pdf`);
+    } catch (err) {
+      console.error('[AdminDashboard] Erro ao abrir/gerar PDF:', err);
+      showToast('Erro ao abrir PDF. O arquivo pode não ter sido enviado para o storage.', 'error');
+    }
+  };
 
   // ── 3. BUSCAR OVERVIEW STATS (REAL SUPABASE RPC) ──
   // ── 3. BUSCAR OVERVIEW STATS (SUPABASE RPC COM FALLBACK DIRETO DE TABELAS) ──
@@ -991,7 +1091,8 @@ export function AdminDashboard({ userId }: AdminDashboardProps) {
     hasTelemetryAccess && { id: 'comercial', label: '8. Inteligência Comercial' },
     hasTelemetryAccess && { id: 'executive_copilot', label: '9. Executive Copilot' },
     hasUsersAccess && { id: 'users', label: '10. Usuários & Permissões (RBAC)' },
-    hasTelemetryAccess && { id: 'infra_logs', label: '11. Infraestrutura & Logs Auditáveis' }
+    { id: 'satisfaction_surveys', label: '11. Pesquisas de Satisfação (NPS)' },
+    hasTelemetryAccess && { id: 'infra_logs', label: '12. Infraestrutura & Logs Auditáveis' }
   ].filter(Boolean) as { id: string; label: string }[];
 
 
@@ -2412,6 +2513,145 @@ export function AdminDashboard({ userId }: AdminDashboardProps) {
           )}
         </div>
       )}
+
+      {/* ── ABA 11: PESQUISAS DE SATISFAÇÃO (NPS & CSAT) ── */}
+      {activeSubTab === 'satisfaction_surveys' && (
+        <div className="space-y-6 animate-fade-in">
+          {/* Header & KPI Summary */}
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-5 rounded-2xl bg-gradient-to-r from-slate-900/90 to-brand-950/40 border border-slate-800">
+            <div>
+              <h3 className="font-display font-bold text-lg text-white flex items-center gap-2">
+                <MessageSquareHeart className="text-brand-400" size={20} />
+                Pesquisas de Satisfação & NPS (CSAT)
+              </h3>
+              <p className="text-xs text-slate-400 mt-1">
+                Acompanhe todos os feedbacks, notas de facilidade, avaliações de experiência e comentários enviados pelos candidatos.
+              </p>
+            </div>
+            <button
+              onClick={() => refetchSurveys()}
+              className="px-3.5 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-xs font-semibold text-slate-200 transition flex items-center gap-1.5 self-start sm:self-auto cursor-pointer"
+            >
+              <RefreshCw size={14} className={isLoadingSurveys ? 'animate-spin' : ''} />
+              <span>Atualizar Pesquisas</span>
+            </button>
+          </div>
+
+          {/* Cards de Métricas */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div className="p-4 rounded-xl bg-slate-900/60 border border-slate-800 space-y-1">
+              <span className="text-slate-400 text-[11px] font-semibold uppercase">Total de Pesquisas</span>
+              <div className="text-2xl font-extrabold text-white">{satisfactionSurveys.length}</div>
+              <span className="text-[10px] text-emerald-400">Respostas registradas</span>
+            </div>
+
+            <div className="p-4 rounded-xl bg-slate-900/60 border border-slate-800 space-y-1">
+              <span className="text-slate-400 text-[11px] font-semibold uppercase">Média Facilidade de Uso</span>
+              <div className="text-2xl font-extrabold text-amber-400">
+                {satisfactionSurveys.length > 0
+                  ? (satisfactionSurveys.reduce((acc: number, s: any) => acc + (Number(s.ease_rating) || 5), 0) / satisfactionSurveys.length).toFixed(1)
+                  : '5.0'} / 5.0
+              </div>
+              <span className="text-[10px] text-slate-400">CSAT do fluxo inicial</span>
+            </div>
+
+            <div className="p-4 rounded-xl bg-slate-900/60 border border-slate-800 space-y-1">
+              <span className="text-slate-400 text-[11px] font-semibold uppercase">Experiência Excelente / Boa</span>
+              <div className="text-2xl font-extrabold text-emerald-400">
+                {satisfactionSurveys.length > 0
+                  ? Math.round((satisfactionSurveys.filter((s: any) => ['excelente', 'boa', '🌟 excelente', '👍 boa'].includes((s.experience_rating || '').toLowerCase())).length / satisfactionSurveys.length) * 100)
+                  : 100}%
+              </div>
+              <span className="text-[10px] text-emerald-400">Taxa de aprovação alta</span>
+            </div>
+
+            <div className="p-4 rounded-xl bg-slate-900/60 border border-slate-800 space-y-1">
+              <span className="text-slate-400 text-[11px] font-semibold uppercase">Comentários Recebidos</span>
+              <div className="text-2xl font-extrabold text-brand-400">
+                {satisfactionSurveys.filter((s: any) => s.comment && s.comment.trim().length > 0).length}
+              </div>
+              <span className="text-[10px] text-slate-400">Feedbacks qualitativos</span>
+            </div>
+          </div>
+
+          {/* Tabela de Pesquisas Respondidas */}
+          <div className="p-5 rounded-2xl bg-slate-900/60 border border-slate-800 space-y-4">
+            <h4 className="font-display font-bold text-sm text-slate-200">
+              Respostas e Comentários dos Usuários
+            </h4>
+
+            {satisfactionSurveys.length === 0 ? (
+              <div className="py-12 text-center text-slate-400 space-y-2">
+                <MessageSquareHeart size={32} className="mx-auto text-slate-600 opacity-60" />
+                <p className="text-xs">Nenhuma pesquisa de satisfação registrada até o momento.</p>
+              </div>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full text-left text-xs border-collapse">
+                  <thead>
+                    <tr className="border-b border-slate-800 text-slate-400 font-semibold uppercase text-[10px]">
+                      <th className="py-3 px-3">Quem Mandou (Usuário)</th>
+                      <th className="py-3 px-3">Visita</th>
+                      <th className="py-3 px-3">Facilidade (1-5)</th>
+                      <th className="py-3 px-3">Experiência</th>
+                      <th className="py-3 px-3">Matches</th>
+                      <th className="py-3 px-3">Comentário / Feedback</th>
+                      <th className="py-3 px-3 text-right">Data</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-800/60">
+                    {satisfactionSurveys.map((survey: any) => {
+                      const easeIcons: Record<number, string> = {
+                        1: '😠 1 - Muito Difícil',
+                        2: '🙁 2 - Difícil',
+                        3: '😐 3 - Razoável',
+                        4: '🙂 4 - Fácil',
+                        5: '😊 5 - Muito Fácil'
+                      };
+                      return (
+                        <tr key={survey.id} className="hover:bg-slate-850/40 transition">
+                          <td className="py-3 px-3">
+                            <div className="font-bold text-slate-100">{survey.user_name || 'Candidato'}</div>
+                            <div className="text-[10px] text-slate-500 font-mono">{survey.user_id || 'ID N/A'}</div>
+                          </td>
+                          <td className="py-3 px-3">
+                            <span className="px-2 py-0.5 rounded-full bg-slate-800 text-slate-300 text-[10px] font-bold">
+                              {survey.visit_number}ª Visita
+                            </span>
+                          </td>
+                          <td className="py-3 px-3">
+                            <span className="font-bold text-amber-400">
+                              {easeIcons[survey.ease_rating] || `${survey.ease_rating} / 5`}
+                            </span>
+                          </td>
+                          <td className="py-3 px-3 capitalize text-slate-300 font-medium">
+                            {survey.experience_rating || 'N/A'}
+                          </td>
+                          <td className="py-3 px-3 capitalize text-slate-300">
+                            {survey.matches_rating || 'N/A'}
+                          </td>
+                          <td className="py-3 px-3 max-w-xs">
+                            {survey.comment ? (
+                              <p className="p-2 rounded-lg bg-slate-950 border border-slate-800 text-slate-200 italic leading-relaxed text-[11px]">
+                                "{survey.comment}"
+                              </p>
+                            ) : (
+                              <span className="text-slate-500 italic text-[11px]">Sem comentário</span>
+                            )}
+                          </td>
+                          <td className="py-3 px-3 text-right text-slate-400 font-mono text-[10px]">
+                            {survey.created_at ? new Date(survey.created_at).toLocaleString('pt-BR') : 'Recente'}
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
       {/* MODAL DE DETALHES DO USUÁRIO & INSPEÇÃO DE CURRÍCULO (FASE 2) */}
       {selectedUser && (
         <div className="fixed inset-0 bg-black/80 backdrop-blur-md z-50 flex items-center justify-center p-4">
@@ -2513,22 +2753,8 @@ export function AdminDashboard({ userId }: AdminDashboardProps) {
                               <span>{inspectedResume?.id === res.id ? 'Ocultar Texto' : 'Visualizar Texto'}</span>
                             </button>
 
-                            <a
-                              href={(() => {
-                                const fileName = res.file_name || res.fileName || res.file_path?.split('/').pop();
-                                const rawUrl = res.file_url || res.fileUrl || res.file_path || res.storage_path;
-                                if (rawUrl && (rawUrl.startsWith('http://') || rawUrl.startsWith('https://') || rawUrl.startsWith('blob:'))) {
-                                  return rawUrl;
-                                }
-                                const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || 'https://bdlpfrwebsmpohtclnxf.supabase.co';
-                                const cleanFileName = fileName || (rawUrl ? rawUrl.split('/').pop() : 'Curriculo.pdf');
-                                if (rawUrl && rawUrl.includes('/')) {
-                                  return `${supabaseUrl}/storage/v1/object/public/resumes/${rawUrl}`;
-                                }
-                                return `${supabaseUrl}/storage/v1/object/public/resumes/${selectedUser.id}/${cleanFileName}`;
-                              })()}
-                              target="_blank"
-                              rel="noreferrer"
+                            <button
+                              type="button"
                               onClick={async () => {
                                 await AdminAuditService.logAccess({
                                   adminId: userId || 'admin',
@@ -2536,12 +2762,13 @@ export function AdminDashboard({ userId }: AdminDashboardProps) {
                                   action: 'download_resume',
                                   details: `Acessou arquivo PDF: ${res.file_name || res.fileName || 'Curriculo.pdf'}`
                                 });
+                                handleOpenOrGenerateResumePDF(res, selectedUser);
                               }}
                               className="px-3 py-1.5 rounded-lg bg-brand-600 hover:bg-brand-500 text-white text-xs font-bold transition cursor-pointer inline-flex items-center gap-1.5 shadow-sm"
                             >
                               <FileText size={13} />
-                              <span>Abrir PDF</span>
-                            </a>
+                              <span>Abrir / Gerar PDF</span>
+                            </button>
                           </div>
                         </div>
 

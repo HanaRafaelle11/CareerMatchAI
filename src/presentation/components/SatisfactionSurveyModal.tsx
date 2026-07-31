@@ -78,6 +78,15 @@ export function SatisfactionSurveyModal({ userId, userName, visitCount, onClose 
     { value: 5, label: 'Muito Fácil', icon: '😊' },
   ];
 
+  const cleanDisplayName = (() => {
+    if (!userName) return 'Candidato';
+    if (userName.includes('@')) {
+      const prefix = userName.split('@')[0];
+      return prefix.charAt(0).toUpperCase() + prefix.slice(1);
+    }
+    return userName;
+  })();
+
   return (
     <BaseModal
       isOpen={true}
@@ -94,7 +103,7 @@ export function SatisfactionSurveyModal({ userId, userName, visitCount, onClose 
       }
       subtitle={
         <span className="text-xs text-slate-400">
-          Olá, <strong className="text-slate-200">{userName}</strong>! Queremos saber como está sendo sua experiência inicial no Vocentro.
+          Olá, <strong className="text-slate-200">{cleanDisplayName}</strong>! Queremos saber como está sendo sua experiência inicial no Vocentro.
         </span>
       }
     >

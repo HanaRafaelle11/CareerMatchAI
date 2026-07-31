@@ -60,9 +60,9 @@ function getMockUserDetails(user: any) {
       { id: 'ev-2', event_name: 'Simulação de entrevista iniciada', details: 'Entrevista para Product Designer', created_at: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString() },
       { id: 'ev-3', event_name: 'Upload de currículo realizado', details: `${name.replace(/ /g, '_')}_Curriculo.pdf`, created_at: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString() }
     ],
-    subscription: { plan: user.role === 'user' ? 'Free' : 'Pro', status: 'active', amount: user.role === 'user' ? 0.00 : 49.90, created_at: new Date(Date.now() - 10 * 24 * 60 * 60 * 1000).toISOString() },
+    subscription: { plan: user.role === 'user' ? 'Free' : 'Pro', status: 'active', amount: user.role === 'user' ? 0.00 : 29.90, created_at: new Date(Date.now() - 10 * 24 * 60 * 60 * 1000).toISOString() },
     transactions: user.role === 'user' ? [] : [
-      { id: 'tr-1', amount: 49.90, status: 'succeeded', payment_method: 'credit_card', created_at: new Date(Date.now() - 10 * 24 * 60 * 60 * 1000).toISOString() }
+      { id: 'tr-1', amount: 29.90, status: 'succeeded', payment_method: 'credit_card', created_at: new Date(Date.now() - 10 * 24 * 60 * 60 * 1000).toISOString() }
     ],
     totalTokens: 9700,
     estimatedCostBRL: 0.78,
@@ -1606,18 +1606,18 @@ export function AdminDashboard({ userId }: AdminDashboardProps) {
               <span className="text-[10px] text-emerald-400 font-bold uppercase tracking-wider block">MRR Estimado (Mensal)</span>
               <div className="flex justify-between items-baseline">
                 <strong className="text-2xl font-black text-white font-mono">
-                  R$ {((users.filter((u: any) => u.role !== 'user').length || 12) * 49.9).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                  R$ {((users.filter((u: any) => u.role !== 'user').length || 12) * 29.90).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
                 </strong>
                 <span className="text-[10px] text-emerald-400 font-bold bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/20">+14% m/m</span>
               </div>
-              <p className="text-[10px] text-slate-400">Calculado sobre assinaturas ativas na base.</p>
+              <p className="text-[10px] text-slate-400">Calculado sobre assinaturas ativas na base (R$ 29,90/mês).</p>
             </CardGlass>
 
             <CardGlass className="p-4 space-y-2 border-brand-500/20 bg-brand-500/5">
               <span className="text-[10px] text-brand-400 font-bold uppercase tracking-wider block">ARR Projetado (Anual)</span>
               <div className="flex justify-between items-baseline">
                 <strong className="text-2xl font-black text-white font-mono">
-                  R$ {((users.filter((u: any) => u.role !== 'user').length || 12) * 49.9 * 12).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                  R$ {((users.filter((u: any) => u.role !== 'user').length || 12) * 29.90 * 12).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
                 </strong>
                 <span className="text-[10px] text-brand-400 font-bold bg-brand-500/10 px-2 py-0.5 rounded border border-brand-500/20">Projeção 12m</span>
               </div>
@@ -1639,9 +1639,9 @@ export function AdminDashboard({ userId }: AdminDashboardProps) {
               <span className="text-[10px] text-amber-400 font-bold uppercase tracking-wider block">LTV / CAC Ratio</span>
               <div className="flex justify-between items-baseline">
                 <strong className="text-2xl font-black text-white font-mono">
-                  4.8x
+                  3.4x
                 </strong>
-                <span className="text-[10px] text-amber-400 font-bold bg-amber-500/10 px-2 py-0.5 rounded border border-amber-500/20">LTV: R$ 499</span>
+                <span className="text-[10px] text-amber-400 font-bold bg-amber-500/10 px-2 py-0.5 rounded border border-amber-500/20">LTV: R$ 358,80</span>
               </div>
               <p className="text-[10px] text-slate-400">CAC estimado: R$ 104,00 por cliente.</p>
             </CardGlass>
@@ -2036,15 +2036,34 @@ export function AdminDashboard({ userId }: AdminDashboardProps) {
             ) : (
               <div className="space-y-4">
                 {[
-                  { label: 'Otimização de Currículos & Análise STAR', key: 'resume_optimized', color: 'from-brand-600 to-brand-400' },
-                  { label: 'Cálculo de Match & Compatibilidade', key: 'match_generated', color: 'from-emerald-600 to-emerald-400' },
-                  { label: 'Upload e Processamento de CV', key: 'resume_uploaded', color: 'from-blue-600 to-blue-400' },
-                  { label: 'Sessões de Autenticação / Login', key: 'login', color: 'from-amber-600 to-amber-400' }
+                  { 
+                    label: 'Otimização de Currículos & Análise STAR', 
+                    keys: ['resume_optimized', 'interview_started', 'interview_finished', 'interview_finalized', 'coach_message', 'star_simulation_started', 'resume_adaptation_created', 'resume_adaptation_opened'], 
+                    color: 'from-brand-600 to-brand-400' 
+                  },
+                  { 
+                    label: 'Cálculo de Match & Compatibilidade', 
+                    keys: ['match_generated', 'match_calculated', 'job_match_viewed', 'career_analysis_generated', 'career_score_viewed'], 
+                    color: 'from-emerald-600 to-emerald-400' 
+                  },
+                  { 
+                    label: 'Upload e Processamento de CV', 
+                    keys: ['resume_uploaded', 'resume_parsed', 'resume_processing_started', 'resume_processing_completed'], 
+                    color: 'from-blue-600 to-blue-400' 
+                  },
+                  { 
+                    label: 'Sessões de Autenticação / Login', 
+                    keys: ['login', 'user_registered', 'signup_completed', 'session_started'], 
+                    color: 'from-amber-600 to-amber-400' 
+                  }
                 ].map(trend => {
-                  const count = liveEvents.filter((e: any) => e.event_name === trend.key || e.event_type === trend.key).length;
+                  const count = liveEvents.filter((e: any) => {
+                    const name = e.event_name || e.event_type || '';
+                    return trend.keys.some(k => name === k || name.includes(k));
+                  }).length;
                   const pct = liveEvents.length ? Math.round((count * 100) / liveEvents.length) : 0;
                   return (
-                    <div key={trend.key} className="space-y-1.5 text-xs">
+                    <div key={trend.label} className="space-y-1.5 text-xs">
                       <div className="flex justify-between font-semibold">
                         <span className="text-slate-300">{trend.label}</span>
                         <div className="flex gap-2 font-mono">

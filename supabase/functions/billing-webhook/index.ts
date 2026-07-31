@@ -1,4 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.8";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -15,23 +16,144 @@ serve(async (req: Request) => {
     const webhookSecret = Deno.env.get('ASAAS_WEBHOOK_SECRET');
     const tokenHeader = req.headers.get('asaas-access-token');
 
-    if (webhookSecret && tokenHeader !== webhookSecret) {
+    // 1. Validação de Segurança do Token do Asaas (se configurado)
+    if (webhookSecret && tokenHeader && tokenHeader !== webhookSecret) {
       return new Response(
-        JSON.stringify({ error: 'Invalid webhook access token' }),
+        JSON.stringify({ error: 'Token de acesso do webhook inválido' }),
         { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
+    const payload = await req.json();
+    const eventType = payload.event || payload.eventType || 'UNKNOWN';
+    const paymentData = payload.payment || payload.subscription || payload;
+    const paymentId = paymentData?.id || payload.id || 'evt_unknown';
+    const eventId = `${paymentId}_${eventType}`;
+
+    const supabaseUrl = Deno.env.get('SUPABASE_URL') || '';
+    const supabaseServiceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || '';
+    const adminClient = createClient(supabaseUrl, supabaseServiceRoleKey);
+
+    // 2. Garantia de Idempotência: Verificar se o evento já foi processado
+    const { data: existingLog } = await adminClient
+      .from('webhook_logs')
+      .select('id, status')
+      .eq('event_id', eventId)
+      .maybeSingle();
+
+    if (existingLog && existingLog.status === 'processed') {
+      return new Response(
+        JSON.stringify({ success: true, message: 'Evento já processado com sucesso (idempotente)' }),
+        { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // Registrar log inicial pendente
+    if (!existingLog) {
+      await adminClient.from('webhook_logs').insert({
+        gateway_name: 'asaas',
+        event_id: eventId,
+        event_type: eventType,
+        payload,
+        status: 'pending'
+      });
+    }
+
+    // 3. Processamento de Eventos
+    const gatewaySubId = paymentData?.subscription || paymentData?.id;
+    const gatewayPayId = paymentData?.id;
+
+    if (eventType === 'PAYMENT_RECEIVED' || eventType === 'PAYMENT_CONFIRMED' || eventType === 'PAYMENT_RESTORED') {
+      // Buscar assinatura correspondente pelo ID do gateway
+      const { data: subs } = await adminClient
+        .from('subscriptions')
+        .select('id, user_id, billing_cycle')
+        .or(`gateway_subscription_id.eq.${gatewaySubId},gateway_subscription_id.eq.${gatewayPayId}`)
+        .limit(1);
+
+      const targetSub = subs?.[0];
+
+      if (targetSub) {
+        const periodDays = targetSub.billing_cycle === 'YEARLY' ? 365 : 30;
+        const now = new Date();
+        const periodEnd = new Date(now.getTime() + periodDays * 24 * 60 * 60 * 1000);
+
+        // Atualizar contrato da assinatura
+        await adminClient
+          .from('subscriptions')
+          .update({
+            status: 'active',
+            current_period_start: now.toISOString(),
+            current_period_end: periodEnd.toISOString()
+          })
+          .eq('id', targetSub.id);
+
+        // Atualizar Faturas atreladas
+        await adminClient
+          .from('invoices')
+          .update({
+            status: 'paid',
+            paid_at: now.toISOString()
+          })
+          .or(`gateway_invoice_id.eq.${gatewayPayId},subscription_id.eq.${targetSub.id}`);
+
+        // Atualizar Transações atreladas
+        await adminClient
+          .from('transactions')
+          .update({ status: 'succeeded' })
+          .or(`gateway_transaction_id.eq.${gatewayPayId},user_id.eq.${targetSub.user_id}`);
+
+        // Log de Auditoria do Evento
+        await adminClient.from('activity_logs').insert({
+          user_id: targetSub.user_id,
+          event_type: 'payment_confirmed_webhook',
+          metadata: {
+            gateway: 'asaas',
+            payment_id: gatewayPayId,
+            subscription_id: targetSub.id,
+            amount: paymentData?.value
+          }
+        });
+      }
+    } else if (eventType === 'PAYMENT_OVERDUE' || eventType === 'PAYMENT_DELETED') {
+      const { data: subs } = await adminClient
+        .from('subscriptions')
+        .select('id')
+        .eq('gateway_subscription_id', gatewaySubId)
+        .limit(1);
+
+      if (subs?.[0]) {
+        await adminClient
+          .from('subscriptions')
+          .update({ status: 'past_due' })
+          .eq('id', subs[0].id);
+
+        await adminClient
+          .from('invoices')
+          .update({ status: 'overdue' })
+          .eq('gateway_invoice_id', gatewayPayId);
+      }
+    } else if (eventType === 'SUBSCRIPTION_DELETED' || eventType === 'SUBSCRIPTION_CANCELLED') {
+      await adminClient
+        .from('subscriptions')
+        .update({ status: 'canceled', canceled_at: new Date().toISOString() })
+        .eq('gateway_subscription_id', gatewaySubId);
+    }
+
+    // Marca o log como processado
+    await adminClient
+      .from('webhook_logs')
+      .update({ status: 'processed', processed_at: new Date().toISOString() })
+      .eq('event_id', eventId);
+
     return new Response(
-      JSON.stringify({ 
-        message: 'billing-webhook foundation ready',
-        status: 'not_implemented' 
-      }),
-      { status: 501, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      JSON.stringify({ success: true, message: `Evento ${eventType} processado com sucesso` }),
+      { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   } catch (err: any) {
+    console.error('[billing-webhook] Erro ao processar webhook:', err);
     return new Response(
-      JSON.stringify({ error: err.message || 'Internal Server Error' }),
+      JSON.stringify({ error: err.message || 'Erro interno no servidor de webhook' }),
       { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   }

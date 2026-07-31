@@ -5,3 +5,5 @@ export * from './application/services/BillingService';
 export * from './application/services/EntitlementsEngine';
 export * from './application/hooks/useCheckout';
 export * from './presentation/components/CheckoutModal';
+export * from './presentation/components/CustomerPortal';
+export * from './presentation/components/BillingAdminDashboard';

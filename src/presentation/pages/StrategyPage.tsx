@@ -338,9 +338,12 @@ export function StrategyPage({
   const executeStatusChange = async (app: Application, targetStatus: string) => {
     try {
       const cleanTarget = ApplicationPipelineService.getCleanStatus(targetStatus);
+      const newStatus = (targetStatus === '🕐 Candidatura em andamento' || targetStatus === '📨 Me candidatei') 
+        ? targetStatus 
+        : cleanTarget;
       const updatedApp: Application = {
         ...app,
-        status: cleanTarget,
+        status: newStatus as any,
         updatedAt: new Date().toISOString()
       };
       await onUpdateApplication(updatedApp);
@@ -1335,11 +1338,28 @@ export function StrategyPage({
                                 </div>
                               )}
 
+                              {app.status === '🕐 Candidatura em andamento' && (
+                                <div className="p-1.5 rounded bg-amber-950/50 border border-amber-500/40 text-[10px] text-amber-300 flex items-center justify-between gap-1.5">
+                                  <span className="font-semibold truncate">🕐 Candidatura em andamento</span>
+                                  <button
+                                    type="button"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      handleQuickStatusChange(app, '📨 Me candidatei');
+                                    }}
+                                    className="px-2 py-0.5 rounded bg-emerald-600 hover:bg-emerald-500 text-white font-extrabold text-[9px] uppercase tracking-wider transition cursor-pointer shrink-0 shadow-sm"
+                                    title="Confirmar que concluiu a candidatura no site externo"
+                                  >
+                                    Confirmar
+                                  </button>
+                                </div>
+                              )}
+
                               {/* Seletor Rápido de Estágio (Design Limpo e Espaçoso) */}
                               <div className="flex flex-col gap-1.5 pt-2.5 border-t border-slate-800/80 mt-2">
                                 <span className="text-[10px] font-semibold text-slate-400">Mover para estágio:</span>
                                 <select
-                                  value={colId}
+                                  value={app.status === '🕐 Candidatura em andamento' ? '🕐 Candidatura em andamento' : colId}
                                   onClick={e => e.stopPropagation()}
                                   onChange={e => {
                                     e.stopPropagation();
@@ -1349,7 +1369,8 @@ export function StrategyPage({
                                 >
                                   <option value="found">🔎 Encontrada</option>
                                   <option value="saved">⭐ Tenho interesse</option>
-                                  <option value="applied">📨 Me candidatei</option>
+                                  <option value="🕐 Candidatura em andamento">🕐 Candidatura em andamento</option>
+                                  <option value="📨 Me candidatei">📨 Me candidatei (Confirmada)</option>
                                   <option value="hr">👥 Entrevista RH</option>
                                   <option value="interview">🎯 Entrevista Gestor</option>
                                   <option value="offer">🏆 Oferta recebida</option>

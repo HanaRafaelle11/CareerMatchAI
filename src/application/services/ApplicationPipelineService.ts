@@ -24,7 +24,7 @@ export class ApplicationPipelineService {
     const status = String(statusStr || 'found').toLowerCase();
     if (status === 'found' || status.includes('encontrad') || status.includes('ajustar')) return 'found';
     if (status === 'saved' || status.includes('salv') || status.includes('interesse') || status.includes('prioridade')) return 'saved';
-    if (status === 'applied' || status.includes('aplicad') || status.includes('candidatei') || status.includes('candidatar')) return 'applied';
+    if (status === 'applied' || status.includes('aplicad') || status.includes('candidatei') || status.includes('candidatar') || status.includes('andamento')) return 'applied';
     if (status === 'hr' || status.includes('rh') || status.includes('recrutador') || status.includes('retorno')) return 'hr';
     if (status === 'interview' || status.includes('gestor') || status.includes('case') || status.includes('cultural')) return 'interview';
     if (status === 'offer' || status.includes('oferta')) return 'offer';

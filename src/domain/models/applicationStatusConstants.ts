@@ -6,6 +6,7 @@ export const HIRED_STATUSES = [
 
 export const APPLIED_STATUSES = [
   '📨 Me candidatei',
+  '🕐 Candidatura em andamento',
   '👥 Entrevista com recrutador',
   '🎯 Entrevista com gestor',
   '🧩 Case técnico',

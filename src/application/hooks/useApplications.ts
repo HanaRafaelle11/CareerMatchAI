@@ -19,6 +19,10 @@ export function mapStatusToDb(frontendStatus: string): ApplicationStatus {
     case '🎯 Alta Prioridade':
       return '⭐ Tenho interesse' as ApplicationStatus;
 
+    case '🕐 Candidatura em andamento':
+    case 'in_progress':
+      return '🕐 Candidatura em andamento' as ApplicationStatus;
+
     case 'applied':
     case '📨 Me candidatei':
     case '📝 Vou me candidatar':
@@ -73,6 +77,10 @@ export function mapStatusFromDb(dbStatus: string): string {
     case '⭐ Tenho interesse':
     case 'Interessante':
       return '⭐ Tenho interesse';
+
+    case '🕐 Candidatura em andamento':
+    case 'in_progress':
+      return '🕐 Candidatura em andamento';
 
     case 'applied':
     case '📨 Me candidatei':

@@ -23,6 +23,9 @@ import { tracker } from '../../infrastructure/analytics/tracker';
 import { JobMatchFeedbackService, type JobMatchRejectionReason } from '../../application/services/JobMatchFeedbackService';
 import { useAuth } from '../../application/hooks/useAuth';
 import { useEntitlements, PaywallModal, CheckoutModal } from '../../modules/billing';
+import { ApplicationPipelineService } from '../../application/services/ApplicationPipelineService';
+
+const isValidUrl = (url?: string): boolean => !!(url && (url.startsWith('http://') || url.startsWith('https://')));
 
 function renderFormattedMarkdown(text: string): React.ReactNode[] {
   if (!text) return [];
@@ -119,6 +122,7 @@ interface JobMatchHubProps {
   activeResumeVersionId?: string | null;
   applications?: any[];
   onCreateApplication?: (data: any) => Promise<any>;
+  onUpdateApplication?: (data: any) => Promise<any>;
   setActiveTab?: (tab: string) => void;
   selectedJobId?: string | null;
   onSelectJob?: (id: string | null) => void;
@@ -142,6 +146,7 @@ export function JobMatchHub({
   activeResumeVersionId,
   applications = [],
   onCreateApplication,
+  onUpdateApplication,
   setActiveTab,
   selectedJobId: propSelectedJobId,
   onSelectJob: propOnSelectJob,
@@ -340,6 +345,50 @@ export function JobMatchHub({
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, []);
+
+  const handleApplyClick = async (targetJob: any) => {
+    if (!targetJob) return;
+
+    // 1. Abrir a URL externa da vaga real normalmente
+    if (targetJob.sourceUrl && isValidUrl(targetJob.sourceUrl)) {
+      window.open(targetJob.sourceUrl, '_blank', 'noopener,noreferrer');
+    }
+
+    // 2. Adicionar simultaneamente a vaga no Kanban (applications) com status intermediário
+    try {
+      const existingApp = (applications || []).find(a => 
+        String(a.jobId || a.job_id) === String(targetJob.id || targetJob.jobId) ||
+        (targetJob.sourceUrl && a.sourcePlatform && String(a.sourcePlatform).includes(targetJob.sourceUrl))
+      );
+
+      if (!existingApp) {
+        if (onCreateApplication) {
+          await onCreateApplication({
+            jobId: targetJob.id || targetJob.jobId,
+            companyName: targetJob.companyName || 'Empresa',
+            jobTitle: targetJob.title || targetJob.jobTitle,
+            status: '🕐 Candidatura em andamento',
+            sourcePlatform: targetJob.sourceUrl || targetJob.sourcePlatform || 'web',
+            appliedAt: new Date().toISOString()
+          });
+          showToast('Vaga adicionada ao seu Pipeline (🕐 Candidatura em andamento)', 'info');
+        }
+      } else {
+        const cleanSt = ApplicationPipelineService.getCleanStatus(existingApp.status);
+        if (cleanSt === 'found' || cleanSt === 'saved') {
+          if (onUpdateApplication) {
+            await onUpdateApplication({
+              ...existingApp,
+              status: '🕐 Candidatura em andamento'
+            });
+            showToast('Status atualizado no Pipeline para 🕐 Candidatura em andamento', 'info');
+          }
+        }
+      }
+    } catch (err) {
+      console.warn('[APPLY CLICK] Erro ao registrar no pipeline (navegação mantida):', err);
+    }
+  };
 
   useEffect(() => {
     if (!isCalculating || !userId || !selectedJobId || !isSupabaseConfigured || !supabase) {
@@ -2753,15 +2802,14 @@ export function JobMatchHub({
                               Melhorar meu currículo para essa vaga
                             </button>
                             {selectedJob.sourceUrl && (
-                              <a
-                                href={selectedJob.sourceUrl}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="w-full py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-white font-bold text-[11px] tracking-wider uppercase transition flex items-center justify-center gap-1.5 cursor-pointer shadow-md"
+                              <button
+                                type="button"
+                                onClick={() => handleApplyClick(selectedJob)}
+                                className="w-full py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 border border-emerald-500 text-white font-extrabold text-[11px] tracking-wider uppercase transition flex items-center justify-center gap-1.5 cursor-pointer shadow-md shadow-emerald-500/20"
                               >
-                                <span>Ver vaga original</span>
-                                <ArrowUpRight size={14} className="text-blue-400" />
-                              </a>
+                                <span>Me candidatar</span>
+                                <ArrowUpRight size={14} className="text-white" />
+                              </button>
                             )}
                              <div className="flex gap-2">
                                <button
@@ -3890,15 +3938,17 @@ export function JobMatchHub({
 
                           <div className="pt-4 border-t border-slate-900 dark:border-slate-900 light:border-slate-200 flex justify-between items-center gap-4">
                             {isValidUrl(job.sourceUrl || '') ? (
-                              <a
-                                href={job.sourceUrl}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="text-xs text-brand-400 hover:text-brand-300 font-semibold flex items-center gap-1"
+                              <button
+                                type="button"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleApplyClick(job);
+                                }}
+                                className="text-xs text-emerald-400 hover:text-emerald-300 font-extrabold flex items-center gap-1 cursor-pointer bg-emerald-500/10 border border-emerald-500/20 px-2.5 py-1 rounded-lg transition"
                               >
-                                Ver vaga original
+                                <span>Me candidatar</span>
                                 <ArrowUpRight size={12} />
-                              </a>
+                              </button>
                             ) : (
                               <span className="text-xs text-slate-650 cursor-not-allowed flex items-center gap-1" title="Link original indisponível para esta oportunidade simulada">
                                 Link indisponível

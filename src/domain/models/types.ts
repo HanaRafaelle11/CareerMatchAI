@@ -222,7 +222,7 @@ export const REJECTION_REASONS = [
 
 export type RejectionReason = typeof REJECTION_REASONS[number];
 
-export type ApplicationStatus = 'found' | 'saved' | 'applied' | 'hr' | 'interview' | 'offer' | 'hired' | 'rejected' | 'deleted';
+export type ApplicationStatus = 'found' | 'saved' | 'applied' | 'hr' | 'interview' | 'offer' | 'hired' | 'rejected' | 'deleted' | '🕐 Candidatura em andamento';
 
 export interface Application {
   id: string;

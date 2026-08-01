@@ -152,14 +152,7 @@ export function JobMatchHub({
   const { 
     isPro, 
     weeklyActionCount, 
-    maxWeeklyActions, 
     isJobUnlocked, 
-    canUnlockJob, 
-    unlockJob, 
-    canCreateApplication,
-    canImproveResume: _canImproveResume,
-    canGenerateCoverLetter: _canGenerateCoverLetter,
-    canExportPdf: _canExportPdf,
     paywallState, 
     triggerPaywall, 
     closePaywall 
@@ -3748,7 +3741,7 @@ export function JobMatchHub({
                   <div className="space-y-6">
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                       {scoredDiscoveredJobs.map((job, idx) => {
-                        const isUnlocked = isJobUnlocked(job.id);
+                        const isUnlocked = isJobUnlocked((job as any).id || (job as any).jobId || String(idx));
                         const isBlurred = !isPro && !isUnlocked && (weeklyActionCount >= 3 || idx >= 3);
 
                         return (

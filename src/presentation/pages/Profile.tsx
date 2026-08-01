@@ -187,7 +187,7 @@ export function Profile({
   setActiveTab: _setActiveTab
 }: ProfileProps) {
   const { user } = useAuth();
-  const { isPro, canExportPdf, canCreateResumeVersion, paywallState, triggerPaywall, closePaywall } = useEntitlements(user?.id);
+  const { isPro, canExportPdf, paywallState, triggerPaywall, closePaywall } = useEntitlements(user?.id);
   const [showCheckout, setShowCheckout] = useState(false);
 
   const activeInsights = careerInsights || getLocalFallbackInsights(careerProfileNew);

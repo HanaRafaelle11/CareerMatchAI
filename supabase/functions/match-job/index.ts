@@ -116,11 +116,12 @@ async function callGeminiWithFallback(
   geminiApiKey: string,
   responseMimeType: string | undefined = undefined
 ): Promise<{ resJson: any; selectedModel: string }> {
+  // DEPRECATION REMINDER: 'gemini-2.5-flash' and 'gemini-2.5-flash-lite' are scheduled for shutdown on October 16, 2026.
+  // TODO: Before October 16, 2026, migrate the primary model chain to the latest active Gemini tier (e.g. Gemini 3.x family).
   const modelsToTry = [
-    'gemini-1.5-flash',
-    'gemini-1.5-flash-latest',
-    'gemini-2.5-flash',
-    'gemini-2.0-flash'
+    'gemini-2.5-flash',       // Modelo Primário (Ativo até 16/Out/2026)
+    'gemini-2.5-flash-lite',  // Fallback Secundário de alta velocidade/baixo custo
+    'gemini-2.5-pro'          // Fallback Terciário de alta capacidade
   ];
 
   let lastError: any = null;
@@ -276,7 +277,7 @@ class JobMatchingEngine {
 
         if (!cacheError && cachedResult) {
           console.log("[CACHE SUCCESS] Resolvido via cache para economizar custo.");
-          await logAiUsage(supabaseClient, userId, 'job-matching', 'gemini-1.5-flash-cache', 0, 0);
+          await logAiUsage(supabaseClient, userId, 'job-matching', 'gemini-2.5-flash-cache', 0, 0);
           await logMatchStep(supabaseClient, userId, jobId, 'comparing_job', 'completed', Date.now() - parentStartTime);
           await logMatchStep(supabaseClient, userId, jobId, 'generating_score', 'completed', Date.now() - parentStartTime);
           return cachedResult.response;
@@ -288,7 +289,7 @@ class JobMatchingEngine {
 
     if (mockEnabled) {
       console.log("[GEMINI] Simulação ativa para testes.");
-      await logAiUsage(supabaseClient, userId, 'job-matching', 'gemini-1.5-flash-mock', 100, 200);
+      await logAiUsage(supabaseClient, userId, 'job-matching', 'gemini-2.5-flash-mock', 100, 200);
 
       const mockResponse = {
         match_score: 85,

@@ -53,11 +53,12 @@ async function callGeminiWithFallback(
   geminiApiKey: string,
   responseMimeType: string | undefined = undefined
 ): Promise<{ resJson: any; selectedModel: string }> {
+  // DEPRECATION REMINDER: 'gemini-2.5-flash' and 'gemini-2.5-flash-lite' are scheduled for shutdown on October 16, 2026.
+  // TODO: Before October 16, 2026, migrate the primary model chain to the latest active Gemini tier (e.g. Gemini 3.x family).
   const modelsToTry = [
-    'gemini-1.5-flash',
-    'gemini-1.5-flash-latest',
-    'gemini-2.5-flash',
-    'gemini-2.0-flash'
+    'gemini-2.5-flash',       // Modelo Primário (Ativo até 16/Out/2026)
+    'gemini-2.5-flash-lite',  // Fallback Secundário de alta velocidade/baixo custo
+    'gemini-2.5-pro'          // Fallback Terciário de alta capacidade
   ];
 
   let lastError: any = null;

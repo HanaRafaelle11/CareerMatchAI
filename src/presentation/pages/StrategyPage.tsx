@@ -888,54 +888,59 @@ export function StrategyPage({
         </div>
       )}
 
-      {/* 2. Modal: Confirmação de Movimento para Trás */}
+      {/* 2. Modal: Confirmação de Movimento para Trás — Item 11: compacto */}
       {backwardConfirmApp && (
-        <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-[1000] flex items-center justify-center p-3">
-          <CardGlass className="w-full max-w-sm space-y-3 border border-amber-500/30 text-center p-4 bg-[#162032] my-auto shadow-2xl">
-            <div className="mx-auto w-10 h-10 rounded-full bg-amber-500/10 text-amber-400 flex items-center justify-center">
-              <ShieldAlert size={20} />
+        <div
+          className="fixed inset-0 bg-slate-950/80 light:bg-slate-800/60 backdrop-blur-sm z-[1000] flex items-center justify-center p-3"
+          onKeyDown={e => e.key === 'Escape' && setBackwardConfirmApp(null)}
+          tabIndex={-1}
+        >
+          <div className="w-full max-w-xs bg-slate-900 light:bg-white border border-amber-500/30 light:border-amber-400/40 rounded-2xl text-center p-4 shadow-2xl space-y-3">
+            <div className="mx-auto w-9 h-9 rounded-full bg-amber-500/10 text-amber-400 flex items-center justify-center">
+              <ShieldAlert size={18} />
             </div>
             <div>
-              <h3 className="font-display font-bold text-sm text-slate-100">Mover Candidatura para Trás?</h3>
-              <p className="text-xs text-slate-400 mt-1 leading-snug">
-                Deseja mover a candidatura em <strong>{backwardConfirmApp.app.jobTitle}</strong> ({backwardConfirmApp.app.companyName}) de volta para a etapa anterior?
+              <h3 className="font-display font-bold text-sm text-slate-100 light:text-slate-900">Mover Candidatura para Trás?</h3>
+              <p className="text-xs text-slate-400 light:text-slate-600 mt-1 leading-snug">
+                Deseja mover <strong className="text-slate-200 light:text-slate-800">{backwardConfirmApp.app.jobTitle}</strong> ({backwardConfirmApp.app.companyName}) de volta para a etapa anterior?
               </p>
             </div>
-            <div className="flex gap-2.5 justify-center pt-1">
+            <div className="flex gap-2 justify-center">
               <button
+                autoFocus
                 onClick={() => setBackwardConfirmApp(null)}
-                className="px-3.5 py-1.5 rounded-xl border border-slate-700 text-slate-300 text-xs font-semibold hover:bg-slate-900"
+                className="px-3 py-1.5 rounded-xl border border-slate-700 light:border-slate-300 text-slate-300 light:text-slate-700 text-xs font-semibold hover:bg-slate-800 light:hover:bg-slate-100 transition-colors"
               >
                 Cancelar
               </button>
               <button
                 onClick={handleConfirmBackwardMove}
-                className="px-3.5 py-1.5 rounded-xl bg-amber-600 hover:bg-amber-500 text-white text-xs font-bold shadow-md"
+                className="px-3 py-1.5 rounded-xl bg-amber-600 hover:bg-amber-500 text-white text-xs font-bold shadow-md"
               >
-                Confirmar Retrocesso
+                Confirmar
               </button>
             </div>
-          </CardGlass>
+          </div>
         </div>
       )}
 
       {/* 3. Modal: Confirmação Reforçada para Rejeição em Estágios Avançados */}
       {advancedRejectConfirmApp && (
-        <div className="fixed inset-0 bg-slate-950/85 backdrop-blur-sm z-[1000] flex items-center justify-center p-4">
-          <CardGlass className="w-full max-w-md space-y-4 border border-red-500/40 text-center p-6 bg-[#1f1624]">
-            <div className="mx-auto w-12 h-12 rounded-full bg-red-500/20 text-red-400 flex items-center justify-center animate-pulse">
-              <AlertTriangle size={24} />
+        <div className="fixed inset-0 bg-slate-950/85 light:bg-slate-800/60 backdrop-blur-sm z-[1000] flex items-center justify-center p-4">
+          <div className="w-full max-w-sm bg-slate-900 light:bg-white border border-red-500/40 light:border-red-400/40 rounded-2xl text-center p-5 shadow-2xl space-y-4">
+            <div className="mx-auto w-11 h-11 rounded-full bg-red-500/20 text-red-400 flex items-center justify-center animate-pulse">
+              <AlertTriangle size={22} />
             </div>
             <div>
-              <h3 className="font-display font-bold text-base text-white">Encerrar Processo em Estágio Avançado?</h3>
-              <p className="text-xs text-slate-300 mt-2 leading-relaxed">
-                Esta candidatura para <strong>{advancedRejectConfirmApp.app.jobTitle}</strong> ({advancedRejectConfirmApp.app.companyName}) já está em etapa avançada de entrevista. Deseja realmente arquivar esta oportunidade?
+              <h3 className="font-display font-bold text-base text-slate-100 light:text-slate-900">Encerrar Processo em Estágio Avançado?</h3>
+              <p className="text-xs text-slate-400 light:text-slate-600 mt-2 leading-relaxed">
+                Esta candidatura para <strong className="text-slate-200 light:text-slate-800">{advancedRejectConfirmApp.app.jobTitle}</strong> ({advancedRejectConfirmApp.app.companyName}) já está em etapa avançada de entrevista. Deseja realmente arquivar esta oportunidade?
               </p>
             </div>
-            <div className="flex gap-3 justify-center pt-2">
+            <div className="flex gap-3 justify-center pt-1">
               <button
                 onClick={() => setAdvancedRejectConfirmApp(null)}
-                className="px-4 py-2 rounded-xl border border-slate-700 text-slate-300 text-xs font-semibold"
+                className="px-4 py-2 rounded-xl border border-slate-700 light:border-slate-300 text-slate-300 light:text-slate-700 text-xs font-semibold hover:bg-slate-800 light:hover:bg-slate-100"
               >
                 Manter Ativa
               </button>
@@ -946,22 +951,22 @@ export function StrategyPage({
                 Confirmar Encerramento
               </button>
             </div>
-          </CardGlass>
+          </div>
         </div>
       )}
 
       {/* 4. Modal: Motivo da Rejeição */}
       {rejectingApp && (
-        <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-[1000] flex items-center justify-center p-4">
-          <CardGlass className="w-full max-w-sm space-y-6 relative border border-slate-800 text-center p-6 bg-[#162032]">
-            <div className="mx-auto w-12 h-12 rounded-full bg-red-500/10 text-red-400 flex items-center justify-center">
-              <AlertTriangle size={24} />
+        <div className="fixed inset-0 bg-slate-950/80 light:bg-slate-800/60 backdrop-blur-sm z-[1000] flex items-center justify-center p-4">
+          <div className="w-full max-w-sm bg-slate-900 light:bg-white border border-slate-800 light:border-slate-200 rounded-2xl text-center p-5 shadow-2xl space-y-4">
+            <div className="mx-auto w-11 h-11 rounded-full bg-red-500/10 text-red-400 flex items-center justify-center">
+              <AlertTriangle size={22} />
             </div>
             <div>
-              <h3 className="font-display font-bold text-base text-slate-200">Qual foi o motivo da recusa?</h3>
-              <p className="text-xs text-slate-400 mt-1">Essa informação calibra o copiloto para futuras buscas.</p>
+              <h3 className="font-display font-bold text-base text-slate-100 light:text-slate-900">Qual foi o motivo da recusa?</h3>
+              <p className="text-xs text-slate-400 light:text-slate-600 mt-1">Essa informação calibra o copiloto para futuras buscas.</p>
             </div>
-            <div className="grid grid-cols-1 gap-2 pt-2 text-left max-h-60 overflow-y-auto pr-1">
+            <div className="grid grid-cols-1 gap-2 pt-1 text-left max-h-52 overflow-y-auto pr-1">
               {REJECTION_REASONS.map(reason => (
                 <button
                   key={reason}
@@ -970,7 +975,7 @@ export function StrategyPage({
                     e.stopPropagation();
                     handleSaveRejectionReason(reason);
                   }}
-                  className="px-4 py-2.5 rounded-xl border border-slate-800 bg-slate-900/60 text-xs text-slate-300 hover:bg-red-500/20 hover:text-white transition-all text-left font-medium cursor-pointer"
+                  className="px-4 py-2 rounded-xl border border-slate-800 light:border-slate-200 bg-slate-800/60 light:bg-slate-50 text-xs text-slate-300 light:text-slate-700 hover:bg-red-500/20 hover:text-white light:hover:text-red-700 transition-all text-left font-medium cursor-pointer"
                 >
                   {reason}
                 </button>
@@ -978,31 +983,31 @@ export function StrategyPage({
             </div>
             <button
               onClick={() => setRejectingApp(null)}
-              className="text-xs text-slate-500 hover:text-slate-300 mt-2 block mx-auto"
+              className="text-xs text-slate-500 light:text-slate-500 hover:text-slate-300 light:hover:text-slate-700 mt-1 block mx-auto"
             >
               Cancelar
             </button>
-          </CardGlass>
+          </div>
         </div>
       )}
 
       {/* 4b. Modal: Confirmação de Exclusão Permanente */}
       {deletingApp && (
-        <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-[1000] flex items-center justify-center p-4">
-          <CardGlass className="w-full max-w-sm space-y-4 border border-red-500/40 text-center p-6 bg-[#162032]">
-            <div className="mx-auto w-12 h-12 rounded-full bg-red-500/10 text-red-400 flex items-center justify-center">
-              <Trash2 size={24} />
+        <div className="fixed inset-0 bg-slate-950/80 light:bg-slate-800/60 backdrop-blur-sm z-[1000] flex items-center justify-center p-4">
+          <div className="w-full max-w-sm bg-slate-900 light:bg-white border border-red-500/40 light:border-red-400/40 rounded-2xl text-center p-5 shadow-2xl space-y-4">
+            <div className="mx-auto w-11 h-11 rounded-full bg-red-500/10 text-red-400 flex items-center justify-center">
+              <Trash2 size={22} />
             </div>
             <div>
-              <h3 className="font-display font-bold text-base text-slate-100">Remover do Acompanhamento?</h3>
-              <p className="text-xs text-slate-400 mt-1">
-                Deseja remover <strong>{deletingApp.jobTitle}</strong> ({deletingApp.companyName}) do acompanhamento ativo? O registro será arquivado mantendo o histórico de métricas.
+              <h3 className="font-display font-bold text-base text-slate-100 light:text-slate-900">Remover do Acompanhamento?</h3>
+              <p className="text-xs text-slate-400 light:text-slate-600 mt-1">
+                Deseja remover <strong className="text-slate-200 light:text-slate-800">{deletingApp.jobTitle}</strong> ({deletingApp.companyName}) do acompanhamento ativo?
               </p>
             </div>
-            <div className="flex gap-3 justify-center pt-2">
+            <div className="flex gap-3 justify-center">
               <button
                 onClick={() => setDeletingApp(null)}
-                className="px-4 py-2 rounded-xl border border-slate-700 text-slate-300 text-xs font-semibold"
+                className="px-4 py-2 rounded-xl border border-slate-700 light:border-slate-300 text-slate-300 light:text-slate-700 text-xs font-semibold hover:bg-slate-800 light:hover:bg-slate-100"
               >
                 Cancelar
               </button>
@@ -1013,22 +1018,22 @@ export function StrategyPage({
                 Remover Candidatura
               </button>
             </div>
-          </CardGlass>
+          </div>
         </div>
       )}
 
-      {/* 5. Drawer Completo do Card da Candidatura */}
+      {/* 5. Drawer Completo do Card da Candidatura — Item 12: padding compacto */}
       {selectedAppId && selectedApp && (
-        <div className="fixed inset-y-0 right-0 w-full max-w-2xl bg-[#162032] border-l border-slate-800 shadow-2xl z-[999] overflow-y-auto p-6 transition-all space-y-6">
-          <div className="flex justify-between items-start border-b border-slate-800 pb-4">
+        <div className="fixed inset-y-0 right-0 w-full max-w-2xl bg-slate-900 light:bg-white border-l border-slate-800 light:border-slate-200 shadow-2xl z-[999] overflow-y-auto p-4 transition-all space-y-4">
+          <div className="flex justify-between items-start border-b border-slate-800 light:border-slate-200 pb-3">
             <div>
               <span className="text-[10px] px-2 py-0.5 rounded bg-brand-500/10 text-brand-400 font-extrabold uppercase">
                 {selectedApp.status}
               </span>
-              <h3 className="font-display font-bold text-xl text-white mt-1">{selectedApp.jobTitle}</h3>
-              <p className="text-xs text-slate-400 font-semibold mt-0.5">{selectedApp.companyName}</p>
+              <h3 className="font-display font-bold text-lg text-slate-100 light:text-slate-900 mt-1">{selectedApp.jobTitle}</h3>
+              <p className="text-xs text-slate-400 light:text-slate-600 font-semibold mt-0.5">{selectedApp.companyName}</p>
             </div>
-            <button onClick={() => setSelectedAppId(null)} className="text-slate-400 hover:text-white p-1 rounded-lg hover:bg-slate-800">
+            <button onClick={() => setSelectedAppId(null)} className="text-slate-400 light:text-slate-500 hover:text-slate-100 light:hover:text-slate-900 p-1 rounded-lg hover:bg-slate-800 light:hover:bg-slate-100">
               <X size={20} />
             </button>
           </div>
@@ -1050,10 +1055,10 @@ export function StrategyPage({
           )}
 
           {/* Form de Detalhes Estruturados */}
-          <form onSubmit={handleSaveCardDetails} className="space-y-4 text-xs text-slate-200">
+          <form onSubmit={handleSaveCardDetails} className="space-y-3 text-xs text-slate-200 light:text-slate-800">
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="space-y-1">
-                <label className="text-[11px] font-bold text-slate-400 flex items-center gap-1">
+                <label className="text-[11px] font-bold text-slate-400 light:text-slate-600 flex items-center gap-1">
                   <UserCheck size={13} className="text-brand-400" />
                   Contato / Recrutador
                 </label>
@@ -1062,12 +1067,12 @@ export function StrategyPage({
                   placeholder="Ex: Mariana Silva (Tech Recruiter)"
                   value={cardRecruiterName}
                   onChange={e => setCardRecruiterName(e.target.value)}
-                  className="w-full px-3 py-2 rounded-xl bg-slate-900 border border-slate-800 text-xs text-slate-200 outline-none focus:border-brand-500"
+                  className="w-full px-3 py-2 rounded-xl bg-slate-800 light:bg-slate-50 border border-slate-700 light:border-slate-200 text-xs text-slate-200 light:text-slate-900 outline-none focus:border-brand-500 placeholder:text-slate-500 light:placeholder:text-slate-400"
                 />
               </div>
 
               <div className="space-y-1">
-                <label className="text-[11px] font-bold text-slate-400 flex items-center gap-1">
+                <label className="text-[11px] font-bold text-slate-400 light:text-slate-600 flex items-center gap-1">
                   <Calendar size={13} className="text-brand-400" />
                   Data da Próxima Ação / Entrevista
                 </label>
@@ -1075,13 +1080,13 @@ export function StrategyPage({
                   type="date"
                   value={cardNextActionDate}
                   onChange={e => setCardNextActionDate(e.target.value)}
-                  className="w-full px-3 py-2 rounded-xl bg-slate-900 border border-slate-800 text-xs text-slate-200 outline-none focus:border-brand-500"
+                  className="w-full px-3 py-2 rounded-xl bg-slate-800 light:bg-slate-50 border border-slate-700 light:border-slate-200 text-xs text-slate-200 light:text-slate-900 outline-none focus:border-brand-500"
                 />
               </div>
             </div>
 
             <div className="space-y-1">
-              <label className="text-[11px] font-bold text-slate-400 flex items-center gap-1">
+              <label className="text-[11px] font-bold text-slate-400 light:text-slate-600 flex items-center gap-1">
                 <Target size={13} className="text-brand-400" />
                 Próxima Ação Planejada
               </label>
@@ -1090,12 +1095,12 @@ export function StrategyPage({
                 placeholder="Ex: Enviar e-mail de follow-up pós-entrevista..."
                 value={cardNextAction}
                 onChange={e => setCardNextAction(e.target.value)}
-                className="w-full px-3 py-2 rounded-xl bg-slate-900 border border-slate-800 text-xs text-slate-200 outline-none focus:border-brand-500"
+                className="w-full px-3 py-2 rounded-xl bg-slate-800 light:bg-slate-50 border border-slate-700 light:border-slate-200 text-xs text-slate-200 light:text-slate-900 outline-none focus:border-brand-500 placeholder:text-slate-500 light:placeholder:text-slate-400"
               />
             </div>
 
             <div className="space-y-1">
-              <label className="text-[11px] font-bold text-slate-400 flex items-center gap-1">
+              <label className="text-[11px] font-bold text-slate-400 light:text-slate-600 flex items-center gap-1">
                 <MessageSquare size={13} className="text-brand-400" />
                 Feedback & Impressões Pós-Processo
               </label>
@@ -1103,12 +1108,12 @@ export function StrategyPage({
                 value={cardFeedback}
                 onChange={e => setCardFeedback(e.target.value)}
                 placeholder="Pontos fortes destacados pelo gestor, perguntas difíceis..."
-                className="w-full px-3 py-2 rounded-xl bg-slate-900 border border-slate-800 text-xs text-slate-200 outline-none focus:border-brand-500 h-20 resize-none"
+                className="w-full px-3 py-2 rounded-xl bg-slate-800 light:bg-slate-50 border border-slate-700 light:border-slate-200 text-xs text-slate-200 light:text-slate-900 outline-none focus:border-brand-500 h-20 resize-none placeholder:text-slate-500 light:placeholder:text-slate-400"
               />
             </div>
 
             <div className="space-y-1">
-              <label className="text-[11px] font-bold text-slate-400 flex items-center gap-1">
+              <label className="text-[11px] font-bold text-slate-400 light:text-slate-600 flex items-center gap-1">
                 <BookOpen size={13} className="text-brand-400" />
                 Anotações Gerais da Jornada
               </label>
@@ -1116,7 +1121,7 @@ export function StrategyPage({
                 value={cardNotes}
                 onChange={e => setCardNotes(e.target.value)}
                 placeholder="Observações do candidato..."
-                className="w-full px-3 py-2 rounded-xl bg-slate-900 border border-slate-800 text-xs text-slate-200 outline-none focus:border-brand-500 h-20 resize-none"
+                className="w-full px-3 py-2 rounded-xl bg-slate-800 light:bg-slate-50 border border-slate-700 light:border-slate-200 text-xs text-slate-200 light:text-slate-900 outline-none focus:border-brand-500 h-16 resize-none placeholder:text-slate-500 light:placeholder:text-slate-400"
               />
             </div>
 
@@ -1132,8 +1137,8 @@ export function StrategyPage({
           </form>
 
           {/* Timeline de Etapas (application_stages) */}
-          <div className="border-t border-slate-800 pt-4 space-y-3">
-            <h4 className="text-xs font-bold text-white flex items-center gap-1.5">
+          <div className="border-t border-slate-800 light:border-slate-200 pt-3 space-y-3">
+            <h4 className="text-xs font-bold text-slate-100 light:text-slate-900 flex items-center gap-1.5">
               <Clock size={15} className="text-brand-400" />
               Histórico do Processo (Timeline)
             </h4>

@@ -71,7 +71,7 @@ export function Notifications({
         {unreadCount > 0 && (
           <button
             onClick={() => markAllNotificationsAsRead()}
-            className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-slate-900 hover:bg-slate-855 border border-slate-800 text-slate-200 text-xs font-bold transition shadow-md"
+            className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-slate-900 light:bg-slate-100 hover:bg-slate-800 light:hover:bg-slate-200 border border-slate-800 light:border-slate-200 text-slate-200 light:text-slate-700 text-xs font-bold transition shadow-md"
           >
             <CheckCheck size={14} className="text-emerald-400" />
             Marcar todas como lidas
@@ -103,7 +103,7 @@ export function Notifications({
                 }`}
               >
                 <div className="flex gap-4 items-start flex-1 text-left">
-                  <div className={`p-3 rounded-2xl bg-slate-900 border border-slate-850 shrink-0 ${
+                  <div className={`p-3 rounded-2xl bg-slate-900 light:bg-slate-100 border border-slate-800 light:border-slate-200 shrink-0 ${
                     !notif.isRead ? 'ring-1 ring-brand-500/30' : ''
                   }`}>
                     {getIcon(notif.type)}
@@ -111,7 +111,7 @@ export function Notifications({
                   
                   <div className="space-y-1.5 flex-1">
                     <div className="flex items-center gap-2 flex-wrap">
-                      <h4 className="font-bold text-sm text-slate-200">{notif.title}</h4>
+                      <h4 className="font-bold text-sm text-slate-200 light:text-slate-800">{notif.title}</h4>
                       {!notif.isRead && (
                         <span className="px-2 py-0.5 rounded bg-brand-500/10 text-brand-400 font-extrabold text-[8px] uppercase tracking-wider border border-brand-500/20">
                           Nova
@@ -119,7 +119,7 @@ export function Notifications({
                       )}
                     </div>
                     
-                    <p className="text-xs text-slate-400 leading-relaxed font-medium">
+                    <p className="text-xs text-slate-400 light:text-slate-600 leading-relaxed font-medium">
                       {notif.message}
                     </p>
 
@@ -145,7 +145,7 @@ export function Notifications({
                   {!notif.isRead && !isJobAlert && (
                     <button
                       onClick={() => markNotificationAsRead(notif.id)}
-                      className="flex-1 sm:flex-none inline-flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-900 border border-slate-800 text-slate-300 hover:text-slate-100 font-semibold text-[10px] transition"
+                      className="flex-1 sm:flex-none inline-flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-900 light:bg-slate-100 border border-slate-800 light:border-slate-200 text-slate-300 light:text-slate-600 hover:text-slate-100 light:hover:text-slate-800 font-semibold text-[10px] transition"
                     >
                       <CheckCircle2 size={12} className="text-emerald-400" />
                       Lida

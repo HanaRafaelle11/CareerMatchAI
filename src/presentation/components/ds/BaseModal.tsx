@@ -78,7 +78,7 @@ export function BaseModal({
 
   const modalContent = (
     <div 
-      className="fixed inset-0 z-[99999] flex items-center justify-center p-3 sm:p-4 bg-slate-950/80 backdrop-blur-md overflow-y-auto animate-fade-in font-sans"
+      className="fixed inset-0 z-[99999] flex items-center justify-center p-3 sm:p-4 bg-slate-950/80 light:bg-slate-900/60 backdrop-blur-md overflow-y-auto animate-fade-in font-sans"
       onClick={(e) => {
         if (e.target === e.currentTarget && !preventBackdropClose) {
           attemptClose();
@@ -86,7 +86,7 @@ export function BaseModal({
       }}
     >
       <div 
-        className={`relative w-full ${maxWidthClass} bg-[#111927] border border-slate-800 rounded-2xl sm:rounded-3xl p-5 sm:p-6 shadow-2xl space-y-4 my-auto animate-scale-up text-white max-h-[90vh] flex flex-col`}
+        className={`relative w-full ${maxWidthClass} bg-slate-900 light:bg-white border border-slate-800 light:border-slate-200 rounded-2xl sm:rounded-3xl p-5 sm:p-6 shadow-2xl space-y-4 my-auto text-slate-100 light:text-slate-900 max-h-[90vh] flex flex-col`}
         onClick={(e) => e.stopPropagation()}
       >
         {/* Confirmação de descarte de dados não salvos */}
@@ -96,8 +96,8 @@ export function BaseModal({
               <AlertTriangle size={24} />
             </div>
             <div className="space-y-1">
-              <h4 className="font-bold text-base text-white">Descartar alterações?</h4>
-              <p className="text-xs text-slate-400 max-w-xs mx-auto">
+              <h4 className="font-bold text-base text-slate-100 light:text-slate-900">Descartar alterações?</h4>
+              <p className="text-xs text-slate-400 light:text-slate-600 max-w-xs mx-auto">
                 Você possui dados não salvos neste formulário. Se fechar agora, essas informações serão perdidas.
               </p>
             </div>
@@ -105,7 +105,7 @@ export function BaseModal({
               <button
                 type="button"
                 onClick={() => setShowConfirmClose(false)}
-                className="px-4 py-2 rounded-xl border border-slate-800 text-slate-300 hover:text-white text-xs font-semibold"
+                className="px-4 py-2 rounded-xl border border-slate-700 light:border-slate-300 text-slate-300 light:text-slate-700 hover:text-slate-100 light:hover:text-slate-900 text-xs font-semibold"
               >
                 Continuar Editando
               </button>
@@ -125,7 +125,7 @@ export function BaseModal({
               <button
                 type="button"
                 onClick={attemptClose}
-                className="absolute top-4 right-4 p-1.5 text-slate-400 hover:text-white rounded-xl bg-slate-900/60 border border-slate-800 hover:border-slate-700 transition-colors cursor-pointer z-10"
+                className="absolute top-4 right-4 p-1.5 text-slate-400 light:text-slate-500 hover:text-slate-100 light:hover:text-slate-900 rounded-xl bg-slate-800/60 light:bg-slate-100 border border-slate-700 light:border-slate-200 hover:border-slate-600 light:hover:border-slate-300 transition-colors cursor-pointer z-10"
                 title="Fechar (ESC)"
               >
                 <X size={18} />
@@ -134,7 +134,7 @@ export function BaseModal({
 
             {/* Cabeçalho */}
             {(title || subtitle) && (
-              <div className="flex items-start gap-3 border-b border-slate-800/80 pb-3.5 pr-8 shrink-0">
+              <div className="flex items-start gap-3 border-b border-slate-800/80 light:border-slate-200 pb-3.5 pr-8 shrink-0">
                 {icon && (
                   <div className="p-2.5 rounded-xl bg-brand-500/10 text-brand-400 border border-brand-500/20 shrink-0 mt-0.5">
                     {icon}
@@ -142,12 +142,12 @@ export function BaseModal({
                 )}
                 <div>
                   {typeof title === 'string' ? (
-                    <h3 className="font-display font-bold text-base sm:text-lg text-white leading-snug">{title}</h3>
+                    <h3 className="font-display font-bold text-base sm:text-lg text-slate-100 light:text-slate-900 leading-snug">{title}</h3>
                   ) : (
                     title
                   )}
                   {subtitle && (
-                    <p className="text-xs text-slate-400 mt-0.5">{subtitle}</p>
+                    <p className="text-xs text-slate-400 light:text-slate-600 mt-0.5">{subtitle}</p>
                   )}
                 </div>
               </div>

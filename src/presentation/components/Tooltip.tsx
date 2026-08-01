@@ -33,7 +33,7 @@ export function Tooltip({ content, children, position = 'top' }: TooltipProps) {
     >
       {children}
       {active && (
-        <div className={`absolute z-[100] w-48 p-2 rounded-lg bg-slate-950/95 border border-slate-800 text-[10px] text-slate-300 leading-relaxed shadow-xl backdrop-blur-sm pointer-events-none animate-fade-in ${positionClasses[position]}`}>
+        <div className={`absolute z-[100] w-48 p-2 rounded-lg bg-slate-900 light:bg-white border border-slate-800 light:border-slate-200 text-[10px] text-slate-300 light:text-slate-700 leading-relaxed shadow-xl backdrop-blur-sm pointer-events-none animate-fade-in ${positionClasses[position]}`}>
           {content}
           <div className={`absolute border-4 ${arrowClasses[position]}`} />
         </div>

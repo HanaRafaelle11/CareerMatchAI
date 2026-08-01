@@ -124,32 +124,32 @@ export function GlobalCopilotDrawer({
 
       {/* Drawer / Slide-Over Flutuante */}
       {isOpen && (
-        <div className="fixed inset-y-0 right-0 w-full max-w-md bg-[#111827] border-l border-slate-800 shadow-2xl z-[9995] flex flex-col animate-slide-in">
+        <div className="fixed inset-y-0 right-0 w-full max-w-md bg-slate-900 light:bg-white border-l border-slate-800 light:border-slate-200 shadow-2xl z-[9995] flex flex-col animate-slide-in">
           {/* Header do Drawer */}
-          <div className="p-4 border-b border-slate-800 flex justify-between items-center bg-slate-900/80 backdrop-blur-md">
+          <div className="p-4 border-b border-slate-800 light:border-slate-200 flex justify-between items-center bg-slate-900/80 light:bg-white/90 backdrop-blur-md">
             <div className="flex items-center gap-2.5">
               <div className="p-2 rounded-xl bg-brand-500/20 text-brand-400 border border-brand-500/30">
                 <Bot size={18} />
               </div>
               <div>
-                <h3 className="font-bold text-xs text-white flex items-center gap-1.5">
+                <h3 className="font-bold text-xs text-slate-100 light:text-slate-900 flex items-center gap-1.5">
                   Copiloto de Carreira IA
                   <span className="w-2 h-2 rounded-full bg-emerald-400" />
                 </h3>
-                <span className="text-[10px] text-slate-400">Assistente Proativo Ativo</span>
+                <span className="text-[10px] text-slate-400 light:text-slate-500">Assistente Proativo Ativo</span>
               </div>
             </div>
             <button
               onClick={() => setIsOpen(false)}
-              className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition-colors"
+              className="p-1.5 rounded-lg text-slate-400 light:text-slate-500 hover:text-slate-100 light:hover:text-slate-900 hover:bg-slate-800 light:hover:bg-slate-100 transition-colors"
             >
               <X size={18} />
             </button>
           </div>
 
           {/* Recomendações Proativas */}
-          <div className="p-4 bg-slate-900/50 border-b border-slate-800/80 space-y-2">
-            <span className="text-[10px] uppercase font-bold text-slate-400 tracking-wider block">
+          <div className="p-4 bg-slate-800/50 light:bg-slate-50 border-b border-slate-800/80 light:border-slate-200 space-y-2">
+            <span className="text-[10px] uppercase font-bold text-slate-400 light:text-slate-500 tracking-wider block">
               💡 {greetingHeadline}
             </span>
             <div className="space-y-1.5">
@@ -157,13 +157,13 @@ export function GlobalCopilotDrawer({
                 <div
                   key={rec.id}
                   onClick={() => handleExecuteAction(rec.targetTab, rec.targetAppId)}
-                  className="p-2.5 rounded-xl bg-slate-950/80 border border-slate-800/80 hover:border-brand-500/40 cursor-pointer transition-all flex items-center justify-between gap-2 group"
+                  className="p-2.5 rounded-xl bg-slate-900/80 light:bg-white border border-slate-800/80 light:border-slate-200 hover:border-brand-500/40 cursor-pointer transition-all flex items-center justify-between gap-2 group"
                 >
                   <div className="space-y-0.5 min-w-0">
-                    <span className="text-xs font-bold text-slate-200 group-hover:text-brand-300 block truncate">
+                    <span className="text-xs font-bold text-slate-200 light:text-slate-800 group-hover:text-brand-400 light:group-hover:text-brand-600 block truncate">
                       {rec.title}
                     </span>
-                    <p className="text-[10px] text-slate-400 leading-snug line-clamp-1">
+                    <p className="text-[10px] text-slate-400 light:text-slate-500 leading-snug line-clamp-1">
                       {rec.description}
                     </p>
                   </div>
@@ -191,7 +191,7 @@ export function GlobalCopilotDrawer({
                   className={`p-3 rounded-2xl text-xs max-w-[85%] leading-relaxed ${
                     m.role === 'user'
                       ? 'bg-brand-600 text-white rounded-br-none'
-                      : 'bg-slate-900 border border-slate-800 text-slate-200 rounded-bl-none'
+                      : 'bg-slate-800 light:bg-slate-100 border border-slate-700 light:border-slate-200 text-slate-200 light:text-slate-800 rounded-bl-none'
                   }`}
                 >
                   {m.text}
@@ -201,14 +201,14 @@ export function GlobalCopilotDrawer({
           </div>
 
           {/* Form do Input */}
-          <div className="p-3 border-t border-slate-800 bg-slate-900/90 space-y-2">
+          <div className="p-3 border-t border-slate-800 light:border-slate-200 bg-slate-900/90 light:bg-slate-50 space-y-2">
             <form onSubmit={handleSendMessage} className="flex gap-2">
               <input
                 type="text"
                 value={chatInput}
                 onChange={e => setChatInput(e.target.value)}
                 placeholder="Pergunte ou peça uma ação ao Copiloto..."
-                className="flex-1 bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-slate-200 outline-none focus:border-brand-500"
+                className="flex-1 bg-slate-800 light:bg-white border border-slate-700 light:border-slate-300 rounded-xl px-3 py-2 text-xs text-slate-200 light:text-slate-900 outline-none focus:border-brand-500 placeholder:text-slate-500 light:placeholder:text-slate-400"
               />
               <button
                 type="submit"
@@ -223,7 +223,7 @@ export function GlobalCopilotDrawer({
                 if (setActiveTab) setActiveTab('coach');
                 setIsOpen(false);
               }}
-              className="w-full py-2 text-center text-[10px] font-bold text-slate-400 hover:text-slate-200 border border-slate-800 hover:border-slate-700 rounded-xl bg-slate-950 transition-colors"
+              className="w-full py-2 text-center text-[10px] font-bold text-slate-400 light:text-slate-500 hover:text-slate-200 light:hover:text-slate-700 border border-slate-800 light:border-slate-200 hover:border-slate-700 light:hover:border-slate-300 rounded-xl bg-slate-800/50 light:bg-white transition-colors"
             >
               Abrir Central Completa de IA & Simulações
             </button>

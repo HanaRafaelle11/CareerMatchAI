@@ -141,7 +141,7 @@ export function Login({ initialMode = 'login', onLogin, onSignUp, onOAuth, onRes
   */
 
   return (
-    <div className="min-h-screen w-full flex flex-col items-center justify-center bg-slate-950 text-slate-100 p-6 relative overflow-hidden font-sans">
+    <div className="min-h-screen w-full flex flex-col items-center justify-center bg-slate-950 light:bg-slate-50 text-slate-100 light:text-slate-900 p-6 relative overflow-hidden font-sans">
       {/* Luzes decorativas de fundo */}
       <div className="absolute top-[-20%] left-[-10%] w-[50%] h-[60%] rounded-full bg-brand-500/5 blur-[120px] pointer-events-none" />
       <div className="absolute bottom-[-20%] right-[-10%] w-[50%] h-[60%] rounded-full bg-indigo-500/5 blur-[120px] pointer-events-none" />
@@ -158,13 +158,13 @@ export function Login({ initialMode = 'login', onLogin, onSignUp, onOAuth, onRes
         {/* Cabeçalho */}
         <div className="text-center flex flex-col items-center">
           <VocentroLogo className="mb-3" showText={true} variant="vertical" />
-          <p className="text-xs text-slate-400 mt-2 max-w-[340px] leading-relaxed">
+          <p className="text-xs text-slate-400 light:text-slate-600 mt-2 max-w-[340px] leading-relaxed">
             Sua carreira. Você no centro das melhores oportunidades do mercado profissional.
           </p>
         </div>
 
         {/* Card Principal */}
-        <div className="premium-card p-7 sm:p-8 rounded-[20px] relative w-full flex flex-col gap-5 bg-slate-900 border border-slate-800 shadow-xl">
+        <div className="premium-card p-7 sm:p-8 rounded-[20px] relative w-full flex flex-col gap-5 bg-slate-900 light:bg-white border border-slate-800 light:border-slate-200 shadow-xl">
           {errorMsg && (
             <div className="p-4 rounded-[14px] bg-red-500/10 border border-red-500/20 flex items-start gap-3 text-red-400 text-xs leading-relaxed">
               <AlertCircle size={17} className="shrink-0 mt-0.5" />
@@ -193,7 +193,7 @@ export function Login({ initialMode = 'login', onLogin, onSignUp, onOAuth, onRes
               </div>
 
               <div className="flex flex-col gap-1.5 w-full">
-                <label className="text-xs font-semibold text-slate-400">E-mail cadastrado</label>
+                <label className="text-xs font-semibold text-slate-400 light:text-slate-600">E-mail cadastrado</label>
                 <div className="relative w-full">
                   <Mail size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500" />
                   <input
@@ -202,7 +202,7 @@ export function Login({ initialMode = 'login', onLogin, onSignUp, onOAuth, onRes
                     placeholder="voce@exemplo.com"
                     value={resetEmail}
                     onChange={(e) => setResetEmail(e.target.value)}
-                    className="w-full pl-11 pr-4 py-3 rounded-[14px] bg-slate-950/50 border border-slate-800 focus:border-brand-accent outline-none text-sm transition-all"
+                    className="w-full pl-11 pr-4 py-3 rounded-[14px] bg-slate-950/50 light:bg-slate-50 border border-slate-800 light:border-slate-200 focus:border-brand-accent outline-none text-sm text-slate-100 light:text-slate-900 placeholder:text-slate-500 transition-all"
                   />
                 </div>
               </div>
@@ -232,14 +232,14 @@ export function Login({ initialMode = 'login', onLogin, onSignUp, onOAuth, onRes
             /* Formulário Cadastro */
             <form onSubmit={signUpForm.handleSubmit(handleSignUpSubmit, handleInvalidFormSubmit)} className="flex flex-col gap-4 w-full">
               <div className="flex flex-col gap-1.5 w-full">
-                <label className="text-xs font-semibold text-slate-400">Nome Completo</label>
+                <label className="text-xs font-semibold text-slate-400 light:text-slate-600">Nome Completo</label>
                 <div className="relative w-full">
                   <User size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500" />
                   <input
                     type="text"
                     placeholder="Seu nome completo"
                     {...signUpForm.register('fullName')}
-                    className="w-full pl-11 pr-4 py-3 rounded-[14px] bg-slate-950/50 border border-slate-800 focus:border-brand-accent outline-none text-sm transition-all"
+                    className="w-full pl-11 pr-4 py-3 rounded-[14px] bg-slate-950/50 light:bg-slate-50 border border-slate-800 light:border-slate-200 focus:border-brand-accent outline-none text-sm text-slate-100 light:text-slate-900 placeholder:text-slate-500 transition-all"
                   />
                 </div>
                 {signUpForm.formState.errors.fullName && (
@@ -248,14 +248,14 @@ export function Login({ initialMode = 'login', onLogin, onSignUp, onOAuth, onRes
               </div>
 
               <div className="flex flex-col gap-1.5 w-full">
-                <label className="text-xs font-semibold text-slate-400">E-mail</label>
+                <label className="text-xs font-semibold text-slate-400 light:text-slate-600">E-mail</label>
                 <div className="relative w-full">
                   <Mail size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500" />
                   <input
                     type="email"
                     placeholder="voce@exemplo.com"
                     {...signUpForm.register('email')}
-                    className="w-full pl-11 pr-4 py-3 rounded-[14px] bg-slate-950/50 border border-slate-800 focus:border-brand-accent outline-none text-sm transition-all"
+                    className="w-full pl-11 pr-4 py-3 rounded-[14px] bg-slate-950/50 light:bg-slate-50 border border-slate-800 light:border-slate-200 focus:border-brand-accent outline-none text-sm text-slate-100 light:text-slate-900 placeholder:text-slate-500 transition-all"
                   />
                 </div>
                 {signUpForm.formState.errors.email && (
@@ -264,14 +264,14 @@ export function Login({ initialMode = 'login', onLogin, onSignUp, onOAuth, onRes
               </div>
 
               <div className="flex flex-col gap-1.5 w-full">
-                <label className="text-xs font-semibold text-slate-400">Senha</label>
+                <label className="text-xs font-semibold text-slate-400 light:text-slate-600">Senha</label>
                 <div className="relative w-full">
                   <Lock size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500" />
                   <input
                     type="password"
                     placeholder="••••••••"
                     {...signUpForm.register('password')}
-                    className="w-full pl-11 pr-4 py-3 rounded-[14px] bg-slate-950/50 border border-slate-800 focus:border-brand-accent outline-none text-sm transition-all"
+                    className="w-full pl-11 pr-4 py-3 rounded-[14px] bg-slate-950/50 light:bg-slate-50 border border-slate-800 light:border-slate-200 focus:border-brand-accent outline-none text-sm text-slate-100 light:text-slate-900 placeholder:text-slate-500 transition-all"
                   />
                 </div>
                 {signUpForm.formState.errors.password && (
@@ -280,14 +280,14 @@ export function Login({ initialMode = 'login', onLogin, onSignUp, onOAuth, onRes
               </div>
 
               <div className="flex flex-col gap-1.5 w-full">
-                <label className="text-xs font-semibold text-slate-400">Confirmar Senha</label>
+                <label className="text-xs font-semibold text-slate-400 light:text-slate-600">Confirmar Senha</label>
                 <div className="relative w-full">
                   <Lock size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500" />
                   <input
                     type="password"
                     placeholder="••••••••"
                     {...signUpForm.register('confirmPassword')}
-                    className="w-full pl-11 pr-4 py-3 rounded-[14px] bg-slate-950/50 border border-slate-800 focus:border-brand-accent outline-none text-sm transition-all"
+                    className="w-full pl-11 pr-4 py-3 rounded-[14px] bg-slate-950/50 light:bg-slate-50 border border-slate-800 light:border-slate-200 focus:border-brand-accent outline-none text-sm text-slate-100 light:text-slate-900 placeholder:text-slate-500 transition-all"
                   />
                 </div>
                 {signUpForm.formState.errors.confirmPassword && (
@@ -308,14 +308,14 @@ export function Login({ initialMode = 'login', onLogin, onSignUp, onOAuth, onRes
             /* Formulário Login */
             <form onSubmit={loginForm.handleSubmit(handleLoginSubmit, handleInvalidFormSubmit)} className="flex flex-col gap-4 w-full">
               <div className="flex flex-col gap-1.5 w-full">
-                <label className="text-xs font-semibold text-slate-400">E-mail</label>
+                <label className="text-xs font-semibold text-slate-400 light:text-slate-600">E-mail</label>
                 <div className="relative w-full">
                   <Mail size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500" />
                   <input
                     type="email"
                     placeholder="voce@exemplo.com"
                     {...loginForm.register('email')}
-                    className="w-full pl-11 pr-4 py-3 rounded-[14px] bg-slate-950/50 border border-slate-800 focus:border-brand-accent outline-none text-sm transition-all"
+                    className="w-full pl-11 pr-4 py-3 rounded-[14px] bg-slate-950/50 light:bg-slate-50 border border-slate-800 light:border-slate-200 focus:border-brand-accent outline-none text-sm text-slate-100 light:text-slate-900 placeholder:text-slate-500 transition-all"
                   />
                 </div>
                 {loginForm.formState.errors.email && (
@@ -325,7 +325,7 @@ export function Login({ initialMode = 'login', onLogin, onSignUp, onOAuth, onRes
 
               <div className="flex flex-col gap-1.5 w-full">
                 <div className="flex justify-between items-center w-full">
-                  <label className="text-xs font-semibold text-slate-400">Senha</label>
+                  <label className="text-xs font-semibold text-slate-400 light:text-slate-600">Senha</label>
                   <button
                     type="button"
                     onClick={() => {
@@ -345,7 +345,7 @@ export function Login({ initialMode = 'login', onLogin, onSignUp, onOAuth, onRes
                     type="password"
                     placeholder="••••••••"
                     {...loginForm.register('password')}
-                    className="w-full pl-11 pr-4 py-3 rounded-[14px] bg-slate-950/50 border border-slate-800 focus:border-brand-accent outline-none text-sm transition-all"
+                    className="w-full pl-11 pr-4 py-3 rounded-[14px] bg-slate-950/50 light:bg-slate-50 border border-slate-800 light:border-slate-200 focus:border-brand-accent outline-none text-sm text-slate-100 light:text-slate-900 placeholder:text-slate-500 transition-all"
                   />
                 </div>
                 {loginForm.formState.errors.password && (

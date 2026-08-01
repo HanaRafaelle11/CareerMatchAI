@@ -1,5 +1,5 @@
 import { BaseModal } from '../../../../presentation/components/ds/BaseModal';
-import { Sparkles, ArrowRight, CheckCircle2, Bot, Layers, BarChart3, FileText, Send, Calendar } from 'lucide-react';
+import { Sparkles, ArrowRight, Bot, Layers, BarChart3, FileText, Send, Calendar } from 'lucide-react';
 import type { PaywallTriggerState } from '../..';
 import { getDaysUntilNextMonday } from '../../application/hooks/useEntitlements';
 
@@ -141,11 +141,11 @@ export function PaywallModal({
     <BaseModal
       isOpen={isOpen}
       onClose={onClose}
-      maxWidthClass="max-w-lg"
+      maxWidthClass="max-w-sm"
       showCloseButton={true}
     >
-      <div className="space-y-6 text-center font-sans py-2 animate-fade-in">
-        <div className="mx-auto w-16 h-16 rounded-2xl bg-brand-500/10 border border-brand-500/30 flex items-center justify-center shadow-lg shadow-brand-500/10">
+      <div className="space-y-5 text-center font-sans py-1 animate-fade-in">
+        <div className="mx-auto w-14 h-14 rounded-2xl bg-brand-500/10 border border-brand-500/30 flex items-center justify-center">
           {details.icon}
         </div>
 
@@ -153,40 +153,28 @@ export function PaywallModal({
           <span className="px-3 py-1 rounded-full bg-brand-500/10 border border-brand-500/20 text-brand-400 font-extrabold text-[10px] uppercase tracking-wider">
             {details.badge}
           </span>
-          <h3 className="text-xl sm:text-2xl font-black text-white leading-tight">
+          <h3 className="text-lg sm:text-xl font-black text-slate-100 light:text-slate-900 leading-tight">
             {displayTitle}
           </h3>
-          <p className="text-xs sm:text-sm text-slate-300 max-w-md mx-auto leading-relaxed">
+          <p className="text-xs text-slate-400 light:text-slate-600 max-w-xs mx-auto leading-relaxed">
             {displayDesc}
           </p>
         </div>
 
-        <div className="p-4 rounded-2xl bg-slate-950/60 border border-slate-800 text-left space-y-2.5">
-          <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400 block">
-            O que você libera no Vocentro Pro:
-          </span>
-          {details.benefits.map((b, idx) => (
-            <div key={idx} className="flex items-center gap-2.5 text-xs text-slate-200">
-              <CheckCircle2 size={16} className="text-emerald-400 shrink-0" />
-              <span>{b}</span>
-            </div>
-          ))}
-        </div>
-
-        <div className="pt-2 space-y-2">
+        <div className="pt-1 space-y-2">
           <button
             type="button"
             onClick={handleAction}
-            className="w-full py-3.5 px-6 rounded-2xl bg-gradient-to-r from-amber-500 via-emerald-500 to-brand-500 hover:from-amber-400 hover:to-brand-400 text-slate-950 font-black text-sm shadow-xl cursor-pointer transition-all flex items-center justify-center gap-2"
+            className="w-full py-3 px-6 rounded-xl bg-gradient-to-r from-amber-500 via-emerald-500 to-brand-500 hover:from-amber-400 hover:to-brand-400 text-slate-950 font-black text-sm shadow-lg cursor-pointer transition-all flex items-center justify-center gap-2"
           >
-            <Sparkles size={18} />
+            <Sparkles size={16} />
             <span>{displayPrimaryBtn}</span>
-            <ArrowRight size={18} />
+            <ArrowRight size={16} />
           </button>
           <button
             type="button"
             onClick={onClose}
-            className="text-xs font-semibold text-slate-400 hover:text-slate-200 transition-colors py-1 cursor-pointer"
+            className="text-xs font-semibold text-slate-400 light:text-slate-500 hover:text-slate-200 light:hover:text-slate-700 transition-colors py-1 cursor-pointer"
           >
             {displaySecondaryBtn}
           </button>

@@ -25,10 +25,10 @@ export function Toast({ toast, onClose, duration = 4000 }: ToastProps) {
   if (!toast) return null;
 
   const bgStyles = {
-    success: 'bg-emerald-950/90 border-emerald-500/50 text-emerald-200',
-    error: 'bg-red-950/90 border-red-500/50 text-red-200',
-    warning: 'bg-amber-950/90 border-amber-500/50 text-amber-200',
-    info: 'bg-blue-950/90 border-blue-500/50 text-blue-200'
+    success: 'bg-emerald-950/90 light:bg-emerald-50 border-emerald-500/50 light:border-emerald-300 text-emerald-200 light:text-emerald-900',
+    error: 'bg-red-950/90 light:bg-red-50 border-red-500/50 light:border-red-300 text-red-200 light:text-red-900',
+    warning: 'bg-amber-950/90 light:bg-amber-50 border-amber-500/50 light:border-amber-300 text-amber-200 light:text-amber-900',
+    info: 'bg-blue-950/90 light:bg-blue-50 border-blue-500/50 light:border-blue-300 text-blue-200 light:text-blue-900'
   }[toast.type];
 
   const Icon = {

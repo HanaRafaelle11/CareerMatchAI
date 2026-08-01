@@ -292,6 +292,97 @@ serve(async (req: Request) => {
 
     const amount = billingCycle === 'YEARLY' ? Number(planData.price_yearly) : Number(planData.price_monthly);
 
+    // 2.5 Verificar se já existe cobrança PENDENTE ou ATIVA para reaproveitamento e prevenção de duplicados
+    const { data: existingSub } = await adminClient
+      .from('subscriptions')
+      .select('id, status, gateway_subscription_id')
+      .eq('user_id', user.id)
+      .in('status', ['pending', 'active'])
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    if (existingSub) {
+      if (existingSub.status === 'active') {
+        return new Response(
+          JSON.stringify({
+            success: true,
+            status: 'active',
+            message: 'Você já possui uma assinatura ativa para este plano.'
+          }),
+          { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+
+      // Se estiver pendente, buscar a fatura correspondente
+      const { data: existingInvoice } = await adminClient
+        .from('invoices')
+        .select('id, gateway_invoice_id, amount, pix_copy_paste, pix_qr_code_url, bank_slip_url, created_at, status')
+        .eq('subscription_id', existingSub.id)
+        .eq('status', 'pending')
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+      if (existingInvoice && existingInvoice.gateway_invoice_id && asaasApiKey) {
+        // Consultar validade e status real na API do Asaas
+        try {
+          const asaasCheckRes = await fetch(`${asaasApiUrl}/payments/${existingInvoice.gateway_invoice_id}`, {
+            headers: {
+              'accept': 'application/json',
+              'access_token': asaasApiKey
+            }
+          });
+
+          if (asaasCheckRes.ok) {
+            const asaasPay = await asaasCheckRes.json();
+            const asaasStatus = asaasPay.status;
+
+            if (asaasStatus === 'RECEIVED' || asaasStatus === 'CONFIRMED' || asaasStatus === 'RECEIVED_IN_CASH') {
+              await adminClient.from('subscriptions').update({ status: 'active' }).eq('id', existingSub.id);
+              await adminClient.from('invoices').update({ status: 'paid', paid_at: new Date().toISOString() }).eq('id', existingInvoice.id);
+              return new Response(
+                JSON.stringify({
+                  success: true,
+                  status: 'active',
+                  message: 'Pagamento confirmado no Asaas.'
+                }),
+                { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+              );
+            }
+
+            const isExpiredInAsaas = asaasStatus === 'OVERDUE' || asaasStatus === 'DELETED' || asaasStatus === 'REFUNDED';
+            const isDateExpired = asaasPay.dueDate ? (new Date(asaasPay.dueDate).getTime() + 86400000 < Date.now()) : false;
+
+            if (isExpiredInAsaas || isDateExpired) {
+              // Cobrança antiga expirou: marcar como expirada no DB para permitir criar nova cobrança limpa
+              await adminClient.from('invoices').update({ status: 'expired' }).eq('id', existingInvoice.id);
+              await adminClient.from('subscriptions').update({ status: 'expired' }).eq('id', existingSub.id);
+            } else {
+              // Cobrança PENDENTE e VÁLIDA: Reaproveitar QR Code existente
+              return new Response(
+                JSON.stringify({
+                  success: true,
+                  subscriptionId: existingSub.id,
+                  gatewaySubscriptionId: existingSub.gateway_subscription_id,
+                  status: 'pending',
+                  invoiceId: existingInvoice.id,
+                  amount: existingInvoice.amount,
+                  billingType,
+                  pixCopyPaste: existingInvoice.pix_copy_paste,
+                  pixQrCodeUrl: existingInvoice.pix_qr_code_url,
+                  bankSlipUrl: existingInvoice.bank_slip_url
+                }),
+                { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+              );
+            }
+          }
+        } catch (err) {
+          console.warn('[billing-checkout] Erro ao validar cobrança pendente no Asaas:', err);
+        }
+      }
+    }
+
     // 3. Criar Assinatura no Asaas
     const asaasSubscription = await asaasAdapter.createSubscription({
       gatewayCustomerId: gatewayCustomerId!,

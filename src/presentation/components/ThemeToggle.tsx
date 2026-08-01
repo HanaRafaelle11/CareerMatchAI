@@ -35,9 +35,19 @@ export function ThemeToggle({ className = '' }: { className?: string }) {
   const toggleTheme = () => {
     const nextLight = !isLight;
     setIsLight(nextLight);
-    applyTheme(nextLight);
+    if (nextLight) {
+      document.documentElement.classList.replace('dark', 'light');
+      document.body.classList.replace('dark', 'light');
+      document.documentElement.classList.add('light');
+      document.body.classList.add('light');
+    } else {
+      document.documentElement.classList.replace('light', 'dark');
+      document.body.classList.replace('light', 'dark');
+      document.documentElement.classList.add('dark');
+      document.body.classList.add('dark');
+    }
     localStorage.setItem('theme', nextLight ? 'light' : 'dark');
-    window.dispatchEvent(new Event('theme-change'));
+    window.dispatchEvent(new CustomEvent('theme-change', { detail: { theme: nextLight ? 'light' : 'dark' } }));
   };
 
   return (

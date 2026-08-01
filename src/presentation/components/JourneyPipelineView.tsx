@@ -1,7 +1,9 @@
-import { useEffect } from 'react';
-import { Briefcase, Heart, CheckCircle, Award, Sparkles, Layers, Search, ArrowRight } from 'lucide-react';
+import { useEffect, useState } from 'react';
+import { Briefcase, Heart, CheckCircle, Award, Sparkles, Layers, Search, ArrowRight, Lock } from 'lucide-react';
 import { CardGlass } from './CardGlass';
 import { tracker } from '../../infrastructure/analytics/tracker';
+import { useAuth } from '../../application/hooks/useAuth';
+import { useEntitlements, PaywallModal, CheckoutModal } from '../../modules/billing';
 import type { Application, Job } from '../../domain/models/types';
 
 interface JourneyPipelineViewProps {
@@ -17,6 +19,10 @@ export function JourneyPipelineView({
   onNavigateToDiscover,
   setActiveTab 
 }: JourneyPipelineViewProps) {
+  const { user } = useAuth();
+  const { isPro, canUseKanban, journeyHistoryDays, paywallState, triggerPaywall, closePaywall } = useEntitlements(user?.id);
+  const [showCheckout, setShowCheckout] = useState(false);
+
   useEffect(() => {
     tracker.track('application_pipeline_opened', 'ProductBeta', {
       applications_count: applications.length,
@@ -35,14 +41,21 @@ export function JourneyPipelineView({
     }
   };
 
-  // Contagem estritamente real sem qualquer valor fictício ou fallback fixo
-  const countEncontradas = jobs.length;
-  const countInteressantes = applications.filter(a => a.status === 'saved').length;
-  const countCandidatadas = applications.filter(a => a.status === 'applied').length;
-  const countEntrevistas = applications.filter(a => a.status === 'hr' || a.status === 'interview').length;
-  const countOfertas = applications.filter(a => a.status === 'offer' || a.status === 'hired').length;
+  // Filtrar candidaturas por vigência do plano (Free: últimos 14 dias)
+  const filteredApplications = applications.filter(app => {
+    if (isPro || !journeyHistoryDays || journeyHistoryDays === Infinity) return true;
+    const createdAt = new Date(app.createdAt || Date.now()).getTime();
+    const cutoff = Date.now() - (journeyHistoryDays * 86400000);
+    return createdAt >= cutoff;
+  });
 
-  const hasApplications = applications.length > 0;
+  const countEncontradas = jobs.length;
+  const countInteressantes = filteredApplications.filter(a => a.status === 'saved').length;
+  const countCandidatadas = filteredApplications.filter(a => a.status === 'applied').length;
+  const countEntrevistas = filteredApplications.filter(a => a.status === 'hr' || a.status === 'interview').length;
+  const countOfertas = filteredApplications.filter(a => a.status === 'offer' || a.status === 'hired').length;
+
+  const hasApplications = filteredApplications.length > 0;
 
   return (
     <div className="space-y-6 font-sans animate-fade-in">
@@ -52,10 +65,26 @@ export function JourneyPipelineView({
             <Layers className="text-blue-500" size={24} />
             Minha Jornada de Candidaturas
           </h2>
-          <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
-            Acompanhamento em tempo real do seu pipeline de conversão e entrevistas.
+          <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 flex items-center gap-2">
+            <span>Acompanhamento em tempo real do seu pipeline de conversão.</span>
+            {!isPro && (
+              <span className="px-2 py-0.5 rounded-md bg-amber-500/10 border border-amber-500/20 text-amber-500 text-[10px] font-bold">
+                Free: últimos 14 dias
+              </span>
+            )}
           </p>
         </div>
+
+        {!isPro && (
+          <button
+            type="button"
+            onClick={() => triggerPaywall('kanban')}
+            className="px-4 py-2 rounded-xl bg-gradient-to-r from-amber-500 to-emerald-500 hover:from-amber-400 hover:to-emerald-400 text-slate-950 font-extrabold text-xs shadow-md cursor-pointer flex items-center gap-1.5 self-start md:self-auto"
+          >
+            <Sparkles size={14} />
+            <span>Desbloquear Kanban Arrasta & Solta (Pro)</span>
+          </button>
+        )}
       </div>
 
       {/* Metric Cards Top Row */}
@@ -124,7 +153,7 @@ export function JourneyPipelineView({
         <CardGlass className="p-6 space-y-6">
           <h3 className="text-sm font-bold text-slate-900 dark:text-slate-200 uppercase tracking-wider pb-3 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between">
             <span>Funil Visual do Pipeline</span>
-            <span className="text-xs text-slate-500 dark:text-slate-400 font-normal">Estágios Ativos ({applications.length})</span>
+            <span className="text-xs text-slate-500 dark:text-slate-400 font-normal">Estágios Ativos ({filteredApplications.length})</span>
           </h3>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -174,6 +203,23 @@ export function JourneyPipelineView({
           </div>
         </CardGlass>
       )}
+
+      <PaywallModal
+        isOpen={paywallState.isOpen}
+        onClose={closePaywall}
+        feature={paywallState.feature}
+        title={paywallState.title}
+        description={paywallState.description}
+        onUpgrade={() => setShowCheckout(true)}
+      />
+
+      <CheckoutModal
+        isOpen={showCheckout}
+        onClose={() => setShowCheckout(false)}
+        userId={user?.id}
+        userEmail={user?.email}
+        userName={user?.email?.split('@')[0]}
+      />
     </div>
   );
 }

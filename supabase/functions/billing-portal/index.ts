@@ -136,7 +136,51 @@ serve(async (req: Request) => {
       );
     }
 
-    // ── Ação 3: Obter Detalhes da Assinatura e Histórico de Faturas ──
+    // ── Ação 3: Obter Detalhes da Assinatura, Sincronizar com Asaas e Retornar Histórico ──
+    const asaasApiKey = Deno.env.get('ASAAS_API_KEY') || '';
+    const asaasApiUrl = Deno.env.get('ASAAS_API_URL') || 'https://api.asaas.com/v3';
+
+    // Se houver fatura pendente, sincronizar status em tempo real na API do Asaas
+    const { data: pendingInvoice } = await adminClient
+      .from('invoices')
+      .select('id, subscription_id, gateway_invoice_id, status')
+      .eq('user_id', user.id)
+      .eq('status', 'pending')
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    if (pendingInvoice && pendingInvoice.gateway_invoice_id && asaasApiKey) {
+      try {
+        const asaasRes = await fetch(`${asaasApiUrl}/payments/${pendingInvoice.gateway_invoice_id}`, {
+          headers: {
+            'accept': 'application/json',
+            'access_token': asaasApiKey
+          }
+        });
+
+        if (asaasRes.ok) {
+          const asaasPay = await asaasRes.json();
+          const statusAsaas = asaasPay.status;
+
+          if (statusAsaas === 'RECEIVED' || statusAsaas === 'CONFIRMED' || statusAsaas === 'RECEIVED_IN_CASH') {
+            const now = new Date().toISOString();
+            await adminClient.from('invoices').update({ status: 'paid', paid_at: now }).eq('id', pendingInvoice.id);
+            if (pendingInvoice.subscription_id) {
+              await adminClient.from('subscriptions').update({ status: 'active', current_period_start: now }).eq('id', pendingInvoice.subscription_id);
+            }
+          } else if (statusAsaas === 'OVERDUE' || statusAsaas === 'DELETED' || statusAsaas === 'REFUNDED') {
+            await adminClient.from('invoices').update({ status: 'expired' }).eq('id', pendingInvoice.id);
+            if (pendingInvoice.subscription_id) {
+              await adminClient.from('subscriptions').update({ status: 'expired' }).eq('id', pendingInvoice.subscription_id);
+            }
+          }
+        }
+      } catch (err) {
+        console.warn('[billing-portal] Erro ao sincronizar pagamento pendente com Asaas:', err);
+      }
+    }
+
     const { data: subData } = await adminClient
       .from('subscriptions')
       .select(`

@@ -1,6 +1,8 @@
 import { useState } from 'react';
 import { Sparkles, X, ArrowRight, Bot } from 'lucide-react';
 import { useCopilotEngine } from '../../application/hooks/useCopilotEngine';
+import { useAuth } from '../../application/hooks/useAuth';
+import { useEntitlements, PaywallModal, CheckoutModal } from '../../modules/billing';
 import type { Application, Job } from '../../domain/models/types';
 import type { CareerProfileNew } from '../../application/hooks/useMyProfileAi';
 
@@ -21,6 +23,10 @@ export function GlobalCopilotDrawer({
   setActiveTab,
   onStartSimulation
 }: GlobalCopilotDrawerProps) {
+  const { user } = useAuth();
+  const { isPro, canUseCopilot, paywallState, triggerPaywall, closePaywall } = useEntitlements(user?.id);
+  const [showCheckout, setShowCheckout] = useState(false);
+
   const [isOpen, setIsOpen] = useState(false);
   const [chatInput, setChatInput] = useState('');
   const [messages, setMessages] = useState<Array<{ role: 'assistant' | 'user'; text: string }>>([
@@ -36,6 +42,14 @@ export function GlobalCopilotDrawer({
     matches,
     careerProfileNew
   });
+
+  const handleToggleOpen = () => {
+    if (!isPro && !canUseCopilot) {
+      triggerPaywall('copilot');
+      return;
+    }
+    setIsOpen(!isOpen);
+  };
 
   const handleSendMessage = (e: React.FormEvent) => {
     e.preventDefault();
@@ -95,11 +109,11 @@ export function GlobalCopilotDrawer({
 
   return (
     <>
-      {/* Opção A: Botão Flutuante Único no Canto Inferior Direito (Ajustado no Mobile para não cobrir a Bottom Bar ou texto) */}
+      {/* Opção A: Botão Flutuante Único no Canto Inferior Direito */}
       <button
-        onClick={() => setIsOpen(!isOpen)}
+        onClick={handleToggleOpen}
         aria-label="Abrir Copiloto IA"
-        className="fixed bottom-[4.25rem] right-3 md:bottom-6 md:right-6 z-[9990] flex items-center gap-1.5 md:gap-2.5 px-3 py-2 md:px-4 md:py-3 rounded-full bg-gradient-to-r from-brand-600 via-brand-500 to-indigo-600 text-white font-bold text-[11px] md:text-xs shadow-xl hover:scale-105 active:scale-95 transition-all border border-brand-400/30 group"
+        className="fixed bottom-[4.25rem] right-3 md:bottom-6 md:right-6 z-[9990] flex items-center gap-1.5 md:gap-2.5 px-3 py-2 md:px-4 md:py-3 rounded-full bg-gradient-to-r from-brand-600 via-brand-500 to-indigo-600 text-white font-bold text-[11px] md:text-xs shadow-xl hover:scale-105 active:scale-95 transition-all border border-brand-400/30 group cursor-pointer"
       >
         <Sparkles size={14} className="animate-spin-slow text-amber-300 md:w-4 md:h-4" />
         <span>Copiloto IA</span>
@@ -127,73 +141,67 @@ export function GlobalCopilotDrawer({
             </div>
             <button
               onClick={() => setIsOpen(false)}
-              className="p-1 text-slate-400 hover:text-white rounded-lg hover:bg-slate-800 transition-colors"
+              className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition-colors"
             >
               <X size={18} />
             </button>
           </div>
 
-          {/* Conteúdo com Scroll */}
-          <div className="flex-1 overflow-y-auto p-4 space-y-4">
-            {/* Card: Recomendações Proativas do Dia */}
-            <div className="p-3.5 rounded-2xl bg-gradient-to-br from-brand-950/40 via-slate-900 to-indigo-950/30 border border-brand-500/20 space-y-3">
-              <div className="flex items-start justify-between gap-2">
-                <p className="text-xs text-slate-200 font-semibold leading-relaxed">
-                  {greetingHeadline}
-                </p>
-              </div>
-
-              <div className="space-y-2">
-                {recommendations.map(rec => (
-                  <div
-                    key={rec.id}
-                    className="p-2.5 rounded-xl bg-slate-900/80 border border-slate-800 space-y-1.5 hover:border-brand-500/40 transition-colors"
-                  >
-                    <div className="flex justify-between items-start gap-1">
-                      <h4 className="font-bold text-xs text-slate-100">{rec.title}</h4>
-                    </div>
-                    <p className="text-[10px] text-slate-400 leading-snug">{rec.description}</p>
-                    <button
-                      onClick={() => handleExecuteAction(rec.targetTab, rec.targetAppId)}
-                      className="mt-1 text-[10px] font-bold text-brand-400 hover:text-brand-300 flex items-center gap-1"
-                    >
-                      <span>{rec.actionLabel}</span>
-                      <ArrowRight size={11} />
-                    </button>
+          {/* Recomendações Proativas */}
+          <div className="p-4 bg-slate-900/50 border-b border-slate-800/80 space-y-2">
+            <span className="text-[10px] uppercase font-bold text-slate-400 tracking-wider block">
+              💡 {greetingHeadline}
+            </span>
+            <div className="space-y-1.5">
+              {recommendations.map((rec) => (
+                <div
+                  key={rec.id}
+                  onClick={() => handleExecuteAction(rec.targetTab, rec.targetAppId)}
+                  className="p-2.5 rounded-xl bg-slate-950/80 border border-slate-800/80 hover:border-brand-500/40 cursor-pointer transition-all flex items-center justify-between gap-2 group"
+                >
+                  <div className="space-y-0.5 min-w-0">
+                    <span className="text-xs font-bold text-slate-200 group-hover:text-brand-300 block truncate">
+                      {rec.title}
+                    </span>
+                    <p className="text-[10px] text-slate-400 leading-snug line-clamp-1">
+                      {rec.description}
+                    </p>
                   </div>
-                ))}
-              </div>
-            </div>
-
-            {/* Chat Conversacional Flutuante Rápido */}
-            <div className="space-y-3 pt-2 border-t border-slate-800/80">
-              <span className="text-[10px] font-extrabold uppercase text-slate-400 block tracking-wider">
-                Conversa Contínua
-              </span>
-
-              <div className="space-y-2.5 max-h-60 overflow-y-auto pr-1">
-                {messages.map((m, idx) => (
-                  <div
-                    key={idx}
-                    className={`flex ${m.role === 'user' ? 'justify-end' : 'justify-start'}`}
-                  >
-                    <div
-                      className={`max-w-[85%] p-3 rounded-2xl text-xs ${
-                        m.role === 'user'
-                          ? 'bg-brand-600 text-white rounded-br-none'
-                          : 'bg-slate-900 border border-slate-800 text-slate-200 rounded-bl-none'
-                      }`}
-                    >
-                      {m.text}
-                    </div>
+                  <div className="p-1 rounded-lg bg-brand-500/10 text-brand-400 group-hover:bg-brand-500 group-hover:text-white transition-colors shrink-0">
+                    <ArrowRight size={14} />
                   </div>
-                ))}
-              </div>
+                </div>
+              ))}
             </div>
           </div>
 
-          {/* Form de Input + Botão para Central Completa */}
-          <div className="p-4 border-t border-slate-800 bg-slate-900/90 space-y-2">
+          {/* Chat Interativo */}
+          <div className="flex-1 p-4 overflow-y-auto space-y-3">
+            {messages.map((m, idx) => (
+              <div
+                key={idx}
+                className={`flex gap-2.5 ${m.role === 'user' ? 'justify-end' : 'justify-start'}`}
+              >
+                {m.role === 'assistant' && (
+                  <div className="w-6 h-6 rounded-lg bg-brand-500/20 text-brand-400 border border-brand-500/30 flex items-center justify-center shrink-0 mt-0.5">
+                    <Bot size={14} />
+                  </div>
+                )}
+                <div
+                  className={`p-3 rounded-2xl text-xs max-w-[85%] leading-relaxed ${
+                    m.role === 'user'
+                      ? 'bg-brand-600 text-white rounded-br-none'
+                      : 'bg-slate-900 border border-slate-800 text-slate-200 rounded-bl-none'
+                  }`}
+                >
+                  {m.text}
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {/* Form do Input */}
+          <div className="p-3 border-t border-slate-800 bg-slate-900/90 space-y-2">
             <form onSubmit={handleSendMessage} className="flex gap-2">
               <input
                 type="text"
@@ -222,6 +230,23 @@ export function GlobalCopilotDrawer({
           </div>
         </div>
       )}
+
+      <PaywallModal
+        isOpen={paywallState.isOpen}
+        onClose={closePaywall}
+        feature={paywallState.feature}
+        title={paywallState.title}
+        description={paywallState.description}
+        onUpgrade={() => setShowCheckout(true)}
+      />
+
+      <CheckoutModal
+        isOpen={showCheckout}
+        onClose={() => setShowCheckout(false)}
+        userId={user?.id}
+        userEmail={user?.email}
+        userName={user?.email?.split('@')[0]}
+      />
     </>
   );
 }

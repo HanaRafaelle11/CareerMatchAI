@@ -7,3 +7,5 @@ export * from './application/hooks/useCheckout';
 export * from './presentation/components/CheckoutModal';
 export * from './presentation/components/CustomerPortal';
 export * from './presentation/components/BillingAdminDashboard';
+export * from './application/hooks/useEntitlements';
+export * from './presentation/components/PaywallModal';

@@ -1040,7 +1040,9 @@ export function AdminDashboard({ userId }: AdminDashboardProps) {
                           (user.email || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
                           (user.headline || '').toLowerCase().includes(searchQuery.toLowerCase());
     const matchesRole = roleFilter === 'all' || user.role === roleFilter;
-    return matchesSearch && matchesRole;
+    const isTestEmail = String(user.email || '').toLowerCase().match(/test|e2e|example|mock|\+test|hardening/);
+    const matchesTestFilter = !showTestAccounts ? (!user.is_test_account && !isTestEmail) : true;
+    return matchesSearch && matchesRole && matchesTestFilter;
   });
 
   const usersPerPage = 20;

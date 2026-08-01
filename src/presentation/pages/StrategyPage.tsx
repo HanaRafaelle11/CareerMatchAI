@@ -1144,25 +1144,48 @@ export function StrategyPage({
               ) : activeStages.length === 0 ? (
                 <span className="text-xs text-slate-500 italic block">Nenhum evento registrado no histórico ainda.</span>
               ) : (
-                activeStages.map((st: ApplicationStage) => (
-                  <div key={st.id} className="p-3 rounded-xl bg-slate-900/80 border border-slate-800 flex justify-between items-center text-xs">
-                    <div>
-                      <span className="font-bold text-slate-200 block">{st.stageName}</span>
-                      {st.notes && <span className="text-[11px] text-slate-400 block mt-0.5">{st.notes}</span>}
-                      <span className="text-[10px] text-slate-500 block mt-0.5">{new Date(st.stageDate).toLocaleDateString()}</span>
+                activeStages.map((st: ApplicationStage) => {
+                  const stageNameTranslation: Record<string, string> = {
+                    found: 'Vaga Encontrada',
+                    saved: 'Vaga Salva',
+                    applied: 'Candidatura Enviada',
+                    hr: 'Entrevista RH',
+                    interview: 'Entrevista com Gestor',
+                    offer: 'Proposta / Oferta Recebida',
+                    hired: 'Contratado(a)',
+                    rejected: 'Processo Finalizado'
+                  };
+
+                  const stageStatusTranslation: Record<string, string> = {
+                    passed: 'Aprovado',
+                    failed: 'Reprovado',
+                    pending: 'Pendente',
+                    scheduled: 'Agendado'
+                  };
+
+                  const displayStageName = stageNameTranslation[st.stageName.toLowerCase()] || st.stageName;
+                  const displayStatus = stageStatusTranslation[st.status.toLowerCase()] || st.status;
+
+                  return (
+                    <div key={st.id} className="p-3 rounded-xl bg-slate-900/80 border border-slate-800 flex justify-between items-center text-xs">
+                      <div>
+                        <span className="font-bold text-slate-200 block">{displayStageName}</span>
+                        {st.notes && <span className="text-[11px] text-slate-400 block mt-0.5">{st.notes}</span>}
+                        <span className="text-[10px] text-slate-500 block mt-0.5">{new Date(st.stageDate).toLocaleDateString()}</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <span className={`text-[9px] px-2 py-0.5 rounded font-bold uppercase ${
+                          st.status === 'passed' ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' : 'bg-amber-500/10 text-amber-400 border border-amber-500/20'
+                        }`}>
+                          {displayStatus}
+                        </span>
+                        <button onClick={() => handleDeleteStage(st.id)} className="text-slate-500 hover:text-red-400 cursor-pointer">
+                          <Trash2 size={13} />
+                        </button>
+                      </div>
                     </div>
-                    <div className="flex items-center gap-2">
-                      <span className={`text-[9px] px-2 py-0.5 rounded font-bold uppercase ${
-                        st.status === 'passed' ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' : 'bg-amber-500/10 text-amber-400 border border-amber-500/20'
-                      }`}>
-                        {st.status}
-                      </span>
-                      <button onClick={() => handleDeleteStage(st.id)} className="text-slate-500 hover:text-red-400">
-                        <Trash2 size={13} />
-                      </button>
-                    </div>
-                  </div>
-                ))
+                  );
+                })
               )}
             </div>
 

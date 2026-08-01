@@ -71,46 +71,100 @@ serve(async (req: Request) => {
         .or(`gateway_subscription_id.eq.${gatewaySubId},gateway_subscription_id.eq.${gatewayPayId}`)
         .limit(1);
 
-      const targetSub = subs?.[0];
+      let targetSub = subs?.[0];
+      let targetUserId = targetSub?.user_id || paymentData?.externalReference || payload?.externalReference;
 
-      if (targetSub) {
-        const periodDays = targetSub.billing_cycle === 'YEARLY' ? 365 : 30;
+      // Se não encontrou assinatura pelo ID do gateway, buscar fatura ou cliente associado
+      if (!targetUserId) {
+        const { data: invs } = await adminClient
+          .from('invoices')
+          .select('id, user_id, subscription_id')
+          .or(`gateway_invoice_id.eq.${gatewayPayId},gateway_invoice_id.eq.${gatewaySubId}`)
+          .limit(1);
+
+        if (invs?.[0]?.user_id) {
+          targetUserId = invs[0].user_id;
+        }
+      }
+
+      if (!targetUserId && paymentData?.customer) {
+        const { data: customers } = await adminClient
+          .from('payment_customers')
+          .select('user_id')
+          .eq('gateway_customer_id', paymentData.customer)
+          .limit(1);
+        if (customers?.[0]?.user_id) {
+          targetUserId = customers[0].user_id;
+        }
+      }
+
+      if (targetUserId) {
         const now = new Date();
+        const periodDays = targetSub?.billing_cycle === 'YEARLY' ? 365 : 30;
         const periodEnd = new Date(now.getTime() + periodDays * 24 * 60 * 60 * 1000);
 
-        // Atualizar contrato da assinatura
-        await adminClient
-          .from('subscriptions')
-          .update({
-            status: 'active',
-            current_period_start: now.toISOString(),
-            current_period_end: periodEnd.toISOString()
-          })
-          .eq('id', targetSub.id);
+        // Buscar plano Pro para associar caso seja uma nova assinatura
+        const { data: proPlan } = await adminClient
+          .from('plans')
+          .select('id')
+          .eq('slug', 'pro')
+          .maybeSingle();
+
+        if (targetSub) {
+          await adminClient
+            .from('subscriptions')
+            .update({
+              status: 'active',
+              plan_id: proPlan?.id || undefined,
+              current_period_start: now.toISOString(),
+              current_period_end: periodEnd.toISOString()
+            })
+            .eq('id', targetSub.id);
+        } else {
+          // Inserir assinatura ativa para o usuário resolvido
+          const { data: newSub } = await adminClient
+            .from('subscriptions')
+            .upsert({
+              user_id: targetUserId,
+              plan_id: proPlan?.id || undefined,
+              status: 'active',
+              billing_cycle: 'MONTHLY',
+              gateway_subscription_id: gatewaySubId || gatewayPayId,
+              current_period_start: now.toISOString(),
+              current_period_end: periodEnd.toISOString()
+            }, { onConflict: 'user_id' })
+            .select('id')
+            .single();
+
+          if (newSub) {
+            targetSub = { id: newSub.id, user_id: targetUserId, billing_cycle: 'MONTHLY' };
+          }
+        }
 
         // Atualizar Faturas atreladas
         await adminClient
           .from('invoices')
           .update({
             status: 'paid',
-            paid_at: now.toISOString()
+            paid_at: now.toISOString(),
+            subscription_id: targetSub?.id || undefined
           })
-          .or(`gateway_invoice_id.eq.${gatewayPayId},subscription_id.eq.${targetSub.id}`);
+          .or(`gateway_invoice_id.eq.${gatewayPayId},user_id.eq.${targetUserId}`);
 
         // Atualizar Transações atreladas
         await adminClient
           .from('transactions')
           .update({ status: 'succeeded' })
-          .or(`gateway_transaction_id.eq.${gatewayPayId},user_id.eq.${targetSub.user_id}`);
+          .or(`gateway_transaction_id.eq.${gatewayPayId},user_id.eq.${targetUserId}`);
 
         // Log de Auditoria do Evento
         await adminClient.from('activity_logs').insert({
-          user_id: targetSub.user_id,
+          user_id: targetUserId,
           event_type: 'payment_confirmed_webhook',
           metadata: {
             gateway: 'asaas',
             payment_id: gatewayPayId,
-            subscription_id: targetSub.id,
+            subscription_id: targetSub?.id,
             amount: paymentData?.value
           }
         });

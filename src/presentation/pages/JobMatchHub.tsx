@@ -3727,6 +3727,11 @@ export function JobMatchHub({
                     </div>
                     <span className="text-[11px] text-slate-500 font-mono">
                       Exibindo {scoredDiscoveredJobs.length} de {discoveredJobs.length} vaga(s)
+                      {discoveredJobs.length > scoredDiscoveredJobs.length && (
+                        <span className="text-amber-400 font-semibold text-[10px] ml-1.5">
+                          ({discoveredJobs.length - scoredDiscoveredJobs.length} oculta(s) por filtros)
+                        </span>
+                      )}
                     </span>
                   </div>
                 </CardGlass>

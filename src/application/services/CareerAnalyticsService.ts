@@ -32,18 +32,18 @@ export class CareerAnalyticsService {
       };
     }
 
-    const analyzed = apps.length + 10; // Adiciona um offset para simular vagas vistas no dashboard
+    const analyzed = apps.length;
     const interested = apps.filter(a => a.status !== 'rejected').length;
     const applied = apps.filter(a => 
-      !['found', 'saved'].includes(a.status)
+      ['applied', 'hr', 'interview', 'offer', 'hired'].includes(a.status)
     ).length;
 
     const interviews = apps.filter(a => 
-      ['hr', 'interview', 'offer', 'hired'].includes(a.status)
+      ['hr', 'interview'].includes(a.status)
     ).length;
 
     const cases = apps.filter(a => 
-      ['interview', 'offer', 'hired'].includes(a.status)
+      ['interview'].includes(a.status)
     ).length;
 
     const offers = apps.filter(a => 

@@ -10,7 +10,7 @@ import { CareerCoachService } from '../../application/services/CareerCoachServic
 import { MatchingEngine } from '../../application/services/matchingEngine';
 import type { Job, Resume, Match, CareerProfile, JobFeedbackReason } from '../../domain/models/types';
 import type { CareerProfileNew } from '../../application/hooks/useMyProfileAi';
-import { Play, Clipboard, Award, CheckCircle, AlertTriangle, AlertCircle, X, ChevronRight, BookOpen, Plus, Search, MapPin, Loader2, ArrowUpRight, Flame, Sparkles, Trash2, Briefcase, Heart, DollarSign, Building, FileText, Printer, Check, Target, Zap, ThumbsUp, ThumbsDown } from 'lucide-react';
+import { Play, Clipboard, Award, CheckCircle, AlertTriangle, AlertCircle, X, ChevronRight, BookOpen, Plus, Search, MapPin, Loader2, ArrowUpRight, Flame, Sparkles, Trash2, Briefcase, Heart, DollarSign, Building, FileText, Printer, Check, Target, Zap, ThumbsUp, ThumbsDown, Lock } from 'lucide-react';
 
 import { isSupabaseConfigured, supabase } from '../../infrastructure/api/supabaseClient';
 import { AppError } from '../../application/errors/AppError';
@@ -21,6 +21,8 @@ import type { IngestionResult } from '../../application/services/parsers/BaseJob
 import { printElementHtml } from '../../application/utils/pdfExport';
 import { tracker } from '../../infrastructure/analytics/tracker';
 import { JobMatchFeedbackService, type JobMatchRejectionReason } from '../../application/services/JobMatchFeedbackService';
+import { useAuth } from '../../application/hooks/useAuth';
+import { useEntitlements, PaywallModal, CheckoutModal } from '../../modules/billing';
 
 function renderFormattedMarkdown(text: string): React.ReactNode[] {
   if (!text) return [];
@@ -146,6 +148,24 @@ export function JobMatchHub({
   onStartSimulation,
   initialSubTab
 }: JobMatchHubProps) {
+  const { user } = useAuth();
+  const { 
+    isPro, 
+    weeklyActionCount, 
+    maxWeeklyActions, 
+    isJobUnlocked, 
+    canUnlockJob, 
+    unlockJob, 
+    canCreateApplication,
+    canImproveResume: _canImproveResume,
+    canGenerateCoverLetter: _canGenerateCoverLetter,
+    canExportPdf: _canExportPdf,
+    paywallState, 
+    triggerPaywall, 
+    closePaywall 
+  } = useEntitlements(user?.id);
+  const [showCheckout, setShowCheckout] = useState(false);
+
   const queryClient = useQueryClient();
   const [subTab, setSubTab] = useState<'my-jobs' | 'discover'>(initialSubTab || 'discover');
   
@@ -3727,11 +3747,42 @@ export function JobMatchHub({
                 ) : scoredDiscoveredJobs.length > 0 ? (
                   <div className="space-y-6">
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                      {scoredDiscoveredJobs.map((job, idx) => (
-                        <CardGlass key={idx} className="flex flex-col justify-between space-y-4 hover:border-brand-500/30 transition-all">
-                          <div className="space-y-2">
-                            <div className="flex justify-between items-start gap-3">
-                              <div className="flex gap-3 min-w-0">
+                      {scoredDiscoveredJobs.map((job, idx) => {
+                        const isUnlocked = isJobUnlocked(job.id);
+                        const isBlurred = !isPro && !isUnlocked && (weeklyActionCount >= 3 || idx >= 3);
+
+                        return (
+                          <CardGlass 
+                            key={idx} 
+                            className="flex flex-col justify-between space-y-4 hover:border-brand-500/30 transition-all relative overflow-hidden"
+                          >
+                            {isBlurred && (
+                              <div 
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  triggerPaywall('applications', 'Desbloqueie Mais Vagas com o Premium 🚀', 'Sua cota semanal gratuita de 3 vagas foi atingida. Faça o upgrade para o Pro para visualizar todas as vagas e matches sem limites!');
+                                }}
+                                className="absolute inset-0 bg-slate-950/80 backdrop-blur-md z-30 flex flex-col items-center justify-center p-5 text-center cursor-pointer transition-all hover:bg-slate-950/90"
+                              >
+                                <div className="w-12 h-12 rounded-2xl bg-amber-500/10 border border-amber-500/30 text-amber-400 flex items-center justify-center mb-2 shadow-lg shadow-amber-500/10">
+                                  <Lock size={22} />
+                                </div>
+                                <span className="font-extrabold text-sm text-white block">Desbloqueie mais vagas com o Premium</span>
+                                <p className="text-[11px] text-slate-300 max-w-xs mt-1 leading-snug">
+                                  No plano Gratuito, você pode visualizar e desbloquear até 3 vagas por semana (reset toda segunda 00:00). Clique para liberar!
+                                </p>
+                                <button
+                                  type="button"
+                                  className="mt-3 px-4 py-2 rounded-xl bg-gradient-to-r from-amber-500 via-emerald-500 to-brand-500 text-slate-950 font-black text-xs shadow-md cursor-pointer"
+                                >
+                                  Fazer Upgrade para Pro (R$ 29,90/mês)
+                                </button>
+                              </div>
+                            )}
+
+                            <div className={`space-y-2 ${isBlurred ? 'filter blur-[4px] select-none opacity-60' : ''}`}>
+                              <div className="flex justify-between items-start gap-3">
+                                <div className="flex gap-3 min-w-0">
                                 <div className="w-10 h-10 rounded-xl bg-surface-container-high border border-outline-variant/20 flex items-center justify-center font-bold text-xs text-primary shrink-0">
                                   {job.companyName?.substring(0, 2).toUpperCase()}
                                 </div>
@@ -3866,7 +3917,8 @@ export function JobMatchHub({
                             </div>
                           </div>
                         </CardGlass>
-                      ))}
+                      );
+                    })}
                     </div>
 
                      {/* Controles de Paginação */}
@@ -3940,6 +3992,23 @@ export function JobMatchHub({
         </div>,
         document.body
       )}
+
+      <PaywallModal
+        isOpen={paywallState.isOpen}
+        onClose={closePaywall}
+        feature={paywallState.feature}
+        title={paywallState.title}
+        description={paywallState.description}
+        onUpgrade={() => setShowCheckout(true)}
+      />
+
+      <CheckoutModal
+        isOpen={showCheckout}
+        onClose={() => setShowCheckout(false)}
+        userId={user?.id}
+        userEmail={user?.email}
+        userName={user?.email?.split('@')[0]}
+      />
     </div>
   );
 }

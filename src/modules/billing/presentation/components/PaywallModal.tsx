@@ -61,6 +61,22 @@ export function PaywallModal({
           defaultDesc: 'Descubra a taxa de conversão dos seus currículos, lacunas de competências e métricas da sua evolução profissional.',
           benefits: ['Métricas de conversão por versão de currículo', 'Insights de lacunas de competências', 'Relatórios executivos de telemetria de carreira']
         };
+      case 'ia_training':
+        return {
+          icon: <Bot className="text-amber-400" size={32} />,
+          badge: 'Treinamento IA Exclusivo Pro',
+          defaultTitle: 'Pratique Entrevistas com Treinamento IA 🎯',
+          defaultDesc: 'Simule entrevistas no método STAR, receba perguntas adaptadas ao cargo e obtenha feedback comportamental instantâneo para conquistar o recrutador.',
+          benefits: ['Simulações ilimitadas no método STAR', 'Feedback em tempo real da IA sobre respostas', 'Relatórios de calibragem comportamental']
+        };
+      case 'pdf_export':
+        return {
+          icon: <FileText className="text-emerald-400" size={32} />,
+          badge: 'Exportação PDF Pro',
+          defaultTitle: 'Baixe seu Currículo em PDF Otimizado para ATS 📄',
+          defaultDesc: 'No plano Gratuito você pode cadastrar e editar seu currículo. A exportação direta em formato PDF profissional pronto para ATS é exclusiva do Pro.',
+          benefits: ['Download ilimitado de currículos em PDF ATS', 'Exportação de cartas de recomendação em PDF', 'Modelos executivos validados por recrutadores']
+        };
       default:
         return {
           icon: <Sparkles className="text-amber-400" size={32} />,

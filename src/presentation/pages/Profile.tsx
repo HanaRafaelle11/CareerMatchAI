@@ -10,6 +10,8 @@ import { ProcessingState, ErrorState } from '../components/ErrorVisuals';
 import { AppError } from '../../application/errors/AppError';
 import { ProgressRing, SkillChip, Badge, Toast, type ToastMessage } from '../components/ds';
 import { printElementHtml } from '../../application/utils/pdfExport';
+import { useAuth } from '../../application/hooks/useAuth';
+import { useEntitlements, PaywallModal, CheckoutModal } from '../../modules/billing';
 
 interface ProfileProps {
   profile: UserProfile | null;
@@ -184,6 +186,10 @@ export function Profile({
   setActiveProfileTab,
   setActiveTab: _setActiveTab
 }: ProfileProps) {
+  const { user } = useAuth();
+  const { isPro, canExportPdf, canCreateResumeVersion, paywallState, triggerPaywall, closePaywall } = useEntitlements(user?.id);
+  const [showCheckout, setShowCheckout] = useState(false);
+
   const activeInsights = careerInsights || getLocalFallbackInsights(careerProfileNew);
   const [dragActive, setDragActive] = useState(false);
   const [errorMsg, setErrorMsg] = useState<AppError | null>(null);
@@ -277,6 +283,10 @@ export function Profile({
   const displayExperience = careerProfileNew?.experience || primaryResume?.experiences || [];
 
   const handleExportPDF = () => {
+    if (!isPro && !canExportPdf) {
+      triggerPaywall('pdf_export');
+      return;
+    }
     if (!careerProfileNew) {
       setToast({ message: "Não há dados estruturados de perfil para exportar. Aguarde o processamento do currículo.", type: 'warning' });
       return;
@@ -1331,6 +1341,23 @@ export function Profile({
       </div>
       )}
       <Toast toast={toast} onClose={() => setToast(null)} />
+
+      <PaywallModal
+        isOpen={paywallState.isOpen}
+        onClose={closePaywall}
+        feature={paywallState.feature}
+        title={paywallState.title}
+        description={paywallState.description}
+        onUpgrade={() => setShowCheckout(true)}
+      />
+
+      <CheckoutModal
+        isOpen={showCheckout}
+        onClose={() => setShowCheckout(false)}
+        userId={user?.id}
+        userEmail={user?.email}
+        userName={user?.email?.split('@')[0]}
+      />
     </div>
   );
 }

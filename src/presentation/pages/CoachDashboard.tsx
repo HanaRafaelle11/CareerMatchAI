@@ -11,6 +11,8 @@ import {
 import { ProgressRing, Badge, Toast, type ToastMessage } from '../components/ds';
 import { useCopilotEngine } from '../../application/hooks/useCopilotEngine';
 import { printElementHtml } from '../../application/utils/pdfExport';
+import { useAuth } from '../../application/hooks/useAuth';
+import { useEntitlements, PaywallModal, CheckoutModal } from '../../modules/billing';
 
 /** Converts **bold** markdown markers in text to <strong> tags */
 function formatBoldText(text: string): React.ReactNode[] {
@@ -54,12 +56,19 @@ export function CoachDashboard({
   onClearInitialSelectedAppId,
   setActiveTab
 }: CoachDashboardProps) {
+  const { user } = useAuth();
+  const { isPro, canUseAiTraining, canExportPdf, paywallState, triggerPaywall, closePaywall } = useEntitlements(user?.id);
+  const [showCheckout, setShowCheckout] = useState(false);
   const [isCheckingVagas, setIsCheckingVagas] = useState(false);
   
   // Dados do perfil consolidado para personalizar PDF
   const profileName = careerProfileNew?.personal?.fullName?.split(' ')[0] || 'Profissional';
 
   const handleExportSimulationPDF = () => {
+    if (!isPro && !canExportPdf) {
+      triggerPaywall('pdf_export');
+      return;
+    }
     if (!simulation || !simulation.evaluations) {
       setToast({ message: "Não há diagnóstico de simulação disponível para exportar.", type: 'warning' });
       return;
@@ -204,6 +213,10 @@ export function CoachDashboard({
 
   const handleStartSim = async () => {
     if (!selectedAppId) return;
+    if (!isPro && !canUseAiTraining) {
+      triggerPaywall('ia_training');
+      return;
+    }
     try {
       await startSimulation(selectedAppId);
     } catch (err: any) {
@@ -892,6 +905,23 @@ export function CoachDashboard({
           </CardGlass>
         </div>
       </div>
+
+      <PaywallModal
+        isOpen={paywallState.isOpen}
+        onClose={closePaywall}
+        feature={paywallState.feature}
+        title={paywallState.title}
+        description={paywallState.description}
+        onUpgrade={() => setShowCheckout(true)}
+      />
+
+      <CheckoutModal
+        isOpen={showCheckout}
+        onClose={() => setShowCheckout(false)}
+        userId={user?.id}
+        userEmail={user?.email}
+        userName={user?.email?.split('@')[0]}
+      />
     </div>
   );
 }

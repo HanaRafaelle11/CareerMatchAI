@@ -394,10 +394,14 @@ serve(async (req: Request) => {
       creditCardHolderInfo
     });
 
-    // 4. Salvar Assinatura no Supabase
-    const periodDays = billingCycle === 'YEARLY' ? 365 : 30;
+    // 4. Salvar Assinatura no Supabase (Mês de Calendário Real)
     const now = new Date();
-    const periodEnd = new Date(now.getTime() + periodDays * 24 * 60 * 60 * 1000);
+    const periodEnd = new Date(now);
+    if (billingCycle === 'YEARLY') {
+      periodEnd.setFullYear(periodEnd.getFullYear() + 1);
+    } else {
+      periodEnd.setMonth(periodEnd.getMonth() + 1);
+    }
     const isCartaoAprovado = billingType === 'CREDIT_CARD' && (asaasSubscription.status === 'ACTIVE' || asaasSubscription.status === 'RECEIVED');
 
     const subscriptionInsertPayload: Record<string, any> = {

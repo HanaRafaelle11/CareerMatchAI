@@ -3,7 +3,7 @@ import { supabase } from '../../../../infrastructure/api/supabaseClient';
 
 export interface PaywallTriggerState {
   isOpen: boolean;
-  feature: 'applications' | 'copilot' | 'resumes' | 'kanban' | 'journey' | 'analytics' | 'default';
+  feature: 'applications' | 'copilot' | 'resumes' | 'kanban' | 'journey' | 'analytics' | 'ia_training' | 'pdf_export' | 'default';
   title?: string;
   description?: string;
 }
@@ -21,11 +21,29 @@ export function useEntitlements(userId?: string) {
   const [isPro, setIsPro] = useState(false);
   const [loading, setLoading] = useState(true);
   const [weeklyApplicationsCount, setWeeklyApplicationsCount] = useState(0);
+  const [unlockedJobIds, setUnlockedJobIds] = useState<string[]>([]);
   const [resumeVersionsCount, setResumeVersionsCount] = useState(0);
   const [paywallState, setPaywallState] = useState<PaywallTriggerState>({
     isOpen: false,
     feature: 'default'
   });
+
+  const weekStartIso = getCalendarWeekStart().toISOString();
+  const weekStorageKey = `vocentro_unlocked_jobs_${weekStartIso.split('T')[0]}`;
+
+  // Carregar vagas já desbloqueadas pelo candidato na semana corrente
+  useEffect(() => {
+    try {
+      const stored = localStorage.getItem(weekStorageKey);
+      if (stored) {
+        setUnlockedJobIds(JSON.parse(stored));
+      } else {
+        setUnlockedJobIds([]);
+      }
+    } catch {
+      setUnlockedJobIds([]);
+    }
+  }, [weekStorageKey]);
 
   const checkStatus = useCallback(async () => {
     if (!userId || !supabase) {
@@ -47,7 +65,6 @@ export function useEntitlements(userId?: string) {
       setIsPro(userIsPro);
 
       // 2. Contar Candidaturas na Semana Calendário (Reset toda Segunda 00:00)
-      const weekStartIso = getCalendarWeekStart().toISOString();
       const { count: appCount } = await supabase
         .from('applications')
         .select('id', { count: 'exact', head: true })
@@ -68,11 +85,41 @@ export function useEntitlements(userId?: string) {
     } finally {
       setLoading(false);
     }
-  }, [userId]);
+  }, [userId, weekStartIso]);
 
   useEffect(() => {
     checkStatus();
   }, [checkStatus]);
+
+  // Cota unificada semanal de ações (vagas desbloqueadas + candidaturas + IA resume/letter)
+  const weeklyActionCount = Math.max(weeklyApplicationsCount, unlockedJobIds.length);
+  const maxWeeklyActions = isPro ? Infinity : 3;
+
+  const isJobUnlocked = (jobId: string): boolean => {
+    if (isPro) return true;
+    return unlockedJobIds.includes(jobId);
+  };
+
+  const canUnlockJob = (jobId: string): boolean => {
+    if (isPro) return true;
+    if (isJobUnlocked(jobId)) return true;
+    return weeklyActionCount < 3;
+  };
+
+  const unlockJob = (jobId: string): boolean => {
+    if (isPro) return true;
+    if (isJobUnlocked(jobId)) return true;
+    if (weeklyActionCount >= 3) {
+      triggerPaywall('applications', 'Cota Semanal de 3 Vagas Atingida 🚀', 'No plano Gratuito, você pode desbloquear até 3 vagas por semana (reset toda segunda às 00:00). Faça o upgrade para o Pro para acesso ilimitado!');
+      return false;
+    }
+    const next = [...unlockedJobIds, jobId];
+    setUnlockedJobIds(next);
+    try {
+      localStorage.setItem(weekStorageKey, JSON.stringify(next));
+    } catch {}
+    return true;
+  };
 
   const triggerPaywall = (
     feature: PaywallTriggerState['feature'],
@@ -94,15 +141,26 @@ export function useEntitlements(userId?: string) {
   return {
     isPro,
     loading,
+    weeklyActionCount,
+    maxWeeklyActions,
     weeklyApplicationsCount,
-    maxWeeklyApplications: isPro ? Infinity : 3,
-    canCreateApplication: isPro || weeklyApplicationsCount < 3,
-    
+    unlockedJobIds,
+
+    isJobUnlocked,
+    canUnlockJob,
+    unlockJob,
+
+    canCreateApplication: (jobId?: string) => isPro || (jobId ? isJobUnlocked(jobId) : weeklyActionCount < 3),
+    canImproveResume: (jobId?: string) => isPro || (jobId ? isJobUnlocked(jobId) : weeklyActionCount < 3),
+    canGenerateCoverLetter: (jobId?: string) => isPro || (jobId ? isJobUnlocked(jobId) : weeklyActionCount < 3),
+
     resumeVersionsCount,
     maxResumeVersions: isPro ? Infinity : 1,
     canCreateResumeVersion: isPro || resumeVersionsCount < 1,
 
     canUseCopilot: isPro,
+    canUseAiTraining: isPro,
+    canExportPdf: isPro,
     canUseKanban: isPro,
     canUseAnalytics: isPro,
     journeyHistoryDays: isPro ? Infinity : 14,

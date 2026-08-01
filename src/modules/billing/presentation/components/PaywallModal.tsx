@@ -1,7 +1,7 @@
 import { BaseModal } from '../../../../presentation/components/ds/BaseModal';
 import { Sparkles, ArrowRight, CheckCircle2, Bot, Layers, BarChart3, FileText, Send, Calendar } from 'lucide-react';
 import type { PaywallTriggerState } from '../..';
-import { getDaysUntilNextMonday } from '../application/hooks/useEntitlements';
+import { getDaysUntilNextMonday } from '../../application/hooks/useEntitlements';
 
 interface PaywallModalProps {
   isOpen: boolean;

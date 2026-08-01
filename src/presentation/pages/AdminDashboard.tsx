@@ -1040,8 +1040,9 @@ export function AdminDashboard({ userId }: AdminDashboardProps) {
                           (user.email || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
                           (user.headline || '').toLowerCase().includes(searchQuery.toLowerCase());
     const matchesRole = roleFilter === 'all' || user.role === roleFilter;
-    const isTestEmail = String(user.email || '').toLowerCase().match(/test|e2e|example|mock|\+test|hardening/);
-    const matchesTestFilter = !showTestAccounts ? (!user.is_test_account && !isTestEmail) : true;
+    const isTestEmail = !!String(user.email || '').toLowerCase().match(/test|e2e|example|mock|\+test|hardening/);
+    const isTestUser = user.is_test_account || isTestEmail;
+    const matchesTestFilter = showTestAccounts ? true : !isTestUser;
     return matchesSearch && matchesRole && matchesTestFilter;
   });
 
@@ -1564,6 +1565,7 @@ export function AdminDashboard({ userId }: AdminDashboardProps) {
                 onClick={() => {
                   setShowTestAccounts(prev => !prev);
                   setUserPage(1);
+                  setTimeout(() => refetchUsers(), 50);
                 }}
                 title={showTestAccounts ? 'Ocultar contas de teste (@example.com, e2e)' : 'Mostrar contas de teste (@example.com, e2e)'}
                 className={`px-3 py-2.5 rounded-xl border text-xs font-semibold flex items-center gap-1.5 cursor-pointer transition-all ${

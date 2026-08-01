@@ -98,6 +98,18 @@ serve(async (req: Request) => {
         }
       }
 
+      if (!targetUserId && (paymentData?.customerEmail || paymentData?.email || payload?.customerEmail)) {
+        const targetEmail = paymentData?.customerEmail || paymentData?.email || payload?.customerEmail;
+        const { data: profs } = await adminClient
+          .from('profiles')
+          .select('id')
+          .eq('email', targetEmail)
+          .limit(1);
+        if (profs?.[0]?.id) {
+          targetUserId = profs[0].id;
+        }
+      }
+
       if (targetUserId) {
         const now = new Date();
         const periodDays = targetSub?.billing_cycle === 'YEARLY' ? 365 : 30;
@@ -140,6 +152,12 @@ serve(async (req: Request) => {
             targetSub = { id: newSub.id, user_id: targetUserId, billing_cycle: 'MONTHLY' };
           }
         }
+
+        // Sincronizar status do usuário no perfil
+        await adminClient
+          .from('profiles')
+          .update({ is_pro: true, updated_at: now.toISOString() })
+          .eq('id', targetUserId);
 
         // Atualizar Faturas atreladas
         await adminClient

@@ -142,35 +142,51 @@ async function logApplicationEvent(supabaseClient: any, userId: string | null, e
 }
 
 class ResumeParserService {
-  static async extractText(fileData: Blob, contentType: string, storagePath: string): Promise<{ text: string, pageCount: number }> {
+  static async extractText(fileData: Blob, contentType: string, storagePath: string): Promise<{ text: string, pageCount: number, imageBase64?: string, mimeType?: string }> {
     let textToAnalyze = '';
     let numPages = 1;
+    let imageBase64: string | undefined = undefined;
+    let mimeType: string | undefined = undefined;
+
+    const lowerPath = storagePath.toLowerCase();
+    const isImage = contentType.startsWith('image/') || lowerPath.endsWith('.png') || lowerPath.endsWith('.jpg') || lowerPath.endsWith('.jpeg') || lowerPath.endsWith('.webp');
 
     try {
-      if (contentType.includes('text/plain') || storagePath.endsWith('.txt')) {
-        textToAnalyze = await fileData.text()
-      } else if (contentType.includes('pdf') || storagePath.endsWith('.pdf')) {
-        const arrayBuffer = await fileData.arrayBuffer()
-        const pdfProxy = await getDocumentProxy(new Uint8Array(arrayBuffer))
-        numPages = pdfProxy.numPages
-        const { text } = await extractText(pdfProxy, { mergePages: true })
-        textToAnalyze = text
-      } else if (contentType.includes('officedocument.wordprocessingml.document') || storagePath.endsWith('.docx')) {
-        const arrayBuffer = await fileData.arrayBuffer()
-        const docxResult = await mammoth.extractRawText({ arrayBuffer: new Uint8Array(arrayBuffer) })
-        textToAnalyze = docxResult.value
+      if (isImage) {
+        const arrayBuffer = await fileData.arrayBuffer();
+        const bytes = new Uint8Array(arrayBuffer);
+        let binary = '';
+        const len = bytes.byteLength;
+        for (let i = 0; i < len; i++) {
+          binary += String.fromCharCode(bytes[i]);
+        }
+        imageBase64 = btoa(binary);
+        mimeType = contentType.startsWith('image/') ? contentType : lowerPath.endsWith('.png') ? 'image/png' : lowerPath.endsWith('.webp') ? 'image/webp' : 'image/jpeg';
+        textToAnalyze = `[DOCUMENTO DE IMAGEM: ${storagePath}]`;
+      } else if (contentType.includes('text/plain') || lowerPath.endsWith('.txt')) {
+        textToAnalyze = await fileData.text();
+      } else if (contentType.includes('pdf') || lowerPath.endsWith('.pdf')) {
+        const arrayBuffer = await fileData.arrayBuffer();
+        const pdfProxy = await getDocumentProxy(new Uint8Array(arrayBuffer));
+        numPages = pdfProxy.numPages;
+        const { text } = await extractText(pdfProxy, { mergePages: true });
+        textToAnalyze = text;
+      } else if (contentType.includes('officedocument.wordprocessingml.document') || lowerPath.endsWith('.docx')) {
+        const arrayBuffer = await fileData.arrayBuffer();
+        const docxResult = await mammoth.extractRawText({ arrayBuffer: new Uint8Array(arrayBuffer) });
+        textToAnalyze = docxResult.value;
       } else {
-        textToAnalyze = await fileData.text()
+        textToAnalyze = await fileData.text();
       }
     } catch (parseError) {
       console.error("[PARSER ERROR] Falha ao analisar estrutura do documento:", parseError);
       throw new Error("Arquivo inválido. Envie outro currículo.");
     }
 
-    return { text: cleanString(textToAnalyze), pageCount: numPages };
+    return { text: cleanString(textToAnalyze), pageCount: numPages, imageBase64, mimeType };
   }
 
-  static async parseWithGemini(text: string, supabaseClient: any, userId: string, mockEnabled = false): Promise<any> {
+  static async parseWithGemini(text: string, supabaseClient: any, userId: string, mockEnabled = false, imageData?: { imageBase64?: string, mimeType?: string }): Promise<any> {
     await checkRateLimit(supabaseClient, userId, 'resume-parsing');
 
     const resumeHash = await computeHash(text);
@@ -430,7 +446,12 @@ class ResumeParserService {
           },
           body: JSON.stringify({
             contents: [{
-              parts: [{ text: prompt }]
+              parts: imageData?.imageBase64
+                ? [
+                    { inlineData: { mimeType: imageData.mimeType || 'image/png', data: imageData.imageBase64 } },
+                    { text: prompt }
+                  ]
+                : [{ text: prompt }]
             }],
             generationConfig: {
               responseMimeType: 'application/json'
@@ -738,82 +759,20 @@ serve(async (req) => {
     // Registrar evento global de início de IA
     await logApplicationEvent(supabaseClient, userId, 'gemini_request_started', 'Gemini', 'started');
 
-    // 4. Enviar texto para Gemini 2.5 Flash (ou obter do cache)
-    console.log(`[EDGE FUNCTION] Enviando para Gemini 2.5 Flash...`)
+    // 4. Enviar texto/imagem para Gemini
+    console.log(`[EDGE FUNCTION] Enviando para Gemini...`)
+    const imageData = (extracted.imageBase64 && extracted.mimeType) 
+      ? { imageBase64: extracted.imageBase64, mimeType: extracted.mimeType } 
+      : undefined;
+
     try {
-      parsedData = await ResumeParserService.parseWithGemini(truncatedText, supabaseClient, userId, isMockEnabled);
-    } catch (geminiErr) {
-      console.warn(`[EDGE FUNCTION FALLBACK] Gemini falhou: ${geminiErr.message}. Usando parser de contingência local.`);
-      await logProcessingStep(supabaseClient, resumeVersionId, 'analyzing_profile', 'running', `IA indisponível: ${geminiErr.message}. Ativando parser de contingência local...`, {}, userId);
-      
-      parsedData = {
-        career_profile: {
-          personal: {
-            fullName: "Profissional Vocentro",
-            headline: "Especialista em Tecnologia",
-            email: null,
-            phone: null,
-            linkedin: null,
-            website: null,
-            location: null
-          },
-          summary: "Perfil gerado através do parser de contingência local devido à indisponibilidade temporária da API de IA.",
-          experience: [
-            {
-              companyName: "Empresa de Tecnologia",
-              role: "Desenvolvedor",
-              startDate: "2022-01-01",
-              endDate: null,
-              isCurrent: true,
-              description: "Atuação em projetos de desenvolvimento de software e infraestrutura de sistemas.",
-              highlights: []
-            }
-          ],
-          education: [],
-          skills: [{ name: "React" }, { name: "TypeScript" }, { name: "Node.js" }],
-          soft_skills: ["Trabalho em Equipe", "Comunicação"],
-          languages: [{ language: "Português", proficiency: "nativo" }],
-          certifications: [],
-          ats_keywords: {
-            existing_keywords: ["React", "TypeScript"],
-            missing_keywords: ["SQL"],
-            recommended_keywords: ["Cloud Computing"]
-          }
-        },
-        career_insights: {
-          seniority_prediction: {
-            value: "Mid",
-            confidence: 0.85,
-            reason: "Gerado automaticamente por contingência",
-            source_type: "inferred"
-          },
-          industry_prediction: {
-            value: "Tecnologia",
-            confidence: 0.85,
-            reason: "Gerado automaticamente por contingência",
-            source_type: "inferred"
-          },
-          methodologies: [{ methodology_name: "Scrum", confidence: 0.85, source_type: "extracted" }],
-          recommended_keywords: { 
-            value: ["SQL", "Clean Code"], 
-            confidence: 0.85, 
-            reason: "Gerado automaticamente por contingência", 
-            source_type: "recommended" 
-          },
-          missing_skills: { 
-            value: ["SQL"], 
-            confidence: 0.85, 
-            reason: "Gerado automaticamente por contingência", 
-            source_type: "recommended" 
-          },
-          confidence_scores: { 
-            value: { personal: 0.9, experience: 0.9 }, 
-            confidence: 0.9, 
-            reason: "Gerado automaticamente por contingência", 
-            source_type: "inferred" 
-          }
-        }
-      };
+      parsedData = await ResumeParserService.parseWithGemini(truncatedText, supabaseClient, userId, isMockEnabled, imageData);
+    } catch (geminiErr: any) {
+      console.error(`[EDGE FUNCTION ERROR] Gemini falhou: ${geminiErr.message}`);
+      const failMsg = `Falha no processamento por IA: ${geminiErr.message || 'Serviço temporariamente indisponível'}`;
+      await logProcessingStep(supabaseClient, resumeVersionId, 'analyzing_profile', 'failed', failMsg, {}, userId);
+      await logApplicationEvent(supabaseClient, userId, 'gemini_request_failed', 'Gemini', 'failed', { reason: geminiErr.message });
+      throw new Error(failMsg);
     }
 
     // Validação estrita do perfil retornado pela IA para evitar perfis vazios ou corrompidos

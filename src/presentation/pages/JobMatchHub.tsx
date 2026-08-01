@@ -3725,12 +3725,24 @@ export function JobMatchHub({
                         <span className="text-emerald-400 font-semibold">Match Superior a 80% (Match alto com a vaga)</span>
                       </label>
                     </div>
-                    <span className="text-[11px] text-slate-500 font-mono">
-                      Exibindo {scoredDiscoveredJobs.length} de {discoveredJobs.length} vaga(s)
+                    <span className="text-[11px] text-slate-500 font-mono flex items-center gap-1.5 flex-wrap">
+                      <span>Exibindo {scoredDiscoveredJobs.length} de {discoveredJobs.length} vaga(s)</span>
                       {discoveredJobs.length > scoredDiscoveredJobs.length && (
-                        <span className="text-amber-400 font-semibold text-[10px] ml-1.5">
-                          ({discoveredJobs.length - scoredDiscoveredJobs.length} oculta(s) por filtros)
-                        </span>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setFilterActiveOnly(false);
+                            setFilterScoreOver80(false);
+                            setActiveFilters({ keyword: '', location: '', remoteOnly: false, workModes: [], seniority: 'all' });
+                            setSearchKeyword('');
+                            setSearchLocation('');
+                            setSearchSeniority('all');
+                            setSearchWorkModes([]);
+                          }}
+                          className="text-amber-400 hover:text-amber-300 underline font-bold text-[10px] cursor-pointer"
+                        >
+                          ({discoveredJobs.length - scoredDiscoveredJobs.length} oculta(s) por filtros — Mostrar Todas)
+                        </button>
                       )}
                     </span>
                   </div>

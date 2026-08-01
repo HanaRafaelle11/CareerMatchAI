@@ -78,12 +78,21 @@ export function useResumes(userId: string | undefined) {
       }
 
       // Validar extensão / MIME type
-      const allowedExtensions = ['.pdf', '.docx', '.doc', '.txt'];
+      const allowedExtensions = ['.pdf', '.docx', '.doc', '.txt', '.png', '.jpg', '.jpeg', '.webp'];
       const fileExt = '.' + file.name.split('.').pop()?.toLowerCase();
-      const allowedMimes = ['application/pdf', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 'application/msword', 'text/plain'];
+      const allowedMimes = [
+        'application/pdf',
+        'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+        'application/msword',
+        'text/plain',
+        'image/png',
+        'image/jpeg',
+        'image/jpg',
+        'image/webp'
+      ];
       
       if (!allowedExtensions.includes(fileExt) && file.type && !allowedMimes.includes(file.type)) {
-        throw new Error('Formato de arquivo não suportado. Por favor, envie um documento em formato PDF, DOCX ou TXT.');
+        throw new Error('Formato de arquivo não suportado. Por favor, envie um documento em formato PDF, DOCX, TXT ou Imagem (PNG, JPG, WEBP).');
       }
 
       const pipelineStartTime = Date.now();
@@ -425,8 +434,8 @@ export function useResumes(userId: string | undefined) {
               resumeVersionId
             };
           } catch (supaError) {
-            console.warn('[PIPELINE] Falha no fluxo Supabase. Iniciando fallback para modo Local...', supaError);
-            return await runMockPipeline();
+            console.error('[PIPELINE] Falha no fluxo Supabase:', supaError);
+            throw supaError;
           }
         } else {
           return await runMockPipeline();
@@ -761,6 +770,21 @@ export function useJobs(userId: string | undefined) {
       if (!userId) throw new Error('Usuário não autenticado.');
 
       if (isSupabaseConfigured && supabase) {
+        // Deletar candidaturas vinculadas
+        await supabase
+          .from('applications')
+          .delete()
+          .eq('job_id', jobId)
+          .eq('user_id', userId);
+
+        // Deletar matches vinculados
+        await supabase
+          .from('job_matches')
+          .delete()
+          .eq('job_id', jobId)
+          .eq('user_id', userId);
+
+        // Deletar vaga no Supabase
         const { error } = await supabase
           .from('jobs')
           .delete()
@@ -768,13 +792,18 @@ export function useJobs(userId: string | undefined) {
           .eq('user_id', userId);
 
         if (error) throw error;
-      } else {
-        localDB.deleteJob(jobId);
       }
+
+      // Deletar sempre no localDB para limpar cache local
+      localDB.deleteJob(jobId);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['jobs', userId] });
+      queryClient.invalidateQueries({ queryKey: ['jobs'] });
       queryClient.invalidateQueries({ queryKey: ['matches'] });
+      queryClient.invalidateQueries({ queryKey: ['applications'] });
+      queryClient.invalidateQueries({ queryKey: ['applications', userId] });
+      queryClient.invalidateQueries({ queryKey: ['user-career-match-data'] });
     }
   });
 

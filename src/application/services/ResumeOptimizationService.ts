@@ -15,9 +15,10 @@ export class ResumeOptimizationService {
     offersCount: number;
     conversionRate: number;
   }> {
-    return resumes.map(resume => {
-      const versionNum = resume.versionNumber || 1;
-      const versionLbl = resume.versionLabel || `Versão ${versionNum}`;
+    return resumes.map((resume, idx) => {
+      const versionNum = resume.versionNumber || (idx + 1);
+      const fileName = resume.fileName || 'Curriculo.pdf';
+      const versionLbl = resume.versionLabel || `Versão ${versionNum}${fileName ? ` — ${fileName}` : ''}`;
       
       const resumeApps = applications.filter(app => app.resumeVersionId === resume.resumeVersionId);
       const appsCount = resumeApps.length;
@@ -27,8 +28,8 @@ export class ResumeOptimizationService {
         '🎯 Entrevista com gestor',
         '🧩 Case técnico',
         '🤝 Fit cultural',
-        '🏆 Oferta recebida',
-        '✅ Aceita'
+        'hr',
+        'interview'
       ];
       
       const interviewsCount = resumeApps.filter(app => interviewStatuses.includes(app.status)).length;

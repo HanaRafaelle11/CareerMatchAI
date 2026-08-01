@@ -443,7 +443,7 @@ export function Profile({
       setErrorMsg(new AppError({
         code: 'RESUME_UPLOAD_INVALID',
         title: 'Não conseguimos ler esse arquivo',
-        message: `Tipo de arquivo "${fileExtension}" não é permitido. Envie apenas PDF, DOC, DOCX ou TXT.`,
+        message: `Tipo de arquivo "${fileExtension}" não é permitido. Envie apenas PDF, DOC, DOCX, TXT ou imagem (PNG, JPG, WEBP).`,
         severity: 'warning',
         retryable: false,
         action: 'Enviar novo currículo'
@@ -452,12 +452,23 @@ export function Profile({
     }
 
     // 4. Validação de tipo MIME
-    const allowedTypes = ['application/pdf', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 'text/plain'];
-    if (!allowedTypes.includes(file.type) && !file.name.endsWith('.pdf') && !file.name.endsWith('.doc') && !file.name.endsWith('.docx') && !file.name.endsWith('.txt')) {
+    const allowedTypes = [
+      'application/pdf',
+      'application/msword',
+      'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+      'text/plain',
+      'image/png',
+      'image/jpeg',
+      'image/jpg',
+      'image/webp'
+    ];
+    const isImgExt = ['.png', '.jpg', '.jpeg', '.webp'].includes(fileExtension);
+    const isDocExt = ['.pdf', '.doc', '.docx', '.txt'].includes(fileExtension);
+    if (!allowedTypes.includes(file.type) && !isDocExt && !isImgExt) {
       setErrorMsg(new AppError({
         code: 'RESUME_UPLOAD_INVALID',
         title: 'Não conseguimos ler esse arquivo',
-        message: 'Apenas arquivos PDF, DOC, DOCX ou TXT com até 10MB são suportados.',
+        message: 'Apenas arquivos PDF, DOC, DOCX, TXT ou imagens (PNG, JPG, WEBP) com até 10MB são suportados.',
         severity: 'warning',
         retryable: false,
         action: 'Enviar novo currículo'

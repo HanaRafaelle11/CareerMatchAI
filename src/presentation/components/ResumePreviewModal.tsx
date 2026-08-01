@@ -25,7 +25,7 @@ export function ResumePreviewModal({ user, onClose }: ResumePreviewModalProps) {
       setIsLoading(true);
       try {
         if (isSupabaseConfigured && supabase) {
-          // Fetch resume record from Supabase
+          // 1. Tentar buscar em resumes
           const { data } = await supabase
             .from('resumes')
             .select('*')
@@ -36,15 +36,29 @@ export function ResumePreviewModal({ user, onClose }: ResumePreviewModalProps) {
 
           if (data) {
             setResumeData(data);
-
             if (data.file_path) {
               const { data: urlData } = await supabase.storage
                 .from('resumes')
                 .createSignedUrl(data.file_path, 3600);
+              if (urlData?.signedUrl) setDownloadUrl(urlData.signedUrl);
+            }
+          } else {
+            // 2. Fallback de admin backend: buscar em career_profiles
+            const { data: profile } = await supabase
+              .from('career_profiles')
+              .select('*')
+              .eq('user_id', userId)
+              .limit(1)
+              .maybeSingle();
 
-              if (urlData?.signedUrl) {
-                setDownloadUrl(urlData.signedUrl);
-              }
+            if (profile) {
+              setResumeData({
+                raw_text: profile.summary || 'Perfil cadastrado na plataforma.',
+                structured_summary: profile.summary,
+                skills: profile.skills,
+                experiences: profile.experience,
+                years_of_experience: profile.years_of_experience
+              });
             }
           }
         }

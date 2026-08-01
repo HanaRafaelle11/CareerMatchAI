@@ -887,27 +887,27 @@ export function StrategyPage({
 
       {/* 2. Modal: Confirmação de Movimento para Trás */}
       {backwardConfirmApp && (
-        <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-[1000] flex items-center justify-center p-4">
-          <CardGlass className="w-full max-w-md space-y-4 border border-amber-500/30 text-center p-6 bg-[#162032]">
-            <div className="mx-auto w-12 h-12 rounded-full bg-amber-500/10 text-amber-400 flex items-center justify-center">
-              <ShieldAlert size={24} />
+        <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-[1000] flex items-center justify-center p-3">
+          <CardGlass className="w-full max-w-sm space-y-3 border border-amber-500/30 text-center p-4 bg-[#162032] my-auto shadow-2xl">
+            <div className="mx-auto w-10 h-10 rounded-full bg-amber-500/10 text-amber-400 flex items-center justify-center">
+              <ShieldAlert size={20} />
             </div>
             <div>
-              <h3 className="font-display font-bold text-base text-slate-100">Mover Candidatura para Trás?</h3>
-              <p className="text-xs text-slate-400 mt-1">
+              <h3 className="font-display font-bold text-sm text-slate-100">Mover Candidatura para Trás?</h3>
+              <p className="text-xs text-slate-400 mt-1 leading-snug">
                 Deseja mover a candidatura em <strong>{backwardConfirmApp.app.jobTitle}</strong> ({backwardConfirmApp.app.companyName}) de volta para a etapa anterior?
               </p>
             </div>
-            <div className="flex gap-3 justify-center pt-2">
+            <div className="flex gap-2.5 justify-center pt-1">
               <button
                 onClick={() => setBackwardConfirmApp(null)}
-                className="px-4 py-2 rounded-xl border border-slate-700 text-slate-300 text-xs font-semibold"
+                className="px-3.5 py-1.5 rounded-xl border border-slate-700 text-slate-300 text-xs font-semibold hover:bg-slate-900"
               >
                 Cancelar
               </button>
               <button
                 onClick={handleConfirmBackwardMove}
-                className="px-4 py-2 rounded-xl bg-amber-600 hover:bg-amber-500 text-white text-xs font-bold shadow-md"
+                className="px-3.5 py-1.5 rounded-xl bg-amber-600 hover:bg-amber-500 text-white text-xs font-bold shadow-md"
               >
                 Confirmar Retrocesso
               </button>
@@ -1370,14 +1370,14 @@ export function StrategyPage({
 
           {/* Coluna Opcional de Arquivadas / Rejeitadas */}
           {showArchived && (
-            <div className="mt-8 border-t border-slate-800 pt-6 space-y-4">
+            <div className="mt-4 border-t border-slate-800/80 pt-3 space-y-3">
               <div className="flex items-center gap-2 text-red-400">
-                <Archive size={18} />
-                <h3 className="font-bold text-sm text-slate-200">Candidaturas Arquivadas / Encerradas ({rejectedCount})</h3>
+                <Archive size={16} />
+                <h3 className="font-bold text-xs text-slate-200">Candidaturas Arquivadas / Encerradas ({rejectedCount})</h3>
               </div>
-              <div className="grid grid-cols-1 md:grid-cols-3 xl:grid-cols-4 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-3 xl:grid-cols-4 gap-3">
                 {pipelineColumns.rejected?.apps?.map(app => (
-                  <CardGlass key={app.id} onClick={() => setSelectedAppId(app.id)} className="p-4 space-y-2 opacity-75 border-red-900/30 hover:opacity-100 cursor-pointer">
+                  <CardGlass key={app.id} onClick={() => setSelectedAppId(app.id)} className="p-3 space-y-1.5 opacity-75 border-red-900/30 hover:opacity-100 cursor-pointer">
                     <div className="flex justify-between items-start">
                       <div>
                         <h4 className="font-bold text-slate-200 text-xs truncate max-w-[150px]">{app.jobTitle}</h4>

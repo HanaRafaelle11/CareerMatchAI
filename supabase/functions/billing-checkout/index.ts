@@ -73,6 +73,7 @@ class AsaasEdgeAdapter {
       nextDueDate: today,
       cycle: params.billingCycle === 'YEARLY' ? 'YEARLY' : 'MONTHLY',
       description: `Assinatura Vocentro - Plano ${params.planSlug.toUpperCase()}`,
+      externalReference: (params as any).userId
     };
 
     if (params.billingType === 'CREDIT_CARD' && params.creditCard) {

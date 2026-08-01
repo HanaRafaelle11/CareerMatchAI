@@ -210,9 +210,9 @@ body.light {
 .light .bg-slate-900,
 .light .bg-slate-850,
 .light .bg-slate-800,
-.light .bg-[#0f172a],
-.light .bg-[#0b1120],
-.light .bg-[#1e293b] {
+.light .bg-\[\#0f172a\],
+.light .bg-\[\#0b1120\],
+.light .bg-\[\#1e293b\] {
   background-color: #ffffff !important;
 }
 

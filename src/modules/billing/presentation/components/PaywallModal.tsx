@@ -1,6 +1,7 @@
 import { BaseModal } from '../../../../presentation/components/ds/BaseModal';
-import { Sparkles, ArrowRight, CheckCircle2, Bot, Layers, BarChart3, FileText, Send } from 'lucide-react';
+import { Sparkles, ArrowRight, CheckCircle2, Bot, Layers, BarChart3, FileText, Send, Calendar } from 'lucide-react';
 import type { PaywallTriggerState } from '../..';
+import { getDaysUntilNextMonday } from '../application/hooks/useEntitlements';
 
 interface PaywallModalProps {
   isOpen: boolean;
@@ -8,6 +9,8 @@ interface PaywallModalProps {
   feature?: PaywallTriggerState['feature'];
   title?: string;
   description?: string;
+  primaryButtonText?: string;
+  secondaryButtonText?: string;
   onUpgrade: () => void;
 }
 
@@ -17,16 +20,37 @@ export function PaywallModal({
   feature = 'default',
   title,
   description,
+  primaryButtonText,
+  secondaryButtonText,
   onUpgrade
 }: PaywallModalProps) {
   const getFeatureDetails = () => {
+    const daysLeft = getDaysUntilNextMonday();
+    const daysText = daysLeft === 1 ? '1 dia' : `${daysLeft} dias`;
+
     switch (feature) {
+      case 'weekly_limit':
+        return {
+          icon: <Calendar className="text-amber-400" size={32} />,
+          badge: 'Cota Semanal Esgotada (3/3)',
+          defaultTitle: 'Suas 3 análises da semana já foram usadas',
+          defaultDesc: `Sua cota gratuita de 3 análises de vagas nesta semana foi totalmente utilizada. Ela será renovada em ${daysText} (na próxima segunda-feira às 00:00). Assine o Premium para continuar sem interrupções!`,
+          defaultPrimaryBtn: 'Assinar Premium agora',
+          defaultSecondaryBtn: `Esperar ${daysText}`,
+          benefits: [
+            'Análises e buscas de vagas 100% ilimitadas',
+            'Candidaturas e otimização de currículo sem trava semanal',
+            'Acesso completo ao Copiloto IA e Simulações STAR'
+          ]
+        };
       case 'applications':
         return {
           icon: <Send className="text-brand-400" size={32} />,
           badge: 'Limite Semanal Atingido',
           defaultTitle: 'Alcance Mais Oportunidades com o Vocentro Pro 🚀',
           defaultDesc: 'No plano Gratuito, o envio é limitado a 3 candidaturas por semana (reset toda segunda-feira às 00:00). Faça o upgrade para o Pro e envie candidaturas ilimitadas com autofill inteligente!',
+          defaultPrimaryBtn: 'Fazer Upgrade para Pro (R$ 29,90/mês)',
+          defaultSecondaryBtn: 'Continuar no Plano Gratuito',
           benefits: ['Candidaturas ilimitadas por semana', 'Autofill de currículo otimizado com IA', 'Prioridade no Matching de Vagas com Gemini']
         };
       case 'copilot':
@@ -35,6 +59,8 @@ export function PaywallModal({
           badge: 'Recurso Exclusivo Pro',
           defaultTitle: 'Desbloqueie o Copiloto IA de Carreira 🤖',
           defaultDesc: 'O Copiloto IA analisa requisitos de vagas em tempo real, gera cartas de apresentação sob medida e fornece orientações estratégicas de entrevista.',
+          defaultPrimaryBtn: 'Fazer Upgrade para Pro (R$ 29,90/mês)',
+          defaultSecondaryBtn: 'Continuar no Plano Gratuito',
           benefits: ['Copiloto IA 24/7 integrado', 'Gerador ilimitado de cartas de apresentação', 'Simulações comportamentais no método STAR']
         };
       case 'resumes':
@@ -43,6 +69,8 @@ export function PaywallModal({
           badge: 'Limite de Currículos Salvos',
           defaultTitle: 'Crie Múltiplas Versões do seu Currículo 📄',
           defaultDesc: 'O plano Gratuito permite manter apenas 1 versão salva do currículo. No Pro você pode ter até 10 versões adaptadas para diferentes cargos.',
+          defaultPrimaryBtn: 'Fazer Upgrade para Pro (R$ 29,90/mês)',
+          defaultSecondaryBtn: 'Continuar no Plano Gratuito',
           benefits: ['Até 10 versões adaptadas simultâneas', 'Exportação ilimitada de PDF em formato ATS', 'Análise profunda de ATS e pontuação de compatibilidade']
         };
       case 'kanban':
@@ -51,6 +79,8 @@ export function PaywallModal({
           badge: 'Pipeline Avançado Pro',
           defaultTitle: 'Organize suas Candidaturas no Kanban Drag & Drop 📊',
           defaultDesc: 'Visualize todo o seu funil de processos seletivos de forma ágil, arraste cards entre etapas e receba alertas de acompanhamento.',
+          defaultPrimaryBtn: 'Fazer Upgrade para Pro (R$ 29,90/mês)',
+          defaultSecondaryBtn: 'Continuar no Plano Gratuito',
           benefits: ['Quadro Kanban dinâmico e arrastável', 'Métricas de conversão de candidaturas por etapa', 'Histórico completo sem restrição de dias']
         };
       case 'analytics':
@@ -59,6 +89,8 @@ export function PaywallModal({
           badge: 'Painel de Métricas Pro',
           defaultTitle: 'Acesse Insights Avançados de Desempenho 📈',
           defaultDesc: 'Descubra a taxa de conversão dos seus currículos, lacunas de competências e métricas da sua evolução profissional.',
+          defaultPrimaryBtn: 'Fazer Upgrade para Pro (R$ 29,90/mês)',
+          defaultSecondaryBtn: 'Continuar no Plano Gratuito',
           benefits: ['Métricas de conversão por versão de currículo', 'Insights de lacunas de competências', 'Relatórios executivos de telemetria de carreira']
         };
       case 'ia_training':
@@ -67,6 +99,8 @@ export function PaywallModal({
           badge: 'Treinamento IA Exclusivo Pro',
           defaultTitle: 'Pratique Entrevistas com Treinamento IA 🎯',
           defaultDesc: 'Simule entrevistas no método STAR, receba perguntas adaptadas ao cargo e obtenha feedback comportamental instantâneo para conquistar o recrutador.',
+          defaultPrimaryBtn: 'Fazer Upgrade para Pro (R$ 29,90/mês)',
+          defaultSecondaryBtn: 'Continuar no Plano Gratuito',
           benefits: ['Simulações ilimitadas no método STAR', 'Feedback em tempo real da IA sobre respostas', 'Relatórios de calibragem comportamental']
         };
       case 'pdf_export':
@@ -75,6 +109,8 @@ export function PaywallModal({
           badge: 'Exportação PDF Pro',
           defaultTitle: 'Baixe seu Currículo em PDF Otimizado para ATS 📄',
           defaultDesc: 'No plano Gratuito você pode cadastrar e editar seu currículo. A exportação direta em formato PDF profissional pronto para ATS é exclusiva do Pro.',
+          defaultPrimaryBtn: 'Fazer Upgrade para Pro (R$ 29,90/mês)',
+          defaultSecondaryBtn: 'Continuar no Plano Gratuito',
           benefits: ['Download ilimitado de currículos em PDF ATS', 'Exportação de cartas de recomendação em PDF', 'Modelos executivos validados por recrutadores']
         };
       default:
@@ -83,6 +119,8 @@ export function PaywallModal({
           badge: 'Evolua sua Carreira',
           defaultTitle: 'Acelere sua Recolocação com o Vocentro Pro 🚀',
           defaultDesc: 'Obtenha acesso ilimitado a todas as ferramentas de IA, simulações de entrevista e métricas avançadas.',
+          defaultPrimaryBtn: 'Fazer Upgrade para Pro (R$ 29,90/mês)',
+          defaultSecondaryBtn: 'Continuar no Plano Gratuito',
           benefits: ['Acesso ilimitado ao Copiloto IA', 'Pipeline Kanban e candidaturas sem limites', 'Exportação ilimitada de PDF ATS']
         };
     }
@@ -91,6 +129,8 @@ export function PaywallModal({
   const details = getFeatureDetails();
   const displayTitle = title || details.defaultTitle;
   const displayDesc = description || details.defaultDesc;
+  const displayPrimaryBtn = primaryButtonText || details.defaultPrimaryBtn || 'Fazer Upgrade para Pro (R$ 29,90/mês)';
+  const displaySecondaryBtn = secondaryButtonText || details.defaultSecondaryBtn || 'Continuar no Plano Gratuito';
 
   const handleAction = () => {
     onClose();
@@ -140,7 +180,7 @@ export function PaywallModal({
             className="w-full py-3.5 px-6 rounded-2xl bg-gradient-to-r from-amber-500 via-emerald-500 to-brand-500 hover:from-amber-400 hover:to-brand-400 text-slate-950 font-black text-sm shadow-xl cursor-pointer transition-all flex items-center justify-center gap-2"
           >
             <Sparkles size={18} />
-            <span>Fazer Upgrade para Pro (R$ 29,90/mês)</span>
+            <span>{displayPrimaryBtn}</span>
             <ArrowRight size={18} />
           </button>
           <button
@@ -148,7 +188,7 @@ export function PaywallModal({
             onClick={onClose}
             className="text-xs font-semibold text-slate-400 hover:text-slate-200 transition-colors py-1 cursor-pointer"
           >
-            Continuar no Plano Gratuito
+            {displaySecondaryBtn}
           </button>
         </div>
       </div>

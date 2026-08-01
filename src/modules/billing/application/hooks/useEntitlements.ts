@@ -3,9 +3,11 @@ import { supabase } from '../../../../infrastructure/api/supabaseClient';
 
 export interface PaywallTriggerState {
   isOpen: boolean;
-  feature: 'applications' | 'copilot' | 'resumes' | 'kanban' | 'journey' | 'analytics' | 'ia_training' | 'pdf_export' | 'default';
+  feature: 'applications' | 'copilot' | 'resumes' | 'kanban' | 'journey' | 'analytics' | 'ia_training' | 'pdf_export' | 'weekly_limit' | 'default';
   title?: string;
   description?: string;
+  primaryButtonText?: string;
+  secondaryButtonText?: string;
 }
 
 export function getCalendarWeekStart(date: Date = new Date()): Date {
@@ -15,6 +17,14 @@ export function getCalendarWeekStart(date: Date = new Date()): Date {
   const monday = new Date(d.setDate(diff));
   monday.setHours(0, 0, 0, 0);
   return monday;
+}
+
+export function getDaysUntilNextMonday(now: Date = new Date()): number {
+  const current = new Date(now);
+  const dayOfWeek = current.getDay(); // 0: Sun, 1: Mon, ..., 6: Sat
+  let days = (8 - dayOfWeek) % 7;
+  if (days === 0) days = 7;
+  return days;
 }
 
 export function useEntitlements(userId?: string) {
@@ -110,7 +120,7 @@ export function useEntitlements(userId?: string) {
     if (isPro) return true;
     if (isJobUnlocked(jobId)) return true;
     if (weeklyActionCount >= 3) {
-      triggerPaywall('applications', 'Cota Semanal de 3 Vagas Atingida 🚀', 'No plano Gratuito, você pode desbloquear até 3 vagas por semana (reset toda segunda às 00:00). Faça o upgrade para o Pro para acesso ilimitado!');
+      triggerPaywall('weekly_limit');
       return false;
     }
     const next = [...unlockedJobIds, jobId];
@@ -124,13 +134,17 @@ export function useEntitlements(userId?: string) {
   const triggerPaywall = (
     feature: PaywallTriggerState['feature'],
     title?: string,
-    description?: string
+    description?: string,
+    primaryButtonText?: string,
+    secondaryButtonText?: string
   ) => {
     setPaywallState({
       isOpen: true,
       feature,
       title,
-      description
+      description,
+      primaryButtonText,
+      secondaryButtonText
     });
   };
 

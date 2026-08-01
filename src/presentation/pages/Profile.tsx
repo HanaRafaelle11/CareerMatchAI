@@ -1348,6 +1348,8 @@ export function Profile({
         feature={paywallState.feature}
         title={paywallState.title}
         description={paywallState.description}
+        primaryButtonText={paywallState.primaryButtonText}
+        secondaryButtonText={paywallState.secondaryButtonText}
         onUpgrade={() => setShowCheckout(true)}
       />
 

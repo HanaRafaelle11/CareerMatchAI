@@ -3753,7 +3753,7 @@ export function JobMatchHub({
                               <div 
                                 onClick={(e) => {
                                   e.stopPropagation();
-                                  triggerPaywall('applications', 'Desbloqueie Mais Vagas com o Premium 🚀', 'Sua cota semanal gratuita de 3 vagas foi atingida. Faça o upgrade para o Pro para visualizar todas as vagas e matches sem limites!');
+                                  triggerPaywall('weekly_limit');
                                 }}
                                 className="absolute inset-0 bg-slate-950/80 backdrop-blur-md z-30 flex flex-col items-center justify-center p-5 text-center cursor-pointer transition-all hover:bg-slate-950/90"
                               >
@@ -3992,6 +3992,8 @@ export function JobMatchHub({
         feature={paywallState.feature}
         title={paywallState.title}
         description={paywallState.description}
+        primaryButtonText={paywallState.primaryButtonText}
+        secondaryButtonText={paywallState.secondaryButtonText}
         onUpgrade={() => setShowCheckout(true)}
       />
 

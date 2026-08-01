@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Briefcase, Heart, CheckCircle, Award, Sparkles, Layers, Search, ArrowRight, Lock } from 'lucide-react';
+import { Briefcase, Heart, CheckCircle, Award, Sparkles, Layers, Search, ArrowRight } from 'lucide-react';
 import { CardGlass } from './CardGlass';
 import { tracker } from '../../infrastructure/analytics/tracker';
 import { useAuth } from '../../application/hooks/useAuth';
@@ -20,7 +20,7 @@ export function JourneyPipelineView({
   setActiveTab 
 }: JourneyPipelineViewProps) {
   const { user } = useAuth();
-  const { isPro, canUseKanban, journeyHistoryDays, paywallState, triggerPaywall, closePaywall } = useEntitlements(user?.id);
+  const { isPro, journeyHistoryDays, paywallState, triggerPaywall, closePaywall } = useEntitlements(user?.id);
   const [showCheckout, setShowCheckout] = useState(false);
 
   useEffect(() => {

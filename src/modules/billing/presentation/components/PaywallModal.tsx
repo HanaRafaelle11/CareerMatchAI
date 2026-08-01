@@ -1,5 +1,5 @@
 import { BaseModal } from '../../../../presentation/components/ds/BaseModal';
-import { Sparkles, ArrowRight, Lock, CheckCircle2, Bot, Layers, BarChart3, FileText, Send } from 'lucide-react';
+import { Sparkles, ArrowRight, CheckCircle2, Bot, Layers, BarChart3, FileText, Send } from 'lucide-react';
 import type { PaywallTriggerState } from '../..';
 
 interface PaywallModalProps {

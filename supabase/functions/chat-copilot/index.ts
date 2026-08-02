@@ -88,6 +88,25 @@ async function logAiUsage(supabaseClient: any, userId: string, feature: string, 
   }
 }
 
+async function checkRateLimit(supabaseClient: any, userId: string, feature: string) {
+  const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000).toISOString();
+  const { count, error } = await supabaseClient
+    .from('ai_usage_logs')
+    .select('*', { count: 'exact', head: true })
+    .eq('user_id', userId)
+    .eq('feature', feature)
+    .gte('created_at', oneHourAgo);
+
+  if (error) {
+    console.error(`[RATE LIMIT] Erro ao verificar limite:`, error);
+    return;
+  }
+
+  if (count && count >= 10) {
+    throw new Error(`Limite de requisições excedido. Você pode fazer no máximo 10 chamadas para '${feature}' por hora.`);
+  }
+}
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders })
@@ -113,6 +132,43 @@ serve(async (req) => {
       return new Response(
         JSON.stringify({ success: false, error: 'Usuário não autenticado.' }),
         { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      )
+    }
+
+    // 1. Verificar Assinatura Premium (Entitlements)
+    const { data: sub, error: subErr } = await supabaseClient
+      .from('subscriptions')
+      .select('status')
+      .eq('user_id', user.id)
+      .in('status', ['active', 'trialing'])
+      .limit(1)
+      .maybeSingle();
+
+    if (subErr) {
+      console.error("[CHAT COPILOT] Erro ao verificar assinatura:", subErr.message);
+    }
+
+    const isUserPro = Boolean(sub && (sub.status === 'active' || sub.status === 'trialing'));
+    if (!isUserPro) {
+      return new Response(
+        JSON.stringify({ 
+          success: false, 
+          error: 'Acesso negado. Esta funcionalidade é exclusiva para assinantes Premium.' 
+        }),
+        { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      )
+    }
+
+    // 2. Verificar Rate Limit (máximo 10 chamadas/hora)
+    try {
+      await checkRateLimit(supabaseClient, user.id, 'copilot-chat');
+    } catch (limitErr: any) {
+      return new Response(
+        JSON.stringify({
+          success: false,
+          error: limitErr.message
+        }),
+        { status: 429, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       )
     }
 
@@ -160,8 +216,13 @@ Regras de Resposta:
       parts: [{ text: 'Entendido perfeitamente! Sou o Copiloto de Carreira do Vocentro e vou responder às dúvidas do candidato com base em seu contexto de forma concisa e prática.' }]
     });
 
+    // Limitar o histórico aos últimos 12 turnos (6 perguntas do usuário + 6 respostas da IA = 12 mensagens)
+    // para evitar crescimento descontrolado de tokens e custos.
+    const maxHistoryTurns = 12;
+    const historySlice = history.slice(-maxHistoryTurns);
+
     // Adicionar o histórico de chat do usuário
-    for (const h of history) {
+    for (const h of historySlice) {
       if (h.role === 'user') {
         contents.push({
           role: 'user',

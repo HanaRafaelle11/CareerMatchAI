@@ -102,6 +102,51 @@ async function testRealCopilotChat() {
       })
     });
 
+    if (supabaseServiceRoleKey) {
+      console.log("⏳ Buscando ID de plano disponível...");
+      let planId = null;
+      try {
+        const plansRes = await fetch(`${supabaseUrl}/rest/v1/plans?select=id&slug=eq.premium`, {
+          headers: { 'apikey': supabaseAnonKey }
+        });
+        const plansData = await plansRes.json();
+        planId = plansData?.[0]?.id;
+        
+        if (!planId) {
+          const allPlansRes = await fetch(`${supabaseUrl}/rest/v1/plans?select=id`, {
+            headers: { 'apikey': supabaseAnonKey }
+          });
+          const allPlans = await allPlansRes.json();
+          planId = allPlans?.[0]?.id;
+        }
+      } catch (err: any) {
+        console.warn(`   [WARN] Falha ao buscar plano: ${err.message}`);
+      }
+
+      console.log(`   ✔ Plan ID resolvido: ${planId}`);
+      console.log("⏳ Concedendo assinatura Premium para o usuário de teste...");
+      const subRes = await fetch(`${supabaseUrl}/rest/v1/subscriptions`, {
+        method: 'POST',
+        headers: {
+          'apikey': supabaseServiceRoleKey,
+          'Authorization': `Bearer ${supabaseServiceRoleKey}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          user_id: userId,
+          plan_id: planId,
+          status: 'active',
+          gateway_subscription_id: `sub_mock_${Date.now()}`
+        })
+      });
+      if (subRes.ok) {
+        console.log("   ✔ Assinatura Premium concedida.");
+      } else {
+        const subErr = await subRes.text();
+        console.warn(`   [WARN] Falha ao conceder assinatura: ${subErr}`);
+      }
+    }
+
     const mockProfile = {
       user_id: userId,
       summary: 'Frontend Engineer com 4 anos de experiência em React e React Native.',

@@ -156,20 +156,20 @@ export const FaqHelpPage: React.FC<FaqHelpPageProps> = ({ onBack }) => {
   ];
 
   return (
-    <div className="min-h-screen bg-[#020617] text-[#F8FAFC] font-sans selection:bg-blue-500/30 selection:text-white">
+    <div className="min-h-screen bg-[#020617] light:bg-slate-50 text-[#F8FAFC] light:text-slate-900 font-sans selection:bg-blue-500/30 selection:text-white">
       {/* Header */}
-      <header className="sticky top-0 z-50 h-16 bg-[#020617]/90 backdrop-blur-md border-b border-slate-800 flex items-center justify-between px-6">
+      <header className="sticky top-0 z-50 h-16 bg-[#020617]/90 light:bg-white/90 backdrop-blur-md border-b border-slate-800 light:border-slate-200 flex items-center justify-between px-6">
         <div className="flex items-center gap-3">
           <button
             onClick={handleGoBack}
-            className="p-2 rounded-lg bg-slate-900 border border-slate-800 hover:bg-slate-800 text-slate-300 hover:text-white transition-colors cursor-pointer focus:ring-2 focus:ring-blue-500 focus:outline-none"
+            className="p-2 rounded-lg bg-slate-900 light:bg-slate-100 border border-slate-800 light:border-slate-200 hover:bg-slate-800 light:hover:bg-slate-200 text-slate-300 light:text-slate-700 hover:text-white light:hover:text-slate-900 transition-colors cursor-pointer focus:ring-2 focus:ring-blue-500 focus:outline-none"
             aria-label="Voltar"
           >
             <ArrowLeft size={18} />
           </button>
-          <VocentroLogo className="h-7 text-white" showText={true} />
+          <VocentroLogo className="h-7 text-white light:text-slate-900" showText={true} />
         </div>
-        <span className="text-xs font-mono px-3 py-1 rounded-full bg-blue-500/10 border border-blue-500/20 text-blue-400 font-bold">
+        <span className="text-xs font-mono px-3 py-1 rounded-full bg-blue-500/10 border border-blue-500/20 text-blue-400 light:text-blue-600 font-bold">
           Central de Ajuda & FAQ Completa
         </span>
       </header>
@@ -178,21 +178,21 @@ export const FaqHelpPage: React.FC<FaqHelpPageProps> = ({ onBack }) => {
       <main className="max-w-5xl mx-auto px-6 py-12 space-y-10">
         
         {/* Title Header */}
-        <div className="space-y-3 border-b border-slate-800 pb-6 text-center max-w-2xl mx-auto">
-          <div className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-blue-500/10 border border-blue-500/20 text-[#3B82F6] text-xs font-bold font-mono">
+        <div className="space-y-3 border-b border-slate-800 light:border-slate-200 pb-6 text-center max-w-2xl mx-auto">
+          <div className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-blue-500/10 border border-blue-500/20 text-[#3B82F6] light:text-blue-600 text-xs font-bold font-mono">
             <HelpCircle size={14} />
             <span>Guia Completo da Plataforma</span>
           </div>
-          <h1 className="text-3xl sm:text-4xl font-black font-display tracking-tight text-[#F8FAFC]">
+          <h1 className="text-3xl sm:text-4xl font-black font-display tracking-tight text-[#F8FAFC] light:text-slate-900">
             Central de Dúvidas & FAQ Vocentro
           </h1>
-          <p className="text-sm text-[#CBD5E1]">
+          <p className="text-sm text-[#CBD5E1] light:text-slate-600">
             Entenda detalhadamente cada tela, pontuação de Match, método de análise e funcionalidade do aplicativo.
           </p>
         </div>
 
         {/* Category Navigation Tabs */}
-        <div className="flex flex-wrap justify-center gap-2 border-b border-slate-800 pb-4">
+        <div className="flex flex-wrap justify-center gap-2 border-b border-slate-800 light:border-slate-200 pb-4">
           {[
             { id: 'scores', label: '📈 Métrica de Scores & Pontuações' },
             { id: 'telas', label: '📱 Guia de Telas da Plataforma' },
@@ -205,7 +205,7 @@ export const FaqHelpPage: React.FC<FaqHelpPageProps> = ({ onBack }) => {
               className={`px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
                 activeCategory === tab.id
                   ? 'bg-[#3B82F6] text-white shadow-md'
-                  : 'bg-[#0F172A] text-[#CBD5E1] border border-slate-800 hover:bg-[#172554] hover:text-white'
+                  : 'bg-[#0F172A] light:bg-white text-[#CBD5E1] light:text-slate-700 border border-slate-800 light:border-slate-200 hover:bg-[#172554] light:hover:bg-slate-100'
               }`}
             >
               {tab.label}
@@ -216,29 +216,29 @@ export const FaqHelpPage: React.FC<FaqHelpPageProps> = ({ onBack }) => {
         {/* Category 1: Scores */}
         {activeCategory === 'scores' && (
           <div className="space-y-4">
-            <h2 className="text-xl font-bold text-[#F8FAFC] flex items-center gap-2 border-b border-slate-800 pb-2">
-              <Target size={20} className="text-[#3B82F6]" />
+            <h2 className="text-xl font-bold text-[#F8FAFC] light:text-slate-900 flex items-center gap-2 border-b border-slate-800 light:border-slate-200 pb-2">
+              <Target size={20} className="text-[#3B82F6] light:text-blue-600" />
               O que significa cada Score no Vocentro?
             </h2>
             <div className="space-y-3">
               {faqScores.map(item => {
                 const IconComponent = item.icon;
                 return (
-                  <div key={item.id} className="rounded-2xl bg-[#0F172A] border border-slate-800 overflow-hidden">
+                  <div key={item.id} className="rounded-2xl bg-[#0F172A] light:bg-white border border-slate-800 light:border-slate-200 overflow-hidden shadow-xs">
                     <button
                       onClick={() => toggleItem(item.id)}
-                      className="w-full p-5 text-left font-bold text-sm sm:text-base text-[#F8FAFC] flex justify-between items-center hover:bg-[#172554] transition-colors cursor-pointer"
+                      className="w-full p-5 text-left font-bold text-sm sm:text-base text-[#F8FAFC] light:text-slate-900 flex justify-between items-center hover:bg-[#172554] light:hover:bg-slate-50 transition-colors cursor-pointer"
                     >
                       <div className="flex items-center gap-3">
-                        <IconComponent size={20} className="text-[#3B82F6] shrink-0" />
+                        <IconComponent size={20} className="text-[#3B82F6] light:text-blue-600 shrink-0" />
                         <span>{item.title}</span>
                       </div>
-                      <ChevronDown size={18} className={`transition-transform shrink-0 ${openItems[item.id] ? 'rotate-180 text-[#3B82F6]' : 'text-slate-400'}`} />
+                      <ChevronDown size={18} className={`transition-transform shrink-0 ${openItems[item.id] ? 'rotate-180 text-[#3B82F6] light:text-blue-600' : 'text-slate-400'}`} />
                     </button>
                     {openItems[item.id] && (
-                      <div className="p-5 pt-0 text-xs sm:text-sm text-[#CBD5E1] space-y-2 border-t border-slate-800/60 mt-1">
-                        <p className="font-semibold text-slate-200">{item.desc}</p>
-                        <p className="leading-relaxed bg-slate-950/60 p-3.5 rounded-xl border border-slate-800">{item.details}</p>
+                      <div className="p-5 pt-0 text-xs sm:text-sm text-[#CBD5E1] light:text-slate-600 space-y-2 border-t border-slate-800/60 light:border-slate-100 mt-1">
+                        <p className="font-semibold text-slate-200 light:text-slate-800">{item.desc}</p>
+                        <p className="leading-relaxed bg-slate-950/60 light:bg-slate-50 p-3.5 rounded-xl border border-slate-800 light:border-slate-200">{item.details}</p>
                       </div>
                     )}
                   </div>
@@ -251,29 +251,29 @@ export const FaqHelpPage: React.FC<FaqHelpPageProps> = ({ onBack }) => {
         {/* Category 2: Telas */}
         {activeCategory === 'telas' && (
           <div className="space-y-4">
-            <h2 className="text-xl font-bold text-[#F8FAFC] flex items-center gap-2 border-b border-slate-800 pb-2">
-              <LayoutDashboard size={20} className="text-[#22C55E]" />
+            <h2 className="text-xl font-bold text-[#F8FAFC] light:text-slate-900 flex items-center gap-2 border-b border-slate-800 light:border-slate-200 pb-2">
+              <LayoutDashboard size={20} className="text-[#22C55E] light:text-emerald-600" />
               Conheça todas as Telas do Vocentro
             </h2>
             <div className="space-y-3">
               {faqTelas.map(item => {
                 const IconComponent = item.icon;
                 return (
-                  <div key={item.id} className="rounded-2xl bg-[#0F172A] border border-slate-800 overflow-hidden">
+                  <div key={item.id} className="rounded-2xl bg-[#0F172A] light:bg-white border border-slate-800 light:border-slate-200 overflow-hidden shadow-xs">
                     <button
                       onClick={() => toggleItem(item.id)}
-                      className="w-full p-5 text-left font-bold text-sm sm:text-base text-[#F8FAFC] flex justify-between items-center hover:bg-[#172554] transition-colors cursor-pointer"
+                      className="w-full p-5 text-left font-bold text-sm sm:text-base text-[#F8FAFC] light:text-slate-900 flex justify-between items-center hover:bg-[#172554] light:hover:bg-slate-50 transition-colors cursor-pointer"
                     >
                       <div className="flex items-center gap-3">
-                        <IconComponent size={20} className="text-[#22C55E] shrink-0" />
+                        <IconComponent size={20} className="text-[#22C55E] light:text-emerald-600 shrink-0" />
                         <span>{item.title}</span>
                       </div>
-                      <ChevronDown size={18} className={`transition-transform shrink-0 ${openItems[item.id] ? 'rotate-180 text-[#22C55E]' : 'text-slate-400'}`} />
+                      <ChevronDown size={18} className={`transition-transform shrink-0 ${openItems[item.id] ? 'rotate-180 text-[#22C55E] light:text-emerald-600' : 'text-slate-400'}`} />
                     </button>
                     {openItems[item.id] && (
-                      <div className="p-5 pt-0 text-xs sm:text-sm text-[#CBD5E1] space-y-2 border-t border-slate-800/60 mt-1">
-                        <p className="font-semibold text-slate-200">{item.desc}</p>
-                        <p className="leading-relaxed bg-slate-950/60 p-3.5 rounded-xl border border-slate-800">{item.details}</p>
+                      <div className="p-5 pt-0 text-xs sm:text-sm text-[#CBD5E1] light:text-slate-600 space-y-2 border-t border-slate-800/60 light:border-slate-100 mt-1">
+                        <p className="font-semibold text-slate-200 light:text-slate-800">{item.desc}</p>
+                        <p className="leading-relaxed bg-slate-950/60 light:bg-slate-50 p-3.5 rounded-xl border border-slate-800 light:border-slate-200">{item.details}</p>
                       </div>
                     )}
                   </div>
@@ -286,29 +286,29 @@ export const FaqHelpPage: React.FC<FaqHelpPageProps> = ({ onBack }) => {
         {/* Category 3: Funcionalidades */}
         {activeCategory === 'funcionalidades' && (
           <div className="space-y-4">
-            <h2 className="text-xl font-bold text-[#F8FAFC] flex items-center gap-2 border-b border-slate-800 pb-2">
-              <Sparkles size={20} className="text-purple-400" />
+            <h2 className="text-xl font-bold text-[#F8FAFC] light:text-slate-900 flex items-center gap-2 border-b border-slate-800 light:border-slate-200 pb-2">
+              <Sparkles size={20} className="text-purple-400 light:text-purple-600" />
               Recursos Especiais & Ferramentas Inteligentes
             </h2>
             <div className="space-y-3">
               {faqFuncionalidades.map(item => {
                 const IconComponent = item.icon;
                 return (
-                  <div key={item.id} className="rounded-2xl bg-[#0F172A] border border-slate-800 overflow-hidden">
+                  <div key={item.id} className="rounded-2xl bg-[#0F172A] light:bg-white border border-slate-800 light:border-slate-200 overflow-hidden shadow-xs">
                     <button
                       onClick={() => toggleItem(item.id)}
-                      className="w-full p-5 text-left font-bold text-sm sm:text-base text-[#F8FAFC] flex justify-between items-center hover:bg-[#172554] transition-colors cursor-pointer"
+                      className="w-full p-5 text-left font-bold text-sm sm:text-base text-[#F8FAFC] light:text-slate-900 flex justify-between items-center hover:bg-[#172554] light:hover:bg-slate-50 transition-colors cursor-pointer"
                     >
                       <div className="flex items-center gap-3">
-                        <IconComponent size={20} className="text-purple-400 shrink-0" />
+                        <IconComponent size={20} className="text-purple-400 light:text-purple-600 shrink-0" />
                         <span>{item.title}</span>
                       </div>
-                      <ChevronDown size={18} className={`transition-transform shrink-0 ${openItems[item.id] ? 'rotate-180 text-purple-400' : 'text-slate-400'}`} />
+                      <ChevronDown size={18} className={`transition-transform shrink-0 ${openItems[item.id] ? 'rotate-180 text-purple-400 light:text-purple-600' : 'text-slate-400'}`} />
                     </button>
                     {openItems[item.id] && (
-                      <div className="p-5 pt-0 text-xs sm:text-sm text-[#CBD5E1] space-y-2 border-t border-slate-800/60 mt-1">
-                        <p className="font-semibold text-slate-200">{item.desc}</p>
-                        <p className="leading-relaxed bg-slate-950/60 p-3.5 rounded-xl border border-slate-800">{item.details}</p>
+                      <div className="p-5 pt-0 text-xs sm:text-sm text-[#CBD5E1] light:text-slate-600 space-y-2 border-t border-slate-800/60 light:border-slate-100 mt-1">
+                        <p className="font-semibold text-slate-200 light:text-slate-800">{item.desc}</p>
+                        <p className="leading-relaxed bg-slate-950/60 light:bg-slate-50 p-3.5 rounded-xl border border-slate-800 light:border-slate-200">{item.details}</p>
                       </div>
                     )}
                   </div>
@@ -320,17 +320,17 @@ export const FaqHelpPage: React.FC<FaqHelpPageProps> = ({ onBack }) => {
 
         {/* Category 4: Geral */}
         {activeCategory === 'geral' && (
-          <div className="p-6 rounded-2xl bg-[#0F172A] border border-slate-800 space-y-4">
-            <h2 className="text-xl font-bold text-[#F8FAFC] flex items-center gap-2 border-b border-slate-800 pb-2">
-              <ShieldCheck size={20} className="text-[#3B82F6]" />
+          <div className="p-6 rounded-2xl bg-[#0F172A] light:bg-white border border-slate-800 light:border-slate-200 space-y-4 shadow-xs">
+            <h2 className="text-xl font-bold text-[#F8FAFC] light:text-slate-900 flex items-center gap-2 border-b border-slate-800 light:border-slate-200 pb-2">
+              <ShieldCheck size={20} className="text-[#3B82F6] light:text-blue-600" />
               Segurança, Privacidade & Suporte
             </h2>
-            <p className="text-sm text-[#CBD5E1] leading-relaxed">
+            <p className="text-sm text-[#CBD5E1] light:text-slate-600 leading-relaxed">
               O <strong>Vocentro</strong> cumpre rigorosamente as normas da LGPD e as diretrizes de verificação de privacidade do Google OAuth.
             </p>
-            <div className="p-4 rounded-xl bg-slate-950/80 border border-slate-800 space-y-2 text-xs text-[#CBD5E1]">
-              <p><strong>E-mail Único de Suporte:</strong> <a href="mailto:suporte@vocentro.com.br" className="text-[#3B82F6] hover:underline font-bold">suporte@vocentro.com.br</a></p>
-              <p><strong>Termos Jurídicos:</strong> Consulte nossa <a href="/politica-de-privacidade" onClick={(e) => { e.preventDefault(); window.history.pushState(null, '', '/politica-de-privacidade'); window.dispatchEvent(new PopStateEvent('popstate')); }} className="text-[#3B82F6] hover:underline">Política de Privacidade</a> e nossos <a href="/termos-de-uso" onClick={(e) => { e.preventDefault(); window.history.pushState(null, '', '/termos-de-uso'); window.dispatchEvent(new PopStateEvent('popstate')); }} className="text-[#3B82F6] hover:underline">Termos de Uso</a>.</p>
+            <div className="p-4 rounded-xl bg-slate-950/80 light:bg-slate-50 border border-slate-800 light:border-slate-200 space-y-2 text-xs text-[#CBD5E1] light:text-slate-600">
+              <p><strong>E-mail Único de Suporte:</strong> <a href="mailto:suporte@vocentro.com.br" className="text-[#3B82F6] light:text-blue-600 hover:underline font-bold">suporte@vocentro.com.br</a></p>
+              <p><strong>Termos Jurídicos:</strong> Consulte nossa <a href="/politica-de-privacidade" onClick={(e) => { e.preventDefault(); window.history.pushState(null, '', '/politica-de-privacidade'); window.dispatchEvent(new PopStateEvent('popstate')); }} className="text-[#3B82F6] light:text-blue-600 hover:underline">Política de Privacidade</a> e nossos <a href="/termos-de-uso" onClick={(e) => { e.preventDefault(); window.history.pushState(null, '', '/termos-de-uso'); window.dispatchEvent(new PopStateEvent('popstate')); }} className="text-[#3B82F6] light:text-blue-600 hover:underline">Termos de Uso</a>.</p>
             </div>
           </div>
         )}
@@ -338,9 +338,10 @@ export const FaqHelpPage: React.FC<FaqHelpPageProps> = ({ onBack }) => {
       </main>
 
       {/* Footer */}
-      <footer className="border-t border-slate-800 bg-[#020617] py-8 px-6 text-center text-xs text-[#CBD5E1]">
+      <footer className="border-t border-slate-800 light:border-slate-200 bg-[#020617] light:bg-slate-100 py-8 px-6 text-center text-xs text-[#CBD5E1] light:text-slate-600">
         <p>© {new Date().getFullYear()} Vocentro. Todos os direitos reservados. • suporte@vocentro.com.br</p>
       </footer>
     </div>
   );
 };
+

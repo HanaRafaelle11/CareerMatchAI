@@ -60,6 +60,7 @@ export function useCheckout(userId?: string) {
   }, []);
 
   const executeCheckout = async (payload: CheckoutPayload): Promise<CheckoutResult | null> => {
+    if (isLoading) return null;
     setIsLoading(true);
     setError(null);
     setCheckoutResult(null);

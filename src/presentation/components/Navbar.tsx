@@ -1,5 +1,5 @@
 import type { Profile } from '../../domain/models/types';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { ProgressRing } from './ds/ProgressRing';
 import { VocentroLogo } from './ds/MyCareerIcons';
 import { ThemeToggle } from './ThemeToggle';
@@ -122,6 +122,8 @@ export function Navbar({
     }
   };
 
+  const [showJourneyTooltip, setShowJourneyTooltip] = useState(false);
+
   const getUtilityIcon = (id: string, className?: string) => {
     switch (id) {
       case 'dashboard': return <LayoutDashboard className={className} size={16} strokeWidth={1.5} />;
@@ -178,9 +180,48 @@ export function Navbar({
           <div className="px-3.5 mt-2">
             <div className="flex items-center justify-between px-3 mb-2">
               <span className="text-[10px] font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider">Jornada</span>
-              <ProgressRing value={journeyProgress} size={18} strokeWidth={2} showValue={false} label={
-                <span className="text-[8px] font-bold text-[#4F8EF7]">{journeyProgress}%</span>
-              } />
+              {/* Tooltip de explicação da Jornada */}
+              <div className="relative">
+                <button
+                  type="button"
+                  onClick={() => setShowJourneyTooltip(v => !v)}
+                  className="flex items-center gap-1 group cursor-pointer"
+                  title="Ver detalhes da Jornada"
+                >
+                  <ProgressRing value={journeyProgress} size={18} strokeWidth={2} showValue={false} label={
+                    <span className="text-[8px] font-bold text-[#4F8EF7]">{journeyProgress}%</span>
+                  } />
+                </button>
+                {showJourneyTooltip && (
+                  <>
+                    {/* Backdrop para fechar ao clicar fora */}
+                    <div className="fixed inset-0 z-40" onClick={() => setShowJourneyTooltip(false)} />
+                    <div className="absolute right-0 top-6 z-50 w-60 bg-slate-900 border border-slate-700/60 rounded-xl shadow-2xl p-3 text-[11px] text-slate-300">
+                      <div className="font-extrabold text-white text-xs mb-2 flex items-center gap-1.5">
+                        <span>Sua Jornada — {journeyProgress}% concluída</span>
+                      </div>
+                      <div className="space-y-2">
+                        {journeySteps.map(step => (
+                          <div key={step.id} className="flex items-start gap-2">
+                            <span className={`shrink-0 mt-0.5 text-xs ${step.completed ? 'text-emerald-400' : 'text-slate-500'}`}>
+                              {step.completed ? '✅' : '○'}
+                            </span>
+                            <div>
+                              <span className={`font-semibold block ${step.completed ? 'text-emerald-400' : 'text-slate-300'}`}>
+                                {step.label}
+                              </span>
+                              <span className="text-slate-500">{step.description}</span>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                      <p className="mt-2.5 pt-2 border-t border-slate-700/60 text-slate-500 leading-snug">
+                        Complete cada etapa para chegar a 100% e desbloquear todo o potencial do Vocentro.
+                      </p>
+                    </div>
+                  </>
+                )}
+              </div>
             </div>
 
             <nav className="space-y-0.5">

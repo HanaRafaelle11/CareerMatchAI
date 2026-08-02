@@ -30,6 +30,10 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     const root = document.documentElement;
     const body = document.body;
 
+    // Suprimir todas as transições CSS durante a troca de tema para efeito instantâneo
+    root.classList.add('theme-switching');
+    body.classList.add('theme-switching');
+
     if (targetTheme === 'light') {
       root.classList.add('light');
       root.classList.remove('dark');
@@ -41,6 +45,14 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
       body.classList.add('dark');
       body.classList.remove('light');
     }
+
+    // Re-habilitar transições após a próxima repintura
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        root.classList.remove('theme-switching');
+        body.classList.remove('theme-switching');
+      });
+    });
   };
 
   useEffect(() => {

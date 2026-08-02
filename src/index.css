@@ -96,6 +96,15 @@ html.dark, body.dark, .dark {
   *, ::before, ::after {
     box-sizing: border-box;
   }
+
+  /* Desabilita TODAS as transições durante troca de tema — Item 10 */
+  .theme-switching,
+  .theme-switching *,
+  .theme-switching ::before,
+  .theme-switching ::after {
+    transition: none !important;
+    animation-duration: 0ms !important;
+  }
 }
 
 @utility glass-panel {

@@ -8,6 +8,7 @@ interface StatCardProps {
   action?: { label: string; onClick: () => void };
   accent?: 'primary' | 'secondary' | 'tertiary' | 'success' | 'warning';
   className?: string;
+  isLoading?: boolean;
 }
 
 const accentBg: Record<string, string> = {
@@ -18,7 +19,7 @@ const accentBg: Record<string, string> = {
   warning: 'bg-amber-50 dark:bg-amber-500/10 text-amber-600 dark:text-amber-400',
 };
 
-export function StatCard({ icon, label, value, trend, action, accent = 'primary', className = '' }: StatCardProps) {
+export function StatCard({ icon, label, value, trend, action, accent = 'primary', className = '', isLoading = false }: StatCardProps) {
   const handleClick = () => {
     if (action?.onClick) {
       action.onClick();
@@ -34,15 +35,23 @@ export function StatCard({ icon, label, value, trend, action, accent = 'primary'
         <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${accentBg[accent]}`}>
           {icon}
         </div>
-        {trend && (
+        {trend && !isLoading && (
           <span className={`text-[11px] font-semibold ${trend.positive ? 'text-[#22C7A8]' : 'text-red-500'}`}>
             {trend.positive ? '↑' : '↓'} {trend.value}
           </span>
         )}
+        {isLoading && <div className="h-3 w-16 bg-slate-200 dark:bg-slate-700 rounded animate-pulse" />}
       </div>
-      <p className="text-2xl font-bold text-slate-900 dark:text-[#F8FAFC] tracking-tight mb-0.5">{value}</p>
+
+      {isLoading ? (
+        /* Skeleton placeholder — evita piscar de "0" → valor real (Item 9) */
+        <div className="h-7 w-12 bg-slate-200 dark:bg-slate-700 rounded-md animate-pulse mb-1.5" />
+      ) : (
+        <p className="text-2xl font-bold text-slate-900 dark:text-[#F8FAFC] tracking-tight mb-0.5">{value}</p>
+      )}
+
       <p className="text-xs text-slate-500 dark:text-[#B8C2CC] font-medium">{label}</p>
-      {action && (
+      {action && !isLoading && (
         <button
           onClick={(e) => {
             e.stopPropagation();

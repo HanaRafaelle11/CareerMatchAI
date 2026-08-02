@@ -46,7 +46,7 @@ interface TieredConnector {
 }
 
 const TIERED_CONNECTORS: TieredConnector[] = [
-  // Tier A — Priority platforms
+  // Tier A — Plataformas prioritárias (ATS brasileiros e internacionais com vagas BR)
   { connector: new GupyConnector(), tier: 'A' },
   { connector: new AdzunaConnector(), tier: 'A' },
   { connector: new GreenhouseConnector(), tier: 'A' },
@@ -56,15 +56,12 @@ const TIERED_CONNECTORS: TieredConnector[] = [
   { connector: new TeamtailorConnector(), tier: 'A' },
   { connector: new AshbyConnector(), tier: 'A' },
   { connector: new RecruiteeConnector(), tier: 'A' },
-  
-  // Tier B — Secondary aggregators
-  { connector: new RemotiveConnector(), tier: 'B' },
-  { connector: new RemoteOkConnector(), tier: 'B' },
+
+  // Tier B — Agregadores secundários com cobertura Brasil
   { connector: new JoobleConnector(), tier: 'B' },
   { connector: new SerpApiConnector(), tier: 'B' },
-  { connector: new ArbeitnowConnector(), tier: 'B' },
-  
-  // Tier C — Brazilian niche platforms
+
+  // Tier C — Plataformas de nicho / foco brasileiro
   { connector: new ProgramathorConnector(), tier: 'C' },
   { connector: new TramposConnector(), tier: 'C' },
   // { connector: new GeekHunterConnector(), tier: 'C' }, // Descontinuado pela plataforma
@@ -72,7 +69,12 @@ const TIERED_CONNECTORS: TieredConnector[] = [
   // { connector: new AblerConnector(), tier: 'C' },      // Descontinuado pela plataforma
   { connector: new BambooHRConnector(), tier: 'C' },
   { connector: new ComeetConnector(), tier: 'C' },
+  // Internacionais (apenas para buscas remotas ou sem filtro BR) — Item 6
+  { connector: new RemotiveConnector(), tier: 'C' },
+  { connector: new RemoteOkConnector(), tier: 'C' },
+  { connector: new ArbeitnowConnector(), tier: 'C' },
 ];
+
 
 // ── Provider Diagnostic ──
 interface ProviderDiagnostic {

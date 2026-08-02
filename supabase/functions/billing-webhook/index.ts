@@ -159,7 +159,7 @@ serve(async (req: Request) => {
           .update({ is_pro: true, updated_at: now.toISOString() })
           .eq('id', targetUserId);
 
-        // Atualizar Faturas atreladas
+        // Atualizar Faturas atreladas - APENAS a específica correspondente à cobrança paga!
         await adminClient
           .from('invoices')
           .update({
@@ -167,13 +167,13 @@ serve(async (req: Request) => {
             paid_at: now.toISOString(),
             subscription_id: targetSub?.id || undefined
           })
-          .or(`gateway_invoice_id.eq.${gatewayPayId},user_id.eq.${targetUserId}`);
+          .eq('gateway_invoice_id', gatewayPayId);
 
-        // Atualizar Transações atreladas
+        // Atualizar Transações atreladas - APENAS a específica correspondente à transação paga!
         await adminClient
           .from('transactions')
           .update({ status: 'succeeded' })
-          .or(`gateway_transaction_id.eq.${gatewayPayId},user_id.eq.${targetUserId}`);
+          .eq('gateway_transaction_id', gatewayPayId);
 
         // Log de Auditoria do Evento
         await adminClient.from('activity_logs').insert({

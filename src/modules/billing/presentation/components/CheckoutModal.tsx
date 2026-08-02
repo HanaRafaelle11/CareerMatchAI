@@ -59,6 +59,7 @@ export function CheckoutModal({ isOpen, onClose, userId, userEmail, userName }: 
 
   const handleFormSubmit = async (e: FormEvent) => {
     e.preventDefault();
+    if (isLoading) return;
 
     const payload: any = {
       planSlug: 'pro',

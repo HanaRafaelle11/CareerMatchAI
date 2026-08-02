@@ -381,8 +381,8 @@ export function AdminDashboard({ userId }: AdminDashboardProps) {
           jobs_count: 85,
           matches_count: 946,
           avg_processing_time: 2.45,
-          total_tokens: 3450000,
-          success_rate: 98.8
+          total_tokens: 0, // será sobrescrito por parsingStats query
+          success_rate: 0  // será sobrescrito por parsingStats query
         };
       }
       try {
@@ -411,12 +411,78 @@ export function AdminDashboard({ userId }: AdminDashboardProps) {
         jobs_count: jCount > 0 ? jCount : 85,
         matches_count: mCount > 0 ? mCount : 946,
         avg_processing_time: 2.45,
-        total_tokens: 3450000,
-        success_rate: 98.8
+        total_tokens: 0, // será sobrescrito por parsingStats query
+        success_rate: 0  // será sobrescrito por parsingStats query
       };
     },
     enabled: true
   });
+
+  // ── 3b. MÉTRICAS REAIS DE PARSING DE CURRÍCULO (resume_processing_logs) — Item 3 ──
+  const { data: parsingStats } = useQuery({
+    queryKey: ['admin-parsing-stats'],
+    queryFn: async () => {
+      if (!isSupabaseConfigured || !supabase) return null;
+      try {
+        // Contar tentativas de upload únicas (denominador correto)
+        const [uploadedRes, completedRes, failedRes, tokensRes] = await Promise.all([
+          supabase.from('resume_processing_logs')
+            .select('resume_version_id', { count: 'exact', head: true })
+            .eq('step', 'uploaded'),
+          supabase.from('resume_processing_logs')
+            .select('resume_version_id', { count: 'exact', head: true })
+            .eq('step', 'save_completed'),
+          supabase.from('resume_processing_logs')
+            .select('resume_version_id', { count: 'exact', head: true })
+            .or('status.eq.failed,step.eq.failed'),
+          // Somar tokens reais de ai_usage_logs (inclui copilot-chat) — Item 11
+          supabase.from('ai_usage_logs')
+            .select('input_tokens, output_tokens')
+            .limit(10000)
+        ]);
+
+        const totalUploads = uploadedRes.count || 0;
+        const totalCompleted = completedRes.count || 0;
+        const totalFailed = failedRes.count || 0;
+        const excludedTestLogs = 0;
+
+        const successRate = totalUploads > 0
+          ? Math.round((totalCompleted / totalUploads) * 100)
+          : 0;
+
+        // Calcular tokens reais
+        const tokenRows = tokensRes.data || [];
+        const totalTokensReal = tokenRows.reduce(
+          (sum: number, row: any) => sum + (row.input_tokens || 0) + (row.output_tokens || 0),
+          0
+        );
+
+        return {
+          success_rate: successRate,
+          total_tokens: totalTokensReal,
+          status_breakdown: {
+            total_uploads: totalUploads,
+            completed_pipeline: totalCompleted,
+            failed_pipeline: totalFailed,
+            excluded_test_logs: excludedTestLogs
+          }
+        };
+      } catch (e) {
+        console.warn('[AdminDashboard] Erro ao calcular métricas de parsing:', e);
+        return null;
+      }
+    },
+    enabled: hasTelemetryAccess,
+    refetchInterval: 30000
+  });
+
+  // Merge parsingStats into overviewStats display (não muta o objeto original)
+  const mergedOverviewStats = overviewStats ? {
+    ...overviewStats,
+    success_rate: parsingStats?.success_rate ?? overviewStats.success_rate,
+    total_tokens: parsingStats?.total_tokens ?? overviewStats.total_tokens,
+    status_breakdown: parsingStats?.status_breakdown
+  } : overviewStats;
 
   // ── 4. BUSCAR METRICAS DE IA E ROI (SUPABASE RPC COM FALLBACK DIRETO) ──
   const { data: iaStats, isLoading: isLoadingIaStats, refetch: refetchIaStats } = useQuery({
@@ -1272,31 +1338,31 @@ export function AdminDashboard({ userId }: AdminDashboardProps) {
                     </h2>
                   </div>
                   
-                  {/* Score Gauge Badge — Taxa de Sucesso de Processamento */}
+                  {/* Score Gauge Badge — Taxa de Sucesso de Parsing de Currículo (dados reais de resume_processing_logs) */}
                   <div className="flex flex-col gap-1.5 bg-card px-4 py-3 rounded-xl border border-border">
                     <div className="flex items-center gap-3">
                       <span className="text-xs text-muted-foreground font-bold">Taxa de Sucesso de Parsing:</span>
                       <span className={`text-2xl font-extrabold font-display ${
-                        (overviewStats?.success_rate || 0) >= 80 ? 'text-emerald-500' : (overviewStats?.success_rate || 0) >= 50 ? 'text-amber-500' : 'text-red-500'
+                        (mergedOverviewStats?.success_rate || 0) >= 80 ? 'text-emerald-500' : (mergedOverviewStats?.success_rate || 0) >= 50 ? 'text-amber-500' : 'text-red-500'
                       }`}>
-                        {Math.round(overviewStats?.success_rate || 0)}%
+                        {mergedOverviewStats?.success_rate != null ? `${Math.round(mergedOverviewStats.success_rate)}%` : '—'}
                       </span>
                       <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-card text-muted-foreground border border-border uppercase">
                         Processamento de Currículo
                       </span>
                     </div>
-                    {overviewStats?.status_breakdown ? (
+                    {mergedOverviewStats?.status_breakdown ? (
                       <div className="flex flex-wrap gap-2.5 text-[10px] font-mono">
-                        <span className="text-muted-foreground">Uploads Reais: {overviewStats.status_breakdown.total_uploads ?? 0}</span>
-                        <span className="text-emerald-500">✓ Concluídos: {overviewStats.status_breakdown.completed_pipeline ?? 0}</span>
-                        <span className="text-red-500">✗ Falhas: {overviewStats.status_breakdown.failed_pipeline ?? 0}</span>
-                        {overviewStats.status_breakdown.excluded_test_logs > 0 && (
-                          <span className="text-amber-500">⨂ Testes Excluídos: {overviewStats.status_breakdown.excluded_test_logs}</span>
+                        <span className="text-muted-foreground">Uploads Reais: {mergedOverviewStats.status_breakdown.total_uploads ?? 0}</span>
+                        <span className="text-emerald-500">✓ Concluídos: {mergedOverviewStats.status_breakdown.completed_pipeline ?? 0}</span>
+                        <span className="text-red-500">✗ Falhas: {mergedOverviewStats.status_breakdown.failed_pipeline ?? 0}</span>
+                        {mergedOverviewStats.status_breakdown.excluded_test_logs > 0 && (
+                          <span className="text-amber-500">⨂ Testes Excluídos: {mergedOverviewStats.status_breakdown.excluded_test_logs}</span>
                         )}
                       </div>
                     ) : (
                       <div className="flex gap-2 text-[10px] font-mono text-muted-foreground">
-                        <span>Medido no salvamento final do banco (save_completed)</span>
+                        <span>Calculando a partir de resume_processing_logs...</span>
                       </div>
                     )}
                   </div>
@@ -1382,9 +1448,9 @@ export function AdminDashboard({ userId }: AdminDashboardProps) {
                   </div>
                   <div className="mt-3">
                     <span className="text-3xl font-extrabold text-foreground font-display font-mono">
-                      {(overviewStats?.total_tokens ?? 0).toLocaleString()}
+                      {(mergedOverviewStats?.total_tokens ?? 0).toLocaleString()}
                     </span>
-                    <span className="text-[9px] text-muted-foreground font-medium block mt-1">Acumulado real de input/output de IA</span>
+                    <span className="text-[9px] text-muted-foreground font-medium block mt-1">Acumulado real de input/output de IA (ai_usage_logs)</span>
                   </div>
                 </CardGlass>
 
@@ -1394,10 +1460,12 @@ export function AdminDashboard({ userId }: AdminDashboardProps) {
                     <Activity size={16} className="text-emerald-500" />
                   </div>
                   <div className="mt-3">
-                    <span className="text-3xl font-extrabold text-emerald-500 font-display">
-                      {overviewStats?.success_rate ?? 98.8}%
+                    <span className={`text-3xl font-extrabold font-display ${
+                      (mergedOverviewStats?.success_rate || 0) >= 80 ? 'text-emerald-500' : (mergedOverviewStats?.success_rate || 0) >= 50 ? 'text-amber-500' : 'text-red-500'
+                    }`}>
+                      {mergedOverviewStats?.success_rate != null ? `${Math.round(mergedOverviewStats.success_rate)}%` : '—'}
                     </span>
-                    <span className="text-[9px] text-muted-foreground font-medium block mt-1">Conversão de parsing de currículo sem exceções</span>
+                    <span className="text-[9px] text-muted-foreground font-medium block mt-1">save_completed / uploaded × 100 (dado real)</span>
                   </div>
                 </CardGlass>
 

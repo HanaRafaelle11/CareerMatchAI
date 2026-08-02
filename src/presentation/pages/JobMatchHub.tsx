@@ -11,7 +11,7 @@ import { MatchingEngine } from '../../application/services/matchingEngine';
 import type { Job, Resume, Match, CareerProfile, JobFeedbackReason } from '../../domain/models/types';
 import type { CareerProfileNew } from '../../application/hooks/useMyProfileAi';
 import { useEscapeToClose } from '../../application/hooks/useEscapeToClose';
-import { Play, Clipboard, Award, CheckCircle, AlertTriangle, AlertCircle, X, ChevronRight, BookOpen, Plus, Search, MapPin, Loader2, ArrowUpRight, Flame, Sparkles, Trash2, Briefcase, Heart, DollarSign, Building, FileText, Printer, Check, Target, Zap, ThumbsUp, ThumbsDown, Lock } from 'lucide-react';
+import { Play, Clipboard, Award, CheckCircle, AlertTriangle, AlertCircle, X, ChevronRight, BookOpen, Plus, Search, MapPin, Loader2, ArrowUpRight, Flame, Sparkles, Trash2, Briefcase, Heart, DollarSign, Building, FileText, Printer, Check, Target, Zap, ThumbsUp, ThumbsDown } from 'lucide-react';
 
 import { isSupabaseConfigured, supabase } from '../../infrastructure/api/supabaseClient';
 import { AppError } from '../../application/errors/AppError';
@@ -3822,23 +3822,15 @@ export function JobMatchHub({
                                   e.stopPropagation();
                                   triggerPaywall('weekly_limit');
                                 }}
-                                className="absolute inset-0 bg-slate-950/80 backdrop-blur-md z-30 flex flex-col items-center justify-center p-5 text-center cursor-pointer transition-all hover:bg-slate-950/90"
+                                className="absolute inset-0 bg-slate-950/30 backdrop-blur-[2px] z-30 flex flex-col items-center justify-center gap-1.5 cursor-pointer transition-all hover:bg-slate-950/40 rounded-xl"
                               >
-                                <div className="w-12 h-12 rounded-2xl bg-amber-500/10 border border-amber-500/30 text-amber-400 flex items-center justify-center mb-2 shadow-lg shadow-amber-500/10">
-                                  <Lock size={22} />
+                                <div className="flex items-center gap-1.5 bg-slate-900/80 border border-slate-700/60 rounded-lg px-3 py-1.5 shadow-lg">
+                                  <span className="text-amber-400 text-sm">🔒</span>
+                                  <span className="text-xs font-bold text-slate-200">Desbloqueie esta vaga</span>
                                 </div>
-                                <span className="font-extrabold text-sm text-white block">Desbloqueie mais vagas com o Premium</span>
-                                <p className="text-[11px] text-slate-300 max-w-xs mt-1 leading-snug">
-                                  No plano Gratuito, você pode visualizar e desbloquear até 3 vagas por semana (reset toda segunda 00:00). Clique para liberar!
-                                </p>
-                                <button
-                                  type="button"
-                                  className="mt-3 px-4 py-2 rounded-xl bg-gradient-to-r from-amber-500 via-emerald-500 to-brand-500 text-slate-950 font-black text-xs shadow-md cursor-pointer"
-                                >
-                                  Fazer Upgrade para Pro (R$ 29,90/mês)
-                                </button>
                               </div>
                             )}
+
 
                             <div className={`space-y-2 ${isBlurred ? 'filter blur-[4px] select-none opacity-60' : ''}`}>
                               <div className="flex justify-between items-start gap-3">

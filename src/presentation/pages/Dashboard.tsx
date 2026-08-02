@@ -326,6 +326,7 @@ export function Dashboard({
           value={matches.length} 
           trend={{ value: `${avgMatch}% match médio`, positive: true }} 
           action={{ label: "Ver vagas", onClick: () => setActiveTab('match') }}
+          isLoading={isLoading}
         />
         <StatCard 
           icon={<Briefcase size={16} strokeWidth={1.5} />} 
@@ -334,6 +335,7 @@ export function Dashboard({
           trend={appliedCount > 0 ? { value: `${appliedCount} em progresso`, positive: true } : null}
           accent="secondary"
           action={{ label: "Ver Pipeline", onClick: () => setActiveTab('strategy') }}
+          isLoading={isLoading}
         />
         <StatCard 
           icon={<Search size={16} strokeWidth={1.5} />} 
@@ -341,6 +343,7 @@ export function Dashboard({
           value={savedCount} 
           trend={savedCount > 0 ? { value: `${savedCount} em prospecção`, positive: false } : null}
           action={{ label: "Ver Salvas", onClick: () => setActiveTab('strategy') }}
+          isLoading={isLoading}
         />
         <StatCard 
           icon={<Award size={16} strokeWidth={1.5} />} 
@@ -349,6 +352,7 @@ export function Dashboard({
           trend={interviewsCount > 0 ? { value: `${interviewsCount} ativas`, positive: true } : null}
           accent="success"
           action={{ label: "Treinar STAR", onClick: () => setActiveTab('coach') }}
+          isLoading={isLoading}
         />
         {hiredCount > 0 ? (
           <StatCard 
@@ -358,6 +362,7 @@ export function Dashboard({
             trend={{ value: `${hiredCount} conquista(s)`, positive: true }} 
             accent="success"
             action={{ label: "Ver Pipeline", onClick: () => setActiveTab('strategy') }}
+            isLoading={isLoading}
           />
         ) : (
           <StatCard 
@@ -367,9 +372,11 @@ export function Dashboard({
             trend={completeness === 100 ? { value: 'Completo', positive: true } : null} 
             accent="warning"
             action={{ label: "Ajustar perfil", onClick: () => setActiveTab('profile') }}
+            isLoading={isLoading}
           />
         )}
       </div>
+
 
       {/* ── 3b. ACESSO RÁPIDO: MONITOR DE DEMANDA REAL & BENCHMARK SALARIAL ── */}
       <button

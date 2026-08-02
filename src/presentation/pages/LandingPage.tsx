@@ -110,35 +110,35 @@ export function LandingPage({ onNavigateToAuth }: LandingPageProps) {
       />
 
       {/* ── HEADER / NAVBAR ── */}
-      <header className="fixed top-0 left-0 right-0 h-16 bg-[#020617]/90 dark:bg-[#020617]/90 light:bg-white/95 backdrop-blur-md border-b border-slate-800 dark:border-slate-800 light:border-slate-200 flex items-center justify-between px-4 sm:px-6 z-50 transition-colors">
+      <header className="fixed top-0 left-0 right-0 h-16 bg-white/95 dark:bg-[#020617]/90 backdrop-blur-md border-b border-slate-200 dark:border-slate-800 flex items-center justify-between px-4 sm:px-6 z-50 transition-colors">
         <div className="flex items-center gap-2 cursor-pointer" onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}>
           <VocentroLogo className="h-7" showText={true} />
         </div>
 
         <nav className="hidden lg:flex items-center gap-5" aria-label="Navegação Principal">
-          <a href="#funcionalidades" className="text-xs font-semibold text-[#CBD5E1] dark:text-[#CBD5E1] light:text-slate-700 hover:text-white dark:hover:text-white light:hover:text-blue-600 transition-colors">Funcionalidades</a>
-          <a href="#transparencia" className="text-xs font-semibold text-[#CBD5E1] dark:text-[#CBD5E1] light:text-slate-700 hover:text-white dark:hover:text-white light:hover:text-blue-600 transition-colors">Transparência & Login</a>
+          <a href="#funcionalidades" className="text-xs font-semibold text-slate-700 dark:text-[#CBD5E1] hover:text-blue-600 dark:hover:text-white transition-colors">Funcionalidades</a>
+          <a href="#transparencia" className="text-xs font-semibold text-slate-700 dark:text-[#CBD5E1] hover:text-blue-600 dark:hover:text-white transition-colors">Transparência & Login</a>
           <button 
             onClick={() => navigateToRoute('/politica-de-privacidade')}
-            className="text-xs font-semibold text-[#CBD5E1] dark:text-[#CBD5E1] light:text-slate-700 hover:text-white dark:hover:text-white light:hover:text-blue-600 transition-colors cursor-pointer"
+            className="text-xs font-semibold text-slate-700 dark:text-[#CBD5E1] hover:text-blue-600 dark:hover:text-white transition-colors cursor-pointer"
           >
             Privacidade
           </button>
           <button 
             onClick={() => navigateToRoute('/termos-de-uso')}
-            className="text-xs font-semibold text-[#CBD5E1] dark:text-[#CBD5E1] light:text-slate-700 hover:text-white dark:hover:text-white light:hover:text-blue-600 transition-colors cursor-pointer"
+            className="text-xs font-semibold text-slate-700 dark:text-[#CBD5E1] hover:text-blue-600 dark:hover:text-white transition-colors cursor-pointer"
           >
             Termos
           </button>
-          <a href="#planos" className="text-xs font-semibold text-[#CBD5E1] dark:text-[#CBD5E1] light:text-slate-700 hover:text-white dark:hover:text-white light:hover:text-blue-600 transition-colors">Planos</a>
-          <a href="#faq" className="text-xs font-semibold text-[#CBD5E1] dark:text-[#CBD5E1] light:text-slate-700 hover:text-white dark:hover:text-white light:hover:text-blue-600 transition-colors">FAQ</a>
+          <a href="#planos" className="text-xs font-semibold text-slate-700 dark:text-[#CBD5E1] hover:text-blue-600 dark:hover:text-white transition-colors">Planos</a>
+          <a href="#faq" className="text-xs font-semibold text-slate-700 dark:text-[#CBD5E1] hover:text-blue-600 dark:hover:text-white transition-colors">FAQ</a>
         </nav>
 
         <div className="flex items-center gap-2 sm:gap-3">
           <ThemeToggle />
           <button 
             onClick={() => onNavigateToAuth('login')}
-            className="text-xs font-bold text-[#CBD5E1] dark:text-[#CBD5E1] light:text-slate-700 hover:text-white dark:hover:text-white light:hover:text-blue-600 transition-colors cursor-pointer px-3 py-2"
+            className="text-xs font-bold text-slate-700 dark:text-[#CBD5E1] hover:text-blue-600 dark:hover:text-white transition-colors cursor-pointer px-3 py-2"
           >
             Entrar
           </button>
@@ -165,11 +165,11 @@ export function LandingPage({ onNavigateToAuth }: LandingPageProps) {
                 <span>🚀 Em fase beta — seja um dos primeiros a testar</span>
               </div>
 
-              <h1 className="text-3xl sm:text-4xl lg:text-4xl font-black font-display tracking-tight text-[#F8FAFC] dark:text-[#F8FAFC] light:text-slate-900 leading-[1.2]">
+              <h1 className="text-3xl sm:text-4xl lg:text-4xl font-black font-display tracking-tight text-slate-900 dark:text-[#F8FAFC] leading-[1.2]">
                 Conquiste a vaga ideal mais rápido com Inteligência Artificial
               </h1>
 
-              <h2 className="text-base sm:text-lg text-[#CBD5E1] dark:text-[#CBD5E1] light:text-slate-700 leading-relaxed font-medium">
+              <h2 className="text-base sm:text-lg text-slate-700 dark:text-[#CBD5E1] leading-relaxed font-medium">
                 O Vocentro ajuda você a encontrar vagas compatíveis com seu perfil, melhorar seu currículo e se preparar para entrevistas — tudo em um só lugar.
               </h2>
 
@@ -181,7 +181,7 @@ export function LandingPage({ onNavigateToAuth }: LandingPageProps) {
                   'Treino de entrevistas interativo',
                   'Organização simples de candidaturas'
                 ].map((item, idx) => (
-                  <div key={idx} className="flex items-center gap-2 text-xs font-semibold text-slate-200 dark:text-slate-200 light:text-slate-800">
+                  <div key={idx} className="flex items-center gap-2 text-xs font-semibold text-slate-800 dark:text-slate-200">
                     <CheckCircle2 size={16} className="text-emerald-700 dark:text-emerald-400 shrink-0" />
                     <span>{item}</span>
                   </div>
@@ -189,7 +189,7 @@ export function LandingPage({ onNavigateToAuth }: LandingPageProps) {
               </div>
 
               {/* Aviso Explícito de Dados do Google OAuth Acima da Dobra */}
-              <div className="p-3.5 rounded-xl bg-slate-900/80 dark:bg-slate-900/80 light:bg-slate-100 border border-blue-500/30 text-xs text-slate-300 dark:text-slate-300 light:text-slate-700 leading-relaxed">
+              <div className="p-3.5 rounded-xl bg-slate-100 dark:bg-slate-900/80 border border-blue-500/30 text-xs text-slate-700 dark:text-slate-300 leading-relaxed">
                 🔒 <strong>Login seguro com Google:</strong> Utilizamos o login do Google apenas para identificar seu nome e e-mail com segurança. Não lemos e-mails nem acessamos seus arquivos do Google Drive.
               </div>
 
@@ -204,7 +204,7 @@ export function LandingPage({ onNavigateToAuth }: LandingPageProps) {
                 </button>
                 <a
                   href="#transparencia"
-                  className="px-6 py-3.5 text-sm font-bold text-[#CBD5E1] dark:text-[#CBD5E1] light:text-slate-700 hover:text-white bg-[#0F172A] dark:bg-[#0F172A] light:bg-white hover:bg-[#172554] border border-slate-800 dark:border-slate-800 light:border-slate-300 rounded-xl transition-all flex items-center justify-center gap-2 shadow-xs"
+                  className="px-6 py-3.5 text-sm font-bold text-slate-700 dark:text-[#CBD5E1] hover:text-blue-600 dark:hover:text-white bg-white dark:bg-[#0F172A] hover:bg-slate-100 dark:hover:bg-[#172554] border border-slate-300 dark:border-slate-800 rounded-xl transition-all flex items-center justify-center gap-2 shadow-xs"
                 >
                   <span>Como Funciona</span>
                 </a>
@@ -220,13 +220,13 @@ export function LandingPage({ onNavigateToAuth }: LandingPageProps) {
         </section>
 
         {/* ── 2. O QUE VOCÊ PODE FAZER ── */}
-        <section id="funcionalidades" className="py-16 px-6 max-w-7xl mx-auto border-t border-slate-800/60 dark:border-slate-800/60 light:border-slate-200 space-y-10">
+        <section id="funcionalidades" className="py-16 px-6 max-w-7xl mx-auto border-t border-slate-200 dark:border-slate-800/60 space-y-10">
           <div className="text-center max-w-3xl mx-auto space-y-3">
             <span className="text-xs font-mono font-bold uppercase tracking-wider text-blue-700 dark:text-blue-400">Benefícios para a sua Carreira</span>
-            <h2 className="text-2xl sm:text-3xl font-extrabold font-display text-[#F8FAFC] dark:text-[#F8FAFC] light:text-slate-900">
+            <h2 className="text-2xl sm:text-3xl font-extrabold font-display text-slate-900 dark:text-[#F8FAFC]">
               O que você pode fazer no Vocentro
             </h2>
-            <p className="text-sm text-[#CBD5E1] dark:text-[#CBD5E1] light:text-slate-700">
+            <p className="text-sm text-slate-600 dark:text-[#CBD5E1]">
               Ferramentas inteligentes projetadas para colocar você no controle da sua busca de emprego.
             </p>
           </div>
@@ -242,38 +242,38 @@ export function LandingPage({ onNavigateToAuth }: LandingPageProps) {
               { icon: CheckCircle2, title: 'Histórias Profissionais', desc: 'Estruture seus cases de sucesso de forma clara e convincente.' },
               { icon: Target, title: 'Evolução Semanal', desc: 'Metas e acompanhamento contínuo para acelerar sua contratação.' }
             ].map((card, idx) => (
-              <div key={idx} className="p-6 rounded-2xl bg-[#0F172A] dark:bg-[#0F172A] light:bg-white border border-slate-800 dark:border-slate-800 light:border-slate-200 shadow-sm space-y-3 hover:border-blue-500/40 transition-colors">
+              <div key={idx} className="p-6 rounded-2xl bg-white dark:bg-[#0F172A] border border-slate-200 dark:border-slate-800 shadow-sm space-y-3 hover:border-blue-500/40 transition-colors">
                 <div className="w-10 h-10 rounded-xl bg-blue-500/10 border border-blue-500/20 text-blue-700 dark:text-blue-400 flex items-center justify-center">
                   <card.icon size={20} />
                 </div>
-                <h3 className="text-base font-bold text-[#F8FAFC] dark:text-[#F8FAFC] light:text-slate-900">{card.title}</h3>
-                <p className="text-xs text-[#CBD5E1] dark:text-[#CBD5E1] light:text-slate-600 leading-relaxed">{card.desc}</p>
+                <h3 className="text-base font-bold text-slate-900 dark:text-[#F8FAFC]">{card.title}</h3>
+                <p className="text-xs text-slate-600 dark:text-[#CBD5E1] leading-relaxed">{card.desc}</p>
               </div>
             ))}
           </div>
         </section>
 
         {/* ── 3. TRANSPARÊNCIA & COMO FUNCIONA (CONTAINER INTERATIVO) ── */}
-        <section id="transparencia" className="py-16 px-6 max-w-7xl mx-auto border-t border-slate-800/60 dark:border-slate-800/60 light:border-slate-200 space-y-8">
+        <section id="transparencia" className="py-16 px-6 max-w-7xl mx-auto border-t border-slate-200 dark:border-slate-800/60 space-y-8">
           <div className="text-center max-w-3xl mx-auto space-y-3">
             <span className="text-xs font-mono font-bold uppercase tracking-wider text-emerald-700 dark:text-emerald-400">Transparência & Confiança</span>
-            <h2 className="text-2xl sm:text-3xl font-extrabold font-display text-[#F8FAFC] dark:text-[#F8FAFC] light:text-slate-900">
+            <h2 className="text-2xl sm:text-3xl font-extrabold font-display text-slate-900 dark:text-[#F8FAFC]">
               Como Funciona & Uso de Dados
             </h2>
-            <p className="text-sm text-[#CBD5E1] dark:text-[#CBD5E1] light:text-slate-700">
+            <p className="text-sm text-slate-600 dark:text-[#CBD5E1]">
               Entenda em detalhes como funciona a plataforma e nosso compromisso com a privacidade dos seus dados.
             </p>
           </div>
 
           {/* Abas de Seleção (Aba 'data' fica ABERTA POR PADRÃO) */}
           <div className="max-w-4xl mx-auto">
-            <div className="flex flex-wrap justify-center gap-2 p-1.5 rounded-2xl bg-slate-900/90 dark:bg-slate-900/90 light:bg-slate-200 border border-slate-800 dark:border-slate-800 light:border-slate-300">
+            <div className="flex flex-wrap justify-center gap-2 p-1.5 rounded-2xl bg-slate-200 dark:bg-slate-900/90 border border-slate-300 dark:border-slate-800">
               <button
                 onClick={() => setTransparencyTab('data')}
                 className={`px-4 py-2.5 rounded-xl text-xs font-bold transition-all flex items-center gap-2 cursor-pointer ${
                   transparencyTab === 'data'
                     ? 'bg-blue-700 text-white shadow-md'
-                    : 'text-slate-400 hover:text-white'
+                    : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
                 }`}
               >
                 <Lock size={15} />
@@ -285,7 +285,7 @@ export function LandingPage({ onNavigateToAuth }: LandingPageProps) {
                 className={`px-4 py-2.5 rounded-xl text-xs font-bold transition-all flex items-center gap-2 cursor-pointer ${
                   transparencyTab === 'flow'
                     ? 'bg-blue-700 text-white shadow-md'
-                    : 'text-slate-400 hover:text-white'
+                    : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
                 }`}
               >
                 <Zap size={15} />
@@ -297,7 +297,7 @@ export function LandingPage({ onNavigateToAuth }: LandingPageProps) {
                 className={`px-4 py-2.5 rounded-xl text-xs font-bold transition-all flex items-center gap-2 cursor-pointer ${
                   transparencyTab === 'security'
                     ? 'bg-blue-700 text-white shadow-md'
-                    : 'text-slate-400 hover:text-white'
+                    : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
                 }`}
               >
                 <ShieldCheck size={15} />
@@ -307,8 +307,8 @@ export function LandingPage({ onNavigateToAuth }: LandingPageProps) {
 
             {/* Conteúdo da Aba 1: USO DE DADOS DO GOOGLE (Default Open) */}
             {transparencyTab === 'data' && (
-              <div className="mt-6 p-8 rounded-3xl bg-[#0F172A] dark:bg-[#0F172A] light:bg-white border border-slate-800 dark:border-slate-800 light:border-slate-200 space-y-6 shadow-sm">
-                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border-b border-slate-800 dark:border-slate-800 light:border-slate-200 pb-4">
+              <div className="mt-6 p-8 rounded-3xl bg-white dark:bg-[#0F172A] border border-slate-200 dark:border-slate-800 space-y-6 shadow-sm">
+                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border-b border-slate-200 dark:border-slate-800 pb-4">
                   <div className="flex items-center gap-3">
                     <div className="w-10 h-10 rounded-xl bg-white flex items-center justify-center shrink-0 border border-slate-200 shadow-xs">
                       <svg className="w-5 h-5" viewBox="0 0 24 24">
@@ -319,7 +319,7 @@ export function LandingPage({ onNavigateToAuth }: LandingPageProps) {
                       </svg>
                     </div>
                     <div>
-                      <h3 className="text-lg font-bold text-[#F8FAFC] dark:text-[#F8FAFC] light:text-slate-900">
+                      <h3 className="text-lg font-bold text-slate-900 dark:text-[#F8FAFC]">
                         Como o Login com Google é utilizado
                       </h3>
                       <p className="text-xs text-blue-700 dark:text-blue-400 font-semibold">Uso restrito a autenticação de perfil</p>
@@ -335,40 +335,40 @@ export function LandingPage({ onNavigateToAuth }: LandingPageProps) {
                   </button>
                 </div>
 
-                <div className="p-4 rounded-2xl bg-slate-900/60 dark:bg-slate-900/60 light:bg-slate-50 border border-slate-800 dark:border-slate-800 light:border-slate-200 text-xs sm:text-sm text-slate-300 dark:text-slate-300 light:text-slate-700 leading-relaxed space-y-2">
+                <div className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800 text-xs sm:text-sm text-slate-700 dark:text-slate-300 leading-relaxed space-y-2">
                   <p>
                     O login com Google é utilizado exclusivamente para autenticar sua conta com segurança. Caso autorize, o Vocentro acessa apenas seu endereço de e-mail básico e seu nome público para criar seu cadastro de candidato.
                   </p>
-                  <p className="font-semibold text-slate-200 dark:text-slate-200 light:text-slate-800">
+                  <p className="font-semibold text-slate-900 dark:text-slate-200">
                     Nenhum e-mail é lido ou enviado. Nenhum arquivo do Google Drive é acessado. Nenhuma informação é compartilhada com terceiros.
                   </p>
                 </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-                  <div className="p-3.5 rounded-xl bg-emerald-500/10 dark:bg-emerald-500/10 light:bg-emerald-50 border border-emerald-500/30 flex items-center gap-2.5">
+                  <div className="p-3.5 rounded-xl bg-emerald-50 dark:bg-emerald-500/10 border border-emerald-200 dark:border-emerald-500/30 flex items-center gap-2.5">
                     <CheckCircle2 size={18} className="text-emerald-700 dark:text-emerald-400 shrink-0" />
-                    <span className="text-xs font-bold text-emerald-300 dark:text-emerald-300 light:text-emerald-800">Autenticação rápida e sem senha</span>
+                    <span className="text-xs font-bold text-emerald-800 dark:text-emerald-300">Autenticação rápida e sem senha</span>
                   </div>
-                  <div className="p-3.5 rounded-xl bg-emerald-500/10 dark:bg-emerald-500/10 light:bg-emerald-50 border border-emerald-500/30 flex items-center gap-2.5">
+                  <div className="p-3.5 rounded-xl bg-emerald-50 dark:bg-emerald-500/10 border border-emerald-200 dark:border-emerald-500/30 flex items-center gap-2.5">
                     <CheckCircle2 size={18} className="text-emerald-700 dark:text-emerald-400 shrink-0" />
-                    <span className="text-xs font-bold text-emerald-300 dark:text-emerald-300 light:text-emerald-800">Leitura básica de nome público</span>
+                    <span className="text-xs font-bold text-emerald-800 dark:text-emerald-300">Leitura básica de nome público</span>
                   </div>
-                  <div className="p-3.5 rounded-xl bg-emerald-500/10 dark:bg-emerald-500/10 light:bg-emerald-50 border border-emerald-500/30 flex items-center gap-2.5">
+                  <div className="p-3.5 rounded-xl bg-emerald-50 dark:bg-emerald-500/10 border border-emerald-200 dark:border-emerald-500/30 flex items-center gap-2.5">
                     <CheckCircle2 size={18} className="text-emerald-700 dark:text-emerald-400 shrink-0" />
-                    <span className="text-xs font-bold text-emerald-300 dark:text-emerald-300 light:text-emerald-800">Leitura básica de e-mail</span>
+                    <span className="text-xs font-bold text-emerald-800 dark:text-emerald-300">Leitura básica de e-mail</span>
                   </div>
 
-                  <div className="p-3.5 rounded-xl bg-red-500/10 dark:bg-red-500/10 light:bg-red-50 border border-red-500/30 flex items-center gap-2.5">
-                    <XCircle size={18} className="text-red-400 shrink-0" />
-                    <span className="text-xs font-bold text-red-300 dark:text-red-300 light:text-red-800">Sem acesso ao Gmail</span>
+                  <div className="p-3.5 rounded-xl bg-red-50 dark:bg-red-500/10 border border-red-200 dark:border-red-500/30 flex items-center gap-2.5">
+                    <XCircle size={18} className="text-red-600 dark:text-red-400 shrink-0" />
+                    <span className="text-xs font-bold text-red-800 dark:text-red-300">Sem acesso ao Gmail</span>
                   </div>
-                  <div className="p-3.5 rounded-xl bg-red-500/10 dark:bg-red-500/10 light:bg-red-50 border border-red-500/30 flex items-center gap-2.5">
-                    <XCircle size={18} className="text-red-400 shrink-0" />
-                    <span className="text-xs font-bold text-red-300 dark:text-red-300 light:text-red-800">Sem acesso ao Google Drive</span>
+                  <div className="p-3.5 rounded-xl bg-red-50 dark:bg-red-500/10 border border-red-200 dark:border-red-500/30 flex items-center gap-2.5">
+                    <XCircle size={18} className="text-red-600 dark:text-red-400 shrink-0" />
+                    <span className="text-xs font-bold text-red-800 dark:text-red-300">Sem acesso ao Google Drive</span>
                   </div>
-                  <div className="p-3.5 rounded-xl bg-red-500/10 dark:bg-red-500/10 light:bg-red-50 border border-red-500/30 flex items-center gap-2.5">
-                    <XCircle size={18} className="text-red-400 shrink-0" />
-                    <span className="text-xs font-bold text-red-300 dark:text-red-300 light:text-red-800">Sem compartilhamento de dados</span>
+                  <div className="p-3.5 rounded-xl bg-red-50 dark:bg-red-500/10 border border-red-200 dark:border-red-500/30 flex items-center gap-2.5">
+                    <XCircle size={18} className="text-red-600 dark:text-red-400 shrink-0" />
+                    <span className="text-xs font-bold text-red-800 dark:text-red-300">Sem compartilhamento de dados</span>
                   </div>
                 </div>
               </div>
@@ -376,8 +376,8 @@ export function LandingPage({ onNavigateToAuth }: LandingPageProps) {
 
             {/* Conteúdo da Aba 2: PASSO A PASSO NA PLATAFORMA */}
             {transparencyTab === 'flow' && (
-              <div className="mt-6 p-8 rounded-3xl bg-[#0F172A] dark:bg-[#0F172A] light:bg-white border border-slate-800 dark:border-slate-800 light:border-slate-200 space-y-6 shadow-sm">
-                <h3 className="text-lg font-bold text-[#F8FAFC] dark:text-[#F8FAFC] light:text-slate-900">
+              <div className="mt-6 p-8 rounded-3xl bg-white dark:bg-[#0F172A] border border-slate-200 dark:border-slate-800 space-y-6 shadow-sm">
+                <h3 className="text-lg font-bold text-slate-900 dark:text-[#F8FAFC]">
                   Fluxo da plataforma do cadastro à preparação
                 </h3>
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -389,12 +389,12 @@ export function LandingPage({ onNavigateToAuth }: LandingPageProps) {
                     { step: '5', title: 'Análise de Afinidade', desc: 'Diagnóstico de pontos fortes e lacunas técnicas.' },
                     { step: '6', title: 'Treino Interativo', desc: 'Simulações de entrevistas para ganhar confiança.' }
                   ].map((st, idx) => (
-                    <div key={idx} className="p-4 rounded-2xl bg-slate-900/60 dark:bg-slate-900/60 light:bg-slate-50 border border-slate-800 dark:border-slate-800 light:border-slate-200 space-y-2">
+                    <div key={idx} className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800 space-y-2">
                       <span className="w-7 h-7 rounded-lg bg-blue-500/20 text-blue-700 dark:text-blue-400 font-mono font-bold text-xs flex items-center justify-center">
                         {st.step}
                       </span>
-                      <h4 className="font-bold text-xs text-[#F8FAFC] dark:text-[#F8FAFC] light:text-slate-900">{st.title}</h4>
-                      <p className="text-[11px] text-[#CBD5E1] dark:text-[#CBD5E1] light:text-slate-600 leading-relaxed">{st.desc}</p>
+                      <h4 className="font-bold text-xs text-slate-900 dark:text-[#F8FAFC]">{st.title}</h4>
+                      <p className="text-[11px] text-slate-600 dark:text-[#CBD5E1] leading-relaxed">{st.desc}</p>
                     </div>
                   ))}
                 </div>
@@ -403,10 +403,10 @@ export function LandingPage({ onNavigateToAuth }: LandingPageProps) {
 
             {/* Conteúdo da Aba 3: SEGURANÇA E PRIVACIDADE */}
             {transparencyTab === 'security' && (
-              <div className="mt-6 p-8 rounded-3xl bg-[#0F172A] dark:bg-[#0F172A] light:bg-white border border-slate-800 dark:border-slate-800 light:border-slate-200 space-y-6 shadow-sm">
-                <div className="flex items-center gap-3 border-b border-slate-800 dark:border-slate-800 light:border-slate-200 pb-4">
+              <div className="mt-6 p-8 rounded-3xl bg-white dark:bg-[#0F172A] border border-slate-200 dark:border-slate-800 space-y-6 shadow-sm">
+                <div className="flex items-center gap-3 border-b border-slate-200 dark:border-slate-800 pb-4">
                   <ShieldCheck size={22} className="text-emerald-700 dark:text-emerald-400" />
-                  <h3 className="text-lg font-bold text-[#F8FAFC] dark:text-[#F8FAFC] light:text-slate-900">
+                  <h3 className="text-lg font-bold text-slate-900 dark:text-[#F8FAFC]">
                     Segurança e Compromisso com a Privacidade
                   </h3>
                 </div>
@@ -418,9 +418,9 @@ export function LandingPage({ onNavigateToAuth }: LandingPageProps) {
                     'Você possui controle total e pode solicitar a exclusão definitiva da sua conta a qualquer momento.',
                     'Nenhum dado pessoal é vendido, alugado ou compartilhado com terceiros ou anunciantes.'
                   ].map((point, idx) => (
-                    <div key={idx} className="p-4 rounded-xl bg-slate-900/60 dark:bg-slate-900/60 light:bg-slate-50 border border-slate-800 dark:border-slate-800 light:border-slate-200 flex items-center gap-3">
+                    <div key={idx} className="p-4 rounded-xl bg-slate-50 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800 flex items-center gap-3">
                       <Check size={18} className="text-emerald-700 dark:text-emerald-400 shrink-0" />
-                      <span className="text-xs sm:text-sm text-slate-200 dark:text-slate-200 light:text-slate-800 font-medium">{point}</span>
+                      <span className="text-xs sm:text-sm text-slate-800 dark:text-slate-200 font-medium">{point}</span>
                     </div>
                   ))}
                 </div>
@@ -431,121 +431,121 @@ export function LandingPage({ onNavigateToAuth }: LandingPageProps) {
         </section>
 
         {/* ── 4. POR QUE CONFIAR NO VOCENTRO ── */}
-        <section className="py-16 px-6 max-w-7xl mx-auto border-t border-slate-800/60 dark:border-slate-800/60 light:border-slate-200 space-y-8">
+        <section className="py-16 px-6 max-w-7xl mx-auto border-t border-slate-200 dark:border-slate-800/60 space-y-8">
           <div className="text-center max-w-3xl mx-auto space-y-3">
             <span className="text-xs font-mono font-bold uppercase tracking-wider text-blue-700 dark:text-blue-400">Compromisso com o Candidato</span>
-            <h2 className="text-2xl sm:text-3xl font-extrabold font-display text-[#F8FAFC] dark:text-[#F8FAFC] light:text-slate-900">
+            <h2 className="text-2xl sm:text-3xl font-extrabold font-display text-slate-900 dark:text-[#F8FAFC]">
               Por que utilizar o Vocentro
             </h2>
-            <p className="text-sm text-[#CBD5E1] dark:text-[#CBD5E1] light:text-slate-700">
+            <p className="text-sm text-slate-600 dark:text-[#CBD5E1]">
               Desenvolvido para ajudar você a avançar na carreira com clareza e segurança.
             </p>
           </div>
 
           <div className="max-w-4xl mx-auto grid grid-cols-1 md:grid-cols-3 gap-6">
-            <div className="p-6 rounded-2xl bg-[#0F172A] dark:bg-[#0F172A] light:bg-white border border-slate-800 dark:border-slate-800 light:border-slate-200 shadow-sm space-y-3">
+            <div className="p-6 rounded-2xl bg-white dark:bg-[#0F172A] border border-slate-200 dark:border-slate-800 shadow-sm space-y-3">
               <div className="w-9 h-9 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-700 dark:text-emerald-400 flex items-center justify-center">
                 <ShieldCheck size={18} />
               </div>
-              <h3 className="font-bold text-sm text-[#F8FAFC] dark:text-[#F8FAFC] light:text-slate-900">Privacidade Absoluta</h3>
-              <p className="text-xs text-[#CBD5E1] dark:text-[#CBD5E1] light:text-slate-600 leading-relaxed">
+              <h3 className="font-bold text-sm text-slate-900 dark:text-[#F8FAFC]">Privacidade Absoluta</h3>
+              <p className="text-xs text-slate-600 dark:text-[#CBD5E1] leading-relaxed">
                 Seus dados pertencem a você. Não vendemos informações e usamos escopos mínimos de autenticação.
               </p>
             </div>
 
-            <div className="p-6 rounded-2xl bg-[#0F172A] dark:bg-[#0F172A] light:bg-white border border-slate-800 dark:border-slate-800 light:border-slate-200 shadow-sm space-y-3">
+            <div className="p-6 rounded-2xl bg-white dark:bg-[#0F172A] border border-slate-200 dark:border-slate-800 shadow-sm space-y-3">
               <div className="w-9 h-9 rounded-xl bg-blue-500/10 border border-blue-500/20 text-blue-700 dark:text-blue-400 flex items-center justify-center">
                 <Sparkles size={18} />
               </div>
-              <h3 className="font-bold text-sm text-[#F8FAFC] dark:text-[#F8FAFC] light:text-slate-900">Foco no Benefício Real</h3>
-              <p className="text-xs text-[#CBD5E1] dark:text-[#CBD5E1] light:text-slate-600 leading-relaxed">
+              <h3 className="font-bold text-sm text-slate-900 dark:text-[#F8FAFC]">Foco no Benefício Real</h3>
+              <p className="text-xs text-slate-600 dark:text-[#CBD5E1] leading-relaxed">
                 Diagnósticos práticos de currículo e treinos realistas de entrevista para dar confiança real.
               </p>
             </div>
 
-            <div className="p-6 rounded-2xl bg-[#0F172A] dark:bg-[#0F172A] light:bg-white border border-slate-800 dark:border-slate-800 light:border-slate-200 shadow-sm space-y-3">
+            <div className="p-6 rounded-2xl bg-white dark:bg-[#0F172A] border border-slate-200 dark:border-slate-800 shadow-sm space-y-3">
               <div className="w-9 h-9 rounded-xl bg-indigo-500/10 border border-indigo-500/20 text-indigo-700 dark:text-indigo-400 flex items-center justify-center">
                 <CheckCircle2 size={18} />
               </div>
-              <h3 className="font-bold text-sm text-[#F8FAFC] dark:text-[#F8FAFC] light:text-slate-900">Evolução Beta Contínua</h3>
-              <p className="text-xs text-[#CBD5E1] dark:text-[#CBD5E1] light:text-slate-600 leading-relaxed">
+              <h3 className="font-bold text-sm text-slate-900 dark:text-[#F8FAFC]">Evolução Beta Contínua</h3>
+              <p className="text-xs text-slate-600 dark:text-[#CBD5E1] leading-relaxed">
                 Plataforma em aprimoramento constante com base nos feedbacks dos primeiros usuários.
               </p>
             </div>
           </div>
 
-          <div className="p-4 rounded-xl bg-slate-900/60 dark:bg-slate-900/60 light:bg-slate-100 border border-slate-800 dark:border-slate-800 light:border-slate-200 text-center max-w-2xl mx-auto">
+          <div className="p-4 rounded-xl bg-slate-100 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800 text-center max-w-2xl mx-auto">
             <span className="px-2.5 py-0.5 rounded-full bg-blue-500/10 text-blue-700 dark:text-blue-400 font-mono font-bold text-[10px] uppercase">
               Depoimentos reais em breve
             </span>
-            <p className="text-xs text-slate-300 dark:text-slate-300 light:text-slate-600 mt-1">
+            <p className="text-xs text-slate-600 dark:text-slate-300 mt-1">
               Estamos coletando os primeiros relatos de uso da comunidade Beta para compartilhar histórias reais em breve.
             </p>
           </div>
         </section>
 
         {/* ── 5. PLANOS ── */}
-        <section id="planos" className="py-16 px-6 max-w-7xl mx-auto border-t border-slate-800/60 dark:border-slate-800/60 light:border-slate-200 space-y-10">
+        <section id="planos" className="py-16 px-6 max-w-7xl mx-auto border-t border-slate-200 dark:border-slate-800/60 space-y-10">
           <div className="text-center space-y-2 max-w-xl mx-auto">
-            <h2 className="text-2xl sm:text-3xl font-extrabold font-display text-[#F8FAFC] dark:text-[#F8FAFC] light:text-slate-900">
+            <h2 className="text-2xl sm:text-3xl font-extrabold font-display text-slate-900 dark:text-[#F8FAFC]">
               Planos acessíveis para sua carreira
             </h2>
-            <p className="text-sm text-[#CBD5E1] dark:text-[#CBD5E1] light:text-slate-700">
+            <p className="text-sm text-slate-600 dark:text-[#CBD5E1]">
               Comece gratuitamente ou evolua com recursos avançados de inteligência artificial.
             </p>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-4xl mx-auto">
             {/* Plano Gratuito */}
-            <div className="p-8 rounded-2xl bg-[#0F172A] dark:bg-[#0F172A] light:bg-white border border-slate-800 dark:border-slate-800 light:border-slate-200 shadow-sm space-y-6 flex flex-col justify-between">
+            <div className="p-8 rounded-2xl bg-white dark:bg-[#0F172A] border border-slate-200 dark:border-slate-800 shadow-sm space-y-6 flex flex-col justify-between">
               <div className="space-y-4">
-                <h3 className="text-lg font-bold text-[#F8FAFC] dark:text-[#F8FAFC] light:text-slate-900">Gratuito</h3>
+                <h3 className="text-lg font-bold text-slate-900 dark:text-[#F8FAFC]">Gratuito</h3>
                 <div className="flex items-baseline gap-1">
-                  <span className="text-3xl font-black text-[#F8FAFC] dark:text-[#F8FAFC] light:text-slate-900">R$ 0</span>
-                  <span className="text-xs text-[#CBD5E1] dark:text-[#CBD5E1] light:text-slate-600">/mês</span>
+                  <span className="text-3xl font-black text-slate-900 dark:text-[#F8FAFC]">R$ 0</span>
+                  <span className="text-xs text-slate-600 dark:text-[#CBD5E1]">/mês</span>
                 </div>
-                <p className="text-xs text-[#CBD5E1] dark:text-[#CBD5E1] light:text-slate-600">Ideal para iniciar a organização de candidaturas e testar diagnósticos.</p>
-                <ul className="space-y-2.5 text-xs text-[#CBD5E1] dark:text-[#CBD5E1] light:text-slate-700 pt-2">
+                <p className="text-xs text-slate-600 dark:text-[#CBD5E1]">Ideal para iniciar a organização de candidaturas e testar diagnósticos.</p>
+                <ul className="space-y-2.5 text-xs text-slate-700 dark:text-[#CBD5E1] pt-2">
                   <li className="flex items-center gap-2">
-                    <Check size={14} className="text-emerald-700 dark:text-emerald-400" /> Diagnóstico inicial de currículo
+                    <Check size={14} className="text-emerald-600 dark:text-emerald-400" /> Diagnóstico inicial de currículo
                   </li>
                   <li className="flex items-center gap-2">
-                    <Check size={14} className="text-emerald-700 dark:text-emerald-400" /> Busca de vagas compatíveis
+                    <Check size={14} className="text-emerald-600 dark:text-emerald-400" /> Busca de vagas compatíveis
                   </li>
                   <li className="flex items-center gap-2">
-                    <Check size={14} className="text-emerald-700 dark:text-emerald-400" /> Painel de organização de candidaturas
+                    <Check size={14} className="text-emerald-600 dark:text-emerald-400" /> Painel de organização de candidaturas
                   </li>
                 </ul>
               </div>
               <button
                 onClick={() => onNavigateToAuth('signup')}
-                className="w-full py-3 text-xs font-bold text-white bg-slate-800 dark:bg-slate-800 light:bg-slate-900 hover:bg-[#172554] rounded-xl transition-colors cursor-pointer"
+                className="w-full py-3 text-xs font-bold text-white bg-slate-900 hover:bg-slate-800 dark:bg-slate-800 dark:hover:bg-[#172554] rounded-xl transition-colors cursor-pointer"
               >
                 Começar Grátis
               </button>
             </div>
 
             {/* Plano Pro */}
-            <div className="p-8 rounded-2xl bg-[#0F172A] dark:bg-[#0F172A] light:bg-white border-2 border-blue-500 space-y-6 flex flex-col justify-between relative overflow-hidden shadow-md">
+            <div className="p-8 rounded-2xl bg-white dark:bg-[#0F172A] border-2 border-blue-500 space-y-6 flex flex-col justify-between relative overflow-hidden shadow-md">
               <div className="absolute top-4 right-4 px-2.5 py-0.5 rounded-full bg-blue-100 dark:bg-blue-500/20 border border-blue-300 dark:border-blue-500/30 text-blue-800 dark:text-blue-300 text-[10px] font-bold uppercase font-mono">
                 Recomendado
               </div>
               <div className="space-y-4">
-                <h3 className="text-lg font-bold text-[#F8FAFC] dark:text-[#F8FAFC] light:text-slate-900">Pro</h3>
+                <h3 className="text-lg font-bold text-slate-900 dark:text-[#F8FAFC]">Pro</h3>
                 <div className="flex items-baseline gap-1">
-                  <span className="text-3xl font-black text-[#F8FAFC] dark:text-[#F8FAFC] light:text-slate-900">R$ 29</span>
-                  <span className="text-xs text-[#CBD5E1] dark:text-[#CBD5E1] light:text-slate-600">/mês</span>
+                  <span className="text-3xl font-black text-slate-900 dark:text-[#F8FAFC]">R$ 29</span>
+                  <span className="text-xs text-slate-600 dark:text-[#CBD5E1]">/mês</span>
                 </div>
-                <p className="text-xs text-[#CBD5E1] dark:text-[#CBD5E1] light:text-slate-600">Acelerador completo de carreira com treinos de entrevista ilimitados.</p>
-                <ul className="space-y-2.5 text-xs text-[#CBD5E1] dark:text-[#CBD5E1] light:text-slate-700 pt-2">
+                <p className="text-xs text-slate-600 dark:text-[#CBD5E1]">Acelerador completo de carreira com treinos de entrevista ilimitados.</p>
+                <ul className="space-y-2.5 text-xs text-slate-700 dark:text-[#CBD5E1] pt-2">
                   <li className="flex items-center gap-2">
-                    <Check size={14} className="text-emerald-700 dark:text-emerald-400" /> Tudo do plano Gratuito
+                    <Check size={14} className="text-emerald-600 dark:text-emerald-400" /> Tudo do plano Gratuito
                   </li>
                   <li className="flex items-center gap-2">
-                    <Check size={14} className="text-emerald-700 dark:text-emerald-400" /> Otimização avançada de currículo
+                    <Check size={14} className="text-emerald-600 dark:text-emerald-400" /> Otimização avançada de currículo
                   </li>
                   <li className="flex items-center gap-2">
-                    <Check size={14} className="text-emerald-700 dark:text-emerald-400" /> Treinador de entrevistas com IA ilimitado
+                    <Check size={14} className="text-emerald-600 dark:text-emerald-400" /> Treinador de entrevistas com IA ilimitado
                   </li>
                 </ul>
               </div>
@@ -560,27 +560,27 @@ export function LandingPage({ onNavigateToAuth }: LandingPageProps) {
         </section>
 
         {/* ── 6. FAQ ── */}
-        <section id="faq" className="py-16 px-6 max-w-4xl mx-auto border-t border-slate-800/60 dark:border-slate-800/60 light:border-slate-200 space-y-8">
+        <section id="faq" className="py-16 px-6 max-w-4xl mx-auto border-t border-slate-200 dark:border-slate-800/60 space-y-8">
           <div className="text-center space-y-2">
-            <h2 className="text-2xl sm:text-3xl font-extrabold font-display text-[#F8FAFC] dark:text-[#F8FAFC] light:text-slate-900">
+            <h2 className="text-2xl sm:text-3xl font-extrabold font-display text-slate-900 dark:text-[#F8FAFC]">
               Perguntas Frequentes
             </h2>
-            <p className="text-sm text-[#CBD5E1] dark:text-[#CBD5E1] light:text-slate-700">Esclareça suas dúvidas sobre a plataforma Vocentro.</p>
+            <p className="text-sm text-slate-600 dark:text-[#CBD5E1]">Esclareça suas dúvidas sobre a plataforma Vocentro.</p>
           </div>
 
           <div className="space-y-3">
             {faqData.map((item, index) => (
-              <div key={index} className="rounded-xl bg-[#0F172A] dark:bg-[#0F172A] light:bg-white border border-slate-800 dark:border-slate-800 light:border-slate-200 overflow-hidden shadow-xs">
+              <div key={index} className="rounded-xl bg-white dark:bg-[#0F172A] border border-slate-200 dark:border-slate-800 overflow-hidden shadow-xs">
                 <button
                   onClick={() => toggleFaq(index)}
-                  className="w-full p-4 text-left font-bold text-sm text-[#F8FAFC] dark:text-[#F8FAFC] light:text-slate-900 flex justify-between items-center hover:bg-[#172554] dark:hover:bg-[#172554] light:hover:bg-slate-50 transition-colors cursor-pointer"
+                  className="w-full p-4 text-left font-bold text-sm text-slate-900 dark:text-[#F8FAFC] flex justify-between items-center hover:bg-slate-50 dark:hover:bg-[#172554] transition-colors cursor-pointer"
                   aria-expanded={activeFaq === index}
                 >
                   <span>{item.q}</span>
                   <ChevronDown size={18} className={`transition-transform ${activeFaq === index ? 'rotate-180 text-blue-700 dark:text-blue-400' : 'text-slate-400'}`} />
                 </button>
                 {activeFaq === index && (
-                  <div className="p-4 pt-0 text-xs text-[#CBD5E1] dark:text-[#CBD5E1] light:text-slate-700 leading-relaxed border-t border-slate-800/50 dark:border-slate-800/50 light:border-slate-200">
+                  <div className="p-4 pt-0 text-xs text-slate-600 dark:text-[#CBD5E1] leading-relaxed border-t border-slate-200 dark:border-slate-800/50">
                     {item.a}
                   </div>
                 )}
@@ -592,22 +592,22 @@ export function LandingPage({ onNavigateToAuth }: LandingPageProps) {
       </main>
 
       {/* ── RODAPÉ COMPLETO ── */}
-      <footer className="border-t border-slate-800 dark:border-slate-800 light:border-slate-200 bg-[#020617] dark:bg-[#020617] light:bg-slate-100 py-12 px-6">
+      <footer className="border-t border-slate-200 dark:border-slate-800 bg-slate-100 dark:bg-[#020617] py-12 px-6">
         <div className="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-4 gap-8">
           
           <div className="space-y-3">
             <VocentroLogo className="h-6" showText={true} />
-            <p className="text-xs text-[#CBD5E1] dark:text-[#CBD5E1] light:text-slate-700 leading-relaxed">
+            <p className="text-xs text-slate-600 dark:text-[#CBD5E1] leading-relaxed">
               Vocentro é uma plataforma de gestão e desenvolvimento de carreira com Inteligência Artificial.
             </p>
           </div>
 
           <div className="space-y-2">
-            <h3 className="font-bold text-xs uppercase tracking-wider text-[#F8FAFC] dark:text-[#F8FAFC] light:text-slate-900">Plataforma</h3>
-            <ul className="space-y-2 text-xs text-[#CBD5E1] dark:text-[#CBD5E1] light:text-slate-700">
-              <li><a href="#funcionalidades" className="inline-block py-1 hover:text-white dark:hover:text-white light:hover:text-slate-900 transition-colors">O que você pode fazer</a></li>
-              <li><a href="#transparencia" className="inline-block py-1 hover:text-white dark:hover:text-white light:hover:text-slate-900 transition-colors">Como Funciona</a></li>
-              <li><a href="#planos" className="inline-block py-1 hover:text-white dark:hover:text-white light:hover:text-slate-900 transition-colors">Planos</a></li>
+            <h3 className="font-bold text-xs uppercase tracking-wider text-slate-900 dark:text-[#F8FAFC]">Plataforma</h3>
+            <ul className="space-y-2 text-xs text-slate-600 dark:text-[#CBD5E1]">
+              <li><a href="#funcionalidades" className="inline-block py-1 hover:text-slate-900 dark:hover:text-white transition-colors">O que você pode fazer</a></li>
+              <li><a href="#transparencia" className="inline-block py-1 hover:text-slate-900 dark:hover:text-white transition-colors">Como Funciona</a></li>
+              <li><a href="#planos" className="inline-block py-1 hover:text-slate-900 dark:hover:text-white transition-colors">Planos</a></li>
               <li>
                 <button
                   onClick={() => navigateToRoute('/faq')}
@@ -620,12 +620,12 @@ export function LandingPage({ onNavigateToAuth }: LandingPageProps) {
           </div>
 
           <div className="space-y-2">
-            <h3 className="font-bold text-xs uppercase tracking-wider text-[#F8FAFC] dark:text-[#F8FAFC] light:text-slate-900">Transparência & OAuth</h3>
-            <ul className="space-y-2 text-xs text-[#CBD5E1] dark:text-[#CBD5E1] light:text-slate-700">
+            <h3 className="font-bold text-xs uppercase tracking-wider text-slate-900 dark:text-[#F8FAFC]">Transparência & OAuth</h3>
+            <ul className="space-y-2 text-xs text-slate-600 dark:text-[#CBD5E1]">
               <li>
                 <button
                   onClick={() => navigateToRoute('/politica-de-privacidade')}
-                  className="inline-block py-1 hover:text-white dark:hover:text-white light:hover:text-slate-900 transition-colors cursor-pointer"
+                  className="inline-block py-1 hover:text-slate-900 dark:hover:text-white transition-colors cursor-pointer"
                 >
                   Política de Privacidade
                 </button>
@@ -633,7 +633,7 @@ export function LandingPage({ onNavigateToAuth }: LandingPageProps) {
               <li>
                 <button
                   onClick={() => navigateToRoute('/termos-de-uso')}
-                  className="inline-block py-1 hover:text-white dark:hover:text-white light:hover:text-slate-900 transition-colors cursor-pointer"
+                  className="inline-block py-1 hover:text-slate-900 dark:hover:text-white transition-colors cursor-pointer"
                 >
                   Termos de Uso
                 </button>
@@ -649,7 +649,7 @@ export function LandingPage({ onNavigateToAuth }: LandingPageProps) {
               <li>
                 <button
                   onClick={() => navigateToRoute('/about')}
-                  className="inline-block py-1 hover:text-white dark:hover:text-white light:hover:text-slate-900 transition-colors cursor-pointer"
+                  className="inline-block py-1 hover:text-slate-900 dark:hover:text-white transition-colors cursor-pointer"
                 >
                   Sobre o Vocentro (/about)
                 </button>
@@ -666,17 +666,17 @@ export function LandingPage({ onNavigateToAuth }: LandingPageProps) {
           </div>
 
           <div className="space-y-2">
-            <h3 className="font-bold text-xs uppercase tracking-wider text-[#F8FAFC] dark:text-[#F8FAFC] light:text-slate-900">Suporte & Empresa</h3>
-            <ul className="space-y-2 text-xs text-[#CBD5E1] dark:text-[#CBD5E1] light:text-slate-700">
-              <li><span className="font-semibold text-[#F8FAFC] dark:text-[#F8FAFC] light:text-slate-900">Empresa:</span> Vocentro Tecnologia</li>
-              <li><span className="font-semibold text-[#F8FAFC] dark:text-[#F8FAFC] light:text-slate-900">Contato:</span> suporte@vocentro.com.br</li>
+            <h3 className="font-bold text-xs uppercase tracking-wider text-slate-900 dark:text-[#F8FAFC]">Suporte & Empresa</h3>
+            <ul className="space-y-2 text-xs text-slate-600 dark:text-[#CBD5E1]">
+              <li><span className="font-semibold text-slate-900 dark:text-[#F8FAFC]">Empresa:</span> Vocentro Tecnologia</li>
+              <li><span className="font-semibold text-slate-900 dark:text-[#F8FAFC]">Contato:</span> suporte@vocentro.com.br</li>
               <li><a href="mailto:suporte@vocentro.com.br" className="inline-block py-1 text-blue-700 dark:text-blue-400 hover:underline">Falar com Suporte</a></li>
             </ul>
           </div>
 
         </div>
 
-        <div className="max-w-7xl mx-auto pt-8 mt-8 border-t border-slate-800/60 dark:border-slate-800/60 light:border-slate-200 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-[#CBD5E1] dark:text-[#CBD5E1] light:text-slate-600">
+        <div className="max-w-7xl mx-auto pt-8 mt-8 border-t border-slate-200 dark:border-slate-800/60 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-slate-600 dark:text-[#CBD5E1]">
           <p>© {new Date().getFullYear()} Vocentro Tecnologia. Todos os direitos reservados.</p>
           <p className="font-mono text-[11px]">Vocentro OAuth 2.0 Verified • WCAG AA Compliant</p>
         </div>

@@ -3,6 +3,7 @@ import { Sparkles, X, ArrowRight, Bot } from 'lucide-react';
 import { useCopilotEngine } from '../../application/hooks/useCopilotEngine';
 import { useAuth } from '../../application/hooks/useAuth';
 import { useEntitlements, PaywallModal, CheckoutModal } from '../../modules/billing';
+import { supabase } from '../../infrastructure/api/supabaseClient';
 import type { Application, Job } from '../../domain/models/types';
 import type { CareerProfileNew } from '../../application/hooks/useMyProfileAi';
 
@@ -29,6 +30,7 @@ export function GlobalCopilotDrawer({
 
   const [isOpen, setIsOpen] = useState(false);
   const [chatInput, setChatInput] = useState('');
+  const [isTyping, setIsTyping] = useState(false);
   const [messages, setMessages] = useState<Array<{ role: 'assistant' | 'user'; text: string }>>([
     {
       role: 'assistant',
@@ -53,24 +55,22 @@ export function GlobalCopilotDrawer({
 
   const handleSendMessage = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!chatInput.trim()) return;
+    if (!chatInput.trim() || isTyping) return;
 
     const userText = chatInput.trim();
     setMessages(prev => [...prev, { role: 'user', text: userText }]);
     setChatInput('');
 
-    // Resposta conversacional inteligente com detecção de intenção
-    setTimeout(() => {
-      let reply = "Entendido! Recomendo focar na preparação para suas entrevistas ativas e manter seu perfil atualizado. Para orientações mais detalhadas, use a Central de IA & Coach.";
-      const lower = userText.toLowerCase();
+    const lower = userText.toLowerCase();
 
-      // Detecção de intenção: Simulação de Entrevista → redirecionar para Coach
-      const isSimulationIntent = ['simular entrevista', 'simulação de entrevista', 'praticar entrevista', 'treinar entrevista',
-        'simulador', 'entrevista star', 'método star', 'treinamento star', 'mock interview', 'prática de entrevista',
-        'simule uma entrevista', 'quero simular', 'simula entrevista', 'simular perguntas'].some(k => lower.includes(k));
+    // Detecção de intenção: Simulação de Entrevista → redirecionar para Coach
+    const isSimulationIntent = ['simular entrevista', 'simulação de entrevista', 'praticar entrevista', 'treinar entrevista',
+      'simulador', 'entrevista star', 'método star', 'treinamento star', 'mock interview', 'prática de entrevista',
+      'simule uma entrevista', 'quero simular', 'simula entrevista', 'simular perguntas'].some(k => lower.includes(k));
 
-      if (isSimulationIntent) {
-        reply = "🎯 Para simulação completa de entrevistas com método STAR, use a aba Coach — lá você pratica com perguntas reais geradas pela IA, recebe feedback detalhado e cronometra suas respostas. Vou te levar até lá!";
+    if (isSimulationIntent) {
+      setTimeout(() => {
+        const reply = "🎯 Para simulação completa de entrevistas com método STAR, use a aba Coach — lá você pratica com perguntas reais geradas pela IA, recebe feedback detalhado e cronometra suas respostas. Vou te levar até lá!";
         setMessages(prev => [...prev, { role: 'assistant', text: reply }]);
         // Redirecionar automaticamente para a aba Coach após 2s
         setTimeout(() => {
@@ -79,23 +79,47 @@ export function GlobalCopilotDrawer({
             setIsOpen(false);
           }
         }, 2000);
-        return;
-      }
+      }, 300);
+      return;
+    }
 
-      if (lower.includes('pretensão') || lower.includes('salário') || lower.includes('salario') || lower.includes('remuneração')) {
-        reply = "💰 Para negociação salarial, consulte o Monitor de Demanda Real na aba Coach — lá você vê as habilidades mais demandadas e pode calibrar sua pretensão. Quer ir direto para o Coach?";
-      } else if (lower.includes('vaga') || lower.includes('candidatar') || lower.includes('aplicar') || lower.includes('oportunidade')) {
-        reply = "🔍 Vou destacar as vagas de maior prioridade para o seu perfil! Acesse a aba Vagas & Match para ver o ranking de compatibilidade da IA.";
-      } else if (lower.includes('currículo') || lower.includes('curriculo') || lower.includes('cv') || lower.includes('resume')) {
-        reply = "📄 Seu currículo já está cadastrado. Você pode selecionar qualquer vaga ativa para gerar uma versão sob medida na aba Vagas & Match.";
-      } else if (lower.includes('perfil') || lower.includes('competência') || lower.includes('skill')) {
-        reply = "⚡ Recomendo revisar suas competências na aba Perfil para garantir que seu Career Score reflita todas as suas habilidades reais.";
-      } else if (lower.includes('pipeline') || lower.includes('kanban') || lower.includes('estratégia') || lower.includes('estrategia')) {
-        reply = "📋 Seu Pipeline está na aba Estratégia. Atualize o status de cada candidatura para que o Copiloto recalcule suas probabilidades de conversão.";
-      }
+    setIsTyping(true);
 
-      setMessages(prev => [...prev, { role: 'assistant', text: reply }]);
-    }, 600);
+    // Chamada assíncrona para a Edge Function de Copiloto IA
+    (async () => {
+      try {
+        if (!supabase) {
+          throw new Error("Supabase não configurado no cliente.");
+        }
+        const { data, error } = await supabase.functions.invoke('chat-copilot', {
+          body: {
+            message: userText,
+            history: messages,
+            context: {
+              careerProfile: careerProfileNew,
+              applications,
+              jobs
+            }
+          }
+        });
+
+        if (error) throw error;
+
+        if (data && data.success && data.reply) {
+          setMessages(prev => [...prev, { role: 'assistant', text: data.reply }]);
+        } else {
+          throw new Error(data?.error || "Resposta de IA indisponível no momento.");
+        }
+      } catch (err: any) {
+        console.error("[GLOBAL COPILOT IA ERROR]:", err);
+        setMessages(prev => [...prev, { 
+          role: 'assistant', 
+          text: `⚠️ Desculpe, não consegui obter uma resposta do Copiloto IA. Detalhes: ${err.message || 'Falha na conexão com o servidor.'}` 
+        }]);
+      } finally {
+        setIsTyping(false);
+      }
+    })();
   };
 
   const handleExecuteAction = (targetTab?: string, targetAppId?: string) => {
@@ -198,6 +222,18 @@ export function GlobalCopilotDrawer({
                 </div>
               </div>
             ))}
+            {isTyping && (
+              <div className="flex gap-2.5 justify-start">
+                <div className="w-6 h-6 rounded-lg bg-brand-500/20 text-brand-400 border border-brand-500/30 flex items-center justify-center shrink-0 mt-0.5">
+                  <Bot size={14} className="animate-pulse" />
+                </div>
+                <div className="p-3 rounded-2xl text-xs bg-slate-800 light:bg-slate-100 border border-slate-700 light:border-slate-200 text-slate-400 light:text-slate-500 rounded-bl-none flex items-center gap-1">
+                  <span className="w-1.5 h-1.5 rounded-full bg-slate-400 animate-bounce" style={{ animationDelay: '0ms' }} />
+                  <span className="w-1.5 h-1.5 rounded-full bg-slate-400 animate-bounce" style={{ animationDelay: '150ms' }} />
+                  <span className="w-1.5 h-1.5 rounded-full bg-slate-400 animate-bounce" style={{ animationDelay: '300ms' }} />
+                </div>
+              </div>
+            )}
           </div>
 
           {/* Form do Input */}

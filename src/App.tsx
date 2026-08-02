@@ -18,7 +18,7 @@ import { OnboardingModal } from './presentation/components/OnboardingModal';
 import { GlobalCopilotDrawer } from './presentation/components/GlobalCopilotDrawer';
 import { SatisfactionSurveyModal } from './presentation/components/SatisfactionSurveyModal';
 import { Toast, type ToastMessage } from './presentation/components/ds';
-import { CheckoutModal } from './modules/billing';
+import { CheckoutModal, useEntitlements } from './modules/billing';
 import type { Job } from './domain/models/types';
 
 // ── Code Splitting: Lazy-load de todas as páginas ──
@@ -455,12 +455,17 @@ function AuthenticatedApp({
   const [userVisitCount, setUserVisitCount] = useState<number>(0);
   const [showSatisfactionSurvey, setShowSatisfactionSurvey] = useState<boolean>(false);
   const [showCheckoutModal, setShowCheckoutModal] = useState<boolean>(false);
+  const { isPro } = useEntitlements(user?.id);
 
   useEffect(() => {
-    const handleOpenCheckout = () => setShowCheckoutModal(true);
+    // Nunca abrir o modal de checkout se o usuário já for Pro
+    const handleOpenCheckout = () => {
+      if (isPro) return;
+      setShowCheckoutModal(true);
+    };
     window.addEventListener('open_checkout_modal', handleOpenCheckout);
     return () => window.removeEventListener('open_checkout_modal', handleOpenCheckout);
-  }, []);
+  }, [isPro]);
 
   useEffect(() => {
     if (!user) {
@@ -628,6 +633,7 @@ function AuthenticatedApp({
         isOpen={isSidebarOpen}
         onClose={() => setIsSidebarOpen(false)}
         isAdmin={isAdmin}
+        isPro={isPro}
         hasResume={resumes.length > 0}
         hasProfile={!!careerProfileNew}
         matchCount={matches.length}

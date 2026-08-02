@@ -1,6 +1,7 @@
 import { useEffect, useState, type ReactNode } from 'react';
 import { createPortal } from 'react-dom';
 import { X, AlertTriangle } from 'lucide-react';
+import { useEscapeToClose } from '../../../application/hooks/useEscapeToClose';
 
 export interface BaseModalProps {
   isOpen: boolean;
@@ -34,20 +35,8 @@ export function BaseModal({
     setMounted(true);
   }, []);
 
-  // Item 3: Listener global da tecla ESC (Escape)
-  useEffect(() => {
-    if (!isOpen) return;
-
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') {
-        e.preventDefault();
-        attemptClose();
-      }
-    };
-
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [isOpen, hasUnsavedChanges]);
+  // Item 3: Listener global da tecla ESC (Escape) via hook reutilizável
+  useEscapeToClose(isOpen, () => attemptClose());
 
   // Bloquear rolagem do corpo da página enquanto o modal estiver aberto
   useEffect(() => {

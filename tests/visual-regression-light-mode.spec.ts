@@ -1,5 +1,13 @@
 import { test, expect } from '@playwright/test';
 
+async function changeTheme(page: any, theme: 'light' | 'dark') {
+  await page.evaluate((t) => {
+    localStorage.setItem('theme', t);
+    window.dispatchEvent(new CustomEvent('theme-change', { detail: { theme: t } }));
+  }, theme);
+  await page.waitForTimeout(400);
+}
+
 // Função auxiliar para calcular contraste relativo WCAG 2.1 entre duas cores RGB
 function getLuminance(r: number, g: number, b: number): number {
   const [rs, gs, bs] = [r, g, b].map(c => {
@@ -35,11 +43,7 @@ test.describe('Suíte Completa de Regressão Visual e Contraste WCAG 2.1 - Vocen
     await page.waitForTimeout(500);
 
     // Modo Claro
-    await page.evaluate(() => {
-      localStorage.setItem('theme', 'light');
-      document.documentElement.className = 'light';
-      document.body.className = 'light';
-    });
+    await changeTheme(page, 'light');
 
     const lightData = await page.evaluate(() => {
       const header = document.querySelector('header') || document.body;
@@ -64,12 +68,7 @@ test.describe('Suíte Completa de Regressão Visual e Contraste WCAG 2.1 - Vocen
     expect(lightContrast, `Logo na Navbar da Landing Page no Modo Claro deve ter contraste WCAG >= 3.0.`).toBeGreaterThanOrEqual(3.0);
 
     // Modo Escuro
-    await page.evaluate(() => {
-      localStorage.setItem('theme', 'dark');
-      document.documentElement.className = 'dark';
-      document.body.className = 'dark';
-    });
-    await page.waitForTimeout(300);
+    await changeTheme(page, 'dark');
 
     const darkData = await page.evaluate(() => {
       const header = document.querySelector('header') || document.body;
@@ -91,7 +90,7 @@ test.describe('Suíte Completa de Regressão Visual e Contraste WCAG 2.1 - Vocen
     });
 
     const darkContrast = calculateContrastRatio(darkData.fg, darkData.bg);
-    expect(darkContrast, `Logo na Navbar da Landing Page no Modo Escuro deve ter contraste WCAG >= 3.0.`).toBeGreaterThanOrEqual(3.0);
+    expect(darkContrast, `Logo na Navbar da Landing Page no Modo Escuro deve ter contraste WCAG >= 3.0. Debug: fg="${JSON.stringify(darkData.fg)}" bg="${JSON.stringify(darkData.bg)}"`).toBeGreaterThanOrEqual(3.0);
   });
 
   test('2. Login Page: Header, Logo Vocentro e Card de Autenticação (Modo Claro & Escuro)', async ({ page }) => {
@@ -373,12 +372,7 @@ test.describe('Suíte Completa de Regressão Visual e Contraste WCAG 2.1 - Vocen
     await page.waitForTimeout(500);
 
     // Mudar para escuro
-    await page.evaluate(() => {
-      localStorage.setItem('theme', 'dark');
-      document.documentElement.className = 'dark';
-      document.body.className = 'dark';
-    });
-    await page.waitForTimeout(300);
+    await changeTheme(page, 'dark');
 
     const darkBgRgb = await page.evaluate(() => {
       const el = document.querySelector('.min-h-screen') || document.body;
@@ -386,22 +380,17 @@ test.describe('Suíte Completa de Regressão Visual e Contraste WCAG 2.1 - Vocen
       const canvas = document.createElement('canvas');
       canvas.width = 1; canvas.height = 1;
       const ctx = canvas.getContext('2d');
-      if (!ctx) return { r: 15, g: 23, b: 42 };
+      if (!ctx) return { r: 15, g: 23, b: 42, htmlClasses: '', bodyClasses: '', bg: '' };
       ctx.fillStyle = (bg && bg !== 'rgba(0, 0, 0, 0)' && bg !== 'transparent') ? bg : 'rgb(15, 23, 42)';
       ctx.fillRect(0, 0, 1, 1);
       const [r, g, b] = ctx.getImageData(0, 0, 1, 1).data;
-      return { r, g, b };
+      return { r, g, b, htmlClasses: document.documentElement.className, bodyClasses: document.body.className, bg };
     });
 
-    expect(getLuminance(darkBgRgb.r, darkBgRgb.g, darkBgRgb.b), `Fundo no modo escuro deve ter luminância baixa (< 0.3).`).toBeLessThan(0.3);
+    expect(getLuminance(darkBgRgb.r, darkBgRgb.g, darkBgRgb.b), `Fundo no modo escuro deve ter luminância baixa (< 0.3). Debug: htmlClasses="${darkBgRgb.htmlClasses}" bodyClasses="${darkBgRgb.bodyClasses}" bg="${darkBgRgb.bg}"`).toBeLessThan(0.3);
 
     // Mudar para claro
-    await page.evaluate(() => {
-      localStorage.setItem('theme', 'light');
-      document.documentElement.className = 'light';
-      document.body.className = 'light';
-    });
-    await page.waitForTimeout(300);
+    await changeTheme(page, 'light');
 
     const lightBgRgb = await page.evaluate(() => {
       const el = document.querySelector('.min-h-screen') || document.body;
@@ -417,6 +406,112 @@ test.describe('Suíte Completa de Regressão Visual e Contraste WCAG 2.1 - Vocen
     });
 
     expect(getLuminance(lightBgRgb.r, lightBgRgb.g, lightBgRgb.b), `Fundo no modo claro deve ter luminância alta (>= 0.6).`).toBeGreaterThanOrEqual(0.6);
+  });
+
+  test('16. Acessibilidade: Fechamento de Modais e Drawers via Tecla Escape', async ({ page }) => {
+    await page.goto('/', { waitUntil: 'domcontentloaded' });
+    await page.waitForTimeout(600);
+
+    await changeTheme(page, 'light');
+
+    // 1. Abrir Modal de Nova Candidatura Manual
+    const newAppBtn = page.locator('button:has-text("Nova Candidatura")').first();
+    if (await newAppBtn.isVisible()) {
+      await newAppBtn.click();
+      await page.waitForTimeout(300);
+
+      const modalHeader = page.locator('h3:has-text("Acompanhar Nova Vaga")').first();
+      await expect(modalHeader).toBeVisible();
+
+      // Pressionar Escape para fechar
+      await page.keyboard.press('Escape');
+      await page.waitForTimeout(300);
+      await expect(modalHeader).not.toBeVisible();
+    }
+  });
+
+  test('17. Contrast & Legibility: Matriz de Prioridades ROI e CRM Kanban em Modo Claro', async ({ page }) => {
+    await page.goto('/', { waitUntil: 'domcontentloaded' });
+    await page.waitForTimeout(800);
+
+    await changeTheme(page, 'light');
+
+    // Validar sub-aba CRM Kanban
+    const kanbanBtn = page.locator('button:has-text("Pipeline (CRM Kanban)")').first();
+    if (await kanbanBtn.isVisible()) {
+      await kanbanBtn.click();
+      await page.waitForTimeout(400);
+    }
+
+    const samplesKanban = await evaluatePageContrast(page);
+    expect(samplesKanban.length).toBeGreaterThan(0);
+    for (const sample of samplesKanban) {
+      expect(sample.isDarkSlate, `Kanban não deve conter textos escuros slate no Modo Claro. Texto: "${sample.text}"`).toBe(false);
+      expect(sample.contrast, `Kanban ("${sample.text}") deve ter contraste WCAG >= 3.0.`).toBeGreaterThanOrEqual(3.0);
+    }
+
+    // Mudar para Matriz de Prioridades ROI
+    const roiBtn = page.locator('button:has-text("Prioridades (ROI)")').first();
+    if (await roiBtn.isVisible()) {
+      await roiBtn.click();
+      await page.waitForTimeout(400);
+    }
+
+    const samplesRoi = await evaluatePageContrast(page);
+    expect(samplesRoi.length).toBeGreaterThan(0);
+    for (const sample of samplesRoi) {
+      expect(sample.isDarkSlate, `Prioridades ROI não deve conter textos escuros slate no Modo Claro. Texto: "${sample.text}"`).toBe(false);
+      expect(sample.contrast, `Prioridades ROI ("${sample.text}") deve ter contraste WCAG >= 3.0.`).toBeGreaterThanOrEqual(3.0);
+    }
+  });
+
+  test('18. Contrast & Legibility: Meu Perfil IA e Perfil Profissional em Modo Claro', async ({ page }) => {
+    await page.goto('/profile', { waitUntil: 'domcontentloaded' });
+    await page.waitForTimeout(800);
+
+    await changeTheme(page, 'light');
+
+    // Validar Meu Perfil IA
+    const aiTabBtn = page.locator('button:has-text("Meu Perfil IA")').first();
+    if (await aiTabBtn.isVisible()) {
+      await aiTabBtn.click();
+      await page.waitForTimeout(400);
+    }
+
+    const samplesAiProfile = await evaluatePageContrast(page);
+    expect(samplesAiProfile.length).toBeGreaterThan(0);
+    for (const sample of samplesAiProfile) {
+      expect(sample.isDarkSlate, `Meu Perfil IA não deve conter textos escuros slate no Modo Claro. Texto: "${sample.text}"`).toBe(false);
+      expect(sample.contrast, `Meu Perfil IA ("${sample.text}") deve ter contraste WCAG >= 3.0.`).toBeGreaterThanOrEqual(3.0);
+    }
+  });
+
+  test('19. Contrast & Legibility: Modal de Vaga Arquivada em Modo Claro', async ({ page }) => {
+    await page.goto('/', { waitUntil: 'domcontentloaded' });
+    await page.waitForTimeout(800);
+
+    await changeTheme(page, 'light');
+
+    // Habilitar a exibição de arquivadas se o botão existir
+    const archivedBtn = page.locator('button:has-text("Ver Arquivadas")').first();
+    if (await archivedBtn.isVisible()) {
+      await archivedBtn.click();
+      await page.waitForTimeout(300);
+      
+      const archivedCard = page.locator('span:has-text("Arquivada")').first();
+      if (await archivedCard.isVisible()) {
+        await archivedCard.click();
+        await page.waitForTimeout(400);
+
+        // Validar contraste dentro do drawer aberto da vaga arquivada
+        const samplesDrawer = await evaluatePageContrast(page);
+        expect(samplesDrawer.length).toBeGreaterThan(0);
+        for (const sample of samplesDrawer) {
+          expect(sample.isDarkSlate, `Archived details drawer não deve ter texto slate no Modo Claro. Texto: "${sample.text}"`).toBe(false);
+          expect(sample.contrast, `Archived drawer ("${sample.text}") deve ter contraste WCAG >= 3.0.`).toBeGreaterThanOrEqual(3.0);
+        }
+      }
+    }
   });
 
 });

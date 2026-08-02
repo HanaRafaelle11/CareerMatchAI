@@ -1187,32 +1187,32 @@ export function Profile({
                   {activeInsights?.seniority_prediction && (
                     <CardGlass className="p-6 space-y-4 border-l-4 border-l-indigo-500">
                       <div className="flex items-center justify-between">
-                        <h3 className="font-display font-bold text-base text-slate-200 flex items-center gap-2">
+                        <h3 className="font-display font-bold text-base text-foreground flex items-center gap-2">
                           <Brain className="text-indigo-400" size={18} />
                           Identidade Profissional
                         </h3>
                       </div>
 
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2">
-                        <div className="bg-slate-900/30 rounded-xl p-4 border border-slate-900">
-                          <span className="text-[10px] uppercase font-bold text-indigo-400 tracking-wider">
+                        <div className="bg-background rounded-xl p-4 border border-border">
+                          <span className="text-[10px] uppercase font-bold text-indigo-500 tracking-wider">
                             Senioridade Estimada
                           </span>
-                          <p className="text-xl font-bold text-slate-100 mt-1">
+                          <p className="text-xl font-bold text-foreground mt-1">
                             {activeInsights.seniority_prediction.value || "Não calculada"}
                           </p>
                         </div>
-                        <div className="bg-slate-900/30 rounded-xl p-4 border border-slate-900">
-                          <span className="text-[10px] uppercase font-bold text-indigo-400 tracking-wider">
+                        <div className="bg-background rounded-xl p-4 border border-border">
+                          <span className="text-[10px] uppercase font-bold text-indigo-500 tracking-wider">
                             Índice de Confiança
                           </span>
-                          <p className="text-xl font-bold text-slate-100 mt-1">
+                          <p className="text-xl font-bold text-foreground mt-1">
                             {Math.round((activeInsights.seniority_prediction.confidence || 0.90) * 100)}%
                           </p>
                         </div>
                       </div>
 
-                      <p className="text-xs text-slate-400 italic bg-indigo-500/5 p-3 rounded-lg border border-indigo-500/10 mt-2 leading-relaxed">
+                      <p className="text-xs text-muted-foreground italic bg-indigo-500/5 dark:bg-indigo-500/10 p-3 rounded-lg border border-indigo-500/20 mt-2 leading-relaxed">
                         "Esta é uma estimativa calculada pela inteligência artificial a partir do tempo de carreira e escopo de liderança. {activeInsights.seniority_prediction.reason}"
                       </p>
                     </CardGlass>
@@ -1221,7 +1221,7 @@ export function Profile({
                   {/* Inteligência de Carreira */}
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <CardGlass className="p-6 space-y-4">
-                      <h3 className="font-display font-bold text-base text-slate-200 flex items-center gap-2 border-b border-slate-900 pb-3">
+                      <h3 className="font-display font-bold text-base text-foreground flex items-center gap-2 border-b border-border pb-3">
                         <CheckCircle size={16} className="text-emerald-400" />
                         Pontos Fortes Mapeados
                       </h3>
@@ -1229,8 +1229,8 @@ export function Profile({
                         {activeInsights?.methodologies && activeInsights.methodologies.length > 0 ? (
                           activeInsights.methodologies.map((m, idx) => (
                             <div key={idx} className="bg-emerald-500/5 rounded-xl p-3 border border-emerald-500/10 space-y-1">
-                              <span className="font-bold text-xs text-slate-200">{m.methodology_name}</span>
-                              <p className="text-[10px] text-slate-400">
+                              <span className="font-bold text-xs text-foreground">{m.methodology_name}</span>
+                              <p className="text-[10px] text-muted-foreground">
                                 Evidência com {Math.round((m.confidence || 0.9) * 100)}% de correspondência no currículo.
                               </p>
                             </div>
@@ -1242,19 +1242,19 @@ export function Profile({
                     </CardGlass>
 
                     <CardGlass className="p-6 space-y-4 md:col-span-2">
-                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-900 pb-3">
-                        <h3 className="font-display font-bold text-base text-slate-200 flex items-center gap-2">
+                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-border pb-3">
+                        <h3 className="font-display font-bold text-base text-foreground flex items-center gap-2">
                           <AlertCircle size={16} className="text-amber-400" />
                           Gaps de Competências & Área Alvo
                         </h3>
                         
                         {/* Seletor de Área Desejada / Transição de Carreira */}
                         <div className="flex items-center gap-2">
-                          <span className="text-xs text-slate-400 font-semibold shrink-0">Área Desejada:</span>
+                          <span className="text-xs text-muted-foreground font-semibold shrink-0">Área Desejada:</span>
                           <select
                             value={selectedTargetDomain}
                             onChange={e => setSelectedTargetDomain(e.target.value)}
-                            className="bg-slate-900 border border-slate-700 text-xs text-brand-300 font-bold rounded-lg px-2.5 py-1 outline-none focus:border-brand-500 cursor-pointer"
+                            className="bg-background border border-border text-xs text-brand-600 dark:text-brand-300 font-bold rounded-lg px-2.5 py-1 outline-none focus:border-brand-500 cursor-pointer"
                           >
                             <option value="cozinha">🍳 Gastronomia / Cozinha / Alimentação</option>
                             <option value="ti">💻 TI / Software & Tecnologia</option>
@@ -1270,12 +1270,12 @@ export function Profile({
                         {getDomainSkillGaps(selectedTargetDomain, activeInsights?.missing_skills?.value).map((gap, idx) => (
                           <div key={idx} className="bg-amber-500/5 rounded-xl p-3.5 border border-amber-500/15 space-y-1.5 shadow-xs">
                             <div className="flex justify-between items-center">
-                              <span className="font-bold text-xs text-slate-100">{gap.name}</span>
-                              <span className="text-[9px] font-mono px-1.5 py-0.5 rounded bg-amber-500/10 text-amber-300 border border-amber-500/20 font-bold">
+                              <span className="font-bold text-xs text-foreground">{gap.name}</span>
+                              <span className="text-[9px] font-mono px-1.5 py-0.5 rounded bg-amber-500/10 text-amber-700 dark:text-amber-300 border border-amber-500/20 font-bold">
                                 Confiança: {gap.confidence}%
                               </span>
                             </div>
-                            <p className="text-[11px] text-slate-300 leading-relaxed font-sans">
+                            <p className="text-[11px] text-muted-foreground leading-relaxed font-sans">
                               {gap.reason}
                             </p>
                           </div>
@@ -1287,18 +1287,18 @@ export function Profile({
                   {/* ATS Optimization */}
                   {careerProfileNew?.ats_keywords && (
                     <CardGlass className="p-6 space-y-6">
-                      <h3 className="font-display font-bold text-base text-slate-200 flex items-center gap-2 border-b border-slate-900 pb-3">
+                      <h3 className="font-display font-bold text-base text-foreground flex items-center gap-2 border-b border-border pb-3">
                         <Award size={18} className="text-slate-400" />
                         Otimização de ATS
                       </h3>
 
                       <div className="space-y-4">
                         <div className="space-y-2">
-                          <label className="text-xs font-semibold text-emerald-400">Já Possui (Existing)</label>
+                          <label className="text-xs font-semibold text-emerald-600 dark:text-emerald-400">Já Possui (Existing)</label>
                           <div className="flex flex-wrap gap-1.5">
                             {careerProfileNew.ats_keywords.existing_keywords && careerProfileNew.ats_keywords.existing_keywords.length > 0 ? (
                               careerProfileNew.ats_keywords.existing_keywords.map((kw, idx) => (
-                                <span key={idx} className="px-2 py-0.5 rounded bg-emerald-500/10 text-emerald-400 text-[10px] font-bold border border-emerald-500/25">
+                                <span key={idx} className="px-2 py-0.5 rounded bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 text-[10px] font-bold border border-emerald-500/25">
                                   {kw}
                                 </span>
                               ))
@@ -1308,12 +1308,12 @@ export function Profile({
                           </div>
                         </div>
 
-                        <div className="space-y-2 pt-2 border-t border-slate-900">
-                          <label className="text-xs font-semibold text-red-400">Ausentes no Currículo</label>
+                        <div className="space-y-2 pt-2 border-t border-border">
+                          <label className="text-xs font-semibold text-red-600 dark:text-red-400">Ausentes no Currículo</label>
                           <div className="flex flex-wrap gap-1.5">
                             {careerProfileNew.ats_keywords.missing_keywords && careerProfileNew.ats_keywords.missing_keywords.length > 0 ? (
                               careerProfileNew.ats_keywords.missing_keywords.map((kw, idx) => (
-                                <span key={idx} className="px-2 py-0.5 rounded bg-red-500/10 text-red-400 text-[10px] font-bold border border-red-500/25">
+                                <span key={idx} className="px-2 py-0.5 rounded bg-red-500/10 text-red-600 dark:text-red-400 text-[10px] font-bold border border-red-500/25">
                                   {kw}
                                 </span>
                               ))
@@ -1323,12 +1323,12 @@ export function Profile({
                           </div>
                         </div>
 
-                        <div className="space-y-2 pt-2 border-t border-slate-900">
-                          <label className="text-xs font-semibold text-indigo-400">Recomendadas para a Vaga</label>
+                        <div className="space-y-2 pt-2 border-t border-border">
+                          <label className="text-xs font-semibold text-indigo-600 dark:text-indigo-400">Recomendadas para a Vaga</label>
                           <div className="flex flex-wrap gap-1.5">
                             {careerProfileNew.ats_keywords.recommended_keywords && careerProfileNew.ats_keywords.recommended_keywords.length > 0 ? (
                               careerProfileNew.ats_keywords.recommended_keywords.map((kw, idx) => (
-                                <span key={idx} className="px-2 py-0.5 rounded bg-indigo-500/10 text-indigo-400 text-[10px] font-bold border border-indigo-500/25">
+                                <span key={idx} className="px-2 py-0.5 rounded bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 text-[10px] font-bold border border-indigo-500/25">
                                   {kw}
                                 </span>
                               ))

@@ -655,12 +655,12 @@ export function LandingPage({ onNavigateToAuth }: LandingPageProps) {
                 </button>
               </li>
               <li>
-                <a
-                  href="mailto:suporte@vocentro.com.br?subject=Solicitacao%20de%20Exclusao%20de%20Conta"
-                  className="inline-block py-1 text-red-500 hover:underline cursor-pointer font-semibold"
+                <button
+                  onClick={() => navigateToRoute('/politica-de-privacidade#exclusao')}
+                  className="inline-block py-1 text-red-500 hover:underline cursor-pointer font-semibold text-left"
                 >
                   Exclusão de Conta & Dados
-                </a>
+                </button>
               </li>
             </ul>
           </div>

@@ -17,6 +17,17 @@ export const PrivacyPolicyPage: React.FC<PrivacyPolicyPageProps> = ({ onBack }) 
     }
   };
 
+  React.useEffect(() => {
+    if (window.location.hash === '#exclusao') {
+      setTimeout(() => {
+        const el = document.getElementById('exclusao');
+        if (el) {
+          el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+      }, 100);
+    }
+  }, []);
+
   return (
     <div className="min-h-screen bg-background text-foreground font-sans selection:bg-brand-500/30">
       {/* Header */}
@@ -123,7 +134,7 @@ export const PrivacyPolicyPage: React.FC<PrivacyPolicyPageProps> = ({ onBack }) 
         </section>
 
         {/* Section 5 */}
-        <section className="p-6 rounded-2xl bg-card border border-border space-y-3">
+        <section id="exclusao" className="p-6 rounded-2xl bg-card border border-border space-y-3">
           <h2 className="text-lg font-bold text-foreground flex items-center gap-2">
             <Lock size={18} className="text-emerald-500" />
             5. Armazenamento, Criptografia e Exclusão de Dados

@@ -10,6 +10,7 @@ import { CareerCoachService } from '../../application/services/CareerCoachServic
 import { MatchingEngine } from '../../application/services/matchingEngine';
 import type { Job, Resume, Match, CareerProfile, JobFeedbackReason } from '../../domain/models/types';
 import type { CareerProfileNew } from '../../application/hooks/useMyProfileAi';
+import { useEscapeToClose } from '../../application/hooks/useEscapeToClose';
 import { Play, Clipboard, Award, CheckCircle, AlertTriangle, AlertCircle, X, ChevronRight, BookOpen, Plus, Search, MapPin, Loader2, ArrowUpRight, Flame, Sparkles, Trash2, Briefcase, Heart, DollarSign, Building, FileText, Printer, Check, Target, Zap, ThumbsUp, ThumbsDown, Lock } from 'lucide-react';
 
 import { isSupabaseConfigured, supabase } from '../../infrastructure/api/supabaseClient';
@@ -336,15 +337,7 @@ export function JobMatchHub({
     }
   }, [propSelectedJobId]);
 
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') {
-        setShowAddForm(false);
-      }
-    };
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, []);
+  // Keydown Escape hook calls are registered below to ensure all states are in scope
 
   const handleApplyClick = async (targetJob: any) => {
     if (!targetJob) return;
@@ -917,6 +910,15 @@ export function JobMatchHub({
     setPreviewData(null);
     setErrorMsg('');
   };
+
+  useEscapeToClose(showAddForm, () => {
+    resetIngestionStates();
+    setShowAddForm(false);
+  });
+  useEscapeToClose(showAdaptationModal, () => setShowAdaptationModal(false));
+  useEscapeToClose(rejectReasonModal, () => setRejectReasonModal(false));
+  useEscapeToClose(matchRejectionModal, () => setMatchRejectionModal(false));
+  useEscapeToClose(!!selectedJobId, () => setSelectedJobId(null));
 
   // States para a descoberta de vagas baseada no Career Profile ou fallback
   const pref = (careerProfileNew?.personal as any)?.preferences || {};

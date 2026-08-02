@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { X, User, Mail, Clock, AlertTriangle, ExternalLink, Copy, Check } from 'lucide-react';
 import type { RiskAlert, AffectedUserItem } from '../../application/services/ProductAtRiskService';
+import { useEscapeToClose } from '../../application/hooks/useEscapeToClose';
 
 interface ProductAtRiskUsersModalProps {
   alert: RiskAlert | null;
@@ -10,6 +11,8 @@ interface ProductAtRiskUsersModalProps {
 export function ProductAtRiskUsersModal({ alert, onClose }: ProductAtRiskUsersModalProps) {
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
+
+  useEscapeToClose(!!alert, onClose);
 
   if (!alert) return null;
 

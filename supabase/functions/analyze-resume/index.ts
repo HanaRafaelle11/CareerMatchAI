@@ -423,6 +423,171 @@ class ResumeParserService {
       """
     `;
 
+    const careerProfileSchema = {
+      type: "OBJECT",
+      properties: {
+        career_profile: {
+          type: "OBJECT",
+          properties: {
+            personal: {
+              type: "OBJECT",
+              properties: {
+                fullName: { type: "STRING" },
+                headline: { type: "STRING" },
+                email: { type: "STRING" },
+                phone: { type: "STRING" },
+                linkedin: { type: "STRING" },
+                website: { type: "STRING" },
+                location: { type: "STRING" }
+              },
+              required: ["fullName", "headline", "email", "phone", "linkedin", "website", "location"]
+            },
+            summary: { type: "STRING" },
+            experience: {
+              type: "ARRAY",
+              items: {
+                type: "OBJECT",
+                properties: {
+                  companyName: { type: "STRING" },
+                  role: { type: "STRING" },
+                  startDate: { type: "STRING" },
+                  endDate: { type: "STRING" },
+                  isCurrent: { type: "BOOLEAN" },
+                  description: { type: "STRING" },
+                  highlights: { type: "ARRAY", items: { type: "STRING" } }
+                },
+                required: ["companyName", "role", "startDate", "endDate", "isCurrent", "description", "highlights"]
+              }
+            },
+            education: {
+              type: "ARRAY",
+              items: {
+                type: "OBJECT",
+                properties: {
+                  institution: { type: "STRING" },
+                  degree: { type: "STRING" },
+                  fieldOfStudy: { type: "STRING" },
+                  startDate: { type: "STRING" },
+                  endDate: { type: "STRING" }
+                },
+                required: ["institution", "degree", "fieldOfStudy", "startDate", "endDate"]
+              }
+            },
+            skills: {
+              type: "ARRAY",
+              items: {
+                type: "OBJECT",
+                properties: {
+                  name: { type: "STRING" },
+                  proficiency: { type: "STRING" }
+                },
+                required: ["name", "proficiency"]
+              }
+            },
+            soft_skills: { type: "ARRAY", items: { type: "STRING" } },
+            languages: {
+              type: "ARRAY",
+              items: {
+                type: "OBJECT",
+                properties: {
+                  language: { type: "STRING" },
+                  proficiency: { type: "STRING" }
+                },
+                required: ["language", "proficiency"]
+              }
+            },
+            certifications: { type: "ARRAY", items: { type: "STRING" } },
+            ats_keywords: {
+              type: "OBJECT",
+              properties: {
+                existing_keywords: { type: "ARRAY", items: { type: "STRING" } },
+                missing_keywords: { type: "ARRAY", items: { type: "STRING" } },
+                recommended_keywords: { type: "ARRAY", items: { type: "STRING" } }
+              },
+              required: ["existing_keywords", "missing_keywords", "recommended_keywords"]
+            }
+          },
+          required: ["personal", "summary", "experience", "education", "skills", "soft_skills", "languages", "certifications", "ats_keywords"]
+        },
+        career_insights: {
+          type: "OBJECT",
+          properties: {
+            seniority_prediction: {
+              type: "OBJECT",
+              properties: {
+                value: { type: "STRING" },
+                confidence: { type: "NUMBER" },
+                reason: { type: "STRING" },
+                source_type: { type: "STRING" }
+              },
+              required: ["value", "confidence", "reason", "source_type"]
+            },
+            industry_prediction: {
+              type: "OBJECT",
+              properties: {
+                value: { type: "STRING" },
+                confidence: { type: "NUMBER" },
+                reason: { type: "STRING" },
+                source_type: { type: "STRING" }
+              },
+              required: ["value", "confidence", "reason", "source_type"]
+            },
+            methodologies: {
+              type: "ARRAY",
+              items: {
+                type: "OBJECT",
+                properties: {
+                  methodology_name: { type: "STRING" },
+                  confidence: { type: "NUMBER" },
+                  source_type: { type: "STRING" }
+                },
+                required: ["methodology_name", "confidence", "source_type"]
+              }
+            },
+            recommended_keywords: {
+              type: "OBJECT",
+              properties: {
+                value: { type: "ARRAY", items: { type: "STRING" } },
+                confidence: { type: "NUMBER" },
+                reason: { type: "STRING" },
+                source_type: { type: "STRING" }
+              },
+              required: ["value", "confidence", "reason", "source_type"]
+            },
+            missing_skills: {
+              type: "OBJECT",
+              properties: {
+                value: { type: "ARRAY", items: { type: "STRING" } },
+                confidence: { type: "NUMBER" },
+                reason: { type: "STRING" },
+                source_type: { type: "STRING" }
+              },
+              required: ["value", "confidence", "reason", "source_type"]
+            },
+            confidence_scores: {
+              type: "OBJECT",
+              properties: {
+                value: {
+                  type: "OBJECT",
+                  properties: {
+                    personal: { type: "NUMBER" },
+                    experience: { type: "NUMBER" },
+                    skills: { type: "NUMBER" }
+                  }
+                },
+                confidence: { type: "NUMBER" },
+                reason: { type: "STRING" },
+                source_type: { type: "STRING" }
+              },
+              required: ["value", "confidence", "reason", "source_type"]
+            }
+          },
+          required: ["seniority_prediction", "industry_prediction", "methodologies", "recommended_keywords", "missing_skills", "confidence_scores"]
+        }
+      },
+      required: ["career_profile", "career_insights"]
+    };
+
     // DEPRECATION REMINDER: 'gemini-2.5-flash' and 'gemini-2.5-flash-lite' are scheduled for shutdown on October 16, 2026.
     // TODO: Before October 16, 2026, migrate the primary model chain to the latest active Gemini tier (e.g. Gemini 3.x family).
     const modelsToTry = [
@@ -454,7 +619,8 @@ class ResumeParserService {
                 : [{ text: prompt }]
             }],
             generationConfig: {
-              responseMimeType: 'application/json'
+              responseMimeType: 'application/json',
+              responseSchema: careerProfileSchema
             }
           })
         });
@@ -508,17 +674,63 @@ class ResumeParserService {
   }
 
   static async saveCareerProfile(supabaseClient: any, userId: string, resumeVersionId: string, profileData: any) {
+    // Camada extra de segurança/normalização para assegurar conformidade do JSON retornado
+    const rawExperience = profileData.experience || profileData.experiences || profileData.workExperience || profileData.work_experience || [];
+    const normalizedExperience = Array.isArray(rawExperience) ? rawExperience.map((exp: any) => ({
+      companyName: exp.companyName || exp.company_name || exp.company || 'Empresa',
+      role: exp.role || exp.title || exp.jobTitle || 'Cargo',
+      startDate: exp.startDate || exp.start_date || exp.from || '',
+      endDate: exp.endDate || exp.end_date || exp.to || null,
+      isCurrent: exp.isCurrent === true || exp.is_current === true || exp.current === true || false,
+      description: exp.description || exp.summary || '',
+      highlights: Array.isArray(exp.highlights) ? exp.highlights : []
+    })) : [];
+
+    const rawSkills = profileData.skills || profileData.technical_skills || profileData.key_skills || [];
+    const normalizedSkills = Array.isArray(rawSkills) ? rawSkills.map((sk: any) => {
+      if (typeof sk === 'string') return { name: sk, proficiency: 'intermediário' };
+      return {
+        name: sk.name || sk.skill || 'Competência',
+        proficiency: sk.proficiency || sk.level || 'intermediário'
+      };
+    }) : [];
+
+    const rawEducation = profileData.education || profileData.educations || profileData.academic || [];
+    const normalizedEducation = Array.isArray(rawEducation) ? rawEducation.map((edu: any) => ({
+      institution: edu.institution || edu.school || edu.university || 'Instituição',
+      degree: edu.degree || edu.course || 'Curso',
+      fieldOfStudy: edu.fieldOfStudy || edu.field_of_study || edu.area || '',
+      startDate: edu.startDate || edu.start_date || '',
+      endDate: edu.endDate || edu.end_date || null
+    })) : [];
+
+    const rawLanguages = profileData.languages || profileData.language || [];
+    const normalizedLanguages = Array.isArray(rawLanguages) ? rawLanguages.map((lang: any) => {
+      if (typeof lang === 'string') return { language: lang, proficiency: 'intermediário' };
+      return {
+        language: lang.language || lang.name || 'Idioma',
+        proficiency: lang.proficiency || lang.level || 'intermediário'
+      };
+    }) : [];
+
+    const rawAts = profileData.ats_keywords || profileData.atsKeywords || profileData.keywords || {};
+    const normalizedAts = {
+      existing_keywords: Array.isArray(rawAts.existing_keywords) ? rawAts.existing_keywords : (Array.isArray(rawAts.existing) ? rawAts.existing : []),
+      missing_keywords: Array.isArray(rawAts.missing_keywords) ? rawAts.missing_keywords : (Array.isArray(rawAts.missing) ? rawAts.missing : []),
+      recommended_keywords: Array.isArray(rawAts.recommended_keywords) ? rawAts.recommended_keywords : (Array.isArray(rawAts.recommended) ? rawAts.recommended : [])
+    };
+
     const payload = {
       user_id: userId,
       resume_version_id: resumeVersionId,
       personal: profileData.personal || {},
-      experience: profileData.experience || [],
-      education: profileData.education || [],
-      skills: profileData.skills || [],
-      soft_skills: profileData.soft_skills || [],
-      languages: profileData.languages || [],
-      certifications: profileData.certifications || [],
-      ats_keywords: profileData.ats_keywords || {},
+      experience: normalizedExperience,
+      education: normalizedEducation,
+      skills: normalizedSkills,
+      soft_skills: Array.isArray(profileData.soft_skills) ? profileData.soft_skills : (Array.isArray(profileData.softSkills) ? profileData.softSkills : []),
+      languages: normalizedLanguages,
+      certifications: Array.isArray(profileData.certifications) ? profileData.certifications : (Array.isArray(profileData.certs) ? profileData.certs : []),
+      ats_keywords: normalizedAts,
       summary: profileData.summary || ''
     };
 

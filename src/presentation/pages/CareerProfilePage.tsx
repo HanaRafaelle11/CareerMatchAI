@@ -128,10 +128,10 @@ export function CareerProfilePage({
       {/* Cabeçalho */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <h1 className="font-display font-bold text-3xl tracking-tight text-slate-100 dark:text-slate-100 light:text-slate-800">
+          <h1 className="font-display font-bold text-3xl tracking-tight text-foreground">
             Meu Perfil de Carreira
           </h1>
-          <p className="text-slate-400 dark:text-slate-400 light:text-slate-500 text-sm mt-1">
+          <p className="text-muted-foreground text-sm mt-1">
             Esta é a base que a IA usa para pesquisar e priorizar suas vagas diariamente. Ajuste as informações abaixo.
           </p>
         </div>
@@ -143,8 +143,8 @@ export function CareerProfilePage({
           <div className="flex gap-3 items-start">
             <ShieldAlert size={20} className="text-amber-500 shrink-0 mt-0.5" />
             <div>
-              <h4 className="font-bold text-sm text-slate-200">Revisão do Perfil Gerado por IA</h4>
-              <p className="text-xs text-slate-400 mt-0.5">
+              <h4 className="font-bold text-sm text-foreground">Revisão do Perfil Gerado por IA</h4>
+              <p className="text-xs text-muted-foreground mt-0.5">
                 Este perfil foi sugerido automaticamente a partir da análise do seu currículo. Revise os campos e clique em aprovar para usá-lo na descoberta de vagas.
               </p>
             </div>
@@ -152,7 +152,7 @@ export function CareerProfilePage({
           <button
             onClick={(e) => handleSave(e, true)}
             disabled={isSaving}
-            className="px-4 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-xs flex items-center gap-1.5 transition-all shadow-lg shadow-amber-500/10 whitespace-nowrap"
+            className="px-4 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-xs flex items-center gap-1.5 transition-all shadow-lg shadow-amber-500/10 whitespace-nowrap cursor-pointer"
           >
             Aprovar Perfil
             <ArrowRight size={14} />
@@ -161,22 +161,22 @@ export function CareerProfilePage({
       )}
 
       {successMsg && (
-        <div className="p-4 rounded-xl bg-emerald-500/10 border border-emerald-500/20 flex items-center gap-3 text-emerald-400 text-xs">
+        <div className="p-4 rounded-xl bg-emerald-500/10 border border-emerald-500/20 flex items-center gap-3 text-emerald-600 dark:text-emerald-400 text-xs">
           <CheckCircle size={16} className="shrink-0" />
           <span>{successMsg}</span>
         </div>
       )}
 
       {errorMsg && (
-        <div className="p-4 rounded-xl bg-red-500/10 border border-red-500/20 flex items-center gap-3 text-red-400 text-xs">
+        <div className="p-4 rounded-xl bg-red-500/10 border border-red-500/20 flex items-center gap-3 text-red-600 dark:text-red-400 text-xs">
           <AlertCircle size={16} className="shrink-0" />
           <span>{errorMsg}</span>
         </div>
       )}
 
       {!careerProfile ? (
-        <div className="py-20 text-center border border-dashed border-slate-800 rounded-2xl flex flex-col items-center justify-center text-slate-500 text-xs">
-          <Award size={32} className="mb-2 text-slate-600" />
+        <div className="py-20 text-center border border-dashed border-border rounded-2xl flex flex-col items-center justify-center text-muted-foreground text-xs">
+          <Award size={32} className="mb-2 text-muted-foreground" />
           <span>Nenhum currículo ativo encontrado. Faça o upload do seu currículo na aba "Meu Currículo" para gerar sua meta profissional.</span>
           <button
             onClick={() => setActiveTab('profile')}
@@ -191,35 +191,35 @@ export function CareerProfilePage({
             {/* Coluna Esquerda: Objetivo Profissional & Preferências */}
             <div className="space-y-6">
               <CardGlass className="p-6 space-y-6">
-                <h3 className="font-display font-bold text-base text-slate-200 border-b border-slate-900 pb-3">
+                <h3 className="font-display font-bold text-base text-foreground border-b border-border pb-3">
                   Objetivo Profissional
                 </h3>
 
                 {/* Cargos Alvos */}
                 <div className="space-y-2">
-                  <label className="text-xs font-semibold text-slate-400">Cargos Desejados</label>
+                  <label className="text-xs font-semibold text-muted-foreground">Cargos Desejados</label>
                   <div className="flex gap-2">
                     <input
                       type="text"
                       placeholder="Ex: Ajudante de Cozinha, Gerente de Loja, Analista"
                       value={newRole}
                       onChange={e => setNewRole(e.target.value)}
-                      className="flex-1 px-4 py-2 rounded-xl bg-slate-900/50 border border-slate-800 focus:border-brand-500 outline-none text-xs text-slate-200"
+                      className="flex-1 px-4 py-2 rounded-xl bg-background border border-border focus:border-brand-500 outline-none text-xs text-foreground placeholder:text-muted-foreground"
                       onKeyDown={e => e.key === 'Enter' && (e.preventDefault(), addTag(newRole, setTargetRoles, () => setNewRole('')))}
                     />
                     <button
                       type="button"
                       onClick={() => addTag(newRole, setTargetRoles, () => setNewRole(''))}
-                      className="px-3 rounded-xl bg-brand-600 hover:bg-brand-500 text-white text-xs font-bold transition-all"
+                      className="px-3 rounded-xl bg-brand-600 hover:bg-brand-500 text-white text-xs font-bold transition-all cursor-pointer"
                     >
                       <Plus size={14} />
                     </button>
                   </div>
                   <div className="flex flex-wrap gap-1.5 pt-1">
                     {targetRoles.map(role => (
-                      <span key={role} className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-brand-500/10 text-brand-400 text-xs border border-brand-500/20 font-medium">
+                      <span key={role} className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-brand-500/10 text-brand-700 dark:text-brand-400 text-xs border border-brand-500/20 font-medium">
                         {role}
-                        <button type="button" onClick={() => removeTag(role, setTargetRoles)} className="text-brand-400 hover:text-red-400">
+                        <button type="button" onClick={() => removeTag(role, setTargetRoles)} className="text-brand-500 hover:text-red-500 cursor-pointer">
                           <X size={12} />
                         </button>
                       </span>
@@ -229,42 +229,42 @@ export function CareerProfilePage({
 
                 {/* Senioridade */}
                 <div className="space-y-2">
-                  <label className="text-xs font-semibold text-slate-400">Senioridade Desejada</label>
+                  <label className="text-xs font-semibold text-muted-foreground">Senioridade Desejada</label>
                   <input
                     type="text"
                     placeholder="Ex: Auxiliar, Pleno, Sênior, Gestão"
                     value={seniority}
                     onChange={e => setSeniority(e.target.value)}
-                    className="w-full px-4 py-2.5 rounded-xl bg-slate-900/50 border border-slate-800 focus:border-brand-500 outline-none text-xs text-slate-200"
+                    className="w-full px-4 py-2.5 rounded-xl bg-background border border-border focus:border-brand-500 outline-none text-xs text-foreground placeholder:text-muted-foreground"
                     required
                   />
                 </div>
 
                 {/* Setores de interesse */}
                 <div className="space-y-2">
-                  <label className="text-xs font-semibold text-slate-400">Áreas de Interesse / Setores</label>
+                  <label className="text-xs font-semibold text-muted-foreground">Áreas de Interesse / Setores</label>
                   <div className="flex gap-2">
                     <input
                       type="text"
                       placeholder="Ex: Gastronomia, Alimentação, Varejo, Tecnologia"
                       value={newIndustry}
                       onChange={e => setNewIndustry(e.target.value)}
-                      className="flex-1 px-4 py-2 rounded-xl bg-slate-900/50 border border-slate-800 focus:border-brand-500 outline-none text-xs text-slate-200"
+                      className="flex-1 px-4 py-2 rounded-xl bg-background border border-border focus:border-brand-500 outline-none text-xs text-foreground placeholder:text-muted-foreground"
                       onKeyDown={e => e.key === 'Enter' && (e.preventDefault(), addTag(newIndustry, setIndustries, () => setNewIndustry('')))}
                     />
                     <button
                       type="button"
                       onClick={() => addTag(newIndustry, setIndustries, () => setNewIndustry(''))}
-                      className="px-3 rounded-xl bg-brand-600 hover:bg-brand-500 text-white text-xs font-bold transition-all"
+                      className="px-3 rounded-xl bg-brand-600 hover:bg-brand-500 text-white text-xs font-bold transition-all cursor-pointer"
                     >
                       <Plus size={14} />
                     </button>
                   </div>
                   <div className="flex flex-wrap gap-1.5 pt-1">
                     {industries.map(ind => (
-                      <span key={ind} className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-indigo-500/10 text-indigo-400 text-xs border border-indigo-500/20 font-medium">
+                      <span key={ind} className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-indigo-500/10 text-indigo-700 dark:text-indigo-400 text-xs border border-indigo-500/20 font-medium">
                         {ind}
-                        <button type="button" onClick={() => removeTag(ind, setIndustries)} className="text-indigo-500 hover:text-red-400">
+                        <button type="button" onClick={() => removeTag(ind, setIndustries)} className="text-indigo-500 hover:text-red-500 cursor-pointer">
                           <X size={12} />
                         </button>
                       </span>
@@ -274,13 +274,13 @@ export function CareerProfilePage({
               </CardGlass>
 
               <CardGlass className="p-6 space-y-6">
-                <h3 className="font-display font-bold text-base text-slate-200 border-b border-slate-900 pb-3">
+                <h3 className="font-display font-bold text-base text-foreground border-b border-border pb-3">
                   Preferências & Salário
                 </h3>
 
                 {/* Modelos de trabalho */}
                 <div className="space-y-2">
-                  <label className="text-xs font-semibold text-slate-400 block">Modelo de Trabalho</label>
+                  <label className="text-xs font-semibold text-muted-foreground block">Modelo de Trabalho</label>
                   <div className="flex gap-3">
                     {['remote', 'hybrid', 'onsite'].map(mode => {
                       const isActive = preferredWorkModes.includes(mode as any);
@@ -290,10 +290,10 @@ export function CareerProfilePage({
                           key={mode}
                           type="button"
                           onClick={() => toggleWorkMode(mode as any)}
-                          className={`px-4 py-2 rounded-xl border text-xs font-bold transition-all ${
+                          className={`px-4 py-2 rounded-xl border text-xs font-bold transition-all cursor-pointer ${
                             isActive
-                              ? 'bg-brand-500/10 border-brand-500/30 text-brand-400'
-                              : 'bg-slate-900/40 border-slate-800 text-slate-400 hover:border-slate-700'
+                              ? 'bg-brand-500/10 border-brand-500/30 text-brand-600 dark:text-brand-400'
+                              : 'bg-muted/40 border-border text-muted-foreground hover:border-brand-500/30'
                           }`}
                         >
                           {labels[mode]}
@@ -305,29 +305,29 @@ export function CareerProfilePage({
 
                 {/* Localidades */}
                 <div className="space-y-2">
-                  <label className="text-xs font-semibold text-slate-400">Localizações Preferidas</label>
+                  <label className="text-xs font-semibold text-muted-foreground">Localizações Preferidas</label>
                   <div className="flex gap-2">
                     <input
                       type="text"
                       placeholder="Ex: São Paulo, Remoto Nacional, Brasil inteiro"
                       value={newLocation}
                       onChange={e => setNewLocation(e.target.value)}
-                      className="flex-1 px-4 py-2 rounded-xl bg-slate-900/50 border border-slate-800 focus:border-brand-500 outline-none text-xs text-slate-200"
+                      className="flex-1 px-4 py-2 rounded-xl bg-background border border-border focus:border-brand-500 outline-none text-xs text-foreground placeholder:text-muted-foreground"
                       onKeyDown={e => e.key === 'Enter' && (e.preventDefault(), addTag(newLocation, setPreferredLocations, () => setNewLocation('')))}
                     />
                     <button
                       type="button"
                       onClick={() => addTag(newLocation, setPreferredLocations, () => setNewLocation(''))}
-                      className="px-3 rounded-xl bg-brand-600 hover:bg-brand-500 text-white text-xs font-bold transition-all"
+                      className="px-3 rounded-xl bg-brand-600 hover:bg-brand-500 text-white text-xs font-bold transition-all cursor-pointer"
                     >
                       <Plus size={14} />
                     </button>
                   </div>
                   <div className="flex flex-wrap gap-1.5 pt-1">
                     {preferredLocations.map(loc => (
-                      <span key={loc} className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-blue-500/10 text-blue-400 text-xs border border-blue-500/20 font-medium">
+                      <span key={loc} className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-blue-500/10 text-blue-700 dark:text-blue-400 text-xs border border-blue-500/20 font-medium">
                         {loc}
-                        <button type="button" onClick={() => removeTag(loc, setPreferredLocations)} className="text-blue-500 hover:text-red-400">
+                        <button type="button" onClick={() => removeTag(loc, setPreferredLocations)} className="text-blue-500 hover:text-red-500 cursor-pointer">
                           <X size={12} />
                         </button>
                       </span>
@@ -337,12 +337,12 @@ export function CareerProfilePage({
 
                 {/* Expectativa Salarial */}
                 <div className="space-y-2">
-                  <label className="text-xs font-semibold text-slate-400">Expectativa Salarial Mínima (R$ / Mês)</label>
+                  <label className="text-xs font-semibold text-muted-foreground">Expectativa Salarial Mínima (R$ / Mês)</label>
                   <input
                     type="number"
                     value={salaryExpectationMin}
                     onChange={e => setSalaryExpectationMin(Number(e.target.value))}
-                    className="w-full px-4 py-2.5 rounded-xl bg-slate-900/50 border border-slate-800 focus:border-brand-500 outline-none text-xs text-slate-200"
+                    className="w-full px-4 py-2.5 rounded-xl bg-background border border-border focus:border-brand-500 outline-none text-xs text-foreground"
                     min={0}
                     required
                   />
@@ -353,35 +353,35 @@ export function CareerProfilePage({
             {/* Coluna Direita: Competências e Mercado Alvo */}
             <div className="space-y-6">
               <CardGlass className="p-6 space-y-6">
-                <h3 className="font-display font-bold text-base text-slate-200 border-b border-slate-900 pb-3">
+                <h3 className="font-display font-bold text-base text-foreground border-b border-border pb-3">
                   Competências & Ferramentas
                 </h3>
 
                 {/* Competências Fortes */}
                 <div className="space-y-2">
-                  <label className="text-xs font-semibold text-slate-400">Competências Principais</label>
+                  <label className="text-xs font-semibold text-muted-foreground">Competências Principais</label>
                   <div className="flex gap-2">
                     <input
                       type="text"
                       placeholder="Ex: Customer Success, Liderança"
                       value={newSkill}
                       onChange={e => setNewSkill(e.target.value)}
-                      className="flex-1 px-4 py-2 rounded-xl bg-slate-900/50 border border-slate-800 focus:border-brand-500 outline-none text-xs text-slate-200"
+                      className="flex-1 px-4 py-2 rounded-xl bg-background border border-border focus:border-brand-500 outline-none text-xs text-foreground placeholder:text-muted-foreground"
                       onKeyDown={e => e.key === 'Enter' && (e.preventDefault(), addTag(newSkill, setSkills, () => setNewSkill('')))}
                     />
                     <button
                       type="button"
                       onClick={() => addTag(newSkill, setSkills, () => setNewSkill(''))}
-                      className="px-3 rounded-xl bg-brand-600 hover:bg-brand-500 text-white text-xs font-bold transition-all"
+                      className="px-3 rounded-xl bg-brand-600 hover:bg-brand-500 text-white text-xs font-bold transition-all cursor-pointer"
                     >
                       <Plus size={14} />
                     </button>
                   </div>
                   <div className="flex flex-wrap gap-1.5 pt-1">
                     {skills.map(sk => (
-                      <span key={sk} className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 text-xs border border-emerald-500/20 font-medium">
+                      <span key={sk} className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 text-xs border border-emerald-500/20 font-medium">
                         ✅ {sk}
-                        <button type="button" onClick={() => removeTag(sk, setSkills)} className="text-emerald-500 hover:text-red-400">
+                        <button type="button" onClick={() => removeTag(sk, setSkills)} className="text-emerald-500 hover:text-red-500 cursor-pointer">
                           <X size={12} />
                         </button>
                       </span>
@@ -391,29 +391,29 @@ export function CareerProfilePage({
 
                 {/* Ferramentas */}
                 <div className="space-y-2">
-                  <label className="text-xs font-semibold text-slate-400">Ferramentas & Softwares</label>
+                  <label className="text-xs font-semibold text-muted-foreground">Ferramentas & Softwares</label>
                   <div className="flex gap-2">
                     <input
                       type="text"
                       placeholder="Ex: Salesforce, SQL, Hubspot"
                       value={newTool}
                       onChange={e => setNewTool(e.target.value)}
-                      className="flex-1 px-4 py-2 rounded-xl bg-slate-900/50 border border-slate-800 focus:border-brand-500 outline-none text-xs text-slate-200"
+                      className="flex-1 px-4 py-2 rounded-xl bg-background border border-border focus:border-brand-500 outline-none text-xs text-foreground placeholder:text-muted-foreground"
                       onKeyDown={e => e.key === 'Enter' && (e.preventDefault(), addTag(newTool, setTools, () => setNewTool('')))}
                     />
                     <button
                       type="button"
                       onClick={() => addTag(newTool, setTools, () => setNewTool(''))}
-                      className="px-3 rounded-xl bg-brand-600 hover:bg-brand-500 text-white text-xs font-bold transition-all"
+                      className="px-3 rounded-xl bg-brand-600 hover:bg-brand-500 text-white text-xs font-bold transition-all cursor-pointer"
                     >
                       <Plus size={14} />
                     </button>
                   </div>
                   <div className="flex flex-wrap gap-1.5 pt-1">
                     {tools.map(tl => (
-                      <span key={tl} className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-amber-500/10 text-amber-400 text-xs border border-amber-500/20 font-medium">
+                      <span key={tl} className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-amber-500/10 text-amber-700 dark:text-amber-400 text-xs border border-amber-500/20 font-medium">
                         ⚠ {tl}
-                        <button type="button" onClick={() => removeTag(tl, setTools)} className="text-amber-500 hover:text-red-400">
+                        <button type="button" onClick={() => removeTag(tl, setTools)} className="text-amber-500 hover:text-red-500 cursor-pointer">
                           <X size={12} />
                         </button>
                       </span>
@@ -423,29 +423,29 @@ export function CareerProfilePage({
 
                 {/* Idiomas */}
                 <div className="space-y-2">
-                  <label className="text-xs font-semibold text-slate-400">Idiomas</label>
+                  <label className="text-xs font-semibold text-muted-foreground">Idiomas</label>
                   <div className="flex gap-2">
                     <input
                       type="text"
                       placeholder="Ex: Inglês fluente, Espanhol básico"
                       value={newLang}
                       onChange={e => setNewLang(e.target.value)}
-                      className="flex-1 px-4 py-2 rounded-xl bg-slate-900/50 border border-slate-800 focus:border-brand-500 outline-none text-xs text-slate-200"
+                      className="flex-1 px-4 py-2 rounded-xl bg-background border border-border focus:border-brand-500 outline-none text-xs text-foreground placeholder:text-muted-foreground"
                       onKeyDown={e => e.key === 'Enter' && (e.preventDefault(), addTag(newLang, setLanguages, () => setNewLang('')))}
                     />
                     <button
                       type="button"
                       onClick={() => addTag(newLang, setLanguages, () => setNewLang(''))}
-                      className="px-3 rounded-xl bg-brand-600 hover:bg-brand-500 text-white text-xs font-bold transition-all"
+                      className="px-3 rounded-xl bg-brand-600 hover:bg-brand-500 text-white text-xs font-bold transition-all cursor-pointer"
                     >
                       <Plus size={14} />
                     </button>
                   </div>
                   <div className="flex flex-wrap gap-1.5 pt-1">
                     {languages.map(lang => (
-                      <span key={lang} className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-indigo-500/10 text-indigo-400 text-xs border border-indigo-500/20 font-medium">
+                      <span key={lang} className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-indigo-500/10 text-indigo-700 dark:text-indigo-400 text-xs border border-indigo-500/20 font-medium">
                         {lang}
-                        <button type="button" onClick={() => removeTag(lang, setLanguages)} className="text-indigo-500 hover:text-red-400">
+                        <button type="button" onClick={() => removeTag(lang, setLanguages)} className="text-indigo-500 hover:text-red-500 cursor-pointer">
                           <X size={12} />
                         </button>
                       </span>
@@ -455,35 +455,35 @@ export function CareerProfilePage({
               </CardGlass>
 
               <CardGlass className="p-6 space-y-6">
-                <h3 className="font-display font-bold text-base text-slate-200 border-b border-slate-900 pb-3">
+                <h3 className="font-display font-bold text-base text-foreground border-b border-border pb-3">
                   Mercado Alvo & Palavras-chave
                 </h3>
 
                 {/* Empresas desejadas */}
                 <div className="space-y-2">
-                  <label className="text-xs font-semibold text-slate-400">Empresas Desejadas</label>
+                  <label className="text-xs font-semibold text-muted-foreground">Empresas Desejadas</label>
                   <div className="flex gap-2">
                     <input
                       type="text"
                       placeholder="Ex: iFood, Stripe, Omie"
                       value={newCompany}
                       onChange={e => setNewCompany(e.target.value)}
-                      className="flex-1 px-4 py-2 rounded-xl bg-slate-900/50 border border-slate-800 focus:border-brand-500 outline-none text-xs text-slate-200"
+                      className="flex-1 px-4 py-2 rounded-xl bg-background border border-border focus:border-brand-500 outline-none text-xs text-foreground placeholder:text-muted-foreground"
                       onKeyDown={e => e.key === 'Enter' && (e.preventDefault(), addTag(newCompany, setTargetCompanies, () => setNewCompany('')))}
                     />
                     <button
                       type="button"
                       onClick={() => addTag(newCompany, setTargetCompanies, () => setNewCompany(''))}
-                      className="px-3 rounded-xl bg-brand-600 hover:bg-brand-500 text-white text-xs font-bold transition-all"
+                      className="px-3 rounded-xl bg-brand-600 hover:bg-brand-500 text-white text-xs font-bold transition-all cursor-pointer"
                     >
                       <Plus size={14} />
                     </button>
                   </div>
                   <div className="flex flex-wrap gap-1.5 pt-1">
                     {targetCompanies.map(comp => (
-                      <span key={comp} className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-purple-500/10 text-purple-400 text-xs border border-purple-500/20 font-medium">
+                      <span key={comp} className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-purple-500/10 text-purple-700 dark:text-purple-400 text-xs border border-purple-500/20 font-medium">
                         {comp}
-                        <button type="button" onClick={() => removeTag(comp, setTargetCompanies)} className="text-purple-500 hover:text-red-400">
+                        <button type="button" onClick={() => removeTag(comp, setTargetCompanies)} className="text-purple-500 hover:text-red-500 cursor-pointer">
                           <X size={12} />
                         </button>
                       </span>
@@ -493,29 +493,29 @@ export function CareerProfilePage({
 
                 {/* Palavras-chave de busca */}
                 <div className="space-y-2">
-                  <label className="text-xs font-semibold text-slate-400">Palavras-chave de busca automática</label>
+                  <label className="text-xs font-semibold text-muted-foreground">Palavras-chave de busca automática</label>
                   <div className="flex gap-2">
                     <input
                       type="text"
                       placeholder="Ex: Customer Success Manager, Churn"
                       value={newKeyword}
                       onChange={e => setNewKeyword(e.target.value)}
-                      className="flex-1 px-4 py-2 rounded-xl bg-slate-900/50 border border-slate-800 focus:border-brand-500 outline-none text-xs text-slate-200"
+                      className="flex-1 px-4 py-2 rounded-xl bg-background border border-border focus:border-brand-500 outline-none text-xs text-foreground placeholder:text-muted-foreground"
                       onKeyDown={e => e.key === 'Enter' && (e.preventDefault(), addTag(newKeyword, setSearchKeywords, () => setNewKeyword('')))}
                     />
                     <button
                       type="button"
                       onClick={() => addTag(newKeyword, setSearchKeywords, () => setNewKeyword(''))}
-                      className="px-3 rounded-xl bg-brand-600 hover:bg-brand-500 text-white text-xs font-bold transition-all"
+                      className="px-3 rounded-xl bg-brand-600 hover:bg-brand-500 text-white text-xs font-bold transition-all cursor-pointer"
                     >
                       <Plus size={14} />
                     </button>
                   </div>
                   <div className="flex flex-wrap gap-1.5 pt-1">
                     {searchKeywords.map(kw => (
-                      <span key={kw} className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-cyan-500/10 text-cyan-400 text-xs border border-cyan-500/20 font-medium">
+                      <span key={kw} className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-cyan-500/10 text-cyan-700 dark:text-cyan-400 text-xs border border-cyan-500/20 font-medium">
                         {kw}
-                        <button type="button" onClick={() => removeTag(kw, setSearchKeywords)} className="text-cyan-500 hover:text-red-400">
+                        <button type="button" onClick={() => removeTag(kw, setSearchKeywords)} className="text-cyan-500 hover:text-red-500 cursor-pointer">
                           <X size={12} />
                         </button>
                       </span>
@@ -533,7 +533,7 @@ export function CareerProfilePage({
             <button
               type="submit"
               disabled={isSaving}
-              className="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-brand-600 hover:bg-brand-500 text-white font-bold text-sm transition-all shadow-lg shadow-brand-500/20 disabled:opacity-50"
+              className="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-brand-600 hover:bg-brand-500 text-white font-bold text-sm transition-all shadow-lg shadow-brand-500/20 disabled:opacity-50 cursor-pointer"
             >
               <Save size={16} />
               {isSaving ? 'Salvando...' : 'Salvar Alterações'}

@@ -8,6 +8,7 @@ import type {
   CompanyProfile, WeeklyPlanner, WeeklyGoal
 } from '../../domain/models/types';
 import type { CareerProfileNew } from '../../application/hooks/useMyProfileAi';
+import { useEscapeToClose } from '../../application/hooks/useEscapeToClose';
 import { 
   Flame, Sparkles, AlertCircle, Clock, Plus, Trash2, 
   X, Layout, AlertTriangle,
@@ -239,20 +240,13 @@ export function StrategyPage({
   const [journalDifferent, setJournalDifferent] = useState<string>('');
   const { data: activePostLog } = getPostLogQuery(journalAppId || 'none');
 
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') {
-        setShowAddForm(false);
-        setRejectingApp(null);
-        setSelectedAppId(null);
-        setShowCompanyForm(false);
-        setBackwardConfirmApp(null);
-        setAdvancedRejectConfirmApp(null);
-      }
-    };
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, []);
+  useEscapeToClose(showAddForm, () => setShowAddForm(false));
+  useEscapeToClose(!!rejectingApp, () => setRejectingApp(null));
+  useEscapeToClose(!!selectedAppId, () => setSelectedAppId(null));
+  useEscapeToClose(!!deletingApp, () => setDeletingApp(null));
+  useEscapeToClose(!!backwardConfirmApp, () => setBackwardConfirmApp(null));
+  useEscapeToClose(!!advancedRejectConfirmApp, () => setAdvancedRejectConfirmApp(null));
+  useEscapeToClose(!!hiredModalApp, () => setHiredModalApp(null));
 
   // Helper function: Helper to match job score
   const getJobMatchScore = (jobId?: string): number => {
@@ -1024,16 +1018,16 @@ export function StrategyPage({
 
       {/* 5. Drawer Completo do Card da Candidatura — Item 12: padding compacto */}
       {selectedAppId && selectedApp && (
-        <div className="fixed inset-y-0 right-0 w-full max-w-2xl bg-slate-900 light:bg-white border-l border-slate-800 light:border-slate-200 shadow-2xl z-[999] overflow-y-auto p-4 transition-all space-y-4">
-          <div className="flex justify-between items-start border-b border-slate-800 light:border-slate-200 pb-3">
+        <div className="fixed inset-y-0 right-0 w-full max-w-2xl bg-card border-l border-border shadow-2xl z-[999] overflow-y-auto p-4 transition-all space-y-4">
+          <div className="flex justify-between items-start border-b border-border pb-3">
             <div>
-              <span className="text-[10px] px-2 py-0.5 rounded bg-brand-500/10 text-brand-400 font-extrabold uppercase">
+              <span className="text-[10px] px-2 py-0.5 rounded bg-brand-500/10 text-brand-500 font-extrabold uppercase">
                 {selectedApp.status}
               </span>
-              <h3 className="font-display font-bold text-lg text-slate-100 light:text-slate-900 mt-1">{selectedApp.jobTitle}</h3>
-              <p className="text-xs text-slate-400 light:text-slate-600 font-semibold mt-0.5">{selectedApp.companyName}</p>
+              <h3 className="font-display font-bold text-lg text-foreground mt-1">{selectedApp.jobTitle}</h3>
+              <p className="text-xs text-muted-foreground font-semibold mt-0.5">{selectedApp.companyName}</p>
             </div>
-            <button onClick={() => setSelectedAppId(null)} className="text-slate-400 light:text-slate-500 hover:text-slate-100 light:hover:text-slate-900 p-1 rounded-lg hover:bg-slate-800 light:hover:bg-slate-100">
+            <button onClick={() => setSelectedAppId(null)} className="text-muted-foreground hover:text-foreground p-1 rounded-lg hover:bg-muted">
               <X size={20} />
             </button>
           </div>
@@ -1055,10 +1049,10 @@ export function StrategyPage({
           )}
 
           {/* Form de Detalhes Estruturados */}
-          <form onSubmit={handleSaveCardDetails} className="space-y-3 text-xs text-slate-200 light:text-slate-800">
+          <form onSubmit={handleSaveCardDetails} className="space-y-3 text-xs text-foreground">
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="space-y-1">
-                <label className="text-[11px] font-bold text-slate-400 light:text-slate-600 flex items-center gap-1">
+                <label className="text-[11px] font-bold text-muted-foreground flex items-center gap-1">
                   <UserCheck size={13} className="text-brand-400" />
                   Contato / Recrutador
                 </label>
@@ -1067,12 +1061,12 @@ export function StrategyPage({
                   placeholder="Ex: Mariana Silva (Tech Recruiter)"
                   value={cardRecruiterName}
                   onChange={e => setCardRecruiterName(e.target.value)}
-                  className="w-full px-3 py-2 rounded-xl bg-slate-800 light:bg-slate-50 border border-slate-700 light:border-slate-200 text-xs text-slate-200 light:text-slate-900 outline-none focus:border-brand-500 placeholder:text-slate-500 light:placeholder:text-slate-400"
+                  className="w-full px-3 py-2 rounded-xl bg-background border border-border text-xs text-foreground outline-none focus:border-brand-500 placeholder:text-muted-foreground"
                 />
               </div>
 
               <div className="space-y-1">
-                <label className="text-[11px] font-bold text-slate-400 light:text-slate-600 flex items-center gap-1">
+                <label className="text-[11px] font-bold text-muted-foreground flex items-center gap-1">
                   <Calendar size={13} className="text-brand-400" />
                   Data da Próxima Ação / Entrevista
                 </label>
@@ -1080,13 +1074,13 @@ export function StrategyPage({
                   type="date"
                   value={cardNextActionDate}
                   onChange={e => setCardNextActionDate(e.target.value)}
-                  className="w-full px-3 py-2 rounded-xl bg-slate-800 light:bg-slate-50 border border-slate-700 light:border-slate-200 text-xs text-slate-200 light:text-slate-900 outline-none focus:border-brand-500"
+                  className="w-full px-3 py-2 rounded-xl bg-background border border-border text-xs text-foreground outline-none focus:border-brand-500"
                 />
               </div>
             </div>
 
             <div className="space-y-1">
-              <label className="text-[11px] font-bold text-slate-400 light:text-slate-600 flex items-center gap-1">
+              <label className="text-[11px] font-bold text-muted-foreground flex items-center gap-1">
                 <Target size={13} className="text-brand-400" />
                 Próxima Ação Planejada
               </label>
@@ -1095,12 +1089,12 @@ export function StrategyPage({
                 placeholder="Ex: Enviar e-mail de follow-up pós-entrevista..."
                 value={cardNextAction}
                 onChange={e => setCardNextAction(e.target.value)}
-                className="w-full px-3 py-2 rounded-xl bg-slate-800 light:bg-slate-50 border border-slate-700 light:border-slate-200 text-xs text-slate-200 light:text-slate-900 outline-none focus:border-brand-500 placeholder:text-slate-500 light:placeholder:text-slate-400"
+                className="w-full px-3 py-2 rounded-xl bg-background border border-border text-xs text-foreground outline-none focus:border-brand-500 placeholder:text-muted-foreground"
               />
             </div>
 
             <div className="space-y-1">
-              <label className="text-[11px] font-bold text-slate-400 light:text-slate-600 flex items-center gap-1">
+              <label className="text-[11px] font-bold text-muted-foreground flex items-center gap-1">
                 <MessageSquare size={13} className="text-brand-400" />
                 Feedback & Impressões Pós-Processo
               </label>
@@ -1108,12 +1102,12 @@ export function StrategyPage({
                 value={cardFeedback}
                 onChange={e => setCardFeedback(e.target.value)}
                 placeholder="Pontos fortes destacados pelo gestor, perguntas difíceis..."
-                className="w-full px-3 py-2 rounded-xl bg-slate-800 light:bg-slate-50 border border-slate-700 light:border-slate-200 text-xs text-slate-200 light:text-slate-900 outline-none focus:border-brand-500 h-20 resize-none placeholder:text-slate-500 light:placeholder:text-slate-400"
+                className="w-full px-3 py-2 rounded-xl bg-background border border-border text-xs text-foreground outline-none focus:border-brand-500 h-20 resize-none placeholder:text-muted-foreground"
               />
             </div>
 
             <div className="space-y-1">
-              <label className="text-[11px] font-bold text-slate-400 light:text-slate-600 flex items-center gap-1">
+              <label className="text-[11px] font-bold text-muted-foreground flex items-center gap-1">
                 <BookOpen size={13} className="text-brand-400" />
                 Anotações Gerais da Jornada
               </label>
@@ -1121,7 +1115,7 @@ export function StrategyPage({
                 value={cardNotes}
                 onChange={e => setCardNotes(e.target.value)}
                 placeholder="Observações do candidato..."
-                className="w-full px-3 py-2 rounded-xl bg-slate-800 light:bg-slate-50 border border-slate-700 light:border-slate-200 text-xs text-slate-200 light:text-slate-900 outline-none focus:border-brand-500 h-16 resize-none placeholder:text-slate-500 light:placeholder:text-slate-400"
+                className="w-full px-3 py-2 rounded-xl bg-background border border-border text-xs text-foreground outline-none focus:border-brand-500 h-16 resize-none placeholder:text-muted-foreground"
               />
             </div>
 
@@ -1137,20 +1131,20 @@ export function StrategyPage({
           </form>
 
           {/* Timeline de Etapas (application_stages) */}
-          <div className="border-t border-slate-800 light:border-slate-200 pt-3 space-y-3">
-            <h4 className="text-xs font-bold text-slate-100 light:text-slate-900 flex items-center gap-1.5">
+          <div className="border-t border-border pt-3 space-y-3">
+            <h4 className="text-xs font-bold text-foreground flex items-center gap-1.5">
               <Clock size={15} className="text-brand-400" />
               Histórico do Processo (Timeline)
             </h4>
 
             <div className="space-y-2 max-h-48 overflow-y-auto pr-1">
               {loadingStages ? (
-                <div className="flex items-center gap-2 text-xs text-slate-400 py-2">
+                <div className="flex items-center gap-2 text-xs text-muted-foreground py-2">
                   <Loader2 size={14} className="animate-spin text-brand-400" />
                   <span>Carregando linha do tempo...</span>
                 </div>
               ) : activeStages.length === 0 ? (
-                <span className="text-xs text-slate-500 italic block">Nenhum evento registrado no histórico ainda.</span>
+                <span className="text-xs text-muted-foreground italic block">Nenhum evento registrado no histórico ainda.</span>
               ) : (
                 activeStages.map((st: ApplicationStage) => {
                   const stageNameTranslation: Record<string, string> = {
@@ -1175,19 +1169,19 @@ export function StrategyPage({
                   const displayStatus = stageStatusTranslation[st.status.toLowerCase()] || st.status;
 
                   return (
-                    <div key={st.id} className="p-3 rounded-xl bg-slate-900/80 border border-slate-800 flex justify-between items-center text-xs">
+                    <div key={st.id} className="p-3 rounded-xl bg-muted/80 border border-border flex justify-between items-center text-xs">
                       <div>
-                        <span className="font-bold text-slate-200 block">{displayStageName}</span>
-                        {st.notes && <span className="text-[11px] text-slate-400 block mt-0.5">{st.notes}</span>}
-                        <span className="text-[10px] text-slate-500 block mt-0.5">{new Date(st.stageDate).toLocaleDateString()}</span>
+                        <span className="font-bold text-foreground block">{displayStageName}</span>
+                        {st.notes && <span className="text-[11px] text-muted-foreground block mt-0.5">{st.notes}</span>}
+                        <span className="text-[10px] text-muted-foreground block mt-0.5">{new Date(st.stageDate).toLocaleDateString()}</span>
                       </div>
                       <div className="flex items-center gap-2">
                         <span className={`text-[9px] px-2 py-0.5 rounded font-bold uppercase ${
-                          st.status === 'passed' ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' : 'bg-amber-500/10 text-amber-400 border border-amber-500/20'
+                          st.status === 'passed' ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20' : 'bg-amber-500/10 text-amber-700 dark:text-amber-400 border border-amber-500/20'
                         }`}>
                           {displayStatus}
                         </span>
-                        <button onClick={() => handleDeleteStage(st.id)} className="text-slate-500 hover:text-red-400 cursor-pointer">
+                        <button onClick={() => handleDeleteStage(st.id)} className="text-muted-foreground hover:text-red-400 cursor-pointer">
                           <Trash2 size={13} />
                         </button>
                       </div>
@@ -1198,12 +1192,12 @@ export function StrategyPage({
             </div>
 
             {/* Adicionar nova etapa */}
-            <form onSubmit={handleAddStage} className="space-y-2 pt-2 border-t border-slate-900">
+            <form onSubmit={handleAddStage} className="space-y-2 pt-2 border-t border-border">
               <div className="grid grid-cols-2 gap-2">
                 <select
                   value={newStageName}
                   onChange={e => setNewStageName(e.target.value)}
-                  className="bg-slate-900 border border-slate-800 text-xs rounded-xl p-2 text-slate-200 outline-none"
+                  className="bg-background border border-border text-xs rounded-xl p-2 text-foreground outline-none"
                 >
                   <option value="applied">📨 Aplicada</option>
                   <option value="hr">👥 Entrevista RH</option>
@@ -1214,7 +1208,7 @@ export function StrategyPage({
                 <select
                   value={newStageStatus}
                   onChange={e => setNewStageStatus(e.target.value as any)}
-                  className="bg-slate-900 border border-slate-800 text-xs rounded-xl p-2 text-slate-200 outline-none"
+                  className="bg-background border border-border text-xs rounded-xl p-2 text-foreground outline-none"
                 >
                   <option value="pending">Pendente</option>
                   <option value="passed">Aprovado</option>
@@ -1225,19 +1219,19 @@ export function StrategyPage({
                 placeholder="Observação da etapa..."
                 value={newStageNotes}
                 onChange={e => setNewStageNotes(e.target.value)}
-                className="w-full bg-slate-900 border border-slate-800 text-xs rounded-xl px-3 py-2 outline-none text-slate-200"
+                className="w-full bg-background border border-border text-xs rounded-xl px-3 py-2 outline-none text-foreground placeholder:text-muted-foreground"
               />
-              <button type="submit" className="w-full py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-white font-bold text-xs">
+              <button type="submit" className="w-full py-2 rounded-xl bg-primary hover:bg-primary/95 text-primary-foreground font-bold text-xs">
                 Registrar no Histórico
               </button>
             </form>
 
             {/* Ações de Encerramento e Exclusão no Rodapé do Drawer */}
-            <div className="pt-4 border-t border-slate-800 flex justify-between items-center text-xs">
+            <div className="pt-4 border-t border-border flex justify-between items-center text-xs">
               <button
                 type="button"
                 onClick={() => setRejectingApp(selectedApp)}
-                className="text-red-400 hover:text-red-300 font-semibold flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-red-500/20 bg-red-500/10"
+                className="text-red-600 dark:text-red-400 hover:text-red-500 font-semibold flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-red-500/20 bg-red-500/10"
               >
                 <AlertTriangle size={14} />
                 <span>Arquivar / Rejeitar Vaga</span>
@@ -1245,7 +1239,7 @@ export function StrategyPage({
               <button
                 type="button"
                 onClick={() => setDeletingApp(selectedApp)}
-                className="text-slate-400 hover:text-red-400 font-semibold flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-slate-800 bg-slate-900"
+                className="text-muted-foreground hover:text-red-400 font-semibold flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-border bg-background"
               >
                 <Trash2 size={14} />
                 <span>Excluir Permanentemente</span>
@@ -1289,23 +1283,23 @@ export function StrategyPage({
                 >
                   <div className="space-y-2">
                     {/* Header da Coluna com Métricas */}
-                    <div className="border-b border-slate-800/80 pb-2 space-y-1">
+                    <div className="border-b border-border/80 pb-2 space-y-1">
                       <div className="flex justify-between items-center">
-                        <h3 className="font-bold text-xs text-white truncate max-w-[110px]">{col.title}</h3>
-                        <span className="text-[10px] px-2 py-0.5 rounded-full bg-slate-800 text-slate-300 font-extrabold">
+                        <h3 className="font-bold text-xs text-foreground truncate max-w-[110px]">{col.title}</h3>
+                        <span className="text-[10px] px-2 py-0.5 rounded-full bg-muted text-muted-foreground font-extrabold">
                           {colApps.length}
                         </span>
                       </div>
-                      <div className="flex justify-between items-center text-[9px] text-slate-400 pt-0.5">
+                      <div className="flex justify-between items-center text-[9px] text-muted-foreground pt-0.5">
                         <span title="Tempo médio de permanência dos cards nesta etapa">⏱ {avgDays}</span>
-                        <span title="Probabilidade de avanço ponderada pelo Match" className="text-emerald-400 font-semibold">🎯 {avgProb}</span>
+                        <span title="Probabilidade de avanço ponderada pelo Match" className="text-emerald-500 font-semibold">🎯 {avgProb}</span>
                       </div>
                     </div>
 
                     {/* Lista de Cards Organizada por Prioridade IA */}
                     <div className="space-y-3 max-h-[550px] overflow-y-auto pr-1">
-                      {colApps.length === 0 ? (
-                        <div className="py-8 text-center text-[10px] text-slate-500 italic border border-dashed border-slate-800/60 rounded-xl">
+                       {colApps.length === 0 ? (
+                        <div className="py-8 text-center text-[10px] text-muted-foreground italic border border-dashed border-border/60 rounded-xl">
                           Nenhuma vaga
                         </div>
                       ) : (
@@ -1322,29 +1316,29 @@ export function StrategyPage({
                               }}
                               onDragEnd={() => setDraggedAppId(null)}
                               onClick={() => setSelectedAppId(app.id)}
-                              className={`p-3.5 space-y-2.5 hover:border-brand-500/40 cursor-grab active:cursor-grabbing text-xs border-slate-800/80 bg-slate-900/60 transition-all relative group ${
+                              className={`p-3.5 space-y-2.5 hover:border-brand-500/40 cursor-grab active:cursor-grabbing text-xs border-border dark:border-slate-800/80 bg-card/60 dark:bg-slate-900/60 transition-all relative group ${
                                 draggedAppId === app.id ? 'opacity-40 border-brand-500 border-dashed' : ''
                               }`}
                             >
                               <div className="flex justify-between items-start gap-1">
                                 <div className="truncate flex-1">
-                                  <h4 className="font-bold text-slate-100 truncate text-xs">{app.jobTitle}</h4>
-                                  <span className="text-[10px] text-slate-400 block truncate">{app.companyName}</span>
+                                  <h4 className="font-bold text-foreground truncate text-xs">{app.jobTitle}</h4>
+                                  <span className="text-[10px] text-muted-foreground block truncate">{app.companyName}</span>
                                 </div>
-                                <span className="text-[9px] px-1.5 py-0.5 rounded font-extrabold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 shrink-0">
+                                <span className="text-[9px] px-1.5 py-0.5 rounded font-extrabold bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 shrink-0">
                                   {matchScore}%
                                 </span>
                               </div>
 
                               {(app as any).nextAction && (
-                                <div className="p-1.5 rounded bg-blue-950/40 border border-blue-800/40 text-[9px] text-blue-300 flex items-center gap-1">
-                                  <Target size={11} className="shrink-0 text-blue-400" />
+                                <div className="p-1.5 rounded bg-blue-50 dark:bg-blue-950/40 border border-blue-200 dark:border-blue-800/40 text-[9px] text-blue-700 dark:text-blue-300 flex items-center gap-1">
+                                  <Target size={11} className="shrink-0 text-blue-500 dark:text-blue-400" />
                                   <span className="truncate">{(app as any).nextAction}</span>
                                 </div>
                               )}
 
                               {app.status === '🕐 Candidatura em andamento' && (
-                                <div className="p-1.5 rounded bg-amber-950/50 border border-amber-500/40 text-[10px] text-amber-300 flex items-center justify-between gap-1.5">
+                                <div className="p-1.5 rounded bg-amber-50 dark:bg-amber-950/50 border border-amber-200 dark:border-amber-500/40 text-[10px] text-amber-800 dark:text-amber-300 flex items-center justify-between gap-1.5">
                                   <span className="font-semibold truncate">🕐 Candidatura em andamento</span>
                                   <button
                                     type="button"
@@ -1361,8 +1355,8 @@ export function StrategyPage({
                               )}
 
                               {/* Seletor Rápido de Estágio (Design Limpo e Espaçoso) */}
-                              <div className="flex flex-col gap-1.5 pt-2.5 border-t border-slate-800/80 mt-2">
-                                <span className="text-[10px] font-semibold text-slate-400">Mover para estágio:</span>
+                              <div className="flex flex-col gap-1.5 pt-2.5 border-t border-border/80 mt-2">
+                                <span className="text-[10px] font-semibold text-muted-foreground">Mover para estágio:</span>
                                 <select
                                   value={app.status === '🕐 Candidatura em andamento' ? '🕐 Candidatura em andamento' : colId}
                                   onClick={e => e.stopPropagation()}
@@ -1370,7 +1364,7 @@ export function StrategyPage({
                                     e.stopPropagation();
                                     handleQuickStatusChange(app, e.target.value);
                                   }}
-                                  className="w-full bg-slate-900 border border-slate-700/80 rounded-lg px-2.5 py-1.5 text-slate-200 text-xs font-medium outline-none focus:border-brand-500 hover:border-slate-600 transition-colors cursor-pointer shadow-xs"
+                                  className="w-full bg-background border border-border rounded-lg px-2.5 py-1.5 text-foreground text-xs font-medium outline-none focus:border-brand-500 hover:border-border transition-colors cursor-pointer shadow-xs"
                                 >
                                   <option value="found">🔎 Encontrada</option>
                                   <option value="saved">⭐ Tenho interesse</option>
@@ -1396,25 +1390,25 @@ export function StrategyPage({
 
           {/* Coluna Opcional de Arquivadas / Rejeitadas */}
           {showArchived && (
-            <div className="mt-4 border-t border-slate-800/80 pt-3 space-y-3">
+            <div className="mt-4 border-t border-border/80 pt-3 space-y-3">
               <div className="flex items-center gap-2 text-red-400">
                 <Archive size={16} />
-                <h3 className="font-bold text-xs text-slate-200">Candidaturas Arquivadas / Encerradas ({rejectedCount})</h3>
+                <h3 className="font-bold text-xs text-foreground">Candidaturas Arquivadas / Encerradas ({rejectedCount})</h3>
               </div>
               <div className="grid grid-cols-1 md:grid-cols-3 xl:grid-cols-4 gap-3">
                 {pipelineColumns.rejected?.apps?.map(app => (
-                  <CardGlass key={app.id} onClick={() => setSelectedAppId(app.id)} className="p-3 space-y-1.5 opacity-75 border-red-900/30 hover:opacity-100 cursor-pointer">
+                  <CardGlass key={app.id} onClick={() => setSelectedAppId(app.id)} className="p-3 space-y-1.5 opacity-75 border-red-500/20 hover:opacity-100 cursor-pointer">
                     <div className="flex justify-between items-start">
                       <div>
-                        <h4 className="font-bold text-slate-200 text-xs truncate max-w-[150px]">{app.jobTitle}</h4>
-                        <span className="text-[10px] text-slate-400 block">{app.companyName}</span>
+                        <h4 className="font-bold text-foreground text-xs truncate max-w-[150px]">{app.jobTitle}</h4>
+                        <span className="text-[10px] text-muted-foreground block">{app.companyName}</span>
                       </div>
-                      <span className="text-[9px] px-2 py-0.5 rounded bg-red-500/10 text-red-400 border border-red-500/20 font-bold">
+                      <span className="text-[9px] px-2 py-0.5 rounded bg-red-500/10 text-red-600 dark:text-red-400 border border-red-500/20 font-bold">
                         Arquivada
                       </span>
                     </div>
                     {app.rejectionReason && (
-                      <p className="text-[10px] text-red-300/80 bg-red-950/30 p-1.5 rounded border border-red-900/40">
+                      <p className="text-[10px] text-red-800 dark:text-red-300/80 bg-red-50 dark:bg-red-950/30 p-1.5 rounded border border-red-200 dark:border-red-900/40">
                         Motivo: {app.rejectionReason}
                       </p>
                     )}
@@ -1432,35 +1426,35 @@ export function StrategyPage({
       {subTab === 'strategy' && (
         <div className="space-y-6 animate-slide-in">
           <div>
-            <h3 className="font-display font-bold text-base text-slate-200">Priorização por Matriz de ROI</h3>
-            <p className="text-xs text-slate-500 mt-1">Calcule a relação entre senioridade, esforço de processo e retorno esperado.</p>
+            <h3 className="font-display font-bold text-base text-foreground">Priorização por Matriz de ROI</h3>
+            <p className="text-xs text-muted-foreground mt-1">Calcule a relação entre senioridade, esforço de processo e retorno esperado.</p>
           </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
             {/* Hot priorities */}
-            <div className="space-y-4 rounded-2xl p-3 bg-slate-900/20 border border-slate-800">
-              <div className="flex items-center gap-2 pb-1 border-b border-slate-800">
+            <div className="space-y-4 rounded-2xl p-3 bg-card border border-border">
+              <div className="flex items-center gap-2 pb-1 border-b border-border">
                 <Flame size={16} className="text-emerald-500 fill-emerald-500" />
-                <h3 className="font-bold text-sm text-slate-200">Alta Prioridade ({finalGrouped.hot.length})</h3>
+                <h3 className="font-bold text-sm text-foreground">Alta Prioridade ({finalGrouped.hot.length})</h3>
               </div>
               {finalGrouped.hot.map((rec, idx) => (
                 <CardGlass key={idx} className="p-4 space-y-3">
                   <div className="flex justify-between items-start">
                     <div>
-                      <h4 className="font-bold text-sm text-slate-100">{rec.job.title}</h4>
-                      <span className="text-xs text-slate-400 font-medium block">{rec.job.companyName}</span>
+                      <h4 className="font-bold text-sm text-foreground">{rec.job.title}</h4>
+                      <span className="text-xs text-muted-foreground font-medium block">{rec.job.companyName}</span>
                     </div>
                     <span className="text-[10px] px-2 py-0.5 rounded bg-emerald-500/10 text-emerald-400 font-bold border border-emerald-500/20">
                       Match {rec.cpi}%
                     </span>
                   </div>
-                  <div className="flex items-center justify-between pt-2 border-t border-slate-800/60 text-[10px]">
+                  <div className="flex items-center justify-between pt-2 border-t border-border/60 text-[10px]">
                     <div className="flex items-center gap-1">
-                      <span className="text-slate-500">Mover:</span>
+                      <span className="text-muted-foreground">Mover:</span>
                       <select
                         value="hot"
                         onChange={(e) => setColumnOverrides(prev => ({ ...prev, [(rec.job as any).id]: e.target.value as any }))}
-                        className="bg-slate-900 border border-slate-800 rounded px-1.5 py-0.5 text-slate-300 text-[10px] outline-none"
+                        className="bg-background border border-border rounded px-1.5 py-0.5 text-foreground text-[10px] outline-none"
                       >
                         <option value="hot">🔥 Alta Prioridade</option>
                         <option value="warm">⚡ Ajustar antes</option>
@@ -1470,7 +1464,7 @@ export function StrategyPage({
                     <button
                       type="button"
                       onClick={() => onDeleteJob?.((rec.job as any).id)}
-                      className="text-slate-500 hover:text-red-400 p-1 transition-colors"
+                      className="text-muted-foreground hover:text-red-400 p-1 transition-colors"
                       title="Remover card da matriz"
                     >
                       <Trash2 size={12} />
@@ -1481,29 +1475,29 @@ export function StrategyPage({
             </div>
 
             {/* Warm priorities */}
-            <div className="space-y-4 rounded-2xl p-3 bg-slate-900/20 border border-slate-800">
-              <div className="flex items-center gap-2 pb-1 border-b border-slate-800">
+            <div className="space-y-4 rounded-2xl p-3 bg-card border border-border">
+              <div className="flex items-center gap-2 pb-1 border-b border-border">
                 <Sparkles size={16} className="text-amber-500" />
-                <h3 className="font-bold text-sm text-slate-200">Ajustar antes ({finalGrouped.warm.length})</h3>
+                <h3 className="font-bold text-sm text-foreground">Ajustar antes ({finalGrouped.warm.length})</h3>
               </div>
               {finalGrouped.warm.map((rec, idx) => (
                 <CardGlass key={idx} className="p-4 space-y-3">
                   <div className="flex justify-between items-start">
                     <div>
-                      <h4 className="font-bold text-sm text-slate-100">{rec.job.title}</h4>
-                      <span className="text-xs text-slate-400 font-medium block">{rec.job.companyName}</span>
+                      <h4 className="font-bold text-sm text-foreground">{rec.job.title}</h4>
+                      <span className="text-xs text-muted-foreground font-medium block">{rec.job.companyName}</span>
                     </div>
                     <span className="text-[10px] px-2 py-0.5 rounded bg-amber-500/10 text-amber-400 font-bold border border-amber-500/20">
                       Match {rec.cpi}%
                     </span>
                   </div>
-                  <div className="flex items-center justify-between pt-2 border-t border-slate-800/60 text-[10px]">
+                  <div className="flex items-center justify-between pt-2 border-t border-border/60 text-[10px]">
                     <div className="flex items-center gap-1">
-                      <span className="text-slate-500">Mover:</span>
+                      <span className="text-muted-foreground">Mover:</span>
                       <select
                         value="warm"
                         onChange={(e) => setColumnOverrides(prev => ({ ...prev, [(rec.job as any).id]: e.target.value as any }))}
-                        className="bg-slate-900 border border-slate-800 rounded px-1.5 py-0.5 text-slate-300 text-[10px] outline-none"
+                        className="bg-background border border-border rounded px-1.5 py-0.5 text-foreground text-[10px] outline-none"
                       >
                         <option value="hot">🔥 Alta Prioridade</option>
                         <option value="warm">⚡ Ajustar antes</option>
@@ -1513,7 +1507,7 @@ export function StrategyPage({
                     <button
                       type="button"
                       onClick={() => onDeleteJob?.((rec.job as any).id)}
-                      className="text-slate-500 hover:text-red-400 p-1 transition-colors"
+                      className="text-muted-foreground hover:text-red-400 p-1 transition-colors"
                       title="Remover card da matriz"
                     >
                       <Trash2 size={12} />
@@ -1524,29 +1518,29 @@ export function StrategyPage({
             </div>
 
             {/* Cold priorities */}
-            <div className="space-y-4 rounded-2xl p-3 bg-slate-900/20 border border-slate-800">
-              <div className="flex items-center gap-2 pb-1 border-b border-slate-800">
+            <div className="space-y-4 rounded-2xl p-3 bg-card border border-border">
+              <div className="flex items-center gap-2 pb-1 border-b border-border">
                 <AlertCircle size={16} className="text-slate-400" />
-                <h3 className="font-bold text-sm text-slate-200">Match baixo com a vaga ({finalGrouped.cold.length})</h3>
+                <h3 className="font-bold text-sm text-foreground">Match baixo com a vaga ({finalGrouped.cold.length})</h3>
               </div>
               {finalGrouped.cold.map((rec, idx) => (
                 <CardGlass key={idx} className="p-4 space-y-3">
                   <div className="flex justify-between items-start">
                     <div>
-                      <h4 className="font-bold text-sm text-slate-100">{rec.job.title}</h4>
-                      <span className="text-xs text-slate-400 font-medium block">{rec.job.companyName}</span>
+                      <h4 className="font-bold text-sm text-foreground">{rec.job.title}</h4>
+                      <span className="text-xs text-muted-foreground font-medium block">{rec.job.companyName}</span>
                     </div>
-                    <span className="text-[10px] px-2 py-0.5 rounded bg-slate-800 text-slate-400 font-bold">
+                    <span className="text-[10px] px-2 py-0.5 rounded bg-muted text-muted-foreground font-bold">
                       Match {rec.cpi}%
                     </span>
                   </div>
-                  <div className="flex items-center justify-between pt-2 border-t border-slate-800/60 text-[10px]">
+                  <div className="flex items-center justify-between pt-2 border-t border-border/60 text-[10px]">
                     <div className="flex items-center gap-1">
-                      <span className="text-slate-500">Mover:</span>
+                      <span className="text-muted-foreground">Mover:</span>
                       <select
                         value="cold"
                         onChange={(e) => setColumnOverrides(prev => ({ ...prev, [(rec.job as any).id]: e.target.value as any }))}
-                        className="bg-slate-900 border border-slate-800 rounded px-1.5 py-0.5 text-slate-300 text-[10px] outline-none"
+                        className="bg-background border border-border rounded px-1.5 py-0.5 text-foreground text-[10px] outline-none"
                       >
                         <option value="hot">🔥 Alta Prioridade</option>
                         <option value="warm">⚡ Ajustar antes</option>
@@ -1556,7 +1550,7 @@ export function StrategyPage({
                     <button
                       type="button"
                       onClick={() => onDeleteJob?.((rec.job as any).id)}
-                      className="text-slate-500 hover:text-red-400 p-1 transition-colors"
+                      className="text-muted-foreground hover:text-red-400 p-1 transition-colors"
                       title="Remover card da matriz"
                     >
                       <Trash2 size={12} />

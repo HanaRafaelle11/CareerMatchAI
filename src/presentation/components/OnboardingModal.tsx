@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { CardGlass } from './CardGlass';
 import { Sparkles, Target, Layers, UploadCloud, CheckCircle2, ArrowRight, X } from 'lucide-react';
+import { useEscapeToClose } from '../../application/hooks/useEscapeToClose';
 
 interface OnboardingModalProps {
   isOpen: boolean;
@@ -11,6 +12,8 @@ interface OnboardingModalProps {
 
 export function OnboardingModal({ isOpen, onClose, onStartUpload, onNavigateTab }: OnboardingModalProps) {
   const [currentStep, setCurrentStep] = useState(0);
+
+  useEscapeToClose(isOpen, onClose);
 
   if (!isOpen) return null;
 

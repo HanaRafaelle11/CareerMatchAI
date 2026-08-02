@@ -173,7 +173,20 @@ export function Settings({
   // Notification checkboxes
   const [emailAlerts, setEmailAlerts] = useState(true);
   const [pushAlerts, setPushAlerts] = useState(false);
-  const [weeklyDigest, setWeeklyDigest] = useState(true);
+  // weekly_digest_enabled — sincronizado com profiles.weekly_digest_enabled
+  const [weeklyDigest, setWeeklyDigest] = useState<boolean>(
+    (profile as any)?.weekly_digest_enabled !== undefined
+      ? (profile as any).weekly_digest_enabled
+      : true
+  );
+  const [isSavingDigest, setIsSavingDigest] = useState(false);
+
+  // Atualiza o state se o profile carregar depois do render inicial
+  useEffect(() => {
+    if ((profile as any)?.weekly_digest_enabled !== undefined) {
+      setWeeklyDigest((profile as any).weekly_digest_enabled);
+    }
+  }, [(profile as any)?.weekly_digest_enabled]);
 
   // GDPR consent
   const [gdprConsent, setGdprConsent] = useState(true);
@@ -906,10 +919,31 @@ export function Settings({
 
                 <button
                   type="button"
-                  onClick={() => showToast('Preferências de notificação salvas com sucesso!', 'success')}
-                  className="px-5 py-2.5 rounded-xl bg-brand-600 hover:bg-brand-500 text-white text-xs font-bold transition-all"
+                  disabled={isSavingDigest}
+                  onClick={async () => {
+                    // Salva weekly_digest_enabled no banco (profiles)
+                    if (isSupabaseConfigured && supabase && profile?.id) {
+                      setIsSavingDigest(true);
+                      try {
+                        const { error } = await supabase
+                          .from('profiles')
+                          .update({ weekly_digest_enabled: weeklyDigest })
+                          .eq('id', profile.id);
+                        if (error) throw error;
+                        showToast('Preferências de notificação salvas!', 'success');
+                      } catch (err: any) {
+                        console.error('[Settings] Erro ao salvar weekly_digest_enabled:', err);
+                        showToast('Erro ao salvar preferências. Tente novamente.', 'error');
+                      } finally {
+                        setIsSavingDigest(false);
+                      }
+                    } else {
+                      showToast('Preferências de notificação salvas com sucesso!', 'success');
+                    }
+                  }}
+                  className="px-5 py-2.5 rounded-xl bg-brand-600 hover:bg-brand-500 disabled:opacity-50 disabled:cursor-not-allowed text-white text-xs font-bold transition-all"
                 >
-                  Salvar Configurações
+                  {isSavingDigest ? 'Salvando...' : 'Salvar Configurações'}
                 </button>
               </div>
             </CardGlass>

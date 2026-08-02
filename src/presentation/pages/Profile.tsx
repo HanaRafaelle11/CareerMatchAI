@@ -287,82 +287,172 @@ export function Profile({
       triggerPaywall('pdf_export');
       return;
     }
-    if (!careerProfileNew) {
+    if (!careerProfileNew && !primaryResume) {
       setToast({ message: "Não há dados estruturados de perfil para exportar. Aguarde o processamento do currículo.", type: 'warning' });
       return;
     }
 
-    const { personal, experience = [], skills = [], education = [], summary = "" } = careerProfileNew;
-    
-    const skillsList = skills.map(s => `<span class="badge" style="margin-right: 5px; margin-bottom: 5px;">${s.name}</span>`).join(' ');
-    
-    const experienceHtml = experience.map(exp => `
-      <div class="experience-item">
-        <div class="experience-header">
-          <span class="experience-role">${exp.role || ''}</span>
-          <span class="experience-meta">${exp.startDate || ''} - ${exp.isCurrent ? 'Presente' : (exp.endDate || '')}</span>
+    // ── Dados do careerProfileNew (fonte primária) ──
+    const cpPersonal = careerProfileNew?.personal;
+    const cpExperience = careerProfileNew?.experience || [];
+    const cpSkills = careerProfileNew?.skills || [];
+    const cpEducation = careerProfileNew?.education || [];
+    const cpSummary = careerProfileNew?.summary || '';
+    const cpSoftSkills = careerProfileNew?.soft_skills || [];
+    const cpLanguages = careerProfileNew?.languages || [];
+    const cpCertifications = careerProfileNew?.certifications || [];
+
+    // ── Fallback: dados do Resume local (fonte secundária) ──
+    const resumeExperiences = primaryResume?.experiences || [];
+    const resumeSkills = primaryResume?.skills || [];
+    const resumeEducation = primaryResume?.education || [];
+    const resumeStructuredSummary = primaryResume?.structuredSummary || '';
+    const resumeRawText = primaryResume?.rawText || '';
+    const structuredData = primaryResume?.structured_data;
+
+    // ── Merge com fallback ──
+    const finalExperience = cpExperience.length > 0
+      ? cpExperience
+      : resumeExperiences.length > 0
+        ? resumeExperiences.map(exp => ({
+            companyName: exp.companyName || '',
+            role: exp.role || '',
+            startDate: exp.startDate || '',
+            endDate: exp.endDate || '',
+            isCurrent: exp.isCurrent || false,
+            description: exp.description || '',
+            highlights: exp.highlights || []
+          }))
+        : (structuredData?.experience || []);
+
+    const finalSkills = cpSkills.length > 0
+      ? cpSkills
+      : resumeSkills.length > 0
+        ? resumeSkills.map(s => ({ name: s.name, proficiency: s.proficiencyLevel || '' }))
+        : (structuredData?.skills || []);
+
+    const finalEducation = cpEducation.length > 0
+      ? cpEducation
+      : resumeEducation.length > 0
+        ? resumeEducation.map(edu => ({
+            institution: edu.institution || '',
+            degree: edu.degree || '',
+            fieldOfStudy: edu.fieldOfStudy || '',
+            startDate: edu.startDate || '',
+            endDate: edu.endDate || ''
+          }))
+        : (structuredData?.education || []);
+
+    const finalSummary = cpSummary
+      || resumeStructuredSummary
+      || structuredData?.summary
+      || '';
+
+    const finalName = cpPersonal?.fullName || profile?.fullName || 'Profissional Vocentro';
+    const finalHeadline = cpPersonal?.headline || structuredData?.headline || profile?.headline || '';
+    const emailStr = cpPersonal?.email || structuredData?.email || '';
+    const phoneStr = cpPersonal?.phone || structuredData?.phone || '';
+    const locationStr = cpPersonal?.location || structuredData?.location || '';
+
+    // ── Gerar HTML das seções ──
+    const skillsList = finalSkills.map((s: any) =>
+      `<span style="display: inline-block; background: #eef2ff; color: #4338ca; font-size: 9pt; font-weight: 600; padding: 3px 10px; border-radius: 6px; margin: 2px 4px 2px 0; border: 1px solid #c7d2fe;">${s.name || s}</span>`
+    ).join(' ');
+
+    const experienceHtml = finalExperience.map((exp: any) => `
+      <div style="border-bottom: 1px solid #e2e8f0; padding-bottom: 12px; margin-bottom: 12px;">
+        <div style="display: flex; justify-content: space-between; align-items: baseline; flex-wrap: wrap;">
+          <span style="font-weight: 700; font-size: 11pt; color: #0f172a;">${exp.role || ''}</span>
+          <span style="font-size: 9pt; color: #94a3b8; white-space: nowrap;">${exp.startDate || ''} — ${exp.isCurrent ? 'Presente' : (exp.endDate || '')}</span>
         </div>
         <div style="font-weight: 500; font-size: 9.5pt; color: #4f46e5; margin-bottom: 4px;">${exp.companyName || ''}</div>
-        <p style="font-size: 10pt; color: #334155; white-space: pre-line;">${exp.description || ''}</p>
+        <p style="font-size: 10pt; color: #334155; white-space: pre-line; margin: 4px 0 0 0;">${exp.description || ''}</p>
+        ${(exp.highlights && exp.highlights.length > 0) ? `<ul style="margin: 6px 0 0 0; padding-left: 16px;">${exp.highlights.map((h: string) => `<li style="font-size: 9.5pt; color: #475569; margin-bottom: 2px;">${h}</li>`).join('')}</ul>` : ''}
       </div>
     `).join('');
 
-    const educationHtml = education.map(edu => `
-      <div class="experience-item" style="border-bottom: none; margin-bottom: 8px; padding-bottom: 8px;">
-        <div class="experience-header">
-          <span class="experience-role">${edu.fieldOfStudy || edu.degree || ''}</span>
-          <span class="experience-meta">${edu.startDate || ''} - ${edu.endDate || ''}</span>
+    const educationHtml = finalEducation.map((edu: any) => `
+      <div style="margin-bottom: 10px; padding-bottom: 8px;">
+        <div style="display: flex; justify-content: space-between; align-items: baseline; flex-wrap: wrap;">
+          <span style="font-weight: 700; font-size: 10.5pt; color: #0f172a;">${edu.fieldOfStudy || edu.degree || ''}</span>
+          <span style="font-size: 9pt; color: #94a3b8;">${edu.startDate || ''} — ${edu.endDate || ''}</span>
         </div>
         <div style="font-size: 9.5pt; color: #64748b;">${edu.institution || ''}</div>
       </div>
     `).join('');
 
-    const emailStr = personal?.email || '';
-    const phoneStr = personal?.phone || '';
-    const locationStr = personal?.location || '';
+    const softSkillsHtml = cpSoftSkills.length > 0
+      ? cpSoftSkills.map(s => `<span style="display: inline-block; background: #fef3c7; color: #92400e; font-size: 9pt; font-weight: 500; padding: 3px 10px; border-radius: 6px; margin: 2px 4px 2px 0; border: 1px solid #fde68a;">${s}</span>`).join(' ')
+      : '';
+
+    const languagesHtml = cpLanguages.length > 0
+      ? cpLanguages.map(l => `<span style="display: inline-block; background: #ecfdf5; color: #065f46; font-size: 9pt; font-weight: 500; padding: 3px 10px; border-radius: 6px; margin: 2px 4px 2px 0; border: 1px solid #a7f3d0;">${l.language}${l.proficiency ? ` (${l.proficiency})` : ''}</span>`).join(' ')
+      : '';
+
+    const certificationsHtml = cpCertifications.length > 0
+      ? cpCertifications.map(c => `<li style="font-size: 10pt; color: #334155; margin-bottom: 4px;">${c}</li>`).join('')
+      : '';
+
+    // ── Fallback final: se TUDO estiver vazio, usar rawText ──
+    const hasAnyContent = finalExperience.length > 0 || finalSkills.length > 0 || finalEducation.length > 0 || finalSummary;
+
+    const rawTextFallbackHtml = !hasAnyContent && resumeRawText
+      ? `
+        <h2>Conteúdo do Currículo</h2>
+        <div style="font-size: 10pt; color: #334155; white-space: pre-line; line-height: 1.6; text-align: justify;">${resumeRawText.replace(/</g, '&lt;').replace(/>/g, '&gt;')}</div>
+      ` : '';
 
     const htmlContent = `
-      <table class="header-table">
-        <tr>
-          <td>
-            <h1 style="border-bottom: none; margin-bottom: 4px; padding-bottom: 0;">${personal?.fullName || profile?.fullName || 'Profissional Vocentro'}</h1>
-            <div style="font-size: 12pt; color: #4f46e5; font-weight: 600;">${personal?.headline || ''}</div>
-          </td>
-          <td class="header-info">
-            ${emailStr ? `<div>Email: ${emailStr}</div>` : ''}
-            ${phoneStr ? `<div>Telefone: ${phoneStr}</div>` : ''}
-            ${locationStr ? `<div>Localização: ${locationStr}</div>` : ''}
-          </td>
-        </tr>
-      </table>
+      <div style="border-bottom: 2px solid #4f46e5; padding-bottom: 16px; margin-bottom: 20px;">
+        <h1 style="border-bottom: none; margin-bottom: 4px; padding-bottom: 0;">${finalName}</h1>
+        ${finalHeadline ? `<div style="font-size: 12pt; color: #4f46e5; font-weight: 600; margin-bottom: 8px;">${finalHeadline}</div>` : ''}
+        <div style="font-size: 9.5pt; color: #64748b; display: flex; flex-wrap: wrap; gap: 12px;">
+          ${emailStr ? `<span>📧 ${emailStr}</span>` : ''}
+          ${phoneStr ? `<span>📱 ${phoneStr}</span>` : ''}
+          ${locationStr ? `<span>📍 ${locationStr}</span>` : ''}
+        </div>
+      </div>
 
-      ${summary ? `
+      ${finalSummary ? `
         <h2>Resumo Profissional</h2>
-        <p style="font-size: 10.5pt; color: #334155; line-height: 1.6; text-align: justify;">${summary}</p>
+        <p style="font-size: 10.5pt; color: #334155; line-height: 1.6; text-align: justify;">${finalSummary}</p>
       ` : ''}
 
-      ${experience.length > 0 ? `
+      ${finalExperience.length > 0 ? `
         <h2>Experiência Profissional</h2>
         <div>${experienceHtml}</div>
       ` : ''}
 
-      <div class="grid-2" style="margin-top: 20px;">
-        ${skills.length > 0 ? `
-          <div class="grid-col" style="width: 50%;">
-            <h2>Competências</h2>
-            <div style="margin-top: 10px;">${skillsList}</div>
-          </div>
-        ` : ''}
-        ${education.length > 0 ? `
-          <div class="grid-col" style="width: 50%;">
-            <h2>Educação / Formação</h2>
-            <div style="margin-top: 10px;">${educationHtml}</div>
-          </div>
-        ` : ''}
-      </div>
+      ${finalEducation.length > 0 ? `
+        <h2>Educação / Formação</h2>
+        <div>${educationHtml}</div>
+      ` : ''}
+
+      ${finalSkills.length > 0 ? `
+        <h2>Competências Técnicas</h2>
+        <div style="margin-top: 8px;">${skillsList}</div>
+      ` : ''}
+
+      ${softSkillsHtml ? `
+        <h2>Competências Comportamentais</h2>
+        <div style="margin-top: 8px;">${softSkillsHtml}</div>
+      ` : ''}
+
+      ${languagesHtml ? `
+        <h2>Idiomas</h2>
+        <div style="margin-top: 8px;">${languagesHtml}</div>
+      ` : ''}
+
+      ${certificationsHtml ? `
+        <h2>Certificações</h2>
+        <ul style="margin-top: 8px;">${certificationsHtml}</ul>
+      ` : ''}
+
+      ${rawTextFallbackHtml}
     `;
 
-    printElementHtml(`${personal?.fullName || 'Curriculo'}_Vocentro_CV`, htmlContent);
+    const fileName = finalName.replace(/\s+/g, '_').replace(/[^a-zA-Z0-9_À-ÿ]/g, '');
+    printElementHtml(`${fileName}_Curriculo`, htmlContent);
   };
 
   const handleDrag = (e: React.DragEvent) => {

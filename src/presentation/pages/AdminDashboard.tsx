@@ -1178,42 +1178,42 @@ export function AdminDashboard({ userId }: AdminDashboardProps) {
   };
 
   return (
-    <div className="space-y-6 w-full min-w-0 max-w-7xl mx-auto animate-fade-in font-sans text-slate-100 mb-24 md:mb-16 overflow-x-auto max-w-full px-2 sm:px-4">
+    <div className="space-y-6 w-full min-w-0 max-w-7xl mx-auto animate-fade-in font-sans text-foreground mb-24 md:mb-16 overflow-x-auto max-w-full px-2 sm:px-4">
       
       {/* Toast Feedback */}
       {toast && (
-        <div className="fixed top-6 right-6 z-50 p-4 rounded-xl shadow-lg border animate-bounce flex items-center gap-2 bg-slate-900 border-slate-800 text-xs">
+        <div className="fixed top-6 right-6 z-50 p-4 rounded-xl shadow-lg border animate-bounce flex items-center gap-2 bg-card border-border text-xs">
           {toast.type === 'success' && <ShieldCheck className="text-emerald-500" size={16} />}
           {toast.type === 'error' && <AlertCircle className="text-red-500" size={16} />}
           {toast.type === 'warning' && <AlertTriangle className="text-amber-500" size={16} />}
-          <span className="font-semibold text-slate-200">{toast.message}</span>
+          <span className="font-semibold text-foreground">{toast.message}</span>
         </div>
       )}
 
       {/* Header Banner */}
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 border-b border-slate-900 pb-6">
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 border-b border-border pb-6">
         <div>
           <div className="flex items-center gap-2">
-            <span className="text-[9px] px-2 py-0.5 bg-brand-500/10 text-brand-400 border border-brand-500/20 font-bold uppercase rounded-lg">Vocentro Cloud</span>
-            <span className="text-[9px] px-2 py-0.5 bg-slate-900 text-slate-400 border border-slate-800 font-bold uppercase rounded-lg">
+            <span className="text-[9px] px-2 py-0.5 bg-brand-500/10 text-brand-500 border border-brand-500/20 font-bold uppercase rounded-lg">Vocentro Cloud</span>
+            <span className="text-[9px] px-2 py-0.5 bg-card text-muted-foreground border border-border font-bold uppercase rounded-lg">
               Role: {currentUserRole}
             </span>
           </div>
-          <h1 className="font-display font-extrabold text-2xl tracking-tight text-slate-100 mt-2 flex items-center gap-2">
+          <h1 className="font-display font-extrabold text-2xl tracking-tight text-foreground mt-2 flex items-center gap-2">
             Vocentro Command Center
           </h1>
-          <p className="text-slate-400 text-xs mt-1">
+          <p className="text-muted-foreground text-xs mt-1">
             Painel administrativo unificado de telemetria, permissões (RBAC) e faturamento integrado.
           </p>
         </div>
         <div className="flex items-center gap-2">
-          <span className="flex items-center gap-1.5 text-[10px] text-emerald-400 bg-emerald-500/5 border border-emerald-500/10 px-2.5 py-1.5 rounded-lg font-semibold">
-            <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-ping" />
+          <span className="flex items-center gap-1.5 text-[10px] text-emerald-500 bg-emerald-500/10 border border-emerald-500/20 px-2.5 py-1.5 rounded-lg font-semibold">
+            <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-ping" />
             Vercel Edge: Operational
           </span>
           <button
             onClick={handleRefreshAll}
-            className="p-2 rounded-xl bg-slate-900 border border-slate-800 hover:border-slate-700 text-slate-350 hover:text-slate-200 transition-all cursor-pointer"
+            className="p-2 rounded-xl bg-card border border-border hover:bg-card/80 text-foreground transition-all cursor-pointer shadow-xs"
             title="Atualizar dados gerais"
           >
             <RefreshCw size={14} />
@@ -1222,7 +1222,7 @@ export function AdminDashboard({ userId }: AdminDashboardProps) {
       </div>
 
       {/* Tabs Selector (Com suporte a scroll horizontal e touch no Mobile) */}
-      <div className="flex items-center border-b border-slate-200 dark:border-slate-900 gap-3 sm:gap-6 overflow-x-auto max-w-full pb-2 scrollbar-thin scrollbar-thumb-slate-800 focus:outline-none [-webkit-overflow-scrolling:touch]">
+      <div className="flex items-center border-b border-border gap-3 sm:gap-6 overflow-x-auto max-w-full pb-2 focus:outline-none [-webkit-overflow-scrolling:touch]">
         {tabs.map(tab => (
           <button
             key={tab.id}
@@ -1232,8 +1232,8 @@ export function AdminDashboard({ userId }: AdminDashboardProps) {
             }}
             className={`pb-3 font-semibold text-xs transition-all relative whitespace-nowrap shrink-0 ${
               activeSubTab === tab.id
-                ? 'text-brand-600 dark:text-brand-400 font-bold'
-                : 'text-slate-700 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 font-medium'
+                ? 'text-brand-500 font-bold'
+                : 'text-muted-foreground hover:text-foreground font-medium'
             }`}
           >
             {activeSubTab === tab.id && <span className="absolute bottom-0 left-0 w-full h-[2px] bg-brand-500" />}
@@ -1256,18 +1256,18 @@ export function AdminDashboard({ userId }: AdminDashboardProps) {
       {activeSubTab === 'overview' && (
         <div className="space-y-6 animate-fade-in">
           {isLoadingOverview ? (
-            <div className="flex flex-col items-center justify-center py-24 gap-3 text-slate-600 dark:text-slate-400">
+            <div className="flex flex-col items-center justify-center py-24 gap-3 text-muted-foreground">
               <Loader2 className="animate-spin text-brand-500" size={28} />
             </div>
           ) : (
             <div className="space-y-6">
               {/* PLATFORM HEALTH SCORE & EXECUTIVE OVERVIEW ROW */}
-              <div className="p-5 rounded-2xl bg-gradient-to-r from-slate-900/90 via-slate-900/60 to-slate-950 border border-slate-800 space-y-4">
+              <div className="p-5 rounded-2xl bg-card border border-border space-y-4 shadow-xs">
                 <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
                   <div className="space-y-1">
-                    <span className="text-[10px] font-extrabold uppercase tracking-widest text-slate-400">Executive Operations</span>
-                    <h2 className="text-lg font-bold text-white flex items-center gap-2">
-                      <Activity className="text-emerald-400 animate-pulse" size={18} />
+                    <span className="text-[10px] font-extrabold uppercase tracking-widest text-muted-foreground">Executive Operations</span>
+                    <h2 className="text-lg font-bold text-foreground flex items-center gap-2">
+                      <Activity className="text-emerald-500 animate-pulse" size={18} />
                       Platform Health & Reliability Score
                     </h2>
                   </div>
@@ -1277,7 +1277,7 @@ export function AdminDashboard({ userId }: AdminDashboardProps) {
                     <div className="flex items-center gap-3">
                       <span className="text-xs text-slate-400 font-bold">Taxa de Sucesso de Parsing:</span>
                       <span className={`text-2xl font-extrabold font-display ${
-                        (overviewStats?.success_rate || 0) >= 80 ? 'text-emerald-400' : (overviewStats?.success_rate || 0) >= 50 ? 'text-amber-400' : 'text-red-400'
+                        (overviewStats?.success_rate || 0) >= 80 ? 'text-emerald-500' : (overviewStats?.success_rate || 0) >= 50 ? 'text-amber-400' : 'text-red-400'
                       }`}>
                         {Math.round(overviewStats?.success_rate || 0)}%
                       </span>
@@ -1288,7 +1288,7 @@ export function AdminDashboard({ userId }: AdminDashboardProps) {
                     {overviewStats?.status_breakdown ? (
                       <div className="flex flex-wrap gap-2.5 text-[10px] font-mono">
                         <span className="text-slate-400">Uploads Reais: {overviewStats.status_breakdown.total_uploads ?? 0}</span>
-                        <span className="text-emerald-400">✓ Concluídos: {overviewStats.status_breakdown.completed_pipeline ?? 0}</span>
+                        <span className="text-emerald-500">✓ Concluídos: {overviewStats.status_breakdown.completed_pipeline ?? 0}</span>
                         <span className="text-red-400">✗ Falhas: {overviewStats.status_breakdown.failed_pipeline ?? 0}</span>
                         {overviewStats.status_breakdown.excluded_test_logs > 0 && (
                           <span className="text-amber-400/80">⨂ Testes Excluídos: {overviewStats.status_breakdown.excluded_test_logs}</span>
@@ -1315,9 +1315,9 @@ export function AdminDashboard({ userId }: AdminDashboardProps) {
                       {overviewStats?.users_count ?? overviewStats?.total_users ?? 0}
                     </span>
                     <div className="flex items-center gap-2 text-[10px] mt-1">
-                      <span className="text-emerald-400 font-bold flex items-center gap-0.5">↑ +12% <span className="text-slate-500 font-normal">7d</span></span>
+                      <span className="text-emerald-500 font-bold flex items-center gap-0.5">↑ +12% <span className="text-slate-500 font-normal">7d</span></span>
                       <span className="text-slate-600 dark:text-slate-500">•</span>
-                      <span className="text-emerald-400 font-bold flex items-center gap-0.5">↑ +31% <span className="text-slate-500 font-normal">30d</span></span>
+                      <span className="text-emerald-500 font-bold flex items-center gap-0.5">↑ +31% <span className="text-slate-500 font-normal">30d</span></span>
                     </div>
                   </div>
                 </CardGlass>
@@ -1325,14 +1325,14 @@ export function AdminDashboard({ userId }: AdminDashboardProps) {
                 <CardGlass className="p-4 flex flex-col justify-between">
                   <div className="flex justify-between items-start">
                     <span className="text-[10px] text-slate-400 font-extrabold uppercase tracking-wider">Ativos Hoje (DAU)</span>
-                    <UserCheck size={16} className="text-emerald-400" />
+                    <UserCheck size={16} className="text-emerald-500" />
                   </div>
                   <div className="mt-3">
-                    <span className="text-3xl font-extrabold text-emerald-400 font-display">
+                    <span className="text-3xl font-extrabold text-emerald-500 font-display">
                       {overviewStats?.active_today ?? Math.max(1, Math.round((overviewStats?.users_count || 1) * 0.4))}
                     </span>
                     <div className="flex items-center gap-2 text-[10px] mt-1">
-                      <span className="text-emerald-400 font-bold flex items-center gap-0.5">↑ +8% <span className="text-slate-500 font-normal">7d</span></span>
+                      <span className="text-emerald-500 font-bold flex items-center gap-0.5">↑ +8% <span className="text-slate-500 font-normal">7d</span></span>
                       <span className="text-slate-600 dark:text-slate-500">•</span>
                       <span className="text-slate-400 font-semibold">Atividade Recente</span>
                     </div>
@@ -1365,7 +1365,7 @@ export function AdminDashboard({ userId }: AdminDashboardProps) {
                       {overviewStats?.avg_processing_time ?? 2.4} s
                     </span>
                     <div className="flex items-center gap-2 text-[10px] mt-1">
-                      <span className="text-emerald-400 font-bold">P95 &lt; 3.5s</span>
+                      <span className="text-emerald-500 font-bold">P95 &lt; 3.5s</span>
                       <span className="text-slate-600 dark:text-slate-500">•</span>
                       <span className="text-slate-400 font-semibold">Latência Normal</span>
                     </div>
@@ -1394,7 +1394,7 @@ export function AdminDashboard({ userId }: AdminDashboardProps) {
                     <Activity size={16} className="text-emerald-450" />
                   </div>
                   <div className="mt-3">
-                    <span className="text-3xl font-extrabold text-emerald-400 font-display">
+                    <span className="text-3xl font-extrabold text-emerald-500 font-display">
                       {overviewStats?.success_rate ?? 98.8}%
                     </span>
                     <span className="text-[9px] text-slate-400 font-medium block mt-1">Conversão de parsing de currículo sem exceções</span>
@@ -1629,7 +1629,7 @@ export function AdminDashboard({ userId }: AdminDashboardProps) {
                           <span className={`px-2 py-0.5 rounded-lg text-[9px] font-bold border uppercase tracking-wider ${
                             user.role === 'administrador' ? 'bg-red-500/10 text-red-400 border-red-500/20' :
                             user.role === 'suporte' ? 'bg-blue-500/10 text-blue-400 border-blue-500/20' :
-                            user.role === 'financeiro' ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' :
+                            user.role === 'financeiro' ? 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20' :
                             user.role === 'somente_leitura' ? 'bg-amber-500/10 text-amber-400 border-amber-500/20' :
                             'bg-slate-500/10 text-slate-400 border-slate-700/20'
                           }`}>
@@ -1708,12 +1708,12 @@ export function AdminDashboard({ userId }: AdminDashboardProps) {
         <div className="space-y-6 animate-fade-in font-sans">
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
             <CardGlass className="p-4 space-y-2 border-emerald-500/20 bg-emerald-500/5">
-              <span className="text-[10px] text-emerald-400 font-bold uppercase tracking-wider block">MRR Estimado (Mensal)</span>
+              <span className="text-[10px] text-emerald-500 font-bold uppercase tracking-wider block">MRR Estimado (Mensal)</span>
               <div className="flex justify-between items-baseline">
                 <strong className="text-2xl font-black text-white font-mono">
                   R$ {((users.filter((u: any) => u.role !== 'user').length || 12) * 29.90).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
                 </strong>
-                <span className="text-[10px] text-emerald-400 font-bold bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/20">+14% m/m</span>
+                <span className="text-[10px] text-emerald-500 font-bold bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/20">+14% m/m</span>
               </div>
               <p className="text-[10px] text-slate-400">Calculado sobre assinaturas ativas na base (R$ 29,90/mês).</p>
             </CardGlass>
@@ -1816,7 +1816,7 @@ export function AdminDashboard({ userId }: AdminDashboardProps) {
                     <div className="flex justify-between items-center text-xs font-bold">
                       <span className="text-slate-200">{item.step}</span>
                       <div className="flex items-center gap-3 font-mono">
-                        <span className="text-emerald-400">{item.count}</span>
+                        <span className="text-emerald-500">{item.count}</span>
                         <span className="text-slate-400">({pct}%)</span>
                       </div>
                     </div>
@@ -1914,12 +1914,12 @@ export function AdminDashboard({ userId }: AdminDashboardProps) {
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 pb-2 border-b border-slate-900">
               <div>
                 <h3 className="text-sm font-bold text-white uppercase tracking-wider flex items-center gap-2">
-                  <ThumbsUp size={16} className="text-emerald-400" />
+                  <ThumbsUp size={16} className="text-emerald-500" />
                   Feedback de Recomendação de Vagas (👍/👎)
                 </h3>
                 <p className="text-xs text-slate-400 mt-0.5">Contabilização do botão "Essa recomendação faz sentido para você?".</p>
               </div>
-              <span className="text-[10px] font-bold text-emerald-400 bg-emerald-950/30 px-3 py-1.5 rounded-lg border border-emerald-500/30">
+              <span className="text-[10px] font-bold text-emerald-500 bg-emerald-950/30 px-3 py-1.5 rounded-lg border border-emerald-500/30">
                 {recStats.positiveRate}% Aprovados
               </span>
             </div>
@@ -1928,7 +1928,7 @@ export function AdminDashboard({ userId }: AdminDashboardProps) {
               <div className="p-4 rounded-xl bg-slate-900/80 border border-slate-800 flex justify-between items-center">
                 <div>
                   <span className="text-[10px] text-slate-400 font-bold uppercase block">👍 Sim, combina comigo</span>
-                  <span className="text-2xl font-extrabold text-emerald-400 font-mono mt-1 block">{recStats.positive}</span>
+                  <span className="text-2xl font-extrabold text-emerald-500 font-mono mt-1 block">{recStats.positive}</span>
                 </div>
                 <ThumbsUp size={24} className="text-emerald-500/40" />
               </div>
@@ -1978,7 +1978,7 @@ export function AdminDashboard({ userId }: AdminDashboardProps) {
                     <div key={bf.id || idx} className="p-3.5 rounded-xl bg-slate-900/80 border border-slate-800 space-y-2 text-xs">
                       <div className="flex justify-between items-center">
                         <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase border ${
-                          isPos ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30' : 'bg-red-500/10 text-red-400 border-red-500/30'
+                          isPos ? 'bg-emerald-500/10 text-emerald-500 border-emerald-500/30' : 'bg-red-500/10 text-red-400 border-red-500/30'
                         }`}>
                           {isPos ? '👍 Gostei' : '👎 Não achei relevante'}
                         </span>
@@ -2047,7 +2047,7 @@ export function AdminDashboard({ userId }: AdminDashboardProps) {
                           </td>
                           <td className="p-3">
                             <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase border ${
-                              isRejected ? 'bg-red-500/10 text-red-400 border-red-500/30' : 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30'
+                              isRejected ? 'bg-red-500/10 text-red-400 border-red-500/30' : 'bg-emerald-500/10 text-emerald-500 border-emerald-500/30'
                             }`}>
                               {isRejected ? '👎 Rejeitada' : '👍 Relevante'}
                             </span>
@@ -2092,7 +2092,7 @@ export function AdminDashboard({ userId }: AdminDashboardProps) {
             ].map((srv, idx) => (
               <CardGlass key={idx} className="p-4 space-y-1">
                 <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider block">{srv.name}</span>
-                <span className="text-sm font-extrabold text-emerald-400 block">{srv.status}</span>
+                <span className="text-sm font-extrabold text-emerald-500 block">{srv.status}</span>
               </CardGlass>
             ))}
           </div>
@@ -2471,7 +2471,7 @@ export function AdminDashboard({ userId }: AdminDashboardProps) {
                       <tbody className="divide-y divide-slate-200/60 dark:divide-slate-900/40">
                         {providerStats.map((stat: any, idx: number) => {
                           const statusColorMap: Record<string, { badge: string; icon: string }> = {
-                            emerald: { badge: 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20', icon: '🟢' },
+                            emerald: { badge: 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-500 border border-emerald-500/20', icon: '🟢' },
                             amber: { badge: 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20', icon: '🟡' },
                             orange: { badge: 'bg-orange-500/10 text-orange-600 dark:text-orange-400 border border-orange-500/20', icon: '🟠' },
                             red: { badge: 'bg-red-500/10 text-red-600 dark:text-red-400 border border-red-500/20', icon: '🔴' },
@@ -2497,7 +2497,7 @@ export function AdminDashboard({ userId }: AdminDashboardProps) {
                               <td className="py-2.5 text-center font-mono text-slate-600 dark:text-slate-350">{stat.avg_latency} ms</td>
                               <td className="py-2.5 text-center font-mono text-slate-600 dark:text-slate-350">{httpCode}</td>
                               <td className="py-2.5 text-center font-mono text-slate-700 dark:text-slate-300 font-semibold">{stat.total_jobs}</td>
-                              <td className="py-2.5 text-center font-mono text-emerald-600 dark:text-emerald-400 font-semibold">{validJobs}</td>
+                              <td className="py-2.5 text-center font-mono text-emerald-600 dark:text-emerald-500 font-semibold">{validJobs}</td>
                               <td className="py-2.5 text-center font-mono text-amber-600 dark:text-amber-400">{discardedJobs}</td>
                               <td className="py-2.5 text-right">
                                 <span className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-[10px] font-bold ${conf.badge}`}>
@@ -2546,7 +2546,7 @@ export function AdminDashboard({ userId }: AdminDashboardProps) {
             <div className="p-4 rounded-xl bg-slate-900/60 border border-slate-800 space-y-1">
               <span className="text-slate-400 text-[11px] font-semibold uppercase">Total de Pesquisas</span>
               <div className="text-2xl font-extrabold text-white">{satisfactionSurveys.length}</div>
-              <span className="text-[10px] text-emerald-400">Respostas registradas</span>
+              <span className="text-[10px] text-emerald-500">Respostas registradas</span>
             </div>
 
             <div className="p-4 rounded-xl bg-slate-900/60 border border-slate-800 space-y-1">
@@ -2561,12 +2561,12 @@ export function AdminDashboard({ userId }: AdminDashboardProps) {
 
             <div className="p-4 rounded-xl bg-slate-900/60 border border-slate-800 space-y-1">
               <span className="text-slate-400 text-[11px] font-semibold uppercase">Experiência Excelente / Boa</span>
-              <div className="text-2xl font-extrabold text-emerald-400">
+              <div className="text-2xl font-extrabold text-emerald-500">
                 {satisfactionSurveys.length > 0
                   ? Math.round((satisfactionSurveys.filter((s: any) => ['excelente', 'boa', '🌟 excelente', '👍 boa'].includes((s.experience_rating || '').toLowerCase())).length / satisfactionSurveys.length) * 100)
                   : 100}%
               </div>
-              <span className="text-[10px] text-emerald-400">Taxa de aprovação alta</span>
+              <span className="text-[10px] text-emerald-500">Taxa de aprovação alta</span>
             </div>
 
             <div className="p-4 rounded-xl bg-slate-900/60 border border-slate-800 space-y-1">
@@ -2695,7 +2695,7 @@ export function AdminDashboard({ userId }: AdminDashboardProps) {
               </div>
               <div className="p-3 rounded-xl bg-slate-900/60 border border-slate-800">
                 <span className="text-[10px] text-slate-500 font-semibold block">Provedor Auth</span>
-                <span className="font-bold text-emerald-400">{selectedUser.email?.includes('gmail') ? 'Google OAuth' : 'E-mail / Senha'}</span>
+                <span className="font-bold text-emerald-500">{selectedUser.email?.includes('gmail') ? 'Google OAuth' : 'E-mail / Senha'}</span>
               </div>
             </div>
 
@@ -2726,7 +2726,7 @@ export function AdminDashboard({ userId }: AdminDashboardProps) {
                             <div className="flex items-center gap-2">
                               <span className="font-bold text-sm text-slate-100">{res.file_name || res.fileName || 'Curriculo.pdf'}</span>
                               <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase border ${
-                                isFailed ? 'bg-red-500/10 text-red-400 border-red-500/30' : 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30'
+                                isFailed ? 'bg-red-500/10 text-red-400 border-red-500/30' : 'bg-emerald-500/10 text-emerald-500 border-emerald-500/30'
                               }`}>
                                 {isFailed ? '🔴 Falhou' : '🟢 Processado'}
                               </span>
@@ -2820,7 +2820,7 @@ export function AdminDashboard({ userId }: AdminDashboardProps) {
             <div className="space-y-3 border-t border-slate-800 pt-4">
               <div className="flex justify-between items-center">
                 <h4 className="font-bold text-sm text-white flex items-center gap-2">
-                  <Activity size={16} className="text-emerald-400" />
+                  <Activity size={16} className="text-emerald-500" />
                   Trilha Completa de Ações do Candidato ({userActivityLog.length} eventos)
                 </h4>
                 <span className="text-[10px] text-slate-400 font-mono">Linha do tempo cronológica</span>

@@ -588,12 +588,12 @@ class ResumeParserService {
       required: ["career_profile", "career_insights"]
     };
 
-    // DEPRECATION REMINDER: 'gemini-2.5-flash' and 'gemini-2.5-flash-lite' are scheduled for shutdown on October 16, 2026.
-    // TODO: Before October 16, 2026, migrate the primary model chain to the latest active Gemini tier (e.g. Gemini 3.x family).
+    // DEPRECATION REMINDER: The older models (e.g. Gemini 2.x/2.5 family) have been retired.
+    // The primary model chain uses the latest active Gemini tier (Gemini 3.x family).
     const modelsToTry = [
-      'gemini-2.5-flash',       // Modelo Primário (Ativo até 16/Out/2026)
-      'gemini-2.5-flash-lite',  // Fallback Secundário de alta velocidade/baixo custo
-      'gemini-2.5-pro'          // Fallback Terciário de alta capacidade
+      'gemini-3.6-flash',       // Modelo Primário
+      'gemini-3.5-flash',       // Fallback Secundário
+      'gemini-3.5-flash-lite'   // Fallback Terciário
     ];
 
     let lastError: any = null;
@@ -873,8 +873,9 @@ serve(async (req) => {
     console.log(`[EDGE FUNCTION] Extraindo texto...`)
     let text = '';
     let pageCount = 1;
+    let textResult: any = null;
     try {
-      const textResult = await ResumeParserService.extractText(fileData, contentType, storagePath);
+      textResult = await ResumeParserService.extractText(fileData, contentType, storagePath);
       text = textResult.text || '';
       pageCount = textResult.pageCount || 1;
     } catch (extractErr) {
@@ -903,7 +904,7 @@ serve(async (req) => {
                            contentType || 'application/pdf';
 
           const visionResponse = await fetch(
-            `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${geminiApiKey}`,
+            `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.6-flash:generateContent?key=${geminiApiKey}`,
             {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
@@ -973,8 +974,8 @@ serve(async (req) => {
 
     // 4. Enviar texto/imagem para Gemini
     console.log(`[EDGE FUNCTION] Enviando para Gemini...`)
-    const imageData = (extracted.imageBase64 && extracted.mimeType) 
-      ? { imageBase64: extracted.imageBase64, mimeType: extracted.mimeType } 
+    const imageData = (textResult?.imageBase64 && textResult?.mimeType) 
+      ? { imageBase64: textResult.imageBase64, mimeType: textResult.mimeType } 
       : undefined;
 
     try {

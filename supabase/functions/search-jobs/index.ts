@@ -129,7 +129,7 @@ The response must be valid JSON matching this schema:
 Raw JSON only.`;
 
   const prompt = `${systemPrompt}\n\nQuery: "${keyword}"\nOutput JSON:`;
-  const targetUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${geminiApiKey}`;
+  const targetUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.6-flash:generateContent?key=${geminiApiKey}`;
 
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), 1500);

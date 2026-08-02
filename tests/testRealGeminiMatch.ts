@@ -7,15 +7,18 @@ const __dirname = path.dirname(__filename);
 const envPath = path.join(__dirname, '../.env');
 let supabaseUrl = '';
 let supabaseAnonKey = '';
+let supabaseServiceRoleKey = '';
 
 try {
   if (fs.existsSync(envPath)) {
     const envContent = fs.readFileSync(envPath, 'utf8');
     const urlMatch = envContent.match(/VITE_SUPABASE_URL=(.+)/);
     const keyMatch = envContent.match(/VITE_SUPABASE_ANON_KEY=(.+)/);
+    const serviceRoleMatch = envContent.match(/SUPABASE_SERVICE_ROLE_KEY=(.+)/);
     
-    if (urlMatch) supabaseUrl = urlMatch[1].trim();
-    if (keyMatch) supabaseAnonKey = keyMatch[1].trim();
+    if (urlMatch) supabaseUrl = urlMatch[1].replace(/"/g, '').trim();
+    if (keyMatch) supabaseAnonKey = keyMatch[1].replace(/"/g, '').trim();
+    if (serviceRoleMatch) supabaseServiceRoleKey = serviceRoleMatch[1].replace(/"/g, '').trim();
   }
 } catch (e: any) {
   console.error("Erro ao carregar .env:", e.message);
@@ -33,12 +36,36 @@ async function testRealGemini() {
   console.log("=========================================\n");
 
   try {
-    // 1. Criar e autenticar um usuário temporário
-    console.log("⏳ Autenticando usuário temporário...");
+    // 1. Criar usuário confirmado via Admin API (bypassing limits)
+    console.log("⏳ Criando usuário confirmado via Admin API...");
     const email = `test.gemini.${Date.now()}@example.com`;
     const password = 'TestUserPassword123!';
-    
-    const signupResponse = await fetch(`${supabaseUrl}/auth/v1/signup`, {
+
+    if (supabaseServiceRoleKey) {
+      const adminResponse = await fetch(`${supabaseUrl}/auth/v1/admin/users`, {
+        method: 'POST',
+        headers: {
+          'apikey': supabaseServiceRoleKey,
+          'Authorization': `Bearer ${supabaseServiceRoleKey}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          email,
+          password,
+          email_confirm: true
+        })
+      });
+      if (adminResponse.ok) {
+        console.log("   ✔ Usuário admin criado sem enviar e-mail.");
+      } else {
+        const adminErr = await adminResponse.text();
+        console.warn(`   [WARN] Admin signup falhou: ${adminErr}. Tentando normal...`);
+      }
+    }
+
+    // Fazer login para obter o token
+    console.log("⏳ Autenticando usuário...");
+    const loginResponse = await fetch(`${supabaseUrl}/auth/v1/token?grant_type=password`, {
       method: 'POST',
       headers: {
         'apikey': supabaseAnonKey,
@@ -46,20 +73,10 @@ async function testRealGemini() {
       },
       body: JSON.stringify({ email, password })
     });
+    const authData = await loginResponse.json();
 
-    let authData;
-    if (signupResponse.ok) {
-      authData = await signupResponse.json();
-    } else {
-      const loginResponse = await fetch(`${supabaseUrl}/auth/v1/token?grant_type=password`, {
-        method: 'POST',
-        headers: {
-          'apikey': supabaseAnonKey,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({ email, password })
-      });
-      authData = await loginResponse.json();
+    if (!authData || !authData.user) {
+      throw new Error(`Falha na autenticação. Detalhes: ${JSON.stringify(authData)}`);
     }
 
     const userToken = authData.access_token;
@@ -84,6 +101,28 @@ async function testRealGemini() {
     // 2. Inserir dados de teste reais
     console.log("\n⏳ Gravando currículo e perfil estruturado para análise...");
     
+    const rRes = await fetch(`${supabaseUrl}/rest/v1/resumes`, {
+      method: 'POST',
+      headers: {
+        'apikey': supabaseAnonKey,
+        'Authorization': `Bearer ${userToken}`,
+        'Content-Type': 'application/json',
+        'Prefer': 'return=representation'
+      },
+      body: JSON.stringify({
+        user_id: userId,
+        file_path: 'resumes/curriculo_alexandre.pdf',
+        file_url: 'https://example.com/curriculo_alexandre.pdf',
+        raw_text: 'Desenvolvedor com 5 anos de experiência focado em React e ecossistema Node.'
+      })
+    });
+    const rData = await rRes.json();
+    if (!rData || rData.length === 0) {
+      throw new Error(`Falha ao criar registro na tabela resumes: ${JSON.stringify(rData)}`);
+    }
+    const resumeId = rData[0].id;
+    console.log(`   ✔ Registro criado na tabela resumes. ID: ${resumeId}`);
+
     const rvRes = await fetch(`${supabaseUrl}/rest/v1/resume_versions`, {
       method: 'POST',
       headers: {
@@ -165,13 +204,12 @@ async function testRealGemini() {
 
     const matchData = await matchRes.json();
     console.log(`✔ Resposta recebida em ${duration}ms!`);
-
+ 
     console.log("\n--- EVIDÊNCIA DE RETORNO REAL DO GEMINI ---");
-    console.log(`Score de Match:        ${matchData.match_score}%`);
-    console.log(`Probabilidade Entr.:   ${matchData.interview_probability}%`);
-    console.log(`Strengths (Pontos f.): ${JSON.stringify(matchData.strengths, null, 2)}`);
-    console.log(`Weaknesses (Gaps):     ${JSON.stringify(matchData.weaknesses, null, 2)}`);
-    console.log(`Recommendation:        ${matchData.recommendation}`);
+    console.log(`Score de Match:        ${matchData.score_overall}%`);
+    console.log(`Strengths (Pontos f.): ${JSON.stringify(matchData.explanation?.strengths, null, 2)}`);
+    console.log(`Weaknesses (Gaps):     ${JSON.stringify(matchData.explanation?.weaknesses, null, 2)}`);
+    console.log(`Recommendation:        ${matchData.explanation?.details?.technical}`);
     console.log("-------------------------------------------\n");
 
     // 4. Buscar consumo na tabela ai_usage_logs

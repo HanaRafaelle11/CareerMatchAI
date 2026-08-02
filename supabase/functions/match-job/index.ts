@@ -116,12 +116,12 @@ async function callGeminiWithFallback(
   geminiApiKey: string,
   responseMimeType: string | undefined = undefined
 ): Promise<{ resJson: any; selectedModel: string }> {
-  // DEPRECATION REMINDER: 'gemini-2.5-flash' and 'gemini-2.5-flash-lite' are scheduled for shutdown on October 16, 2026.
-  // TODO: Before October 16, 2026, migrate the primary model chain to the latest active Gemini tier (e.g. Gemini 3.x family).
+  // DEPRECATION REMINDER: The older models (e.g. Gemini 2.x/2.5 family) have been retired.
+  // The primary model chain uses the latest active Gemini tier (Gemini 3.x family).
   const modelsToTry = [
-    'gemini-2.5-flash',       // Modelo Primário (Ativo até 16/Out/2026)
-    'gemini-2.5-flash-lite',  // Fallback Secundário de alta velocidade/baixo custo
-    'gemini-2.5-pro'          // Fallback Terciário de alta capacidade
+    'gemini-3.6-flash',       // Modelo Primário
+    'gemini-3.5-flash',       // Fallback Secundário
+    'gemini-3.5-flash-lite'   // Fallback Terciário
   ];
 
   let lastError: any = null;
@@ -313,7 +313,7 @@ class JobMatchingEngine {
       throw new Error("GEMINI_API_KEY não configurada nos segredos do Supabase.");
     }
 
-    const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${geminiApiKey}`;
+    const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.6-flash:generateContent?key=${geminiApiKey}`;
 
     const prompt = `
       Você é o motor de match semântico e recrutador automatizado do Vocentro.
@@ -513,7 +513,7 @@ class JobMatchingEngine {
     const geminiApiKey = Deno.env.get('GEMINI_API_KEY');
     if (!geminiApiKey) throw new Error("GEMINI_API_KEY não configurada nos segredos do Supabase.");
 
-    const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${geminiApiKey}`;
+    const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.6-flash:generateContent?key=${geminiApiKey}`;
 
     const prompt = `
       Você é um redator profissional de carreiras.
@@ -569,7 +569,7 @@ class JobMatchingEngine {
     const geminiApiKey = Deno.env.get('GEMINI_API_KEY');
     if (!geminiApiKey) throw new Error("GEMINI_API_KEY não configurada nos segredos do Supabase.");
 
-    const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${geminiApiKey}`;
+    const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.6-flash:generateContent?key=${geminiApiKey}`;
 
     const prompt = `
       Você é um preparador profissional de entrevistas de emprego.
@@ -623,7 +623,8 @@ serve(async (req) => {
   let supabaseClient: any = null;
 
   try {
-    const { resumeId, resumeVersionId, jobId, applicationId, userId: requestUserId, mockGemini, operation = 'match' } = await req.json()
+    const reqBody = await req.json()
+    const { resumeId, resumeVersionId, jobId, applicationId, userId: requestUserId, mockGemini, operation = 'match' } = reqBody
     console.log("[MATCH JOB REQUEST] Recebido pedido:", { resumeId, resumeVersionId, jobId, applicationId, mockGemini, operation })
     
     resolvedJobId = jobId;
@@ -652,6 +653,54 @@ serve(async (req) => {
       throw new Error("Usuário não pôde ser autenticado.");
     }
 
+    let resolvedResumeId = resumeId;
+
+    // Se resumeId não foi fornecido mas temos a versão, busca o correspondente na tabela resumes
+    if (!resolvedResumeId && resolvedVersionId) {
+      console.log(`[MATCH JOB] Tentando resolver resumeId automaticamente para a versão: ${resolvedVersionId}`);
+      
+      const { data: rvData, error: rvErr } = await supabaseClient
+        .from('resume_versions')
+        .select('file_url, file_name')
+        .eq('id', resolvedVersionId)
+        .maybeSingle();
+
+      if (rvErr) {
+        throw new Error(`Erro ao buscar versão do currículo: ${rvErr.message}`);
+      }
+
+      if (rvData) {
+        const { data: resumesList, error: rErr } = await supabaseClient
+          .from('resumes')
+          .select('id, file_url, file_path')
+          .eq('user_id', resolvedUserId);
+
+        if (rErr) {
+          throw new Error(`Erro ao mapear currículo pai na tabela resumes: ${rErr.message}`);
+        }
+
+        const matchedResume = (resumesList || []).find((r: any) => 
+          (r.file_url && r.file_url === rvData.file_url) || 
+          (r.file_path && r.file_path === rvData.file_url) || 
+          (r.file_path && r.file_path === rvData.file_name)
+        );
+
+        if (matchedResume) {
+          resolvedResumeId = matchedResume.id;
+          console.log(`[MATCH JOB] Mapeamento bem-sucedido! resumeId resolvido: ${resolvedResumeId}`);
+        } else {
+          if (resumesList && resumesList.length === 1) {
+            resolvedResumeId = resumesList[0].id;
+            console.log(`[MATCH JOB] Apenas um currículo encontrado. Usando fallback resumeId: ${resolvedResumeId}`);
+          } else {
+            throw new Error(`Currículo correspondente não encontrado na tabela 'resumes' para a versão ${resolvedVersionId}.`);
+          }
+        }
+      } else {
+        throw new Error(`Versão do currículo ${resolvedVersionId} não encontrada na tabela 'resume_versions'.`);
+      }
+    }
+
     // 1. Obter o perfil de carreira estruturado do candidato
     let careerProfile = null;
     if (resolvedVersionId) {
@@ -664,11 +713,11 @@ serve(async (req) => {
       careerProfile = data;
     }
 
-    if (!careerProfile && resumeId) {
+    if (!careerProfile && resolvedResumeId) {
       const { data: resume, error: resumeErr } = await supabaseClient
         .from('resumes')
         .select('file_name, file_url, user_id')
-        .eq('id', resumeId)
+        .eq('id', resolvedResumeId)
         .maybeSingle();
       
       if (!resumeErr && resume) {
@@ -789,7 +838,7 @@ serve(async (req) => {
       const savedMatch = await JobMatchingEngine.saveJobMatch(
         supabaseClient,
         resolvedUserId,
-        resumeId,
+        resolvedResumeId,
         careerProfile.resume_version_id || resolvedVersionId,
         actualJobId,
         matchResult,
@@ -808,13 +857,13 @@ serve(async (req) => {
         jobData.description,
         supabaseClient,
         resolvedUserId,
-        resumeId,
+        resolvedResumeId,
         actualJobId,
         isMockEnabled
       );
 
       const toSave = {
-        resume_id: resumeId,
+        resume_id: resolvedResumeId,
         job_id: actualJobId || null,
         optimized_summary: result.optimized_summary,
         key_experiences: result.key_experiences || [],
@@ -823,7 +872,7 @@ serve(async (req) => {
       };
 
       let savedRecord = null;
-      if (isValidUUID(resumeId)) {
+      if (isValidUUID(resolvedResumeId)) {
         const { data, error } = await supabaseClient
           .from('resume_optimizations')
           .insert(toSave)

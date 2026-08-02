@@ -172,9 +172,9 @@ export function ExecutiveCopilotDashboard() {
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                   <div className="flex items-center gap-2">
                     <span className={`px-2 py-0.5 rounded text-[9px] font-extrabold uppercase border ${
-                      alert.severity.startsWith('P1') ? 'bg-red-500/20 text-red-500 border-red-500/40' :
-                      alert.severity.startsWith('P2') ? 'bg-amber-500/20 text-amber-500 border-amber-500/40' :
-                      'bg-emerald-500/20 text-emerald-500 border-emerald-500/40'
+                      alert.severity.startsWith('P1') ? 'bg-red-500/20 text-red-600 dark:text-red-400 border-red-500/40' :
+                      alert.severity.startsWith('P2') ? 'bg-amber-500/20 text-amber-600 dark:text-amber-400 border-amber-500/40' :
+                      'bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 border-emerald-500/40'
                     }`}>
                       {alert.severity}
                     </span>

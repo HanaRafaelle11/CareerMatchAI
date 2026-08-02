@@ -28,7 +28,7 @@ export const HeroProductMockup: React.FC<HeroProductMockupProps> = ({ onSimulate
             </span>
           </div>
 
-          <span className="px-2.5 py-0.5 rounded-full bg-brand-500/10 border border-brand-500/20 text-brand-500 font-bold flex items-center gap-1 text-[10px]">
+          <span className="px-2.5 py-0.5 rounded-full bg-brand-500/10 border border-brand-500/20 text-brand-600 dark:text-brand-400 font-bold flex items-center gap-1 text-[10px]">
             <Sparkles size={11} /> Match IA v2.4
           </span>
         </div>
@@ -36,7 +36,7 @@ export const HeroProductMockup: React.FC<HeroProductMockupProps> = ({ onSimulate
         {/* Top Job Card Header */}
         <div className="p-3.5 rounded-xl bg-card/80 border border-border flex items-center justify-between gap-3">
           <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-lg bg-brand-500/10 border border-brand-500/20 flex items-center justify-center text-brand-500 font-bold shrink-0">
+            <div className="w-9 h-9 rounded-lg bg-brand-500/10 border border-brand-500/20 flex items-center justify-center text-brand-600 dark:text-brand-400 font-bold shrink-0">
               <Target size={18} />
             </div>
             <div>
@@ -44,7 +44,7 @@ export const HeroProductMockup: React.FC<HeroProductMockupProps> = ({ onSimulate
               <p className="text-[11px] text-muted-foreground font-sans">TechCorp • São Paulo, SP • Remoto</p>
             </div>
           </div>
-          <span className="px-2 py-0.5 rounded bg-emerald-500/10 border border-emerald-500/20 text-emerald-500 text-[10px] font-bold font-mono">
+          <span className="px-2 py-0.5 rounded bg-emerald-500/10 border border-emerald-500/20 text-emerald-600 dark:text-emerald-400 text-[10px] font-extrabold font-mono">
             Vaga Aberta
           </span>
         </div>
@@ -55,12 +55,12 @@ export const HeroProductMockup: React.FC<HeroProductMockupProps> = ({ onSimulate
           <div className="p-4 rounded-xl bg-card/60 border border-brand-500/30 space-y-2 relative overflow-hidden">
             <div className="flex items-center justify-between">
               <span className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground font-bold">Match da vaga</span>
-              <span className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-emerald-500/20 text-emerald-500 border border-emerald-500/30">
+              <span className="px-1.5 py-0.5 rounded text-[9px] font-extrabold bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30">
                 Alta Afinidade
               </span>
             </div>
             <div className="flex items-baseline gap-2">
-              <span className="text-3xl sm:text-4xl font-black font-display text-emerald-500 tracking-tight">
+              <span className="text-3xl sm:text-4xl font-black font-display text-emerald-600 dark:text-emerald-400 tracking-tight">
                 94%
               </span>
               <span className="text-[11px] text-muted-foreground font-medium">Afinidade com a vaga</span>
@@ -74,7 +74,7 @@ export const HeroProductMockup: React.FC<HeroProductMockupProps> = ({ onSimulate
           <div className="p-4 rounded-xl bg-card/60 border border-border space-y-2">
             <div className="flex items-center justify-between">
               <span className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground font-bold">Status do Currículo</span>
-              <CheckCircle2 size={13} className="text-emerald-500" />
+              <CheckCircle2 size={13} className="text-emerald-600 dark:text-emerald-400" />
             </div>
             <p className="text-xs font-bold text-foreground">Currículo Otimizado</p>
             <p className="text-[10px] text-muted-foreground leading-normal">
@@ -86,7 +86,7 @@ export const HeroProductMockup: React.FC<HeroProductMockupProps> = ({ onSimulate
         {/* Coach IA Interactive Bar */}
         <div className="p-3.5 rounded-xl bg-card/80 border border-border flex items-center justify-between gap-3">
           <div className="flex items-center gap-2.5 text-xs text-foreground font-medium">
-            <div className="w-7 h-7 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-emerald-500 flex items-center justify-center shrink-0">
+            <div className="w-7 h-7 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shrink-0">
               <Bot size={15} />
             </div>
             <span>Simulador de Entrevistas pronto para treino.</span>

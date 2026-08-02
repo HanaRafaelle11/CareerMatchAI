@@ -256,7 +256,7 @@ export function LandingPage({ onNavigateToAuth }: LandingPageProps) {
         {/* ── 3. TRANSPARÊNCIA & COMO FUNCIONA (CONTAINER INTERATIVO) ── */}
         <section id="transparencia" className="py-16 px-6 max-w-7xl mx-auto border-t border-border space-y-8">
           <div className="text-center max-w-3xl mx-auto space-y-3">
-            <span className="text-xs font-mono font-bold uppercase tracking-wider text-emerald-500">Transparência & Confiança</span>
+            <span className="text-xs font-mono font-extrabold uppercase tracking-wider text-emerald-600 dark:text-emerald-400">Transparência & Confiança</span>
             <h2 className="text-2xl sm:text-3xl font-extrabold font-display text-foreground">
               Como Funciona & Uso de Dados
             </h2>

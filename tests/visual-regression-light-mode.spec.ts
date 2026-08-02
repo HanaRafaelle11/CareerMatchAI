@@ -1,6 +1,6 @@
 import { test, expect } from '@playwright/test';
 
-// Função auxiliar no Node/Playwright para calcular contraste relativo WCAG 2.1 entre duas cores RGB
+// Função auxiliar para calcular contraste relativo WCAG 2.1 entre duas cores RGB
 function getLuminance(r: number, g: number, b: number): number {
   const [rs, gs, bs] = [r, g, b].map(c => {
     const s = c / 255;
@@ -35,59 +35,51 @@ function calculateContrastRatio(fg: { r: number; g: number; b: number; a: number
   return (lighter + 0.05) / (darker + 0.05);
 }
 
-test.describe('Regressão Visual & Contraste WCAG - Modo Claro (Vocentro)', () => {
+test.describe('Regressão Visual & Contraste WCAG Completo - Modo Claro (Vocentro)', () => {
 
   test.beforeEach(async ({ page }) => {
-    // Forçar modo claro via localStorage antes de qualquer navegação
     await page.addInitScript(() => {
       localStorage.setItem('theme', 'light');
     });
   });
 
-  test('1. Deve renderizar a Landing Page no Modo Claro com fundo claro e logo visível', async ({ page }) => {
+  test('1. Landing Page no Modo Claro: Fundo claro e Logo visível', async ({ page }) => {
     await page.goto('/', { waitUntil: 'domcontentloaded' });
     await page.waitForTimeout(600);
 
-    // Garantir classe .light no elemento raiz
     await page.evaluate(() => {
       document.documentElement.className = 'light';
       document.body.className = 'light';
     });
 
-    // 1. Checar cor de fundo da página (deve ser claro: luminância >= 0.6)
     const pageBgRgb = await page.evaluate(() => {
       const container = document.querySelector('.min-h-screen') || document.body;
       const bg = window.getComputedStyle(container).backgroundColor;
       const canvas = document.createElement('canvas');
-      canvas.width = 1;
-      canvas.height = 1;
+      canvas.width = 1; canvas.height = 1;
       const ctx = canvas.getContext('2d');
       if (!ctx) return { r: 248, g: 250, b: 252, a: 1 };
-      ctx.fillStyle = bg;
-      ctx.fillRect(0, 0, 1, 1);
+      ctx.fillStyle = 'rgb(248, 250, 252)'; ctx.fillRect(0, 0, 1, 1);
+      ctx.fillStyle = bg; ctx.fillRect(0, 0, 1, 1);
       const [r, g, b, a] = ctx.getImageData(0, 0, 1, 1).data;
       return { r, g, b, a: a / 255 };
     });
 
     const pageLum = getLuminance(pageBgRgb.r, pageBgRgb.g, pageBgRgb.b);
-    expect(pageLum, `Fundo da Página no Modo Claro deve ser claro (Luminância >= 0.6).`).toBeGreaterThanOrEqual(0.6);
+    expect(pageLum, `Fundo da Landing Page no Modo Claro deve ter luminância >= 0.6.`).toBeGreaterThanOrEqual(0.6);
 
-    // 2. Checar visibilidade do Logo no Header/Navbar
     const logoData = await page.evaluate(() => {
       const headerEl = document.querySelector('nav, header') || document.body;
-
       function getRgb(colorStr: string) {
         const canvas = document.createElement('canvas');
-        canvas.width = 1;
-        canvas.height = 1;
+        canvas.width = 1; canvas.height = 1;
         const ctx = canvas.getContext('2d');
         if (!ctx) return { r: 15, g: 23, b: 42, a: 1 };
-        ctx.fillStyle = colorStr;
-        ctx.fillRect(0, 0, 1, 1);
+        ctx.fillStyle = 'rgb(248, 250, 252)'; ctx.fillRect(0, 0, 1, 1);
+        ctx.fillStyle = colorStr; ctx.fillRect(0, 0, 1, 1);
         const [r, g, b, a] = ctx.getImageData(0, 0, 1, 1).data;
         return { r, g, b, a: a / 255 };
       }
-
       const textStyle = window.getComputedStyle(headerEl);
       return {
         textColor: getRgb(textStyle.color || 'rgb(15, 23, 42)'),
@@ -98,33 +90,35 @@ test.describe('Regressão Visual & Contraste WCAG - Modo Claro (Vocentro)', () =
     expect(logoData).not.toBeNull();
     if (logoData) {
       const contrast = calculateContrastRatio(logoData.textColor, logoData.headerBg);
-      expect(contrast, `Logo no Header/Navbar deve ter contraste WCAG >= 3.0 no Modo Claro. Atual: ${contrast.toFixed(2)}:1`).toBeGreaterThanOrEqual(3.0);
+      expect(contrast, `Logo no Header/Navbar deve ter contraste WCAG >= 3.0.`).toBeGreaterThanOrEqual(3.0);
     }
   });
 
-  test('2. Deve renderizar o Command Center (Admin Dashboard Módulos 2.1-2.8) com cards claros e contraste de texto', async ({ page }) => {
+  test('2. Command Center: Módulo 1. Executive Overview', async ({ page }) => {
     await page.goto('/admin', { waitUntil: 'domcontentloaded' });
-    await page.waitForTimeout(800);
-
-    // Garantir modo claro
+    await page.waitForTimeout(600);
     await page.evaluate(() => {
       document.documentElement.className = 'light';
       document.body.className = 'light';
     });
 
-    // Inspecionar amostras de cards no Command Center convertendo cores via Canvas 2D
+    const subtabBtn = page.locator('button', { hasText: '1. Executive Overview' }).first();
+    if (await subtabBtn.isVisible()) {
+      await subtabBtn.click();
+      await page.waitForTimeout(400);
+    }
+
     const cardsEvaluation = await page.evaluate(() => {
       const elements = Array.from(document.querySelectorAll('h1, h2, h3, h4, p, span, button, strong'));
-      const samples: Array<{ bg: { r: number; g: number; b: number; a: number }; color: { r: number; g: number; b: number; a: number }; classNames: string }> = [];
+      const samples: Array<{ bg: { r: number; g: number; b: number; a: number }; color: { r: number; g: number; b: number; a: number }; text: string; classNames: string }> = [];
 
       function getRgb(colorStr: string) {
         const canvas = document.createElement('canvas');
-        canvas.width = 1;
-        canvas.height = 1;
+        canvas.width = 1; canvas.height = 1;
         const ctx = canvas.getContext('2d');
         if (!ctx) return { r: 248, g: 250, b: 252, a: 1 };
-        ctx.fillStyle = colorStr;
-        ctx.fillRect(0, 0, 1, 1);
+        ctx.fillStyle = 'rgb(248, 250, 252)'; ctx.fillRect(0, 0, 1, 1);
+        ctx.fillStyle = colorStr; ctx.fillRect(0, 0, 1, 1);
         const [r, g, b, a] = ctx.getImageData(0, 0, 1, 1).data;
         return { r, g, b, a: a / 255 };
       }
@@ -134,9 +128,7 @@ test.describe('Regressão Visual & Contraste WCAG - Modo Claro (Vocentro)', () =
         while (el) {
           const bg = window.getComputedStyle(el).backgroundColor;
           const rgb = getRgb(bg);
-          if (rgb.a > 0 && bg !== 'rgba(0, 0, 0, 0)' && bg !== 'transparent') {
-            return rgb;
-          }
+          if (bg !== 'rgba(0, 0, 0, 0)' && bg !== 'transparent') return rgb;
           el = el.parentElement;
         }
         return { r: 248, g: 250, b: 252, a: 1 };
@@ -148,12 +140,7 @@ test.describe('Regressão Visual & Contraste WCAG - Modo Claro (Vocentro)', () =
           const bg = getEffectiveBg(el);
           const color = getRgb(style.color);
           if (Math.abs(color.r - bg.r) > 10 || Math.abs(color.g - bg.g) > 10 || Math.abs(color.b - bg.b) > 10) {
-            samples.push({
-              bg,
-              color,
-              classNames: el.className
-            });
-            if (samples.length >= 20) break;
+            samples.push({ bg, color, text: el.textContent.trim().slice(0, 30), classNames: el.className });
           }
         }
       }
@@ -161,21 +148,207 @@ test.describe('Regressão Visual & Contraste WCAG - Modo Claro (Vocentro)', () =
     });
 
     expect(cardsEvaluation.length).toBeGreaterThan(0);
-
     for (const sample of cardsEvaluation) {
-      const isDarkSlate = (sample.bg.a > 0.5 && sample.bg.r < 30 && sample.bg.g < 35 && sample.bg.b < 50);
-      expect(isDarkSlate, `Nenhum card do Command Center deve manter fundo escuro slate (r=${sample.bg.r}, g=${sample.bg.g}, b=${sample.bg.b}) quando a classe .light está ativa. Classe: ${sample.classNames}`).toBe(false);
-
+      const isDarkSlate = (sample.bg.r < 30 && sample.bg.g < 35 && sample.bg.b < 50);
+      expect(isDarkSlate, `Nenhum card de Executive Overview deve manter fundo escuro slate no Modo Claro. Texto: "${sample.text}"`).toBe(false);
       const contrast = calculateContrastRatio(sample.color, sample.bg);
-      expect(contrast, `Texto dentro do card do Command Center deve ter contraste WCAG >= 2.4. Atual: ${contrast.toFixed(2)}:1 (Texto: r=${sample.color.r}, g=${sample.color.g}, b=${sample.color.b})`).toBeGreaterThanOrEqual(2.4);
+      expect(contrast, `Executive Overview ("${sample.text}") deve ter contraste WCAG >= 3.0.`).toBeGreaterThanOrEqual(3.0);
     }
   });
 
-  test('3. Deve alternar dinamicamente entre Modo Escuro e Modo Claro alterando as variáveis de tema', async ({ page }) => {
+  test('3. Command Center: Módulo 6. Saúde do Negócio (Badges MRR, LTV/CAC)', async ({ page }) => {
+    await page.goto('/admin', { waitUntil: 'domcontentloaded' });
+    await page.waitForTimeout(600);
+    await page.evaluate(() => {
+      document.documentElement.className = 'light';
+      document.body.className = 'light';
+    });
+
+    const subtabBtn = page.locator('button', { hasText: '6. Saúde do Negócio' }).first();
+    if (await subtabBtn.isVisible()) {
+      await subtabBtn.click();
+      await page.waitForTimeout(400);
+    }
+
+    const cardsEvaluation = await page.evaluate(() => {
+      const container = document.querySelector('[class*="space-y"]') || document.body;
+      const elements = Array.from(container.querySelectorAll('span, strong, p, h1, h2, h3, h4'));
+      const samples: Array<{ bg: { r: number; g: number; b: number; a: number }; color: { r: number; g: number; b: number; a: number }; text: string; classNames: string }> = [];
+
+      function getRgb(colorStr: string) {
+        const canvas = document.createElement('canvas');
+        canvas.width = 1; canvas.height = 1;
+        const ctx = canvas.getContext('2d');
+        if (!ctx) return { r: 248, g: 250, b: 252, a: 1 };
+        ctx.fillStyle = 'rgb(248, 250, 252)'; ctx.fillRect(0, 0, 1, 1);
+        ctx.fillStyle = colorStr; ctx.fillRect(0, 0, 1, 1);
+        const [r, g, b, a] = ctx.getImageData(0, 0, 1, 1).data;
+        return { r, g, b, a: a / 255 };
+      }
+
+      function getEffectiveBg(element: Element): { r: number; g: number; b: number; a: number } {
+        let el: Element | null = element.parentElement;
+        while (el) {
+          const bg = window.getComputedStyle(el).backgroundColor;
+          const rgb = getRgb(bg);
+          if (bg !== 'rgba(0, 0, 0, 0)' && bg !== 'transparent') return rgb;
+          el = el.parentElement;
+        }
+        return { r: 248, g: 250, b: 252, a: 1 };
+      }
+
+      for (const el of elements) {
+        const style = window.getComputedStyle(el);
+        if (style.display !== 'none' && el.textContent && el.textContent.trim().length > 2) {
+          const bg = getEffectiveBg(el);
+          const color = getRgb(style.color);
+          if (Math.abs(color.r - bg.r) > 10 || Math.abs(color.g - bg.g) > 10 || Math.abs(color.b - bg.b) > 10) {
+            samples.push({ bg, color, text: el.textContent.trim().slice(0, 35), classNames: el.className });
+          }
+        }
+      }
+      return samples;
+    });
+
+    expect(cardsEvaluation.length).toBeGreaterThan(0);
+    for (const sample of cardsEvaluation) {
+      const isDarkSlate = (sample.bg.r < 30 && sample.bg.g < 35 && sample.bg.b < 50);
+      expect(isDarkSlate, `Nenhum card de Saúde do Negócio deve manter fundo escuro slate no Modo Claro. Texto: "${sample.text}"`).toBe(false);
+      const contrast = calculateContrastRatio(sample.color, sample.bg);
+      expect(contrast, `Badge/Texto de Saúde do Negócio ("${sample.text}") deve ter contraste WCAG >= 3.0. Atual: ${contrast.toFixed(2)}:1 (Texto: r=${sample.color.r}, g=${sample.color.g}, b=${sample.color.b})`).toBeGreaterThanOrEqual(3.0);
+    }
+  });
+
+  test('4. Command Center: Módulo 9. Executive Copilot & Alertas Cruzados', async ({ page }) => {
+    await page.goto('/admin', { waitUntil: 'domcontentloaded' });
+    await page.waitForTimeout(600);
+    await page.evaluate(() => {
+      document.documentElement.className = 'light';
+      document.body.className = 'light';
+    });
+
+    const subtabBtn = page.locator('button', { hasText: '9. Executive Copilot' }).first();
+    if (await subtabBtn.isVisible()) {
+      await subtabBtn.click();
+      await page.waitForTimeout(400);
+    }
+
+    const cardsEvaluation = await page.evaluate(() => {
+      const container = document.querySelector('[class*="space-y"]') || document.body;
+      const elements = Array.from(container.querySelectorAll('span, strong, p, h1, h2, h3, h4'));
+      const samples: Array<{ bg: { r: number; g: number; b: number; a: number }; color: { r: number; g: number; b: number; a: number }; text: string; classNames: string }> = [];
+
+      function getRgb(colorStr: string) {
+        const canvas = document.createElement('canvas');
+        canvas.width = 1; canvas.height = 1;
+        const ctx = canvas.getContext('2d');
+        if (!ctx) return { r: 248, g: 250, b: 252, a: 1 };
+        ctx.fillStyle = 'rgb(248, 250, 252)'; ctx.fillRect(0, 0, 1, 1);
+        ctx.fillStyle = colorStr; ctx.fillRect(0, 0, 1, 1);
+        const [r, g, b, a] = ctx.getImageData(0, 0, 1, 1).data;
+        return { r, g, b, a: a / 255 };
+      }
+
+      function getEffectiveBg(element: Element): { r: number; g: number; b: number; a: number } {
+        let el: Element | null = element.parentElement;
+        while (el) {
+          const bg = window.getComputedStyle(el).backgroundColor;
+          const rgb = getRgb(bg);
+          if (bg !== 'rgba(0, 0, 0, 0)' && bg !== 'transparent') return rgb;
+          el = el.parentElement;
+        }
+        return { r: 248, g: 250, b: 252, a: 1 };
+      }
+
+      for (const el of elements) {
+        const style = window.getComputedStyle(el);
+        if (style.display !== 'none' && el.textContent && el.textContent.trim().length > 2) {
+          const bg = getEffectiveBg(el);
+          const color = getRgb(style.color);
+          if (Math.abs(color.r - bg.r) > 10 || Math.abs(color.g - bg.g) > 10 || Math.abs(color.b - bg.b) > 10) {
+            samples.push({ bg, color, text: el.textContent.trim().slice(0, 35), classNames: el.className });
+          }
+        }
+      }
+      return samples;
+    });
+
+    expect(cardsEvaluation.length).toBeGreaterThan(0);
+    for (const sample of cardsEvaluation) {
+      const isDarkSlate = (sample.bg.r < 30 && sample.bg.g < 35 && sample.bg.b < 50);
+      expect(isDarkSlate, `Nenhum card de Executive Copilot & Alertas Cruzados deve manter fundo escuro slate no Modo Claro. Texto: "${sample.text}"`).toBe(false);
+      const contrast = calculateContrastRatio(sample.color, sample.bg);
+      expect(contrast, `Executive Copilot ("${sample.text}") deve ter contraste WCAG >= 3.0. Atual: ${contrast.toFixed(2)}:1`).toBeGreaterThanOrEqual(3.0);
+    }
+  });
+
+  test('5. Command Center: Módulo 10. Usuários & Permissões (RBAC)', async ({ page }) => {
+    await page.goto('/admin', { waitUntil: 'domcontentloaded' });
+    await page.waitForTimeout(600);
+    await page.evaluate(() => {
+      document.documentElement.className = 'light';
+      document.body.className = 'light';
+    });
+
+    const subtabBtn = page.locator('button', { hasText: '10. Usuários' }).first();
+    if (await subtabBtn.isVisible()) {
+      await subtabBtn.click();
+      await page.waitForTimeout(400);
+    }
+
+    const cardsEvaluation = await page.evaluate(() => {
+      const container = document.querySelector('[class*="space-y"]') || document.body;
+      const elements = Array.from(container.querySelectorAll('span, strong, p, h1, h2, h3, h4, th, td'));
+      const samples: Array<{ bg: { r: number; g: number; b: number; a: number }; color: { r: number; g: number; b: number; a: number }; text: string; classNames: string }> = [];
+
+      function getRgb(colorStr: string) {
+        const canvas = document.createElement('canvas');
+        canvas.width = 1; canvas.height = 1;
+        const ctx = canvas.getContext('2d');
+        if (!ctx) return { r: 248, g: 250, b: 252, a: 1 };
+        ctx.fillStyle = 'rgb(248, 250, 252)'; ctx.fillRect(0, 0, 1, 1);
+        ctx.fillStyle = colorStr; ctx.fillRect(0, 0, 1, 1);
+        const [r, g, b, a] = ctx.getImageData(0, 0, 1, 1).data;
+        return { r, g, b, a: a / 255 };
+      }
+
+      function getEffectiveBg(element: Element): { r: number; g: number; b: number; a: number } {
+        let el: Element | null = element.parentElement;
+        while (el) {
+          const bg = window.getComputedStyle(el).backgroundColor;
+          const rgb = getRgb(bg);
+          if (bg !== 'rgba(0, 0, 0, 0)' && bg !== 'transparent') return rgb;
+          el = el.parentElement;
+        }
+        return { r: 248, g: 250, b: 252, a: 1 };
+      }
+
+      for (const el of elements) {
+        const style = window.getComputedStyle(el);
+        if (style.display !== 'none' && el.textContent && el.textContent.trim().length > 2) {
+          const bg = getEffectiveBg(el);
+          const color = getRgb(style.color);
+          if (Math.abs(color.r - bg.r) > 10 || Math.abs(color.g - bg.g) > 10 || Math.abs(color.b - bg.b) > 10) {
+            samples.push({ bg, color, text: el.textContent.trim().slice(0, 35), classNames: el.className });
+          }
+        }
+      }
+      return samples;
+    });
+
+    expect(cardsEvaluation.length).toBeGreaterThan(0);
+    for (const sample of cardsEvaluation) {
+      const isDarkSlate = (sample.bg.r < 30 && sample.bg.g < 35 && sample.bg.b < 50);
+      expect(isDarkSlate, `Nenhum card de Usuários & RBAC deve manter fundo escuro slate no Modo Claro. Texto: "${sample.text}"`).toBe(false);
+      const contrast = calculateContrastRatio(sample.color, sample.bg);
+      expect(contrast, `Usuários & RBAC ("${sample.text}") deve ter contraste WCAG >= 3.0. Atual: ${contrast.toFixed(2)}:1`).toBeGreaterThanOrEqual(3.0);
+    }
+  });
+
+  test('6. Alternância Dinâmica de Tema: Fundo altera entre Modo Escuro e Modo Claro', async ({ page }) => {
     await page.goto('/', { waitUntil: 'domcontentloaded' });
     await page.waitForTimeout(500);
 
-    // 1. Alternar para modo escuro clicando no botão ThemeToggle
     const themeBtn = page.locator('button[aria-label*="Modo"]').first();
     if (await themeBtn.isVisible()) {
       await themeBtn.click();
@@ -191,19 +364,16 @@ test.describe('Regressão Visual & Contraste WCAG - Modo Claro (Vocentro)', () =
       const container = document.querySelector('.min-h-screen') || document.body;
       const bg = window.getComputedStyle(container).backgroundColor;
       const canvas = document.createElement('canvas');
-      canvas.width = 1;
-      canvas.height = 1;
+      canvas.width = 1; canvas.height = 1;
       const ctx = canvas.getContext('2d');
       if (!ctx) return { r: 15, g: 23, b: 42, a: 1 };
-      ctx.fillStyle = bg;
-      ctx.fillRect(0, 0, 1, 1);
+      ctx.fillStyle = bg; ctx.fillRect(0, 0, 1, 1);
       const [r, g, b, a] = ctx.getImageData(0, 0, 1, 1).data;
       return { r, g, b, a: a / 255 };
     });
 
     expect(getLuminance(darkBgRgb.r, darkBgRgb.g, darkBgRgb.b), `Fundo no modo escuro deve ter luminância baixa (< 0.3).`).toBeLessThan(0.3);
 
-    // 2. Alternar de volta para modo claro clicando no botão ThemeToggle
     if (await themeBtn.isVisible()) {
       await themeBtn.click();
       await page.waitForTimeout(400);
@@ -218,12 +388,10 @@ test.describe('Regressão Visual & Contraste WCAG - Modo Claro (Vocentro)', () =
       const container = document.querySelector('.min-h-screen') || document.body;
       const bg = window.getComputedStyle(container).backgroundColor;
       const canvas = document.createElement('canvas');
-      canvas.width = 1;
-      canvas.height = 1;
+      canvas.width = 1; canvas.height = 1;
       const ctx = canvas.getContext('2d');
       if (!ctx) return { r: 248, g: 250, b: 252, a: 1 };
-      ctx.fillStyle = bg;
-      ctx.fillRect(0, 0, 1, 1);
+      ctx.fillStyle = bg; ctx.fillRect(0, 0, 1, 1);
       const [r, g, b, a] = ctx.getImageData(0, 0, 1, 1).data;
       return { r, g, b, a: a / 255 };
     });

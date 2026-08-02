@@ -1272,30 +1272,30 @@ export function AdminDashboard({ userId }: AdminDashboardProps) {
                     </h2>
                   </div>
                   
-                  {/* Score Gauge Badge — Taxa de Sucesso de Processamento (Item 7) */}
-                  <div className="flex flex-col gap-1.5 bg-slate-950/80 px-4 py-3 rounded-xl border border-slate-800">
+                  {/* Score Gauge Badge — Taxa de Sucesso de Processamento */}
+                  <div className="flex flex-col gap-1.5 bg-card px-4 py-3 rounded-xl border border-border">
                     <div className="flex items-center gap-3">
-                      <span className="text-xs text-slate-400 font-bold">Taxa de Sucesso de Parsing:</span>
+                      <span className="text-xs text-muted-foreground font-bold">Taxa de Sucesso de Parsing:</span>
                       <span className={`text-2xl font-extrabold font-display ${
-                        (overviewStats?.success_rate || 0) >= 80 ? 'text-emerald-500' : (overviewStats?.success_rate || 0) >= 50 ? 'text-amber-400' : 'text-red-400'
+                        (overviewStats?.success_rate || 0) >= 80 ? 'text-emerald-500' : (overviewStats?.success_rate || 0) >= 50 ? 'text-amber-500' : 'text-red-500'
                       }`}>
                         {Math.round(overviewStats?.success_rate || 0)}%
                       </span>
-                      <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-slate-700/40 text-slate-400 border border-slate-700 uppercase">
+                      <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-card text-muted-foreground border border-border uppercase">
                         Processamento de Currículo
                       </span>
                     </div>
                     {overviewStats?.status_breakdown ? (
                       <div className="flex flex-wrap gap-2.5 text-[10px] font-mono">
-                        <span className="text-slate-400">Uploads Reais: {overviewStats.status_breakdown.total_uploads ?? 0}</span>
+                        <span className="text-muted-foreground">Uploads Reais: {overviewStats.status_breakdown.total_uploads ?? 0}</span>
                         <span className="text-emerald-500">✓ Concluídos: {overviewStats.status_breakdown.completed_pipeline ?? 0}</span>
-                        <span className="text-red-400">✗ Falhas: {overviewStats.status_breakdown.failed_pipeline ?? 0}</span>
+                        <span className="text-red-500">✗ Falhas: {overviewStats.status_breakdown.failed_pipeline ?? 0}</span>
                         {overviewStats.status_breakdown.excluded_test_logs > 0 && (
-                          <span className="text-amber-400/80">⨂ Testes Excluídos: {overviewStats.status_breakdown.excluded_test_logs}</span>
+                          <span className="text-amber-500">⨂ Testes Excluídos: {overviewStats.status_breakdown.excluded_test_logs}</span>
                         )}
                       </div>
                     ) : (
-                      <div className="flex gap-2 text-[10px] font-mono text-slate-400">
+                      <div className="flex gap-2 text-[10px] font-mono text-muted-foreground">
                         <span>Medido no salvamento final do banco (save_completed)</span>
                       </div>
                     )}
@@ -1307,24 +1307,24 @@ export function AdminDashboard({ userId }: AdminDashboardProps) {
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                 <CardGlass className="p-4 flex flex-col justify-between">
                   <div className="flex justify-between items-start">
-                    <span className="text-[10px] text-slate-400 font-extrabold uppercase tracking-wider">Usuários Totais</span>
+                    <span className="text-[10px] text-muted-foreground font-extrabold uppercase tracking-wider">Usuários Totais</span>
                     <Users size={16} className="text-brand-500" />
                   </div>
                   <div className="mt-3">
-                    <span className="text-3xl font-extrabold text-white font-display">
+                    <span className="text-3xl font-extrabold text-foreground font-display">
                       {overviewStats?.users_count ?? overviewStats?.total_users ?? 0}
                     </span>
                     <div className="flex items-center gap-2 text-[10px] mt-1">
-                      <span className="text-emerald-500 font-bold flex items-center gap-0.5">↑ +12% <span className="text-slate-500 font-normal">7d</span></span>
-                      <span className="text-slate-600 dark:text-slate-500">•</span>
-                      <span className="text-emerald-500 font-bold flex items-center gap-0.5">↑ +31% <span className="text-slate-500 font-normal">30d</span></span>
+                      <span className="text-emerald-500 font-bold flex items-center gap-0.5">↑ +12% <span className="text-muted-foreground font-normal">7d</span></span>
+                      <span className="text-muted-foreground">•</span>
+                      <span className="text-emerald-500 font-bold flex items-center gap-0.5">↑ +31% <span className="text-muted-foreground font-normal">30d</span></span>
                     </div>
                   </div>
                 </CardGlass>
 
                 <CardGlass className="p-4 flex flex-col justify-between">
                   <div className="flex justify-between items-start">
-                    <span className="text-[10px] text-slate-400 font-extrabold uppercase tracking-wider">Ativos Hoje (DAU)</span>
+                    <span className="text-[10px] text-muted-foreground font-extrabold uppercase tracking-wider">Ativos Hoje (DAU)</span>
                     <UserCheck size={16} className="text-emerald-500" />
                   </div>
                   <div className="mt-3">
@@ -1332,23 +1332,23 @@ export function AdminDashboard({ userId }: AdminDashboardProps) {
                       {overviewStats?.active_today ?? Math.max(1, Math.round((overviewStats?.users_count || 1) * 0.4))}
                     </span>
                     <div className="flex items-center gap-2 text-[10px] mt-1">
-                      <span className="text-emerald-500 font-bold flex items-center gap-0.5">↑ +8% <span className="text-slate-500 font-normal">7d</span></span>
-                      <span className="text-slate-600 dark:text-slate-500">•</span>
-                      <span className="text-slate-400 font-semibold">Atividade Recente</span>
+                      <span className="text-emerald-500 font-bold flex items-center gap-0.5">↑ +8% <span className="text-muted-foreground font-normal">7d</span></span>
+                      <span className="text-muted-foreground">•</span>
+                      <span className="text-muted-foreground font-semibold">Atividade Recente</span>
                     </div>
                   </div>
                 </CardGlass>
 
                 <CardGlass className="p-4 flex flex-col justify-between">
                   <div className="flex justify-between items-start">
-                    <span className="text-[10px] text-slate-400 font-extrabold uppercase tracking-wider">Ações de IA (Total)</span>
-                    <Activity size={16} className="text-purple-400" />
+                    <span className="text-[10px] text-muted-foreground font-extrabold uppercase tracking-wider">Ações de IA (Total)</span>
+                    <Activity size={16} className="text-purple-500" />
                   </div>
                   <div className="mt-3">
-                    <span className="text-3xl font-extrabold text-purple-300 font-display">
+                    <span className="text-3xl font-extrabold text-purple-600 dark:text-purple-300 font-display">
                       {(overviewStats?.matches_count ?? 0) + (iaStats?.optimizations_count ?? 0) + (iaStats?.simulations_count ?? 0) + (iaStats?.letters_count ?? 0)}
                     </span>
-                    <div className="flex flex-col gap-0.5 text-[9px] mt-1 text-slate-500 font-mono">
+                    <div className="flex flex-col gap-0.5 text-[9px] mt-1 text-muted-foreground font-mono">
                       <span>Match: {overviewStats?.matches_count ?? 0} · Otimiz.: {iaStats?.optimizations_count ?? 0}</span>
                       <span>Entrevistas: {iaStats?.simulations_count ?? 0} · Cartas: {iaStats?.letters_count ?? 0}</span>
                     </div>
@@ -1357,17 +1357,17 @@ export function AdminDashboard({ userId }: AdminDashboardProps) {
 
                 <CardGlass className="p-4 flex flex-col justify-between">
                   <div className="flex justify-between items-start">
-                    <span className="text-[10px] text-slate-400 font-extrabold uppercase tracking-wider">Tempo Médio IA</span>
-                    <Clock size={16} className="text-amber-400" />
+                    <span className="text-[10px] text-muted-foreground font-extrabold uppercase tracking-wider">Tempo Médio IA</span>
+                    <Clock size={16} className="text-amber-500" />
                   </div>
                   <div className="mt-3">
-                    <span className="text-3xl font-extrabold text-white font-display">
+                    <span className="text-3xl font-extrabold text-foreground font-display">
                       {overviewStats?.avg_processing_time ?? 2.4} s
                     </span>
                     <div className="flex items-center gap-2 text-[10px] mt-1">
                       <span className="text-emerald-500 font-bold">P95 &lt; 3.5s</span>
-                      <span className="text-slate-600 dark:text-slate-500">•</span>
-                      <span className="text-slate-400 font-semibold">Latência Normal</span>
+                      <span className="text-muted-foreground">•</span>
+                      <span className="text-muted-foreground font-semibold">Latência Normal</span>
                     </div>
                   </div>
                 </CardGlass>
@@ -1377,40 +1377,40 @@ export function AdminDashboard({ userId }: AdminDashboardProps) {
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                 <CardGlass className="p-4 flex flex-col justify-between">
                   <div className="flex justify-between items-start">
-                    <span className="text-[10px] text-slate-400 font-extrabold uppercase tracking-wider">Tokens Gemini</span>
-                    <Bot size={16} className="text-blue-400" />
+                    <span className="text-[10px] text-muted-foreground font-extrabold uppercase tracking-wider">Tokens Gemini</span>
+                    <Bot size={16} className="text-blue-500" />
                   </div>
                   <div className="mt-3">
-                    <span className="text-3xl font-extrabold text-white font-display font-mono">
+                    <span className="text-3xl font-extrabold text-foreground font-display font-mono">
                       {(overviewStats?.total_tokens ?? 0).toLocaleString()}
                     </span>
-                    <span className="text-[9px] text-slate-400 font-medium block mt-1">Acumulado real de input/output de IA</span>
+                    <span className="text-[9px] text-muted-foreground font-medium block mt-1">Acumulado real de input/output de IA</span>
                   </div>
                 </CardGlass>
 
                 <CardGlass className="p-4 flex flex-col justify-between">
                   <div className="flex justify-between items-start">
-                    <span className="text-[10px] text-slate-400 font-extrabold uppercase tracking-wider">Taxa de Parsing sem Erro</span>
-                    <Activity size={16} className="text-emerald-450" />
+                    <span className="text-[10px] text-muted-foreground font-extrabold uppercase tracking-wider">Taxa de Parsing sem Erro</span>
+                    <Activity size={16} className="text-emerald-500" />
                   </div>
                   <div className="mt-3">
                     <span className="text-3xl font-extrabold text-emerald-500 font-display">
                       {overviewStats?.success_rate ?? 98.8}%
                     </span>
-                    <span className="text-[9px] text-slate-400 font-medium block mt-1">Conversão de parsing de currículo sem exceções</span>
+                    <span className="text-[9px] text-muted-foreground font-medium block mt-1">Conversão de parsing de currículo sem exceções</span>
                   </div>
                 </CardGlass>
 
                 <CardGlass className="p-4 flex flex-col justify-between">
                   <div className="flex justify-between items-start">
-                    <span className="text-[10px] text-slate-400 font-extrabold uppercase tracking-wider">Último Deploy</span>
-                    <Laptop size={16} className="text-slate-400" />
+                    <span className="text-[10px] text-muted-foreground font-extrabold uppercase tracking-wider">Último Deploy</span>
+                    <Laptop size={16} className="text-muted-foreground" />
                   </div>
                   <div className="mt-3">
-                    <span className="text-3xl font-extrabold text-white font-display">
+                    <span className="text-3xl font-extrabold text-foreground font-display">
                       {getDeployAge()}
                     </span>
-                    <span className="text-[9px] text-slate-400 font-medium block mt-1">Ambiente de produção em Vercel</span>
+                    <span className="text-[9px] text-muted-foreground font-medium block mt-1">Ambiente de produção em Vercel</span>
                   </div>
                 </CardGlass>
               </div>
@@ -1520,16 +1520,16 @@ export function AdminDashboard({ userId }: AdminDashboardProps) {
           <CardGlass className="p-6 space-y-6">
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
             <div>
-              <h2 className="text-base font-bold text-slate-200 flex items-center gap-2">
+              <h2 className="text-base font-bold text-foreground flex items-center gap-2">
                 <Users size={16} className="text-brand-500" />
                 Usuários e Papéis de Acesso (RBAC)
               </h2>
-              <p className="text-[10px] text-slate-500">Mapeamento de permissões e controle de perfil.</p>
+              <p className="text-[10px] text-muted-foreground">Mapeamento de permissões e controle de perfil.</p>
             </div>
             
             <div className="flex flex-wrap gap-2 w-full sm:w-auto">
               <div className="relative flex-1 sm:w-60">
-                <Search size={14} className="absolute left-3 top-3.5 text-slate-500" />
+                <Search size={14} className="absolute left-3 top-3.5 text-muted-foreground" />
                 <input
                   type="text"
                   placeholder="Buscar usuário..."
@@ -1538,19 +1538,19 @@ export function AdminDashboard({ userId }: AdminDashboardProps) {
                     setSearchQuery(e.target.value);
                     setUserPage(1);
                   }}
-                  className="w-full pl-9 pr-4 py-2.5 rounded-xl bg-slate-950 border border-slate-900 focus:border-brand-500 outline-none text-xs text-slate-200"
+                  className="w-full pl-9 pr-4 py-2.5 rounded-xl bg-card border border-border focus:border-brand-500 outline-none text-xs text-foreground"
                 />
               </div>
 
               <div className="relative">
-                <Filter size={14} className="absolute left-3 top-3.5 text-slate-500" />
+                <Filter size={14} className="absolute left-3 top-3.5 text-muted-foreground" />
                 <select
                   value={roleFilter}
                   onChange={e => {
                     setRoleFilter(e.target.value);
                     setUserPage(1);
                   }}
-                  className="pl-9 pr-6 py-2.5 rounded-xl bg-slate-955 border border-slate-900 focus:border-brand-500 outline-none text-xs text-slate-400 cursor-pointer appearance-none"
+                  className="pl-9 pr-6 py-2.5 rounded-xl bg-card border border-border focus:border-brand-500 outline-none text-xs text-muted-foreground cursor-pointer appearance-none"
                 >
                   <option value="all">Todos os Cargos</option>
                   <option value="administrador">Administrador</option>
@@ -1570,8 +1570,8 @@ export function AdminDashboard({ userId }: AdminDashboardProps) {
                 title={showTestAccounts ? 'Ocultar contas de teste (@example.com, e2e)' : 'Mostrar contas de teste (@example.com, e2e)'}
                 className={`px-3 py-2.5 rounded-xl border text-xs font-semibold flex items-center gap-1.5 cursor-pointer transition-all ${
                   showTestAccounts
-                    ? 'bg-amber-500/10 border-amber-500/30 text-amber-300 hover:bg-amber-500/20'
-                    : 'bg-slate-950 border-slate-900 text-slate-500 hover:text-slate-300 hover:border-slate-700'
+                    ? 'bg-amber-500/10 border-amber-500/30 text-amber-600 dark:text-amber-300 hover:bg-amber-500/20'
+                    : 'bg-card border-border text-muted-foreground hover:text-foreground'
                 }`}
               >
                 <span>{showTestAccounts ? '🧪 Ocultar testes' : '🧪 Mostrar testes'}</span>
@@ -1579,25 +1579,25 @@ export function AdminDashboard({ userId }: AdminDashboardProps) {
             </div>
           </div>
 
-          <div className="text-[10px] text-slate-600 px-1 flex items-center gap-1.5">
+          <div className="text-[10px] text-muted-foreground px-1 flex items-center gap-1.5">
             <span>Fonte:</span>
-            <code className="text-slate-500 font-mono">get_all_profiles_for_admin(include_test_accounts={showTestAccounts.toString()})</code>
+            <code className="text-muted-foreground font-mono">get_all_profiles_for_admin(include_test_accounts={showTestAccounts.toString()})</code>
             <span>·</span>
-            <span className="text-slate-500">{users.length} registro{users.length !== 1 ? 's' : ''} retornado{users.length !== 1 ? 's' : ''} pelo banco</span>
+            <span className="text-muted-foreground">{users.length} registro{users.length !== 1 ? 's' : ''} retornado{users.length !== 1 ? 's' : ''} pelo banco</span>
           </div>
 
 
           {isLoadingUsers ? (
-            <div className="flex flex-col items-center justify-center py-16 gap-2 text-slate-500">
+            <div className="flex flex-col items-center justify-center py-16 gap-2 text-muted-foreground">
               <Loader2 className="animate-spin text-brand-500" size={24} />
               <span className="text-xs font-medium">Buscando listagem de usuários...</span>
             </div>
           ) : paginatedUsers.length > 0 ? (
             <div className="space-y-4">
-              <div className="overflow-x-auto rounded-xl border border-slate-900 bg-slate-955/20">
-                <table className="w-full border-collapse text-left text-xs text-slate-400">
+              <div className="overflow-x-auto rounded-xl border border-border bg-card">
+                <table className="w-full border-collapse text-left text-xs text-muted-foreground">
                   <thead>
-                    <tr className="border-b border-slate-900 bg-slate-950/60 font-semibold text-slate-300">
+                    <tr className="border-b border-border bg-card font-semibold text-foreground">
                       <th className="p-3">Nome</th>
                       <th className="p-3">E-mail</th>
                       <th className="p-3">Headline</th>
@@ -1605,33 +1605,33 @@ export function AdminDashboard({ userId }: AdminDashboardProps) {
                       {canEditRoles && <th className="p-3 text-right">Ação</th>}
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-slate-900">
+                  <tbody className="divide-y divide-border">
                     {paginatedUsers.map((user: any) => (
                       <tr 
                         key={user.id} 
-                        className="hover:bg-slate-900/10 cursor-pointer"
+                        className="hover:bg-muted/50 cursor-pointer"
                         onClick={() => {
                           setSelectedUser(user);
                           setUserDetailTab('profile');
                         }}
                       >
-                        <td className="p-3 font-semibold text-slate-200">
+                        <td className="p-3 font-semibold text-foreground">
                           <span className="flex items-center gap-1.5 flex-wrap">
                             {user.full_name || 'Sem Nome'}
                             {user.is_test_account && (
-                              <span className="px-1.5 py-0.5 rounded text-[8px] font-bold bg-amber-500/10 text-amber-400 border border-amber-500/20 uppercase tracking-wide">🧪 Teste</span>
+                              <span className="px-1.5 py-0.5 rounded text-[8px] font-bold bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20 uppercase tracking-wide">🧪 Teste</span>
                             )}
                           </span>
                         </td>
-                        <td className="p-3 text-slate-450 font-mono text-[11px]">{user.email || 'Não informado'}</td>
-                        <td className="p-3 text-slate-450 max-w-[200px] truncate" title={user.headline}>{user.headline || '—'}</td>
+                        <td className="p-3 text-muted-foreground font-mono text-[11px]">{user.email || 'Não informado'}</td>
+                        <td className="p-3 text-muted-foreground max-w-[200px] truncate" title={user.headline}>{user.headline || '—'}</td>
                         <td className="p-3">
                           <span className={`px-2 py-0.5 rounded-lg text-[9px] font-bold border uppercase tracking-wider ${
-                            user.role === 'administrador' ? 'bg-red-500/10 text-red-400 border-red-500/20' :
-                            user.role === 'suporte' ? 'bg-blue-500/10 text-blue-400 border-blue-500/20' :
-                            user.role === 'financeiro' ? 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20' :
-                            user.role === 'somente_leitura' ? 'bg-amber-500/10 text-amber-400 border-amber-500/20' :
-                            'bg-slate-500/10 text-slate-400 border-slate-700/20'
+                            user.role === 'administrador' ? 'bg-red-500/10 text-red-600 dark:text-red-400 border-red-500/20' :
+                            user.role === 'suporte' ? 'bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-500/20' :
+                            user.role === 'financeiro' ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-500 border-emerald-500/20' :
+                            user.role === 'somente_leitura' ? 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20' :
+                            'bg-card text-muted-foreground border-border'
                           }`}>
                             {user.role}
                           </span>
@@ -1643,7 +1643,7 @@ export function AdminDashboard({ userId }: AdminDashboardProps) {
                               e.stopPropagation();
                               setPreviewResumeUser(user);
                             }}
-                            className="px-2.5 py-1 rounded-lg bg-brand-500/10 hover:bg-brand-500/20 text-brand-400 border border-brand-500/20 text-[10px] font-bold transition-all cursor-pointer mr-2"
+                            className="px-2.5 py-1 rounded-lg bg-brand-500/10 hover:bg-brand-500/20 text-brand-600 dark:text-brand-400 border border-brand-500/20 text-[10px] font-bold transition-all cursor-pointer mr-2"
                           >
                             📄 Ver CV
                           </button>
@@ -1653,7 +1653,7 @@ export function AdminDashboard({ userId }: AdminDashboardProps) {
                               onChange={(e) => changeRoleMutation.mutate({ targetUserId: user.id, newRole: e.target.value })}
                               onClick={(e) => e.stopPropagation()}
                               disabled={changeRoleMutation.isPending || user.id === userId}
-                              className="px-2 py-1 rounded bg-slate-900 border border-slate-800 focus:border-brand-500 outline-none text-[10px] text-slate-355 cursor-pointer disabled:opacity-40"
+                              className="px-2 py-1 rounded bg-card border border-border focus:border-brand-500 outline-none text-[10px] text-foreground cursor-pointer disabled:opacity-40"
                             >
                               <option value="user">Usuário Comum</option>
                               <option value="administrador">Administrador</option>
@@ -1703,63 +1703,63 @@ export function AdminDashboard({ userId }: AdminDashboardProps) {
       )}
 
 
-      {/* MÓDULO 2.5: SAÚDE DO NEGÓCIO (MRR, ARR, LTV/CAC) - Item 9 */}
+      {/* MÓDULO 2.5: SAÚDE DO NEGÓCIO (MRR, ARR, LTV/CAC) */}
       {activeSubTab === 'financeiro' && (
         <div className="space-y-6 animate-fade-in font-sans">
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-            <CardGlass className="p-4 space-y-2 border-emerald-500/20 bg-emerald-500/5">
-              <span className="text-[10px] text-emerald-500 font-bold uppercase tracking-wider block">MRR Estimado (Mensal)</span>
+            <CardGlass className="p-4 space-y-2 border-emerald-500/30 bg-emerald-500/10">
+              <span className="text-[10px] text-emerald-600 dark:text-emerald-400 font-extrabold uppercase tracking-wider block">MRR Estimado (Mensal)</span>
               <div className="flex justify-between items-baseline">
-                <strong className="text-2xl font-black text-white font-mono">
+                <strong className="text-2xl font-black text-foreground font-mono">
                   R$ {((users.filter((u: any) => u.role !== 'user').length || 12) * 29.90).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
                 </strong>
-                <span className="text-[10px] text-emerald-500 font-bold bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/20">+14% m/m</span>
+                <span className="text-[10px] text-emerald-600 dark:text-emerald-400 font-bold bg-emerald-500/20 px-2 py-0.5 rounded border border-emerald-500/30">+14% m/m</span>
               </div>
-              <p className="text-[10px] text-slate-400">Calculado sobre assinaturas ativas na base (R$ 29,90/mês).</p>
+              <p className="text-[10px] text-muted-foreground">Calculado sobre assinaturas ativas na base (R$ 29,90/mês).</p>
             </CardGlass>
 
-            <CardGlass className="p-4 space-y-2 border-brand-500/20 bg-brand-500/5">
-              <span className="text-[10px] text-brand-400 font-bold uppercase tracking-wider block">ARR Projetado (Anual)</span>
+            <CardGlass className="p-4 space-y-2 border-brand-500/30 bg-brand-500/10">
+              <span className="text-[10px] text-brand-600 dark:text-brand-400 font-extrabold uppercase tracking-wider block">ARR Projetado (Anual)</span>
               <div className="flex justify-between items-baseline">
-                <strong className="text-2xl font-black text-white font-mono">
+                <strong className="text-2xl font-black text-foreground font-mono">
                   R$ {((users.filter((u: any) => u.role !== 'user').length || 12) * 29.90 * 12).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
                 </strong>
-                <span className="text-[10px] text-brand-400 font-bold bg-brand-500/10 px-2 py-0.5 rounded border border-brand-500/20">Projeção 12m</span>
+                <span className="text-[10px] text-brand-600 dark:text-brand-400 font-bold bg-brand-500/20 px-2 py-0.5 rounded border border-brand-500/30">Projeção 12m</span>
               </div>
-              <p className="text-[10px] text-slate-400">Run rate anualizado de receita.</p>
+              <p className="text-[10px] text-muted-foreground">Run rate anualizado de receita.</p>
             </CardGlass>
 
-            <CardGlass className="p-4 space-y-2 border-purple-500/20 bg-purple-500/5">
-              <span className="text-[10px] text-purple-300 font-bold uppercase tracking-wider block">Conversão Free → Premium</span>
+            <CardGlass className="p-4 space-y-2 border-purple-500/30 bg-purple-500/10">
+              <span className="text-[10px] text-purple-600 dark:text-purple-300 font-extrabold uppercase tracking-wider block">Conversão Free → Premium</span>
               <div className="flex justify-between items-baseline">
-                <strong className="text-2xl font-black text-white font-mono">
+                <strong className="text-2xl font-black text-foreground font-mono">
                   {users.length > 0 ? Math.round(((users.filter((u: any) => u.role !== 'user').length) * 100) / users.length) : 8.5}%
                 </strong>
-                <span className="text-[10px] text-purple-300 font-bold bg-purple-500/10 px-2 py-0.5 rounded border border-purple-500/20">Meta 10%</span>
+                <span className="text-[10px] text-purple-600 dark:text-purple-300 font-bold bg-purple-500/20 px-2 py-0.5 rounded border border-purple-500/30">Meta 10%</span>
               </div>
-              <p className="text-[10px] text-slate-400">Percentual de usuários em planos pagos.</p>
+              <p className="text-[10px] text-muted-foreground">Percentual de usuários em planos pagos.</p>
             </CardGlass>
 
-            <CardGlass className="p-4 space-y-2 border-amber-500/20 bg-amber-500/5">
-              <span className="text-[10px] text-amber-400 font-bold uppercase tracking-wider block">LTV / CAC Ratio</span>
+            <CardGlass className="p-4 space-y-2 border-amber-500/30 bg-amber-500/10">
+              <span className="text-[10px] text-amber-600 dark:text-amber-400 font-extrabold uppercase tracking-wider block">LTV / CAC Ratio</span>
               <div className="flex justify-between items-baseline">
-                <strong className="text-2xl font-black text-white font-mono">
+                <strong className="text-2xl font-black text-foreground font-mono">
                   3.4x
                 </strong>
-                <span className="text-[10px] text-amber-400 font-bold bg-amber-500/10 px-2 py-0.5 rounded border border-amber-500/20">LTV: R$ 358,80</span>
+                <span className="text-[10px] text-amber-600 dark:text-amber-400 font-bold bg-amber-500/20 px-2 py-0.5 rounded border border-amber-500/30">LTV: R$ 358,80</span>
               </div>
-              <p className="text-[10px] text-slate-400">CAC estimado: R$ 104,00 por cliente.</p>
+              <p className="text-[10px] text-muted-foreground">CAC estimado: R$ 104,00 por cliente.</p>
             </CardGlass>
           </div>
 
-          <CardGlass className="p-5 border-blue-500/30 bg-blue-950/20 space-y-3">
+          <CardGlass className="p-5 border-blue-500/30 bg-blue-500/10 space-y-3">
             <div className="flex items-start gap-3">
-              <div className="p-2.5 rounded-xl bg-blue-500/10 text-blue-400 border border-blue-500/20 shrink-0">
+              <div className="p-2.5 rounded-xl bg-blue-500/20 text-blue-600 dark:text-blue-400 border border-blue-500/30 shrink-0">
                 <CreditCard size={20} />
               </div>
               <div className="space-y-1">
-                <h3 className="text-sm font-bold text-slate-200">Sincronização de Gateway de Pagamento (Asaas / Stripe)</h3>
-                <p className="text-xs text-slate-400 leading-relaxed">
+                <h3 className="text-sm font-bold text-foreground">Sincronização de Gateway de Pagamento (Asaas / Stripe)</h3>
+                <p className="text-xs text-muted-foreground leading-relaxed">
                   Os indicadores acima refletem os dados agregados dos perfis ativos e planos contratados na base de dados. Quando a chave de produção do gateway de pagamentos (Asaas/Stripe) for vinculada, as confirmações automáticas de PIX e cartão de crédito atualizarão o MRR em tempo real via webhooks.
                 </p>
               </div>

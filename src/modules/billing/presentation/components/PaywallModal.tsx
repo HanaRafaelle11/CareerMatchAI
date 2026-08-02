@@ -31,7 +31,7 @@ export function PaywallModal({
     switch (feature) {
       case 'weekly_limit':
         return {
-          icon: <Calendar className="text-amber-400" size={32} />,
+          icon: <Calendar className="text-amber-500" size={32} />,
           badge: 'Cota Semanal Esgotada (3/3)',
           defaultTitle: 'Suas 3 análises da semana já foram usadas',
           defaultDesc: `Sua cota gratuita de 3 análises de vagas nesta semana foi totalmente utilizada. Ela será renovada em ${daysText} (na próxima segunda-feira às 00:00). Assine o Premium para continuar sem interrupções!`,
@@ -45,7 +45,7 @@ export function PaywallModal({
         };
       case 'applications':
         return {
-          icon: <Send className="text-brand-400" size={32} />,
+          icon: <Send className="text-brand-500" size={32} />,
           badge: 'Limite Semanal Atingido',
           defaultTitle: 'Alcance Mais Oportunidades com o Vocentro Pro 🚀',
           defaultDesc: 'No plano Gratuito, o envio é limitado a 3 candidaturas por semana (reset toda segunda-feira às 00:00). Faça o upgrade para o Pro e envie candidaturas ilimitadas com autofill inteligente!',
@@ -55,7 +55,7 @@ export function PaywallModal({
         };
       case 'copilot':
         return {
-          icon: <Bot className="text-indigo-400" size={32} />,
+          icon: <Bot className="text-indigo-500" size={32} />,
           badge: 'Recurso Exclusivo Pro',
           defaultTitle: 'Desbloqueie o Copiloto IA de Carreira 🤖',
           defaultDesc: 'O Copiloto IA analisa requisitos de vagas em tempo real, gera cartas de apresentação sob medida e fornece orientações estratégicas de entrevista.',
@@ -65,7 +65,7 @@ export function PaywallModal({
         };
       case 'resumes':
         return {
-          icon: <FileText className="text-amber-400" size={32} />,
+          icon: <FileText className="text-amber-500" size={32} />,
           badge: 'Limite de Currículos Salvos',
           defaultTitle: 'Crie Múltiplas Versões do seu Currículo 📄',
           defaultDesc: 'O plano Gratuito permite manter apenas 1 versão salva do currículo. No Pro você pode ter até 10 versões adaptadas para diferentes cargos.',
@@ -75,7 +75,7 @@ export function PaywallModal({
         };
       case 'kanban':
         return {
-          icon: <Layers className="text-emerald-400" size={32} />,
+          icon: <Layers className="text-emerald-500" size={32} />,
           badge: 'Pipeline Avançado Pro',
           defaultTitle: 'Organize suas Candidaturas no Kanban Drag & Drop 📊',
           defaultDesc: 'Visualize todo o seu funil de processos seletivos de forma ágil, arraste cards entre etapas e receba alertas de acompanhamento.',
@@ -85,7 +85,7 @@ export function PaywallModal({
         };
       case 'analytics':
         return {
-          icon: <BarChart3 className="text-violet-400" size={32} />,
+          icon: <BarChart3 className="text-purple-500" size={32} />,
           badge: 'Painel de Métricas Pro',
           defaultTitle: 'Acesse Insights Avançados de Desempenho 📈',
           defaultDesc: 'Descubra a taxa de conversão dos seus currículos, lacunas de competências e métricas da sua evolução profissional.',
@@ -95,7 +95,7 @@ export function PaywallModal({
         };
       case 'ia_training':
         return {
-          icon: <Bot className="text-amber-400" size={32} />,
+          icon: <Bot className="text-amber-500" size={32} />,
           badge: 'Treinamento IA Exclusivo Pro',
           defaultTitle: 'Pratique Entrevistas com Treinamento IA 🎯',
           defaultDesc: 'Simule entrevistas no método STAR, receba perguntas adaptadas ao cargo e obtenha feedback comportamental instantâneo para conquistar o recrutador.',
@@ -105,7 +105,7 @@ export function PaywallModal({
         };
       case 'pdf_export':
         return {
-          icon: <FileText className="text-emerald-400" size={32} />,
+          icon: <FileText className="text-emerald-500" size={32} />,
           badge: 'Exportação PDF Pro',
           defaultTitle: 'Baixe seu Currículo em PDF Otimizado para ATS 📄',
           defaultDesc: 'No plano Gratuito você pode cadastrar e editar seu currículo. A exportação direta em formato PDF profissional pronto para ATS é exclusiva do Pro.',
@@ -115,7 +115,7 @@ export function PaywallModal({
         };
       default:
         return {
-          icon: <Sparkles className="text-amber-400" size={32} />,
+          icon: <Sparkles className="text-amber-500" size={32} />,
           badge: 'Evolua sua Carreira',
           defaultTitle: 'Acelere sua Recolocação com o Vocentro Pro 🚀',
           defaultDesc: 'Obtenha acesso ilimitado a todas as ferramentas de IA, simulações de entrevista e métricas avançadas.',
@@ -150,13 +150,13 @@ export function PaywallModal({
         </div>
 
         <div className="space-y-2">
-          <span className="px-3 py-1 rounded-full bg-brand-500/10 border border-brand-500/20 text-brand-400 font-extrabold text-[10px] uppercase tracking-wider">
+          <span className="px-3 py-1 rounded-full bg-brand-500/10 border border-brand-500/20 text-brand-500 font-extrabold text-[10px] uppercase tracking-wider">
             {details.badge}
           </span>
-          <h3 className="text-lg sm:text-xl font-black text-slate-100 light:text-slate-900 leading-tight">
+          <h3 className="text-lg sm:text-xl font-black text-foreground leading-tight">
             {displayTitle}
           </h3>
-          <p className="text-xs text-slate-400 light:text-slate-600 max-w-xs mx-auto leading-relaxed">
+          <p className="text-xs text-muted-foreground max-w-xs mx-auto leading-relaxed">
             {displayDesc}
           </p>
         </div>
@@ -165,7 +165,7 @@ export function PaywallModal({
           <button
             type="button"
             onClick={handleAction}
-            className="w-full py-3 px-6 rounded-xl bg-gradient-to-r from-amber-500 via-emerald-500 to-brand-500 hover:from-amber-400 hover:to-brand-400 text-slate-950 font-black text-sm shadow-lg cursor-pointer transition-all flex items-center justify-center gap-2"
+            className="w-full py-3 px-6 rounded-xl bg-gradient-to-r from-amber-500 via-emerald-500 to-brand-500 hover:from-amber-400 hover:to-brand-400 text-white font-black text-sm shadow-lg cursor-pointer transition-all flex items-center justify-center gap-2"
           >
             <Sparkles size={16} />
             <span>{displayPrimaryBtn}</span>
@@ -174,7 +174,7 @@ export function PaywallModal({
           <button
             type="button"
             onClick={onClose}
-            className="text-xs font-semibold text-slate-400 light:text-slate-500 hover:text-slate-200 light:hover:text-slate-700 transition-colors py-1 cursor-pointer"
+            className="text-xs font-semibold text-muted-foreground hover:text-foreground transition-colors py-1 cursor-pointer"
           >
             {displaySecondaryBtn}
           </button>

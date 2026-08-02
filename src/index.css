@@ -22,6 +22,14 @@
   --color-brand-card: #1e293b;
   --color-brand-border: #334155;
 
+  /* Aliases Semânticos de Tema Universais */
+  --color-background: var(--color-surface);
+  --color-foreground: var(--color-on-surface);
+  --color-muted-foreground: var(--color-on-surface-variant);
+  --color-card: var(--color-surface-container);
+  --color-card-foreground: var(--color-on-surface);
+  --color-border: var(--color-outline);
+
   /* Dark Theme Surfaces (Slate 900 / Slate 800 / Slate 700) */
   --color-surface: #0f172a;
   --color-surface-dim: #0f172a;

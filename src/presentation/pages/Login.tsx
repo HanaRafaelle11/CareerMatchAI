@@ -1,104 +1,102 @@
 import { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { loginSchema, signUpSchema } from '../../domain/validators/schemas';
-import { Mail, Lock, User, AlertCircle, ArrowRight, CheckCircle2, KeyRound } from 'lucide-react';
+import { z } from 'zod';
 import { VocentroLogo } from '../components/ds/MyCareerIcons';
+import { ThemeToggle } from '../components/ThemeToggle';
+import { Mail, Lock, User, ArrowRight, AlertCircle, CheckCircle2, KeyRound } from 'lucide-react';
 
 interface LoginProps {
   initialMode?: 'login' | 'signup';
-  onLogin: (email: string, password: string) => Promise<void>;
-  onSignUp: (fullName: string, email: string, password: string) => Promise<any>;
-  onOAuth: (provider: 'google' | 'github') => Promise<void>;
+  onLogin: (email: string, pass: string) => Promise<any>;
+  onSignUp: (email: string, pass: string, fullName: string) => Promise<any>;
+  onOAuth: (provider: 'google') => Promise<any>;
   onResetPassword?: (email: string) => Promise<any>;
   onBack?: () => void;
 }
+
+const loginSchema = z.object({
+  email: z.string().email('E-mail inválido'),
+  password: z.string().min(6, 'A senha deve ter pelo menos 6 caracteres')
+});
+
+const signUpSchema = z.object({
+  fullName: z.string().min(2, 'Nome completo é obrigatório'),
+  email: z.string().email('E-mail inválido'),
+  password: z.string().min(6, 'A senha deve ter pelo menos 6 caracteres'),
+  confirmPassword: z.string().min(6, 'Confirmação de senha é obrigatória')
+}).refine((data) => data.password === data.confirmPassword, {
+  message: 'As senhas não coincidem',
+  path: ['confirmPassword']
+});
+
+type LoginFormData = z.infer<typeof loginSchema>;
+type SignUpFormData = z.infer<typeof signUpSchema>;
 
 export function Login({ initialMode = 'login', onLogin, onSignUp, onOAuth, onResetPassword, onBack }: LoginProps) {
   const [isSignUp, setIsSignUp] = useState(initialMode === 'signup');
   const [isResetPasswordMode, setIsResetPasswordMode] = useState(false);
   const [resetEmail, setResetEmail] = useState('');
+  const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
   const [successMsg, setSuccessMsg] = useState('');
-  const [loading, setLoading] = useState(false);
 
   useEffect(() => {
     setIsSignUp(initialMode === 'signup');
-    setIsResetPasswordMode(false);
-    setErrorMsg('');
-    setSuccessMsg('');
   }, [initialMode]);
 
-  const loginForm = useForm({
-    resolver: zodResolver(loginSchema),
-    defaultValues: { email: '', password: '' }
+  const loginForm = useForm<LoginFormData>({
+    resolver: zodResolver(loginSchema)
   });
 
-  const signUpForm = useForm({
-    resolver: zodResolver(signUpSchema),
-    defaultValues: { fullName: '', email: '', password: '', confirmPassword: '' }
+  const signUpForm = useForm<SignUpFormData>({
+    resolver: zodResolver(signUpSchema)
   });
 
-  const formatAuthError = (err: any, inputEmail?: string): string => {
-    const msg = err?.message || err?.error_description || String(err || '');
-    const code = err?.code || '';
+  const formatAuthError = (err: any): string => {
+    console.error('[Auth Error Details]', err);
+    const message = err?.message || err?.error_description || String(err);
 
-    if (code === 'user_already_exists' || msg.toLowerCase().includes('user already registered') || msg.toLowerCase().includes('already registered')) {
-      return 'Este e-mail já está cadastrado no Vocentro. Por favor, faça login com sua senha ou utilize a opção "Entrar com o Google".';
+    if (message.includes('Invalid login credentials')) {
+      return 'E-mail ou senha incorretos. Verifique suas credenciais e tente novamente.';
     }
-    if (code === 'invalid_credentials' || msg.toLowerCase().includes('invalid login credentials')) {
-      const isTypoSuspect = inputEmail && (inputEmail.includes('gmaill') || inputEmail.includes('hotmaill') || inputEmail.includes('outlok'));
-      return `E-mail ou senha incorretos. ${
-        isTypoSuspect 
-          ? `Atenção: o e-mail "${inputEmail}" parece conter um erro de digitação no domínio.` 
-          : 'Se você ainda não criou uma conta com este e-mail, clique abaixo em "Cadastre-se agora" para criar seu acesso em 1 minuto.'
-      } Caso tenha esquecido sua senha, utilize a opção "Esqueceu a senha?".`;
+    if (message.includes('User already registered')) {
+      return 'Este e-mail já está cadastrado. Faça login ou solicite a redefinição de senha.';
     }
-    if (msg.toLowerCase().includes('email not confirmed')) {
-      return 'E-mail ainda não confirmado. Por favor, verifique a caixa de entrada do seu e-mail para ativar sua conta no Vocentro.';
+    if (message.includes('Email not confirmed')) {
+      return 'Seu e-mail ainda não foi confirmado. Verifique sua caixa de entrada.';
     }
-    if (msg.toLowerCase().includes('password should be at least')) {
-      return 'A senha deve conter no mínimo 6 caracteres.';
+    if (message.includes('Password should be at least')) {
+      return 'A senha precisa ter no mínimo 6 caracteres.';
     }
-    if (msg.toLowerCase().includes('email rate limit exceeded')) {
-      return 'Limite de solicitações atingido. Por favor, aguarde um instante antes de tentar novamente.';
+    if (message.includes('Failed to fetch') || message.includes('NetworkError')) {
+      return 'Erro de conexão. Verifique sua internet ou tente novamente em instantes.';
     }
-    return msg || 'Ocorreu um erro ao processar sua solicitação. Tente novamente.';
+    return message || 'Ocorreu um erro durante a autenticação. Tente novamente.';
   };
 
-  const handleInvalidFormSubmit = (errors: any) => {
-    const firstErrKey = Object.keys(errors)[0];
-    if (firstErrKey && errors[firstErrKey]?.message) {
-      setErrorMsg(String(errors[firstErrKey]?.message));
-    }
-  };
-
-  const handleLoginSubmit = async (data: any) => {
+  const handleLoginSubmit = async (data: LoginFormData) => {
     setErrorMsg('');
     setSuccessMsg('');
     setLoading(true);
     try {
       await onLogin(data.email, data.password);
     } catch (err: any) {
-      setErrorMsg(formatAuthError(err, data.email));
+      setErrorMsg(formatAuthError(err));
     } finally {
       setLoading(false);
     }
   };
 
-  const handleSignUpSubmit = async (data: any) => {
+  const handleSignUpSubmit = async (data: SignUpFormData) => {
     setErrorMsg('');
     setSuccessMsg('');
     setLoading(true);
     try {
-      const res = await onSignUp(data.fullName, data.email, data.password);
-      if (res?.status === 'needs_confirmation') {
-        setSuccessMsg(`Cadastro realizado com sucesso! Enviamos um e-mail de confirmação para ${data.email}. Por favor, verifique sua caixa de entrada para ativar sua conta.`);
-      } else {
-        setSuccessMsg('Cadastro realizado com sucesso! Acessando sua conta...');
-      }
+      await onSignUp(data.email, data.password, data.fullName);
+      setSuccessMsg('Conta criada com sucesso! Redirecionando...');
     } catch (err: any) {
-      setErrorMsg(formatAuthError(err, data.email));
+      setErrorMsg(formatAuthError(err));
     } finally {
       setLoading(false);
     }
@@ -106,74 +104,70 @@ export function Login({ initialMode = 'login', onLogin, onSignUp, onOAuth, onRes
 
   const handleResetPasswordSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setErrorMsg('');
-    setSuccessMsg('');
     if (!resetEmail || !resetEmail.includes('@')) {
-      setErrorMsg('Por favor, informe um e-mail válido para redefinição de senha.');
+      setErrorMsg('Informe um e-mail válido para redefinir a senha.');
       return;
     }
+    setErrorMsg('');
+    setSuccessMsg('');
     setLoading(true);
     try {
       if (onResetPassword) {
         await onResetPassword(resetEmail);
       }
-      setSuccessMsg(`Instruções de redefinição enviadas para ${resetEmail}. Verifique sua caixa de entrada e pasta de spam.`);
-    } catch (err: any) {
-      setErrorMsg(formatAuthError(err, resetEmail));
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  /*
-  const handleOAuthClick = async (provider: 'google' | 'github') => {
-    setErrorMsg('');
-    setSuccessMsg('');
-    setLoading(true);
-    try {
-      await onOAuth(provider);
+      setSuccessMsg('E-mail de redefinição enviado! Verifique sua caixa de entrada.');
     } catch (err: any) {
       setErrorMsg(formatAuthError(err));
     } finally {
       setLoading(false);
     }
   };
-  */
+
+  const handleInvalidFormSubmit = (errors: any) => {
+    const firstError = Object.values(errors)[0] as any;
+    if (firstError?.message) {
+      setErrorMsg(firstError.message);
+    }
+  };
 
   return (
-    <div className="min-h-screen w-full flex flex-col items-center justify-center bg-slate-950 light:bg-slate-50 text-slate-100 light:text-slate-900 p-6 relative overflow-hidden font-sans">
+    <div className="min-h-screen w-full flex flex-col items-center justify-center bg-background text-foreground p-6 relative overflow-hidden font-sans transition-colors duration-200">
       {/* Luzes decorativas de fundo */}
       <div className="absolute top-[-20%] left-[-10%] w-[50%] h-[60%] rounded-full bg-brand-500/5 blur-[120px] pointer-events-none" />
       <div className="absolute bottom-[-20%] right-[-10%] w-[50%] h-[60%] rounded-full bg-indigo-500/5 blur-[120px] pointer-events-none" />
 
       <div className="w-full sm:w-[440px] max-w-full z-10 flex flex-col gap-6">
-        {onBack && (
-          <button 
-            onClick={onBack}
-            className="self-start text-[11px] font-semibold text-slate-400 hover:text-slate-200 flex items-center gap-1 transition-colors -mb-3 cursor-pointer select-none py-1.5 px-2 rounded-lg"
-          >
-            ← Voltar para o início
-          </button>
-        )}
+        <div className="flex items-center justify-between w-full">
+          {onBack ? (
+            <button 
+              onClick={onBack}
+              className="text-xs font-semibold text-muted-foreground hover:text-foreground flex items-center gap-1 transition-colors cursor-pointer select-none py-1.5 px-2 rounded-lg"
+            >
+              ← Voltar ao início
+            </button>
+          ) : <div />}
+          <ThemeToggle />
+        </div>
+
         {/* Cabeçalho */}
         <div className="text-center flex flex-col items-center">
           <VocentroLogo className="mb-3" showText={true} variant="vertical" />
-          <p className="text-xs text-slate-400 light:text-slate-600 mt-2 max-w-[340px] leading-relaxed">
+          <p className="text-xs text-muted-foreground mt-2 max-w-[340px] leading-relaxed">
             Sua carreira. Você no centro das melhores oportunidades do mercado profissional.
           </p>
         </div>
 
         {/* Card Principal */}
-        <div className="premium-card p-7 sm:p-8 rounded-[20px] relative w-full flex flex-col gap-5 bg-slate-900 light:bg-white border border-slate-800 light:border-slate-200 shadow-xl">
+        <div className="p-7 sm:p-8 rounded-[20px] relative w-full flex flex-col gap-5 bg-card border border-border shadow-xl">
           {errorMsg && (
-            <div className="p-4 rounded-[14px] bg-red-500/10 border border-red-500/20 flex items-start gap-3 text-red-400 text-xs leading-relaxed">
+            <div className="p-4 rounded-[14px] bg-red-500/10 border border-red-500/20 flex items-start gap-3 text-red-500 text-xs leading-relaxed">
               <AlertCircle size={17} className="shrink-0 mt-0.5" />
               <span>{errorMsg}</span>
             </div>
           )}
 
           {successMsg && (
-            <div className="p-4 rounded-[14px] bg-emerald-500/10 border border-emerald-500/20 flex items-start gap-3 text-emerald-400 text-xs leading-relaxed">
+            <div className="p-4 rounded-[14px] bg-emerald-500/10 border border-emerald-500/20 flex items-start gap-3 text-emerald-500 text-xs leading-relaxed">
               <CheckCircle2 size={17} className="shrink-0 mt-0.5" />
               <span>{successMsg}</span>
             </div>
@@ -183,26 +177,26 @@ export function Login({ initialMode = 'login', onLogin, onSignUp, onOAuth, onRes
             /* Formulário de Redefinição de Senha */
             <form onSubmit={handleResetPasswordSubmit} className="flex flex-col gap-4 w-full">
               <div className="flex flex-col gap-1">
-                <h3 className="text-sm font-bold text-slate-100 flex items-center gap-2">
-                  <KeyRound size={16} className="text-brand-400" />
+                <h3 className="text-sm font-bold text-foreground flex items-center gap-2">
+                  <KeyRound size={16} className="text-brand-500" />
                   Redefinir sua senha
                 </h3>
-                <p className="text-[11px] text-slate-400 leading-relaxed">
+                <p className="text-[11px] text-muted-foreground leading-relaxed">
                   Informe o e-mail cadastrado na plataforma para receber o link de redefinição de senha.
                 </p>
               </div>
 
               <div className="flex flex-col gap-1.5 w-full">
-                <label className="text-xs font-semibold text-slate-400 light:text-slate-600">E-mail cadastrado</label>
+                <label className="text-xs font-semibold text-muted-foreground">E-mail cadastrado</label>
                 <div className="relative w-full">
-                  <Mail size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500" />
+                  <Mail size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground" />
                   <input
                     type="email"
                     required
                     placeholder="voce@exemplo.com"
                     value={resetEmail}
                     onChange={(e) => setResetEmail(e.target.value)}
-                    className="w-full pl-11 pr-4 py-3 rounded-[14px] bg-slate-950/50 light:bg-slate-50 border border-slate-800 light:border-slate-200 focus:border-brand-accent outline-none text-sm text-slate-100 light:text-slate-900 placeholder:text-slate-500 transition-all"
+                    className="w-full pl-11 pr-4 py-3 rounded-[14px] bg-card border border-border focus:border-brand-500 outline-none text-sm text-foreground placeholder:text-muted-foreground transition-all"
                   />
                 </div>
               </div>
@@ -223,7 +217,7 @@ export function Login({ initialMode = 'login', onLogin, onSignUp, onOAuth, onRes
                   setErrorMsg('');
                   setSuccessMsg('');
                 }}
-                className="text-xs text-slate-400 hover:text-white transition-colors text-center cursor-pointer mt-1"
+                className="text-xs text-muted-foreground hover:text-foreground transition-colors text-center cursor-pointer mt-1"
               >
                 ← Voltar para a tela de login
               </button>
@@ -232,66 +226,66 @@ export function Login({ initialMode = 'login', onLogin, onSignUp, onOAuth, onRes
             /* Formulário Cadastro */
             <form onSubmit={signUpForm.handleSubmit(handleSignUpSubmit, handleInvalidFormSubmit)} className="flex flex-col gap-4 w-full">
               <div className="flex flex-col gap-1.5 w-full">
-                <label className="text-xs font-semibold text-slate-400 light:text-slate-600">Nome Completo</label>
+                <label className="text-xs font-semibold text-muted-foreground">Nome Completo</label>
                 <div className="relative w-full">
-                  <User size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500" />
+                  <User size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground" />
                   <input
                     type="text"
                     placeholder="Seu nome completo"
                     {...signUpForm.register('fullName')}
-                    className="w-full pl-11 pr-4 py-3 rounded-[14px] bg-slate-950/50 light:bg-slate-50 border border-slate-800 light:border-slate-200 focus:border-brand-accent outline-none text-sm text-slate-100 light:text-slate-900 placeholder:text-slate-500 transition-all"
+                    className="w-full pl-11 pr-4 py-3 rounded-[14px] bg-card border border-border focus:border-brand-500 outline-none text-sm text-foreground placeholder:text-muted-foreground transition-all"
                   />
                 </div>
                 {signUpForm.formState.errors.fullName && (
-                  <p className="text-[10px] text-red-400">{signUpForm.formState.errors.fullName.message}</p>
+                  <p className="text-[10px] text-red-500">{signUpForm.formState.errors.fullName.message}</p>
                 )}
               </div>
 
               <div className="flex flex-col gap-1.5 w-full">
-                <label className="text-xs font-semibold text-slate-400 light:text-slate-600">E-mail</label>
+                <label className="text-xs font-semibold text-muted-foreground">E-mail</label>
                 <div className="relative w-full">
-                  <Mail size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500" />
+                  <Mail size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground" />
                   <input
                     type="email"
                     placeholder="voce@exemplo.com"
                     {...signUpForm.register('email')}
-                    className="w-full pl-11 pr-4 py-3 rounded-[14px] bg-slate-950/50 light:bg-slate-50 border border-slate-800 light:border-slate-200 focus:border-brand-accent outline-none text-sm text-slate-100 light:text-slate-900 placeholder:text-slate-500 transition-all"
+                    className="w-full pl-11 pr-4 py-3 rounded-[14px] bg-card border border-border focus:border-brand-500 outline-none text-sm text-foreground placeholder:text-muted-foreground transition-all"
                   />
                 </div>
                 {signUpForm.formState.errors.email && (
-                  <p className="text-[10px] text-red-400">{signUpForm.formState.errors.email.message}</p>
+                  <p className="text-[10px] text-red-500">{signUpForm.formState.errors.email.message}</p>
                 )}
               </div>
 
               <div className="flex flex-col gap-1.5 w-full">
-                <label className="text-xs font-semibold text-slate-400 light:text-slate-600">Senha</label>
+                <label className="text-xs font-semibold text-muted-foreground">Senha</label>
                 <div className="relative w-full">
-                  <Lock size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500" />
+                  <Lock size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground" />
                   <input
                     type="password"
                     placeholder="••••••••"
                     {...signUpForm.register('password')}
-                    className="w-full pl-11 pr-4 py-3 rounded-[14px] bg-slate-950/50 light:bg-slate-50 border border-slate-800 light:border-slate-200 focus:border-brand-accent outline-none text-sm text-slate-100 light:text-slate-900 placeholder:text-slate-500 transition-all"
+                    className="w-full pl-11 pr-4 py-3 rounded-[14px] bg-card border border-border focus:border-brand-500 outline-none text-sm text-foreground placeholder:text-muted-foreground transition-all"
                   />
                 </div>
                 {signUpForm.formState.errors.password && (
-                  <p className="text-[10px] text-red-400">{signUpForm.formState.errors.password.message}</p>
+                  <p className="text-[10px] text-red-500">{signUpForm.formState.errors.password.message}</p>
                 )}
               </div>
 
               <div className="flex flex-col gap-1.5 w-full">
-                <label className="text-xs font-semibold text-slate-400 light:text-slate-600">Confirmar Senha</label>
+                <label className="text-xs font-semibold text-muted-foreground">Confirmar Senha</label>
                 <div className="relative w-full">
-                  <Lock size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500" />
+                  <Lock size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground" />
                   <input
                     type="password"
                     placeholder="••••••••"
                     {...signUpForm.register('confirmPassword')}
-                    className="w-full pl-11 pr-4 py-3 rounded-[14px] bg-slate-950/50 light:bg-slate-50 border border-slate-800 light:border-slate-200 focus:border-brand-accent outline-none text-sm text-slate-100 light:text-slate-900 placeholder:text-slate-500 transition-all"
+                    className="w-full pl-11 pr-4 py-3 rounded-[14px] bg-card border border-border focus:border-brand-500 outline-none text-sm text-foreground placeholder:text-muted-foreground transition-all"
                   />
                 </div>
                 {signUpForm.formState.errors.confirmPassword && (
-                  <p className="text-[10px] text-red-400">{signUpForm.formState.errors.confirmPassword.message}</p>
+                  <p className="text-[10px] text-red-500">{signUpForm.formState.errors.confirmPassword.message}</p>
                 )}
               </div>
 
@@ -308,24 +302,24 @@ export function Login({ initialMode = 'login', onLogin, onSignUp, onOAuth, onRes
             /* Formulário Login */
             <form onSubmit={loginForm.handleSubmit(handleLoginSubmit, handleInvalidFormSubmit)} className="flex flex-col gap-4 w-full">
               <div className="flex flex-col gap-1.5 w-full">
-                <label className="text-xs font-semibold text-slate-400 light:text-slate-600">E-mail</label>
+                <label className="text-xs font-semibold text-muted-foreground">E-mail</label>
                 <div className="relative w-full">
-                  <Mail size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500" />
+                  <Mail size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground" />
                   <input
                     type="email"
                     placeholder="voce@exemplo.com"
                     {...loginForm.register('email')}
-                    className="w-full pl-11 pr-4 py-3 rounded-[14px] bg-slate-950/50 light:bg-slate-50 border border-slate-800 light:border-slate-200 focus:border-brand-accent outline-none text-sm text-slate-100 light:text-slate-900 placeholder:text-slate-500 transition-all"
+                    className="w-full pl-11 pr-4 py-3 rounded-[14px] bg-card border border-border focus:border-brand-500 outline-none text-sm text-foreground placeholder:text-muted-foreground transition-all"
                   />
                 </div>
                 {loginForm.formState.errors.email && (
-                  <p className="text-[10px] text-red-400">{loginForm.formState.errors.email.message}</p>
+                  <p className="text-[10px] text-red-500">{loginForm.formState.errors.email.message}</p>
                 )}
               </div>
 
               <div className="flex flex-col gap-1.5 w-full">
                 <div className="flex justify-between items-center w-full">
-                  <label className="text-xs font-semibold text-slate-400 light:text-slate-600">Senha</label>
+                  <label className="text-xs font-semibold text-muted-foreground">Senha</label>
                   <button
                     type="button"
                     onClick={() => {
@@ -334,22 +328,22 @@ export function Login({ initialMode = 'login', onLogin, onSignUp, onOAuth, onRes
                       setErrorMsg('');
                       setSuccessMsg('');
                     }}
-                    className="text-[11px] text-brand-400 hover:text-brand-300 hover:underline cursor-pointer font-medium"
+                    className="text-[11px] text-brand-500 hover:underline cursor-pointer font-medium"
                   >
                     Esqueceu a senha?
                   </button>
                 </div>
                 <div className="relative w-full">
-                  <Lock size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500" />
+                  <Lock size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground" />
                   <input
                     type="password"
                     placeholder="••••••••"
                     {...loginForm.register('password')}
-                    className="w-full pl-11 pr-4 py-3 rounded-[14px] bg-slate-950/50 light:bg-slate-50 border border-slate-800 light:border-slate-200 focus:border-brand-accent outline-none text-sm text-slate-100 light:text-slate-900 placeholder:text-slate-500 transition-all"
+                    className="w-full pl-11 pr-4 py-3 rounded-[14px] bg-card border border-border focus:border-brand-500 outline-none text-sm text-foreground placeholder:text-muted-foreground transition-all"
                   />
                 </div>
                 {loginForm.formState.errors.password && (
-                  <p className="text-[10px] text-red-400">{loginForm.formState.errors.password.message}</p>
+                  <p className="text-[10px] text-red-500">{loginForm.formState.errors.password.message}</p>
                 )}
               </div>
 
@@ -369,9 +363,9 @@ export function Login({ initialMode = 'login', onLogin, onSignUp, onOAuth, onRes
             <div className="w-full space-y-4 pt-2">
               <div className="relative flex items-center justify-center">
                 <div className="absolute inset-0 flex items-center">
-                  <div className="w-full border-t border-slate-800" />
+                  <div className="w-full border-t border-border" />
                 </div>
-                <div className="relative bg-[#121929] px-3 text-[10px] text-slate-400 uppercase tracking-wider font-semibold">
+                <div className="relative bg-card px-3 text-[10px] text-muted-foreground uppercase tracking-wider font-semibold">
                   ou continue com
                 </div>
               </div>
@@ -389,7 +383,7 @@ export function Login({ initialMode = 'login', onLogin, onSignUp, onOAuth, onRes
                   }
                 }}
                 disabled={loading}
-                className="w-full py-3 px-4 rounded-[14px] bg-slate-900 hover:bg-slate-850 border border-slate-800 hover:border-slate-700 text-slate-200 font-semibold text-xs transition-all flex items-center justify-center gap-3 cursor-pointer shadow-sm disabled:opacity-50 min-h-[44px]"
+                className="w-full py-3 px-4 rounded-[14px] bg-card/80 hover:bg-card border border-border text-foreground font-semibold text-xs transition-all flex items-center justify-center gap-3 cursor-pointer shadow-sm disabled:opacity-50 min-h-[44px]"
               >
                 <svg className="w-4 h-4 shrink-0" viewBox="0 0 24 24">
                   <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" />
@@ -402,12 +396,11 @@ export function Login({ initialMode = 'login', onLogin, onSignUp, onOAuth, onRes
             </div>
           )}
 
-
         </div>
 
         {/* Footer Link */}
         {!isResetPasswordMode && (
-          <p className="text-center text-xs text-slate-400 font-sans">
+          <p className="text-center text-xs text-muted-foreground font-sans">
             {isSignUp ? 'Já tem uma conta?' : 'Ainda não possui uma conta?'}
             <button
               onClick={() => {
@@ -415,7 +408,7 @@ export function Login({ initialMode = 'login', onLogin, onSignUp, onOAuth, onRes
                 setErrorMsg('');
                 setSuccessMsg('');
               }}
-              className="text-brand-accent hover:underline font-semibold ml-1.5 focus:outline-none cursor-pointer"
+              className="text-brand-500 hover:underline font-semibold ml-1.5 focus:outline-none cursor-pointer"
             >
               {isSignUp ? 'Faça login' : 'Cadastre-se agora gratuitamente'}
             </button>

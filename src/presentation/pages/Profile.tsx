@@ -567,23 +567,23 @@ export function Profile({
           <div className="text-left">
             <span className="text-xs font-bold text-slate-900 dark:text-slate-100 block leading-tight">Perfil {completeness}% Completo</span>
             {completeness === 100 ? (
-              <span className="text-[10px] text-[#22C7A8] block mt-0.5 font-medium">Perfil totalmente otimizado! 🔥</span>
+              <span className="text-[10px] text-emerald-500 block mt-0.5 font-medium">Perfil totalmente otimizado! 🔥</span>
             ) : (
-              <span className="text-[10px] text-slate-400 block mt-0.5">Em progresso</span>
+              <span className="text-[10px] text-muted-foreground block mt-0.5">Em progresso</span>
             )}
           </div>
         </div>
       </div>
 
       {/* Top AI Guidance Banner */}
-      <div className="bg-white dark:bg-[#162032] border border-slate-200/90 dark:border-slate-800/90 rounded-2xl p-6 shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-4 w-full min-w-0">
+      <div className="bg-card border border-border rounded-2xl p-6 shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-4 w-full min-w-0">
         <div className="flex items-start gap-3.5">
-          <div className="w-9 h-9 rounded-xl bg-blue-50 dark:bg-blue-500/10 text-[#4F8EF7] flex items-center justify-center shrink-0 mt-0.5">
+          <div className="w-9 h-9 rounded-xl bg-brand-500/10 border border-brand-500/20 text-brand-500 flex items-center justify-center shrink-0 mt-0.5">
             <Sparkles size={18} strokeWidth={1.75} />
           </div>
           <div>
             <div className="flex items-center gap-2">
-              <span className="text-xs font-semibold text-[#4F8EF7] uppercase tracking-wider">Recomendação da IA</span>
+              <span className="text-xs font-semibold text-brand-500 uppercase tracking-wider">Recomendação da IA</span>
               <Badge variant="premium" size="sm">Otimizador de Perfil</Badge>
             </div>
             <h2 className="text-base font-semibold text-slate-900 dark:text-slate-100 mt-1">

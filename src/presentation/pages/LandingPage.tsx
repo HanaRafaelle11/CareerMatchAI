@@ -110,7 +110,7 @@ export function LandingPage({ onNavigateToAuth }: LandingPageProps) {
       />
 
       {/* ── HEADER / NAVBAR ── */}
-      <header className="fixed top-0 left-0 right-0 h-16 bg-card/95 backdrop-blur-md border-b border-border flex items-center justify-between px-4 sm:px-6 z-50 transition-colors">
+      <header className="fixed top-0 left-0 right-0 h-16 bg-card/95 backdrop-blur-md border-b border-border text-foreground flex items-center justify-between px-4 sm:px-6 z-50 transition-colors">
         <div className="flex items-center gap-2 cursor-pointer" onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}>
           <VocentroLogo className="h-7" showText={true} />
         </div>

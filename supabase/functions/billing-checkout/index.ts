@@ -58,7 +58,7 @@ class AsaasEdgeAdapter {
     gatewayCustomerId: string;
     planSlug: string;
     amount: number;
-    billingCycle: 'MONTHLY' | 'YEARLY';
+    billingCycle: 'WEEKLY' | 'MONTHLY';
     billingType: 'PIX' | 'CREDIT_CARD' | 'BOLETO';
     creditCard?: any;
     creditCardHolderInfo?: any;
@@ -71,7 +71,7 @@ class AsaasEdgeAdapter {
       billingType: params.billingType,
       value: params.amount,
       nextDueDate: today,
-      cycle: params.billingCycle === 'YEARLY' ? 'YEARLY' : 'MONTHLY',
+      cycle: params.billingCycle === 'WEEKLY' ? 'WEEKLY' : 'MONTHLY',
       description: `Assinatura Vocentro - Plano ${params.planSlug.toUpperCase()}`,
       externalReference: (params as any).userId
     };
@@ -239,7 +239,7 @@ serve(async (req: Request) => {
     // 2. Consultar Plano e Preço
     let { data: planData, error: planError } = await adminClient
       .from('plans')
-      .select('id, slug, name, price_monthly, price_yearly, active')
+      .select('id, slug, name, price_weekly, price_monthly, active')
       .eq('slug', cleanPlanSlug)
       .maybeSingle();
 
@@ -252,15 +252,15 @@ serve(async (req: Request) => {
       console.warn(`[billing-checkout] Plano '${cleanPlanSlug}' não encontrado ou inativo. Executando auto-seed dos planos padrão...`);
       
       const defaultPlans = [
-        { slug: 'free', name: 'Plano Gratuito', price_monthly: 0.00, price_yearly: 0.00, active: true },
-        { slug: 'pro', name: 'Plano Profissional', price_monthly: 29.90, price_yearly: 299.00, active: true },
-        { slug: 'enterprise', name: 'Plano Corporativo', price_monthly: 99.90, price_yearly: 999.00, active: true }
+        { slug: 'free', name: 'Plano Gratuito', price_weekly: 0.00, price_monthly: 0.00, active: true },
+        { slug: 'pro', name: 'Plano Profissional', price_weekly: 9.90, price_monthly: 29.90, active: true },
+        { slug: 'enterprise', name: 'Plano Corporativo', price_weekly: 29.90, price_monthly: 99.90, active: true }
       ];
 
       const { data: seededPlans, error: seedError } = await adminClient
         .from('plans')
         .upsert(defaultPlans, { onConflict: 'slug' })
-        .select('id, slug, name, price_monthly, price_yearly, active');
+        .select('id, slug, name, price_weekly, price_monthly, active');
 
       if (seedError) {
         console.error('[billing-checkout] Erro ao fazer auto-seed dos planos:', seedError);
@@ -271,10 +271,10 @@ serve(async (req: Request) => {
 
     // Fallback de resiliência em memória para garantir continuidade do checkout caso a tabela 'plans' ainda não exista no DB
     if (!planData || !planData.active) {
-      const fallbackPlans: Record<string, { id?: string; slug: string; name: string; price_monthly: number; price_yearly: number; active: boolean }> = {
-        free: { slug: 'free', name: 'Plano Gratuito', price_monthly: 0.00, price_yearly: 0.00, active: true },
-        pro: { slug: 'pro', name: 'Plano Profissional', price_monthly: 29.90, price_yearly: 299.00, active: true },
-        enterprise: { slug: 'enterprise', name: 'Plano Corporativo', price_monthly: 99.90, price_yearly: 999.00, active: true }
+      const fallbackPlans: Record<string, { id?: string; slug: string; name: string; price_weekly: number; price_monthly: number; active: boolean }> = {
+        free: { slug: 'free', name: 'Plano Gratuito', price_weekly: 0.00, price_monthly: 0.00, active: true },
+        pro: { slug: 'pro', name: 'Plano Profissional', price_weekly: 9.90, price_monthly: 29.90, active: true },
+        enterprise: { slug: 'enterprise', name: 'Plano Corporativo', price_weekly: 29.90, price_monthly: 99.90, active: true }
       };
 
       if (fallbackPlans[cleanPlanSlug]) {
@@ -291,7 +291,7 @@ serve(async (req: Request) => {
       );
     }
 
-    const amount = billingCycle === 'YEARLY' ? Number(planData.price_yearly) : Number(planData.price_monthly);
+    const amount = billingCycle === 'WEEKLY' ? (Number((planData as any).price_weekly) || 9.90) : Number(planData.price_monthly);
 
     // 2.5 Verificar se já existe cobrança PENDENTE ou ATIVA para reaproveitamento e prevenção de duplicados
     const { data: existingSub } = await adminClient
@@ -398,8 +398,8 @@ serve(async (req: Request) => {
     // 4. Salvar Assinatura no Supabase (Mês de Calendário Real)
     const now = new Date();
     const periodEnd = new Date(now);
-    if (billingCycle === 'YEARLY') {
-      periodEnd.setFullYear(periodEnd.getFullYear() + 1);
+    if (billingCycle === 'WEEKLY') {
+      periodEnd.setDate(periodEnd.getDate() + 7);
     } else {
       periodEnd.setMonth(periodEnd.getMonth() + 1);
     }

@@ -28,6 +28,8 @@ export function LandingPage({ onNavigateToAuth }: LandingPageProps) {
   const [activeFaq, setActiveFaq] = useState<number | null>(null);
   const [transparencyTab, setTransparencyTab] = useState<'data' | 'flow' | 'security'>('data');
 
+  const [pricingCycle, setPricingCycle] = useState<'WEEKLY' | 'MONTHLY'>('MONTHLY');
+
   const toggleFaq = (index: number) => {
     setActiveFaq(activeFaq === index ? null : index);
   };
@@ -486,13 +488,38 @@ export function LandingPage({ onNavigateToAuth }: LandingPageProps) {
 
         {/* ── 5. PLANOS ── */}
         <section id="planos" className="py-16 px-6 max-w-7xl mx-auto border-t border-border space-y-10">
-          <div className="text-center space-y-2 max-w-xl mx-auto">
+          <div className="text-center space-y-3 max-w-xl mx-auto">
             <h2 className="text-2xl sm:text-3xl font-extrabold font-display text-foreground">
               Planos acessíveis para sua carreira
             </h2>
             <p className="text-sm text-muted-foreground">
               Comece gratuitamente ou evolua com recursos avançados de inteligência artificial.
             </p>
+
+            {/* Seletor de Ciclo de Cobrança Semanal vs Mensal */}
+            <div className="inline-flex items-center bg-card p-1 rounded-2xl border border-border shadow-xs mt-2 gap-1">
+              <button
+                type="button"
+                onClick={() => setPricingCycle('WEEKLY')}
+                className={`px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                  pricingCycle === 'WEEKLY' ? 'bg-brand-500 text-white shadow' : 'text-muted-foreground hover:text-foreground'
+                }`}
+              >
+                Semanal (R$ 9,90/sem)
+              </button>
+              <button
+                type="button"
+                onClick={() => setPricingCycle('MONTHLY')}
+                className={`px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
+                  pricingCycle === 'MONTHLY' ? 'bg-brand-500 text-white shadow' : 'text-muted-foreground hover:text-foreground'
+                }`}
+              >
+                <span>Mensal (R$ 29,90/mês)</span>
+                <span className="text-[9px] bg-emerald-500 text-white font-black px-2 py-0.5 rounded-full uppercase">
+                  Mais Vantajoso (Economize 30%)
+                </span>
+              </button>
+            </div>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-4xl mx-auto">
@@ -528,13 +555,17 @@ export function LandingPage({ onNavigateToAuth }: LandingPageProps) {
             {/* Plano Pro */}
             <div className="p-8 rounded-2xl bg-card border-2 border-brand-500 space-y-6 flex flex-col justify-between relative overflow-hidden shadow-md">
               <div className="absolute top-4 right-4 px-2.5 py-0.5 rounded-full bg-brand-500/20 border border-brand-500/30 text-brand-500 text-[10px] font-bold uppercase font-mono">
-                Recomendado
+                {pricingCycle === 'MONTHLY' ? 'Mais Popular' : 'Flexível'}
               </div>
               <div className="space-y-4">
                 <h3 className="text-lg font-bold text-foreground">Pro</h3>
                 <div className="flex items-baseline gap-1">
-                  <span className="text-3xl font-black text-foreground">R$ 29</span>
-                  <span className="text-xs text-muted-foreground">/mês</span>
+                  <span className="text-3xl font-black text-foreground">
+                    {pricingCycle === 'WEEKLY' ? 'R$ 9,90' : 'R$ 29,90'}
+                  </span>
+                  <span className="text-xs text-muted-foreground">
+                    /{pricingCycle === 'WEEKLY' ? 'semana' : 'mês'}
+                  </span>
                 </div>
                 <p className="text-xs text-muted-foreground">Acelerador completo de carreira com treinos de entrevista ilimitados.</p>
                 <ul className="space-y-2.5 text-xs text-muted-foreground pt-2">
@@ -547,13 +578,16 @@ export function LandingPage({ onNavigateToAuth }: LandingPageProps) {
                   <li className="flex items-center gap-2">
                     <Check size={14} className="text-emerald-500" /> Treinador de entrevistas com IA ilimitado
                   </li>
+                  <li className="flex items-center gap-2">
+                    <Check size={14} className="text-emerald-500" /> Exportação ilimitada de PDF em formato ATS
+                  </li>
                 </ul>
               </div>
               <button
                 onClick={() => onNavigateToAuth('signup')}
                 className="w-full py-3 text-xs font-bold text-white bg-brand-500 hover:bg-brand-600 rounded-xl transition-colors cursor-pointer shadow-md"
               >
-                Assinar Plano Pro
+                Assinar Plano Pro ({pricingCycle === 'WEEKLY' ? 'R$ 9,90/semana' : 'R$ 29,90/mês'})
               </button>
             </div>
           </div>

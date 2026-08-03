@@ -144,6 +144,11 @@ export function CustomerPortal({ userId, onOpenCheckout }: CustomerPortalProps) 
             }`}>
               {subscription?.status === 'active' ? '🟢 Ativo' : subscription?.status === 'pending' ? '🟡 Pagamento Pendente' : subscription?.status === 'canceled' ? '⚪ Cancelado' : 'Free'}
             </span>
+            {subscription?.billing_cycle && (
+              <span className="text-[10px] text-slate-300 font-medium px-2 py-0.5 rounded bg-slate-800/80 border border-slate-700">
+                {subscription.billing_cycle === 'WEEKLY' ? 'Ciclo Semanal (R$ 9,90/sem)' : 'Ciclo Mensal (R$ 29,90/mês)'}
+              </span>
+            )}
           </div>
 
           {subscription?.current_period_end && (

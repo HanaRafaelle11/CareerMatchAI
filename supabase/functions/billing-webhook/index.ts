@@ -112,7 +112,8 @@ serve(async (req: Request) => {
 
       if (targetUserId) {
         const now = new Date();
-        const periodDays = targetSub?.billing_cycle === 'YEARLY' ? 365 : 30;
+        const cycle = targetSub?.billing_cycle || 'MONTHLY';
+        const periodDays = cycle === 'WEEKLY' ? 7 : (cycle === 'YEARLY' ? 365 : 30);
         const periodEnd = new Date(now.getTime() + periodDays * 24 * 60 * 60 * 1000);
 
         // Buscar plano Pro para associar caso seja uma nova assinatura

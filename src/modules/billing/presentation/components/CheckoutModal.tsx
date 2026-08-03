@@ -16,7 +16,7 @@ interface CheckoutModalProps {
 }
 
 export function CheckoutModal({ isOpen, onClose, userId, userEmail, userName }: CheckoutModalProps) {
-  const [billingCycle, setBillingCycle] = useState<BillingCycle>('YEARLY');
+  const [billingCycle, setBillingCycle] = useState<BillingCycle>('MONTHLY');
   const [billingType, setBillingType] = useState<BillingType>('PIX');
 
   // Form Fields
@@ -253,27 +253,27 @@ export function CheckoutModal({ isOpen, onClose, userId, userEmail, userName }: 
                 </h2>
               </div>
 
-              {/* Seletor de Ciclo (Mensal / Anual) */}
-              <div className="flex items-center bg-card p-1 rounded-xl border border-border shrink-0">
+              {/* Seletor de Ciclo (Semanal / Mensal) */}
+              <div className="flex items-center bg-card p-1 rounded-xl border border-border shrink-0 gap-1">
                 <button
                   type="button"
-                  onClick={() => setBillingCycle('MONTHLY')}
+                  onClick={() => setBillingCycle('WEEKLY')}
                   className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
-                    billingCycle === 'MONTHLY' ? 'bg-brand-500 text-white shadow' : 'text-muted-foreground hover:text-foreground'
+                    billingCycle === 'WEEKLY' ? 'bg-brand-500 text-white shadow' : 'text-muted-foreground hover:text-foreground'
                   }`}
                 >
-                  Mensal (R$ 29,90)
+                  Semanal (R$ 9,90/sem)
                 </button>
                 <button
                   type="button"
-                  onClick={() => setBillingCycle('YEARLY')}
-                  className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer flex items-center gap-1 ${
-                    billingCycle === 'YEARLY' ? 'bg-brand-500 text-white shadow' : 'text-muted-foreground hover:text-foreground'
+                  onClick={() => setBillingCycle('MONTHLY')}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
+                    billingCycle === 'MONTHLY' ? 'bg-brand-500 text-white shadow' : 'text-muted-foreground hover:text-foreground'
                   }`}
                 >
-                  <span>Anual (R$ 299)</span>
+                  <span>Mensal (R$ 29,90/mês)</span>
                   <span className="text-[9px] bg-emerald-500 text-white font-black px-1.5 py-0.5 rounded-full uppercase">
-                    16% OFF
+                    Mais Vantajoso (Economize 30%)
                   </span>
                 </button>
               </div>
@@ -501,7 +501,7 @@ export function CheckoutModal({ isOpen, onClose, userId, userEmail, userName }: 
                   </>
                 ) : (
                   <>
-                    <span>Confirmar Assinatura Pro — {billingCycle === 'YEARLY' ? 'R$ 299,00/ano' : 'R$ 29,90/mês'}</span>
+                    <span>Confirmar Assinatura Pro — {billingCycle === 'WEEKLY' ? 'R$ 9,90/semana' : 'R$ 29,90/mês'}</span>
                     <ArrowRight size={18} />
                   </>
                 )}

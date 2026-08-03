@@ -40,7 +40,7 @@ export const PaymentStatus = {
 } as const;
 export type PaymentStatus = typeof PaymentStatus[keyof typeof PaymentStatus];
 
-export type BillingCycle = 'MONTHLY' | 'YEARLY';
+export type BillingCycle = 'WEEKLY' | 'MONTHLY';
 
 export interface PaymentCustomer {
   id: string;
@@ -56,8 +56,9 @@ export interface Plan {
   id: string;
   slug: string;
   name: string;
+  priceWeekly?: number;
   priceMonthly: number;
-  priceYearly: number;
+  priceYearly?: number;
   active: boolean;
   createdAt: string;
   updatedAt: string;

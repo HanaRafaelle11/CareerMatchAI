@@ -13,7 +13,7 @@ import {
   Flame, Sparkles, AlertCircle, Clock, Plus, Trash2, 
   X, Layout, AlertTriangle,
   CheckSquare, Square, BookOpen, Target, Loader2,
-  Calendar, UserCheck, MessageSquare, ShieldAlert, Archive, Send
+  Calendar, UserCheck, MessageSquare, ShieldAlert, Archive, Send, RefreshCcw
 } from 'lucide-react';
 import { Badge } from '../components/ds';
 import { tracker } from '../../infrastructure/analytics/tracker';
@@ -94,6 +94,7 @@ export function StrategyPage({
 
   const [_intelSubTab, _setIntelSubTab] = useState<'companies' | 'diary'>('companies');
   const [showArchived, setShowArchived] = useState(false);
+  const [showChoiceStep, setShowChoiceStep] = useState(true);
 
   // Modals for confirmation
   const [backwardConfirmApp, setBackwardConfirmApp] = useState<{ app: Application; targetStatus: string } | null>(null);
@@ -797,18 +798,73 @@ export function StrategyPage({
       </div>
 
       {/* MODALS */}
-      {/* 1. Modal: Candidatura Manual */}
+      {/* 1. Modal: Escolha Inicial ou Formulário de Candidatura Manual (Item 12) */}
       {showAddForm && (
         <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
           <CardGlass className="w-full max-w-md min-w-[320px] sm:min-w-[400px] space-y-6 relative border border-slate-800">
-            <button onClick={() => setShowAddForm(false)} className="absolute top-4 right-4 text-slate-500 hover:text-slate-300">
+            <button onClick={() => { setShowAddForm(false); setShowChoiceStep(true); }} className="absolute top-4 right-4 text-slate-500 hover:text-slate-300">
               <X size={18} />
             </button>
-            <div>
-              <h3 className="font-display font-bold text-lg text-slate-200">Acompanhar Nova Vaga</h3>
-              <p className="text-xs text-slate-500 mt-1">Registre a empresa e o cargo no Pipeline.</p>
-            </div>
-            <form onSubmit={handleCreateManualApp} className="space-y-4">
+            {showChoiceStep ? (
+              <div className="space-y-4">
+                <div>
+                  <h3 className="font-display font-bold text-lg text-slate-200">Como deseja adicionar a candidatura?</h3>
+                  <p className="text-xs text-slate-400 mt-1">Escolha o melhor método para cadastrar a oportunidade no seu pipeline.</p>
+                </div>
+                <div className="space-y-3 pt-2">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setShowAddForm(false);
+                      _setActiveTab('match');
+                    }}
+                    className="w-full p-4 rounded-2xl bg-gradient-to-r from-brand-950/60 to-indigo-950/60 border border-brand-500/40 hover:border-brand-400 text-left transition-all group flex items-start gap-3.5 cursor-pointer"
+                  >
+                    <div className="p-2.5 rounded-xl bg-brand-500/20 text-brand-300 shrink-0 mt-0.5">
+                      <Sparkles size={20} />
+                    </div>
+                    <div>
+                      <strong className="text-xs font-bold text-slate-100 group-hover:text-brand-300 block">
+                        🔍 Buscar Vaga & Calcular Match (Inteligente)
+                      </strong>
+                      <span className="text-[11px] text-slate-400 block mt-0.5 leading-snug">
+                        Explore nosso catálogo de vagas ou cole um link para calcular a compatibilidade técnica com seu currículo.
+                      </span>
+                    </div>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setShowChoiceStep(false)}
+                    className="w-full p-4 rounded-2xl bg-slate-900/80 border border-slate-800 hover:border-slate-700 text-left transition-all group flex items-start gap-3.5 cursor-pointer"
+                  >
+                    <div className="p-2.5 rounded-xl bg-slate-800 text-slate-300 shrink-0 mt-0.5">
+                      <Plus size={20} />
+                    </div>
+                    <div>
+                      <strong className="text-xs font-bold text-slate-200 group-hover:text-slate-100 block">
+                        📝 Adicionar Candidatura Manualmente
+                      </strong>
+                      <span className="text-[11px] text-slate-400 block mt-0.5 leading-snug">
+                        Preencha o formulário rápido para vagas já em andamento fora da plataforma (sem cálculo de Match).
+                      </span>
+                    </div>
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <div>
+                <div className="flex items-center justify-between">
+                  <h3 className="font-display font-bold text-lg text-slate-200">Acompanhar Nova Vaga Manual</h3>
+                  <button type="button" onClick={() => setShowChoiceStep(true)} className="text-[11px] text-brand-400 hover:underline">
+                    ← Voltar às opções
+                  </button>
+                </div>
+                <p className="text-xs text-slate-500 mt-1">Registre a empresa e o cargo no Pipeline.</p>
+              </div>
+            )}
+            {!showChoiceStep && (
+              <form onSubmit={handleCreateManualApp} className="space-y-4">
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-1">
                   <label className="text-xs font-semibold text-slate-400">Empresa</label>
@@ -877,7 +933,8 @@ export function StrategyPage({
                   Adicionar ao Pipeline
                 </button>
               </div>
-            </form>
+              </form>
+            )}
           </CardGlass>
         </div>
       )}
@@ -1032,20 +1089,45 @@ export function StrategyPage({
             </button>
           </div>
 
-          {/* Botão de Candidatura Rápida */}
-          {ApplicationPipelineService.getCleanStatus(selectedApp.status) !== 'applied' &&
-           ApplicationPipelineService.getCleanStatus(selectedApp.status) !== 'hr' &&
-           ApplicationPipelineService.getCleanStatus(selectedApp.status) !== 'interview' &&
-           ApplicationPipelineService.getCleanStatus(selectedApp.status) !== 'offer' &&
-           ApplicationPipelineService.getCleanStatus(selectedApp.status) !== 'hired' && (
-            <button
-              type="button"
-              onClick={() => handleQuickStatusChange(selectedApp, 'applied')}
-              className="w-full py-2.5 px-4 rounded-xl bg-gradient-to-r from-emerald-600 via-teal-600 to-emerald-500 hover:from-emerald-500 hover:to-teal-400 text-white font-bold text-xs flex items-center justify-center gap-2 shadow-lg cursor-pointer transition-all border border-emerald-400/30"
-            >
-              <Send size={15} />
-              <span>Informar que me candidatei a esta vaga</span>
-            </button>
+          {/* Item 13: Tratar Vagas Arquivadas com Opção de Reativação em vez de Formulário Ativo */}
+          {ApplicationPipelineService.getCleanStatus(selectedApp.status) === 'rejected' ? (
+            <div className="p-4 rounded-2xl bg-red-950/20 border border-red-500/30 space-y-3">
+              <div className="flex items-center gap-2 text-red-400 font-bold text-xs">
+                <Archive size={16} />
+                <span>Vaga arquivada no histórico de candidaturas</span>
+              </div>
+              {selectedApp.rejectionReason && (
+                <p className="text-xs text-slate-300">
+                  Motivo da recusa informado: <strong className="text-red-300">{selectedApp.rejectionReason}</strong>
+                </p>
+              )}
+              <button
+                type="button"
+                onClick={() => handleQuickStatusChange(selectedApp, 'applied')}
+                className="w-full py-2.5 px-4 rounded-xl bg-gradient-to-r from-emerald-600 via-teal-600 to-emerald-500 hover:from-emerald-500 hover:to-teal-400 text-white font-bold text-xs flex items-center justify-center gap-2 shadow-lg cursor-pointer transition-all border border-emerald-400/30"
+              >
+                <RefreshCcw size={15} />
+                <span>Reativar vaga e reenviar para o Kanban</span>
+              </button>
+            </div>
+          ) : (
+            <>
+              {/* Botão de Candidatura Rápida */}
+              {ApplicationPipelineService.getCleanStatus(selectedApp.status) !== 'applied' &&
+               ApplicationPipelineService.getCleanStatus(selectedApp.status) !== 'hr' &&
+               ApplicationPipelineService.getCleanStatus(selectedApp.status) !== 'interview' &&
+               ApplicationPipelineService.getCleanStatus(selectedApp.status) !== 'offer' &&
+               ApplicationPipelineService.getCleanStatus(selectedApp.status) !== 'hired' && (
+                <button
+                  type="button"
+                  onClick={() => handleQuickStatusChange(selectedApp, 'applied')}
+                  className="w-full py-2.5 px-4 rounded-xl bg-gradient-to-r from-emerald-600 via-teal-600 to-emerald-500 hover:from-emerald-500 hover:to-teal-400 text-white font-bold text-xs flex items-center justify-center gap-2 shadow-lg cursor-pointer transition-all border border-emerald-400/30"
+                >
+                  <Send size={15} />
+                  <span>Informar que me candidatei a esta vaga</span>
+                </button>
+              )}
+            </>
           )}
 
           {/* Form de Detalhes Estruturados */}
@@ -1285,8 +1367,8 @@ export function StrategyPage({
                     {/* Header da Coluna com Métricas */}
                     <div className="border-b border-border/80 pb-2 space-y-1">
                       <div className="flex justify-between items-center">
-                        <h3 className="font-bold text-xs text-foreground truncate max-w-[110px]">{col.title}</h3>
-                        <span className="text-[10px] px-2 py-0.5 rounded-full bg-muted text-muted-foreground font-extrabold">
+                        <h3 className="font-extrabold text-xs text-foreground leading-tight">{col.title}</h3>
+                        <span className="text-[10px] px-2 py-0.5 rounded-full bg-muted text-muted-foreground font-extrabold ml-1 shrink-0">
                           {colApps.length}
                         </span>
                       </div>
@@ -1305,6 +1387,7 @@ export function StrategyPage({
                       ) : (
                         colApps.map(app => {
                           const matchScore = getJobMatchScore(app.jobId);
+                          const isManualApp = app.sourcePlatform === 'manual' || (app as any).isManual || app.sourcePlatform === 'web';
                           return (
                             <CardGlass
                               key={app.id}
@@ -1325,9 +1408,15 @@ export function StrategyPage({
                                   <h4 className="font-bold text-foreground truncate text-xs">{app.jobTitle}</h4>
                                   <span className="text-[10px] text-muted-foreground block truncate">{app.companyName}</span>
                                 </div>
-                                <span className="text-[9px] px-1.5 py-0.5 rounded font-extrabold bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 shrink-0">
-                                  {matchScore}%
-                                </span>
+                                {isManualApp ? (
+                                  <span className="text-[9px] px-1.5 py-0.5 rounded font-medium bg-slate-800/80 text-slate-300 border border-slate-700 shrink-0" title="Candidatura adicionada manualmente sem cálculo de Match IA">
+                                    Manual
+                                  </span>
+                                ) : (
+                                  <span className="text-[9px] px-1.5 py-0.5 rounded font-extrabold bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 shrink-0">
+                                    {matchScore}%
+                                  </span>
+                                )}
                               </div>
 
                               {(app as any).nextAction && (

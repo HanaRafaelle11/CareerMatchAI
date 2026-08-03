@@ -3809,15 +3809,10 @@ export function JobMatchHub({
                           onClick={() => {
                             setFilterActiveOnly(false);
                             setFilterScoreOver80(false);
-                            setActiveFilters({ keyword: '', location: '', remoteOnly: false, workModes: [], seniority: 'all' });
-                            setSearchKeyword('');
-                            setSearchLocation('');
-                            setSearchSeniority('all');
-                            setSearchWorkModes([]);
                           }}
                           className="text-amber-400 hover:text-amber-300 underline font-bold text-[10px] cursor-pointer"
                         >
-                          ({discoveredJobs.length - scoredDiscoveredJobs.length} oculta(s) por filtros — Mostrar Todas)
+                          ({discoveredJobs.length - scoredDiscoveredJobs.length} oculta(s) por filtros — Exibir Mantendo Busca)
                         </button>
                       )}
                     </span>

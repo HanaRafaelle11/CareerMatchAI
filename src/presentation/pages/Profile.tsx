@@ -811,13 +811,13 @@ export function Profile({
                 </div>
 
                 {/* Item 2a: Indicador de Progresso Visual em 2 Passos Sem Truncamento Visual */}
-                <div className="grid grid-cols-2 gap-2 text-xs">
-                  <div className="px-3 py-2.5 rounded-xl bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center gap-1.5 text-emerald-400 font-bold whitespace-nowrap">
-                    <CheckCircle size={14} className="shrink-0 text-emerald-400" />
+                <div className="flex flex-wrap sm:flex-nowrap gap-2 text-[11px] sm:text-xs">
+                  <div className="flex-1 min-w-[130px] px-2.5 py-2 rounded-xl bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center gap-1 text-emerald-400 font-bold whitespace-nowrap">
+                    <CheckCircle size={13} className="shrink-0 text-emerald-400" />
                     <span>1. CV Enviado ✅</span>
                   </div>
-                  <div className="px-3 py-2.5 rounded-xl bg-brand-500/20 border border-brand-500/40 flex items-center justify-center gap-1.5 text-brand-300 font-bold whitespace-nowrap animate-pulse">
-                    <Sparkles size={14} className="shrink-0 text-amber-300" />
+                  <div className="flex-1 min-w-[130px] px-2.5 py-2 rounded-xl bg-brand-500/20 border border-brand-500/40 flex items-center justify-center gap-1 text-brand-300 font-bold whitespace-nowrap animate-pulse">
+                    <Sparkles size={13} className="shrink-0 text-amber-300" />
                     <span>2. Ver seu Match 🚀</span>
                   </div>
                 </div>

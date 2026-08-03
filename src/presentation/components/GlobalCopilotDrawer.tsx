@@ -160,12 +160,12 @@ function renderCopilotMarkdown(text: string): React.ReactNode {
 
   return (
     <>
-      {/* Opção A: Botão Flutuante Único no Canto Inferior Direito (Oculto quando o Drawer está aberto - Item 1 & 2) */}
+      {/* Opção A: Botão Flutuante Único no Canto Inferior Direito (Item 17: z-index ajustado para z-40 e opacidade sutil) */}
       {!isOpen && (
         <button
           onClick={handleToggleOpen}
           aria-label="Abrir Copiloto IA"
-          className="fixed bottom-[4.25rem] right-3 md:bottom-6 md:right-6 z-[9990] flex items-center gap-1.5 md:gap-2.5 px-3 py-2 md:px-4 md:py-3 rounded-full bg-gradient-to-r from-brand-600 via-brand-500 to-indigo-600 text-white font-bold text-[11px] md:text-xs shadow-xl hover:scale-105 active:scale-95 transition-all border border-brand-400/30 group cursor-pointer"
+          className="fixed bottom-4 right-4 md:bottom-6 md:right-6 z-40 flex items-center gap-1.5 md:gap-2.5 px-3.5 py-2.5 md:px-4 md:py-3 rounded-full bg-gradient-to-r from-brand-600 via-brand-500 to-indigo-600 text-white font-bold text-[11px] md:text-xs shadow-2xl hover:scale-105 active:scale-95 transition-all border border-brand-400/30 group cursor-pointer opacity-95 hover:opacity-100"
         >
           <Sparkles size={14} className="animate-spin-slow text-amber-300 md:w-4 md:h-4" />
           <span>Copiloto IA</span>

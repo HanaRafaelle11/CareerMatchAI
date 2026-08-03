@@ -6,7 +6,7 @@ import type { CareerProfileNew } from '../../application/hooks/useMyProfileAi';
 import { 
   Award, Play, MessageSquare, Send, 
   RefreshCcw, Star, Loader2, BarChart3, ChevronDown, Search, Sparkles,
-  ArrowRight, Bot, HelpCircle
+  ArrowRight, Bot, HelpCircle, AlertCircle
 } from 'lucide-react';
 import { ProgressRing, Badge, Toast, type ToastMessage } from '../components/ds';
 import { useCopilotEngine } from '../../application/hooks/useCopilotEngine';
@@ -211,17 +211,27 @@ export function CoachDashboard({
     careerProfileNew
   });
 
-  const handleStartSim = async () => {
-    if (!selectedAppId) return;
+  const [isStartingSim, setIsStartingSim] = useState(false);
+  const [isResettingSim, setIsResettingSim] = useState(false);
+
+  const handleStartSim = async (appIdToStart?: string) => {
+    const targetAppId = appIdToStart || selectedAppId;
+    if (!targetAppId) return;
     if (!isPro && !canUseAiTraining) {
       triggerPaywall('ia_training');
       return;
     }
+    if (appIdToStart && appIdToStart !== selectedAppId) {
+      setSelectedAppId(appIdToStart);
+    }
+    setIsStartingSim(true);
     try {
-      await startSimulation(selectedAppId);
+      await startSimulation(targetAppId);
     } catch (err: any) {
       console.error(err);
       setToast({ message: 'Não foi possível iniciar a simulação. Tente novamente.', type: 'error' });
+    } finally {
+      setIsStartingSim(false);
     }
   };
 
@@ -229,12 +239,15 @@ export function CoachDashboard({
     if (!selectedAppId) return;
     const confirm = window.confirm("Deseja realmente reiniciar o simulador de entrevista? Todo o progresso e avaliação desta rodada serão apagados.");
     if (!confirm) return;
+    setIsResettingSim(true);
     try {
       await startSimulation(selectedAppId, true);
       setToast({ message: 'Simulação reiniciada com sucesso.', type: 'info' });
     } catch (err: any) {
       console.error(err);
       setToast({ message: 'Não foi possível reiniciar a simulação.', type: 'error' });
+    } finally {
+      setIsResettingSim(false);
     }
   };
 
@@ -377,10 +390,11 @@ export function CoachDashboard({
                         </div>
                         <button
                           onClick={handleRestartSim}
-                          className="px-3 py-1.5 rounded-lg border border-slate-850 hover:border-slate-800 text-slate-400 font-semibold text-[10px] flex items-center gap-1 transition-all cursor-pointer"
+                          disabled={isResettingSim}
+                          className="px-3 py-1.5 rounded-lg border border-slate-850 hover:border-slate-800 text-slate-400 font-semibold text-[10px] flex items-center gap-1 transition-all cursor-pointer disabled:opacity-50"
                         >
-                          <RefreshCcw size={10} />
-                          Reiniciar
+                          {isResettingSim ? <Loader2 size={10} className="animate-spin" /> : <RefreshCcw size={10} />}
+                          <span>{isResettingSim ? 'Reiniciando...' : 'Reiniciar'}</span>
                         </button>
                       </div>
 
@@ -760,15 +774,26 @@ export function CoachDashboard({
                                 setIsSending(true);
                                 try {
                                   await finalizeSimulation({ sim: simulation });
+                                  // Disparar evento de conclusão para contabilizar no checklist do dia (Item 5)
+                                  window.dispatchEvent(new CustomEvent('vocentro_star_simulation_completed', { detail: { appId: selectedAppId } }));
+                                  setToast({ message: 'Relatório de avaliação STAR gerado com sucesso!', type: 'success' });
                                 } catch (err: any) {
+                                  console.error('[FINALIZE ERROR]', err);
                                   setToast({ message: "Erro ao encerrar a simulação: " + (err.message || String(err)), type: 'error' });
                                 } finally {
                                   setIsSending(false);
                                 }
                               }}
-                              className="px-3 py-1.5 rounded-xl bg-red-950/20 border border-red-500/30 text-red-400 hover:bg-red-950/40 text-[10px] font-bold tracking-wide transition cursor-pointer flex items-center gap-1"
+                              className="px-3 py-1.5 rounded-xl bg-red-950/20 border border-red-500/30 text-red-400 hover:bg-red-950/40 text-[10px] font-bold tracking-wide transition cursor-pointer flex items-center gap-1.5"
                             >
-                              Encerrar Treinamento & Gerar Relatório
+                              {isSending ? (
+                                <>
+                                  <Loader2 size={12} className="animate-spin text-red-400" />
+                                  <span>Gerando Relatório de IA...</span>
+                                </>
+                              ) : (
+                                <span>Encerrar Treinamento & Gerar Relatório</span>
+                              )}
                             </button>
                           </div>
                         </div>
@@ -801,12 +826,12 @@ export function CoachDashboard({
                         </select>
                       </div>
                       <button
-                        onClick={handleStartSim}
-                        disabled={loadingSim}
+                        onClick={() => handleStartSim()}
+                        disabled={loadingSim || isStartingSim}
                         className="px-8 py-3 rounded-[14px] bg-brand-500 hover:bg-brand-600 text-white font-bold text-xs flex items-center justify-center gap-2 shadow-md w-full max-w-sm transition-all transform active:scale-95 disabled:opacity-50 cursor-pointer"
                       >
-                        {loadingSim ? <Loader2 size={14} className="animate-spin" /> : <Play size={14} />}
-                        Iniciar Simulação
+                        {loadingSim || isStartingSim ? <Loader2 size={14} className="animate-spin" /> : <Play size={14} />}
+                        <span>{isStartingSim ? 'Iniciando...' : 'Iniciar Simulação'}</span>
                       </button>
                     </div>
                   )}
@@ -908,8 +933,16 @@ export function CoachDashboard({
 
             <div className="flex justify-between items-center text-[10px] text-slate-600 dark:text-slate-400 font-medium">
               <span>Habilidades mais exigidas pelo mercado</span>
-              <span className="font-mono text-slate-500">(Amostra: {activeJobs.length || jobs.length} vaga(s))</span>
+              <span className="font-mono text-slate-500 font-bold">(Amostra real: {activeJobs.length || jobs.length} vaga(s))</span>
             </div>
+
+            {/* Item 18: Alerta de Amostra Pequena (< 10 vagas) */}
+            {(activeJobs.length || jobs.length) > 0 && (activeJobs.length || jobs.length) < 10 && (
+              <div className="p-2.5 rounded-xl bg-amber-950/20 border border-amber-500/30 text-amber-300 text-[10px] flex items-center gap-2">
+                <AlertCircle size={14} className="shrink-0 text-amber-400" />
+                <span>Amostra reduzida ({activeJobs.length || jobs.length} vaga(s)): métricas indicam tendências preliminares da sua busca.</span>
+              </div>
+            )}
 
             {marketTrends.length === 0 ? (
               <div className="p-4 rounded-xl bg-slate-900/30 border border-slate-800/60 text-center space-y-1">

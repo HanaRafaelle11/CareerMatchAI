@@ -423,10 +423,7 @@ function AuthenticatedApp({
     } else if (tab === 'journal') {
       setStrategyInitialSubTab('journal');
       setActiveTab('strategy');
-    } else if (tab === 'match') {
-      setMatchHubInitialSubTab('discover');
-      setActiveTab('match');
-    } else if (tab === 'discover') {
+    } else if (tab === 'match' || tab === 'jobs' || tab === 'vagas' || tab === 'discover' || tab === 'explorar') {
       setMatchHubInitialSubTab('discover');
       setActiveTab('match');
     } else {

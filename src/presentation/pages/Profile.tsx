@@ -3,9 +3,9 @@ import { CardGlass } from '../components/CardGlass';
 import type { Resume, Profile as UserProfile, Application, PipelineStep } from '../../domain/models/types';
 import type { CareerProfileNew, CareerInsight } from '../../application/hooks/useMyProfileAi';
 import { calcYearsFromExperiences } from '../../application/services/matchingEngine';
-import { Upload, FileText, Calendar, Trash2, Check, AlertCircle, Briefcase, Award, Clock, Activity, Brain, Zap, Info, Sparkles, CheckCircle } from 'lucide-react';
+import { Upload, FileText, Calendar, Trash2, AlertCircle, Briefcase, Award, Clock, Activity, Brain, Zap, Info, Sparkles, CheckCircle, ArrowRight } from 'lucide-react';
 import { ResumeOptimizationService } from '../../application/services/ResumeOptimizationService';
-import { isSupabaseConfigured } from '../../infrastructure/api/supabaseClient';
+import { isSupabaseConfigured, supabase } from '../../infrastructure/api/supabaseClient';
 import { ProcessingState, ErrorState } from '../components/ErrorVisuals';
 import { AppError } from '../../application/errors/AppError';
 import { ProgressRing, SkillChip, Badge, Toast, type ToastMessage } from '../components/ds';
@@ -184,7 +184,7 @@ export function Profile({
   onSelectResumeVersion,
   activeProfileTab,
   setActiveProfileTab,
-  setActiveTab: _setActiveTab
+  setActiveTab: propSetActiveTab
 }: ProfileProps) {
   const { user } = useAuth();
   const { isPro, canExportPdf, paywallState, triggerPaywall, closePaywall } = useEntitlements(user?.id);
@@ -195,9 +195,25 @@ export function Profile({
   const [errorMsg, setErrorMsg] = useState<AppError | null>(null);
   const [uploadSuccess, setUploadSuccess] = useState(false);
   const [uploadSuccessSeconds, setUploadSuccessSeconds] = useState<number | null>(null);
+  const [suggestedJobs, setSuggestedJobs] = useState<any[]>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [showDelayWarning, setShowDelayWarning] = useState(false);
   const timerRef = useRef<any>(null);
+
+  const setActiveTab = propSetActiveTab;
+
+  useEffect(() => {
+    if (!isSupabaseConfigured || !supabase) return;
+    supabase
+      .from('jobs')
+      .select('id, title, company_name, location')
+      .limit(3)
+      .then(({ data }) => {
+        if (data && data.length > 0) {
+          setSuggestedJobs(data);
+        }
+      });
+  }, []);
 
   useEffect(() => {
     if (isUploading) {
@@ -779,10 +795,75 @@ export function Profile({
               </div>
             )}
 
-            {uploadSuccess && (
-              <div className="p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/20 flex items-center gap-2 text-emerald-400 text-xs">
-                <Check size={14} className="shrink-0" />
-                <span>Análise concluída em {uploadSuccessSeconds || 0} segundos</span>
+            {/* Card Interativo Pós-Upload (Item 1, Item 2 e Item 3) */}
+            {(uploadSuccess || resumes.length > 0) && (
+              <div className="p-4 rounded-2xl bg-gradient-to-br from-slate-900 via-[#0d1527] to-slate-900 border border-brand-500/30 space-y-3.5 shadow-xl animate-scale-up">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping" />
+                    <span className="text-[10px] font-bold text-brand-400 uppercase tracking-wider">Jornada de Match do Candidato</span>
+                  </div>
+                  {uploadSuccess && (
+                    <span className="text-[10px] font-mono text-emerald-400 font-bold bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/20">
+                      Concluído em {uploadSuccessSeconds || 0}s
+                    </span>
+                  )}
+                </div>
+
+                {/* Item 3: Indicador de Progresso Visual em 2 Passos */}
+                <div className="grid grid-cols-2 gap-2 text-xs">
+                  <div className="p-2.5 rounded-xl bg-emerald-500/10 border border-emerald-500/30 flex items-center gap-2 text-emerald-400 font-bold">
+                    <CheckCircle size={15} className="shrink-0 text-emerald-400" />
+                    <span className="truncate">1. CV Enviado ✅</span>
+                  </div>
+                  <div className="p-2.5 rounded-xl bg-brand-500/20 border border-brand-500/40 flex items-center gap-2 text-brand-300 font-bold animate-pulse">
+                    <Sparkles size={15} className="shrink-0 text-amber-300" />
+                    <span className="truncate">2. Ver seu Match 🚀</span>
+                  </div>
+                </div>
+
+                <p className="text-xs text-slate-300 leading-snug">
+                  Seu currículo foi estruturado pela IA. Agora navegue pelas vagas e veja a compatibilidade do seu perfil em tempo real.
+                </p>
+
+                {/* Item 1: CTA Ativo Primário direcionando para Vagas & Match */}
+                <button
+                  onClick={() => setActiveTab?.('jobs')}
+                  className="w-full py-3 px-4 rounded-xl bg-gradient-to-r from-brand-600 via-brand-500 to-indigo-600 hover:from-brand-500 hover:to-indigo-500 text-white font-extrabold text-xs shadow-xl flex items-center justify-center gap-2 group transition-all cursor-pointer border border-brand-400/30"
+                >
+                  <span>Buscar vagas e ver seu Match</span>
+                  <ArrowRight size={16} className="group-hover:translate-x-1 transition-transform" />
+                </button>
+
+                {/* Item 2: Catálogo de Vagas Sugeridas Imediatas */}
+                {suggestedJobs.length > 0 && (
+                  <div className="pt-3 border-t border-slate-800 space-y-2">
+                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">
+                      ⚡ Vagas Recentes Prontas para Calcular Match:
+                    </span>
+                    <div className="space-y-1.5">
+                      {suggestedJobs.slice(0, 3).map((j) => (
+                        <div
+                          key={j.id}
+                          onClick={() => setActiveTab?.('jobs')}
+                          className="p-2.5 rounded-xl bg-slate-900/90 border border-slate-800 hover:border-brand-500/50 cursor-pointer transition-all flex items-center justify-between gap-2 group"
+                        >
+                          <div className="min-w-0">
+                            <strong className="text-xs font-bold text-slate-200 group-hover:text-brand-400 block truncate">
+                              {j.title}
+                            </strong>
+                            <span className="text-[10px] text-slate-400">
+                              {j.company_name || 'Empresa Confidencial'} • {j.location || 'Brasil'}
+                            </span>
+                          </div>
+                          <span className="px-2.5 py-1 rounded-lg bg-brand-500/10 text-brand-400 text-[10px] font-bold shrink-0 group-hover:bg-brand-500 group-hover:text-white transition-colors flex items-center gap-1">
+                            Calcular Match <ArrowRight size={12} />
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </div>
             )}
 

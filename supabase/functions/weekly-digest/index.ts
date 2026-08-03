@@ -1,13 +1,12 @@
 // supabase/functions/weekly-digest/index.ts
-// Envia resumo semanal de vagas com alto match via Resend
-// Agendado via pg_cron toda segunda-feira às 12h UTC
+// Envia e-mails de reengajamento e resumo semanal segmentado por estágio do funil
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!;
 const SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
 const RESEND_API_KEY = Deno.env.get('RESEND_API_KEY')!;
 const FROM_EMAIL = Deno.env.get('DIGEST_FROM_EMAIL') ?? 'VoCentro <noreply@vocentro.com.br>';
-const MIN_SCORE = 80; // score_overall mínimo para entrar no digest
+const MIN_SCORE = 80;
 
 const supabase = createClient(SUPABASE_URL, SERVICE_ROLE_KEY);
 
@@ -21,7 +20,6 @@ interface DigestJob {
   location?: string;
 }
 
-// Item 1: Limpeza de títulos de vagas (remove vazamentos de status internos como "(Ongoing)", "(Closed)", etc.)
 function cleanJobTitle(rawTitle: string): string {
   if (!rawTitle) return 'Vaga sem título';
   return rawTitle
@@ -30,7 +28,6 @@ function cleanJobTitle(rawTitle: string): string {
     .trim();
 }
 
-// Item 2: Verifica se a empresa é confidencial/genérica para priorização
 function isConfidentialCompany(c: string): boolean {
   if (!c) return true;
   const lower = c.toLowerCase().trim();
@@ -44,9 +41,17 @@ function isConfidentialCompany(c: string): boolean {
   );
 }
 
-// ── Auxiliar: Verifica se a URL da vaga ainda está ativa ──
+function escapeHtml(str: string): string {
+  return (str || '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#039;');
+}
+
 async function isJobUrlActive(url: string): Promise<boolean> {
-  if (!url || !url.startsWith('http')) return true; // Se for URL interna/dummy, considera ativa
+  if (!url || !url.startsWith('http')) return true;
   try {
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 4000);
@@ -61,25 +66,18 @@ async function isJobUrlActive(url: string): Promise<boolean> {
     });
     clearTimeout(timeoutId);
 
-    if (res.status === 404 || res.status === 410) {
-      console.log(`[weekly-digest] Vaga 404/410 em: ${url}`);
-      return false;
-    }
+    if (res.status === 404 || res.status === 410) return false;
 
-    // Checa o título da página (<title>...</title>) para detectar páginas 404 / encerradas
     const htmlText = await res.text();
     const titleMatch = htmlText.match(/<title[^>]*>(.*?)<\/title>/i);
     const titleText = (titleMatch ? titleMatch[1] : '').toLowerCase();
 
     if (titleText.includes('404') || titleText.includes('não encontrada') || titleText.includes('vaga encerrada') || titleText.includes('vaga desativada')) {
-      console.log(`[weekly-digest] Vaga inativa detectada no title ("${titleText}") de: ${url}`);
       return false;
     }
 
     return true;
-  } catch (err: any) {
-    // Em caso de timeout ou bloqueio de ping, mantemos a vaga por segurança (evita falso negativo)
-    console.warn(`[weekly-digest] Aviso no ping da URL (${url}):`, err.message);
+  } catch (_err) {
     return true;
   }
 }
@@ -100,12 +98,11 @@ Deno.serve(async (req) => {
     }
 
     const testEmail = body?.test_email ? String(body.test_email).trim() : null;
+    const isDryRun = body?.dry_run === true || body?.dryRun === true;
 
-    // ── 1. Buscar usuário(s) para notificar ──
+    // ── 1. Buscar perfis de usuários ──
     let profiles: any[] = [];
-
     if (testEmail) {
-      console.log(`[weekly-digest] MODO TESTE: buscando apenas o e-mail "${testEmail}"`);
       const { data: testProfiles, error: testErr } = await supabase
         .from('profiles')
         .select('id, email, full_name, weekly_digest_enabled')
@@ -114,179 +111,168 @@ Deno.serve(async (req) => {
       if (testErr) throw testErr;
       if (!testProfiles || testProfiles.length === 0) {
         return new Response(
-          JSON.stringify({
-            sent: 0,
-            skipped: 0,
-            error: `Nenhum usuário encontrado em 'profiles' com o e-mail: ${testEmail}`
-          }),
+          JSON.stringify({ sent: 0, skipped: 0, error: `Nenhum usuário encontrado com o e-mail: ${testEmail}` }),
           { status: 404, headers: { 'Content-Type': 'application/json' } }
         );
       }
       profiles = testProfiles;
     } else {
-      // Modo produção: apenas usuários com weekly_digest_enabled = true
       const { data: activeProfiles, error: profilesError } = await supabase
         .from('profiles')
         .select('id, email, full_name, weekly_digest_enabled')
-        .eq('weekly_digest_enabled', true)
         .not('email', 'is', null);
 
       if (profilesError) throw profilesError;
       profiles = activeProfiles || [];
     }
 
-    if (profiles.length === 0) {
+    // ── 2. Pré-carregar tabelas de estado para segmentação ──
+    const [resumesRes, logsRes, matchesRes, sampleJobsRes] = await Promise.all([
+      supabase.from('resumes').select('id, user_id'),
+      supabase.from('resume_processing_logs').select('user_id, status, error_message'),
+      supabase.from('matches').select('id, resume_id, score_overall, created_at, job_id'),
+      supabase.from('jobs').select('id, title, company_name, location, source_url').limit(3)
+    ]);
+
+    const resumes = resumesRes.data || [];
+    const processingLogs = logsRes.data || [];
+    const matches = matchesRes.data || [];
+    const sampleJobs = sampleJobsRes.data || [];
+
+    const userResumesMap = new Map<string, any[]>();
+    resumes.forEach(r => {
+      if (!userResumesMap.has(r.user_id)) userResumesMap.set(r.user_id, []);
+      userResumesMap.get(r.user_id)!.push(r);
+    });
+
+    const userFailedLogsSet = new Set<string>();
+    processingLogs.forEach(l => {
+      if (l.user_id && (l.status === 'error' || l.status === 'failed' || l.error_message)) {
+        userFailedLogsSet.add(l.user_id);
+      }
+    });
+
+    const resumeToUserMap = new Map<string, string>();
+    resumes.forEach(r => resumeToUserMap.set(r.id, r.user_id));
+
+    const userMatchesMap = new Map<string, any[]>();
+    matches.forEach(m => {
+      const uid = m.user_id || resumeToUserMap.get(m.resume_id);
+      if (uid) {
+        if (!userMatchesMap.has(uid)) userMatchesMap.set(uid, []);
+        userMatchesMap.get(uid)!.push(m);
+      }
+    });
+
+    // ── 3. Classificar usuários por segmento ──
+    const segmentCounts = {
+      segment_1_no_resume: 0,
+      segment_2_failed_upload: 0,
+      segment_3_resume_no_match: 0,
+      segment_4_match_no_app: 0
+    };
+
+    const classifiedUsers: { profile: any; segment: number; userResumes: any[]; userMatches: any[] }[] = [];
+
+    for (const p of profiles) {
+      const uResumes = userResumesMap.get(p.id) || [];
+      const hasResumes = uResumes.length > 0;
+      const hasFailedLogs = userFailedLogsSet.has(p.id);
+      const uMatches = userMatchesMap.get(p.id) || [];
+      const hasMatches = uMatches.length > 0;
+
+      let seg = 1;
+      if (!hasResumes) {
+        seg = hasFailedLogs ? 2 : 1;
+      } else {
+        seg = !hasMatches ? 3 : 4;
+      }
+
+      if (seg === 1) segmentCounts.segment_1_no_resume++;
+      if (seg === 2) segmentCounts.segment_2_failed_upload++;
+      if (seg === 3) segmentCounts.segment_3_resume_no_match++;
+      if (seg === 4) segmentCounts.segment_4_match_no_app++;
+
+      classifiedUsers.push({ profile: p, segment: seg, userResumes: uResumes, userMatches: uMatches });
+    }
+
+    // Se for MODO DRY-RUN: apenas retorna a contagem dos segmentos sem disparar e-mails
+    if (isDryRun) {
+      console.log('[weekly-digest] MODO DRY-RUN EXECUTADO. Nenhum e-mail foi disparado.');
       return new Response(
-        JSON.stringify({ sent: 0, skipped: 0, message: 'Nenhum usuário ativo para enviar digest' }),
+        JSON.stringify({
+          mode: 'dry_run',
+          total_profiles: profiles.length,
+          segment_counts: segmentCounts,
+          reconciled_breakdown: {
+            segment_1_no_resume: `${segmentCounts.segment_1_no_resume} usuários (0 currículos)`,
+            segment_2_failed_upload: `${segmentCounts.segment_2_failed_upload} usuários (falha técnica em resume_processing_logs)`,
+            segment_3_resume_no_match: `${segmentCounts.segment_3_resume_no_match} usuários (currículo pronto, 0 matches)`,
+            segment_4_match_no_app: `${segmentCounts.segment_4_match_no_app} usuários (match calculado em matches)`
+          }
+        }),
         { status: 200, headers: { 'Content-Type': 'application/json' } }
       );
     }
 
-    console.log(`[weekly-digest] Processando ${profiles.length} usuário(s) (isTest=${!!testEmail})`);
+    // ── 4. Processar envio real por segmento ──
+    const results: { userId: string; email: string; segment: number; status: string; error?: string }[] = [];
 
-    const since = new Date();
-    since.setDate(since.getDate() - 7);
+    for (const item of classifiedUsers) {
+      const { profile, segment, userResumes } = item;
+      const firstName = profile.full_name ? profile.full_name.split(' ')[0] : 'Olá';
 
-    const results: { userId: string; email: string; status: string; error?: string; matched?: number }[] = [];
-
-    for (const profile of profiles) {
       try {
-        // ── 2a. Buscar candidaturas existentes do usuário ──
-        const [appRes1, appRes2] = await Promise.all([
-          supabase.from('applications').select('job_id, job_title, company_name').eq('user_id', profile.id),
-          supabase.from('job_applications').select('job_id, job_title, company_name').eq('user_id', profile.id)
-        ]);
+        let subject = '';
+        let htmlBody = '';
 
-        const appliedJobIds = new Set<string>();
-        const appliedJobKeys = new Set<string>();
+        if (segment === 1) {
+          // SEGMENTO 1: NUNCA FEZ UPLOAD
+          subject = `Complete seu cadastro no VoCentro enviando seu currículo`;
+          htmlBody = buildSegment1Html(firstName);
 
-        const addApplied = (item: any) => {
-          if (item.job_id) appliedJobIds.add(item.job_id);
-          if (item.job_title) {
-            const cleanTitle = cleanJobTitle(item.job_title);
-            const key = `${cleanTitle.toLowerCase().trim()}|${(item.company_name || '').toLowerCase().trim()}`;
-            appliedJobKeys.add(key);
-          }
-        };
+        } else if (segment === 2) {
+          // SEGMENTO 2: FALHA TÉCNICA NO UPLOAD
+          subject = `Corrigimos o problema no envio do seu currículo no VoCentro`;
+          htmlBody = buildSegment2Html(firstName);
 
-        (appRes1.data || []).forEach(addApplied);
-        (appRes2.data || []).forEach(addApplied);
+        } else if (segment === 3) {
+          // SEGMENTO 3: UPLOAD OK, SEM MATCH
+          subject = `Seu currículo está pronto! Veja sua compatibilidade com as vagas`;
+          htmlBody = buildSegment3Html(firstName, sampleJobs);
 
-        // ── 2b. Buscar currículos do usuário ──
-        const { data: userResumes, error: resumesError } = await supabase
-          .from('resumes')
-          .select('id')
-          .eq('user_id', profile.id);
-
-        if (resumesError) {
-          results.push({ userId: profile.id, email: profile.email, status: 'error', error: resumesError.message });
-          continue;
-        }
-
-        if (!userResumes || userResumes.length === 0) {
-          results.push({ userId: profile.id, email: profile.email, status: 'skipped_no_resumes', matched: 0 });
-          continue;
-        }
-
-        const resumeIds = userResumes.map(r => r.id);
-
-        // ── 2c. Query dos matches ──
-        let { data: matches, error: matchesError } = await supabase
-          .from('matches')
-          .select('id, score_overall, created_at, job_id, jobs(id, title, company_name, source_url, location)')
-          .in('resume_id', resumeIds)
-          .gte('score_overall', MIN_SCORE)
-          .gte('created_at', since.toISOString())
-          .order('score_overall', { ascending: false })
-          .limit(30);
-
-        // Fallback no modo teste se não houver matches nos últimos 7 dias
-        if (testEmail && (!matches || matches.length === 0)) {
-          console.log(`[weekly-digest] [TESTE] Nenhum match nos últimos 7 dias. Buscando histórico de matches...`);
-          const fallbackQuery = await supabase
+        } else {
+          // SEGMENTO 4: MATCH GERADO, SEM RETORNO (Digest semanal)
+          const resumeIds = userResumes.map(r => r.id);
+          const { data: rawMatches } = await supabase
             .from('matches')
             .select('id, score_overall, created_at, job_id, jobs(id, title, company_name, source_url, location)')
             .in('resume_id', resumeIds)
             .gte('score_overall', MIN_SCORE)
             .order('score_overall', { ascending: false })
-            .limit(30);
-          matches = fallbackQuery.data;
-          matchesError = fallbackQuery.error;
-        }
+            .limit(10);
 
-        if (matchesError) {
-          console.error(`[weekly-digest] Erro ao buscar matches para ${profile.id}:`, matchesError);
-          results.push({ userId: profile.id, email: profile.email, status: 'error', error: matchesError.message });
-          continue;
-        }
-
-        if (!matches || matches.length === 0) {
-          results.push({ userId: profile.id, email: profile.email, status: 'skipped_no_matches', matched: 0 });
-          continue;
-        }
-
-        // ── 2d. Deduplicação, Filtro e Pings de Vaga Ativa ──
-        const seenJobIds = new Set<string>();
-        const seenJobKeys = new Set<string>();
-        const candidateJobs: DigestJob[] = [];
-
-        for (const m of matches) {
-          const job = (m as any).jobs;
-          if (!job) continue;
-
-          const jobId = job.id || m.job_id;
-          const cleanTitle = cleanJobTitle(job.title); // Item 1: limpa status interno como (Ongoing)
-          const company = (job.company_name || job.companyName || 'Empresa').trim();
-          const jobKey = `${cleanTitle.toLowerCase().trim()}|${company.toLowerCase().trim()}`;
-
-          // Deduplicação (mantém o match de maior score por vaga)
-          if (jobId && seenJobIds.has(jobId)) continue;
-          if (seenJobKeys.has(jobKey)) continue;
-
-          // Exclusão de Vagas Candidatadas
-          if (jobId && appliedJobIds.has(jobId)) continue;
-          if (appliedJobKeys.has(jobKey)) continue;
-
-          const sourceUrl = job.source_url || 'https://vocentro.com.br/?tab=match';
-
-          // Ping HTTP para confirmar URL ativa
-          const activeOnWeb = await isJobUrlActive(sourceUrl);
-          if (!activeOnWeb) continue;
-
-          if (jobId) seenJobIds.add(jobId);
-          seenJobKeys.add(jobKey);
-
-          candidateJobs.push({
+          const digestJobs: DigestJob[] = (rawMatches || []).map((m: any) => ({
             matchId: m.id,
-            jobId: jobId,
-            title: cleanTitle,
-            company: company,
+            jobId: m.job_id,
+            title: cleanJobTitle(m.jobs?.title || ''),
+            company: m.jobs?.company_name || 'Empresa',
             score: m.score_overall,
-            url: sourceUrl,
-            location: job.location || undefined,
-          });
+            url: m.jobs?.source_url || 'https://vocentro.com.br/?tab=match',
+            location: m.jobs?.location
+          }));
+
+          if (digestJobs.length === 0) {
+            // Se não houver matches > 80%, envia o template do segmento 3 como ponte
+            subject = `Seu currículo está pronto! Veja sua compatibilidade com as vagas`;
+            htmlBody = buildSegment3Html(firstName, sampleJobs);
+          } else {
+            subject = `${testEmail ? '[TESTE] ' : ''}🎯 ${digestJobs.length} vaga${digestJobs.length > 1 ? 's' : ''} com alto match para você esta semana`;
+            htmlBody = buildDigestHtml(firstName, digestJobs);
+          }
         }
 
-        // Item 2: Ordenar vagas priorizando empresas com nome real sobre "Empresa Confidencial"
-        candidateJobs.sort((a, b) => {
-          const aConf = isConfidentialCompany(a.company);
-          const bConf = isConfidentialCompany(b.company);
-          if (aConf && !bConf) return 1; // Confidencial vai para baixo
-          if (!aConf && bConf) return -1; // Empresa real vai para cima
-          return b.score - a.score; // Secundário: maior score primeiro
-        });
-
-        // Limita às 10 melhores vagas ordenadas
-        const digestJobs = candidateJobs.slice(0, 10);
-
-        if (digestJobs.length === 0) {
-          results.push({ userId: profile.id, email: profile.email, status: 'skipped_no_active_matches', matched: 0 });
-          continue;
-        }
-
-        // ── 3. Enviar e-mail via Resend ──
-        const unsubscribeUrl = 'https://vocentro.com.br/?tab=settings&subtab=notifications';
-
+        // Envio via Resend
         const emailResp = await fetch('https://api.resend.com/emails', {
           method: 'POST',
           headers: {
@@ -296,11 +282,10 @@ Deno.serve(async (req) => {
           body: JSON.stringify({
             from: FROM_EMAIL,
             to: profile.email,
-            subject: `${testEmail ? '[TESTE] ' : ''}🎯 ${digestJobs.length} vaga${digestJobs.length > 1 ? 's' : ''} com alto match para você esta semana`,
-            html: buildDigestHtml(profile.full_name ?? 'Olá', digestJobs),
-            text: buildDigestText(profile.full_name ?? 'Olá', digestJobs),
+            subject,
+            html: htmlBody,
             headers: {
-              'List-Unsubscribe': `<${unsubscribeUrl}>`,
+              'List-Unsubscribe': `<https://vocentro.com.br/?tab=settings&subtab=notifications>`,
               'List-Unsubscribe-Post': 'List-Unsubscribe=One-Click'
             }
           }),
@@ -308,106 +293,142 @@ Deno.serve(async (req) => {
 
         if (!emailResp.ok) {
           const errText = await emailResp.text();
-          console.error(`[weekly-digest] Resend erro para ${profile.email}:`, errText);
-          results.push({ userId: profile.id, email: profile.email, status: 'send_error', error: errText });
+          results.push({ userId: profile.id, email: profile.email, segment, status: 'send_error', error: errText });
           continue;
         }
 
-        console.log(`[weekly-digest] E-mail enviado com sucesso para ${profile.email} (${digestJobs.length} vagas únicas)`);
-        results.push({ userId: profile.id, email: profile.email, status: 'sent', matched: digestJobs.length });
+        results.push({ userId: profile.id, email: profile.email, segment, status: 'sent' });
 
-      } catch (userErr: any) {
-        console.error(`[weekly-digest] Erro inesperado para ${profile.id}:`, userErr);
-        results.push({ userId: profile.id, email: profile.email, status: 'error', error: String(userErr) });
+      } catch (err: any) {
+        results.push({ userId: profile.id, email: profile.email, segment, status: 'error', error: String(err) });
       }
     }
 
-    const sent = results.filter((r) => r.status === 'sent').length;
-    const skipped = results.filter((r) => r.status.startsWith('skipped')).length;
-    const errors = results.filter((r) => r.status === 'error' || r.status === 'send_error').length;
-
     return new Response(
-      JSON.stringify({ isTest: !!testEmail, sent, skipped, errors, total: profiles.length, results }),
+      JSON.stringify({ isTest: !!testEmail, segment_counts: segmentCounts, total: profiles.length, results }),
       { status: 200, headers: { 'Content-Type': 'application/json' } }
     );
 
   } catch (err: any) {
-    const errMsg = err?.message || err?.error_description || (typeof err === 'object' ? JSON.stringify(err) : String(err));
-    console.error('[weekly-digest] Erro fatal:', errMsg, err);
     return new Response(
-      JSON.stringify({ error: errMsg, details: err }),
+      JSON.stringify({ error: err?.message || String(err) }),
       { status: 500, headers: { 'Content-Type': 'application/json' } }
     );
   }
 });
 
-// Item 5: Faixas de cores dinâmicas para os selos de match
-function getScoreBadgeStyles(score: number): { bg: string; color: string; border: string } {
-  if (score >= 90) {
-    return { bg: '#dcfce7', color: '#15803d', border: '#bbf7d0' }; // 90%+ Verde
-  } else if (score >= 80) {
-    return { bg: '#fef3c7', color: '#b45309', border: '#fde68a' }; // 80-89% Amarelo/Âmbar
-  } else {
-    return { bg: '#f1f5f9', color: '#475569', border: '#cbd5e1' }; // < 80% Cinza
-  }
+// ── TEMPLATES HTML POR SEGMENTO ──
+
+// Segmento 1: Nunca fez upload
+function buildSegment1Html(name: string): string {
+  return `
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
+<body style="margin:0;padding:0;background:#f8fafc;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
+  <div style="max-width:560px;margin:32px auto;background:#ffffff;border-radius:16px;overflow:hidden;box-shadow:0 4px 20px rgba(0,0,0,0.06);border:1px solid #e2e8f0;">
+    <div style="background:linear-gradient(135deg,#0f172a,#1e3a8a);padding:32px 36px;">
+      <h1 style="margin:0;color:#ffffff;font-size:24px;font-weight:800;">VoCentro</h1>
+      <p style="margin:4px 0 0;color:#93c5fd;font-size:13px;">Seu Copiloto de Carreira IA</p>
+    </div>
+    <div style="padding:32px 36px;">
+      <h2 style="margin:0 0 12px;font-size:18px;color:#0f172a;">Olá, ${escapeHtml(name)}! 👋</h2>
+      <p style="margin:0 0 16px;color:#475569;font-size:14px;line-height:1.6;">
+        Notamos que você criou sua conta no VoCentro, mas ainda não enviou seu currículo para estruturação.
+      </p>
+      <p style="margin:0 0 24px;color:#475569;font-size:14px;line-height:1.6;">
+        O envio leva menos de 1 minuto e permite que nossa IA identifique automaticamente seu alinhamento com as principais oportunidades do mercado.
+      </p>
+      <div style="text-align:center;margin-top:28px;">
+        <a href="https://vocentro.com.br/?tab=profile" style="display:inline-block;background:#2563eb;color:#ffffff;font-size:14px;font-weight:700;padding:14px 28px;border-radius:10px;text-decoration:none;">Enviar meu currículo em PDF →</a>
+      </div>
+    </div>
+  </div>
+</body>
+</html>`;
 }
 
-// Items 3, 4, 5: Template HTML reformulado com cards estilizados, botões proeminentes e hierarquia visual refinada
-function buildDigestHtml(name: string, jobs: DigestJob[]): string {
-  const settingsUrl = 'https://vocentro.com.br/?tab=settings&subtab=notifications';
-  const catalogUrl = 'https://vocentro.com.br/?tab=match';
+// Segmento 2: Falha técnica no upload
+function buildSegment2Html(name: string): string {
+  return `
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
+<body style="margin:0;padding:0;background:#f8fafc;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
+  <div style="max-width:560px;margin:32px auto;background:#ffffff;border-radius:16px;overflow:hidden;box-shadow:0 4px 20px rgba(0,0,0,0.06);border:1px solid #e2e8f0;">
+    <div style="background:linear-gradient(135deg,#0f172a,#1e3a8a);padding:32px 36px;">
+      <h1 style="margin:0;color:#ffffff;font-size:24px;font-weight:800;">VoCentro</h1>
+      <p style="margin:4px 0 0;color:#93c5fd;font-size:13px;">Seu Copiloto de Carreira IA</p>
+    </div>
+    <div style="padding:32px 36px;">
+      <h2 style="margin:0 0 12px;font-size:18px;color:#0f172a;">Olá, ${escapeHtml(name)}! 👋</h2>
+      <p style="margin:0 0 16px;color:#475569;font-size:14px;line-height:1.6;">
+        Identificamos que você tentou enviar seu currículo recentemente no VoCentro, mas um problema técnico no nosso processamento impediu a leitura correta do arquivo.
+      </p>
+      <p style="margin:0 0 24px;color:#475569;font-size:14px;line-height:1.6;">
+        <strong>Já corrigimos a falha!</strong> Pedimos desculpas pelo inconveniente e convidamos você a fazer o envio novamente para que nossa IA possa analisar seu perfil.
+      </p>
+      <div style="text-align:center;margin-top:28px;">
+        <a href="https://vocentro.com.br/?tab=profile" style="display:inline-block;background:#2563eb;color:#ffffff;font-size:14px;font-weight:700;padding:14px 28px;border-radius:10px;text-decoration:none;">Reenviar meu currículo agora →</a>
+      </div>
+    </div>
+  </div>
+</body>
+</html>`;
+}
 
-  const rows = jobs
-    .map((j) => {
-      const badge = getScoreBadgeStyles(j.score);
-      return `
-      <tr>
-        <td style="background:#ffffff;border:1px solid #e2e8f0;border-radius:14px;padding:20px 24px;box-shadow:0 1px 3px rgba(0,0,0,0.03);">
-          <table style="width:100%;border-collapse:collapse;">
-            <tr>
-              <td style="vertical-align:middle;padding-bottom:10px;">
-                <span style="
-                  display:inline-block;
-                  background:${badge.bg};
-                  color:${badge.color};
-                  border:1px solid ${badge.border};
-                  font-size:11px;
-                  font-weight:700;
-                  padding:3px 10px;
-                  border-radius:99px;
-                ">${j.score}% match</span>
-              </td>
-            </tr>
-            <tr>
-              <td style="vertical-align:top;padding-bottom:6px;">
-                <strong style="font-size:16px;color:#0f172a;line-height:1.3;display:block;">${escapeHtml(j.title)}</strong>
-              </td>
-            </tr>
-            <tr>
-              <td style="vertical-align:top;padding-bottom:16px;">
-                <span style="font-size:13px;color:#64748b;font-weight:500;">${escapeHtml(j.company)}${j.location ? ' · ' + escapeHtml(j.location) : ''}</span>
-              </td>
-            </tr>
-            <tr>
-              <td style="vertical-align:top;">
-                <a href="${escapeHtml(j.url)}" target="_blank" rel="noopener noreferrer" style="
-                  display:inline-block;
-                  background-color:#eff6ff;
-                  color:#1d4ed8;
-                  border:1px solid #bfdbfe;
-                  font-size:12px;
-                  font-weight:700;
-                  padding:7px 16px;
-                  border-radius:8px;
-                  text-decoration:none;
-                ">Ver vaga →</a>
-              </td>
-            </tr>
-          </table>
-        </td>
-      </tr>`;
-    })
-    .join('');
+// Segmento 3: Upload OK, sem match
+function buildSegment3Html(name: string, sampleJobs: any[]): string {
+  const jobsList = sampleJobs.map(j => `
+    <li style="margin-bottom:8px;color:#334155;font-size:13px;">
+      <strong>${escapeHtml(j.title)}</strong> na <em>${escapeHtml(j.company_name || 'Empresa')}</em>
+    </li>
+  `).join('');
+
+  return `
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
+<body style="margin:0;padding:0;background:#f8fafc;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
+  <div style="max-width:560px;margin:32px auto;background:#ffffff;border-radius:16px;overflow:hidden;box-shadow:0 4px 20px rgba(0,0,0,0.06);border:1px solid #e2e8f0;">
+    <div style="background:linear-gradient(135deg,#0f172a,#1e3a8a);padding:32px 36px;">
+      <h1 style="margin:0;color:#ffffff;font-size:24px;font-weight:800;">VoCentro</h1>
+      <p style="margin:4px 0 0;color:#93c5fd;font-size:13px;">Seu Copiloto de Carreira IA</p>
+    </div>
+    <div style="padding:32px 36px;">
+      <h2 style="margin:0 0 12px;font-size:18px;color:#0f172a;">Olá, ${escapeHtml(name)}! 🎉</h2>
+      <p style="margin:0 0 16px;color:#475569;font-size:14px;line-height:1.6;">
+        Seu currículo já foi processado e estruturado pela nossa IA com sucesso. Falta só 1 passo simples para você descobrir suas chances reais no mercado!
+      </p>
+      ${sampleJobs.length > 0 ? `
+        <div style="background:#f1f5f9;border-radius:12px;padding:16px 20px;margin-bottom:20px;">
+          <span style="font-size:11px;font-weight:700;color:#64748b;text-transform:uppercase;display:block;margin-bottom:8px;">Vagas em alta prontas para calcular Match:</span>
+          <ul style="margin:0;padding-left:18px;">
+            ${jobsList}
+          </ul>
+        </div>
+      ` : ''}
+      <div style="text-align:center;margin-top:28px;">
+        <a href="https://vocentro.com.br/?tab=match" style="display:inline-block;background:#2563eb;color:#ffffff;font-size:14px;font-weight:700;padding:14px 28px;border-radius:10px;text-decoration:none;">Buscar vagas e ver meu Match →</a>
+      </div>
+    </div>
+  </div>
+</body>
+</html>`;
+}
+
+// Segmento 4: Match gerado, sem retorno (Digest)
+function buildDigestHtml(name: string, jobs: DigestJob[]): string {
+  const rows = jobs.map(j => `
+    <tr>
+      <td style="background:#ffffff;border:1px solid #e2e8f0;border-radius:14px;padding:20px 24px;">
+        <span style="display:inline-block;background:#dcfce7;color:#15803d;border:1px solid #bbf7d0;font-size:11px;font-weight:700;padding:3px 10px;border-radius:99px;margin-bottom:8px;">${j.score}% match</span>
+        <strong style="font-size:16px;color:#0f172a;line-height:1.3;display:block;">${escapeHtml(j.title)}</strong>
+        <span style="font-size:13px;color:#64748b;font-weight:500;display:block;margin:4px 0 12px;">${escapeHtml(j.company)}${j.location ? ' · ' + escapeHtml(j.location) : ''}</span>
+        <a href="${escapeHtml(j.url)}" target="_blank" rel="noopener noreferrer" style="display:inline-block;background-color:#eff6ff;color:#1d4ed8;border:1px solid #bfdbfe;font-size:12px;font-weight:700;padding:7px 16px;border-radius:8px;text-decoration:none;">Ver vaga →</a>
+      </td>
+    </tr>
+  `).join('');
 
   return `
 <!DOCTYPE html>
@@ -415,85 +436,21 @@ function buildDigestHtml(name: string, jobs: DigestJob[]): string {
 <head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
 <body style="margin:0;padding:0;background:#f8fafc;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
   <div style="max-width:580px;margin:32px auto;background:#ffffff;border-radius:16px;overflow:hidden;box-shadow:0 4px 20px rgba(0,0,0,0.06);border:1px solid #e2e8f0;">
-
-    <!-- Header -->
-    <div style="background:linear-gradient(135deg,#0f172a,#1e3a8a,#2563eb);padding:32px 36px;">
-      <h1 style="margin:0;color:#ffffff;font-size:24px;font-weight:800;letter-spacing:-0.5px;">VoCentro</h1>
-      <p style="margin:6px 0 0;color:#93c5fd;font-size:13px;font-weight:500;">Seu Copiloto de Carreira IA</p>
+    <div style="background:linear-gradient(135deg,#0f172a,#1e3a8a);padding:32px 36px;">
+      <h1 style="margin:0;color:#ffffff;font-size:24px;font-weight:800;">VoCentro</h1>
+      <p style="margin:6px 0 0;color:#93c5fd;font-size:13px;">Seu Copiloto de Carreira IA</p>
     </div>
-
-    <!-- Body -->
     <div style="padding:32px 36px;">
-      <h2 style="margin:0 0 8px;font-size:19px;color:#0f172a;font-weight:700;">Olá, ${escapeHtml(name)}! 👋</h2>
+      <h2 style="margin:0 0 8px;font-size:19px;color:#0f172a;">Olá, ${escapeHtml(name)}! 👋</h2>
       <p style="margin:0 0 24px;color:#475569;font-size:14px;line-height:1.6;">
-        Encontramos <strong>${jobs.length} vaga${jobs.length > 1 ? 's' : ''}</strong> com alto índice de compatibilidade para o seu perfil esta semana. Confira as principais oportunidades:
+        Encontramos <strong>${jobs.length} vaga${jobs.length > 1 ? 's' : ''}</strong> com alto índice de compatibilidade para o seu perfil esta semana. Confira:
       </p>
-
-      <!-- Lista de Vagas Cards com Espaçamento de 16px -->
-      <table style="width:100%;border-collapse:separate;border-spacing:0 16px;">
-        ${rows}
-      </table>
-
+      <table style="width:100%;border-collapse:separate;border-spacing:0 16px;">${rows}</table>
       <div style="margin-top:32px;text-align:center;">
-        <a href="${catalogUrl}"
-           style="
-             display:inline-block;
-             background:linear-gradient(135deg,#2563eb,#1d4ed8);
-             color:#ffffff;
-             font-size:14px;
-             font-weight:700;
-             padding:14px 32px;
-             border-radius:12px;
-             text-decoration:none;
-             box-shadow:0 4px 12px rgba(37,99,235,0.25);
-           ">Ver todas as vagas no VoCentro →</a>
+        <a href="https://vocentro.com.br/?tab=match" style="display:inline-block;background:#2563eb;color:#ffffff;font-size:14px;font-weight:700;padding:14px 32px;border-radius:12px;text-decoration:none;">Ver todas as vagas no VoCentro →</a>
       </div>
     </div>
-
-    <!-- Footer -->
-    <div style="padding:24px 36px;border-top:1px solid #f1f5f9;background:#f8fafc;">
-      <p style="margin:0;font-size:12px;color:#64748b;line-height:1.6;">
-        Você recebe este e-mail porque o resumo semanal está ativado na sua conta.<br/>
-        <a href="${settingsUrl}" style="color:#2563eb;text-decoration:underline;font-weight:600;">Gerenciar preferências em Configurações → Notificações</a>
-      </p>
-    </div>
-
   </div>
 </body>
 </html>`;
-}
-
-// Versão Plain Text para entregabilidade
-function buildDigestText(name: string, jobs: DigestJob[]): string {
-  const settingsUrl = 'https://vocentro.com.br/?tab=settings&subtab=notifications';
-  const catalogUrl = 'https://vocentro.com.br/?tab=match';
-
-  const jobLines = jobs
-    .map(
-      (j, i) =>
-        `${i + 1}. ${j.title} - ${j.company} (${j.score}% match)\n   Link: ${j.url}`
-    )
-    .join('\n\n');
-
-  return `Olá, ${name}!
-
-Encontramos ${jobs.length} vaga(s) com alto índice de compatibilidade para o seu perfil esta semana:
-
-${jobLines}
-
-Ver todas as vagas no VoCentro: ${catalogUrl}
-
---
-Você recebe este e-mail porque o resumo semanal está ativado no VoCentro.
-Gerenciar preferências de notificação: ${settingsUrl}`;
-}
-
-function escapeHtml(str: string): string {
-  if (!str) return '';
-  return str
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#39;');
 }

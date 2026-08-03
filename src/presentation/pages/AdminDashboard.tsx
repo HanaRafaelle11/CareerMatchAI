@@ -800,6 +800,8 @@ export function AdminDashboard({ userId }: AdminDashboardProps) {
 
       const addCutoff = (q: any) => cutoff ? q.gte('created_at', cutoff) : q;
 
+      // CRITÉRIO ATUALIZADO (2026-08): "Candidatado" = apenas quem confirmou no Kanban
+      // com status '📨 Me candidatei' (ação explícita do usuário), NÃO apenas abrir o site.
       const [usersRes, resumesRes, matchesRes, optsRes, simsRes, lettersRes, appsRes] = await Promise.all([
         addCutoff(supabase.from('profiles').select('id', { count: 'exact', head: true }).neq('is_test_account', true)),
         addCutoff(supabase.from('resumes').select('id', { count: 'exact', head: true })),
@@ -807,7 +809,8 @@ export function AdminDashboard({ userId }: AdminDashboardProps) {
         addCutoff(supabase.from('resume_optimizations').select('id', { count: 'exact', head: true })),
         addCutoff(supabase.from('interview_simulations').select('id', { count: 'exact', head: true })),
         addCutoff(supabase.from('cover_letters').select('id', { count: 'exact', head: true })),
-        addCutoff(supabase.from('job_applications').select('id', { count: 'exact', head: true }).eq('status', 'APPLIED')),
+        // Conta apenas candidaturas confirmadas no Kanban (ação explícita), não apenas "em andamento"
+        addCutoff(supabase.from('applications').select('id', { count: 'exact', head: true }).eq('status', '📨 Me candidatei')),
       ]);
 
       return {

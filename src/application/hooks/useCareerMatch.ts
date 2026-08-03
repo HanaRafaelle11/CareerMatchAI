@@ -636,6 +636,9 @@ export function useResumes(userId: string | undefined) {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['resumes', userId] });
       queryClient.invalidateQueries({ queryKey: ['my-profile-ai', userId] });
+      queryClient.invalidateQueries({ queryKey: ['career-profile', userId] });
+      queryClient.invalidateQueries({ queryKey: ['job-discovery'] });
+      queryClient.invalidateQueries({ queryKey: ['jobs', userId] });
       queryClient.invalidateQueries({ queryKey: ['matches', userId] });
     }
   });

@@ -25,7 +25,11 @@ export function useJobDiscovery(
       filters.workModes,
       filters.seniority,
       filters.page,
-      careerProfileNew?.id
+      careerProfileNew?.id,
+      (careerProfileNew as any)?.updated_at || (careerProfileNew as any)?.updatedAt,
+      careerProfileNew?.personal?.headline,
+      careerProfileNew?.experience?.[0]?.role,
+      ((careerProfileNew?.personal as any)?.preferences?.targetRoles || []).join(',')
     ],
     queryFn: async () => {
       if (!userId) return { results: [], count: 0 };

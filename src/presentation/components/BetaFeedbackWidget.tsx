@@ -13,13 +13,13 @@ export function BetaFeedbackWidget({ userId, userEmail }: BetaFeedbackWidgetProp
 
   return (
     <>
-      <div className="fixed bottom-6 right-6 z-40 font-sans">
+      <div className="fixed bottom-24 md:bottom-6 left-4 md:left-6 z-40 font-sans">
         <button
           onClick={() => setIsOpen(true)}
-          className="px-4 py-2.5 rounded-full bg-gradient-to-r from-brand-500 to-indigo-600 hover:from-brand-600 hover:to-indigo-700 text-white font-bold text-xs shadow-xl shadow-brand-500/20 flex items-center gap-2 cursor-pointer transition transform hover:scale-105"
+          className="px-3.5 py-2 rounded-full bg-slate-800/90 hover:bg-slate-700/90 border border-slate-700/50 text-white font-semibold text-xs shadow-lg flex items-center gap-2 cursor-pointer transition transform hover:scale-105 backdrop-blur-sm"
         >
-          <MessageSquare size={16} />
-          <span>Fale conosco / Suporte</span>
+          <MessageSquare size={14} />
+          <span>Suporte VoCentro</span>
         </button>
       </div>
 

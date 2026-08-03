@@ -2816,26 +2816,13 @@ export function JobMatchHub({
                           </div>
                           
                           <div className="pt-2 border-t border-slate-900 flex flex-col gap-2">
-                            <button
-                              onClick={() => {
-                                setCoachTab('optimize-cv');
-                                document.getElementById('ai-career-coach-panel')?.scrollIntoView({ behavior: 'smooth' });
-                                if (!optimization && primaryResume && selectedJob) {
-                                  handleGenerateOptimization();
-                                }
-                              }}
-                              className="w-full py-2.5 rounded-xl bg-brand-600 hover:bg-brand-500 text-white text-[11px] font-bold tracking-wider uppercase transition shadow-md shadow-brand-500/10 flex items-center justify-center gap-1.5 cursor-pointer"
-                            >
-                              <Sparkles size={12} />
-                              Melhorar meu currículo para essa vaga
-                            </button>
                             {selectedJob.sourceUrl && (
                               <button
                                 type="button"
                                 onClick={() => handleApplyClick(selectedJob)}
                                 className="w-full py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 border border-emerald-500 text-white font-extrabold text-[11px] tracking-wider uppercase transition flex items-center justify-center gap-1.5 cursor-pointer shadow-md shadow-emerald-500/20"
                               >
-                                <span>Me candidatar</span>
+                                <span>Candidatar-se</span>
                                 <ArrowUpRight size={14} className="text-white" />
                               </button>
                             )}
@@ -3223,7 +3210,7 @@ export function JobMatchHub({
                                 Otimizando...
                               </>
                             ) : (
-                              'Melhorar meu currículo para essa vaga'
+                              'Otimizar CV para esta vaga'
                             )}
                           </button>
                         </div>

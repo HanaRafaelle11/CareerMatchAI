@@ -376,7 +376,7 @@ export function Navbar({
       </aside>
 
       {/* Mobile Bottom Navigation */}
-      <nav className="md:hidden fixed bottom-0 left-0 w-full bg-[#FAFBFC] dark:bg-[#202632] flex justify-around items-center py-1.5 z-50 border-t border-slate-200 dark:border-white/8">
+      <nav className="md:hidden fixed bottom-0 left-0 w-full bg-[#FAFBFC] dark:bg-[#202632] flex justify-around items-center py-1.5 z-50 border-t border-slate-200 dark:border-white/8 safe-area-inset-bottom">
         {[
           { id: 'dashboard', label: 'Copiloto' },
           { id: 'profile', label: 'Perfil' },
@@ -396,7 +396,7 @@ export function Navbar({
             <button
               key={item.id}
               onClick={() => setActiveTab(item.id)}
-              className={`flex flex-col items-center gap-0.5 px-2 py-1 rounded-lg transition-colors relative ${
+              className={`flex flex-col items-center gap-0.5 flex-1 min-w-0 px-1 py-1 rounded-lg transition-colors relative ${
                 isActive ? 'text-[#4F8EF7]' : 'text-slate-400 dark:text-[#B8C2CC]'
               }`}
             >
@@ -406,7 +406,7 @@ export function Navbar({
               <div className="w-5 h-5 shrink-0 flex items-center justify-center">
                 {renderMobileIcon(item.id, "w-4.5 h-4.5")}
               </div>
-              <span className="text-[9px] font-medium">{item.label}</span>
+              <span className="text-[9px] font-medium truncate w-full text-center">{item.label}</span>
             </button>
           );
         })}

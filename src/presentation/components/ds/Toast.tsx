@@ -13,7 +13,7 @@ interface ToastProps {
   duration?: number;
 }
 
-export function Toast({ toast, onClose, duration = 4000 }: ToastProps) {
+export function Toast({ toast, onClose, duration = 3500 }: ToastProps) {
   useEffect(() => {
     if (!toast) return;
     const timer = setTimeout(() => {
@@ -39,7 +39,7 @@ export function Toast({ toast, onClose, duration = 4000 }: ToastProps) {
   }[toast.type];
 
   return (
-    <div className="fixed bottom-6 right-6 z-[9999] animate-slide-up max-w-md">
+    <div className="fixed bottom-24 md:bottom-6 right-4 md:right-6 z-[9999] animate-slide-up max-w-sm md:max-w-md">
       <div className={`flex items-center gap-3 px-4 py-3 rounded-xl border shadow-2xl backdrop-blur-md text-xs font-medium ${bgStyles}`}>
         <Icon size={18} className="shrink-0" />
         <span className="flex-1 leading-snug">{toast.message}</span>

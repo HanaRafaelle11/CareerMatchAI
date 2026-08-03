@@ -1,5 +1,5 @@
 // supabase/functions/weekly-digest/index.ts
-// Envia e-mails de reengajamento e resumo semanal segmentado por estágio do funil com filtro rigoroso de contas reais e status real do Kanban.
+// Envia e-mails de reengajamento e resumo semanal segmentado por estágio do funil com idempotência, logs em activity_logs e links de opt-out LGPD.
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!;
@@ -37,7 +37,6 @@ function escapeHtml(str: string): string {
     .replace(/'/g, '&#039;');
 }
 
-// Filtro rigoroso de usuários reais (Exclui contas de teste E2E com flag is_test_account ou domínios de teste)
 function isEligibleRealUser(p: { id: string; email?: string; is_test_account?: boolean }): boolean {
   if (!p.email) return false;
   const email = p.email.toLowerCase().trim();
@@ -48,7 +47,6 @@ function isEligibleRealUser(p: { id: string; email?: string; is_test_account?: b
   return true;
 }
 
-// Verifica se o status do Kanban/applications representa uma candidatura real realizada
 function isConfirmedKanbanStatus(statusStr?: string): boolean {
   if (!statusStr) return false;
   const lower = String(statusStr).toLowerCase().trim();
@@ -112,14 +110,18 @@ Deno.serve(async (req) => {
       profiles = (activeProfiles || []).filter(isEligibleRealUser);
     }
 
-    // ── 2. Pré-carregar tabelas para segmentação e verificação de candidaturas no Kanban ──
-    const [resumesRes, logsRes, matchesRes, apps1Res, apps2Res, sampleJobsRes] = await Promise.all([
+    // ── 2. Pré-carregar tabelas e verificar Idempotência no activity_logs ──
+    const sevenDaysAgo = new Date();
+    sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+
+    const [resumesRes, logsRes, matchesRes, apps1Res, apps2Res, sampleJobsRes, recentSendsRes] = await Promise.all([
       supabase.from('resumes').select('id, user_id'),
       supabase.from('resume_processing_logs').select('user_id, status, error_message'),
       supabase.from('matches').select('id, resume_id, score_overall, created_at, job_id'),
       supabase.from('applications').select('id, user_id, status'),
       supabase.from('job_applications').select('id, user_id, status'),
-      supabase.from('jobs').select('id, title, company_name, location, source_url').limit(3)
+      supabase.from('jobs').select('id, title, company_name, location, source_url').limit(3),
+      supabase.from('activity_logs').select('user_id').eq('event_type', 'reengagement_email_sent').gte('created_at', sevenDaysAgo.toISOString())
     ]);
 
     const resumes = resumesRes.data || [];
@@ -128,15 +130,16 @@ Deno.serve(async (req) => {
     const apps1 = apps1Res.data || [];
     const apps2 = apps2Res.data || [];
     const sampleJobs = sampleJobsRes.data || [];
+    const recentSends = recentSendsRes.data || [];
 
-    // Mapeamento de usuários que JÁ CONVERTERAM (possuem candidatura real confirmada no Kanban)
+    // Set de usuários com e-mail enviado nos últimos 7 dias (Idempotência)
+    const recentlySentUserIds = new Set<string>();
+    recentSends.forEach(s => { if (s.user_id) recentlySentUserIds.add(s.user_id); });
+
+    // Set de usuários convertidos no Kanban
     const userConvertedSet = new Set<string>();
-    apps1.forEach(a => {
-      if (a.user_id && isConfirmedKanbanStatus(a.status)) userConvertedSet.add(a.user_id);
-    });
-    apps2.forEach(a => {
-      if (a.user_id && isConfirmedKanbanStatus(a.status)) userConvertedSet.add(a.user_id);
-    });
+    apps1.forEach(a => { if (a.user_id && isConfirmedKanbanStatus(a.status)) userConvertedSet.add(a.user_id); });
+    apps2.forEach(a => { if (a.user_id && isConfirmedKanbanStatus(a.status)) userConvertedSet.add(a.user_id); });
 
     const userResumesMap = new Map<string, any[]>();
     resumes.forEach(r => {
@@ -163,13 +166,14 @@ Deno.serve(async (req) => {
       }
     });
 
-    // ── 3. Classificar usuários elegíveis nos 4 segmentos de reengajamento ──
+    // ── 3. Classificar usuários elegíveis ──
     const segmentCounts = {
       segment_1_no_resume: 0,
       segment_2_failed_upload: 0,
       segment_3_resume_no_match: 0,
       segment_4_match_no_app: 0,
-      excluded_converted: 0
+      excluded_converted: 0,
+      skipped_idempotent: 0
     };
 
     const classifiedUsers: { profile: any; segment: number; userResumes: any[]; userMatches: any[] }[] = [];
@@ -177,6 +181,12 @@ Deno.serve(async (req) => {
     for (const p of profiles) {
       if (userConvertedSet.has(p.id)) {
         segmentCounts.excluded_converted++;
+        continue;
+      }
+
+      // Idempotência: pula se já enviou nos últimos 7 dias (exceto modo teste com e-mail explícito)
+      if (!testEmail && recentlySentUserIds.has(p.id)) {
+        segmentCounts.skipped_idempotent++;
         continue;
       }
 
@@ -201,28 +211,29 @@ Deno.serve(async (req) => {
       classifiedUsers.push({ profile: p, segment: seg, userResumes: uResumes, userMatches: uMatches });
     }
 
-    // Se MODO DRY-RUN: retorna a contagem exata sem enviar e-mails
     if (isDryRun) {
-      console.log('[weekly-digest] MODO DRY-RUN REVISADO KANBAN EXECUTADO. Nenhum e-mail enviado.');
+      console.log('[weekly-digest] MODO DRY-RUN EXECUTADO.');
       return new Response(
         JSON.stringify({
           mode: 'dry_run',
           total_profiles_analyzed: profiles.length,
           segment_counts: segmentCounts,
           reconciled_breakdown: {
-            segment_1_no_resume: `${segmentCounts.segment_1_no_resume} usuários (0 currículos em resumes)`,
-            segment_2_failed_upload: `${segmentCounts.segment_2_failed_upload} usuários (falha técnica em resume_processing_logs)`,
-            segment_3_resume_no_match: `${segmentCounts.segment_3_resume_no_match} usuários (currículo pronto em resumes, 0 matches)`,
-            segment_4_match_no_app: `${segmentCounts.segment_4_match_no_app} usuários (match em matches, 0 candidaturas no Kanban)`,
-            excluded_converted: `${segmentCounts.excluded_converted} usuários (já possuem candidatura confirmada no Kanban)`
+            segment_1_no_resume: `${segmentCounts.segment_1_no_resume} usuários`,
+            segment_2_failed_upload: `${segmentCounts.segment_2_failed_upload} usuários`,
+            segment_3_resume_no_match: `${segmentCounts.segment_3_resume_no_match} usuários`,
+            segment_4_match_no_app: `${segmentCounts.segment_4_match_no_app} usuários`,
+            excluded_converted: `${segmentCounts.excluded_converted} usuários`,
+            skipped_idempotent: `${segmentCounts.skipped_idempotent} usuários`
           }
         }),
         { status: 200, headers: { 'Content-Type': 'application/json' } }
       );
     }
 
-    // ── 4. Processamento de Envio Real (Apenas com Autorização Explícita) ──
-    const results: { userId: string; email: string; segment: number; status: string; error?: string }[] = [];
+    // ── 4. DISPARO REAL COM RESEND & REGISTRO DE LOG ──
+    const results: { userId: string; email: string; segment: number; status: string; resendId?: string; error?: string }[] = [];
+    const dispatchTimestamp = new Date().toISOString();
 
     for (const item of classifiedUsers) {
       const { profile, segment, userResumes } = item;
@@ -270,6 +281,7 @@ Deno.serve(async (req) => {
           }
         }
 
+        // Chamada à API da Resend
         const emailResp = await fetch('https://api.resend.com/emails', {
           method: 'POST',
           headers: {
@@ -288,21 +300,58 @@ Deno.serve(async (req) => {
           }),
         });
 
+        const resData = await emailResp.json();
+
         if (!emailResp.ok) {
-          const errText = await emailResp.text();
+          const errText = typeof resData === 'object' ? JSON.stringify(resData) : String(resData);
+          console.error(`[weekly-digest] Erro Resend para ${profile.email}:`, errText);
+
+          // Log de falha no activity_logs
+          await supabase.from('activity_logs').insert({
+            user_id: profile.id,
+            event_type: 'reengagement_email_failed',
+            entity: 'weekly_digest_segment',
+            entity_id: String(segment),
+            metadata: { email: profile.email, segment, subject, error: errText, timestamp: dispatchTimestamp }
+          });
+
           results.push({ userId: profile.id, email: profile.email, segment, status: 'send_error', error: errText });
           continue;
         }
 
-        results.push({ userId: profile.id, email: profile.email, segment, status: 'sent' });
+        const resendId = resData.id || undefined;
+        console.log(`[weekly-digest] E-mail enviado com sucesso para ${profile.email} (Segmento ${segment}, Resend ID: ${resendId})`);
+
+        // Log de sucesso no activity_logs
+        await supabase.from('activity_logs').insert({
+          user_id: profile.id,
+          event_type: 'reengagement_email_sent',
+          entity: 'weekly_digest_segment',
+          entity_id: String(segment),
+          metadata: { email: profile.email, segment, subject, resend_id: resendId, status: 'sent', timestamp: dispatchTimestamp }
+        });
+
+        results.push({ userId: profile.id, email: profile.email, segment, status: 'sent', resendId });
 
       } catch (err: any) {
+        console.error(`[weekly-digest] Erro inesperado ao enviar para ${profile.email}:`, err);
         results.push({ userId: profile.id, email: profile.email, segment, status: 'error', error: String(err) });
       }
     }
 
+    const sentCount = results.filter(r => r.status === 'sent').length;
+    const errorCount = results.filter(r => r.status !== 'sent').length;
+
     return new Response(
-      JSON.stringify({ isTest: !!testEmail, segment_counts: segmentCounts, total: profiles.length, results }),
+      JSON.stringify({
+        dispatch_timestamp: dispatchTimestamp,
+        isTest: !!testEmail,
+        total_eligible: classifiedUsers.length,
+        sent: sentCount,
+        errors: errorCount,
+        segment_counts: segmentCounts,
+        results
+      }),
       { status: 200, headers: { 'Content-Type': 'application/json' } }
     );
 
@@ -314,6 +363,16 @@ Deno.serve(async (req) => {
   }
 });
 
+// ── RODAPÉ DE OPT-OUT LGPD PADRONIZADO ──
+function getFooterOptOutHtml(): string {
+  return `
+    <div style="margin-top:32px;padding-top:20px;border-top:1px solid #e2e8f0;text-align:center;font-size:11px;color:#94a3b8;line-height:1.5;">
+      Você recebeu este e-mail porque possui um cadastro ativo no VoCentro.<br/>
+      Para gerenciar suas preferências de notificação ou se descadastrar, <a href="https://vocentro.com.br/?tab=settings&subtab=notifications" style="color:#2563eb;text-decoration:underline;">clique aqui para gerenciar preferências</a>.
+    </div>`;
+}
+
+// Segmento 1: Nunca fez upload
 function buildSegment1Html(name: string): string {
   return `
 <!DOCTYPE html>
@@ -336,12 +395,14 @@ function buildSegment1Html(name: string): string {
       <div style="text-align:center;margin-top:28px;">
         <a href="https://vocentro.com.br/?tab=profile" style="display:inline-block;background:#2563eb;color:#ffffff;font-size:14px;font-weight:700;padding:14px 28px;border-radius:10px;text-decoration:none;">Enviar meu currículo em PDF →</a>
       </div>
+      ${getFooterOptOutHtml()}
     </div>
   </div>
 </body>
 </html>`;
 }
 
+// Segmento 2: Falha técnica no upload
 function buildSegment2Html(name: string): string {
   return `
 <!DOCTYPE html>
@@ -364,12 +425,14 @@ function buildSegment2Html(name: string): string {
       <div style="text-align:center;margin-top:28px;">
         <a href="https://vocentro.com.br/?tab=profile" style="display:inline-block;background:#2563eb;color:#ffffff;font-size:14px;font-weight:700;padding:14px 28px;border-radius:10px;text-decoration:none;">Reenviar meu currículo agora →</a>
       </div>
+      ${getFooterOptOutHtml()}
     </div>
   </div>
 </body>
 </html>`;
 }
 
+// Segmento 3: Upload OK, sem match
 function buildSegment3Html(name: string, sampleJobs: any[]): string {
   const jobsList = sampleJobs.map(j => `
     <li style="margin-bottom:8px;color:#334155;font-size:13px;">
@@ -403,12 +466,14 @@ function buildSegment3Html(name: string, sampleJobs: any[]): string {
       <div style="text-align:center;margin-top:28px;">
         <a href="https://vocentro.com.br/?tab=match" style="display:inline-block;background:#2563eb;color:#ffffff;font-size:14px;font-weight:700;padding:14px 28px;border-radius:10px;text-decoration:none;">Buscar vagas e ver meu Match →</a>
       </div>
+      ${getFooterOptOutHtml()}
     </div>
   </div>
 </body>
 </html>`;
 }
 
+// Segmento 4: Match gerado, sem candidatura (Digest)
 function buildDigestHtml(name: string, jobs: DigestJob[]): string {
   const rows = jobs.map(j => `
     <tr>
@@ -440,6 +505,7 @@ function buildDigestHtml(name: string, jobs: DigestJob[]): string {
       <div style="margin-top:32px;text-align:center;">
         <a href="https://vocentro.com.br/?tab=match" style="display:inline-block;background:#2563eb;color:#ffffff;font-size:14px;font-weight:700;padding:14px 32px;border-radius:12px;text-decoration:none;">Ver todas as vagas no VoCentro →</a>
       </div>
+      ${getFooterOptOutHtml()}
     </div>
   </div>
 </body>

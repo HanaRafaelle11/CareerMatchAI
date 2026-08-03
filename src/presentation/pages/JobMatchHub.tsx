@@ -157,12 +157,13 @@ export function JobMatchHub({
   const { user } = useAuth();
   const { 
     isPro, 
+    canExportPdf,
     weeklyActionCount, 
     isJobUnlocked, 
     paywallState, 
     triggerPaywall, 
     closePaywall 
-  } = useEntitlements(user?.id);
+  } = useEntitlements(user?.id || userId);
   const [showCheckout, setShowCheckout] = useState(false);
 
   const queryClient = useQueryClient();
@@ -3242,14 +3243,15 @@ export function JobMatchHub({
                                 <button
                                   type="button"
                                   onClick={() => {
+                                    if (!isPro && !canExportPdf) {
+                                      triggerPaywall('pdf_export');
+                                      return;
+                                    }
                                     if (!optimization || !selectedJob) return;
                                     const experiencesHtml = (optimization.keyExperiences || []).map((exp: any) => `
-                                      <div class="experience-item">
-                                        <div class="experience-header">
-                                          <span class="experience-role">${exp.role}</span>
-                                          <span class="experience-meta">${exp.company}</span>
-                                        </div>
-                                        <p>${(exp.description || '').replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')}</p>
+                                      <div class="card" style="margin-bottom: 12px;">
+                                        <div style="font-weight: bold; color: #1e293b;">${exp.role} <span style="color: #64748b; font-weight: normal;">• ${exp.company}</span></div>
+                                        <p style="margin-top: 6px;">${(exp.description || '').replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')}</p>
                                       </div>
                                     `).join('');
 

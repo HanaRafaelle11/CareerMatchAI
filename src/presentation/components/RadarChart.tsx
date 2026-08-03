@@ -67,6 +67,12 @@ export function RadarChart({ scores, labels = ['Técnico', 'Comportamental', 'Se
           const target = getCoordinates(idx, 100);
           const labelPos = getCoordinates(idx, 120); // Posiciona rótulo mais externamente
           
+          // Ajustar alinhamento do texto para evitar desvio/sobreposição nos eixos laterais
+          let anchor: "middle" | "start" | "end" = "middle";
+          if (Math.abs(labelPos.x - centerX) > 5) {
+            anchor = labelPos.x > centerX ? "start" : "end";
+          }
+
           return (
             <g key={`axis-${idx}`}>
               <line
@@ -78,8 +84,8 @@ export function RadarChart({ scores, labels = ['Técnico', 'Comportamental', 'Se
               />
               <text
                 x={labelPos.x}
-                y={labelPos.y + 4}
-                textAnchor="middle"
+                y={labelPos.y + (labelPos.y < centerY ? -2 : 6)}
+                textAnchor={anchor}
                 className="text-[10px] font-semibold fill-slate-400 dark:fill-slate-500 font-sans uppercase tracking-wider"
               >
                 {labels[idx]}

@@ -335,6 +335,7 @@ function AuthenticatedApp({
   const [strategyInitialSubTab, setStrategyInitialSubTab] = useState<'strategy' | 'planner' | 'pipeline' | 'journal'>('strategy');
   const [matchHubInitialSubTab, setMatchHubInitialSubTab] = useState<'my-jobs' | 'discover'>('discover');
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
   const queryClient = useQueryClient();
   const [selectedJobId, setSelectedJobId] = useState<string | null>(null);
@@ -684,10 +685,14 @@ function AuthenticatedApp({
         matchCount={matches.length}
         applicationCount={applications.length}
         interviewCount={applications.filter(a => ['👥 Entrevista com recrutador', '🎯 Entrevista com gestor', '🧩 Case técnico', '🤝 Fit cultural'].includes(a.status)).length}
+        isCollapsed={isSidebarCollapsed}
+        onToggleCollapse={() => setIsSidebarCollapsed((prev: boolean) => !prev)}
       />
 
       {/* Container Principal */}
-      <main className="flex-1 w-full min-w-0 px-4 sm:px-6 md:pl-[276px] md:pr-8 py-6 pt-20 md:pt-6 pb-24 md:pb-6 min-h-screen overflow-x-hidden relative z-10">
+      <main className={`flex-1 w-full min-w-0 px-4 sm:px-6 transition-all duration-300 ${
+        isSidebarCollapsed ? 'md:pl-[100px]' : 'md:pl-[276px]'
+      } md:pr-8 py-6 pt-20 md:pt-6 pb-24 md:pb-6 min-h-screen overflow-x-hidden relative z-10`}>
 
         {/* Compact Header — Currículo ativo */}
         {resumes && resumes.length > 0 && (

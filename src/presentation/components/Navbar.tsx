@@ -12,7 +12,9 @@ import {
   Settings, 
   ShieldCheck, 
   LogOut, 
-  X 
+  X,
+  ChevronLeft,
+  ChevronRight
 } from 'lucide-react';
 
 interface NavbarProps {
@@ -29,6 +31,8 @@ interface NavbarProps {
   matchCount?: number;
   applicationCount?: number;
   interviewCount?: number;
+  isCollapsed?: boolean;
+  onToggleCollapse?: () => void;
 }
 
 interface JourneyStep {
@@ -53,7 +57,9 @@ export function Navbar({
   hasProfile = false,
   matchCount = 0,
   applicationCount = 0,
-  interviewCount = 0
+  interviewCount = 0,
+  isCollapsed = false,
+  onToggleCollapse
 }: NavbarProps) {
   const journeySteps: JourneyStep[] = [
     {
@@ -145,13 +151,15 @@ export function Navbar({
       )}
 
       {/* SideNavBar — Linear Pure Minimalist Sidebar (No background/pill/border for active item) */}
-      <aside className={`fixed left-0 top-0 h-full w-[240px] bg-[#FAFBFC] dark:bg-[#202632] flex-col justify-between z-50 border-r border-slate-200/80 dark:border-white/8 overflow-y-auto ${
+      <aside className={`fixed left-0 top-0 h-full bg-[#FAFBFC] dark:bg-[#202632] flex-col justify-between z-50 border-r border-slate-200/80 dark:border-white/8 overflow-y-auto transition-all duration-300 ${
+        isCollapsed ? 'w-[72px]' : 'w-[240px]'
+      } ${
         isOpen ? 'flex' : 'hidden md:flex'
       }`}>
         <div className="flex-1 flex flex-col">
           {/* Brand */}
-          <div className="flex items-center justify-between gap-sm px-5 pt-5 pb-4">
-            <VocentroLogo className="h-7" showText={true} />
+          <div className="flex items-center justify-between gap-sm px-4 pt-5 pb-4">
+            <VocentroLogo className="h-7" showText={!isCollapsed} />
             <button
               onClick={onClose}
               className="md:hidden p-1 rounded-md hover:bg-slate-200/60 dark:hover:bg-white/8 text-slate-400 hover:text-slate-600 transition-colors"
@@ -159,6 +167,16 @@ export function Navbar({
             >
               <X size={16} />
             </button>
+            {onToggleCollapse && (
+              <button
+                type="button"
+                onClick={onToggleCollapse}
+                className="hidden md:flex items-center justify-center p-1.5 rounded-lg hover:bg-slate-200/60 dark:hover:bg-white/8 text-slate-400 hover:text-slate-200 transition-colors cursor-pointer"
+                title={isCollapsed ? "Expandir menu" : "Recolher menu"}
+              >
+                {isCollapsed ? <ChevronRight size={16} /> : <ChevronLeft size={16} />}
+              </button>
+            )}
           </div>
 
           {/* Main Navigation — Linear Style (Text & Icon blue only, zero background) */}

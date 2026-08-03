@@ -1,5 +1,5 @@
 // supabase/functions/weekly-digest/index.ts
-// Envia e-mails de reengajamento e resumo semanal segmentado por estágio do funil com filtro rigoroso de contas reais e exclusão de usuários já convertidos.
+// Envia e-mails de reengajamento e resumo semanal segmentado por estágio do funil com filtro rigoroso de contas reais e status real do Kanban.
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!;
@@ -37,7 +37,7 @@ function escapeHtml(str: string): string {
     .replace(/'/g, '&#039;');
 }
 
-// Filtro rigoroso de usuários reais elegíveis (Exclui contas de teste E2E e domínios de teste)
+// Filtro rigoroso de usuários reais (Exclui contas de teste E2E com flag is_test_account ou domínios de teste)
 function isEligibleRealUser(p: { id: string; email?: string; is_test_account?: boolean }): boolean {
   if (!p.email) return false;
   const email = p.email.toLowerCase().trim();
@@ -46,6 +46,26 @@ function isEligibleRealUser(p: { id: string; email?: string; is_test_account?: b
   if (email.includes('hardening.e2e')) return false;
   if (email.includes('test_') || email.includes('test+') || email.startsWith('test@')) return false;
   return true;
+}
+
+// Verifica se o status do Kanban/applications representa uma candidatura real realizada
+function isConfirmedKanbanStatus(statusStr?: string): boolean {
+  if (!statusStr) return false;
+  const lower = String(statusStr).toLowerCase().trim();
+  return (
+    lower.includes('applied') || 
+    lower.includes('candidatei') || 
+    lower.includes('candidatar') || 
+    lower.includes('andamento') || 
+    lower.includes('rh') || 
+    lower.includes('interview') || 
+    lower.includes('gestor') || 
+    lower.includes('oferta') || 
+    lower.includes('hired') || 
+    lower.includes('contratad') ||
+    lower.includes('rejected') ||
+    lower.includes('rejeitad')
+  );
 }
 
 Deno.serve(async (req) => {
@@ -92,13 +112,13 @@ Deno.serve(async (req) => {
       profiles = (activeProfiles || []).filter(isEligibleRealUser);
     }
 
-    // ── 2. Pré-carregar tabelas de estado para segmentação e conversão ──
+    // ── 2. Pré-carregar tabelas para segmentação e verificação de candidaturas no Kanban ──
     const [resumesRes, logsRes, matchesRes, apps1Res, apps2Res, sampleJobsRes] = await Promise.all([
       supabase.from('resumes').select('id, user_id'),
       supabase.from('resume_processing_logs').select('user_id, status, error_message'),
       supabase.from('matches').select('id, resume_id, score_overall, created_at, job_id'),
-      supabase.from('applications').select('id, user_id'),
-      supabase.from('job_applications').select('id, user_id'),
+      supabase.from('applications').select('id, user_id, status'),
+      supabase.from('job_applications').select('id, user_id, status'),
       supabase.from('jobs').select('id, title, company_name, location, source_url').limit(3)
     ]);
 
@@ -109,10 +129,14 @@ Deno.serve(async (req) => {
     const apps2 = apps2Res.data || [];
     const sampleJobs = sampleJobsRes.data || [];
 
-    // Mapeamento de usuários que JÁ CONVERTERAM (já têm candidatura no pipeline)
+    // Mapeamento de usuários que JÁ CONVERTERAM (possuem candidatura real confirmada no Kanban)
     const userConvertedSet = new Set<string>();
-    apps1.forEach(a => { if (a.user_id) userConvertedSet.add(a.user_id); });
-    apps2.forEach(a => { if (a.user_id) userConvertedSet.add(a.user_id); });
+    apps1.forEach(a => {
+      if (a.user_id && isConfirmedKanbanStatus(a.status)) userConvertedSet.add(a.user_id);
+    });
+    apps2.forEach(a => {
+      if (a.user_id && isConfirmedKanbanStatus(a.status)) userConvertedSet.add(a.user_id);
+    });
 
     const userResumesMap = new Map<string, any[]>();
     resumes.forEach(r => {
@@ -151,7 +175,6 @@ Deno.serve(async (req) => {
     const classifiedUsers: { profile: any; segment: number; userResumes: any[]; userMatches: any[] }[] = [];
 
     for (const p of profiles) {
-      // Usuários que já têm candidaturas registradas NÃO entram na campanha de reengajamento
       if (userConvertedSet.has(p.id)) {
         segmentCounts.excluded_converted++;
         continue;
@@ -180,7 +203,7 @@ Deno.serve(async (req) => {
 
     // Se MODO DRY-RUN: retorna a contagem exata sem enviar e-mails
     if (isDryRun) {
-      console.log('[weekly-digest] MODO DRY-RUN RIGOROSO EXECUTADO. Nenhum e-mail enviado.');
+      console.log('[weekly-digest] MODO DRY-RUN REVISADO KANBAN EXECUTADO. Nenhum e-mail enviado.');
       return new Response(
         JSON.stringify({
           mode: 'dry_run',
@@ -190,8 +213,8 @@ Deno.serve(async (req) => {
             segment_1_no_resume: `${segmentCounts.segment_1_no_resume} usuários (0 currículos em resumes)`,
             segment_2_failed_upload: `${segmentCounts.segment_2_failed_upload} usuários (falha técnica em resume_processing_logs)`,
             segment_3_resume_no_match: `${segmentCounts.segment_3_resume_no_match} usuários (currículo pronto em resumes, 0 matches)`,
-            segment_4_match_no_app: `${segmentCounts.segment_4_match_no_app} usuários (match em matches, 0 candidaturas)`,
-            excluded_converted: `${segmentCounts.excluded_converted} usuários (já possuem candidatura no pipeline)`
+            segment_4_match_no_app: `${segmentCounts.segment_4_match_no_app} usuários (match em matches, 0 candidaturas no Kanban)`,
+            excluded_converted: `${segmentCounts.excluded_converted} usuários (já possuem candidatura confirmada no Kanban)`
           }
         }),
         { status: 200, headers: { 'Content-Type': 'application/json' } }

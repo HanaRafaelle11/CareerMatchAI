@@ -92,7 +92,8 @@ export function CustomerPortal({ userId, onOpenCheckout }: CustomerPortalProps) 
     );
   }
 
-  const isPro = subscription?.status === 'active' || subscription?.status === 'trialing';
+  const isUnexpiredCanceled = subscription?.status === 'canceled' && subscription?.current_period_end && new Date(subscription.current_period_end) > new Date();
+  const isPro = subscription?.status === 'active' || subscription?.status === 'trialing' || isUnexpiredCanceled;
 
   return (
     <div className="p-6 bg-slate-900/60 border border-slate-800 rounded-3xl space-y-6 text-white font-sans">
@@ -136,13 +137,15 @@ export function CustomerPortal({ userId, onOpenCheckout }: CustomerPortalProps) 
               {subscription?.plan?.name ? `Plano ${subscription.plan.name}` : 'Plano Gratuito (Free)'}
             </span>
             <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-extrabold uppercase tracking-wide border ${
-              isPro 
+              isPro && !isUnexpiredCanceled
                 ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400' 
                 : subscription?.status === 'pending'
                 ? 'bg-amber-500/10 border-amber-500/30 text-amber-300'
+                : isUnexpiredCanceled
+                ? 'bg-purple-500/10 border-purple-500/30 text-purple-300'
                 : 'bg-slate-800 border-slate-700 text-slate-400'
             }`}>
-              {subscription?.status === 'active' ? '🟢 Ativo' : subscription?.status === 'pending' ? '🟡 Pagamento Pendente' : subscription?.status === 'canceled' ? '⚪ Cancelado' : 'Free'}
+              {subscription?.status === 'active' ? '🟢 Ativo' : subscription?.status === 'pending' ? '🟡 Pagamento Pendente' : subscription?.status === 'canceled' ? (isUnexpiredCanceled ? '🟣 Cancelado — Acesso Pro Ativo' : '⚪ Expirado') : 'Free'}
             </span>
             {subscription?.billing_cycle && (
               <span className="text-[10px] text-slate-300 font-medium px-2 py-0.5 rounded bg-slate-800/80 border border-slate-700">
@@ -170,6 +173,10 @@ export function CustomerPortal({ userId, onOpenCheckout }: CustomerPortalProps) 
               <Sparkles size={16} />
               <span>Fazer Upgrade para Pro</span>
             </button>
+          ) : isUnexpiredCanceled ? (
+            <span className="text-xs font-bold text-slate-400 px-3 py-1.5 rounded-xl bg-slate-800/80 border border-slate-700">
+              Assinatura Cancelada (Sem novas cobranças)
+            </span>
           ) : (
             <button
               type="button"

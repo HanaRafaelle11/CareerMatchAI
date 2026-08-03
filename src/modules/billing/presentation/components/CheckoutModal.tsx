@@ -511,6 +511,13 @@ export function CheckoutModal({ isOpen, onClose, userId, userEmail, userName }: 
                 <ShieldCheck size={14} className="text-emerald-500" />
                 <span>Processamento criptografado via Asaas Pagamentos • Cancele quando quiser</span>
               </div>
+
+              <p className="text-[10px] text-center text-muted-foreground pt-0.5">
+                Ao assinar, você concorda com nossos{' '}
+                <a href="/termos-de-uso" target="_blank" rel="noreferrer" className="underline hover:text-foreground">Termos de Uso</a>{' '}
+                e{' '}
+                <a href="/politica-de-privacidade" target="_blank" rel="noreferrer" className="underline hover:text-foreground">Política de Privacidade</a>.
+              </p>
             </div>
 
           </form>

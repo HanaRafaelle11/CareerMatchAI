@@ -940,8 +940,8 @@ function AuthenticatedApp({
         userName={profile?.full_name}
       />
 
-      {/* Beta Feedback Widget — Floating Global */}
-      {user && <BetaFeedbackWidget userId={user.id} feature="career_intelligence" />}
+      {/* Feedback & Suporte Widget — Floating Global */}
+      {user && <BetaFeedbackWidget userId={user.id} userEmail={user.email} />}
       <Toast toast={globalToast} onClose={() => setGlobalToast(null)} />
     </div>
   );

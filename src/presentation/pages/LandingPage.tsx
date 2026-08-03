@@ -164,7 +164,7 @@ export function LandingPage({ onNavigateToAuth }: LandingPageProps) {
             <div className="lg:col-span-6 space-y-6">
               <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-brand-500/10 border border-brand-500/20 text-brand-500 font-bold font-mono text-xs">
                 <Sparkles size={14} />
-                <span>🚀 Em fase beta — seja um dos primeiros a testar</span>
+                <span>🚀 Plataforma Oficial — Acelere sua Recolocação Profissional</span>
               </div>
 
               <h1 className="text-3xl sm:text-4xl lg:text-4xl font-black font-display tracking-tight text-foreground leading-[1.2]">
@@ -469,9 +469,9 @@ export function LandingPage({ onNavigateToAuth }: LandingPageProps) {
               <div className="w-9 h-9 rounded-xl bg-indigo-500/10 border border-indigo-500/20 text-indigo-500 flex items-center justify-center">
                 <CheckCircle2 size={18} />
               </div>
-              <h3 className="font-bold text-sm text-foreground">Evolução Beta Contínua</h3>
+              <h3 className="font-bold text-sm text-foreground">Evolução Contínua de IA</h3>
               <p className="text-xs text-muted-foreground leading-relaxed">
-                Plataforma em aprimoramento constante com base nos feedbacks dos primeiros usuários.
+                Plataforma em evolução constante com suporte a múltiplos modelos de IA e inteligência de mercado em tempo real.
               </p>
             </div>
           </div>
@@ -481,7 +481,7 @@ export function LandingPage({ onNavigateToAuth }: LandingPageProps) {
               Depoimentos reais em breve
             </span>
             <p className="text-xs text-muted-foreground mt-1">
-              Estamos coletando os primeiros relatos de uso da comunidade Beta para compartilhar histórias reais em breve.
+              Estamos coletando depoimentos da nossa comunidade para compartilhar histórias reais de aceleração de carreira.
             </p>
           </div>
         </section>

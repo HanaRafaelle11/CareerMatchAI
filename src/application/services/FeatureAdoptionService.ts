@@ -40,13 +40,17 @@ export class FeatureAdoptionService {
         aiLogsRes,
         eventsRes,
         matchesRes,
-        applicationsRes
+        applicationsRes,
+        optRes,
+        lettersRes
       ] = await Promise.all([
         supabase.from('profiles').select('id, created_at, is_test_account'),
         supabase.from('ai_usage_logs').select('id, user_id, feature_name, tokens_used, processing_time_ms, created_at').order('created_at', { ascending: false }),
         supabase.from('analytics_events').select('user_id, event_name, category, created_at').order('created_at', { ascending: false }),
         supabase.from('matches').select('id, user_id, job_id, created_at'),
-        supabase.from('applications').select('id, user_id, job_id, created_at')
+        supabase.from('applications').select('id, user_id, job_id, created_at'),
+        supabase.from('resume_optimizations').select('id, user_id, created_at'),
+        supabase.from('cover_letters').select('id, user_id, created_at')
       ]);
 
       const rawProfiles = profilesRes.data || [];
@@ -61,37 +65,44 @@ export class FeatureAdoptionService {
       const events = (eventsRes.data || []).filter((e: any) => e.user_id && realUserIds.has(e.user_id));
       const matches = (matchesRes.data || []).filter((m: any) => m.user_id && realUserIds.has(m.user_id));
       const applications = (applicationsRes.data || []).filter((a: any) => a.user_id && realUserIds.has(a.user_id));
+      const optimizations = (optRes.data || []).filter((o: any) => o.user_id && realUserIds.has(o.user_id));
+      const coverLetters = (lettersRes.data || []).filter((l: any) => l.user_id && realUserIds.has(l.user_id));
 
-      // Mapeamento das 7 principais funcionalidades inteligentes do Vocentro
+      // Mapeamento das funcionalidades inteligentes ativas do Vocentro
       const featureCatalog = [
         { id: 'match_calculation', name: 'Cálculo de Match Semântico', category: 'Inteligência' },
         { id: 'star_simulation', name: 'Simulador de Entrevista STAR', category: 'Treinamento IA' },
         { id: 'resume_optimization', name: 'Otimizador Adaptativo de CV', category: 'Currículo' },
         { id: 'cover_letter', name: 'Gerador de Carta de Apresentação', category: 'Escrita IA' },
         { id: 'coach_chat', name: 'Copiloto Conversacional (Coach)', category: 'Assistente' },
-        { id: 'job_discovery', name: 'Busca & Recomendação de Vagas', category: 'Descoberta' },
-        { id: 'salary_benchmark', name: 'Benchmark Salarial Avançado', category: 'Mercado (Beta)' }
+        { id: 'job_discovery', name: 'Busca & Recomendação de Vagas', category: 'Descoberta' }
       ];
 
       const userAppJobPairs = new Set(applications.map((a: any) => `${a.user_id}_${a.job_id}`));
 
-      // Primeiro passo: computar volumes brutos para determinar o líder
+      // Computar volumes reais combinando tabelas de negócio e logs de IA
       const rawUsages: Record<string, any[]> = {};
       featureCatalog.forEach(feat => {
         if (feat.id === 'match_calculation') {
-          rawUsages[feat.id] = matches.map(m => ({ user_id: m.user_id, time_ms: 1200, created_at: m.created_at, job_id: m.job_id }));
+          const matchLogs = aiLogs.filter(l => (l.feature_name || '').toLowerCase().includes('match'));
+          rawUsages[feat.id] = [...matches, ...matchLogs];
         } else if (feat.id === 'star_simulation') {
-          rawUsages[feat.id] = events.filter(e => e.event_name.includes('interview')).map(e => ({ user_id: e.user_id, time_ms: 2400, created_at: e.created_at }));
+          const interviewLogs = aiLogs.filter(l => (l.feature_name || '').toLowerCase().includes('interview') || (l.feature_name || '').toLowerCase().includes('star'));
+          const interviewEvents = events.filter(e => e.event_name.includes('interview'));
+          rawUsages[feat.id] = [...interviewLogs, ...interviewEvents];
         } else if (feat.id === 'resume_optimization') {
-          rawUsages[feat.id] = aiLogs.filter(l => (l.feature_name || '').includes('resume') || (l.feature_name || '').includes('cv')).map(l => ({ user_id: l.user_id, time_ms: l.processing_time_ms || 1800, created_at: l.created_at }));
+          const cvLogs = aiLogs.filter(l => (l.feature_name || '').toLowerCase().includes('resume') || (l.feature_name || '').toLowerCase().includes('cv') || (l.feature_name || '').toLowerCase().includes('optimize') || (l.feature_name || '').toLowerCase().includes('adapt'));
+          rawUsages[feat.id] = [...optimizations, ...cvLogs];
         } else if (feat.id === 'cover_letter') {
-          rawUsages[feat.id] = aiLogs.filter(l => (l.feature_name || '').includes('letter')).map(l => ({ user_id: l.user_id, time_ms: l.processing_time_ms || 1500, created_at: l.created_at }));
+          const letterLogs = aiLogs.filter(l => (l.feature_name || '').toLowerCase().includes('letter') || (l.feature_name || '').toLowerCase().includes('cover'));
+          rawUsages[feat.id] = [...coverLetters, ...letterLogs];
         } else if (feat.id === 'coach_chat') {
-          rawUsages[feat.id] = aiLogs.filter(l => (l.feature_name || '').includes('coach') || (l.feature_name || '').includes('chat')).map(l => ({ user_id: l.user_id, time_ms: l.processing_time_ms || 1100, created_at: l.created_at }));
+          const coachLogs = aiLogs.filter(l => (l.feature_name || '').toLowerCase().includes('coach') || (l.feature_name || '').toLowerCase().includes('chat') || (l.feature_name || '').toLowerCase().includes('copilot'));
+          const copilotEvents = events.filter(e => (e.event_name || '').includes('copilot') || (e.event_name || '').includes('chat'));
+          rawUsages[feat.id] = [...coachLogs, ...copilotEvents];
         } else if (feat.id === 'job_discovery') {
-          rawUsages[feat.id] = events.filter(e => e.event_name.includes('job') || e.event_name.includes('search')).map(e => ({ user_id: e.user_id, time_ms: 800, created_at: e.created_at }));
-        } else {
-          rawUsages[feat.id] = []; // Benchmark Salarial ainda não possui chamadas registradas
+          const searchEvents = events.filter(e => e.event_name.includes('job') || e.event_name.includes('search'));
+          rawUsages[feat.id] = searchEvents.length > 0 ? searchEvents : applications;
         }
       });
 

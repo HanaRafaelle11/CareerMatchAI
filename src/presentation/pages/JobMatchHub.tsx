@@ -1453,28 +1453,28 @@ export function JobMatchHub({
             Encontre vagas compatíveis via buscas inteligentes ou analise descrições de cargos de forma personalizada.
           </p>
         </div>
-        <div className="flex gap-3 shrink-0">
+        <div className="flex gap-3 shrink-0 items-center">
           {primaryResume && (
             <button
               onClick={handleDeleteAnalyses}
               disabled={isDeletingAnalyses}
-              className="btn-secondary text-xs text-red-600 dark:text-red-400 border-red-200 dark:border-red-900/40 hover:bg-red-50 dark:hover:bg-red-950/40"
+              className="btn-secondary text-xs text-red-600 dark:text-red-400 border-red-200 dark:border-red-900/40 hover:bg-red-50 dark:hover:bg-red-950/40 inline-flex items-center justify-center gap-2 leading-none cursor-pointer"
               title="Excluir todas as análises feitas pela IA deste currículo"
             >
               {isDeletingAnalyses ? (
-                <Loader2 size={15} className="animate-spin" />
+                <Loader2 size={15} className="animate-spin shrink-0" />
               ) : (
-                <Trash2 size={15} />
+                <Trash2 size={15} className="shrink-0" />
               )}
-              Excluir minhas análises
+              <span>Excluir minhas análises</span>
             </button>
           )}
           <button
             onClick={() => setShowAddForm(true)}
-            className="btn-primary text-xs"
+            className="btn-primary text-xs inline-flex items-center justify-center gap-2 leading-none cursor-pointer"
           >
-            <Plus size={15} />
-            Analisar Nova Vaga
+            <Plus size={15} className="shrink-0" />
+            <span>Analisar Nova Vaga</span>
           </button>
         </div>
       </div>

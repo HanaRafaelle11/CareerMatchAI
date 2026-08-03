@@ -195,28 +195,43 @@ export function Navbar({
                 {showJourneyTooltip && (
                   <>
                     {/* Backdrop para fechar ao clicar fora */}
-                    <div className="fixed inset-0 z-40" onClick={() => setShowJourneyTooltip(false)} />
-                    <div className="absolute right-0 top-6 z-50 w-60 bg-slate-900 border border-slate-700/60 rounded-xl shadow-2xl p-3 text-[11px] text-slate-300">
-                      <div className="font-extrabold text-white text-xs mb-2 flex items-center gap-1.5">
-                        <span>Sua Jornada — {journeyProgress}% concluída</span>
+                    <div className="fixed inset-0 z-[9998]" onClick={() => setShowJourneyTooltip(false)} />
+                    <div className="absolute right-0 top-7 z-[9999] w-72 md:w-80 bg-[#121927] border border-slate-700/90 rounded-2xl shadow-2xl p-4 text-xs text-slate-200 animate-scale-up">
+                      <div className="font-extrabold text-white text-xs mb-3 flex items-center justify-between pb-2 border-b border-slate-800">
+                        <span>Sua Jornada — <strong className="text-[#4F8EF7]">{journeyProgress}% concluída</strong></span>
+                        <span className="text-[10px] px-2 py-0.5 rounded-full bg-brand-500/10 text-brand-400 border border-brand-500/20 font-bold uppercase">Meta 100%</span>
                       </div>
-                      <div className="space-y-2">
+                      
+                      <div className="space-y-1.5">
                         {journeySteps.map(step => (
-                          <div key={step.id} className="flex items-start gap-2">
+                          <div
+                            key={step.id}
+                            onClick={() => {
+                              setActiveTab(step.id);
+                              setShowJourneyTooltip(false);
+                              onClose();
+                            }}
+                            className="flex items-start gap-2.5 p-2 rounded-xl hover:bg-slate-800/80 cursor-pointer transition-colors group"
+                            title={`Ir para ${step.label}`}
+                          >
                             <span className={`shrink-0 mt-0.5 text-xs ${step.completed ? 'text-emerald-400' : 'text-slate-500'}`}>
                               {step.completed ? '✅' : '○'}
                             </span>
-                            <div>
-                              <span className={`font-semibold block ${step.completed ? 'text-emerald-400' : 'text-slate-300'}`}>
-                                {step.label}
-                              </span>
-                              <span className="text-slate-500">{step.description}</span>
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center justify-between gap-1">
+                                <span className={`font-bold block text-xs ${step.completed ? 'text-emerald-400' : 'text-slate-200 group-hover:text-brand-400'}`}>
+                                  {step.label}
+                                </span>
+                                <span className="text-[9px] font-bold text-brand-400 opacity-0 group-hover:opacity-100 transition-opacity">Ir →</span>
+                              </div>
+                              <span className="text-[10px] text-slate-400 leading-snug block">{step.description}</span>
                             </div>
                           </div>
                         ))}
                       </div>
-                      <p className="mt-2.5 pt-2 border-t border-slate-700/60 text-slate-500 leading-snug">
-                        Complete cada etapa para chegar a 100% e desbloquear todo o potencial do Vocentro.
+
+                      <p className="mt-3 pt-2.5 border-t border-slate-800 text-[10px] font-semibold text-slate-400 leading-relaxed text-center">
+                        💡 Complete as etapas pendentes acima para aumentar sua Jornada.
                       </p>
                     </div>
                   </>

@@ -10,15 +10,8 @@ export class MarketIntelligenceService {
   /**
    * Compila tendências estatísticas de mercado com base nas vagas analisadas
    */
-  static getMarketTrends(jobs: Job[], careerProfileNew?: any): MarketTrend[] {
+  static getMarketTrends(jobs: Job[], _careerProfileNew?: any): MarketTrend[] {
     if (!jobs || jobs.length === 0) {
-      if (careerProfileNew && careerProfileNew.skills && careerProfileNew.skills.length > 0) {
-        return careerProfileNew.skills.slice(0, 5).map((s: any, idx: number) => ({
-          keyword: s.name,
-          percentage: 95 - idx * 8,
-          type: 'skill'
-        }));
-      }
       return [];
     }
 

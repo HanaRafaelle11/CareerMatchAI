@@ -131,20 +131,49 @@ export function GlobalCopilotDrawer({
     setIsOpen(false);
   };
 
+/** Utility to render markdown bold (**text**), italic (*text*), and line breaks (\n) in JSX */
+function renderCopilotMarkdown(text: string): React.ReactNode {
+  if (!text) return null;
+  
+  // Split by line breaks first
+  const lines = text.split('\n');
+  return lines.map((line, lineIdx) => {
+    // Parse **bold** and *italic*
+    const parts = line.split(/(\*\*[^*]+\*\*|\*[^*]+\*)/g);
+    const parsedLine = parts.map((part, partIdx) => {
+      if (part.startsWith('**') && part.endsWith('**') && part.length > 4) {
+        return <strong key={partIdx} className="font-extrabold text-slate-100 dark:text-slate-100 light:text-slate-900">{part.slice(2, -2)}</strong>;
+      }
+      if (part.startsWith('*') && part.endsWith('*') && part.length > 2) {
+        return <em key={partIdx} className="italic text-slate-300 dark:text-slate-300 light:text-slate-700">{part.slice(1, -1)}</em>;
+      }
+      return <span key={partIdx}>{part}</span>;
+    });
+
+    return (
+      <span key={lineIdx} className="block min-h-[1em]">
+        {parsedLine}
+      </span>
+    );
+  });
+}
+
   return (
     <>
-      {/* Opção A: Botão Flutuante Único no Canto Inferior Direito */}
-      <button
-        onClick={handleToggleOpen}
-        aria-label="Abrir Copiloto IA"
-        className="fixed bottom-[4.25rem] right-3 md:bottom-6 md:right-6 z-[9990] flex items-center gap-1.5 md:gap-2.5 px-3 py-2 md:px-4 md:py-3 rounded-full bg-gradient-to-r from-brand-600 via-brand-500 to-indigo-600 text-white font-bold text-[11px] md:text-xs shadow-xl hover:scale-105 active:scale-95 transition-all border border-brand-400/30 group cursor-pointer"
-      >
-        <Sparkles size={14} className="animate-spin-slow text-amber-300 md:w-4 md:h-4" />
-        <span>Copiloto IA</span>
-        {recommendations.length > 0 && (
-          <span className="w-2 h-2 rounded-full bg-amber-400 animate-ping" />
-        )}
-      </button>
+      {/* Opção A: Botão Flutuante Único no Canto Inferior Direito (Oculto quando o Drawer está aberto - Item 1 & 2) */}
+      {!isOpen && (
+        <button
+          onClick={handleToggleOpen}
+          aria-label="Abrir Copiloto IA"
+          className="fixed bottom-[4.25rem] right-3 md:bottom-6 md:right-6 z-[9990] flex items-center gap-1.5 md:gap-2.5 px-3 py-2 md:px-4 md:py-3 rounded-full bg-gradient-to-r from-brand-600 via-brand-500 to-indigo-600 text-white font-bold text-[11px] md:text-xs shadow-xl hover:scale-105 active:scale-95 transition-all border border-brand-400/30 group cursor-pointer"
+        >
+          <Sparkles size={14} className="animate-spin-slow text-amber-300 md:w-4 md:h-4" />
+          <span>Copiloto IA</span>
+          {recommendations.length > 0 && (
+            <span className="w-2 h-2 rounded-full bg-amber-400 animate-ping" />
+          )}
+        </button>
+      )}
 
       {/* Drawer / Slide-Over Flutuante */}
       {isOpen && (
@@ -218,7 +247,7 @@ export function GlobalCopilotDrawer({
                       : 'bg-slate-800 light:bg-slate-100 border border-slate-700 light:border-slate-200 text-slate-200 light:text-slate-800 rounded-bl-none'
                   }`}
                 >
-                  {m.text}
+                  {renderCopilotMarkdown(m.text)}
                 </div>
               </div>
             ))}

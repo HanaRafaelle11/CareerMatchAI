@@ -6,7 +6,7 @@ import type { CareerProfileNew } from '../../application/hooks/useMyProfileAi';
 import { 
   Award, Play, MessageSquare, Send, 
   RefreshCcw, Star, Loader2, BarChart3, ChevronDown, Search, Sparkles,
-  ArrowRight, Bot
+  ArrowRight, Bot, HelpCircle
 } from 'lucide-react';
 import { ProgressRing, Badge, Toast, type ToastMessage } from '../components/ds';
 import { useCopilotEngine } from '../../application/hooks/useCopilotEngine';
@@ -877,19 +877,52 @@ export function CoachDashboard({
             )}
           </CardGlass>
 
-          <CardGlass className="p-6 space-y-4">
-            <h3 className="font-display font-bold text-base text-slate-900 dark:text-slate-100 pb-2 border-b border-slate-200 dark:border-slate-800 flex items-center gap-1.5">
-              <BarChart3 size={18} className="text-brand-500" />
-              Monitor de Demanda Real
-            </h3>
-            <p className="text-[10px] text-slate-600 dark:text-slate-400 font-medium">Habilidades mais exigidas nas vagas monitoradas.</p>
+          <CardGlass className="p-6 space-y-4 relative pb-28 md:pb-6">
+            <div className="flex items-center justify-between pb-2 border-b border-slate-200 dark:border-slate-800">
+              <h3 className="font-display font-bold text-base text-slate-900 dark:text-slate-100 flex items-center gap-1.5">
+                <BarChart3 size={18} className="text-brand-500" />
+                <span>Monitor de Demanda Real</span>
+              </h3>
+              
+              {/* Tooltip Explicativo (Item 6 & 7) */}
+              <div className="relative group/tooltip">
+                <button
+                  type="button"
+                  className="p-1 rounded-full text-slate-400 hover:text-brand-500 transition-colors cursor-pointer"
+                  aria-label="Sobre o Monitor de Demanda Real"
+                >
+                  <HelpCircle size={15} />
+                </button>
+                <div className="absolute right-0 top-6 w-64 md:w-72 p-3.5 rounded-2xl bg-slate-900 border border-slate-700 shadow-2xl text-[11px] text-slate-300 hidden group-hover/tooltip:block group-focus/tooltip:block z-50 leading-relaxed animate-scale-up">
+                  <span className="font-extrabold text-white block mb-1">Como este % é calculado?</span>
+                  <p className="text-slate-400 text-[10px] leading-normal">
+                    Mede a porcentagem de vagas ativas no seu perfil que exigem cada habilidade técnica nos requisitos.
+                  </p>
+                  <div className="mt-2 pt-2 border-t border-slate-800 flex items-center justify-between text-[10px]">
+                    <span className="text-slate-400 font-semibold">Amostra real:</span>
+                    <span className="font-mono text-brand-400 font-bold">{activeJobs.length || jobs.length} vaga(s) monitorada(s)</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div className="flex justify-between items-center text-[10px] text-slate-600 dark:text-slate-400 font-medium">
+              <span>Habilidades mais exigidas pelo mercado</span>
+              <span className="font-mono text-slate-500">(Amostra: {activeJobs.length || jobs.length} vaga(s))</span>
+            </div>
+
             {marketTrends.length === 0 ? (
-              <p className="text-xs text-slate-600 dark:text-slate-400 italic">
-                Nenhuma vaga monitorada no momento. Busque e salve vagas na aba "Vagas & Match" para gerar estatísticas de demanda real.
-              </p>
+              <div className="p-4 rounded-xl bg-slate-900/30 border border-slate-800/60 text-center space-y-1">
+                <p className="text-xs text-slate-400 italic">
+                  Nenhuma vaga monitorada no momento.
+                </p>
+                <p className="text-[10px] text-slate-500">
+                  Busque ou cole vagas na aba <strong>Vagas & Match</strong> para gerar estatísticas automáticas de demanda real.
+                </p>
+              </div>
             ) : (
               <div className="space-y-3">
-                {marketTrends.slice(0, 4).map((trend, i) => (
+                {marketTrends.slice(0, 5).map((trend, i) => (
                   <div key={i} className="space-y-1">
                     <div className="flex justify-between items-center text-xs">
                       <span className="text-slate-900 dark:text-slate-100 font-bold">{trend.keyword}</span>

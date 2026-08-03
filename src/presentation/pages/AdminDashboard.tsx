@@ -425,7 +425,7 @@ export function AdminDashboard({ userId }: AdminDashboardProps) {
       if (!isSupabaseConfigured || !supabase) return null;
       try {
         // Contar tentativas de upload únicas (denominador correto)
-        const [uploadedRes, completedRes, failedRes, tokensRes] = await Promise.all([
+        const [uploadedRes, completedRes, _failedRes, tokensRes] = await Promise.all([
           supabase.from('resume_processing_logs')
             .select('resume_version_id', { count: 'exact', head: true })
             .eq('step', 'uploaded'),
@@ -443,7 +443,8 @@ export function AdminDashboard({ userId }: AdminDashboardProps) {
 
         const totalUploads = uploadedRes.count || 0;
         const totalCompleted = completedRes.count || 0;
-        const totalFailed = failedRes.count || 0;
+        // Garantir consistência matemática: Uploads Reais = Concluídos + Falhas sem conclusão
+        const totalFailed = Math.max(0, totalUploads - totalCompleted);
         const excludedTestLogs = 0;
 
         const successRate = totalUploads > 0
@@ -1341,7 +1342,26 @@ export function AdminDashboard({ userId }: AdminDashboardProps) {
                   {/* Score Gauge Badge — Taxa de Sucesso de Parsing de Currículo (dados reais de resume_processing_logs) */}
                   <div className="flex flex-col gap-1.5 bg-card px-4 py-3 rounded-xl border border-border">
                     <div className="flex items-center gap-3">
-                      <span className="text-xs text-muted-foreground font-bold">Taxa de Sucesso de Parsing:</span>
+                      <div className="flex items-center gap-1.5">
+                        <span className="text-xs text-muted-foreground font-bold">Taxa de Sucesso de Parsing:</span>
+                        
+                        {/* Tooltip Explicativo — Item 8 */}
+                        <div className="relative group/parsingTooltip">
+                          <button type="button" className="p-0.5 text-muted-foreground hover:text-foreground transition-colors cursor-pointer" aria-label="Sobre a Taxa de Sucesso de Parsing">
+                            <AlertCircle size={13} />
+                          </button>
+                          <div className="absolute left-0 top-6 w-72 p-3.5 rounded-2xl bg-slate-900 border border-slate-700 shadow-2xl text-[11px] text-slate-300 hidden group-hover/parsingTooltip:block z-50 leading-relaxed animate-scale-up">
+                            <span className="font-extrabold text-white block mb-1">Métrica de Qualidade OCR/Parsing</span>
+                            <p className="text-slate-400 text-[10px] leading-normal">
+                              <strong>Uploads Reais:</strong> Total de tentativas de envio de arquivos PDF/DOCX por candidatos.<br />
+                              <strong>Concluídos:</strong> Extrações de dados concluídas e salvas no perfil.<br />
+                              <strong>Falhas:</strong> Tentativas interrompidas por timeout, PDF corrompido ou erro de formato JSON.<br />
+                              <strong>Fórmula:</strong> (Concluídos / Uploads Reais) × 100.
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+
                       <span className={`text-2xl font-extrabold font-display ${
                         (mergedOverviewStats?.success_rate || 0) >= 80 ? 'text-emerald-500' : (mergedOverviewStats?.success_rate || 0) >= 50 ? 'text-amber-500' : 'text-red-500'
                       }`}>

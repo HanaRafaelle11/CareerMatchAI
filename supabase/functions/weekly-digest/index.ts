@@ -1,5 +1,5 @@
 // supabase/functions/weekly-digest/index.ts
-// Envia e-mails de reengajamento e resumo semanal segmentado por estágio do funil
+// Envia e-mails de reengajamento e resumo semanal segmentado por estágio do funil com filtro rigoroso de contas reais e exclusão de usuários já convertidos.
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!;
@@ -28,19 +28,6 @@ function cleanJobTitle(rawTitle: string): string {
     .trim();
 }
 
-function isConfidentialCompany(c: string): boolean {
-  if (!c) return true;
-  const lower = c.toLowerCase().trim();
-  return (
-    lower.includes('confidencial') ||
-    lower.includes('empresa parceira') ||
-    lower.includes('empresa oculta') ||
-    lower === 'empresa' ||
-    lower === 'empresa confidencial ?' ||
-    lower === 'empresa confidencial'
-  );
-}
-
 function escapeHtml(str: string): string {
   return (str || '')
     .replace(/&/g, '&amp;')
@@ -50,36 +37,15 @@ function escapeHtml(str: string): string {
     .replace(/'/g, '&#039;');
 }
 
-async function isJobUrlActive(url: string): Promise<boolean> {
-  if (!url || !url.startsWith('http')) return true;
-  try {
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 4000);
-
-    const res = await fetch(url, {
-      method: 'GET',
-      signal: controller.signal,
-      headers: {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
-        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8'
-      }
-    });
-    clearTimeout(timeoutId);
-
-    if (res.status === 404 || res.status === 410) return false;
-
-    const htmlText = await res.text();
-    const titleMatch = htmlText.match(/<title[^>]*>(.*?)<\/title>/i);
-    const titleText = (titleMatch ? titleMatch[1] : '').toLowerCase();
-
-    if (titleText.includes('404') || titleText.includes('não encontrada') || titleText.includes('vaga encerrada') || titleText.includes('vaga desativada')) {
-      return false;
-    }
-
-    return true;
-  } catch (_err) {
-    return true;
-  }
+// Filtro rigoroso de usuários reais elegíveis (Exclui contas de teste E2E e domínios de teste)
+function isEligibleRealUser(p: { id: string; email?: string; is_test_account?: boolean }): boolean {
+  if (!p.email) return false;
+  const email = p.email.toLowerCase().trim();
+  if (p.is_test_account === true) return false;
+  if (email.includes('example.com')) return false;
+  if (email.includes('hardening.e2e')) return false;
+  if (email.includes('test_') || email.includes('test+') || email.startsWith('test@')) return false;
+  return true;
 }
 
 Deno.serve(async (req) => {
@@ -105,7 +71,7 @@ Deno.serve(async (req) => {
     if (testEmail) {
       const { data: testProfiles, error: testErr } = await supabase
         .from('profiles')
-        .select('id, email, full_name, weekly_digest_enabled')
+        .select('id, email, full_name, is_test_account, weekly_digest_enabled')
         .ilike('email', testEmail);
 
       if (testErr) throw testErr;
@@ -119,25 +85,34 @@ Deno.serve(async (req) => {
     } else {
       const { data: activeProfiles, error: profilesError } = await supabase
         .from('profiles')
-        .select('id, email, full_name, weekly_digest_enabled')
+        .select('id, email, full_name, is_test_account, weekly_digest_enabled')
         .not('email', 'is', null);
 
       if (profilesError) throw profilesError;
-      profiles = activeProfiles || [];
+      profiles = (activeProfiles || []).filter(isEligibleRealUser);
     }
 
-    // ── 2. Pré-carregar tabelas de estado para segmentação ──
-    const [resumesRes, logsRes, matchesRes, sampleJobsRes] = await Promise.all([
+    // ── 2. Pré-carregar tabelas de estado para segmentação e conversão ──
+    const [resumesRes, logsRes, matchesRes, apps1Res, apps2Res, sampleJobsRes] = await Promise.all([
       supabase.from('resumes').select('id, user_id'),
       supabase.from('resume_processing_logs').select('user_id, status, error_message'),
       supabase.from('matches').select('id, resume_id, score_overall, created_at, job_id'),
+      supabase.from('applications').select('id, user_id'),
+      supabase.from('job_applications').select('id, user_id'),
       supabase.from('jobs').select('id, title, company_name, location, source_url').limit(3)
     ]);
 
     const resumes = resumesRes.data || [];
     const processingLogs = logsRes.data || [];
     const matches = matchesRes.data || [];
+    const apps1 = apps1Res.data || [];
+    const apps2 = apps2Res.data || [];
     const sampleJobs = sampleJobsRes.data || [];
+
+    // Mapeamento de usuários que JÁ CONVERTERAM (já têm candidatura no pipeline)
+    const userConvertedSet = new Set<string>();
+    apps1.forEach(a => { if (a.user_id) userConvertedSet.add(a.user_id); });
+    apps2.forEach(a => { if (a.user_id) userConvertedSet.add(a.user_id); });
 
     const userResumesMap = new Map<string, any[]>();
     resumes.forEach(r => {
@@ -164,17 +139,24 @@ Deno.serve(async (req) => {
       }
     });
 
-    // ── 3. Classificar usuários por segmento ──
+    // ── 3. Classificar usuários elegíveis nos 4 segmentos de reengajamento ──
     const segmentCounts = {
       segment_1_no_resume: 0,
       segment_2_failed_upload: 0,
       segment_3_resume_no_match: 0,
-      segment_4_match_no_app: 0
+      segment_4_match_no_app: 0,
+      excluded_converted: 0
     };
 
     const classifiedUsers: { profile: any; segment: number; userResumes: any[]; userMatches: any[] }[] = [];
 
     for (const p of profiles) {
+      // Usuários que já têm candidaturas registradas NÃO entram na campanha de reengajamento
+      if (userConvertedSet.has(p.id)) {
+        segmentCounts.excluded_converted++;
+        continue;
+      }
+
       const uResumes = userResumesMap.get(p.id) || [];
       const hasResumes = uResumes.length > 0;
       const hasFailedLogs = userFailedLogsSet.has(p.id);
@@ -196,26 +178,27 @@ Deno.serve(async (req) => {
       classifiedUsers.push({ profile: p, segment: seg, userResumes: uResumes, userMatches: uMatches });
     }
 
-    // Se for MODO DRY-RUN: apenas retorna a contagem dos segmentos sem disparar e-mails
+    // Se MODO DRY-RUN: retorna a contagem exata sem enviar e-mails
     if (isDryRun) {
-      console.log('[weekly-digest] MODO DRY-RUN EXECUTADO. Nenhum e-mail foi disparado.');
+      console.log('[weekly-digest] MODO DRY-RUN RIGOROSO EXECUTADO. Nenhum e-mail enviado.');
       return new Response(
         JSON.stringify({
           mode: 'dry_run',
-          total_profiles: profiles.length,
+          total_profiles_analyzed: profiles.length,
           segment_counts: segmentCounts,
           reconciled_breakdown: {
-            segment_1_no_resume: `${segmentCounts.segment_1_no_resume} usuários (0 currículos)`,
+            segment_1_no_resume: `${segmentCounts.segment_1_no_resume} usuários (0 currículos em resumes)`,
             segment_2_failed_upload: `${segmentCounts.segment_2_failed_upload} usuários (falha técnica em resume_processing_logs)`,
-            segment_3_resume_no_match: `${segmentCounts.segment_3_resume_no_match} usuários (currículo pronto, 0 matches)`,
-            segment_4_match_no_app: `${segmentCounts.segment_4_match_no_app} usuários (match calculado em matches)`
+            segment_3_resume_no_match: `${segmentCounts.segment_3_resume_no_match} usuários (currículo pronto em resumes, 0 matches)`,
+            segment_4_match_no_app: `${segmentCounts.segment_4_match_no_app} usuários (match em matches, 0 candidaturas)`,
+            excluded_converted: `${segmentCounts.excluded_converted} usuários (já possuem candidatura no pipeline)`
           }
         }),
         { status: 200, headers: { 'Content-Type': 'application/json' } }
       );
     }
 
-    // ── 4. Processar envio real por segmento ──
+    // ── 4. Processamento de Envio Real (Apenas com Autorização Explícita) ──
     const results: { userId: string; email: string; segment: number; status: string; error?: string }[] = [];
 
     for (const item of classifiedUsers) {
@@ -227,22 +210,15 @@ Deno.serve(async (req) => {
         let htmlBody = '';
 
         if (segment === 1) {
-          // SEGMENTO 1: NUNCA FEZ UPLOAD
           subject = `Complete seu cadastro no VoCentro enviando seu currículo`;
           htmlBody = buildSegment1Html(firstName);
-
         } else if (segment === 2) {
-          // SEGMENTO 2: FALHA TÉCNICA NO UPLOAD
           subject = `Corrigimos o problema no envio do seu currículo no VoCentro`;
           htmlBody = buildSegment2Html(firstName);
-
         } else if (segment === 3) {
-          // SEGMENTO 3: UPLOAD OK, SEM MATCH
           subject = `Seu currículo está pronto! Veja sua compatibilidade com as vagas`;
           htmlBody = buildSegment3Html(firstName, sampleJobs);
-
         } else {
-          // SEGMENTO 4: MATCH GERADO, SEM RETORNO (Digest semanal)
           const resumeIds = userResumes.map(r => r.id);
           const { data: rawMatches } = await supabase
             .from('matches')
@@ -263,7 +239,6 @@ Deno.serve(async (req) => {
           }));
 
           if (digestJobs.length === 0) {
-            // Se não houver matches > 80%, envia o template do segmento 3 como ponte
             subject = `Seu currículo está pronto! Veja sua compatibilidade com as vagas`;
             htmlBody = buildSegment3Html(firstName, sampleJobs);
           } else {
@@ -272,7 +247,6 @@ Deno.serve(async (req) => {
           }
         }
 
-        // Envio via Resend
         const emailResp = await fetch('https://api.resend.com/emails', {
           method: 'POST',
           headers: {
@@ -317,9 +291,6 @@ Deno.serve(async (req) => {
   }
 });
 
-// ── TEMPLATES HTML POR SEGMENTO ──
-
-// Segmento 1: Nunca fez upload
 function buildSegment1Html(name: string): string {
   return `
 <!DOCTYPE html>
@@ -348,7 +319,6 @@ function buildSegment1Html(name: string): string {
 </html>`;
 }
 
-// Segmento 2: Falha técnica no upload
 function buildSegment2Html(name: string): string {
   return `
 <!DOCTYPE html>
@@ -377,7 +347,6 @@ function buildSegment2Html(name: string): string {
 </html>`;
 }
 
-// Segmento 3: Upload OK, sem match
 function buildSegment3Html(name: string, sampleJobs: any[]): string {
   const jobsList = sampleJobs.map(j => `
     <li style="margin-bottom:8px;color:#334155;font-size:13px;">
@@ -417,7 +386,6 @@ function buildSegment3Html(name: string, sampleJobs: any[]): string {
 </html>`;
 }
 
-// Segmento 4: Match gerado, sem retorno (Digest)
 function buildDigestHtml(name: string, jobs: DigestJob[]): string {
   const rows = jobs.map(j => `
     <tr>

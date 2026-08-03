@@ -355,11 +355,30 @@ function AuthenticatedApp({
     }
   }, [user]);
 
+  // Deep linking: ativa a aba correta com base na URL (?tab=settings, ?tab=match, /settings, /vagas)
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const tabParam = params.get('tab');
+    const subtabParam = params.get('subtab');
+    const pathname = window.location.pathname;
+
+    if (pathname === '/settings' || pathname === '/configuracoes' || tabParam === 'settings') {
+      setActiveTab('settings');
+      if (subtabParam === 'notifications' || subtabParam === 'notificacoes') {
+        setSettingsInitialSubTab('notifications');
+      }
+    } else if (pathname === '/match' || pathname === '/vagas' || tabParam === 'match' || tabParam === 'vagas' || tabParam === 'jobs') {
+      setActiveTab('match');
+      setMatchHubInitialSubTab('discover');
+    }
+  }, []);
+
   useEffect(() => {
     const handleOpenOnboarding = () => setShowOnboarding(true);
     window.addEventListener('vocentro_open_onboarding', handleOpenOnboarding);
     return () => window.removeEventListener('vocentro_open_onboarding', handleOpenOnboarding);
   }, []);
+
 
   // Avalia perfil administrativo (Administradora principal: hanarafaelle11@gmail.com)
   useEffect(() => {

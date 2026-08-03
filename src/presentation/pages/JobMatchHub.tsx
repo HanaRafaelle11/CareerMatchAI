@@ -342,16 +342,24 @@ export function JobMatchHub({
   const handleApplyClick = async (targetJob: any) => {
     if (!targetJob) return;
 
-    // 1. Abrir a URL externa da vaga real normalmente
-    if (targetJob.sourceUrl && isValidUrl(targetJob.sourceUrl)) {
-      window.open(targetJob.sourceUrl, '_blank', 'noopener,noreferrer');
+    // Normalizar a busca da URL da vaga em todas as variantes de propriedade
+    const rawUrl = targetJob.sourceUrl || targetJob.source_url || targetJob.url || targetJob.external_url || targetJob.link;
+
+    // 1. Abrir a URL externa da vaga real normalmente em nova aba se for válida
+    if (rawUrl && isValidUrl(rawUrl)) {
+      window.open(rawUrl, '_blank', 'noopener,noreferrer');
+    } else if (targetJob.id || targetJob.jobId) {
+      // 1b. Se for vaga interna sem link externo, navega para os detalhes da vaga específica no VoCentro
+      const targetId = targetJob.id || targetJob.jobId;
+      setSelectedJobId(targetId);
+      setSubTab('my-jobs');
     }
 
     // 2. Adicionar simultaneamente a vaga no Kanban (applications) com status intermediário
     try {
       const existingApp = (applications || []).find(a => 
         String(a.jobId || a.job_id) === String(targetJob.id || targetJob.jobId) ||
-        (targetJob.sourceUrl && a.sourcePlatform && String(a.sourcePlatform).includes(targetJob.sourceUrl))
+        (rawUrl && a.sourcePlatform && String(a.sourcePlatform).includes(rawUrl))
       );
 
       if (!existingApp) {
@@ -361,7 +369,7 @@ export function JobMatchHub({
             companyName: targetJob.companyName || 'Empresa',
             jobTitle: targetJob.title || targetJob.jobTitle,
             status: '🕐 Candidatura em andamento',
-            sourcePlatform: targetJob.sourceUrl || targetJob.sourcePlatform || 'web',
+            sourcePlatform: rawUrl || targetJob.sourcePlatform || 'web',
             appliedAt: new Date().toISOString()
           });
           showToast('Vaga adicionada ao seu Pipeline (🕐 Candidatura em andamento)', 'info');
@@ -630,6 +638,14 @@ export function JobMatchHub({
       queryClient.invalidateQueries({ queryKey: ['interview-prep'] });
       queryClient.invalidateQueries({ queryKey: ['career-insights'] });
       queryClient.invalidateQueries({ queryKey: ['jobs'] });
+      queryClient.invalidateQueries({ queryKey: ['applications'] });
+      queryClient.invalidateQueries({ queryKey: ['job-discovery'] });
+      queryClient.invalidateQueries({ queryKey: ['copilot'] });
+
+      if (propOnSelectJob) {
+        propOnSelectJob(null);
+      }
+      setSelectedJobId(null);
 
       setToast({ message: "Análises e vagas importadas apagadas com sucesso! Você pode recalcular o Match da vaga.", type: 'info' });
     } catch (err: any) {
@@ -778,13 +794,20 @@ export function JobMatchHub({
         } catch (e) { console.error(e); }
       }
 
-      // Invalida os caches do React Query
+      // Invalida os caches do React Query e limpa a vaga selecionada
       queryClient.invalidateQueries({ queryKey: ['matches'] });
       queryClient.invalidateQueries({ queryKey: ['match-details'] });
       queryClient.invalidateQueries({ queryKey: ['resume-optimization'] });
       queryClient.invalidateQueries({ queryKey: ['cover-letter'] });
       queryClient.invalidateQueries({ queryKey: ['interview-prep'] });
       queryClient.invalidateQueries({ queryKey: ['applications'] });
+      queryClient.invalidateQueries({ queryKey: ['job-discovery'] });
+      queryClient.invalidateQueries({ queryKey: ['copilot'] });
+
+      if (propOnSelectJob) {
+        propOnSelectJob(null);
+      }
+      setSelectedJobId(null);
 
       setToast({ message: "Análise desta vaga excluída com sucesso! Você pode recalcular o Match da vaga quando desejar.", type: 'info' });
     } catch (err: any) {
@@ -922,7 +945,8 @@ export function JobMatchHub({
 
   // States para a descoberta de vagas baseada no Career Profile ou fallback
   const pref = (careerProfileNew?.personal as any)?.preferences || {};
-  const initialKeyword = sessionStorage.getItem('job_search_keyword') || pref.searchKeywords?.[0] || pref.targetRoles?.[0] || careerProfile?.searchKeywords?.[0] || primaryResume?.skills?.[0]?.name || 'React';
+  const initialKeyword = sessionStorage.getItem('job_search_keyword') || pref.searchKeywords?.[0] || pref.targetRoles?.[0] || careerProfile?.searchKeywords?.[0] || primaryResume?.skills?.[0]?.name || '';
+
   const initialLocation = sessionStorage.getItem('job_search_location') || pref.preferredLocations?.[0] || careerProfile?.preferredLocations?.[0] || 'Brasil';
   
   const storedRemote = sessionStorage.getItem('job_search_remote');
@@ -1467,8 +1491,10 @@ export function JobMatchHub({
               <Badge variant="premium" size="sm">Gemini Matching</Badge>
             </div>
             <h2 className="text-base font-semibold text-slate-900 dark:text-slate-100 mt-1">
-              {discoveredJobs.length > 0 
-                ? `Identificamos ${discoveredJobs.length} vaga(s) com alto potencial de Match para seu perfil.` 
+              {totalCount > 0 
+                ? `Identificamos ${totalCount} vaga(s) ativas com alto potencial para seu perfil.` 
+                : matches.length > 0
+                ? `Você possui ${matches.length} vaga(s) analisada(s) em seu histórico.`
                 : 'Insira palavras-chave ou cole o link de uma vaga para analisar o Match da vaga com a IA.'}
             </h2>
             <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
@@ -3975,39 +4001,46 @@ export function JobMatchHub({
                     })}
                     </div>
 
-                     {/* Controles de Paginação */}
-                     <div className="flex flex-col items-center gap-3 pt-6 border-t border-slate-900/60 select-none">
-                       <div className="flex justify-center items-center gap-4">
-                          <button
-                            onClick={() => {
-                              setSearchPage(p => Math.max(1, p - 1));
-                              window.scrollTo({ top: 0, behavior: 'smooth' });
-                            }}
-                            disabled={searchPage === 1 || isLoadingDiscovery}
-                            className="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-white disabled:bg-slate-900 disabled:border-slate-800 disabled:text-slate-500 disabled:cursor-not-allowed text-xs font-bold transition-all shadow-sm cursor-pointer"
-                          >
-                            Anterior
-                          </button>
-                          
-                          <span className="text-xs text-slate-300 dark:text-slate-300 font-bold px-2 py-1 bg-slate-900/80 border border-slate-800 rounded-lg">
-                            Página {searchPage} de {Math.max(1, Math.ceil(totalCount / 15))}
-                          </span>
+                    {/* Controles de Paginação com limites seguros (Padrão RFC/UI) */}
+                    {(() => {
+                      const totalPages = Math.max(1, Math.ceil(totalCount / 15));
+                      const safePage = Math.min(Math.max(1, searchPage), totalPages);
 
-                          <button
-                            onClick={() => {
-                              setSearchPage(p => p + 1);
-                              window.scrollTo({ top: 0, behavior: 'smooth' });
-                            }}
-                            disabled={isLoadingDiscovery || searchPage >= Math.ceil(totalCount / 15)}
-                            className="px-4 py-2 rounded-xl bg-brand-600 hover:bg-brand-500 text-white border border-brand-500 disabled:bg-slate-900 disabled:border-slate-800 disabled:text-slate-500 disabled:cursor-not-allowed text-xs font-bold transition-all shadow-sm shadow-brand-500/20 cursor-pointer"
-                          >
-                            Próxima
-                          </button>
-                       </div>
-                       <div className="text-[10px] text-slate-500 font-medium">
-                         Mostrando {scoredDiscoveredJobs.length} resultados nesta página (Total encontrado: {totalCount})
-                       </div>
-                     </div>
+                      return (
+                        <div className="flex flex-col items-center gap-3 pt-6 border-t border-slate-900/60 select-none">
+                          <div className="flex justify-center items-center gap-4">
+                            <button
+                              onClick={() => {
+                                setSearchPage(p => Math.max(1, p - 1));
+                                window.scrollTo({ top: 0, behavior: 'smooth' });
+                              }}
+                              disabled={safePage <= 1 || isLoadingDiscovery}
+                              className="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-white disabled:bg-slate-900 disabled:border-slate-800 disabled:text-slate-500 disabled:cursor-not-allowed text-xs font-bold transition-all shadow-sm cursor-pointer"
+                            >
+                              Anterior
+                            </button>
+                            
+                            <span className="text-xs text-slate-300 dark:text-slate-300 font-bold px-2 py-1 bg-slate-900/80 border border-slate-800 rounded-lg">
+                              Página {safePage} de {totalPages}
+                            </span>
+
+                            <button
+                              onClick={() => {
+                                setSearchPage(p => Math.min(totalPages, p + 1));
+                                window.scrollTo({ top: 0, behavior: 'smooth' });
+                              }}
+                              disabled={isLoadingDiscovery || safePage >= totalPages}
+                              className="px-4 py-2 rounded-xl bg-brand-600 hover:bg-brand-500 text-white border border-brand-500 disabled:bg-slate-900 disabled:border-slate-800 disabled:text-slate-500 disabled:cursor-not-allowed text-xs font-bold transition-all shadow-sm shadow-brand-500/20 cursor-pointer"
+                            >
+                              Próxima
+                            </button>
+                          </div>
+                          <div className="text-[10px] text-slate-500 font-medium">
+                            Mostrando {scoredDiscoveredJobs.length} resultados nesta página (Total encontrado: {totalCount})
+                          </div>
+                        </div>
+                      );
+                    })()}
                   </div>
                 ) : (
                   <EmptyState

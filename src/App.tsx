@@ -569,15 +569,39 @@ function AuthenticatedApp({
   } = useRoadmapServices(user?.id);
 
   const handleStartSimulation = async (target: Job | string, reset?: boolean) => {
-    if (!profile?.id) return;
+    if (!user?.id && !profile?.id) return;
     try {
-      let appId: string;
+      let appId: string | undefined;
+
       if (typeof target === 'string') {
-        appId = target;
-      } else {
+        // 1. Tentar encontrar candidatura existente com esse ID
+        const existingApp = applications.find(a => String(a.id) === String(target));
+        if (existingApp) {
+          appId = existingApp.id;
+        } else {
+          // 2. Tentar encontrar por jobId
+          const appByJob = applications.find(a => String(a.jobId) === String(target));
+          if (appByJob) {
+            appId = appByJob.id;
+          } else {
+            // 3. Tentar encontrar a vaga física e criar candidatura automática
+            const targetJob = jobs.find(j => String(j.id) === String(target));
+            if (targetJob && createApplication) {
+              const newApp = await createApplication({
+                jobId: targetJob.id,
+                companyName: targetJob.companyName || 'Empresa Confidencial',
+                jobTitle: targetJob.title,
+                status: 'applied',
+                resumeVersionId: selectedResumeVersionId || undefined
+              });
+              appId = newApp?.id;
+            }
+          }
+        }
+      } else if (target && typeof target === 'object') {
         const job = target;
         let app = applications.find(a => String(a.jobId) === String(job.id));
-        if (!app) {
+        if (!app && createApplication) {
           app = await createApplication({
             jobId: job.id,
             companyName: job.companyName || 'Empresa Confidencial',
@@ -586,15 +610,20 @@ function AuthenticatedApp({
             resumeVersionId: selectedResumeVersionId || undefined
           });
         }
-        appId = app.id;
+        appId = app?.id;
+      }
+
+      if (!appId) {
+        setGlobalToast({ message: 'Esta vaga ou candidatura não está mais disponível no seu perfil.', type: 'warning' });
+        return;
       }
 
       await startSimulation({ applicationId: appId, reset });
       setActiveSimulationAppId(appId);
       setActiveTab('coach');
-    } catch (err) {
+    } catch (err: any) {
       console.error('Erro ao iniciar simulação de entrevista:', err);
-      setGlobalToast({ message: 'Não foi possível iniciar a simulação no momento.', type: 'error' });
+      setGlobalToast({ message: 'Não foi possível iniciar o treino STAR no momento: ' + (err.message || 'vaga não encontrada'), type: 'error' });
     }
   };
 

@@ -166,7 +166,7 @@ export function JobMatchHub({
     closePaywall 
   } = useEntitlements(user?.id || userId);
   const [showCheckout, setShowCheckout] = useState(false);
-  const { trashedJobs, trashedJobIds, moveToTrash, restoreFromTrash, removeFromTrash, clearTrash } = useJobTrash(user?.id || userId);
+  const { trashedJobs, trashedJobIds, moveToTrash, restoreFromTrash, removeFromTrash, clearTrash } = useJobTrash(user?.id || userId, jobs);
 
   const queryClient = useQueryClient();
   const [subTab, setSubTab] = useState<'my-jobs' | 'discover' | 'trash'>(initialSubTab || 'discover');

@@ -47,22 +47,15 @@ function isEligibleRealUser(p: { id: string; email?: string; is_test_account?: b
   return true;
 }
 
+// Retorna true APENAS para status terminal de contratação efetiva.
+// Status intermediários (applied, rejected, interview, etc.) NÃO devem
+// excluir o usuário do digest — ele continua ativo buscando vagas.
 function isConfirmedKanbanStatus(statusStr?: string): boolean {
   if (!statusStr) return false;
   const lower = String(statusStr).toLowerCase().trim();
   return (
-    lower.includes('applied') || 
-    lower.includes('candidatei') || 
-    lower.includes('candidatar') || 
-    lower.includes('andamento') || 
-    lower.includes('rh') || 
-    lower.includes('interview') || 
-    lower.includes('gestor') || 
-    lower.includes('oferta') || 
-    lower.includes('hired') || 
-    lower.includes('contratad') ||
-    lower.includes('rejected') ||
-    lower.includes('rejeitad')
+    lower.includes('hired') ||
+    lower.includes('contratad')
   );
 }
 

@@ -11,8 +11,11 @@ export class SerpApiConnector extends BaseJobConnector {
     }
 
     const start = (pageNum - 1) * 10;
-    const isBr = !location || /brasil|brazil|br|são paulo|sao paulo|rio|sp/i.test(location.toLowerCase());
-    const serpLoc = isBr ? "Brazil" : location;
+    const isBr = !location || /brasil|brazil|br|são paulo|sao paulo|rio|sp|curitiba|porto alegre|belo horizonte|df|brasília/i.test(location.toLowerCase());
+    let serpLoc = "Brazil";
+    if (location && location.trim().length > 0 && !/^(brasil|brazil|br)$/i.test(location.trim())) {
+      serpLoc = `${location.trim().replace(/brasil/i, '').replace(/,\s*$/, '')}, Brazil`;
+    }
     const url = `https://serpapi.com/search.json?engine=google_jobs&q=${encodeURIComponent(keyword)}&location=${encodeURIComponent(serpLoc)}${isBr ? '&gl=br&hl=pt' : ''}&api_key=${apiKey}&start=${start}`;
     
     try {

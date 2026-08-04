@@ -1,5 +1,5 @@
 import React from 'react';
-import { ArrowLeft, FileText, CheckCircle2, ShieldCheck, Mail, AlertTriangle } from 'lucide-react';
+import { ArrowLeft, FileText, CheckCircle2, ShieldCheck, Mail, AlertTriangle, CreditCard, Scale, Sparkles } from 'lucide-react';
 import { VocentroLogo } from '../components/ds/MyCareerIcons';
 import { ThemeToggle } from '../components/ThemeToggle';
 
@@ -46,7 +46,7 @@ export const TermsOfUsePage: React.FC<TermsOfUsePageProps> = ({ onBack }) => {
         <div className="space-y-3 border-b border-border pb-6">
           <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-brand-500/10 border border-brand-500/20 text-brand-500 text-xs font-bold font-mono">
             <FileText size={14} />
-            <span>Condições Gerais de Uso</span>
+            <span>Condições Gerais de Uso (Rascunho de Trabalho)</span>
           </div>
           <h1 className="text-3xl sm:text-4xl font-black font-display tracking-tight text-foreground">
             Termos de Uso - Vocentro
@@ -63,7 +63,7 @@ export const TermsOfUsePage: React.FC<TermsOfUsePageProps> = ({ onBack }) => {
             1. Aceitação dos Termos
           </h2>
           <p className="text-sm text-muted-foreground leading-relaxed">
-            Ao criar uma conta ou utilizar os serviços do <strong className="text-foreground">Vocentro</strong> (disponível em <a href="https://vocentro.com.br" className="text-brand-500 hover:underline">https://vocentro.com.br</a>), você concorda expressamente com os presentes Termos de Uso e com nossa Política de Privacidade.
+            Ao criar uma conta ou utilizar os serviços do <strong className="text-foreground">Vocentro</strong> (disponível em <a href="https://vocentro.com.br" className="text-brand-500 hover:underline">https://vocentro.com.br</a>), você declara ter pelo menos 18 anos e concordar expressamente com estes Termos de Uso e com nossa Política de Privacidade.
           </p>
         </section>
 
@@ -74,22 +74,61 @@ export const TermsOfUsePage: React.FC<TermsOfUsePageProps> = ({ onBack }) => {
             2. Descrição do Serviço
           </h2>
           <p className="text-sm text-muted-foreground leading-relaxed">
-            O <strong className="text-foreground">Vocentro</strong> é uma plataforma de desenvolvimento profissional que utiliza Inteligência Artificial para orientar candidatos na busca por oportunidades de emprego. A plataforma oferece:
+            O <strong className="text-foreground">Vocentro</strong> é uma plataforma de desenvolvimento profissional que utiliza Inteligência Artificial para orientar candidatos na busca por oportunidades de trabalho. A plataforma oferece:
           </p>
           <ul className="list-disc list-inside space-y-1.5 text-xs text-muted-foreground pl-2">
-            <li>Busca inteligente e agregação de vagas de trabalho;</li>
+            <li>Busca inteligente e agregação de vagas de trabalho em múltiplos portais;</li>
             <li>Análise semântica e cálculo do Match da vaga (Match Score);</li>
             <li>Otimização de currículos para sistemas automatizados de seleção (ATS);</li>
-            <li>Simulador interativo de entrevistas com feedback inteligente;</li>
-            <li>Organização e acompanhamento de candidaturas em funil (Kanban).</li>
+            <li>Simulador interativo de entrevistas com feedback baseado na metodologia STAR;</li>
+            <li>Organização e acompanhamento de candidaturas no funil Kanban.</li>
           </ul>
         </section>
 
-        {/* Section 3 */}
+        {/* Section 3 - Novo item 7: Planos, Pagamento e Cancelamento */}
+        <section className="p-6 rounded-2xl bg-card border border-border space-y-3">
+          <h2 className="text-lg font-bold text-foreground flex items-center gap-2">
+            <CreditCard size={18} className="text-emerald-500" />
+            3. Planos de Assinatura, Cobrança e Cancelamento
+          </h2>
+          <p className="text-sm text-muted-foreground leading-relaxed">
+            O Vocentro oferece planos de assinatura recorrentes para acesso ilimitado aos recursos PRO da plataforma:
+          </p>
+          <ul className="space-y-2 text-xs text-muted-foreground pt-1">
+            <li className="p-3 rounded-xl bg-muted/40 border border-border">
+              <strong className="text-foreground font-semibold">Planos Disponíveis:</strong> Plano Semanal (R$ 9,90/semana) e Plano Mensal (R$ 29,90/mês). Os valores podem ser revisados mediante aviso prévio aos usuários.
+            </li>
+            <li className="p-3 rounded-xl bg-muted/40 border border-border">
+              <strong className="text-foreground font-semibold">Gateway de Pagamentos:</strong> Os pagamentos são processados de forma criptografada pelo nosso parceiro bancário <strong className="text-foreground">Asaas Gestão Financeira S.A.</strong> (via PIX ou Cartão de Crédito).
+            </li>
+            <li className="p-3 rounded-xl bg-muted/40 border border-border">
+              <strong className="text-foreground font-semibold">Renovação Automática:</strong> As assinaturas são renovadas automaticamente ao final de cada período de cobrança, a menos que o cancelamento seja solicitado antes da data de renovação.
+            </li>
+            <li className="p-3 rounded-xl bg-muted/40 border border-border">
+              <strong className="text-foreground font-semibold">Cancelamento e Acesso:</strong> O usuário pode cancelar a renovação automática da assinatura a qualquer momento através do painel de Configurações da plataforma. Ao cancelar, o usuário mantém o acesso completo aos recursos PRO até o fim do período já pago.
+            </li>
+            <li className="p-3 rounded-xl bg-muted/40 border border-border">
+              <strong className="text-foreground font-semibold">Inadimplência ou Falha de Pagamento:</strong> Em caso de não confirmação do pagamento na data de renovação (ex: cartão recusado), o acesso aos recursos PRO será suspenso após tentativas de cobrança sem sucesso.
+            </li>
+          </ul>
+        </section>
+
+        {/* Section 4 - Novo item 9: Propriedade do Conteúdo Gerado por IA */}
+        <section className="p-6 rounded-2xl bg-card border border-border space-y-3">
+          <h2 className="text-lg font-bold text-foreground flex items-center gap-2">
+            <Sparkles size={18} className="text-brand-500" />
+            4. Propriedade Intelectual do Conteúdo Gerado por IA
+          </h2>
+          <p className="text-sm text-muted-foreground leading-relaxed">
+            Todo o conteúdo gerado ou otimizado pelas ferramentas de inteligência artificial da plataforma a partir dos dados do seu currículo (como versões adaptadas de currículos, cartas de apresentação, resumos executivos e respostas do simulador de entrevista) <strong className="text-foreground">pertence exclusivamente ao usuário</strong>. O Vocentro não reivindica direitos de propriedade sobre os documentos gerados pelo usuário utilizando nossos serviços.
+          </p>
+        </section>
+
+        {/* Section 5 */}
         <section className="p-6 rounded-2xl bg-card border border-border space-y-3">
           <h2 className="text-lg font-bold text-foreground flex items-center gap-2">
             <ShieldCheck size={18} className="text-emerald-500" />
-            3. Regras de Conduta do Usuário
+            5. Regras de Conduta do Usuário
           </h2>
           <p className="text-sm text-muted-foreground leading-relaxed">
             Ao utilizar o Vocentro, o usuário se compromete a:
@@ -105,27 +144,38 @@ export const TermsOfUsePage: React.FC<TermsOfUsePageProps> = ({ onBack }) => {
             </li>
             <li className="flex items-start gap-2">
               <CheckCircle2 size={16} className="text-emerald-500 shrink-0 mt-0.5" />
-              <span>Não utilizar a plataforma para fins ilícitos, spam ou envio de conteúdos ofensivos.</span>
+              <span>Não utilizar a plataforma para fins ilícitos, engenharia reversa ou envio de conteúdos impróprios.</span>
             </li>
           </ul>
         </section>
 
-        {/* Section 4 */}
+        {/* Section 6 */}
         <section className="p-6 rounded-2xl bg-card border border-border space-y-3">
           <h2 className="text-lg font-bold text-foreground flex items-center gap-2">
             <AlertTriangle size={18} className="text-amber-500" />
-            4. Limitação de Responsabilidade
+            6. Limitação de Responsabilidade
           </h2>
           <p className="text-sm text-muted-foreground leading-relaxed">
-            O <strong className="text-foreground">Vocentro</strong> atua como uma ferramenta facilitadora da jornada profissional do candidato. Não garantimos a contratação imediata nem possuímos vínculo empregatício com as empresas cujas vagas são disponibilizadas pelos portais parceiros.
+            O <strong className="text-foreground">Vocentro</strong> atua como uma ferramenta tecnológica facilitadora da jornada profissional do candidato. Não garantimos a contratação nem possuímos vínculo empregatício com as empresas cujas vagas são exibidas na plataforma.
           </p>
         </section>
 
-        {/* Section 5 */}
+        {/* Section 7 - Novo item 8: Foro e Legislação Aplicável */}
+        <section className="p-6 rounded-2xl bg-card border border-border space-y-3">
+          <h2 className="text-lg font-bold text-foreground flex items-center gap-2">
+            <Scale size={18} className="text-brand-500" />
+            7. Legislação Aplicável e Foro
+          </h2>
+          <p className="text-sm text-muted-foreground leading-relaxed">
+            Estes Termos de Uso são regidos e interpretados estritamente de acordo com as leis da <strong className="text-foreground">República Federativa do Brasil</strong>. Fica eleito o Foro da Comarca de <strong className="text-foreground">São Paulo / SP</strong> para dirimir quaisquer dúvidas ou controvérsias oriundas da utilização da plataforma, com renúncia expressa a qualquer outro, por mais privilegiado que seja.
+          </p>
+        </section>
+
+        {/* Section 8 */}
         <section className="p-6 rounded-2xl bg-card border border-border space-y-4">
           <h2 className="text-lg font-bold text-foreground flex items-center gap-2">
             <Mail size={18} className="text-brand-500 shrink-0" />
-            5. Alterações e Contato
+            8. Alterações e Contato
           </h2>
           <p className="text-sm text-muted-foreground leading-relaxed">
             Reservamo-nos o direito de atualizar estes Termos de Uso periodicamente. Em caso de dúvidas, entre em contato:

@@ -1,5 +1,5 @@
 import React from 'react';
-import { ArrowLeft, ShieldCheck, Mail, Lock, CheckCircle2, FileText } from 'lucide-react';
+import { ArrowLeft, ShieldCheck, Mail, Lock, CheckCircle2, FileText, Users, Scale, AlertTriangle } from 'lucide-react';
 import { VocentroLogo } from '../components/ds/MyCareerIcons';
 import { ThemeToggle } from '../components/ThemeToggle';
 
@@ -45,7 +45,7 @@ export const PrivacyPolicyPage: React.FC<PrivacyPolicyPageProps> = ({ onBack }) 
         <div className="flex items-center gap-3">
           <ThemeToggle />
           <span className="text-xs font-mono px-3 py-1 rounded-full bg-brand-500/10 border border-brand-500/20 text-brand-500 font-bold hidden sm:inline-block">
-            OAuth & Privacy Verified
+            LGPD & Privacy Verified
           </span>
         </div>
       </header>
@@ -57,13 +57,13 @@ export const PrivacyPolicyPage: React.FC<PrivacyPolicyPageProps> = ({ onBack }) 
         <div className="space-y-3 border-b border-border pb-6">
           <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-500 text-xs font-bold font-mono">
             <ShieldCheck size={14} />
-            <span>Documentação Oficial de Privacidade</span>
+            <span>Documentação Oficial de Privacidade (Rascunho de Trabalho)</span>
           </div>
           <h1 className="text-3xl sm:text-4xl font-black font-display tracking-tight text-foreground">
             Política de Privacidade - Vocentro
           </h1>
           <p className="text-xs text-muted-foreground font-mono">
-            Última atualização: {new Date().toLocaleDateString('pt-BR')} • Válido para a aplicação Vocentro (https://vocentro.com.br)
+            Última atualização: {new Date().toLocaleDateString('pt-BR')} • Válido para a plataforma Vocentro (https://vocentro.com.br)
           </p>
         </div>
 
@@ -71,90 +71,150 @@ export const PrivacyPolicyPage: React.FC<PrivacyPolicyPageProps> = ({ onBack }) 
         <section className="p-6 rounded-2xl bg-card border border-border space-y-3">
           <h2 className="text-lg font-bold text-foreground flex items-center gap-2">
             <FileText size={18} className="text-brand-500" />
-            1. Introdução
+            1. Introdução e Escopo
           </h2>
           <p className="text-sm text-muted-foreground leading-relaxed">
-            A aplicação <strong className="text-foreground">Vocentro</strong> respeita a privacidade dos seus usuários e está plenamente comprometida com a proteção dos seus dados pessoais. Esta Política de Privacidade explica de forma transparente como coletamos, utilizamos, armazenamos e protegemos suas informações ao utilizar a plataforma <strong className="text-foreground">Vocentro</strong> (disponível em <a href="https://vocentro.com.br" className="text-brand-500 hover:underline">https://vocentro.com.br</a>).
+            A aplicação <strong className="text-foreground">Vocentro</strong> respeita a privacidade dos seus usuários e está plenamente comprometida com a proteção de dados pessoais, em conformidade com a Lei Geral de Proteção de Dados (Lei nº 13.709/2018 - LGPD). Esta Política de Privacidade descreve de forma clara e transparente como coletamos, tratamos, armazenamos e protegemos suas informações ao utilizar a plataforma <strong className="text-foreground">Vocentro</strong> (disponível em <a href="https://vocentro.com.br" className="text-brand-500 hover:underline">https://vocentro.com.br</a>).
           </p>
         </section>
 
         {/* Section 2 */}
         <section className="p-6 rounded-2xl bg-card border border-border space-y-3">
           <h2 className="text-lg font-bold text-foreground flex items-center gap-2">
-            <ShieldCheck size={18} className="text-emerald-500" />
-            2. Coleta de Dados e Login com o Google
+            <Users size={18} className="text-brand-500" />
+            2. Idade Mínima para Uso
           </h2>
           <p className="text-sm text-muted-foreground leading-relaxed">
-            Ao utilizar o recurso de login com o Google no <strong className="text-foreground">Vocentro</strong>, coletamos única e exclusivamente as informações básicas de perfil autorizadas pelo provedor OAuth:
-          </p>
-          <ul className="space-y-2 text-xs text-muted-foreground pt-2">
-            <li className="flex items-center gap-2">
-              <CheckCircle2 size={16} className="text-emerald-500 shrink-0" />
-              <span><strong className="text-foreground">Nome Completo:</strong> Utilizado para identificação e saudação na plataforma.</span>
-            </li>
-            <li className="flex items-center gap-2">
-              <CheckCircle2 size={16} className="text-emerald-500 shrink-0" />
-              <span><strong className="text-foreground">Endereço de E-mail:</strong> Utilizado para autenticar sua conta com segurança.</span>
-            </li>
-            <li className="flex items-center gap-2">
-              <CheckCircle2 size={16} className="text-emerald-500 shrink-0" />
-              <span><strong className="text-foreground">Foto de Perfil (Avatar):</strong> Utilizada para personalizar seu painel interno.</span>
-            </li>
-          </ul>
-          <p className="text-xs text-amber-600 dark:text-amber-400 bg-amber-500/10 p-3 rounded-lg border border-amber-500/20 mt-3 font-medium">
-            <strong>Importante:</strong> O Vocentro NÃO solicita, NÃO lê e NÃO acessa seus e-mails do Gmail, arquivos do Google Drive, contatos ou qualquer outro dado privado da sua conta Google.
+            O uso da plataforma Vocentro e a contratação de nossos serviços são destinados exclusivamente a pessoas físicas com idade igual ou superior a <strong className="text-foreground">18 (dezoito) anos completos</strong> ou emancipadas legalmente. Ao se cadastrar, você declara expressamente possuir capacidade civil plena para aceitar estes termos.
           </p>
         </section>
 
-        {/* Section 3 */}
+        {/* Section 3 - Novo item 1: Currículo */}
         <section className="p-6 rounded-2xl bg-card border border-border space-y-3">
           <h2 className="text-lg font-bold text-foreground flex items-center gap-2">
-            <Lock size={18} className="text-brand-500" />
-            3. Uso das Informações
+            <FileText size={18} className="text-emerald-500" />
+            3. Tratamento dos Dados do Currículo Profissional
           </h2>
           <p className="text-sm text-muted-foreground leading-relaxed">
-            Os dados coletados do Google ou fornecidos no cadastro por e-mail são utilizados estritamente para:
+            Ao enviar seu currículo em formato PDF ou texto para a plataforma, coletamos e processamos automatizadamente (via inteligência artificial) os seguintes dados profissionais:
           </p>
           <ul className="list-disc list-inside space-y-1.5 text-xs text-muted-foreground pl-2">
-            <li>Autenticar o usuário e manter sua sessão segura na plataforma Vocentro;</li>
-            <li>Permitir o gerenciamento do seu perfil profissional, currículos e candidaturas;</li>
-            <li>Fornecer suporte técnico e comunicações essenciais sobre sua conta.</li>
+            <li>Histórico profissional, experiências anteriores e cargos ocupados;</li>
+            <li>Formação acadêmica, cursos, certificações e diplomas;</li>
+            <li>Habilidades técnicas (hard skills), competências comportamentais e idiomas;</li>
+            <li>Informações de contato públicas incluídas no documento (ex: LinkedIn, telefone).</li>
           </ul>
+          <div className="p-3.5 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-600 dark:text-amber-400 text-xs font-medium space-y-1">
+            <p className="font-bold flex items-center gap-1.5">
+              <AlertTriangle size={14} />
+              Recomendação sobre Dados Sensíveis:
+            </p>
+            <p>
+              Orientamos que os usuários <strong>evitem incluir dados sensíveis desnecessários</strong> em seus currículos (como dados de saúde, convicção religiosa, filiação a sindicato ou partido político, dados genéticos ou biométricos). Esses dados não são o foco da análise e não são necessários para os serviços de Match e desenvolvimento profissional do Vocentro.
+            </p>
+          </div>
         </section>
 
         {/* Section 4 */}
         <section className="p-6 rounded-2xl bg-card border border-border space-y-3">
           <h2 className="text-lg font-bold text-foreground flex items-center gap-2">
-            <ShieldCheck size={18} className="text-rose-500" />
-            4. Compartilhamento e Venda de Dados
+            <ShieldCheck size={18} className="text-emerald-500" />
+            4. Coleta de Dados de Cadastro e Login Google
           </h2>
-          <div className="p-4 rounded-xl bg-rose-500/10 border border-rose-500/20 text-rose-500 text-xs font-semibold leading-relaxed">
-            Declaramos expressamente que <strong>não compartilhamos, não vendemos, não alugamos e não comercializamos</strong> dados pessoais ou informações dos usuários do Vocentro com quaisquer terceiros, anunciantes ou empresas parceiras.
-          </div>
+          <p className="text-sm text-muted-foreground leading-relaxed">
+            Ao se cadastrar diretamente ou através do recurso de login com o Google, coletamos apenas os dados essenciais para autenticação segura:
+          </p>
+          <ul className="space-y-2 text-xs text-muted-foreground pt-1">
+            <li className="flex items-center gap-2">
+              <CheckCircle2 size={16} className="text-emerald-500 shrink-0" />
+              <span><strong className="text-foreground">Nome Completo:</strong> Para identificação e personalização do seu painel.</span>
+            </li>
+            <li className="flex items-center gap-2">
+              <CheckCircle2 size={16} className="text-emerald-500 shrink-0" />
+              <span><strong className="text-foreground">Endereço de E-mail:</strong> Para login seguro e comunicações de serviço.</span>
+            </li>
+            <li className="flex items-center gap-2">
+              <CheckCircle2 size={16} className="text-emerald-500 shrink-0" />
+              <span><strong className="text-foreground">Foto de Perfil:</strong> Para exibição no seu cabeçalho interno.</span>
+            </li>
+          </ul>
         </section>
 
-        {/* Section 5 */}
+        {/* Section 5 - Novo item 2: Terceiros Nominal */}
+        <section className="p-6 rounded-2xl bg-card border border-border space-y-3">
+          <h2 className="text-lg font-bold text-foreground flex items-center gap-2">
+            <Users size={18} className="text-brand-500" />
+            5. Compartilhamento com Processadores e Operadores Terceiros
+          </h2>
+          <p className="text-sm text-muted-foreground leading-relaxed">
+            Para operar a infraestrutura técnica da plataforma, contratamos fornecedores de tecnologia especializados que atuam como <strong>Operadores de Dados</strong> sob nossas instruções estritas. Declaramos nominalmente as principais categorias de parceiros técnicos:
+          </p>
+          <ul className="space-y-2.5 text-xs text-muted-foreground pt-1">
+            <li className="p-3 rounded-xl bg-muted/40 border border-border">
+              <strong className="text-foreground font-semibold">Google Cloud & Google Gemini AI:</strong> Processamento inteligente de currículos, cálculo de Match de vagas e sugestões de otimização de carreira via modelos de IA.
+            </li>
+            <li className="p-3 rounded-xl bg-muted/40 border border-border">
+              <strong className="text-foreground font-semibold">Asaas Gestão Financeira S.A.:</strong> Gateway seguro contratado para processamento de pagamentos, cobranças recorrentes de assinatura e geração de PIX e faturas.
+            </li>
+            <li className="p-3 rounded-xl bg-muted/40 border border-border">
+              <strong className="text-foreground font-semibold">Resend Inc.:</strong> Serviço infraestrutural responsável pelo envio de e-mails transacionais (como recuperação de senha, confirmações e resumo de vagas).
+            </li>
+          </ul>
+          <p className="text-xs text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 p-3 rounded-lg border border-emerald-500/20 font-medium">
+            <strong>Garantia Comercial:</strong> Estes parceiros atuam exclusivamente para viabilizar o funcionamento do serviço. O Vocentro <strong>NÃO vende, NÃO aluga e NÃO compartilha</strong> seus dados pessoais para fins comerciais ou publicitários de terceiros.
+          </p>
+        </section>
+
+        {/* Section 6 - Novo item 3: Base Legal */}
+        <section className="p-6 rounded-2xl bg-card border border-border space-y-3">
+          <h2 className="text-lg font-bold text-foreground flex items-center gap-2">
+            <Scale size={18} className="text-brand-500" />
+            6. Bases Legais de Tratamento (LGPD)
+          </h2>
+          <p className="text-sm text-muted-foreground leading-relaxed">
+            O tratamento dos seus dados pessoais é fundamentado nas hipóteses autorizativas do Artigo 7º da LGPD (Lei nº 13.709/2018):
+          </p>
+          <ul className="list-disc list-inside space-y-1.5 text-xs text-muted-foreground pl-2">
+            <li><strong className="text-foreground">Execução de Contrato (Art. 7º, V):</strong> Para a prestação dos serviços contratados pelo usuário no Vocentro;</li>
+            <li><strong className="text-foreground">Consentimento do Titular (Art. 7º, I):</strong> Para envio de comunicações de reengajamento e notificações personalizadas;</li>
+            <li><strong className="text-foreground">Legítimo Interesse (Art. 7º, IX):</strong> Para aprimoramento da segurança, prevenção a fraudes e melhoria contínua dos algoritmos da plataforma.</li>
+          </ul>
+        </section>
+
+        {/* Section 7 - Novo item 4: Retenção e Exclusão */}
         <section id="exclusao" className="p-6 rounded-2xl bg-card border border-border space-y-3">
           <h2 className="text-lg font-bold text-foreground flex items-center gap-2">
             <Lock size={18} className="text-emerald-500" />
-            5. Armazenamento, Criptografia e Exclusão de Dados
+            7. Prazos de Retenção e Exclusão de Dados
           </h2>
           <p className="text-sm text-muted-foreground leading-relaxed">
-            Todos os dados são armazenados em infraestrutura segura com criptografia de ponta a ponta (SSL/TLS em trânsito e criptografia AES no banco de dados).
+            Seus dados pessoais e currículos são mantidos armazenados com criptografia enquanto sua conta permanecer ativa na plataforma.
           </p>
-          <p className="text-xs text-muted-foreground leading-relaxed">
-            O usuário tem o direito integral de solicitar a alteração ou exclusão definitiva de sua conta e de todos os seus dados armazenados a qualquer momento, diretamente pelas configurações do app ou entrando em contato com nosso suporte.
+          <ul className="list-disc list-inside space-y-1.5 text-xs text-muted-foreground pl-2">
+            <li><strong className="text-foreground">Exclusão Solicitada pelo Usuário:</strong> Você pode solicitar a exclusão da sua conta a qualquer momento nas configurações do aplicativo ou via suporte. Todos os seus dados pessoais e currículos serão deletados em até 30 (trinta) dias.</li>
+            <li><strong className="text-foreground">Inatividade da Conta:</strong> Contas inativas sem qualquer acesso por mais de 24 (vinte e quatro) meses consecutivos poderão ter seus currículos arquivados ou descartados de forma automatizada e segura.</li>
+          </ul>
+        </section>
+
+        {/* Section 8 - Novo item 5: Canal ANPD */}
+        <section className="p-6 rounded-2xl bg-card border border-border space-y-3">
+          <h2 className="text-lg font-bold text-foreground flex items-center gap-2">
+            <ShieldCheck size={18} className="text-brand-500" />
+            8. Direitos do Titular e Reclamação à ANPD
+          </h2>
+          <p className="text-sm text-muted-foreground leading-relaxed">
+            Nos termos da LGPD, você tem o direito de confirmar a existência de tratamento, acessar seus dados, corrigir informações incompletas e revogar o consentimento. Além do nosso suporte interno, você possui o direito de registrar petição ou reclamação diretamente perante a <strong className="text-foreground">Autoridade Nacional de Proteção de Dados (ANPD)</strong> através dos canais oficiais do Governo Federal (<a href="https://www.gov.br/anpd" target="_blank" rel="noopener noreferrer" className="text-brand-500 hover:underline font-semibold">gov.br/anpd</a>).
           </p>
         </section>
 
-        {/* Section 6 */}
+        {/* Section 9 */}
         <section className="p-6 rounded-2xl bg-card border border-border space-y-4">
           <h2 className="text-lg font-bold text-foreground flex items-center gap-2">
             <Mail size={18} className="text-brand-500 shrink-0" />
-            6. Contato e Encarregado de Privacidade
+            9. Contato do Encarregado de Proteção de Dados (DPO)
           </h2>
           <p className="text-sm text-muted-foreground leading-relaxed">
-            Em caso de dúvidas sobre esta Política de Privacidade ou solicitações referentes aos seus dados pessoais, entre em contato com nosso suporte oficial:
+            Para exercer seus direitos de titular ou esclarecer qualquer dúvida sobre o tratamento de seus dados, entre em contato direto com o nosso Encarregado de Privacidade:
           </p>
           <div className="pt-1">
             <a 

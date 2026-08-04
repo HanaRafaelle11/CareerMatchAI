@@ -16,7 +16,7 @@ export class AdzunaConnector extends BaseJobConnector {
     const combinedSignal = signal || controller.signal;
 
     try {
-      const resultsPerPage = 25; // 25 resultados por busca — acelera resposta
+      const resultsPerPage = 50; // 50 resultados por busca em Adzuna (Brasil)
       const url = `https://api.adzuna.com/v1/api/jobs/br/search/${pageNum}?app_id=${appId}&app_key=${appKey}&results_per_page=${resultsPerPage}&what=${encodeURIComponent(keyword)}&where=${encodeURIComponent(location)}`;
       const res = await fetch(url, { signal: combinedSignal });
       clearTimeout(timeoutId);

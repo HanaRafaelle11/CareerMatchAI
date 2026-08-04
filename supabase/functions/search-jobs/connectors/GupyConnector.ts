@@ -7,7 +7,7 @@ export class GupyConnector extends BaseJobConnector {
     if (pageNum > 2) return []; // Limite de 2 páginas para reduzir latência
 
     const jobs: RawJob[] = [];
-    const limit = 10;
+    const limit = 20;
     const offset = Math.max(0, (pageNum - 1) * limit);
 
     // Tentativa 1: API v1 do employability portal (endpoint público)

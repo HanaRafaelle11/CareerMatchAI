@@ -167,10 +167,44 @@ Total time: ${totalTimeMs}ms
     const map = new Map<string, NormalizedJobResult>();
 
     for (const job of jobs) {
-      const cleanTitle = job.title.toLowerCase().replace(/[^a-z0-9]/g, '');
-      const cleanCompany = job.company.toLowerCase().replace(/[^a-z0-9]/g, '');
-      const cleanLoc = job.location.toLowerCase().replace(/[^a-z0-9]/g, '');
-      const key = `${cleanCompany}|${cleanTitle}|${cleanLoc}`;
+      const rawUrl = job.url || (job as any).sourceUrl || (job as any).redirect_url;
+      
+      const buildKey = (): string => {
+        if (rawUrl && typeof rawUrl === 'string' && rawUrl.trim().length > 12) {
+          try {
+            const urlObj = new URL(rawUrl.trim());
+            const cleanPath = (urlObj.origin + urlObj.pathname).toLowerCase().replace(/\/+$/, '');
+            if (cleanPath.length > 15 && !cleanPath.includes('/search') && !cleanPath.includes('/vagas/busca')) {
+              return `url:${cleanPath}`;
+            }
+          } catch {
+            const cleanUrl = rawUrl.trim().split('?')[0].toLowerCase();
+            if (cleanUrl.length > 15 && !cleanUrl.includes('/search')) return `url:${cleanUrl}`;
+          }
+        }
+
+        const cleanTitle = (job.title || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+        const cleanCompany = (job.company || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+        const cleanLoc = (job.location || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+
+        const isConfidential = !cleanCompany || 
+          cleanCompany.includes('empresaconfidencial') || 
+          cleanCompany.includes('confidencial') || 
+          cleanCompany === 'empresa' || 
+          cleanCompany === 'jobaggregator' ||
+          cleanCompany === 'adzuna';
+
+        if (isConfidential) {
+          const descSnippet = (job.description || '').replace(/[^a-z0-9]/gi, '').slice(0, 80).toLowerCase();
+          return `conf:${cleanTitle}|${cleanLoc}|${descSnippet}`;
+        }
+
+        const dateStr = (job as any).posted_at || (job as any).publishedAt ? String((job as any).posted_at || (job as any).publishedAt).slice(0, 10) : '';
+        const descShort = (job.description || '').replace(/[^a-z0-9]/gi, '').slice(0, 40).toLowerCase();
+        return `comp:${cleanCompany}|${cleanTitle}|${cleanLoc}|${dateStr || descShort}`;
+      };
+
+      const key = buildKey();
 
       const currentSource = job.rawSource || 'Desconhecido';
       const itemSources = job.sources && job.sources.length > 0 ? job.sources : [currentSource];

@@ -384,8 +384,12 @@ serve(async (req) => {
       const isBrazilianSearch = /brasil|brazil|br|são paulo|sao paulo|rio|belo horizonte|curitiba|porto alegre|sp|rj|mg/i.test(locLower);
       
       connectorsToRun = TIERED_CONNECTORS.filter(tc => {
+        const nameLower = tc.connector.platformName.toLowerCase();
+        // Se a busca for no Brasil, descarta provedores exclusivamente internacionais/alemães (ex: Arbeitnow) para economizar banda e latência
+        if (isBrazilianSearch && (nameLower.includes('arbeitnow') || nameLower.includes('remoteok'))) {
+          return false;
+        }
         if (tc.tier === 'A' || tc.tier === 'B') return true;
-        // Tier C only runs for Brazilian searches or when explicitly requested
         if (tc.tier === 'C' && isBrazilianSearch) return true;
         return false;
       });

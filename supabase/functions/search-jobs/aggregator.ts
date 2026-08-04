@@ -316,7 +316,45 @@ export function aggregateAndNormalizeJobs(
     const company = normalizeCompany(j.companyName);
     const titleClean = (j.title || '').replace(/<\/?[^>]+(>|$)/g, "").trim();
     const locStr = normalizeLocation(j.location);
-    const key = `${company.toLowerCase()}|${titleClean.toLowerCase()}`;
+    
+    // a/b/c) Chave de Deduplicação Inteligente e Rica (Evita falsos positivos em empresas confidenciais)
+    const buildKey = (): string => {
+      const rawUrl = j.sourceUrl || (j as any).url || (j as any).redirect_url;
+      if (rawUrl && typeof rawUrl === 'string' && rawUrl.trim().length > 12) {
+        try {
+          const urlObj = new URL(rawUrl.trim());
+          const cleanPath = (urlObj.origin + urlObj.pathname).toLowerCase().replace(/\/+$/, '');
+          if (cleanPath.length > 15 && !cleanPath.includes('/search') && !cleanPath.includes('/vagas/busca')) {
+            return `url:${cleanPath}`;
+          }
+        } catch {
+          const cleanUrl = rawUrl.trim().split('?')[0].toLowerCase();
+          if (cleanUrl.length > 15 && !cleanUrl.includes('/search')) return `url:${cleanUrl}`;
+        }
+      }
+
+      const cleanCompany = (company || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+      const cleanTitle = (titleClean || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+      const cleanLoc = (locStr || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+
+      const isConfidential = !cleanCompany || 
+        cleanCompany.includes('empresaconfidencial') || 
+        cleanCompany.includes('confidencial') || 
+        cleanCompany === 'empresa' || 
+        cleanCompany === 'jobaggregator' ||
+        cleanCompany === 'adzuna';
+
+      if (isConfidential) {
+        const descSnippet = (j.description || '').replace(/[^a-z0-9]/gi, '').slice(0, 80).toLowerCase();
+        return `conf:${cleanTitle}|${cleanLoc}|${descSnippet}`;
+      }
+
+      const dateStr = j.publishedAt ? String(j.publishedAt).slice(0, 10) : '';
+      const descShort = (j.description || '').replace(/[^a-z0-9]/gi, '').slice(0, 40).toLowerCase();
+      return `comp:${cleanCompany}|${cleanTitle}|${cleanLoc}|${dateStr || descShort}`;
+    };
+
+    const key = buildKey();
 
     const { ats, score: atsScore } = detectATS(j.sourceUrl, j.sourcePlatform);
     const { score: freshnessScore, ageDays, isExpired } = calculateFreshness(j.publishedAt);

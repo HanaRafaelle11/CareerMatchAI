@@ -4042,9 +4042,12 @@ export function JobMatchHub({
                     })}
                     </div>
 
-                    {/* Controles de Paginação com limites seguros (Padrão RFC/UI) */}
+                    {/* Controles de Paginação com suporte a navegação remota contínua */}
                     {(() => {
-                      const totalPages = Math.max(1, Math.ceil(totalCount / 15));
+                      const itemsPerPage = 15;
+                      const hasMoreRemotePages = scoredDiscoveredJobs.length >= 10;
+                      const calculatedTotalPages = Math.max(1, Math.ceil(totalCount / itemsPerPage));
+                      const totalPages = hasMoreRemotePages ? Math.max(calculatedTotalPages, searchPage + 1) : calculatedTotalPages;
                       const safePage = Math.min(Math.max(1, searchPage), totalPages);
 
                       return (
@@ -4067,17 +4070,17 @@ export function JobMatchHub({
 
                             <button
                               onClick={() => {
-                                setSearchPage(p => Math.min(totalPages, p + 1));
+                                setSearchPage(p => p + 1);
                                 window.scrollTo({ top: 0, behavior: 'smooth' });
                               }}
-                              disabled={isLoadingDiscovery || safePage >= totalPages}
+                              disabled={isLoadingDiscovery || (!hasMoreRemotePages && safePage >= totalPages)}
                               className="px-4 py-2 rounded-xl bg-brand-600 hover:bg-brand-500 text-white border border-brand-500 disabled:bg-slate-900 disabled:border-slate-800 disabled:text-slate-500 disabled:cursor-not-allowed text-xs font-bold transition-all shadow-sm shadow-brand-500/20 cursor-pointer"
                             >
                               Próxima
                             </button>
                           </div>
                           <div className="text-[10px] text-slate-500 font-medium">
-                            Mostrando {scoredDiscoveredJobs.length} resultados nesta página (Total encontrado: {totalCount})
+                            Exibindo {scoredDiscoveredJobs.length} vagas nesta página (Página {safePage})
                           </div>
                         </div>
                       );

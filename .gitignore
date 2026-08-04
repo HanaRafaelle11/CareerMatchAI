@@ -36,3 +36,7 @@ stitch_mycareer_premium_ai_copilot.zip
 scratch/
 
 .env*
+
+# scripts de diagnóstico/investigação temporários, não versionados
+scratch_*.cjs
+

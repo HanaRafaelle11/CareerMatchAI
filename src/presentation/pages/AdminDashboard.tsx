@@ -968,30 +968,30 @@ export function AdminDashboard({ userId }: AdminDashboardProps) {
 
         const healthScore = Math.max(0, Math.min(100, Math.round(successRate * 0.8 + (100 - Math.min(100, avg_latency / 30)) * 0.2)));
 
-        // Real status based on actual data
-        const apiKeyMissing = stats.skipped > 0;
+        // Status real baseado na execução e vagas válidas retornadas
+        const apiKeyMissing = stats.skipped > 0 && stats.finished === 0;
         const lastHttpStatus = stats.last_http_status || null;
         let realStatus = 'Operando';
         let statusColor = 'emerald';
         
         if (apiKeyMissing) {
           realStatus = 'Sem chave configurada';
-          statusColor = 'red';
+          statusColor = 'slate';
         } else if (lastHttpStatus === 401 || lastHttpStatus === 403) {
           realStatus = 'Erro de autenticação';
           statusColor = 'red';
         } else if (lastHttpStatus === 429) {
-          realStatus = 'Limite excedido';
+          realStatus = 'Limite de cota excedido';
           statusColor = 'amber';
-        } else if (stats.failed > totalAttempts * 0.5) {
+        } else if (stats.total_jobs > 0) {
+          realStatus = 'Operando';
+          statusColor = 'emerald';
+        } else if (stats.failed > 0 && stats.finished === 0) {
           realStatus = 'Instável';
           statusColor = 'red';
         } else if (stats.total_jobs === 0 && totalAttempts > 0) {
-          realStatus = 'Sem resultados';
-          statusColor = 'amber';
-        } else if (avg_latency > 3000) {
-          realStatus = 'Timeout frequente';
-          statusColor = 'amber';
+          realStatus = '0 resultados (Sem vagas)';
+          statusColor = 'slate';
         } else if (totalAttempts === 0) {
           realStatus = 'Aguardando';
           statusColor = 'slate';

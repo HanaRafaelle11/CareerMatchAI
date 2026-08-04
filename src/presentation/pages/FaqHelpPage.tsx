@@ -48,7 +48,7 @@ export const FaqHelpPage: React.FC<FaqHelpPageProps> = ({ onBack }) => {
       title: '📈 Match da vaga (%)',
       icon: Target,
       desc: 'O Match da vaga é a porcentagem que mede a sintonia entre seu perfil e uma vaga específica.',
-      details: 'Ele analisa simultaneamente: (1) Hard Skills exigidas na vaga vs. competências do seu currículo, (2) Match de cargo e área de atuação, (3) Exigências de senioridade. Vagas fora da sua área principal recebem uma trava de Match com pontuação ajustada (< 15%) para evitar falsos positivos.'
+      details: 'Ele analisa simultaneamente: (1) Competências Técnicas exigidas na vaga vs. competências do seu currículo, (2) Match de cargo e área de atuação, (3) Exigências de senioridade. Vagas fora da sua área principal recebem uma trava de Match com pontuação ajustada (< 15%) para evitar falsos positivos.'
     },
     {
       id: 'score-2',
@@ -66,7 +66,7 @@ export const FaqHelpPage: React.FC<FaqHelpPageProps> = ({ onBack }) => {
     },
     {
       id: 'score-4',
-      title: '🧠 Score Comportamental / Soft Skills (%)',
+      title: '🧠 Competências Comportamentais (%)',
       icon: Sparkles,
       desc: 'Avaliação da presença de competências humanas e interpessoais cruciais para o ambiente de trabalho.',
       details: 'Identifica evidências no seu currículo de habilidades como comunicação, resiliência, liderança, organização e trabalho em equipe recomendadas para o cargo.'

@@ -35,7 +35,7 @@ export function FeatureAdoptionDashboard() {
           </div>
           <h2 className="text-xl font-bold text-foreground mt-2 flex items-center gap-2">
             <Bot className="text-purple-500" size={24} />
-            <span>Feature Adoption — Ranking de Funcionalidades & Latência</span>
+            <span>Adoção de Funcionalidades — Ranking & Latência</span>
           </h2>
           <p className="text-xs text-muted-foreground mt-1 max-w-3xl leading-relaxed">
             Mapeamento completo de utilização, tempo médio de resposta da IA, frequência por usuário, retenção em 30 dias e conversão direta das ferramentas inteligentes em candidaturas no Pipeline.

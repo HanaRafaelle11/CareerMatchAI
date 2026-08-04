@@ -50,7 +50,7 @@ export function ChurnIntelligenceDashboard() {
           </div>
           <h2 className="text-xl font-bold text-foreground mt-2 flex items-center gap-2">
             <ShieldAlert className="text-red-500" size={24} />
-            <span>Churn Intelligence — Modelo Preditivo de Risk Score</span>
+            <span>Inteligência de Retenção — Modelo Preditivo de Risco de Churn</span>
           </h2>
           <p className="text-xs text-muted-foreground mt-1 max-w-3xl leading-relaxed">
             Pontuação de risco por usuário (0 a 100) baseada nos 8 fatores causais, com carência de 7 dias para novos cadastros e desduplicação entre ausência de candidaturas vs. paralisação de pipeline.

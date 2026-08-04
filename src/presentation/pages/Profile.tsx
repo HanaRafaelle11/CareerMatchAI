@@ -704,7 +704,7 @@ export function Profile({
         </div>
         <button
           onClick={() => fileInputRef.current?.click()}
-          className="btn-primary text-xs shrink-0 self-start md:self-center"
+          className="px-4 py-2.5 rounded-xl bg-brand-600 hover:bg-brand-500 text-white font-bold text-xs flex items-center justify-center gap-2 transition-all cursor-pointer shrink-0 self-start md:self-center max-w-full shadow-md shadow-brand-500/10"
         >
           <Upload size={14} />
           <span>{hasResume ? 'Atualizar Currículo' : 'Enviar Currículo'}</span>
@@ -811,14 +811,14 @@ export function Profile({
                 </div>
 
                 {/* Item 2a: Indicador de Progresso Visual em 2 Passos Sem Truncamento Visual */}
-                <div className="flex flex-wrap sm:flex-nowrap gap-2 text-[11px] sm:text-xs">
-                  <div className="flex-1 min-w-[130px] px-2.5 py-2 rounded-xl bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center gap-1 text-emerald-400 font-bold whitespace-nowrap">
+                <div className="flex flex-wrap sm:flex-nowrap gap-2 text-[11px] sm:text-xs max-w-full">
+                  <div className="flex-1 min-w-0 px-2.5 py-2 rounded-xl bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center gap-1 text-emerald-400 font-bold whitespace-nowrap overflow-hidden">
                     <CheckCircle size={13} className="shrink-0 text-emerald-400" />
-                    <span>1. CV Enviado ✅</span>
+                    <span className="truncate">1. CV Enviado ✅</span>
                   </div>
-                  <div className="flex-1 min-w-[130px] px-2.5 py-2 rounded-xl bg-brand-500/20 border border-brand-500/40 flex items-center justify-center gap-1 text-brand-300 font-bold whitespace-nowrap animate-pulse">
+                  <div className="flex-1 min-w-0 px-2.5 py-2 rounded-xl bg-brand-500/20 border border-brand-500/40 flex items-center justify-center gap-1 text-brand-300 font-bold whitespace-nowrap animate-pulse overflow-hidden">
                     <Sparkles size={13} className="shrink-0 text-amber-300" />
-                    <span>2. Ver seu Match 🚀</span>
+                    <span className="truncate">2. Ver seu Match 🚀</span>
                   </div>
                 </div>
 
@@ -829,10 +829,10 @@ export function Profile({
                 {/* Item 1: CTA Ativo Primário direcionando para Vagas & Match (ID correto: 'match') */}
                 <button
                   onClick={() => setActiveTab?.('match')}
-                  className="w-full py-3 px-4 rounded-xl bg-gradient-to-r from-brand-600 via-brand-500 to-indigo-600 hover:from-brand-500 hover:to-indigo-500 text-white font-extrabold text-xs shadow-xl flex items-center justify-center gap-2 group transition-all cursor-pointer border border-brand-400/30"
+                  className="w-full max-w-full py-3 px-3 sm:px-4 rounded-xl bg-gradient-to-r from-brand-600 via-brand-500 to-indigo-600 hover:from-brand-500 hover:to-indigo-500 text-white font-extrabold text-xs shadow-xl flex items-center justify-center gap-2 group transition-all cursor-pointer border border-brand-400/30 overflow-hidden text-center"
                 >
-                  <span>Buscar vagas e ver seu Match</span>
-                  <ArrowRight size={16} className="group-hover:translate-x-1 transition-transform" />
+                  <span className="truncate block max-w-full">Buscar vagas e ver seu Match</span>
+                  <ArrowRight size={16} className="group-hover:translate-x-1 transition-transform shrink-0" />
                 </button>
 
                 {/* Item 2b & Item 3: Catálogo de Vagas Sugeridas com Título Completo e Nome Real da Empresa */}
@@ -1059,11 +1059,11 @@ export function Profile({
           {primaryResume ? (
             <div className="space-y-6">
               {/* Navegação por Abas (Fase 9) */}
-              <div className="flex flex-wrap gap-2 p-1 rounded-xl bg-slate-950 border border-slate-900 w-full select-none items-center justify-between">
-                <div className="flex flex-wrap gap-2">
+              <div className="flex flex-wrap sm:flex-nowrap gap-2 p-1.5 rounded-xl bg-slate-950 border border-slate-900 w-full select-none items-center justify-between max-w-full overflow-x-auto">
+                <div className="flex flex-wrap gap-1.5 max-w-full">
                   <button
                     onClick={() => setActiveProfileTab('profile')}
-                    className={`px-4 py-2 rounded-lg text-xs font-semibold tracking-wide transition-all ${
+                    className={`px-3 sm:px-4 py-2 rounded-lg text-[11px] sm:text-xs font-semibold tracking-wide transition-all ${
                       activeProfileTab === 'profile'
                         ? 'bg-brand-500 text-white shadow-md shadow-brand-500/10'
                         : 'text-slate-400 hover:text-slate-200'
@@ -1073,7 +1073,7 @@ export function Profile({
                   </button>
                   <button
                     onClick={() => setActiveProfileTab('ai-profile')}
-                    className={`px-4 py-2 rounded-lg text-xs font-semibold tracking-wide transition-all flex items-center gap-1.5 ${
+                    className={`px-3 sm:px-4 py-2 rounded-lg text-[11px] sm:text-xs font-semibold tracking-wide transition-all flex items-center gap-1.5 ${
                       activeProfileTab === 'ai-profile'
                         ? 'bg-brand-500 text-white shadow-md shadow-brand-500/10'
                         : 'text-slate-400 hover:text-slate-200'
@@ -1084,7 +1084,7 @@ export function Profile({
                   </button>
                   <button
                     onClick={() => setActiveProfileTab('transparency')}
-                    className={`px-4 py-2 rounded-lg text-xs font-semibold tracking-wide transition-all flex items-center gap-1.5 ${
+                    className={`px-3 sm:px-4 py-2 rounded-lg text-[11px] sm:text-xs font-semibold tracking-wide transition-all flex items-center gap-1.5 ${
                       activeProfileTab === 'transparency'
                         ? 'bg-brand-500 text-white shadow-md shadow-brand-500/10'
                         : 'text-slate-400 hover:text-slate-200'
@@ -1097,7 +1097,7 @@ export function Profile({
                 <button
                   type="button"
                   onClick={handleExportPDF}
-                  className="mr-1 px-3 py-1.5 rounded-lg bg-slate-900 hover:bg-slate-800 text-slate-300 hover:text-white border border-slate-800 text-[10px] font-bold flex items-center gap-1.5 transition cursor-pointer"
+                  className="mr-1 px-3 py-1.5 rounded-lg bg-slate-900 hover:bg-slate-800 text-slate-300 hover:text-white border border-slate-800 text-[10px] font-bold flex items-center gap-1.5 transition cursor-pointer shrink-0"
                 >
                   <FileText size={12} />
                   Exportar PDF
@@ -1144,7 +1144,7 @@ export function Profile({
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-2 border-t border-slate-900 dark:border-slate-900 light:border-slate-200">
                       {/* Hard Skills */}
                       <div className="space-y-3">
-                        <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider block">Hard Skills</span>
+                        <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider block">Competências Técnicas</span>
                         <div className="flex flex-wrap gap-2">
                           {displaySkills.length > 0
                             ? displaySkills.map((s, i) => {
@@ -1171,7 +1171,7 @@ export function Profile({
 
                       {/* Soft Skills */}
                       <div className="space-y-3">
-                        <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider block">Soft Skills</span>
+                        <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider block">Competências Comportamentais</span>
                         <div className="flex flex-wrap gap-2">
                           {displaySoftSkills.length > 0
                             ? displaySoftSkills.map((s, i) => (

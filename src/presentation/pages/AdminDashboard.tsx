@@ -1154,15 +1154,15 @@ export function AdminDashboard({ userId }: AdminDashboardProps) {
   }
 
   const tabs = [
-    { id: 'overview', label: '1. Executive Overview' },
+    { id: 'overview', label: '1. Visão Geral Executiva' },
     hasTelemetryAccess && { id: 'risco', label: '2. Produto em Risco' },
-    hasTelemetryAccess && { id: 'copilot_insights', label: '3. Insights do Copiloto' },
-    hasTelemetryAccess && { id: 'feature_adoption', label: '4. Feature Adoption' },
-    hasUsersAccess && { id: 'churn_intelligence', label: '5. Churn Intelligence' },
+    hasTelemetryAccess && { id: 'copilot_insights', label: '3. Diagnósticos do Copiloto' },
+    hasTelemetryAccess && { id: 'feature_adoption', label: '4. Adoção de Funcionalidades' },
+    hasUsersAccess && { id: 'churn_intelligence', label: '5. Inteligência de Retenção (Churn)' },
     { id: 'financeiro', label: '6. Saúde do Negócio' },
     { id: 'saude_produto', label: '7. Saúde do Produto' },
     hasTelemetryAccess && { id: 'comercial', label: '8. Inteligência Comercial' },
-    hasTelemetryAccess && { id: 'executive_copilot', label: '9. Executive Copilot' },
+    hasTelemetryAccess && { id: 'executive_copilot', label: '9. Copiloto Executivo' },
     hasUsersAccess && { id: 'users', label: '10. Usuários & Permissões (RBAC)' },
     { id: 'satisfaction_surveys', label: '11. Pesquisas de Satisfação (NPS)' },
     hasTelemetryAccess && { id: 'infra_logs', label: '12. Infraestrutura & Logs Auditáveis' }

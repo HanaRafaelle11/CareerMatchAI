@@ -10,9 +10,10 @@ import type { CareerProfileNew } from '../../application/hooks/useMyProfileAi';
 import { 
   User, FileText, Settings as SettingsIcon, Bell, 
   Palette, ShieldAlert, CreditCard, Trash2, Download, Check,
-  Sun, Moon, Monitor
+  Sun, Moon, Monitor, RotateCcw
 } from 'lucide-react';
 import { CustomerPortal } from '../../modules/billing';
+import { useJobTrash } from '../../application/hooks/useJobTrash';
 
 interface SettingsProps {
   profile: Profile | null;
@@ -25,9 +26,10 @@ interface SettingsProps {
   initialTab?: SettingsTab;
   preferences?: any;
   updatePreferences?: (newUpdates: any) => Promise<void>;
+  onDeleteJob?: (jobId: string) => Promise<any>;
 }
 
-type SettingsTab = 'account' | 'resumes' | 'preferences' | 'notifications' | 'appearance' | 'privacy' | 'billing';
+type SettingsTab = 'account' | 'resumes' | 'preferences' | 'notifications' | 'appearance' | 'privacy' | 'billing' | 'trash';
 
 export function Settings({
   profile,
@@ -39,8 +41,11 @@ export function Settings({
   onUpdateProfileState,
   initialTab,
   preferences,
-  updatePreferences
+  updatePreferences,
+  onDeleteJob
 }: SettingsProps) {
+  const { trashedJobs, restoreFromTrash, removeFromTrash, clearTrash } = useJobTrash(profile?.id);
+
   if (!(window as any).SETTINGS_DIAGNOSTIC_MOUNTED) {
     (window as any).SETTINGS_DIAGNOSTIC_MOUNTED = true;
     console.log("SETTINGS DIAGNOSTIC RUNNING");
@@ -546,7 +551,8 @@ export function Settings({
     { id: 'notifications', label: 'Notificações', icon: Bell },
     { id: 'appearance', label: 'Aparência', icon: Palette },
     { id: 'privacy', label: 'Privacidade', icon: ShieldAlert },
-    { id: 'billing', label: 'Planos & Assinatura', icon: CreditCard }
+    { id: 'billing', label: 'Planos & Assinatura', icon: CreditCard },
+    { id: 'trash', label: 'Lixeira de Vagas', icon: Trash2 }
   ] as const;
 
   return (
@@ -1075,6 +1081,97 @@ export function Settings({
               userId={profile?.id} 
               onOpenCheckout={() => window.dispatchEvent(new CustomEvent('open_checkout_modal'))} 
             />
+          )}
+
+          {activeSubTab === 'trash' && (
+            <CardGlass className="p-6 space-y-6">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-slate-800">
+                <div>
+                  <h3 className="font-display font-bold text-lg text-slate-200 flex items-center gap-2">
+                    <Trash2 className="text-red-400" size={20} />
+                    Lixeira de Vagas Excluídas
+                  </h3>
+                  <p className="text-xs text-slate-400 mt-0.5">
+                    Gerencie suas vagas excluídas. Você pode restaurar qualquer oportunidade para a lista ativa ou realizar a exclusão permanente.
+                  </p>
+                </div>
+                {trashedJobs.length > 0 && (
+                  <button
+                    type="button"
+                    onClick={async () => {
+                      if (window.confirm('Tem certeza que deseja esvaziar a lixeira e excluir permanentemente todas as vagas?')) {
+                        for (const item of trashedJobs) {
+                          if (onDeleteJob) await onDeleteJob(item.id);
+                        }
+                        clearTrash();
+                        showToast('Lixeira esvaziada com sucesso.', 'success');
+                      }
+                    }}
+                    className="px-3.5 py-2 rounded-xl bg-red-950/40 hover:bg-red-900/60 border border-red-800/50 text-red-400 text-xs font-bold flex items-center gap-1.5 transition cursor-pointer self-start sm:self-center shadow-md shadow-red-950/20"
+                  >
+                    <Trash2 size={14} />
+                    Esvaziar Lixeira
+                  </button>
+                )}
+              </div>
+
+              {trashedJobs.length === 0 ? (
+                <div className="py-16 text-center text-slate-500 space-y-2">
+                  <Trash2 size={36} className="mx-auto text-slate-700" />
+                  <p className="text-sm font-semibold text-slate-300">Sua lixeira está vazia</p>
+                  <p className="text-xs text-slate-500">Nenhuma vaga foi excluída recentemente.</p>
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {trashedJobs.map(item => (
+                    <div
+                      key={item.id}
+                      className="p-4 rounded-2xl bg-slate-900/60 border border-slate-800 flex flex-col justify-between gap-3 hover:border-slate-700 transition"
+                    >
+                      <div>
+                        <div className="flex justify-between items-start gap-2">
+                          <h4 className="font-bold text-sm text-slate-200">{item.title}</h4>
+                          <span className="text-[10px] text-slate-500 font-mono shrink-0">
+                            {new Date(item.deletedAt).toLocaleDateString('pt-BR')}
+                          </span>
+                        </div>
+                        <p className="text-xs text-brand-400 font-medium mt-0.5">{item.companyName}</p>
+                        {item.location && <p className="text-[10px] text-slate-500 mt-1">{item.location}</p>}
+                      </div>
+
+                      <div className="flex items-center gap-2 pt-3 border-t border-slate-800/80">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            restoreFromTrash(item.id);
+                            showToast(`Vaga "${item.title}" restaurada!`, 'success');
+                          }}
+                          className="flex-1 py-2 px-3 rounded-xl bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/30 text-emerald-400 text-xs font-bold flex items-center justify-center gap-1.5 transition cursor-pointer"
+                        >
+                          <RotateCcw size={13} />
+                          Restaurar
+                        </button>
+                        <button
+                          type="button"
+                          onClick={async () => {
+                            if (window.confirm(`Excluir permanentemente a vaga "${item.title}"? Esta ação não pode ser desfeita.`)) {
+                              if (onDeleteJob) await onDeleteJob(item.id);
+                              removeFromTrash(item.id);
+                              showToast(`Vaga "${item.title}" excluída permanentemente.`, 'success');
+                            }
+                          }}
+                          className="py-2 px-3 rounded-xl bg-red-500/10 hover:bg-red-500/20 border border-red-500/30 text-red-400 text-xs font-bold flex items-center justify-center gap-1.5 transition cursor-pointer"
+                          title="Excluir permanentemente"
+                        >
+                          <Trash2 size={13} />
+                          Excluir
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </CardGlass>
           )}
         </div>
       </div>

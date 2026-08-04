@@ -11,7 +11,8 @@ import { MatchingEngine } from '../../application/services/matchingEngine';
 import type { Job, Resume, Match, CareerProfile, JobFeedbackReason } from '../../domain/models/types';
 import type { CareerProfileNew } from '../../application/hooks/useMyProfileAi';
 import { useEscapeToClose } from '../../application/hooks/useEscapeToClose';
-import { Play, Clipboard, Award, CheckCircle, AlertTriangle, AlertCircle, X, ChevronRight, BookOpen, Plus, Search, MapPin, Loader2, ArrowUpRight, Flame, Sparkles, Trash2, Briefcase, Heart, DollarSign, Building, FileText, Printer, Check, Target, Zap, ThumbsUp, ThumbsDown } from 'lucide-react';
+import { Play, Clipboard, Award, CheckCircle, AlertTriangle, AlertCircle, X, ChevronRight, BookOpen, Plus, Search, MapPin, Loader2, ArrowUpRight, Flame, Sparkles, Trash2, Briefcase, Heart, DollarSign, Building, FileText, Printer, Check, Target, Zap, ThumbsUp, ThumbsDown, RotateCcw } from 'lucide-react';
+import { useJobTrash } from '../../application/hooks/useJobTrash';
 
 import { isSupabaseConfigured, supabase } from '../../infrastructure/api/supabaseClient';
 import { AppError } from '../../application/errors/AppError';
@@ -128,7 +129,7 @@ interface JobMatchHubProps {
   selectedJobId?: string | null;
   onSelectJob?: (id: string | null) => void;
   onStartSimulation?: (target: Job | string) => void;
-  initialSubTab?: 'my-jobs' | 'discover';
+  initialSubTab?: 'my-jobs' | 'discover' | 'trash';
 }
 
 export function JobMatchHub({
@@ -165,9 +166,10 @@ export function JobMatchHub({
     closePaywall 
   } = useEntitlements(user?.id || userId);
   const [showCheckout, setShowCheckout] = useState(false);
+  const { trashedJobs, trashedJobIds, moveToTrash, restoreFromTrash, removeFromTrash, clearTrash } = useJobTrash(user?.id || userId);
 
   const queryClient = useQueryClient();
-  const [subTab, setSubTab] = useState<'my-jobs' | 'discover'>(initialSubTab || 'discover');
+  const [subTab, setSubTab] = useState<'my-jobs' | 'discover' | 'trash'>(initialSubTab || 'discover');
   
   useEffect(() => {
     if (initialSubTab) {
@@ -1551,10 +1553,10 @@ export function JobMatchHub({
       </div>
 
       {/* Sub Tabs switcher */}
-      <div className="flex border-b border-slate-800 dark:border-slate-800 light:border-slate-200 gap-6">
+      <div className="flex border-b border-slate-800 dark:border-slate-800 light:border-slate-200 gap-6 overflow-x-auto">
         <button
           onClick={() => setSubTab('discover')}
-          className={`pb-3 font-semibold text-sm transition-all relative ${
+          className={`pb-3 font-semibold text-sm transition-all relative shrink-0 ${
             subTab === 'discover'
               ? 'text-brand-500 font-bold'
               : 'text-slate-400 hover:text-slate-200'
@@ -1565,7 +1567,7 @@ export function JobMatchHub({
         </button>
         <button
           onClick={() => setSubTab('my-jobs')}
-          className={`pb-3 font-semibold text-sm transition-all relative ${
+          className={`pb-3 font-semibold text-sm transition-all relative shrink-0 ${
             subTab === 'my-jobs'
               ? 'text-brand-500 font-bold'
               : 'text-slate-400 hover:text-slate-200'
@@ -1573,6 +1575,22 @@ export function JobMatchHub({
         >
           {subTab === 'my-jobs' && <span className="absolute bottom-0 left-0 w-full h-[2px] bg-brand-500" />}
           Minhas Análises
+        </button>
+        <button
+          onClick={() => setSubTab('trash')}
+          className={`pb-3 font-semibold text-sm transition-all relative shrink-0 flex items-center gap-1.5 ${
+            subTab === 'trash'
+              ? 'text-red-400 font-bold'
+              : 'text-slate-400 hover:text-slate-200'
+          }`}
+        >
+          {subTab === 'trash' && <span className="absolute bottom-0 left-0 w-full h-[2px] bg-red-500" />}
+          <span>🗑️ Lixeira de Vagas</span>
+          {trashedJobs.length > 0 && (
+            <span className="px-1.5 py-0.2 rounded-full bg-red-500/20 text-red-400 text-[10px] font-bold border border-red-500/30">
+              {trashedJobs.length}
+            </span>
+          )}
         </button>
       </div>
 
@@ -2150,7 +2168,16 @@ export function JobMatchHub({
                     };
                   }).filter((job, idx, self) => idx === self.findIndex(j => String(j.id) === String(job.id)));
 
-                  const listToRender = analyzedJobs.length > 0 ? analyzedJobs : jobs;
+                  const rawList = analyzedJobs.length > 0 ? analyzedJobs : jobs;
+                  const listToRender = rawList.filter(j => !trashedJobIds.has(j.id));
+
+                  if (listToRender.length === 0) {
+                    return (
+                      <div className="p-4 text-center text-xs text-slate-500 italic border border-dashed border-slate-800 rounded-xl">
+                        Nenhuma vaga ativa disponível.
+                      </div>
+                    );
+                  }
 
                   return listToRender.map(job => {
                     const isActive = String(job.id) === String(selectedJobId);
@@ -2159,29 +2186,43 @@ export function JobMatchHub({
                       <div
                         key={job.id}
                         onClick={() => setSelectedJobId(job.id)}
-                        className={`p-3 rounded-xl cursor-pointer border transition-all text-xs flex justify-between items-center ${
+                        className={`p-3 rounded-xl cursor-pointer border transition-all text-xs flex justify-between items-center group ${
                           isActive
                             ? 'bg-brand-500/10 border-brand-500/30 text-slate-200'
                             : 'bg-slate-900/20 dark:bg-slate-900/20 light:bg-slate-50 border-slate-900 dark:border-slate-900 light:border-slate-200 text-slate-400 dark:text-slate-400 light:text-slate-700 hover:border-slate-800'
                         }`}
                       >
-                        <div className="truncate max-w-[150px]">
+                        <div className="truncate max-w-[130px]">
                           <h4 className="font-bold truncate text-slate-200 dark:text-slate-200 light:text-slate-800">{job.title}</h4>
                           <p className="text-[10px] text-slate-500 truncate mt-0.5">{job.companyName}</p>
                         </div>
-                        {match ? (
-                          <span className={`font-bold font-display text-xs px-2 py-0.5 rounded-lg border ${
-                            match.scoreOverall >= 85 
-                              ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' 
-                              : match.scoreOverall >= 70 
-                              ? 'bg-amber-500/10 text-amber-400 border-amber-500/20' 
-                              : 'bg-slate-500/10 text-slate-350 border-slate-700/30'
-                          }`}>
-                            {match.scoreOverall}%
-                          </span>
-                        ) : (
-                          <span className="text-[10px] text-slate-500 bg-slate-900/40 border border-slate-800 px-2 py-0.5 rounded-lg">Sem Match</span>
-                        )}
+                        <div className="flex items-center gap-1.5 shrink-0">
+                          {match ? (
+                            <span className={`font-bold font-display text-xs px-2 py-0.5 rounded-lg border ${
+                              match.scoreOverall >= 85 
+                                ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' 
+                                : match.scoreOverall >= 70 
+                                ? 'bg-amber-500/10 text-amber-400 border-amber-500/20' 
+                                : 'bg-slate-500/10 text-slate-350 border-slate-700/30'
+                            }`}>
+                              {match.scoreOverall}%
+                            </span>
+                          ) : (
+                            <span className="text-[10px] text-slate-500 bg-slate-900/40 border border-slate-800 px-2 py-0.5 rounded-lg">Sem Match</span>
+                          )}
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              moveToTrash(job);
+                              showToast(`Vaga "${job.title}" movida para a Lixeira.`, 'info');
+                            }}
+                            className="p-1.5 rounded-lg hover:bg-red-500/20 text-slate-500 hover:text-red-400 transition cursor-pointer"
+                            title="Mover vaga para a Lixeira"
+                          >
+                            <Trash2 size={13} />
+                          </button>
+                        </div>
                       </div>
                     );
                   });
@@ -3814,10 +3855,10 @@ export function JobMatchHub({
                     title="🔎 Procurando oportunidades compatíveis..."
                     subtitle="Buscando e unificando as melhores oportunidades do mercado..."
                   />
-                ) : scoredDiscoveredJobs.length > 0 ? (
+                ) : scoredDiscoveredJobs.filter(j => !trashedJobIds.has((j as any).id || (j as any).jobId)).length > 0 ? (
                   <div className="space-y-6">
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                      {scoredDiscoveredJobs.map((job, idx) => {
+                      {scoredDiscoveredJobs.filter(j => !trashedJobIds.has((j as any).id || (j as any).jobId)).map((job, idx) => {
                         const isUnlocked = isJobUnlocked((job as any).id || (job as any).jobId || String(idx));
                         const isBlurred = !isPro && !isUnlocked && (weeklyActionCount >= 3 || idx >= 3);
 
@@ -3841,7 +3882,6 @@ export function JobMatchHub({
                               </div>
                             )}
 
-
                             <div className={`space-y-2 ${isBlurred ? 'filter blur-[4px] select-none opacity-60' : ''}`}>
                               <div className="flex justify-between items-start gap-3">
                                 <div className="flex gap-3 min-w-0">
@@ -3861,6 +3901,23 @@ export function JobMatchHub({
                                     {src}
                                   </span>
                                 ))}
+                                <button
+                                  type="button"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    moveToTrash({
+                                      id: (job as any).id || (job as any).jobId || `disc-${idx}`,
+                                      title: job.title,
+                                      companyName: job.companyName,
+                                      location: job.location
+                                    });
+                                    showToast(`Vaga "${job.title}" movida para a Lixeira.`, 'info');
+                                  }}
+                                  className="p-1 rounded-lg hover:bg-red-500/20 text-slate-500 hover:text-red-400 transition cursor-pointer"
+                                  title="Mover vaga para a Lixeira"
+                                >
+                                  <Trash2 size={13} />
+                                </button>
                               </div>
                             </div>
 
@@ -4055,6 +4112,97 @@ export function JobMatchHub({
           </div>
         );
       })()}
+
+      {subTab === 'trash' && (
+        <CardGlass className="p-6 space-y-6">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-slate-800">
+            <div>
+              <h3 className="font-display font-bold text-lg text-slate-200 flex items-center gap-2">
+                <Trash2 className="text-red-400" size={20} />
+                Lixeira de Vagas Excluídas
+              </h3>
+              <p className="text-xs text-slate-400 mt-0.5">
+                Vagas removidas temporariamente. Você pode restaurá-las para a lista de Vagas Disponíveis ou excluí-las permanentemente.
+              </p>
+            </div>
+            {trashedJobs.length > 0 && (
+              <button
+                type="button"
+                onClick={async () => {
+                  if (window.confirm('Tem certeza que deseja esvaziar a lixeira e excluir permanentemente todas as vagas contidas nela?')) {
+                    for (const item of trashedJobs) {
+                      if (onDeleteJob) await onDeleteJob(item.id);
+                    }
+                    clearTrash();
+                    showToast('Lixeira esvaziada com sucesso.', 'info');
+                  }
+                }}
+                className="px-3.5 py-2 rounded-xl bg-red-950/40 hover:bg-red-900/60 border border-red-800/50 text-red-400 text-xs font-bold flex items-center gap-1.5 transition cursor-pointer self-start sm:self-center shadow-md shadow-red-950/20"
+              >
+                <Trash2 size={14} />
+                Esvaziar Lixeira
+              </button>
+            )}
+          </div>
+
+          {trashedJobs.length === 0 ? (
+            <div className="py-16 text-center text-slate-500 space-y-2">
+              <Trash2 size={36} className="mx-auto text-slate-700" />
+              <p className="text-sm font-semibold text-slate-300">Sua lixeira está vazia</p>
+              <p className="text-xs text-slate-500">Nenhuma vaga foi excluída recentemente.</p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {trashedJobs.map(item => (
+                <div
+                  key={item.id}
+                  className="p-4 rounded-2xl bg-slate-900/60 border border-slate-800 flex flex-col justify-between gap-3 hover:border-slate-700 transition"
+                >
+                  <div>
+                    <div className="flex justify-between items-start gap-2">
+                      <h4 className="font-bold text-sm text-slate-200">{item.title}</h4>
+                      <span className="text-[10px] text-slate-500 font-mono shrink-0">
+                        {new Date(item.deletedAt).toLocaleDateString('pt-BR')}
+                      </span>
+                    </div>
+                    <p className="text-xs text-brand-400 font-medium mt-0.5">{item.companyName}</p>
+                    {item.location && <p className="text-[10px] text-slate-500 mt-1">{item.location}</p>}
+                  </div>
+
+                  <div className="flex items-center gap-2 pt-3 border-t border-slate-800/80">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        restoreFromTrash(item.id);
+                        showToast(`Vaga "${item.title}" restaurada para Vagas Disponíveis!`, 'success');
+                      }}
+                      className="flex-1 py-2 px-3 rounded-xl bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/30 text-emerald-400 text-xs font-bold flex items-center justify-center gap-1.5 transition cursor-pointer"
+                    >
+                      <RotateCcw size={13} />
+                      Restaurar Vaga
+                    </button>
+                    <button
+                      type="button"
+                      onClick={async () => {
+                        if (window.confirm(`Excluir permanentemente a vaga "${item.title}"? Esta ação não pode ser desfeita.`)) {
+                          if (onDeleteJob) await onDeleteJob(item.id);
+                          removeFromTrash(item.id);
+                          showToast(`Vaga "${item.title}" excluída permanentemente.`, 'info');
+                        }
+                      }}
+                      className="py-2 px-3 rounded-xl bg-red-500/10 hover:bg-red-500/20 border border-red-500/30 text-red-400 text-xs font-bold flex items-center justify-center gap-1.5 transition cursor-pointer"
+                      title="Excluir permanentemente"
+                    >
+                      <Trash2 size={13} />
+                      Excluir Definitivamente
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </CardGlass>
+      )}
 
       {toast && createPortal(
         <div className="fixed top-6 right-6 z-[10000] p-4 rounded-2xl bg-[#121927] border border-slate-700 shadow-2xl text-white text-xs font-bold flex items-center gap-3 animate-scale-up">

@@ -31,7 +31,7 @@ export function ExecutiveCopilotDashboard() {
           </div>
           <h2 className="font-display font-extrabold text-xl tracking-tight text-foreground mt-2 flex items-center gap-2">
             <Bot size={22} className="text-purple-500" />
-            Executive Copilot — Síntese Cruzada do Command Center
+            Copiloto Executivo — Síntese Cruzada da Central de Comando
           </h2>
           <p className="text-muted-foreground text-xs mt-1">
             <span className="font-semibold text-foreground">Pergunta Respondida:</span> "Qual é a síntese preditiva e cruzada de todos os módulos — o que a liderança precisa saber e decidir agora?"

@@ -903,6 +903,7 @@ function AuthenticatedApp({
               initialTab={settingsInitialSubTab}
               preferences={preferences}
               updatePreferences={async (data) => updatePreferences(data)}
+              onDeleteJob={deleteJob}
             />
           </Suspense>
         )}

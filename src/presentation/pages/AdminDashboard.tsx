@@ -9,6 +9,7 @@ import { ChurnIntelligenceDashboard } from '../components/ChurnIntelligenceDashb
 import { CopilotInsightsDashboard } from '../components/CopilotInsightsDashboard';
 import { CommercialIntelligenceDashboard } from '../components/CommercialIntelligenceDashboard';
 import { ExecutiveCopilotDashboard } from '../components/ExecutiveCopilotDashboard';
+import { EmailEngagementDashboard } from '../components/EmailEngagementDashboard';
 import { ResumePreviewModal } from '../components/ResumePreviewModal';
 import { AdminAuditService } from '../../application/services/AdminAuditService';
 import { 
@@ -1171,7 +1172,8 @@ export function AdminDashboard({ userId }: AdminDashboardProps) {
     hasTelemetryAccess && { id: 'executive_copilot', label: '9. Copiloto Executivo' },
     hasUsersAccess && { id: 'users', label: '10. Usuários & Permissões (RBAC)' },
     { id: 'satisfaction_surveys', label: '11. Pesquisas de Satisfação (NPS)' },
-    hasTelemetryAccess && { id: 'infra_logs', label: '12. Infraestrutura & Logs Auditáveis' }
+    { id: 'email_engagement', label: '12. Engajamento de E-mails' },
+    hasTelemetryAccess && { id: 'infra_logs', label: '13. Infraestrutura & Logs Auditáveis' }
   ].filter(Boolean) as { id: string; label: string }[];
 
 
@@ -2752,6 +2754,11 @@ export function AdminDashboard({ userId }: AdminDashboardProps) {
             )}
           </div>
         </div>
+      )}
+
+      {/* ── ABA 12: ENGAJAMENTO DE E-MAILS & CONVERSÃO PÓS-ENVIO ── */}
+      {activeSubTab === 'email_engagement' && (
+        <EmailEngagementDashboard />
       )}
       {/* MODAL DE DETALHES DO USUÁRIO & INSPEÇÃO DE CURRÍCULO (FASE 2) */}
       {selectedUser && (

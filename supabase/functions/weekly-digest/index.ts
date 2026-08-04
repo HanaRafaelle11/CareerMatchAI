@@ -77,6 +77,65 @@ Deno.serve(async (req) => {
     const testEmail = body?.test_email ? String(body.test_email).trim() : null;
     const isDryRun = body?.dry_run === true || body?.dryRun === true;
 
+    // ── 0. Diagnostic Mode: Check real Resend delivery status ──
+    if (body?.action === 'check_resend_status' || body?.check_resend_status === true) {
+      const { data: logs, error: logsErr } = await supabase
+        .from('activity_logs')
+        .select('id, user_id, metadata, created_at')
+        .eq('event_type', 'reengagement_email_sent')
+        .order('created_at', { ascending: false });
+
+      if (logsErr) throw logsErr;
+
+      const statuses: any[] = [];
+      const counts: Record<string, number> = {};
+
+      for (const log of (logs || [])) {
+        const resendId = log.metadata?.resend_id;
+        const email = log.metadata?.email;
+        if (!resendId) continue;
+
+        try {
+          const resp = await fetch(`https://api.resend.com/emails/${resendId}`, {
+            headers: {
+              'Authorization': `Bearer ${RESEND_API_KEY}`
+            }
+          });
+
+          if (!resp.ok) {
+            const errTxt = await resp.text();
+            statuses.push({ email, resendId, status: 'error', error: errTxt });
+            counts['error'] = (counts['error'] || 0) + 1;
+            continue;
+          }
+
+          const resData = await resp.json();
+          const lastEvent = resData.last_event || resData.status || 'unknown';
+          counts[lastEvent] = (counts[lastEvent] || 0) + 1;
+          statuses.push({
+            email,
+            resendId,
+            status: lastEvent,
+            to: resData.to,
+            subject: resData.subject,
+            created_at: log.created_at
+          });
+        } catch (e: any) {
+          statuses.push({ email, resendId, status: 'exception', error: e.message });
+          counts['exception'] = (counts['exception'] || 0) + 1;
+        }
+      }
+
+      return new Response(
+        JSON.stringify({
+          total_checked: statuses.length,
+          summary_counts: counts,
+          details: statuses
+        }),
+        { status: 200, headers: { 'Content-Type': 'application/json' } }
+      );
+    }
+
     // ── 1. Buscar perfis de usuários ──
     let profiles: any[] = [];
     if (testEmail) {

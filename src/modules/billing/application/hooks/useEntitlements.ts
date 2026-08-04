@@ -146,6 +146,25 @@ export function useEntitlements(userId?: string) {
       primaryButtonText,
       secondaryButtonText
     });
+
+    // Grava evento de analytics no banco de dados (public.activity_logs)
+    if (userId && supabase) {
+      supabase.from('activity_logs').insert({
+        user_id: userId,
+        event_type: 'paywall_triggered',
+        entity: 'billing_modal',
+        entity_id: feature,
+        metadata: {
+          feature,
+          title: title || null,
+          description: description || null,
+          triggered_at: new Date().toISOString(),
+          location: typeof window !== 'undefined' ? (window.location.pathname + window.location.search) : 'unknown'
+        }
+      }).then(({ error }) => {
+        if (error) console.warn('[useEntitlements] Erro ao registrar paywall_triggered:', error.message);
+      });
+    }
   };
 
   const closePaywall = () => {

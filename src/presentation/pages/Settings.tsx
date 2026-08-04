@@ -1155,9 +1155,12 @@ export function Settings({
                           type="button"
                           onClick={async () => {
                             if (window.confirm(`Excluir permanentemente a vaga "${item.title}"? Esta ação não pode ser desfeita.`)) {
-                              if (onDeleteJob) await onDeleteJob(item.id);
-                              removeFromTrash(item.id);
-                              showToast(`Vaga "${item.title}" excluída permanentemente.`, 'success');
+                              try {
+                                await removeFromTrash(item.id);
+                                showToast(`Vaga "${item.title}" excluída permanentemente.`, 'success');
+                              } catch (err: any) {
+                                showToast(err.message || `Não foi possível excluir a vaga "${item.title}".`, 'error');
+                              }
                             }
                           }}
                           className="py-2 px-3 rounded-xl bg-red-500/10 hover:bg-red-500/20 border border-red-500/30 text-red-400 text-xs font-bold flex items-center justify-center gap-1.5 transition cursor-pointer"

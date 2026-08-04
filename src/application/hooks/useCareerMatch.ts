@@ -771,33 +771,42 @@ export function useJobs(userId: string | undefined) {
   const deleteJobMutation = useMutation({
     mutationFn: async (jobId: string) => {
       if (!userId) throw new Error('Usuário não autenticado.');
+      const targetId = String(jobId);
 
       if (isSupabaseConfigured && supabase) {
-        // Deletar candidaturas vinculadas
-        await supabase
+        // Verificar se tem candidatura registrada para proteger histórico e estatísticas
+        const { data: existingApps } = await supabase
           .from('applications')
+          .select('id')
+          .eq('user_id', userId)
+          .eq('job_id', targetId);
+
+        if (existingApps && existingApps.length > 0) {
+          throw new Error('Esta vaga possui uma candidatura registrada no seu Pipeline. Remova a candidatura no Pipeline antes de excluí-la.');
+        }
+
+        // Deletar APENAS associações do usuário (job_feedback, job_matches, matches)
+        // NUNCA deletar a linha do catálogo compartilhado na tabela jobs nem registros em applications
+        await supabase
+          .from('job_feedback')
           .delete()
-          .eq('job_id', jobId)
+          .eq('job_id', targetId)
           .eq('user_id', userId);
 
-        // Deletar matches vinculados
         await supabase
           .from('job_matches')
           .delete()
-          .eq('job_id', jobId)
+          .eq('job_id', targetId)
           .eq('user_id', userId);
 
-        // Deletar vaga no Supabase
-        const { error } = await supabase
-          .from('jobs')
+        await supabase
+          .from('matches')
           .delete()
-          .eq('id', jobId)
+          .eq('job_id', targetId)
           .eq('user_id', userId);
-
-        if (error) throw error;
       }
 
-      // Deletar sempre no localDB para limpar cache local
+      // Limpar cache local do mock localDB
       localDB.deleteJob(jobId);
     },
     onSuccess: () => {

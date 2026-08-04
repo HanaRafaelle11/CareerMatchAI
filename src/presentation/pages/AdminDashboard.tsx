@@ -974,7 +974,13 @@ export function AdminDashboard({ userId }: AdminDashboardProps) {
         let realStatus = 'Operando';
         let statusColor = 'emerald';
         
-        if (apiKeyMissing) {
+        const disabledNames = ['lever', 'workable', 'smartrecruiters', 'teamtailor', 'ashby', 'recruitee', 'bamboohr', 'comeet', 'banco de vagas ingeridas', 'inhire'];
+        const isConnectorDisabled = disabledNames.some(d => provider.toLowerCase().includes(d));
+
+        if (isConnectorDisabled) {
+          realStatus = 'Desativado';
+          statusColor = 'slate';
+        } else if (apiKeyMissing) {
           realStatus = 'Sem chave configurada';
           statusColor = 'slate';
         } else if (lastHttpStatus === 401 || lastHttpStatus === 403) {

@@ -144,11 +144,9 @@ export function AiCreditsWidget({ className = '', compact = false, userId }: AiC
     matches: Math.min((credits.matchesUsed / limits.matches) * 100, 100)
   };
 
-  // Preparation for Stripe checkout redirect in future releases
   const handleUpgradeToPremium = () => {
-    // Under Stripe implementation, redirect to Stripe checkout session
-    console.log('[Stripe Billing] Redirecting user to checkout session for plan PRO...');
-    alert('Redirecionando para o ambiente seguro do Stripe para Upgrade...');
+    console.log('[Billing] Opening secure checkout modal for plan PRO...');
+    alert('Redirecionando para o ambiente seguro de pagamento do VoCentro...');
   };
 
   if (isLoading) {

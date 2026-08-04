@@ -14,8 +14,10 @@ export class JoobleConnector extends BaseJobConnector {
     const timeoutId = setTimeout(() => controller.abort(), 3000);
     const combinedSignal = signal || controller.signal;
 
-    const url = `https://jooble.org/api/${apiKey}`;
-    const joobleLoc = (!location || location.toLowerCase().includes('brasil')) ? "Brazil" : location;
+    const isBr = !location || /brasil|brazil|br|são paulo|sao paulo|rio|sp|rj|mg|pr|rs/i.test(location.toLowerCase());
+    const baseUrl = isBr ? 'https://br.jooble.org' : 'https://jooble.org';
+    const url = `${baseUrl}/api/${apiKey}`;
+    const joobleLoc = isBr ? "Brasil" : location;
     try {
       const res = await fetch(url, {
         method: 'POST',

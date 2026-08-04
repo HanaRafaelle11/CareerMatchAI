@@ -43,36 +43,37 @@ const corsHeaders = {
 interface TieredConnector {
   connector: any;
   tier: 'A' | 'B' | 'C';
+  enabled: boolean;
 }
 
 const TIERED_CONNECTORS: TieredConnector[] = [
   // Tier A — Plataformas prioritárias (ATS brasileiros e internacionais com vagas BR)
-  { connector: new GupyConnector(), tier: 'A' },
-  { connector: new AdzunaConnector(), tier: 'A' },
-  { connector: new GreenhouseConnector(), tier: 'A' },
-  { connector: new LeverConnector(), tier: 'A' },
-  { connector: new WorkableConnector(), tier: 'A' },
-  { connector: new SmartRecruitersConnector(), tier: 'A' },
-  { connector: new TeamtailorConnector(), tier: 'A' },
-  { connector: new AshbyConnector(), tier: 'A' },
-  { connector: new RecruiteeConnector(), tier: 'A' },
+  { connector: new GupyConnector(), tier: 'A', enabled: true },
+  { connector: new AdzunaConnector(), tier: 'A', enabled: true },
+  { connector: new GreenhouseConnector(), tier: 'A', enabled: true },
+
+  // ATS mantidos intactos, desativados temporariamente até configuração de empresas reais
+  { connector: new LeverConnector(), tier: 'A', enabled: false },
+  { connector: new WorkableConnector(), tier: 'A', enabled: false },
+  { connector: new SmartRecruitersConnector(), tier: 'A', enabled: false },
+  { connector: new TeamtailorConnector(), tier: 'A', enabled: false },
+  { connector: new AshbyConnector(), tier: 'A', enabled: false },
+  { connector: new RecruiteeConnector(), tier: 'A', enabled: false },
 
   // Tier B — Agregadores secundários com cobertura Brasil
-  { connector: new JoobleConnector(), tier: 'B' },
-  { connector: new SerpApiConnector(), tier: 'B' },
+  { connector: new JoobleConnector(), tier: 'B', enabled: true },
+  { connector: new SerpApiConnector(), tier: 'B', enabled: true },
 
   // Tier C — Plataformas de nicho / foco brasileiro
-  { connector: new ProgramathorConnector(), tier: 'C' },
-  { connector: new TramposConnector(), tier: 'C' },
-  // { connector: new GeekHunterConnector(), tier: 'C' }, // Descontinuado pela plataforma
-  // { connector: new ReveloConnector(), tier: 'C' },     // Descontinuado pela plataforma
-  // { connector: new AblerConnector(), tier: 'C' },      // Descontinuado pela plataforma
-  { connector: new BambooHRConnector(), tier: 'C' },
-  { connector: new ComeetConnector(), tier: 'C' },
-  // Internacionais (apenas para buscas remotas ou sem filtro BR) — Item 6
-  { connector: new RemotiveConnector(), tier: 'C' },
-  { connector: new RemoteOkConnector(), tier: 'C' },
-  { connector: new ArbeitnowConnector(), tier: 'C' },
+  { connector: new ProgramathorConnector(), tier: 'C', enabled: true },
+  { connector: new TramposConnector(), tier: 'C', enabled: true },
+  { connector: new BambooHRConnector(), tier: 'C', enabled: false },
+  { connector: new ComeetConnector(), tier: 'C', enabled: false },
+  
+  // Internacionais (apenas para buscas remotas ou sem filtro BR)
+  { connector: new RemotiveConnector(), tier: 'C', enabled: true },
+  { connector: new RemoteOkConnector(), tier: 'C', enabled: true },
+  { connector: new ArbeitnowConnector(), tier: 'C', enabled: true },
 ];
 
 
@@ -384,8 +385,11 @@ serve(async (req) => {
       const isBrazilianSearch = /brasil|brazil|br|são paulo|sao paulo|rio|belo horizonte|curitiba|porto alegre|sp|rj|mg/i.test(locLower);
       
       connectorsToRun = TIERED_CONNECTORS.filter(tc => {
+        // Desativado por flag (aguardando cadastro de empresas reais)
+        if (!tc.enabled) return false;
+
         const nameLower = tc.connector.platformName.toLowerCase();
-        // Se a busca for no Brasil, descarta provedores exclusivamente internacionais/alemães (ex: Arbeitnow) para economizar banda e latência
+        // Se a busca for no Brasil, descarta provedores exclusivamente internacionais/alemães para economizar banda e latência
         if (isBrazilianSearch && (nameLower.includes('arbeitnow') || nameLower.includes('remoteok'))) {
           return false;
         }
@@ -393,8 +397,9 @@ serve(async (req) => {
         if (tc.tier === 'C' && isBrazilianSearch) return true;
         return false;
       });
-      // Injetar conector do banco local de vagas ingeridas (InHire / Crons)
-      connectorsToRun.push({ connector: new DbIngestedJobsConnector(supabaseClient), tier: 'A' });
+      // Injetar conector do banco local de vagas ingeridas (InHire / Crons) — desativado temporariamente
+      const dbConnector = { connector: new DbIngestedJobsConnector(supabaseClient), tier: 'A' as const, enabled: false };
+      if (dbConnector.enabled) connectorsToRun.push(dbConnector);
     }
 
     console.log(`[AGGREGATOR] Running ${connectorsToRun.length} connectors for "${cleanedKeyword}" in "${searchLocation}"`);
@@ -488,6 +493,25 @@ serve(async (req) => {
         duplicates: Math.max(0, diag.rawJobsReturned - valid),
         staleOrEmpty: 0
       };
+    });
+
+    // Injetar diagnósticos com status 'disabled' para os 9 conectores desativados por flag (Item 2d)
+    const disabledConnectors = TIERED_CONNECTORS.filter(tc => !tc.enabled);
+    disabledConnectors.forEach(tc => {
+      diagnostics.push({
+        name: tc.connector.platformName,
+        tier: tc.tier,
+        status: 'disabled' as any,
+        apiKeyPresent: true,
+        httpStatus: null,
+        responseTimeMs: 0,
+        rawJobsReturned: 0,
+        validJobsAfterNorm: 0,
+        discardedCount: 0,
+        discardReasons: {},
+        errorType: null,
+        errorMessage: 'Conector desativado temporariamente (aguardando cadastro de empresas)'
+      });
     });
 
     // ── 5. LOG DIAGNOSTICS SUMMARY ──

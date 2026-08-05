@@ -349,6 +349,7 @@ export function EmailEngagementDashboard() {
                 <input
                   type="text"
                   placeholder="Buscar por nome, e-mail ou Resend ID..."
+                  aria-label="Buscar por nome, e-mail ou Resend ID"
                   value={searchTerm}
                   onChange={e => setSearchTerm(e.target.value)}
                   className="w-full pl-9 pr-4 py-2 rounded-xl bg-background border border-border text-xs text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-brand-500"
@@ -363,6 +364,7 @@ export function EmailEngagementDashboard() {
                 </div>
                 <select
                   value={segmentFilter}
+                  aria-label="Filtrar por segmento de e-mail"
                   onChange={e => setSegmentFilter(e.target.value)}
                   className="px-3 py-2 rounded-xl bg-background border border-border text-xs text-foreground focus:outline-none focus:ring-2 focus:ring-brand-500 cursor-pointer"
                 >
@@ -375,9 +377,11 @@ export function EmailEngagementDashboard() {
 
                 <select
                   value={statusFilter}
+                  aria-label="Filtrar por status do e-mail"
                   onChange={e => setStatusFilter(e.target.value)}
                   className="px-3 py-2 rounded-xl bg-background border border-border text-xs text-foreground focus:outline-none focus:ring-2 focus:ring-brand-500 cursor-pointer"
                 >
+
                   <option value="all">Todos os Status</option>
                   <option value="returned">Retornaram ao App</option>
                   <option value="opened">Abertos</option>

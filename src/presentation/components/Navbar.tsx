@@ -162,11 +162,13 @@ export function Navbar({
             <VocentroLogo className="h-7" showText={!isCollapsed} />
             <button
               onClick={onClose}
-              className="md:hidden p-1 rounded-md hover:bg-slate-200/60 dark:hover:bg-white/8 text-slate-400 hover:text-slate-600 transition-colors"
+              aria-label="Fechar menu"
+              className="md:hidden p-3 min-w-[44px] min-h-[44px] flex items-center justify-center rounded-lg hover:bg-slate-200/60 dark:hover:bg-white/8 text-slate-400 hover:text-slate-600 transition-colors focus-visible:ring-2 focus-visible:ring-brand-500"
               title="Fechar menu"
             >
-              <X size={16} />
+              <X size={18} />
             </button>
+
             {onToggleCollapse && (
               <button
                 type="button"
@@ -359,7 +361,8 @@ export function Navbar({
               {profile?.avatarUrl ? (
                 <img
                   src={profile.avatarUrl}
-                  alt={profile.fullName}
+                  alt={profile?.fullName || 'Foto de perfil do usuário'}
+
                   className="h-6 w-6 rounded-full object-cover border border-slate-200 dark:border-white/10 cursor-pointer hover:opacity-80 transition-opacity shrink-0"
                   onClick={() => setActiveTab('settings')}
                 />

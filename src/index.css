@@ -11,7 +11,8 @@
 :root, html.light, body.light, .light {
   --color-background: #f8fafc;
   --color-foreground: #0f172a;
-  --color-muted-foreground: #64748b;
+  --color-muted-foreground: #475569;
+
   --color-card: #ffffff;
   --color-card-foreground: #0f172a;
   --color-border: #e2e8f0;

@@ -249,10 +249,10 @@ export function CheckoutModal({ isOpen, onClose, userId, userEmail, userName, pl
               <div>
                 <div className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-amber-500/10 border border-amber-500/30 text-amber-500 font-extrabold text-[11px]">
                   <Sparkles size={13} />
-                  <span>PLANO PRO VOCENTRO</span>
+                  <span>{planSlug === 'test' ? 'PLANO TESTE DE HOMOLOGAÇÃO' : 'PLANO PRO VOCENTRO'}</span>
                 </div>
                 <h2 className="text-xl sm:text-2xl font-black text-foreground mt-1">
-                  Eleve sua busca de emprego a nível Pro
+                  {planSlug === 'test' ? 'Homologação de Pagamento Real (R$ 1,00)' : 'Eleve sua busca de emprego a nível Pro'}
                 </h2>
               </div>
 
@@ -265,7 +265,7 @@ export function CheckoutModal({ isOpen, onClose, userId, userEmail, userName, pl
                     billingCycle === 'WEEKLY' ? 'bg-brand-500 text-white shadow' : 'text-muted-foreground hover:text-foreground'
                   }`}
                 >
-                  Semanal (R$ 9,90/sem)
+                  {planSlug === 'test' ? 'Semanal (R$ 1,00/sem)' : 'Semanal (R$ 9,90/sem)'}
                 </button>
                 <button
                   type="button"
@@ -274,11 +274,14 @@ export function CheckoutModal({ isOpen, onClose, userId, userEmail, userName, pl
                     billingCycle === 'MONTHLY' ? 'bg-brand-500 text-white shadow' : 'text-muted-foreground hover:text-foreground'
                   }`}
                 >
-                  <span>Mensal (R$ 29,90/mês)</span>
-                  <span className="text-[9px] bg-emerald-500 text-white font-black px-1.5 py-0.5 rounded-full uppercase">
-                    Mais Vantajoso (Economize 30%)
-                  </span>
+                  <span>{planSlug === 'test' ? 'Mensal (R$ 1,00/mês)' : 'Mensal (R$ 29,90/mês)'}</span>
+                  {planSlug !== 'test' && (
+                    <span className="text-[9px] bg-emerald-500 text-white font-black px-1.5 py-0.5 rounded-full uppercase">
+                      Mais Vantajoso (Economize 30%)
+                    </span>
+                  )}
                 </button>
+
               </div>
             </div>
 

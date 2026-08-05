@@ -42,6 +42,15 @@ export function Dashboard({
 }: DashboardProps) {
   const [isOnline, setIsOnline] = useState<boolean>(typeof navigator !== 'undefined' ? navigator.onLine : true);
 
+  const [starCompletedToday, setStarCompletedToday] = useState<boolean>(() => {
+    try {
+      const today = new Date().toISOString().split('T')[0];
+      return localStorage.getItem('vocentro_star_sim_today') === today;
+    } catch {
+      return false;
+    }
+  });
+
   useEffect(() => {
     const handleOnline = () => setIsOnline(true);
     const handleOffline = () => setIsOnline(false);
@@ -51,6 +60,16 @@ export function Dashboard({
       window.removeEventListener('online', handleOnline);
       window.removeEventListener('offline', handleOffline);
     };
+  }, []);
+
+  useEffect(() => {
+    const handleSimCompleted = () => {
+      const today = new Date().toISOString().split('T')[0];
+      try { localStorage.setItem('vocentro_star_sim_today', today); } catch {}
+      setStarCompletedToday(true);
+    };
+    window.addEventListener('vocentro_star_simulation_completed', handleSimCompleted);
+    return () => window.removeEventListener('vocentro_star_simulation_completed', handleSimCompleted);
   }, []);
 
   // Activity Heatmap query
@@ -224,25 +243,6 @@ export function Dashboard({
 
   const insight = getAIInsight();
   const userName = profile?.fullName?.split(' ')[0] || 'Candidato';
-
-  const [starCompletedToday, setStarCompletedToday] = useState<boolean>(() => {
-    try {
-      const today = new Date().toISOString().split('T')[0];
-      return localStorage.getItem('vocentro_star_sim_today') === today;
-    } catch {
-      return false;
-    }
-  });
-
-  useEffect(() => {
-    const handleSimCompleted = () => {
-      const today = new Date().toISOString().split('T')[0];
-      try { localStorage.setItem('vocentro_star_sim_today', today); } catch {}
-      setStarCompletedToday(true);
-    };
-    window.addEventListener('vocentro_star_simulation_completed', handleSimCompleted);
-    return () => window.removeEventListener('vocentro_star_simulation_completed', handleSimCompleted);
-  }, []);
 
   // Daily task checklist (Seu Plano de Hoje)
   const dailyTasks = [

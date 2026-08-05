@@ -995,13 +995,7 @@ function AuthenticatedApp({
         onStartSimulation={handleStartSimulation}
       />
 
-      {/* Onboarding Modal Interativo (Desktop/Web & Mobile) */}
-      <OnboardingModal
-        isOpen={showOnboarding}
-        onClose={handleCompleteOnboarding}
-        onStartUpload={() => handleSetActiveTab('profile')}
-        onNavigateTab={handleSetActiveTab}
-      />
+
 
       {/* Pesquisa de Satisfação na 2ª e 3ª Visita (Item 4) */}
       {showSatisfactionSurvey && user && (

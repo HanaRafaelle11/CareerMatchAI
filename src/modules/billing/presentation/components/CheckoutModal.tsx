@@ -16,9 +16,13 @@ interface CheckoutModalProps {
   planSlug?: string;
 }
 
-export function CheckoutModal({ isOpen, onClose, userId, userEmail, userName, planSlug = 'pro' }: CheckoutModalProps) {
+export function CheckoutModal({ isOpen, onClose, userId, userEmail, userName, planSlug: propPlanSlug }: CheckoutModalProps) {
+  // Centralização da resolução do planSlug para TODOS os pontos de entrada (Profile, JobMatchHub, Coach, App, etc.)
+  const isTestUrl = typeof window !== 'undefined' && window.location.search.includes('checkout_test=1');
+  const planSlug = isTestUrl ? 'test' : (propPlanSlug || 'pro');
 
   const [billingCycle, setBillingCycle] = useState<BillingCycle>('MONTHLY');
+
   const [billingType, setBillingType] = useState<BillingType>('PIX');
 
   // Form Fields

@@ -948,8 +948,8 @@ function AuthenticatedApp({
         userId={user?.id}
         userEmail={user?.email}
         userName={profile?.full_name}
-        planSlug={isAdmin && typeof window !== 'undefined' && window.location.search.includes('checkout_test=1') ? 'test' : 'pro'}
       />
+
 
 
       {/* Feedback & Suporte Widget — Floating Global */}

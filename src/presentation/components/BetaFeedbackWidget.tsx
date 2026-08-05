@@ -8,8 +8,9 @@ interface BetaFeedbackWidgetProps {
   feature?: string;
 }
 
-export function BetaFeedbackWidget({ userId, userEmail }: BetaFeedbackWidgetProps) {
+export function FeedbackWidget({ userId, userEmail }: BetaFeedbackWidgetProps) {
   const [isOpen, setIsOpen] = useState(false);
+
 
   return (
     <>
@@ -32,3 +33,7 @@ export function BetaFeedbackWidget({ userId, userEmail }: BetaFeedbackWidgetProp
     </>
   );
 }
+
+export const BetaFeedbackWidget = FeedbackWidget;
+
+

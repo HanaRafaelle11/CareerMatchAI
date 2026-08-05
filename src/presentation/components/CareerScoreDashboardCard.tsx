@@ -54,10 +54,11 @@ export function CareerScoreDashboardCard({ resume, careerProfileNew, isLoading =
 
   useEffect(() => {
     if (baseScore !== null) {
-      tracker.track('career_score_viewed', 'ProductBeta', { score: baseScore });
-      tracker.track('career_dashboard_opened', 'ProductBeta', { has_resume: !!resume });
+      tracker.track('career_score_viewed', 'ProductLaunch', { score: baseScore });
+      tracker.track('career_dashboard_opened', 'ProductLaunch', { has_resume: !!resume });
     }
   }, [baseScore, resume]);
+
 
   if (!isDataLoading && !resume && !careerProfileNew) {
     return (

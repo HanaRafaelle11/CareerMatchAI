@@ -98,15 +98,16 @@ export function AdminBetaDashboard() {
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 border-b border-slate-800 pb-6">
         <div>
           <div className="flex items-center gap-2">
-            <span className="text-[9px] px-2 py-0.5 bg-blue-500/10 text-blue-400 border border-blue-500/20 font-bold uppercase rounded-lg">Beta Operations</span>
+            <span className="text-[9px] px-2 py-0.5 bg-blue-500/10 text-blue-400 border border-blue-500/20 font-bold uppercase rounded-lg">Métricas de Operação</span>
             <span className="text-[9px] px-2 py-0.5 bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 font-bold uppercase rounded-lg">Live Telemetry</span>
           </div>
           <h1 className="font-display font-extrabold text-2xl tracking-tight text-white mt-2 flex items-center gap-2">
-            Dashboard Beta Interno (VoCentro)
+            Painel de Métricas e Telemetria (VoCentro)
           </h1>
           <p className="text-slate-400 text-xs mt-1">
-            Métricas de ativação, entrega de valor e qualidade do algoritmo para os primeiros 20-50 usuários reais.
+            Métricas de ativação, entrega de valor e qualidade do algoritmo para acompanhamento do produto.
           </p>
+
         </div>
         <button
           onClick={() => refetch()}
@@ -316,3 +317,6 @@ export function AdminBetaDashboard() {
     </div>
   );
 }
+
+export const AdminMetricsDashboard = AdminBetaDashboard;
+

@@ -236,7 +236,28 @@ serve(async (req: Request) => {
 
     const cleanPlanSlug = (typeof planSlug === 'string' ? planSlug : 'pro').toLowerCase().trim();
 
+    // Validação de Segurança Server-Side: Bloquear requisições diretas ao plano de teste para não-administradores
+    if (cleanPlanSlug === 'test') {
+      const { data: userProfile } = await adminClient
+        .from('profiles')
+        .select('role')
+        .eq('id', user.id)
+        .maybeSingle();
+
+      const isDbAdmin = ['administrador', 'suporte', 'financeiro'].includes(userProfile?.role || '');
+
+      if (!isDbAdmin) {
+        console.error(`[billing-checkout] 403 Forbidden: Usuário não-admin '${user.id}' (${user.email}) tentou requisitar o plano 'test'.`);
+        return new Response(
+          JSON.stringify({ error: 'Acesso negado: O plano de homologação é exclusivo para administradores autenticados.' }),
+          { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+    }
+
+
     // 2. Consultar Plano e Preço
+
     let { data: planData, error: planError } = await adminClient
       .from('plans')
       .select('id, slug, name, price_weekly, price_monthly, active')

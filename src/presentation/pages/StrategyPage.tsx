@@ -1085,9 +1085,10 @@ export function StrategyPage({
               <h3 className="font-display font-bold text-lg text-foreground mt-1">{selectedApp.jobTitle}</h3>
               <p className="text-xs text-muted-foreground font-semibold mt-0.5">{selectedApp.companyName}</p>
             </div>
-            <button onClick={() => setSelectedAppId(null)} aria-label="Fechar detalhes da candidatura" className="text-muted-foreground hover:text-foreground p-1 rounded-lg hover:bg-muted focus-visible:ring-2 focus-visible:ring-brand-500">
+            <button onClick={() => setSelectedAppId(null)} aria-label="Fechar detalhes da candidatura" className="text-muted-foreground hover:text-foreground p-3 min-w-[44px] min-h-[44px] flex items-center justify-center rounded-lg hover:bg-muted focus-visible:ring-2 focus-visible:ring-brand-500">
               <X size={20} />
             </button>
+
 
           </div>
 

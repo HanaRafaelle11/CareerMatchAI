@@ -154,11 +154,13 @@ export function Notifications({
 
                   <button
                     onClick={() => deleteNotification(notif.id)}
-                    className="p-2 rounded-lg hover:bg-red-500/10 text-slate-500 hover:text-red-400 transition"
+                    aria-label="Excluir notificação"
+                    className="p-3 min-w-[44px] min-h-[44px] flex items-center justify-center rounded-lg hover:bg-red-500/10 text-slate-500 hover:text-red-400 transition cursor-pointer focus-visible:ring-2 focus-visible:ring-brand-500"
                     title="Excluir notificação"
                   >
-                    <Trash2 size={13} />
+                    <Trash2 size={15} />
                   </button>
+
                 </div>
               </CardGlass>
             );

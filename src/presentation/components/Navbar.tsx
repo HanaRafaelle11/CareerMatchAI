@@ -1,5 +1,6 @@
 import type { Profile } from '../../domain/models/types';
 import { useEffect, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { ProgressRing } from './ds/ProgressRing';
 import { VocentroLogo } from './ds/MyCareerIcons';
 import { ThemeToggle } from './ThemeToggle';
@@ -212,11 +213,11 @@ export function Navbar({
                     <span className="text-[8px] font-bold text-[#4F8EF7]">{journeyProgress}%</span>
                   } />
                 </button>
-                {showJourneyTooltip && (
+                {showJourneyTooltip && createPortal(
                   <>
                     {/* Backdrop para fechar ao clicar fora */}
                     <div className="fixed inset-0 z-[9998]" onClick={() => setShowJourneyTooltip(false)} />
-                    <div className="absolute right-0 top-7 z-[9999] w-72 md:w-80 bg-[#121927] border border-slate-700/90 rounded-2xl shadow-2xl p-4 text-xs text-slate-200 animate-scale-up">
+                    <div className="fixed left-4 border-slate-700/90 rounded-2xl shadow-2xl p-4 text-xs text-slate-200 animate-scale-up z-[9999] w-72 md:w-80 bg-[#121927] top-16 md:left-[248px]">
                       <div className="font-extrabold text-white text-xs mb-3 flex items-center justify-between pb-2 border-b border-slate-800">
                         <span>Sua Jornada — <strong className="text-[#4F8EF7]">{journeyProgress}% concluída</strong></span>
                         <span className="text-[10px] px-2 py-0.5 rounded-full bg-brand-500/10 text-brand-400 border border-brand-500/20 font-bold uppercase">Meta 100%</span>
@@ -254,7 +255,8 @@ export function Navbar({
                         💡 Complete as etapas pendentes acima para aumentar sua Jornada.
                       </p>
                     </div>
-                  </>
+                  </>,
+                  document.body
                 )}
               </div>
             </div>

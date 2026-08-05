@@ -693,7 +693,7 @@ function AuthenticatedApp({
 
       {/* Container Principal */}
       <main className={`flex-1 w-full min-w-0 px-4 sm:px-6 transition-all duration-300 ${
-        isSidebarCollapsed ? 'md:pl-[100px]' : 'md:pl-[276px]'
+        isSidebarCollapsed ? 'md:pl-[88px]' : 'md:pl-[256px]'
       } md:pr-8 py-6 pt-20 md:pt-6 pb-24 md:pb-6 min-h-screen overflow-x-hidden relative z-10`}>
 
         {/* Compact Header — Currículo ativo */}

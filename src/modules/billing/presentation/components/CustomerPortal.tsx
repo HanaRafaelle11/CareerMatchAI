@@ -15,6 +15,7 @@ export function CustomerPortal({ userId, onOpenCheckout }: CustomerPortalProps) 
   const [subscription, setSubscription] = useState<any>(null);
   const [invoices, setInvoices] = useState<any[]>([]);
   const [canceling, setCanceling] = useState(false);
+  const [reactivating, setReactivating] = useState(false);
   const [showCancelConfirm, setShowCancelConfirm] = useState(false);
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
 
@@ -47,6 +48,34 @@ export function CustomerPortal({ userId, onOpenCheckout }: CustomerPortalProps) 
       console.error('[CustomerPortal] Erro ao carregar portal de assinatura:', err);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleReactivateSubscription = async () => {
+    if (!supabase) return;
+    try {
+      setReactivating(true);
+      setMessage(null);
+
+      const { data: sessionData } = await supabase.auth.getSession();
+      const token = sessionData.session?.access_token;
+
+      const { data, error } = await supabase.functions.invoke('billing-portal', {
+        body: { action: 'reactivate_subscription' },
+        headers: token ? { Authorization: `Bearer ${token}` } : undefined
+      });
+
+      if (error || data?.error) {
+        throw new Error(data?.error || error?.message || 'Erro ao reativar assinatura');
+      }
+
+      setMessage({ type: 'success', text: data.message || 'Assinatura reativada com sucesso! Suas renovações automáticas foram restabelecidas.' });
+      await fetchPortalData();
+    } catch (err: any) {
+      console.error('[CustomerPortal] Erro ao reativar assinatura:', err);
+      setMessage({ type: 'error', text: err.message || 'Falha ao reativar assinatura. Tente novamente em instantes.' });
+    } finally {
+      setReactivating(false);
     }
   };
 
@@ -130,11 +159,13 @@ export function CustomerPortal({ userId, onOpenCheckout }: CustomerPortalProps) 
       )}
 
       {/* Card do Plano Atual */}
-      <div className="p-5 rounded-2xl bg-gradient-to-r from-slate-950 via-slate-900 to-slate-950 border border-slate-800 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-        <div className="space-y-1.5">
-          <div className="flex items-center gap-2">
+      <div className="p-5 rounded-2xl bg-gradient-to-r from-slate-950 via-slate-900 to-slate-950 border border-slate-800 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+        <div className="space-y-2 flex-1 min-w-0">
+          <div className="flex flex-wrap items-center gap-2">
             <span className="text-sm font-extrabold text-white">
-              {subscription?.plan?.name ? `Plano ${subscription.plan.name}` : 'Plano Gratuito (Free)'}
+              {subscription?.plan?.name 
+                ? (subscription.plan.name.toLowerCase().startsWith('plano') ? subscription.plan.name : `Plano ${subscription.plan.name}`)
+                : 'Plano Gratuito (Free)'}
             </span>
             <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-extrabold uppercase tracking-wide border ${
               isPro && !isUnexpiredCanceled
@@ -163,7 +194,7 @@ export function CustomerPortal({ userId, onOpenCheckout }: CustomerPortalProps) 
         </div>
 
         {/* Botão de Ação Principal */}
-        <div>
+        <div className="flex flex-wrap items-center gap-2.5 shrink-0">
           {!isPro ? (
             <button
               type="button"
@@ -174,9 +205,20 @@ export function CustomerPortal({ userId, onOpenCheckout }: CustomerPortalProps) 
               <span>Fazer Upgrade para Pro</span>
             </button>
           ) : isUnexpiredCanceled ? (
-            <span className="text-xs font-bold text-slate-400 px-3 py-1.5 rounded-xl bg-slate-800/80 border border-slate-700">
-              Assinatura Cancelada (Sem novas cobranças)
-            </span>
+            <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2.5">
+              <span className="text-xs font-bold text-slate-400 px-3 py-1.5 rounded-xl bg-slate-800/80 border border-slate-700">
+                Assinatura Cancelada (Sem novas cobranças)
+              </span>
+              <button
+                type="button"
+                disabled={reactivating}
+                onClick={handleReactivateSubscription}
+                className="px-4 py-2 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-400 hover:to-teal-500 text-slate-950 font-black text-xs shadow-md transition-all cursor-pointer flex items-center gap-1.5 disabled:opacity-50"
+              >
+                <RefreshCw size={14} className={reactivating ? "animate-spin" : ""} />
+                <span>{reactivating ? 'Reativando...' : 'Reativar Assinatura'}</span>
+              </button>
+            </div>
           ) : (
             <button
               type="button"

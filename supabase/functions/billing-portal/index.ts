@@ -136,6 +136,132 @@ serve(async (req: Request) => {
       );
     }
 
+    // ── Ação 2.5: Reativação de Assinatura Cancelada ──
+    if (action === 'reactivate_subscription') {
+      const now = new Date();
+
+      const { data: currentSub } = await adminClient
+        .from('subscriptions')
+        .select(`
+          id, status, billing_cycle, current_period_end, payment_customer_id, gateway_subscription_id,
+          plan:plans (id, slug, name, price_monthly, price_yearly)
+        `)
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+      // 1. Checagem de idempotência: se a assinatura já estiver ativa, retorne sucesso imediatamente
+      if (currentSub?.status === 'active') {
+        return new Response(
+          JSON.stringify({ success: true, message: 'Sua assinatura já está ativa.' }),
+          { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+
+      // 2. Validação de elegibilidade e vigência no futuro
+      const isUnexpired = currentSub?.current_period_end && new Date(currentSub.current_period_end) > now;
+      if (!currentSub || currentSub.status !== 'canceled' || !isUnexpired) {
+        return new Response(
+          JSON.stringify({ error: 'Nenhuma assinatura cancelada dentro da vigência foi encontrada para reativação. Por favor, faça um novo checkout.' }),
+          { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+
+      const asaasApiKey = Deno.env.get('ASAAS_API_KEY') || '';
+      const asaasApiUrl = Deno.env.get('ASAAS_API_URL') || 'https://api.asaas.com/v3';
+
+      let newGatewaySubscriptionId = currentSub.gateway_subscription_id;
+
+      // 3. Resolver o ID de cliente no gateway
+      let gatewayCustomerId: string | undefined;
+      if (currentSub.payment_customer_id) {
+        const { data: cust } = await adminClient
+          .from('payment_customers')
+          .select('gateway_customer_id')
+          .eq('id', currentSub.payment_customer_id)
+          .maybeSingle();
+        gatewayCustomerId = cust?.gateway_customer_id;
+      }
+
+      if (!gatewayCustomerId) {
+        const { data: cust } = await adminClient
+          .from('payment_customers')
+          .select('gateway_customer_id')
+          .eq('user_id', user.id)
+          .limit(1)
+          .maybeSingle();
+        gatewayCustomerId = cust?.gateway_customer_id;
+      }
+
+      // 4. Criar nova assinatura no Asaas com nextDueDate no fim da vigência paga atual
+      if (asaasApiKey && gatewayCustomerId) {
+        try {
+          const periodEndDate = new Date(currentSub.current_period_end);
+          const nextDueDateStr = periodEndDate.toISOString().split('T')[0];
+
+          const planObj = currentSub.plan as any;
+          // price_weekly não existe no banco — R$ 9,90 é valor fixo de produto (intencional)
+          // Produto oferece apenas WEEKLY e MONTHLY; YEARLY não é uma opção ativa de compra
+          const planPrice = currentSub.billing_cycle === 'WEEKLY'
+            ? 9.90
+            : (planObj?.price_monthly || 29.90);
+
+          const asaasRes = await fetch(`${asaasApiUrl}/subscriptions`, {
+            method: 'POST',
+            headers: {
+              'accept': 'application/json',
+              'content-type': 'application/json',
+              'access_token': asaasApiKey
+            },
+            body: JSON.stringify({
+              customer: gatewayCustomerId,
+              billingType: 'CREDIT_CARD',
+              value: planPrice,
+              nextDueDate: nextDueDateStr,
+              cycle: currentSub.billing_cycle || 'MONTHLY',
+              description: `Reativação de Assinatura Vocentro - ${planObj?.name || 'Pro'}`,
+              externalReference: user.id
+            })
+          });
+
+          if (asaasRes.ok) {
+            const newAsaasSub = await asaasRes.json();
+            if (newAsaasSub?.id) {
+              newGatewaySubscriptionId = newAsaasSub.id;
+            }
+          } else {
+            const errData = await asaasRes.json().catch(() => ({}));
+            console.warn('[billing-portal] Aviso ao recriar assinatura no Asaas:', errData);
+          }
+        } catch (err) {
+          console.error('[billing-portal] Erro ao integrar com Asaas na reativação:', err);
+        }
+      }
+
+      // 5. Atualizar registro local para status active e canceled_at = null (sem tocar em profiles)
+      await adminClient
+        .from('subscriptions')
+        .update({
+          status: 'active',
+          canceled_at: null,
+          gateway_subscription_id: newGatewaySubscriptionId
+        })
+        .eq('id', currentSub.id);
+
+      // Registrar auditoria
+      await adminClient.from('activity_logs').insert({
+        user_id: user.id,
+        event_type: 'subscription_reactivated_by_user',
+        metadata: { subscription_id: currentSub.id, gateway_subscription_id: newGatewaySubscriptionId }
+      });
+
+      return new Response(
+        JSON.stringify({ success: true, message: 'Assinatura reativada com sucesso!' }),
+        { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
     // ── Ação 3: Obter Detalhes da Assinatura, Sincronizar com Asaas e Retornar Histórico ──
     const asaasApiKey = Deno.env.get('ASAAS_API_KEY') || '';
     const asaasApiUrl = Deno.env.get('ASAAS_API_URL') || 'https://api.asaas.com/v3';

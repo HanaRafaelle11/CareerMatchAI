@@ -1,8 +1,10 @@
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { Sparkles, X, ArrowRight, Bot } from 'lucide-react';
 import { useCopilotEngine } from '../../application/hooks/useCopilotEngine';
 import { useAuth } from '../../application/hooks/useAuth';
 import { useEntitlements, PaywallModal, CheckoutModal } from '../../modules/billing';
+import { useEscapeToClose } from '../../application/hooks/useEscapeToClose';
+import { useFocusTrap } from '../../application/hooks/useFocusTrap';
 import { supabase } from '../../infrastructure/api/supabaseClient';
 import type { Application, Job } from '../../domain/models/types';
 import type { CareerProfileNew } from '../../application/hooks/useMyProfileAi';
@@ -29,6 +31,14 @@ export function GlobalCopilotDrawer({
   const [showCheckout, setShowCheckout] = useState(false);
 
   const [isOpen, setIsOpen] = useState(false);
+  const drawerRef = useRef<HTMLDivElement>(null);
+
+  // Listener da tecla ESC para fechar o drawer
+  useEscapeToClose(isOpen, () => setIsOpen(false));
+
+  // Focus trap para prender navegação por Tab dentro do drawer enquanto aberto
+  useFocusTrap(drawerRef, isOpen);
+
   const [chatInput, setChatInput] = useState('');
   const [isTyping, setIsTyping] = useState(false);
   const [messages, setMessages] = useState<Array<{ role: 'assistant' | 'user'; text: string }>>([
@@ -52,6 +62,7 @@ export function GlobalCopilotDrawer({
     }
     setIsOpen(!isOpen);
   };
+
 
   const handleSendMessage = (e: React.FormEvent) => {
     e.preventDefault();
@@ -177,7 +188,14 @@ function renderCopilotMarkdown(text: string): React.ReactNode {
 
       {/* Drawer / Slide-Over Flutuante */}
       {isOpen && (
-        <div className="fixed inset-y-0 right-0 w-full max-w-md bg-slate-900 light:bg-white border-l border-slate-800 light:border-slate-200 shadow-2xl z-[9995] flex flex-col animate-slide-in">
+        <div 
+          ref={drawerRef}
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="copilot-drawer-title"
+          className="fixed inset-y-0 right-0 w-full max-w-md bg-slate-900 light:bg-white border-l border-slate-800 light:border-slate-200 shadow-2xl z-[9995] flex flex-col animate-slide-in"
+        >
+
           {/* Header do Drawer */}
           <div className="p-4 border-b border-slate-800 light:border-slate-200 flex justify-between items-center bg-slate-900/80 light:bg-white/90 backdrop-blur-md">
             <div className="flex items-center gap-2.5">
@@ -185,7 +203,7 @@ function renderCopilotMarkdown(text: string): React.ReactNode {
                 <Bot size={18} />
               </div>
               <div>
-                <h3 className="font-bold text-xs text-slate-100 light:text-slate-900 flex items-center gap-1.5">
+                <h3 id="copilot-drawer-title" className="font-bold text-xs text-slate-100 light:text-slate-900 flex items-center gap-1.5">
                   Copiloto de Carreira IA
                   <span className="w-2 h-2 rounded-full bg-emerald-400" />
                 </h3>
@@ -194,11 +212,13 @@ function renderCopilotMarkdown(text: string): React.ReactNode {
             </div>
             <button
               onClick={() => setIsOpen(false)}
-              className="p-1.5 rounded-lg text-slate-400 light:text-slate-500 hover:text-slate-100 light:hover:text-slate-900 hover:bg-slate-800 light:hover:bg-slate-100 transition-colors"
+              aria-label="Fechar copiloto"
+              className="p-1.5 rounded-lg text-slate-400 light:text-slate-500 hover:text-slate-100 light:hover:text-slate-900 hover:bg-slate-800 light:hover:bg-slate-100 transition-colors focus-visible:ring-2 focus-visible:ring-brand-500"
             >
               <X size={18} />
             </button>
           </div>
+
 
           {/* Recomendações Proativas */}
           <div className="p-4 bg-slate-800/50 light:bg-slate-50 border-b border-slate-800/80 light:border-slate-200 space-y-2">

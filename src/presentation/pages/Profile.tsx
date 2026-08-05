@@ -780,7 +780,8 @@ export function Profile({
               </div>
 
               {errorMsg && (
-              <div className="w-full text-left" onClick={(e) => e.stopPropagation()}>
+              <div role="alert" aria-live="polite" className="w-full text-left" onClick={(e) => e.stopPropagation()}>
+
                 <ErrorState
                   error={errorMsg}
                   onAction={() => {

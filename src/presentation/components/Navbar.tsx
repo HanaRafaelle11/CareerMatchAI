@@ -268,7 +268,8 @@ export function Navbar({
                       : 'text-slate-600 dark:text-[#B8C2CC] hover:text-slate-900 dark:hover:text-white'
                   }`}
                 >
-                  <div className={`shrink-0 ${step.active ? 'text-[#4F8EF7]' : step.completed ? 'text-[#22C7A8]' : 'text-slate-400 dark:text-slate-500'}`}>
+                  <div className={`shrink-0 ${step.active ? 'text-[#4F8EF7]' : step.completed ? 'text-[#22C7A8]' : 'text-slate-400 dark:text-slate-400'}`}>
+
                     {getStepIcon(step.id, "w-4 h-4")}
                   </div>
 
@@ -292,7 +293,7 @@ export function Navbar({
           {/* Utility Links */}
           <div className="px-3.5 mt-4 space-y-1 pb-20 md:pb-2">
             <div className="px-3 mb-1.5">
-              <span className="text-[10px] font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider">Geral</span>
+              <span className="text-[10px] font-semibold text-slate-400 dark:text-slate-400 uppercase tracking-wider">Geral</span>
             </div>
             {utilityItems.filter(i => i.id !== 'dashboard').map(item => {
               const isActive = activeTab === item.id;
@@ -306,11 +307,12 @@ export function Navbar({
                       : 'text-slate-600 dark:text-[#B8C2CC] hover:text-slate-900 dark:hover:text-white'
                   }`}
                 >
-                  {getUtilityIcon(item.id, `w-4 h-4 shrink-0 ${isActive ? 'text-[#4F8EF7]' : 'text-slate-400 dark:text-slate-500'}`)}
+                  {getUtilityIcon(item.id, `w-4 h-4 shrink-0 ${isActive ? 'text-[#4F8EF7]' : 'text-slate-400 dark:text-slate-400'}`)}
                   <span>{item.label}</span>
                 </button>
               );
             })}
+
 
             {/* Botao de Sair visivel no menu para facil acesso mobile */}
             <button

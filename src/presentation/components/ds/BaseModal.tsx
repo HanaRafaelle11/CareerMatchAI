@@ -1,7 +1,8 @@
-import { useEffect, useState, type ReactNode } from 'react';
+import { useEffect, useState, useRef, type ReactNode } from 'react';
 import { createPortal } from 'react-dom';
 import { X, AlertTriangle } from 'lucide-react';
 import { useEscapeToClose } from '../../../application/hooks/useEscapeToClose';
+import { useFocusTrap } from '../../../application/hooks/useFocusTrap';
 
 export interface BaseModalProps {
   isOpen: boolean;
@@ -30,13 +31,17 @@ export function BaseModal({
 }: BaseModalProps) {
   const [mounted, setMounted] = useState(false);
   const [showConfirmClose, setShowConfirmClose] = useState(false);
+  const modalRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     setMounted(true);
   }, []);
 
-  // Item 3: Listener global da tecla ESC (Escape) via hook reutilizável
+  // Listener global da tecla ESC (Escape)
   useEscapeToClose(isOpen, () => attemptClose());
+
+  // Manter o foco preso (Focus Trap) dentro do modal enquanto estiver aberto
+  useFocusTrap(modalRef, isOpen);
 
   // Bloquear rolagem do corpo da página enquanto o modal estiver aberto
   useEffect(() => {
@@ -75,9 +80,15 @@ export function BaseModal({
       }}
     >
       <div 
-        className={`relative w-full ${maxWidthClass} bg-slate-900 light:bg-white border border-slate-800 light:border-slate-200 rounded-2xl sm:rounded-3xl p-5 sm:p-6 shadow-2xl space-y-4 my-auto text-slate-100 light:text-slate-900 max-h-[90vh] flex flex-col`}
+        ref={modalRef}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="base-modal-title"
+        className={`relative w-full ${maxWidthClass} bg-slate-900 light:bg-white border border-slate-800 light:border-slate-200 rounded-2xl sm:rounded-3xl p-5 sm:p-6 shadow-2xl space-y-4 my-auto text-slate-100 light:text-slate-900 max-h-[90vh] flex flex-col focus:outline-none`}
+        tabIndex={-1}
         onClick={(e) => e.stopPropagation()}
       >
+
         {/* Confirmação de descarte de dados não salvos */}
         {showConfirmClose ? (
           <div className="space-y-4 text-center py-4 animate-fade-in">
@@ -94,14 +105,14 @@ export function BaseModal({
               <button
                 type="button"
                 onClick={() => setShowConfirmClose(false)}
-                className="px-4 py-2 rounded-xl border border-slate-700 light:border-slate-300 text-slate-300 light:text-slate-700 hover:text-slate-100 light:hover:text-slate-900 text-xs font-semibold"
+                className="px-4 py-2 rounded-xl border border-slate-700 light:border-slate-300 text-slate-300 light:text-slate-700 hover:text-slate-100 light:hover:text-slate-900 text-xs font-semibold focus-visible:ring-2 focus-visible:ring-brand-500"
               >
                 Continuar Editando
               </button>
               <button
                 type="button"
                 onClick={confirmClose}
-                className="px-4 py-2 rounded-xl bg-red-600 hover:bg-red-500 text-white font-bold text-xs shadow-md"
+                className="px-4 py-2 rounded-xl bg-red-600 hover:bg-red-500 text-white font-bold text-xs shadow-md focus-visible:ring-2 focus-visible:ring-brand-500"
               >
                 Descartar e Fechar
               </button>
@@ -114,7 +125,8 @@ export function BaseModal({
               <button
                 type="button"
                 onClick={attemptClose}
-                className="absolute top-4 right-4 p-1.5 text-slate-400 light:text-slate-500 hover:text-slate-100 light:hover:text-slate-900 rounded-xl bg-slate-800/60 light:bg-slate-100 border border-slate-700 light:border-slate-200 hover:border-slate-600 light:hover:border-slate-300 transition-colors cursor-pointer z-10"
+                aria-label="Fechar modal"
+                className="absolute top-4 right-4 p-1.5 text-slate-400 light:text-slate-500 hover:text-slate-100 light:hover:text-slate-900 rounded-xl bg-slate-800/60 light:bg-slate-100 border border-slate-700 light:border-slate-200 hover:border-slate-600 light:hover:border-slate-300 transition-colors cursor-pointer z-10 focus-visible:ring-2 focus-visible:ring-brand-500"
                 title="Fechar (ESC)"
               >
                 <X size={18} />
@@ -131,9 +143,9 @@ export function BaseModal({
                 )}
                 <div>
                   {typeof title === 'string' ? (
-                    <h3 className="font-display font-bold text-base sm:text-lg text-slate-100 light:text-slate-900 leading-snug">{title}</h3>
+                    <h3 id="base-modal-title" className="font-display font-bold text-base sm:text-lg text-slate-100 light:text-slate-900 leading-snug">{title}</h3>
                   ) : (
-                    title
+                    <div id="base-modal-title">{title}</div>
                   )}
                   {subtitle && (
                     <p className="text-xs text-slate-400 light:text-slate-600 mt-0.5">{subtitle}</p>
@@ -141,6 +153,7 @@ export function BaseModal({
                 </div>
               </div>
             )}
+
 
             {/* Corpo com rolagem interna limpa */}
             <div className="overflow-y-auto flex-1 pr-1 custom-scrollbar space-y-4">

@@ -801,10 +801,11 @@ export function StrategyPage({
       {/* 1. Modal: Escolha Inicial ou Formulário de Candidatura Manual (Item 12) */}
       {showAddForm && (
         <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <CardGlass className="w-full max-w-md min-w-[320px] sm:min-w-[400px] space-y-6 relative border border-slate-800">
-            <button onClick={() => { setShowAddForm(false); setShowChoiceStep(true); }} className="absolute top-4 right-4 text-slate-500 hover:text-slate-300">
+          <CardGlass role="dialog" aria-modal="true" className="w-full max-w-lg mx-4 space-y-6 relative border border-slate-800">
+            <button onClick={() => { setShowAddForm(false); setShowChoiceStep(true); }} aria-label="Fechar modal" className="absolute top-4 right-4 text-slate-500 hover:text-slate-300 focus-visible:ring-2 focus-visible:ring-brand-500 rounded-lg">
               <X size={18} />
             </button>
+
             {showChoiceStep ? (
               <div className="space-y-4">
                 <div>
@@ -1084,9 +1085,10 @@ export function StrategyPage({
               <h3 className="font-display font-bold text-lg text-foreground mt-1">{selectedApp.jobTitle}</h3>
               <p className="text-xs text-muted-foreground font-semibold mt-0.5">{selectedApp.companyName}</p>
             </div>
-            <button onClick={() => setSelectedAppId(null)} className="text-muted-foreground hover:text-foreground p-1 rounded-lg hover:bg-muted">
+            <button onClick={() => setSelectedAppId(null)} aria-label="Fechar detalhes da candidatura" className="text-muted-foreground hover:text-foreground p-1 rounded-lg hover:bg-muted focus-visible:ring-2 focus-visible:ring-brand-500">
               <X size={20} />
             </button>
+
           </div>
 
           {/* Item 13: Tratar Vagas Arquivadas com Opção de Reativação em vez de Formulário Ativo */}

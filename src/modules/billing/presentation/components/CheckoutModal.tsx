@@ -5,6 +5,8 @@ import {
 } from 'lucide-react';
 import { BaseModal } from '../../../../presentation/components/ds/BaseModal';
 import { useCheckout } from '../../application/hooks/useCheckout';
+import { useAuth } from '../../../../application/hooks/useAuth';
+import { isSupabaseConfigured, supabase } from '../../../../infrastructure/api/supabaseClient';
 import type { BillingCycle, BillingType } from '../../domain/types/billingTypes';
 
 interface CheckoutModalProps {
@@ -17,9 +19,47 @@ interface CheckoutModalProps {
 }
 
 export function CheckoutModal({ isOpen, onClose, userId, userEmail, userName, planSlug: propPlanSlug }: CheckoutModalProps) {
-  // Centralização da resolução do planSlug para TODOS os pontos de entrada (Profile, JobMatchHub, Coach, App, etc.)
+  const { profile } = useAuth();
+  const [dbRole, setDbRole] = useState<string | null>(profile?.role || null);
+
+  useEffect(() => {
+    if (profile?.role) {
+      setDbRole(profile.role);
+    } else if (isOpen && isSupabaseConfigured && supabase) {
+      const client = supabase;
+      const fetchRole = async () => {
+        let query = client.from('profiles').select('role');
+        if (userId) {
+          query = query.eq('id', userId);
+        } else if (userEmail) {
+          query = query.eq('email', userEmail);
+        } else {
+          const authRes = await client.auth.getUser();
+          if (authRes.data?.user) {
+            query = query.eq('id', authRes.data.user.id);
+          } else {
+            return;
+          }
+        }
+        const { data } = await query.maybeSingle();
+        if (data?.role) {
+          setDbRole(data.role);
+        }
+      };
+      fetchRole();
+    }
+  }, [profile, userId, userEmail, isOpen]);
+
+
+  // Centralização da resolução do planSlug com dupla proteção no frontend (URL ?checkout_test=1 E permissão admin no DB)
   const isTestUrl = typeof window !== 'undefined' && window.location.search.includes('checkout_test=1');
-  const planSlug = isTestUrl ? 'test' : (propPlanSlug || 'pro');
+  const hasAdminRole = ['administrador', 'suporte', 'financeiro'].includes(dbRole || profile?.role || '');
+  const isTestPlanAllowed = isTestUrl && hasAdminRole;
+
+  const planSlug = isTestPlanAllowed ? 'test' : (propPlanSlug || 'pro');
+
+
+
 
   const [billingCycle, setBillingCycle] = useState<BillingCycle>('MONTHLY');
 

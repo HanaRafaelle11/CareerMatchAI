@@ -269,7 +269,9 @@ export function EmailEngagementDashboard() {
                 <Send size={12} className="text-brand-500" /> Disparados
               </span>
               <p className="text-2xl font-black text-foreground font-mono">{stats.totalSent}</p>
-              <p className="text-[10px] text-muted-foreground font-mono">100% da amostra</p>
+              <p className="text-[10px] text-muted-foreground font-mono">
+                {stats.totalSent < 10 ? `Amostra reduzida (n=${stats.totalSent})` : '100% da amostra'}
+              </p>
             </div>
 
             <div className="p-4 rounded-2xl bg-card border border-border space-y-1 shadow-xs">
@@ -277,7 +279,9 @@ export function EmailEngagementDashboard() {
                 <CheckCircle2 size={12} className="text-emerald-500" /> Entregues
               </span>
               <p className="text-2xl font-black text-emerald-500 font-mono">{stats.totalDelivered}</p>
-              <p className="text-[10px] text-muted-foreground font-mono">{stats.deliveryRate}% de entrega</p>
+              <p className="text-[10px] text-muted-foreground font-mono truncate" title={stats.totalSent < 10 ? `Amostra insuficiente (n=${stats.totalSent}) — aguardando mais envios para métricas confiáveis` : `${stats.deliveryRate}% de entrega`}>
+                {stats.totalSent < 10 ? `Amostra insuficiente (n=${stats.totalSent})` : `${stats.deliveryRate}% de entrega`}
+              </p>
             </div>
 
             <div className="p-4 rounded-2xl bg-card border border-border space-y-1 shadow-xs">
@@ -285,7 +289,9 @@ export function EmailEngagementDashboard() {
                 <Eye size={12} className="text-blue-500" /> Aberturas
               </span>
               <p className="text-2xl font-black text-blue-500 font-mono">{stats.totalOpened}</p>
-              <p className="text-[10px] text-muted-foreground font-mono">{stats.openRate}% taxa de abertura</p>
+              <p className="text-[10px] text-muted-foreground font-mono truncate" title={stats.totalDelivered < 10 ? `Amostra insuficiente (n=${stats.totalDelivered}) — aguardando mais envios para métricas confiáveis` : `${stats.openRate}% taxa de abertura`}>
+                {stats.totalDelivered < 10 ? `Amostra insuficiente (n=${stats.totalDelivered})` : `${stats.openRate}% taxa de abertura`}
+              </p>
             </div>
 
             <div className="p-4 rounded-2xl bg-card border border-border space-y-1 shadow-xs">
@@ -293,7 +299,9 @@ export function EmailEngagementDashboard() {
                 <MousePointerClick size={12} className="text-indigo-500" /> Cliques
               </span>
               <p className="text-2xl font-black text-indigo-500 font-mono">{stats.totalClicked}</p>
-              <p className="text-[10px] text-muted-foreground font-mono">{stats.clickRate}% CTR de clique</p>
+              <p className="text-[10px] text-muted-foreground font-mono truncate" title={stats.totalDelivered < 10 ? `Amostra insuficiente (n=${stats.totalDelivered}) — aguardando mais envios para métricas confiáveis` : `${stats.clickRate}% CTR de clique`}>
+                {stats.totalDelivered < 10 ? `Amostra insuficiente (n=${stats.totalDelivered})` : `${stats.clickRate}% CTR de clique`}
+              </p>
             </div>
 
             <div className="p-4 rounded-2xl bg-card border border-border space-y-1 shadow-xs">
@@ -301,7 +309,9 @@ export function EmailEngagementDashboard() {
                 <UserCheck size={12} className="text-emerald-400" /> Voltou ao App
               </span>
               <p className="text-2xl font-black text-emerald-400 font-mono">{stats.totalReturned}</p>
-              <p className="text-[10px] text-muted-foreground font-mono">{stats.returnRate}% reengajados</p>
+              <p className="text-[10px] text-muted-foreground font-mono truncate" title={stats.totalSent < 10 ? `Amostra insuficiente (n=${stats.totalSent}) — aguardando mais envios para métricas confiáveis` : `${stats.returnRate}% reengajados`}>
+                {stats.totalSent < 10 ? `Amostra insuficiente (n=${stats.totalSent})` : `${stats.returnRate}% reengajados`}
+              </p>
             </div>
 
             <div className="p-4 rounded-2xl bg-card border border-border space-y-1 shadow-xs">
@@ -312,6 +322,7 @@ export function EmailEngagementDashboard() {
               <p className="text-[10px] text-muted-foreground font-mono">Resend / Domínio inválido</p>
             </div>
           </div>
+
 
           {/* Webhook Status Banner */}
           <div className="p-4 rounded-2xl bg-brand-500/5 border border-brand-500/20 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-xs text-muted-foreground">

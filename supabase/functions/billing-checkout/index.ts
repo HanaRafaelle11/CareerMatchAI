@@ -253,6 +253,7 @@ serve(async (req: Request) => {
       
       const defaultPlans = [
         { slug: 'free', name: 'Plano Gratuito', price_weekly: 0.00, price_monthly: 0.00, active: true },
+        { slug: 'test', name: 'Plano Teste Produção', price_weekly: 1.00, price_monthly: 1.00, active: true },
         { slug: 'pro', name: 'Plano Profissional', price_weekly: 9.90, price_monthly: 29.90, active: true },
         { slug: 'enterprise', name: 'Plano Corporativo', price_weekly: 29.90, price_monthly: 99.90, active: true }
       ];
@@ -273,9 +274,11 @@ serve(async (req: Request) => {
     if (!planData || !planData.active) {
       const fallbackPlans: Record<string, { id?: string; slug: string; name: string; price_weekly: number; price_monthly: number; active: boolean }> = {
         free: { slug: 'free', name: 'Plano Gratuito', price_weekly: 0.00, price_monthly: 0.00, active: true },
+        test: { slug: 'test', name: 'Plano Teste Produção', price_weekly: 1.00, price_monthly: 1.00, active: true },
         pro: { slug: 'pro', name: 'Plano Profissional', price_weekly: 9.90, price_monthly: 29.90, active: true },
         enterprise: { slug: 'enterprise', name: 'Plano Corporativo', price_weekly: 29.90, price_monthly: 99.90, active: true }
       };
+
 
       if (fallbackPlans[cleanPlanSlug]) {
         console.warn(`[billing-checkout] Utilizando plano de fallback em memória para '${cleanPlanSlug}'`);

@@ -13,9 +13,11 @@ interface CheckoutModalProps {
   userId?: string;
   userEmail?: string;
   userName?: string;
+  planSlug?: string;
 }
 
-export function CheckoutModal({ isOpen, onClose, userId, userEmail, userName }: CheckoutModalProps) {
+export function CheckoutModal({ isOpen, onClose, userId, userEmail, userName, planSlug = 'pro' }: CheckoutModalProps) {
+
   const [billingCycle, setBillingCycle] = useState<BillingCycle>('MONTHLY');
   const [billingType, setBillingType] = useState<BillingType>('PIX');
 
@@ -62,8 +64,9 @@ export function CheckoutModal({ isOpen, onClose, userId, userEmail, userName }: 
     if (isLoading) return;
 
     const payload: any = {
-      planSlug: 'pro',
+      planSlug,
       billingCycle,
+
       billingType,
       cpfCnpj: cpfCnpj.replace(/\D/g, ''),
       mobilePhone: mobilePhone.replace(/\D/g, ''),

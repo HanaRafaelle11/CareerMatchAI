@@ -311,12 +311,14 @@ export function Dashboard({
       <CareerScoreDashboardCard
         resume={resumes[0]}
         careerProfileNew={careerProfileNew}
+        isLoading={isLoading}
         onExploreJobs={() => {
           localStorage.setItem('vocentro_trigger_discovery', 'true');
           setActiveTab('match');
           window.scrollTo({ top: 0, behavior: 'smooth' });
         }}
       />
+
 
       {/* ── 3. MÉTRICAS ESSENCIAIS DA JORNADA (UNIFICADAS E SEM DUPLICAÇÃO) ── */}
       <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">

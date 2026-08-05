@@ -432,7 +432,8 @@ function AuthenticatedApp({
     }
   };
 
-  const { resumes, uploadResume, deleteResume, isUploading, pipelineSteps, selectActiveResume } = useResumes(user?.id);
+  const { resumes, uploadResume, deleteResume, isUploading, pipelineSteps, selectActiveResume, isLoading: isLoadingResumes } = useResumes(user?.id);
+
   
   // Sincronizar o currículo/versão selecionado
   const [selectedResumeVersionId, setSelectedResumeVersionId] = useState<string | null>(null);
@@ -527,9 +528,10 @@ function AuthenticatedApp({
   const { careerProfile, updateCareerProfile, isUpdating: isSavingProfile } = useCareerProfile(user?.id, selectedResumeVersionId);
 
   // ── Fonte única de verdade: career_profiles + career_insights ──
-  const { data: myProfileData } = useMyProfileAi(user?.id, selectedResumeVersionId);
+  const { data: myProfileData, isLoading: isLoadingProfile } = useMyProfileAi(user?.id, selectedResumeVersionId);
   const careerProfileNew = myProfileData?.profile ?? null;
   const careerInsights = myProfileData?.insights ?? null;
+
 
   const { 
     applications, 
@@ -739,9 +741,11 @@ function AuthenticatedApp({
               careerGoals={careerGoals}
               jobs={jobs}
               setSelectedJobId={setSelectedJobId}
+              isLoading={isLoadingResumes || isLoadingProfile}
             />
           </Suspense>
         )}
+
 
         {/* Meu Currículo — única tela de currículo (upload + visualização) */}
         {activeTab === 'profile' && (

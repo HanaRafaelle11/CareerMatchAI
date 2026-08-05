@@ -344,7 +344,7 @@ export function CoachDashboard({
                 onClick={() => {
                   if (rec.targetAppId) {
                     setSelectedAppId(rec.targetAppId);
-                    handleStartSim();
+                    handleStartSim(rec.targetAppId);
                   } else if (rec.targetTab && setActiveTab) {
                     setActiveTab(rec.targetTab);
                   }
@@ -774,7 +774,9 @@ export function CoachDashboard({
                                 setIsSending(true);
                                 try {
                                   await finalizeSimulation({ sim: simulation });
-                                  // Disparar evento de conclusão para contabilizar no checklist do dia (Item 5)
+                                  // Disparar evento de conclusão e salvar em localStorage para o Plano de Hoje (Item 6)
+                                  const todayStr = new Date().toISOString().split('T')[0];
+                                  try { localStorage.setItem('vocentro_star_sim_today', todayStr); } catch {}
                                   window.dispatchEvent(new CustomEvent('vocentro_star_simulation_completed', { detail: { appId: selectedAppId } }));
                                   setToast({ message: 'Relatório de avaliação STAR gerado com sucesso!', type: 'success' });
                                 } catch (err: any) {

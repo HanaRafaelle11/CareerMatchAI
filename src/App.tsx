@@ -1,4 +1,4 @@
-import { useState, useEffect, lazy, Suspense } from 'react';
+import { useState, useEffect, useRef, lazy, Suspense } from 'react';
 import { useAuth } from './application/hooks/useAuth';
 import { useResumes, useJobs, useMatches } from './application/hooks/useCareerMatch';
 import { useCareerProfile } from './application/hooks/useCareerProfile';
@@ -175,20 +175,20 @@ function App() {
 
   if (loading) {
     return (
-      <div className="min-h-screen w-full flex flex-col items-center justify-center bg-slate-950 text-slate-100 font-sans relative overflow-hidden">
+      <div className="min-h-screen w-full flex flex-col items-center justify-center bg-slate-950 text-slate-100 font-sans relative overflow-hidden px-4 py-8">
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(99,102,241,0.05)_0%,transparent_70%)]" />
-        <div className="max-w-md w-full p-8 mx-4 rounded-3xl bg-slate-900/30 border border-slate-850 backdrop-blur-md flex flex-col items-center text-center space-y-6 relative">
+        <div className="w-[calc(100%-32px)] max-w-sm sm:max-w-md p-5 sm:p-8 mx-auto rounded-2xl sm:rounded-3xl bg-slate-900/40 border border-slate-800/80 backdrop-blur-md flex flex-col items-center text-center space-y-4 sm:space-y-6 relative shadow-2xl">
           <div className="relative flex flex-col items-center">
-            <div className="absolute inset-0 rounded-full bg-brand-accent/15 blur-2xl animate-pulse" />
-            <div className="p-5 rounded-full bg-slate-950 border border-slate-800 text-brand-accent shadow-2xl relative z-10 flex items-center justify-center">
-              <VocentroLogo className="h-12 w-12 animate-pulse" showText={false} variant="symbol" />
+            <div className="absolute inset-0 rounded-full bg-brand-accent/15 blur-xl animate-pulse" />
+            <div className="p-3.5 sm:p-5 rounded-full bg-slate-950 border border-slate-800 text-brand-accent shadow-xl relative z-10 flex items-center justify-center">
+              <VocentroLogo className="h-8 w-8 sm:h-12 sm:w-12 animate-pulse" showText={false} variant="symbol" />
             </div>
           </div>
-          <div className="space-y-2 font-sans">
-            <h3 className="font-display font-bold text-lg text-slate-200">Iniciando Vocentro</h3>
-            <p className="text-xs text-slate-500">Conectando ao banco de dados e autenticando sessão de usuário...</p>
+          <div className="space-y-1 sm:space-y-2 font-sans px-2">
+            <h3 className="font-display font-bold text-base sm:text-lg text-slate-200">Iniciando Vocentro</h3>
+            <p className="text-[11px] sm:text-xs text-slate-400 leading-snug">Autenticando sessão e conectando à plataforma...</p>
           </div>
-          <div className="w-full max-w-[200px] h-1 bg-slate-950 border border-slate-850 rounded-full overflow-hidden">
+          <div className="w-full max-w-[160px] sm:max-w-[200px] h-1 bg-slate-950 border border-slate-850 rounded-full overflow-hidden">
             <div className="h-full bg-brand-accent rounded-full animate-progress-loading" />
           </div>
         </div>
@@ -342,6 +342,13 @@ function AuthenticatedApp({
   const [activeSimulationAppId, setActiveSimulationAppId] = useState<string | null>(null);
   const [showOnboarding, setShowOnboarding] = useState(false);
 
+  const activeTabRef = useRef(activeTab);
+  const resumeTransitionTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    activeTabRef.current = activeTab;
+  }, [activeTab]);
+
   const handleCompleteOnboarding = () => {
     localStorage.setItem('vocentro_onboarding_completed', 'true');
     setShowOnboarding(false);
@@ -373,6 +380,52 @@ function AuthenticatedApp({
       setMatchHubInitialSubTab('discover');
     }
   }, []);
+
+  // Captura e persistência de parâmetros UTM (utm_source, utm_medium, utm_campaign, utm_content, utm_term)
+  useEffect(() => {
+    try {
+      const params = new URLSearchParams(window.location.search);
+      const utmKeys = ['utm_source', 'utm_medium', 'utm_campaign', 'utm_content', 'utm_term'];
+      const utmObj: Record<string, string> = {};
+      let hasUtm = false;
+
+      utmKeys.forEach(key => {
+        const val = params.get(key);
+        if (val) {
+          utmObj[key] = val;
+          hasUtm = true;
+        }
+      });
+
+      if (hasUtm) {
+        sessionStorage.setItem('vocentro_utm_params', JSON.stringify(utmObj));
+        localStorage.setItem('vocentro_latest_utm_params', JSON.stringify(utmObj));
+      }
+
+      const storedUtmStr = sessionStorage.getItem('vocentro_utm_params') || localStorage.getItem('vocentro_latest_utm_params');
+      if (user && supabase && storedUtmStr) {
+        const utmData = JSON.parse(storedUtmStr);
+        const alreadyLoggedKey = `vocentro_utm_logged_${user.id}_${utmData.utm_source || 'direct'}_${utmData.utm_campaign || 'default'}`;
+        if (!sessionStorage.getItem(alreadyLoggedKey)) {
+          sessionStorage.setItem(alreadyLoggedKey, 'true');
+          supabase.from('activity_logs').insert({
+            user_id: user.id,
+            event_type: 'utm_captured',
+            entity: 'marketing_attribution',
+            metadata: {
+              ...utmData,
+              captured_at: new Date().toISOString(),
+              page_url: window.location.href
+            }
+          }).then(({ error }) => {
+            if (error) console.warn('[UTM] Erro ao registrar atribuição UTM:', error.message);
+          });
+        }
+      }
+    } catch (err) {
+      console.error('[UTM] Erro no processamento de UTM:', err);
+    }
+  }, [user]);
 
   useEffect(() => {
     const handleOpenOnboarding = () => setShowOnboarding(true);
@@ -760,6 +813,25 @@ function AuthenticatedApp({
                   const result = await uploadResume({ file, rawText });
                   if (result && (result as any).resumeVersionId) {
                     handleSelectResumeVersion((result as any).resumeVersionId);
+
+                    // Indicador visual claro sobre a transição para a busca de vagas
+                    setGlobalToast({
+                      message: '✨ Currículo analisado! Buscando vagas compatíveis com seu perfil em instantes...',
+                      type: 'info'
+                    });
+
+                    // Transição automática guiada para o hub de vagas após exibição do resultado da análise (1.8s)
+                    if (resumeTransitionTimeoutRef.current) {
+                      clearTimeout(resumeTransitionTimeoutRef.current);
+                    }
+
+                    resumeTransitionTimeoutRef.current = setTimeout(() => {
+                      // Cancela o redirect se o usuário navegou manualmente para outra aba durante o intervalo
+                      if (activeTabRef.current === 'profile') {
+                        handleSetActiveTab('match');
+                        setMatchHubInitialSubTab('discover');
+                      }
+                    }, 1800);
                   }
                 } catch (err) {
                   console.error(err);

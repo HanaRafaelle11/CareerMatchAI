@@ -2461,8 +2461,8 @@ export function JobMatchHub({
                                   await JobMatchFeedbackService.recordMatchFeedback({
                                     userId,
                                     jobId: selectedJob.id,
-                                    careerFitScore: explanation?.careerFitScore || 75,
-                                    jobScore: selectedJob.scores?.overall || 90,
+                                    careerFitScore: explanation?.careerFitScore || 0,
+                                    jobScore: selectedJob.scores?.overall || 0,
                                     feedbackType: 'positive',
                                     jobTitle: selectedJob.title,
                                     companyName: selectedJob.companyName
@@ -2504,7 +2504,7 @@ export function JobMatchHub({
                                 user_id: userId,
                                 job_id: selectedJob.id,
                                 action: 'resume_adaptation',
-                                career_fit_score: explanation?.careerFitScore || 75
+                                career_fit_score: explanation?.careerFitScore || 0
                               });
                             }}
                             className="w-full sm:w-auto px-5 py-3 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs shadow-lg shadow-blue-500/20 flex items-center justify-center gap-2 cursor-pointer transition"
@@ -2524,12 +2524,12 @@ export function JobMatchHub({
                                 queryClient.invalidateQueries({ queryKey: ['user-applications'] });
                                 showToast('✓ Vaga salva na sua jornada', 'success');
 
-                                if ((explanation?.careerFitScore || 75) >= 75) {
+                                if (explanation?.careerFitScore && explanation.careerFitScore >= 75) {
                                   tracker.trackQualifiedAction({
                                     user_id: userId,
                                     job_id: selectedJob.id,
                                     action: 'saved',
-                                    career_fit_score: explanation?.careerFitScore || 75
+                                    career_fit_score: explanation.careerFitScore
                                   });
                                 }
                               }}
@@ -2548,12 +2548,12 @@ export function JobMatchHub({
                                 queryClient.invalidateQueries({ queryKey: ['user-applications'] });
                                 showToast('✓ Candidatura registrada', 'success');
 
-                                if ((explanation?.careerFitScore || 75) >= 75) {
+                                if (explanation?.careerFitScore && explanation.careerFitScore >= 75) {
                                   tracker.trackQualifiedAction({
                                     user_id: userId,
                                     job_id: selectedJob.id,
                                     action: 'applied',
-                                    career_fit_score: explanation?.careerFitScore || 75
+                                    career_fit_score: explanation.careerFitScore
                                   });
                                 }
                               }}
@@ -2783,8 +2783,8 @@ export function JobMatchHub({
                               await JobMatchFeedbackService.recordMatchFeedback({
                                 userId,
                                 jobId: selectedJob.id,
-                                careerFitScore: explanation?.careerFitScore || 75,
-                                jobScore: selectedJob.scores?.overall || 90,
+                                careerFitScore: explanation?.careerFitScore || 0,
+                                jobScore: selectedJob.scores?.overall || 0,
                                 feedbackType: 'negative',
                                 reason: opt.id as JobMatchRejectionReason,
                                 jobTitle: selectedJob.title,
@@ -4045,9 +4045,8 @@ export function JobMatchHub({
                     {/* Controles de Paginação com suporte a navegação remota contínua */}
                     {(() => {
                       const itemsPerPage = 15;
-                      const hasMoreRemotePages = scoredDiscoveredJobs.length >= 10;
-                      const calculatedTotalPages = Math.max(1, Math.ceil(totalCount / itemsPerPage));
-                      const totalPages = hasMoreRemotePages ? Math.max(calculatedTotalPages, searchPage + 1) : calculatedTotalPages;
+                      const calculatedTotalPages = Math.max(1, Math.ceil((totalCount || scoredDiscoveredJobs.length) / itemsPerPage));
+                      const totalPages = calculatedTotalPages;
                       const safePage = Math.min(Math.max(1, searchPage), totalPages);
 
                       return (
@@ -4073,7 +4072,7 @@ export function JobMatchHub({
                                 setSearchPage(p => p + 1);
                                 window.scrollTo({ top: 0, behavior: 'smooth' });
                               }}
-                              disabled={isLoadingDiscovery || (!hasMoreRemotePages && safePage >= totalPages)}
+                              disabled={isLoadingDiscovery || safePage >= totalPages}
                               className="px-4 py-2 rounded-xl bg-brand-600 hover:bg-brand-500 text-white border border-brand-500 disabled:bg-slate-900 disabled:border-slate-800 disabled:text-slate-500 disabled:cursor-not-allowed text-xs font-bold transition-all shadow-sm shadow-brand-500/20 cursor-pointer"
                             >
                               Próxima

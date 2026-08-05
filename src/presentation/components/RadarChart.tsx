@@ -65,12 +65,23 @@ export function RadarChart({ scores, labels = ['Técnico', 'Comportamental', 'Se
         {/* Eixos do radar */}
         {Array.from({ length: totalSides }).map((_, idx) => {
           const target = getCoordinates(idx, 100);
-          const labelPos = getCoordinates(idx, 120); // Posiciona rótulo mais externamente
-          
-          // Ajustar alinhamento do texto para evitar desvio/sobreposição nos eixos laterais
+          const angle = (Math.PI * 2 / totalSides) * idx - Math.PI / 2;
+          const labelDist = radius + 18;
+          const lx = centerX + labelDist * Math.cos(angle);
+          const ly = centerY + labelDist * Math.sin(angle);
+
           let anchor: "middle" | "start" | "end" = "middle";
-          if (Math.abs(labelPos.x - centerX) > 5) {
-            anchor = labelPos.x > centerX ? "start" : "end";
+          let offsetY = 3;
+
+          if (idx === 0) {
+            anchor = "middle";
+            offsetY = -6;
+          } else if (idx === 1 || idx === 2) {
+            anchor = "start";
+            offsetY = idx === 2 ? 8 : 4;
+          } else {
+            anchor = "end";
+            offsetY = idx === 3 ? 8 : 4;
           }
 
           return (
@@ -83,8 +94,8 @@ export function RadarChart({ scores, labels = ['Técnico', 'Comportamental', 'Se
                 className="radar-grid opacity-50"
               />
               <text
-                x={labelPos.x}
-                y={labelPos.y + (labelPos.y < centerY ? -2 : 6)}
+                x={lx}
+                y={ly + offsetY}
                 textAnchor={anchor}
                 className="text-[10px] font-semibold fill-slate-400 dark:fill-slate-500 font-sans uppercase tracking-wider"
               >

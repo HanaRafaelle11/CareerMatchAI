@@ -151,20 +151,20 @@ export function Navbar({
         />
       )}
 
-      {/* SideNavBar — Linear Pure Minimalist Sidebar (No background/pill/border for active item) */}
+      {/* SideNavBar — Linear Pure Minimalist Sidebar */}
       <aside className={`fixed left-0 top-0 h-full bg-[#FAFBFC] dark:bg-[#202632] flex-col justify-between z-50 border-r border-slate-200/80 dark:border-white/8 overflow-y-auto transition-all duration-300 ${
-        isCollapsed ? 'w-[72px]' : 'w-[240px]'
+        isCollapsed ? 'w-[68px]' : 'w-[240px]'
       } ${
         isOpen ? 'flex' : 'hidden md:flex'
       }`}>
         <div className="flex-1 flex flex-col">
-          {/* Brand */}
-          <div className="flex items-center justify-between gap-sm px-4 pt-5 pb-4">
+          {/* Brand & Toggle Header — Sticky no topo da Sidebar */}
+          <div className={`sticky top-0 z-10 flex items-center ${isCollapsed ? 'justify-center py-4 px-2' : 'justify-between px-4 pt-5 pb-4'} bg-[#FAFBFC] dark:bg-[#202632] border-b border-slate-200/80 dark:border-white/8 shrink-0`}>
             <VocentroLogo className="h-7" showText={!isCollapsed} />
             <button
               onClick={onClose}
               aria-label="Fechar menu"
-              className="md:hidden p-3 min-w-[44px] min-h-[44px] flex items-center justify-center rounded-lg hover:bg-slate-200/60 dark:hover:bg-white/8 text-slate-400 hover:text-slate-600 transition-colors focus-visible:ring-2 focus-visible:ring-brand-500"
+              className="md:hidden p-2 rounded-lg hover:bg-slate-200/60 dark:hover:bg-white/8 text-slate-400 hover:text-slate-600 transition-colors"
               title="Fechar menu"
             >
               <X size={18} />
@@ -174,228 +174,243 @@ export function Navbar({
               <button
                 type="button"
                 onClick={onToggleCollapse}
-                className="hidden md:flex items-center justify-center p-1.5 rounded-lg hover:bg-slate-200/60 dark:hover:bg-white/8 text-slate-400 hover:text-slate-200 transition-colors cursor-pointer"
+                className={`hidden md:flex items-center justify-center p-2 rounded-lg hover:bg-slate-200/60 dark:hover:bg-white/8 text-slate-400 hover:text-slate-200 transition-colors cursor-pointer ${isCollapsed ? 'w-full' : ''}`}
                 title={isCollapsed ? "Expandir menu" : "Recolher menu"}
               >
-                {isCollapsed ? <ChevronRight size={16} /> : <ChevronLeft size={16} />}
+                {isCollapsed ? <ChevronRight size={18} /> : <ChevronLeft size={18} />}
               </button>
             )}
           </div>
 
-          {/* Main Navigation — Linear Style (Text & Icon blue only, zero background) */}
-          <div className="px-3.5 mb-2">
+          {/* Main Navigation */}
+          <div className="px-2 mt-3 mb-2">
             <button
               onClick={() => { setActiveTab('dashboard'); onClose(); }}
-              className={`w-full flex items-center gap-2.5 px-3 py-1.5 rounded-md font-medium text-xs transition-colors ${
+              title="Meu Copiloto"
+              className={`w-full flex items-center ${isCollapsed ? 'justify-center py-2 px-0' : 'gap-2.5 px-3 py-1.5'} rounded-md font-medium text-xs transition-colors ${
                 activeTab === 'dashboard'
                   ? 'text-[#4F8EF7]'
                   : 'text-slate-600 dark:text-[#B8C2CC] hover:text-slate-900 dark:hover:text-white'
               }`}
             >
               <LayoutDashboard className={`w-4 h-4 shrink-0 ${activeTab === 'dashboard' ? 'text-[#4F8EF7]' : 'text-slate-400 dark:text-slate-500'}`} size={15} strokeWidth={1.5} />
-              <span>Meu Copiloto</span>
+              {!isCollapsed && <span>Meu Copiloto</span>}
             </button>
           </div>
 
           {/* Journey Section */}
-          <div className="px-3.5 mt-2">
-            <div className="flex items-center justify-between px-3 mb-2">
-              <span className="text-[10px] font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider">Jornada</span>
-              {/* Tooltip de explicação da Jornada */}
-              <div className="relative">
-                <button
-                  type="button"
-                  onClick={() => setShowJourneyTooltip(v => !v)}
-                  className="flex items-center gap-1 group cursor-pointer"
-                  title="Ver detalhes da Jornada"
-                >
-                  <ProgressRing value={journeyProgress} size={18} strokeWidth={2} showValue={false} label={
-                    <span className="text-[8px] font-bold text-[#4F8EF7]">{journeyProgress}%</span>
-                  } />
-                </button>
-                {showJourneyTooltip && createPortal(
-                  <>
-                    {/* Backdrop para fechar ao clicar fora */}
-                    <div className="fixed inset-0 z-[9998]" onClick={() => setShowJourneyTooltip(false)} />
-                    <div className="fixed left-4 border-slate-700/90 rounded-2xl shadow-2xl p-4 text-xs text-slate-200 animate-scale-up z-[9999] w-72 md:w-80 bg-[#121927] top-16 md:left-[248px]">
-                      <div className="font-extrabold text-white text-xs mb-3 flex items-center justify-between pb-2 border-b border-slate-800">
-                        <span>Sua Jornada — <strong className="text-[#4F8EF7]">{journeyProgress}% concluída</strong></span>
-                        <span className="text-[10px] px-2 py-0.5 rounded-full bg-brand-500/10 text-brand-400 border border-brand-500/20 font-bold uppercase">Meta 100%</span>
-                      </div>
-                      
-                      <div className="space-y-1.5">
-                        {journeySteps.map(step => (
-                          <div
-                            key={step.id}
-                            onClick={() => {
-                              setActiveTab(step.id);
-                              setShowJourneyTooltip(false);
-                              onClose();
-                            }}
-                            className="flex items-start gap-2.5 p-2 rounded-xl hover:bg-slate-800/80 cursor-pointer transition-colors group"
-                            title={`Ir para ${step.label}`}
-                          >
-                            <span className={`shrink-0 mt-0.5 text-xs ${step.completed ? 'text-emerald-400' : 'text-slate-500'}`}>
-                              {step.completed ? '✅' : '○'}
-                            </span>
-                            <div className="flex-1 min-w-0">
-                              <div className="flex items-center justify-between gap-1">
-                                <span className={`font-bold block text-xs ${step.completed ? 'text-emerald-400' : 'text-slate-200 group-hover:text-brand-400'}`}>
-                                  {step.label}
-                                </span>
-                                <span className="text-[9px] font-bold text-brand-400 opacity-0 group-hover:opacity-100 transition-opacity">Ir →</span>
+          <div className="px-2 mt-2">
+            {!isCollapsed && (
+              <div className="flex items-center justify-between px-3 mb-2">
+                <span className="text-[10px] font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider">Jornada</span>
+                {/* Tooltip de explicação da Jornada */}
+                <div className="relative">
+                  <button
+                    type="button"
+                    onClick={() => setShowJourneyTooltip(v => !v)}
+                    className="flex items-center gap-1 group cursor-pointer"
+                    title="Ver detalhes da Jornada"
+                  >
+                    <ProgressRing value={journeyProgress} size={18} strokeWidth={2} showValue={false} label={
+                      <span className="text-[8px] font-bold text-[#4F8EF7]">{journeyProgress}%</span>
+                    } />
+                  </button>
+                  {showJourneyTooltip && createPortal(
+                    <>
+                      {/* Backdrop para fechar ao clicar fora */}
+                      <div className="fixed inset-0 z-[9998]" onClick={() => setShowJourneyTooltip(false)} />
+                      <div className="fixed left-4 border-slate-700/90 rounded-2xl shadow-2xl p-4 text-xs text-slate-200 animate-scale-up z-[9999] w-72 md:w-80 bg-[#121927] top-16 md:left-[248px]">
+                        <div className="font-extrabold text-white text-xs mb-3 flex items-center justify-between pb-2 border-b border-slate-800">
+                          <span>Sua Jornada — <strong className="text-[#4F8EF7]">{journeyProgress}% concluída</strong></span>
+                          <span className="text-[10px] px-2 py-0.5 rounded-full bg-brand-500/10 text-brand-400 border border-brand-500/20 font-bold uppercase">Meta 100%</span>
+                        </div>
+                        
+                        <div className="space-y-1.5">
+                          {journeySteps.map(step => (
+                            <div
+                              key={step.id}
+                              onClick={() => {
+                                setActiveTab(step.id);
+                                setShowJourneyTooltip(false);
+                                onClose();
+                              }}
+                              className="flex items-start gap-2.5 p-2 rounded-xl hover:bg-slate-800/80 cursor-pointer transition-colors group"
+                              title={`Ir para ${step.label}`}
+                            >
+                              <span className={`shrink-0 mt-0.5 text-xs ${step.completed ? 'text-emerald-400' : 'text-slate-500'}`}>
+                                {step.completed ? '✅' : '○'}
+                              </span>
+                              <div className="flex-1 min-w-0">
+                                <div className="flex items-center justify-between gap-1">
+                                  <span className={`font-bold block text-xs ${step.completed ? 'text-emerald-400' : 'text-slate-200 group-hover:text-brand-400'}`}>
+                                    {step.label}
+                                  </span>
+                                  <span className="text-[9px] font-bold text-brand-400 opacity-0 group-hover:opacity-100 transition-opacity">Ir →</span>
+                                </div>
+                                <span className="text-[10px] text-slate-400 leading-snug block">{step.description}</span>
                               </div>
-                              <span className="text-[10px] text-slate-400 leading-snug block">{step.description}</span>
                             </div>
-                          </div>
-                        ))}
-                      </div>
+                          ))}
+                        </div>
 
-                      <p className="mt-3 pt-2.5 border-t border-slate-800 text-[10px] font-semibold text-slate-400 leading-relaxed text-center">
-                        💡 Complete as etapas pendentes acima para aumentar sua Jornada.
-                      </p>
-                    </div>
-                  </>,
-                  document.body
-                )}
+                        <p className="mt-3 pt-2.5 border-t border-slate-800 text-[10px] font-semibold text-slate-400 leading-relaxed text-center">
+                          💡 Complete as etapas pendentes acima para aumentar sua Jornada.
+                        </p>
+                      </div>
+                    </>,
+                    document.body
+                  )}
+                </div>
               </div>
-            </div>
+            )}
 
             <nav className="space-y-0.5">
               {journeySteps.map(step => (
                 <button
                   key={step.id}
                   onClick={() => { setActiveTab(step.id); onClose(); }}
-                  className={`w-full flex items-center gap-2.5 px-3 py-1.5 rounded-md text-left transition-colors ${
+                  title={step.label}
+                  className={`w-full flex items-center ${isCollapsed ? 'justify-center py-2 px-0' : 'gap-2.5 px-3 py-1.5'} rounded-md text-left transition-colors ${
                     step.active
                       ? 'text-[#4F8EF7] font-medium'
                       : 'text-slate-600 dark:text-[#B8C2CC] hover:text-slate-900 dark:hover:text-white'
                   }`}
                 >
                   <div className={`shrink-0 ${step.active ? 'text-[#4F8EF7]' : step.completed ? 'text-[#22C7A8]' : 'text-slate-400 dark:text-slate-400'}`}>
-
                     {getStepIcon(step.id, "w-4 h-4")}
                   </div>
 
-                  <div className="flex-1 min-w-0 flex items-center justify-between">
-                    <span className={`text-xs block truncate ${
-                      step.active 
-                        ? 'text-[#4F8EF7] font-medium' 
-                        : 'text-slate-700 dark:text-[#F8FAFC]'
-                    }`}>
-                      {step.label}
-                    </span>
-                    {step.completed && (
-                      <span className="text-[10px] font-bold text-[#22C7A8]">✓</span>
-                    )}
-                  </div>
+                  {!isCollapsed && (
+                    <div className="flex-1 min-w-0 flex items-center justify-between">
+                      <span className={`text-xs block truncate ${
+                        step.active 
+                          ? 'text-[#4F8EF7] font-medium' 
+                          : 'text-slate-700 dark:text-[#F8FAFC]'
+                      }`}>
+                        {step.label}
+                      </span>
+                      {step.completed && (
+                        <span className="text-[10px] font-bold text-[#22C7A8]">✓</span>
+                      )}
+                    </div>
+                  )}
                 </button>
               ))}
             </nav>
           </div>
 
           {/* Utility Links */}
-          <div className="px-3.5 mt-4 space-y-1 pb-20 md:pb-2">
-            <div className="px-3 mb-1.5">
-              <span className="text-[10px] font-semibold text-slate-400 dark:text-slate-400 uppercase tracking-wider">Geral</span>
-            </div>
+          <div className="px-2 mt-4 space-y-1 pb-20 md:pb-2">
+            {!isCollapsed && (
+              <div className="px-3 mb-1.5">
+                <span className="text-[10px] font-semibold text-slate-400 dark:text-slate-400 uppercase tracking-wider">Geral</span>
+              </div>
+            )}
             {utilityItems.filter(i => i.id !== 'dashboard').map(item => {
               const isActive = activeTab === item.id;
               return (
                 <button
                   key={item.id}
                   onClick={() => { setActiveTab(item.id); onClose(); }}
-                  className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-md text-xs font-medium transition-colors ${
+                  title={item.label}
+                  className={`w-full flex items-center ${isCollapsed ? 'justify-center py-2 px-0' : 'gap-2.5 px-3 py-2'} rounded-md text-xs font-medium transition-colors ${
                     isActive
                       ? 'text-[#4F8EF7] font-medium'
                       : 'text-slate-600 dark:text-[#B8C2CC] hover:text-slate-900 dark:hover:text-white'
                   }`}
                 >
                   {getUtilityIcon(item.id, `w-4 h-4 shrink-0 ${isActive ? 'text-[#4F8EF7]' : 'text-slate-400 dark:text-slate-400'}`)}
-                  <span>{item.label}</span>
+                  {!isCollapsed && <span>{item.label}</span>}
                 </button>
               );
             })}
 
-
-            {/* Botao de Sair visivel no menu para facil acesso mobile */}
+            {/* Botao de Sair */}
             <button
               onClick={() => { onClose(); onLogout(); }}
-              className="w-full flex items-center gap-2.5 px-3 py-2 rounded-md text-xs font-semibold text-red-500 hover:text-red-600 dark:text-red-400 dark:hover:text-red-300 hover:bg-red-500/10 transition-colors cursor-pointer"
+              title="Sair da conta"
+              className={`w-full flex items-center ${isCollapsed ? 'justify-center py-2 px-0' : 'gap-2.5 px-3 py-2'} rounded-md text-xs font-semibold text-red-500 hover:text-red-600 dark:text-red-400 dark:hover:text-red-300 hover:bg-red-500/10 transition-colors cursor-pointer`}
             >
               <LogOut className="w-4 h-4 shrink-0 text-red-500 dark:text-red-400" size={16} strokeWidth={1.5} />
-              <span>Sair da conta</span>
+              {!isCollapsed && <span>Sair da conta</span>}
             </button>
           </div>
         </div>
 
-        {/* CTA Banner Seja Pro / Badge Pro Ativo */}
-        {isPro ? (
-          <div className="mx-3 p-3 bg-gradient-to-r from-emerald-500/10 via-teal-500/10 to-brand-500/10 border border-emerald-500/20 rounded-xl space-y-1 my-2">
-            <div className="flex items-center gap-1.5 text-emerald-400 font-extrabold text-[11px]">
-              <ShieldCheck size={13} />
-              <span>PLANO PRO ATIVO</span>
+        {/* CTA Banner Seja Pro / Badge Pro Ativo (oculto quando collapsed) */}
+        {!isCollapsed && (
+          isPro ? (
+            <div className="mx-3 p-3 bg-gradient-to-r from-emerald-500/10 via-teal-500/10 to-brand-500/10 border border-emerald-500/20 rounded-xl space-y-1 my-2">
+              <div className="flex items-center gap-1.5 text-emerald-400 font-extrabold text-[11px]">
+                <ShieldCheck size={13} />
+                <span>PLANO PRO ATIVO</span>
+              </div>
+              <p className="text-[10px] text-slate-400">Todos os recursos desbloqueados.</p>
             </div>
-            <p className="text-[10px] text-slate-400">Todos os recursos desbloqueados.</p>
-          </div>
-        ) : (
-          <div className="mx-3 p-3 bg-gradient-to-r from-amber-500/10 via-yellow-500/10 to-emerald-500/10 border border-amber-500/20 rounded-xl space-y-1.5 my-2">
-            <div className="flex items-center gap-1.5 text-amber-300 font-extrabold text-[11px]">
-              <Sparkles size={13} />
-              <span>VOCENTRO PRO</span>
+          ) : (
+            <div className="mx-3 p-3 bg-gradient-to-r from-amber-500/10 via-yellow-500/10 to-emerald-500/10 border border-amber-500/20 rounded-xl space-y-1.5 my-2">
+              <div className="flex items-center gap-1.5 text-amber-300 font-extrabold text-[11px]">
+                <Sparkles size={13} />
+                <span>VOCENTRO PRO</span>
+              </div>
+              <p className="text-[10px] text-slate-300">Destrave simulações ilimitadas e exportação em PDF.</p>
+              <button
+                type="button"
+                onClick={() => window.dispatchEvent(new CustomEvent('open_checkout_modal'))}
+                className="w-full py-1.5 px-3 rounded-lg bg-gradient-to-r from-amber-400 to-amber-500 hover:from-amber-500 hover:to-amber-600 text-slate-950 font-extrabold text-[10px] uppercase tracking-wider shadow-md hover:shadow-lg transition-all cursor-pointer flex items-center justify-center gap-1"
+              >
+                <span>Seja Pro</span>
+                <Sparkles size={10} />
+              </button>
             </div>
-            <p className="text-[10px] text-slate-300">Destrave simulações ilimitadas e exportação em PDF.</p>
-            <button
-              type="button"
-              onClick={() => window.dispatchEvent(new CustomEvent('open_checkout_modal'))}
-              className="w-full py-1.5 px-3 rounded-lg bg-gradient-to-r from-amber-500 to-yellow-500 hover:from-amber-400 hover:to-yellow-400 text-slate-950 font-black text-xs shadow cursor-pointer transition-all flex items-center justify-center gap-1"
-            >
-              <span>Seja Pro</span>
-              <Sparkles size={12} />
-            </button>
-          </div>
+          )
         )}
 
-        {/* User Profile Footer (Com margem inferior no mobile para evitar sobreposicao com a Bottom Bar) */}
-        <div className="border-t border-slate-200/80 dark:border-white/8 p-3 flex-shrink-0 mb-16 md:mb-0">
-          <div className="flex items-center justify-between p-1.5 rounded-md">
+        {/* User Profile Footer */}
+        <div className={`border-t border-slate-200/80 dark:border-white/8 ${isCollapsed ? 'p-2' : 'p-3'} flex-shrink-0 mb-16 md:mb-0`}>
+          <div className={`flex items-center ${isCollapsed ? 'justify-center' : 'justify-between'} p-1.5 rounded-md`}>
             <div className="flex items-center gap-2.5 min-w-0">
               {profile?.avatarUrl ? (
                 <img
                   src={profile.avatarUrl}
                   alt={profile?.fullName || 'Foto de perfil do usuário'}
-
                   className="h-6 w-6 rounded-full object-cover border border-slate-200 dark:border-white/10 cursor-pointer hover:opacity-80 transition-opacity shrink-0"
                   onClick={() => setActiveTab('settings')}
+                  title={profile?.fullName || 'Configurações'}
                 />
               ) : (
                 <div
                   onClick={() => setActiveTab('settings')}
+                  title={profile?.fullName || 'Configurações'}
                   className="h-6 w-6 rounded-full bg-slate-100 dark:bg-white/5 text-slate-700 dark:text-slate-300 flex items-center justify-center font-bold text-xs cursor-pointer hover:opacity-80 transition-opacity shrink-0"
                 >
                   {profile?.fullName?.charAt(0).toUpperCase() || 'U'}
                 </div>
               )}
-              <div className="flex flex-col min-w-0">
-                <span className="text-xs font-medium text-slate-800 dark:text-[#F8FAFC] truncate">
-                  {profile?.fullName || 'Usuário'}
-                </span>
-                <span className="text-[10px] text-slate-400 dark:text-slate-500 truncate">
-                  {profile?.headline || 'Candidato PRO'}
-                </span>
-              </div>
+              {!isCollapsed && (
+                <div className="flex flex-col min-w-0">
+                  <span className="text-xs font-medium text-slate-800 dark:text-[#F8FAFC] truncate">
+                    {profile?.fullName || 'Usuário'}
+                  </span>
+                  <span className="text-[10px] text-slate-400 dark:text-slate-500 truncate">
+                    {profile?.headline || 'Candidato PRO'}
+                  </span>
+                </div>
+              )}
             </div>
 
-            <div className="flex items-center gap-1.5 shrink-0">
-              <ThemeToggle className="p-1" />
-              <button
-                onClick={onLogout}
-                className="p-1 rounded-md text-slate-400 hover:text-red-500 transition-colors flex items-center justify-center shrink-0"
-                title="Sair"
-              >
-                <LogOut size={14} strokeWidth={1.5} />
-              </button>
-            </div>
+            {!isCollapsed && (
+              <div className="flex items-center gap-1.5 shrink-0">
+                <ThemeToggle className="p-1" />
+                <button
+                  onClick={onLogout}
+                  className="p-1 rounded-md text-slate-400 hover:text-red-500 transition-colors flex items-center justify-center shrink-0"
+                  title="Sair"
+                >
+                  <LogOut size={14} strokeWidth={1.5} />
+                </button>
+              </div>
+            )}
           </div>
         </div>
       </aside>

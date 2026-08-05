@@ -225,11 +225,30 @@ export function Dashboard({
   const insight = getAIInsight();
   const userName = profile?.fullName?.split(' ')[0] || 'Candidato';
 
+  const [starCompletedToday, setStarCompletedToday] = useState<boolean>(() => {
+    try {
+      const today = new Date().toISOString().split('T')[0];
+      return localStorage.getItem('vocentro_star_sim_today') === today;
+    } catch {
+      return false;
+    }
+  });
+
+  useEffect(() => {
+    const handleSimCompleted = () => {
+      const today = new Date().toISOString().split('T')[0];
+      try { localStorage.setItem('vocentro_star_sim_today', today); } catch {}
+      setStarCompletedToday(true);
+    };
+    window.addEventListener('vocentro_star_simulation_completed', handleSimCompleted);
+    return () => window.removeEventListener('vocentro_star_simulation_completed', handleSimCompleted);
+  }, []);
+
   // Daily task checklist (Seu Plano de Hoje)
   const dailyTasks = [
     { id: 1, label: 'Atualizar competências estratégicas no currículo', completed: hasSkills, actionTab: 'profile' },
     { id: 2, label: 'Candidatar-se a 2 vagas de alto Match', completed: appliedCount >= 2, actionTab: 'match' },
-    { id: 3, label: 'Simular 1 entrevista com método STAR', completed: interviewsCount > 0, actionTab: 'coach' },
+    { id: 3, label: 'Simular 1 entrevista com método STAR', completed: interviewsCount > 0 || starCompletedToday, actionTab: 'coach' },
   ];
   const completedDailyCount = dailyTasks.filter(t => t.completed).length;
 

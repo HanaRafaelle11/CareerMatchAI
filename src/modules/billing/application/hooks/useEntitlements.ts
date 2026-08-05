@@ -168,6 +168,21 @@ export function useEntitlements(userId?: string) {
   };
 
   const closePaywall = () => {
+    if (userId && supabase && paywallState.isOpen) {
+      supabase.from('activity_logs').insert({
+        user_id: userId,
+        event_type: 'paywall_dismissed',
+        entity: 'billing_modal',
+        entity_id: paywallState.feature || 'unknown',
+        metadata: {
+          feature: paywallState.feature || null,
+          dismissed_at: new Date().toISOString(),
+          location: typeof window !== 'undefined' ? (window.location.pathname + window.location.search) : 'unknown'
+        }
+      }).then(({ error }) => {
+        if (error) console.warn('[useEntitlements] Erro ao registrar paywall_dismissed:', error.message);
+      });
+    }
     setPaywallState(prev => ({ ...prev, isOpen: false }));
   };
 

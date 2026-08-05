@@ -22,19 +22,44 @@ export function useAuth() {
   };
 
   useEffect(() => {
+    let isMounted = true;
+
+    // Timeout de segurança: Se a verificação de auth demorar mais que 5s, resolve o loading automaticamente
+    const safetyTimeout = setTimeout(() => {
+      if (isMounted) {
+        setLoading((prevLoading) => {
+          if (prevLoading) {
+            console.warn('[AUTH] Timeout de segurança atingido. Finalizando estado de loading...');
+            return false;
+          }
+          return prevLoading;
+        });
+      }
+    }, 5000);
+
     if (isSupabaseConfigured && supabase) {
       // Obter sessão atual do Supabase
-      supabase.auth.getSession().then(({ data: { session } }) => {
-        setUser(session?.user ?? null);
-        if (session?.user) {
-          fetchSupabaseProfile(session.user.id);
-        } else {
-          setLoading(false);
-        }
-      });
+      supabase.auth.getSession()
+        .then(({ data: { session } }) => {
+          if (!isMounted) return;
+          setUser(session?.user ?? null);
+          if (session?.user) {
+            fetchSupabaseProfile(session.user.id);
+          } else {
+            setLoading(false);
+          }
+        })
+        .catch((err) => {
+          console.error('[AUTH] Falha ao obter sessão do Supabase:', err);
+          if (isMounted) {
+            setUser(null);
+            setLoading(false);
+          }
+        });
 
       // Escutar mudanças de autenticação
       const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+        if (!isMounted) return;
         setUser(session?.user ?? null);
         if (session?.user) {
           fetchSupabaseProfile(session.user.id);
@@ -45,18 +70,26 @@ export function useAuth() {
       });
 
       return () => {
+        isMounted = false;
+        clearTimeout(safetyTimeout);
         subscription.unsubscribe();
       };
     } else {
       // Autenticação local mockada
       const mockUser = localStorage.getItem('vocentro_auth_user');
       if (mockUser) {
-        const parsedUser = JSON.parse(mockUser);
-        setUser(parsedUser);
-        setProfile(localDB.getProfile());
-        registerSessionOnce(parsedUser.id);
+        try {
+          const parsedUser = JSON.parse(mockUser);
+          setUser(parsedUser);
+          setProfile(localDB.getProfile());
+          registerSessionOnce(parsedUser.id);
+        } catch (_) {}
       }
       setLoading(false);
+      return () => {
+        isMounted = false;
+        clearTimeout(safetyTimeout);
+      };
     }
   }, []);
 

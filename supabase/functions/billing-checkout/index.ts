@@ -274,7 +274,7 @@ serve(async (req: Request) => {
       
       const defaultPlans = [
         { slug: 'free', name: 'Plano Gratuito', price_monthly: 0.00, price_yearly: 0.00, active: true },
-        { slug: 'test', name: 'Plano Teste Produção', price_monthly: 1.00, price_yearly: 1.00, active: true },
+        { slug: 'test', name: 'Plano Teste Produção', price_monthly: 5.00, price_yearly: 5.00, active: true },
         { slug: 'pro', name: 'Plano Profissional', price_monthly: 29.90, price_yearly: 299.00, active: true },
         { slug: 'enterprise', name: 'Plano Corporativo', price_monthly: 99.90, price_yearly: 999.00, active: true }
       ];
@@ -295,7 +295,7 @@ serve(async (req: Request) => {
     if (!planData || !planData.active) {
       const fallbackPlans: Record<string, { id?: string; slug: string; name: string; price_monthly: number; price_yearly: number; active: boolean }> = {
         free: { slug: 'free', name: 'Plano Gratuito', price_monthly: 0.00, price_yearly: 0.00, active: true },
-        test: { slug: 'test', name: 'Plano Teste Produção', price_monthly: 1.00, price_yearly: 1.00, active: true },
+        test: { slug: 'test', name: 'Plano Teste Produção', price_monthly: 5.00, price_yearly: 5.00, active: true },
         pro: { slug: 'pro', name: 'Plano Profissional', price_monthly: 29.90, price_yearly: 299.00, active: true },
         enterprise: { slug: 'enterprise', name: 'Plano Corporativo', price_monthly: 99.90, price_yearly: 999.00, active: true }
       };
@@ -315,7 +315,7 @@ serve(async (req: Request) => {
     }
 
     const amount = cleanPlanSlug === 'test'
-      ? 1.00
+      ? 5.00
       : (billingCycle === 'WEEKLY' ? (Number((planData as any).price_weekly) || 9.90) : Number(planData.price_monthly));
 
 

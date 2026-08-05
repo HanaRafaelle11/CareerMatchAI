@@ -296,7 +296,7 @@ export function CheckoutModal({ isOpen, onClose, userId, userEmail, userName, pl
                   <span>{planSlug === 'test' ? 'PLANO TESTE DE HOMOLOGAÇÃO' : 'PLANO PRO VOCENTRO'}</span>
                 </div>
                 <h2 className="text-xl sm:text-2xl font-black text-foreground mt-1">
-                  {planSlug === 'test' ? 'Homologação de Pagamento Real (R$ 1,00)' : 'Eleve sua busca de emprego a nível Pro'}
+                  {planSlug === 'test' ? 'Homologação de Pagamento Real (R$ 5,00)' : 'Eleve sua busca de emprego a nível Pro'}
                 </h2>
               </div>
 
@@ -309,7 +309,7 @@ export function CheckoutModal({ isOpen, onClose, userId, userEmail, userName, pl
                     billingCycle === 'WEEKLY' ? 'bg-brand-500 text-white shadow' : 'text-muted-foreground hover:text-foreground'
                   }`}
                 >
-                  {planSlug === 'test' ? 'Semanal (R$ 1,00/sem)' : 'Semanal (R$ 9,90/sem)'}
+                  {planSlug === 'test' ? 'Semanal (R$ 5,00/sem)' : 'Semanal (R$ 9,90/sem)'}
                 </button>
                 <button
                   type="button"
@@ -318,7 +318,8 @@ export function CheckoutModal({ isOpen, onClose, userId, userEmail, userName, pl
                     billingCycle === 'MONTHLY' ? 'bg-brand-500 text-white shadow' : 'text-muted-foreground hover:text-foreground'
                   }`}
                 >
-                  <span>{planSlug === 'test' ? 'Mensal (R$ 1,00/mês)' : 'Mensal (R$ 29,90/mês)'}</span>
+                  <span>{planSlug === 'test' ? 'Mensal (R$ 5,00/mês)' : 'Mensal (R$ 29,90/mês)'}</span>
+
                   {planSlug !== 'test' && (
                     <span className="text-[9px] bg-emerald-500 text-white font-black px-1.5 py-0.5 rounded-full uppercase">
                       Mais Vantajoso (Economize 30%)

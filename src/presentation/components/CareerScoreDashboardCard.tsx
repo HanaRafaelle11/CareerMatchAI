@@ -59,10 +59,69 @@ export function CareerScoreDashboardCard({ resume, careerProfileNew, isLoading =
     }
   }, [baseScore, resume]);
 
-  if (!isDataLoading && !resume && !careerProfileNew) return null;
+  if (!isDataLoading && !resume && !careerProfileNew) {
+    return (
+      <CardGlass className="bg-gradient-to-br from-[#1a2744] via-[#15213a] to-[#0f1a2e] border border-blue-500/30 p-6 rounded-2xl shadow-xl space-y-6 animate-fade-in text-white">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-6 pb-5 border-b border-slate-700/60">
+          <div className="space-y-1.5 flex-1 w-full min-w-0 flex flex-col items-start font-sans">
+            <div className="flex items-center gap-2">
+              <span className="p-1.5 rounded-lg bg-blue-500/20 text-blue-300">
+                <Sparkles size={16} />
+              </span>
+              <span className="text-xs font-bold uppercase tracking-wider text-blue-300">Primeiro Momento IA</span>
+            </div>
+            <h2 className="text-xl font-bold text-white tracking-tight w-full block break-normal whitespace-normal">
+              Seu Career Score de Mercado
+            </h2>
+            <p className="text-xs text-blue-100/90 font-medium leading-relaxed w-full block break-normal whitespace-normal">
+              Cadastre seu currículo ou informações de perfil para liberar seu diagnóstico de mercado.
+            </p>
+          </div>
+
+          <div className="flex items-center gap-3 shrink-0 self-start sm:self-center">
+            <div className="text-right">
+              <span className="text-[10px] uppercase font-bold text-blue-200/90 block tracking-wider">Career Score Geral</span>
+              <span className="text-3xl sm:text-4xl font-extrabold text-blue-300/50 font-display">
+                0/100
+              </span>
+              <div className="text-[9px] text-blue-100 space-y-0.5 text-right mt-1.5 font-medium border-t border-slate-700/60 pt-1">
+                <span className="block font-bold text-amber-300">Aguardando dados</span>
+                <span className="block text-slate-300">Complete seu perfil</span>
+              </div>
+            </div>
+            <div className="w-12 h-12 rounded-full border-2 border-blue-400/30 bg-blue-500/10 flex items-center justify-center text-blue-300/50 self-start mt-1 shrink-0">
+              <Trophy size={22} />
+            </div>
+          </div>
+        </div>
+
+        <div className="p-4 rounded-xl bg-blue-950/40 border border-blue-500/40 text-blue-200 text-xs flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div className="flex items-start sm:items-center gap-3">
+            <Target size={20} className="shrink-0 text-blue-400 mt-0.5 sm:mt-0" />
+            <div>
+              <span className="font-bold block text-white text-sm">Nenhum currículo detectado no perfil.</span>
+              <span className="text-xs text-blue-200/90 block mt-0.5">
+                Envie seu currículo em "Meu Currículo" para ativarmos seu diagnóstico de carreira e encontrarmos as melhores oportunidades.
+              </span>
+            </div>
+          </div>
+          {onExploreJobs && (
+            <button
+              onClick={onExploreJobs}
+              className="px-4 py-2 rounded-xl bg-blue-500 hover:bg-blue-400 text-slate-950 font-bold text-xs shrink-0 transition shadow-md shadow-blue-500/20 cursor-pointer flex items-center gap-1.5"
+            >
+              <span>Completar meu perfil</span>
+              <ArrowRight size={14} />
+            </button>
+          )}
+        </div>
+      </CardGlass>
+    );
+  }
 
   return (
     <CardGlass className="bg-gradient-to-br from-[#1a2744] via-[#15213a] to-[#0f1a2e] border border-blue-500/30 p-6 rounded-2xl shadow-xl space-y-6 animate-fade-in text-white">
+
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-6 pb-5 border-b border-slate-700/60">
         <div className="space-y-1.5 flex-1 w-full min-w-0 flex flex-col items-start font-sans">
           <div className="flex items-center gap-2">

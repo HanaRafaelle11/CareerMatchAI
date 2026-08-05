@@ -444,17 +444,44 @@ serve(async (req: Request) => {
       subscriptionInsertPayload.plan_id = planData.id;
     }
 
-    const { data: insertedSub, error: subError } = await adminClient
-      .from('subscriptions')
-      .insert(subscriptionInsertPayload)
-      .select('id')
-      .single();
+    // Buscar a assinatura mais recente do usuário para atualizar ou inserir sem conflito de chave única
+    let subscriptionDbId: string | undefined;
 
-    if (subError) {
-      console.error('[billing-checkout] Erro ao salvar assinatura no DB:', subError);
+    const { data: existingUserSub } = await adminClient
+      .from('subscriptions')
+      .select('id')
+      .eq('user_id', user.id)
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    if (existingUserSub) {
+      const { data: updatedSub, error: updateSubError } = await adminClient
+        .from('subscriptions')
+        .update(subscriptionInsertPayload)
+        .eq('id', existingUserSub.id)
+        .select('id')
+        .single();
+
+      if (updateSubError) {
+        console.error('[billing-checkout] Erro ao atualizar assinatura existente no DB:', updateSubError);
+      } else {
+        subscriptionDbId = updatedSub?.id;
+      }
+    } else {
+      const { data: insertedSub, error: subError } = await adminClient
+        .from('subscriptions')
+        .insert(subscriptionInsertPayload)
+        .select('id')
+        .single();
+
+      if (subError) {
+        console.error('[billing-checkout] Erro ao salvar nova assinatura no DB:', subError);
+      } else {
+        subscriptionDbId = insertedSub?.id;
+      }
     }
 
-    const subscriptionDbId = insertedSub?.id;
 
     // 5. Salvar Fatura (Invoice)
     const { data: insertedInvoice, error: invoiceError } = await adminClient

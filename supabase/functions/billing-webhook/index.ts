@@ -123,6 +123,18 @@ serve(async (req: Request) => {
           .eq('slug', 'pro')
           .maybeSingle();
 
+        // Buscar a assinatura mais recente do usuário se targetSub ainda não tiver sido resolvida
+        if (!targetSub) {
+          const { data: existingUserSubs } = await adminClient
+            .from('subscriptions')
+            .select('id, user_id, billing_cycle')
+            .eq('user_id', targetUserId)
+            .order('created_at', { ascending: false })
+            .limit(1);
+
+          targetSub = existingUserSubs?.[0];
+        }
+
         if (targetSub) {
           await adminClient
             .from('subscriptions')
@@ -134,10 +146,10 @@ serve(async (req: Request) => {
             })
             .eq('id', targetSub.id);
         } else {
-          // Inserir assinatura ativa para o usuário resolvido
+          // Inserir nova assinatura ativa para o usuário resolvido (sem upsert/onConflict)
           const { data: newSub } = await adminClient
             .from('subscriptions')
-            .upsert({
+            .insert({
               user_id: targetUserId,
               plan_id: proPlan?.id || undefined,
               status: 'active',
@@ -145,7 +157,7 @@ serve(async (req: Request) => {
               gateway_subscription_id: gatewaySubId || gatewayPayId,
               current_period_start: now.toISOString(),
               current_period_end: periodEnd.toISOString()
-            }, { onConflict: 'user_id' })
+            })
             .select('id')
             .single();
 
@@ -154,11 +166,6 @@ serve(async (req: Request) => {
           }
         }
 
-        // Sincronizar status do usuário no perfil
-        await adminClient
-          .from('profiles')
-          .update({ is_pro: true, updated_at: now.toISOString() })
-          .eq('id', targetUserId);
 
         // Atualizar Faturas atreladas - APENAS a específica correspondente à cobrança paga!
         await adminClient

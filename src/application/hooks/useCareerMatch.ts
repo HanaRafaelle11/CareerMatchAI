@@ -843,10 +843,23 @@ export function useMatches(userId: string | undefined, resumeId?: string | null)
         let query = supabase
           .from('matches')
           .select('*, jobs(*)')
+          .eq('user_id', userId)
           .order('created_at', { ascending: false });
 
         if (resumeId) {
           query = query.eq('resume_id', resumeId);
+        } else {
+          // Se resumeId não foi especificado, filtrar pelo currículo primário ativo para evitar vazamento entre currículos
+          const { data: primaryResume } = await supabase
+            .from('resumes')
+            .select('id')
+            .eq('user_id', userId)
+            .eq('is_primary', true)
+            .maybeSingle();
+
+          if (primaryResume?.id) {
+            query = query.eq('resume_id', primaryResume.id);
+          }
         }
 
         const { data, error } = await query;

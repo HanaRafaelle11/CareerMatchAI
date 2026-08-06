@@ -203,11 +203,13 @@ export function JobMatchHub({
   const [matchRejectionModal, setMatchRejectionModal] = useState(false);
   const [matchFeedbackGiven, setMatchFeedbackGiven] = useState<'positive' | 'negative' | null>(null);
   const ahaMomentTriggered = useRef(false);
+  const toastTimeoutRef = useRef<any>(null);
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' | 'warning' | 'info' } | null>(null);
 
   const showToast = (message: string, type: 'success' | 'error' | 'warning' | 'info' = 'success') => {
+    if (toastTimeoutRef.current) clearTimeout(toastTimeoutRef.current);
     setToast({ message, type });
-    setTimeout(() => setToast(null), 3000);
+    toastTimeoutRef.current = setTimeout(() => setToast(null), 3500);
   };
 
   useEffect(() => {
@@ -1264,10 +1266,13 @@ export function JobMatchHub({
     }
   };
 
+  const [isSubmittingNewJob, setIsSubmittingNewJob] = useState(false);
+
   const handleConfirmSaveIngestedJob = async () => {
-    if (!previewData) return;
+    if (!previewData || isSubmittingNewJob || isCreating) return;
 
     try {
+      setIsSubmittingNewJob(true);
       // Garantir requisitos mínimos
       let reqs = previewData.requirements;
       if (!reqs || reqs.length === 0) {
@@ -1302,6 +1307,8 @@ export function JobMatchHub({
       const formatted = AppError.from(err);
       setAppError(formatted);
       AppError.logError(err, supabase, 'JobMatchHub.handleConfirmSaveIngestedJob', userId);
+    } finally {
+      setIsSubmittingNewJob(false);
     }
   };
 
@@ -1419,8 +1426,8 @@ export function JobMatchHub({
   // ── UNIFIED MATCH SCORE (SINGLE SOURCE OF TRUTH FOR SELECTED JOB) ──
   const currentSelectedMatch = selectedJob ? matches.find(m => m.jobId === selectedJob.id) : null;
   const unifiedJobMatchScore = selectedJob
-    ? (currentSelectedMatch?.scoreOverall ?? selectedJob.scores?.overall ?? explanation?.careerFitScore ?? 0)
-    : 0;
+    ? (currentSelectedMatch?.scoreOverall ?? null)
+    : null;
 
   const jobsWithSalaries = jobs.filter(j => j.salaryNumeric || j.salaryMin || j.salaryMax);
   const averageSalary = jobs.length > 0 && jobsWithSalaries.length > 0
@@ -1440,7 +1447,7 @@ export function JobMatchHub({
     <div className="space-y-6 animate-fade-in font-sans p-0">
       {/* Toast Feedback */}
       {toast && (
-        <div className="fixed bottom-6 right-6 z-[10000] p-4 rounded-xl shadow-2xl border animate-bounce flex items-center gap-2.5 bg-slate-900 border-slate-700 text-xs font-semibold text-white">
+        <div className="fixed bottom-6 right-6 z-[10000] p-4 rounded-xl shadow-2xl border animate-fade-in flex items-center gap-2.5 bg-slate-900 border-slate-700 text-xs font-semibold text-white">
           <CheckCircle size={16} className="text-emerald-400 shrink-0" />
           <span>{toast.message}</span>
         </div>
@@ -1532,7 +1539,7 @@ export function JobMatchHub({
           </div>
           <p className="text-xl font-bold text-on-surface">
             {selectedJob 
-              ? (unifiedJobMatchScore > 0 ? `${unifiedJobMatchScore}%` : '--')
+              ? (unifiedJobMatchScore !== null ? `${unifiedJobMatchScore}%` : '--')
               : (avgOverallMatch > 0 ? `${avgOverallMatch}%` : '--')}
           </p>
         </div>
@@ -1563,7 +1570,7 @@ export function JobMatchHub({
           }`}
         >
           {subTab === 'discover' && <span className="absolute bottom-0 left-0 w-full h-[2px] bg-brand-500" />}
-          Descoberta de Vagas (Discovery)
+          Descoberta de Vagas
         </button>
         <button
           onClick={() => setSubTab('my-jobs')}
@@ -3839,6 +3846,8 @@ export function JobMatchHub({
                           onClick={() => {
                             setFilterActiveOnly(false);
                             setFilterScoreOver80(false);
+                            setSearchWorkModes(['remote', 'hybrid', 'onsite']);
+                            setSearchSeniority('all');
                           }}
                           className="text-amber-400 hover:text-amber-300 underline font-bold text-[10px] cursor-pointer"
                         >

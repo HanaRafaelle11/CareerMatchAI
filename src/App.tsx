@@ -363,14 +363,23 @@ function AuthenticatedApp({
     }
   }, [user]);
 
-  // Deep linking: ativa a aba correta com base na URL (?tab=settings, ?tab=match, /settings, /vagas)
+  // Deep linking: ativa a aba correta com base na URL (?tab=settings, ?tab=match, /settings, /vagas, /admin)
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const tabParam = params.get('tab');
     const subtabParam = params.get('subtab');
     const pathname = window.location.pathname;
 
-    if (pathname === '/settings' || pathname === '/configuracoes' || tabParam === 'settings') {
+    const userEmail = (user?.email || '').trim().toLowerCase();
+
+    if (pathname === '/admin' || tabParam === 'admin') {
+      if (userEmail === 'hanarafaelle11@gmail.com') {
+        setActiveTab('admin');
+      } else {
+        setActiveTab('dashboard');
+        window.history.replaceState(null, '', '/');
+      }
+    } else if (pathname === '/settings' || pathname === '/configuracoes' || tabParam === 'settings') {
       setActiveTab('settings');
       if (subtabParam === 'notifications' || subtabParam === 'notificacoes') {
         setSettingsInitialSubTab('notifications');
@@ -379,7 +388,7 @@ function AuthenticatedApp({
       setActiveTab('match');
       setMatchHubInitialSubTab('discover');
     }
-  }, []);
+  }, [user]);
 
   // Captura e persistência de parâmetros UTM (utm_source, utm_medium, utm_campaign, utm_content, utm_term)
   useEffect(() => {
@@ -434,24 +443,26 @@ function AuthenticatedApp({
   }, []);
 
 
-  // Avalia perfil administrativo (Administradora principal: hanarafaelle11@gmail.com)
+  // Avalia perfil administrativo (Exclusivo para administradora principal: hanarafaelle11@gmail.com)
   useEffect(() => {
-    if (!isSupabaseConfigured || !supabase) {
-      setIsAdmin(true);
+    if (!user || !user.email) {
+      setIsAdmin(false);
       return;
     }
-    const userEmail = (user?.email || '').trim().toLowerCase();
-    const isOwnerAdmin = userEmail === 'hanarafaelle11@gmail.com' || userEmail.includes('sthephany') || userEmail.includes('hana') || userEmail.includes('rafaelle') || userEmail.includes('vocentro') || userEmail.includes('admin') || !userEmail;
-    if (profile || user) {
-      const hasAdminRole = ['administrador', 'suporte', 'financeiro', 'somente_leitura'].includes(profile?.role || '');
-      setIsAdmin(hasAdminRole || isOwnerAdmin);
-    } else {
-      setIsAdmin(true);
-    }
+    const userEmail = (user.email || '').trim().toLowerCase();
+    const isMainAdmin = userEmail === 'hanarafaelle11@gmail.com';
+    
+    setIsAdmin(isMainAdmin);
   }, [profile, user]);
 
   const handleSetActiveTab = (tab: string) => {
     if (tab === 'admin') {
+      const userEmail = (user?.email || '').trim().toLowerCase();
+      if (userEmail !== 'hanarafaelle11@gmail.com') {
+        window.history.pushState(null, '', '/');
+        setActiveTab('dashboard');
+        return;
+      }
       window.history.pushState(null, '', '/admin');
       setActiveTab('admin');
       return;

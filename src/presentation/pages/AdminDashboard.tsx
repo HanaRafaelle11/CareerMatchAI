@@ -124,29 +124,32 @@ export function AdminDashboard({ userId }: AdminDashboardProps) {
     queryKey: ['active-profile-admin', userId],
     queryFn: async () => {
       if (!isSupabaseConfigured || !supabase) {
-        return { role: 'administrador', fullName: 'Desenvolvedor Local' };
+        return { role: 'user', fullName: 'Usuário' };
       }
       const { data: authUserData } = await supabase.auth.getUser();
       const userEmail = (authUserData?.user?.email || '').trim().toLowerCase();
-      const isOwnerAdmin = userEmail === 'hanarafaelle11@gmail.com' || userEmail.includes('sthephany') || userEmail.includes('hana') || userEmail.includes('rafaelle') || userEmail.includes('vocentro') || userEmail.includes('admin') || !userEmail;
+      const isOwnerAdmin = userEmail === 'hanarafaelle11@gmail.com';
+
+      if (!isOwnerAdmin) {
+        return { role: 'user', fullName: authUserData?.user?.user_metadata?.full_name || userEmail || 'Usuário' };
+      }
 
       const { data, error } = await supabase
         .from('profiles')
         .select('role, full_name')
         .eq('id', userId)
         .maybeSingle();
-      if (error) throw error;
+      if (error) console.warn('[AdminDashboard] Erro ao carregar perfil:', error);
 
-      const resolvedRole = (data?.role && data.role !== 'user') ? data.role : (isOwnerAdmin ? 'administrador' : 'user');
-      return { role: resolvedRole, fullName: data?.full_name || userEmail || 'Administrador' };
+      return { role: 'administrador', fullName: data?.full_name || authUserData?.user?.user_metadata?.full_name || userEmail || 'Hana Rafaelle' };
     },
     enabled: !!userId
   });
 
-  const currentUserRole = activeProfile?.role || 'administrador';
-  const isSuperAdmin = true;
-  const hasTelemetryAccess = true;
-  const hasUsersAccess = true;
+  const currentUserRole = activeProfile?.role || 'user';
+  const isSuperAdmin = currentUserRole === 'administrador';
+  const hasTelemetryAccess = isSuperAdmin;
+  const hasUsersAccess = isSuperAdmin;
   const canEditRoles = isSuperAdmin;
 
   // ── 2. BUSCAR TODOS OS USUÁRIOS/PERFIS DO SISTEMA via RPC SECURITY DEFINER ──
@@ -247,13 +250,19 @@ export function AdminDashboard({ userId }: AdminDashboardProps) {
     enabled: !!selectedUser?.id
   });
 
-  // Mutação para Alterar Papéis de Usuários (RBAC)
+  // Mutação para Alterar Papéis de Usuários (RBAC) - Exclusivo para hanarafaelle11@gmail.com
   const changeRoleMutation = useMutation({
     mutationFn: async ({ targetUserId, newRole }: { targetUserId: string; newRole: string }) => {
-      if (!canEditRoles) throw new Error('Ação não permitida para o seu papel.');
+      if (!canEditRoles) throw new Error('Apenas a administradora principal (hanarafaelle11@gmail.com) pode alterar permissões.');
       if (!isSupabaseConfigured || !supabase) {
         return;
       }
+      const { data: authUserData } = await supabase.auth.getUser();
+      const currentUserEmail = (authUserData?.user?.email || '').trim().toLowerCase();
+      if (currentUserEmail !== 'hanarafaelle11@gmail.com') {
+        throw new Error('Apenas a administradora principal (hanarafaelle11@gmail.com) pode alterar permissões RBAC.');
+      }
+
       const { error } = await supabase
         .from('profiles')
         .update({ role: newRole })
@@ -1146,7 +1155,7 @@ export function AdminDashboard({ userId }: AdminDashboardProps) {
     );
   }
 
-  if (!['administrador', 'suporte', 'financeiro', 'somente_leitura'].includes(currentUserRole)) {
+  if (currentUserRole !== 'administrador') {
     return (
       <div className="py-24 text-center space-y-4 max-w-md mx-auto">
         <div className="inline-flex p-3 rounded-full bg-red-500/10 border border-red-500/25 text-red-500 animate-pulse">
@@ -1154,7 +1163,7 @@ export function AdminDashboard({ userId }: AdminDashboardProps) {
         </div>
         <h2 className="font-display font-extrabold text-xl text-slate-100">Acesso Restrito</h2>
         <p className="text-slate-400 text-xs leading-relaxed">
-          Esta área é destinada exclusivamente a administradores e pessoal autorizado da Vocentro. Seu perfil não possui permissões RBAC de acesso.
+          Esta área é destinada exclusivamente à administradora principal (hanarafaelle11@gmail.com). Seu perfil não possui permissão de acesso ao Command Center.
         </p>
       </div>
     );

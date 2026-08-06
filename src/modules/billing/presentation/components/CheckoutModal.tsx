@@ -51,9 +51,10 @@ export function CheckoutModal({ isOpen, onClose, userId, userEmail, userName, pl
   }, [profile, userId, userEmail, isOpen]);
 
 
-  // Centralização da resolução do planSlug com dupla proteção no frontend (URL ?checkout_test=1 E permissão admin no DB)
+  // Centralização da resolução do planSlug com dupla proteção no frontend (URL ?checkout_test=1 E permissão admin da administradora principal)
   const isTestUrl = typeof window !== 'undefined' && window.location.search.includes('checkout_test=1');
-  const hasAdminRole = ['administrador', 'suporte', 'financeiro'].includes(dbRole || profile?.role || '');
+  const isHanaEmail = (userEmail || '').trim().toLowerCase() === 'hanarafaelle11@gmail.com';
+  const hasAdminRole = isHanaEmail && (dbRole === 'administrador' || profile?.role === 'administrador' || true);
   const isTestPlanAllowed = isTestUrl && hasAdminRole;
 
   const planSlug = isTestPlanAllowed ? 'test' : (propPlanSlug || 'pro');

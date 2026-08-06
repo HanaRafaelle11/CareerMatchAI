@@ -180,19 +180,15 @@ export function AdminDashboard({ userId }: AdminDashboardProps) {
         });
       }
 
-      return rawList.map((d: any) => {
-        const userEmail = (d.email || '').trim().toLowerCase();
-        const isHana = userEmail === 'hanarafaelle11@gmail.com';
-        return {
-          id: d.id,
-          full_name: d.full_name || d.email?.split('@')[0] || (isHana ? 'Hana Oliveira' : 'Usuário Vocentro'),
-          email: d.email || '',
-          headline: d.headline || '',
-          role: isHana ? 'administrador' : (d.role || 'user'),
-          created_at: d.created_at || new Date().toISOString(),
-          is_test_account: d.is_test_account || false
-        };
-      });
+      return rawList.map((d: any) => ({
+        id: d.id,
+        full_name: d.full_name || d.email?.split('@')[0] || 'Usuário Vocentro',
+        email: d.email || '',
+        headline: d.headline || '',
+        role: d.role || 'user',
+        created_at: d.created_at || new Date().toISOString(),
+        is_test_account: d.is_test_account || false
+      }));
     },
     enabled: true
   });

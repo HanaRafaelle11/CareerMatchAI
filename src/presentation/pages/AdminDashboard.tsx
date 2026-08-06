@@ -156,22 +156,28 @@ export function AdminDashboard({ userId }: AdminDashboardProps) {
 
       let rawList: any[] = [];
       const { data, error } = await supabase
-        .rpc('get_all_profiles_for_admin', { include_test_accounts: showTestAccounts });
+        .rpc('get_all_profiles_for_admin', { include_test_accounts: true });
 
-      if (error || !data || data.length === 0) {
-        if (error) console.warn('[AdminDashboard] Aviso RPC get_all_profiles_for_admin:', error.message);
-        const { data: directProfiles, error: directErr } = await supabase
+      if (!error && data && data.length > 0) {
+        rawList = data;
+      } else {
+        const { data: directProfiles } = await supabase
           .from('profiles')
           .select('*')
           .order('created_at', { ascending: false });
 
-        if (!directErr && directProfiles && directProfiles.length > 0) {
+        if (directProfiles && directProfiles.length > 0) {
           rawList = directProfiles;
         } else if (data) {
           rawList = data;
         }
-      } else {
-        rawList = data;
+      }
+
+      if (!showTestAccounts) {
+        rawList = rawList.filter((d: any) => {
+          const email = (d.email || '').toLowerCase();
+          return !/example\.com|hardening|\.e2e\.|candidato\.e2e/i.test(email);
+        });
       }
 
       return rawList.map((d: any) => {

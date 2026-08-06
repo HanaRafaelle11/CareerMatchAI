@@ -198,20 +198,23 @@ serve(async (req: Request) => {
     } else if (eventType === 'PAYMENT_OVERDUE' || eventType === 'PAYMENT_DELETED') {
       const { data: subs } = await adminClient
         .from('subscriptions')
-        .select('id')
+        .select('id, current_period_end, status')
         .eq('gateway_subscription_id', gatewaySubId)
         .limit(1);
 
       if (subs?.[0]) {
         await adminClient
-          .from('subscriptions')
-          .update({ status: 'past_due' })
-          .eq('id', subs[0].id);
-
-        await adminClient
           .from('invoices')
           .update({ status: 'overdue' })
           .eq('gateway_invoice_id', gatewayPayId);
+
+        const hasActivePeriod = Boolean(subs[0].current_period_end && new Date(subs[0].current_period_end) > new Date());
+        if (!hasActivePeriod) {
+          await adminClient
+            .from('subscriptions')
+            .update({ status: 'past_due' })
+            .eq('id', subs[0].id);
+        }
       }
     } else if (eventType === 'SUBSCRIPTION_DELETED' || eventType === 'SUBSCRIPTION_CANCELLED') {
       await adminClient

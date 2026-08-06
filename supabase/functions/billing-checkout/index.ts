@@ -382,9 +382,14 @@ serve(async (req: Request) => {
             const isDateExpired = asaasPay.dueDate ? (new Date(asaasPay.dueDate).getTime() + 86400000 < Date.now()) : false;
 
             if (isExpiredInAsaas || isDateExpired) {
-              // Cobrança antiga expirou: marcar como expirada no DB para permitir criar nova cobrança limpa
+              // Cobrança antiga expirou: marcar fatura como expirada no DB para permitir criar nova cobrança limpa
               await adminClient.from('invoices').update({ status: 'expired' }).eq('id', existingInvoice.id);
-              await adminClient.from('subscriptions').update({ status: 'expired' }).eq('id', existingSub.id);
+              
+              // Só expira a assinatura se ela NÃO tiver período pago vigente
+              const hasActivePeriod = Boolean(existingSub?.current_period_end && new Date(existingSub.current_period_end) > new Date());
+              if (!hasActivePeriod) {
+                await adminClient.from('subscriptions').update({ status: 'expired' }).eq('id', existingSub.id);
+              }
             } else {
               // Cobrança PENDENTE e VÁLIDA: Reaproveitar QR Code existente
               return new Response(

@@ -298,7 +298,16 @@ serve(async (req: Request) => {
           } else if (statusAsaas === 'OVERDUE' || statusAsaas === 'DELETED' || statusAsaas === 'REFUNDED') {
             await adminClient.from('invoices').update({ status: 'expired' }).eq('id', pendingInvoice.id);
             if (pendingInvoice.subscription_id) {
-              await adminClient.from('subscriptions').update({ status: 'expired' }).eq('id', pendingInvoice.subscription_id);
+              const { data: currentSub } = await adminClient
+                .from('subscriptions')
+                .select('current_period_end, status')
+                .eq('id', pendingInvoice.subscription_id)
+                .single();
+
+              const hasActivePeriod = Boolean(currentSub?.current_period_end && new Date(currentSub.current_period_end) > new Date());
+              if (!hasActivePeriod) {
+                await adminClient.from('subscriptions').update({ status: 'expired' }).eq('id', pendingInvoice.subscription_id);
+              }
             }
           }
         }

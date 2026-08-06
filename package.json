@@ -8,7 +8,9 @@
     "build": "tsc -b && vite build",
     "lint": "oxlint",
     "preview": "vite preview",
-    "test:e2e": "playwright test"
+    "test:e2e": "playwright test",
+    "deploy:functions": "npx supabase functions deploy analyze-resume billing-checkout billing-portal billing-webhook chat-copilot ingest-inhire-jobs match-job parse-job resend-webhook search-jobs send-support-ticket simulate-interview weekly-digest --project-ref bdlpfrwebsmpohtclnxf",
+    "deploy:all": "npm run build && npm run deploy:functions && npx vercel --prod"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.4.0",

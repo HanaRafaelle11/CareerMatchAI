@@ -1,0 +1,39 @@
+name: Deploy Supabase Edge Functions
+
+on:
+  push:
+    branches: [ main, master ]
+    paths:
+      - 'supabase/functions/**'
+      - '.github/workflows/deploy-supabase-functions.yml'
+
+jobs:
+  deploy-edge-functions:
+    name: Deploy Edge Functions to Supabase
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Setup Supabase CLI
+        uses: supabase/setup-cli@v1
+        with:
+          version: latest
+
+      - name: Deploy All Edge Functions
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+        run: |
+          supabase functions deploy analyze-resume --project-ref bdlpfrwebsmpohtclnxf
+          supabase functions deploy billing-checkout --project-ref bdlpfrwebsmpohtclnxf
+          supabase functions deploy billing-portal --project-ref bdlpfrwebsmpohtclnxf
+          supabase functions deploy billing-webhook --project-ref bdlpfrwebsmpohtclnxf
+          supabase functions deploy chat-copilot --project-ref bdlpfrwebsmpohtclnxf
+          supabase functions deploy ingest-inhire-jobs --project-ref bdlpfrwebsmpohtclnxf
+          supabase functions deploy match-job --project-ref bdlpfrwebsmpohtclnxf
+          supabase functions deploy parse-job --project-ref bdlpfrwebsmpohtclnxf
+          supabase functions deploy resend-webhook --project-ref bdlpfrwebsmpohtclnxf
+          supabase functions deploy search-jobs --project-ref bdlpfrwebsmpohtclnxf
+          supabase functions deploy send-support-ticket --project-ref bdlpfrwebsmpohtclnxf
+          supabase functions deploy simulate-interview --project-ref bdlpfrwebsmpohtclnxf
+          supabase functions deploy weekly-digest --project-ref bdlpfrwebsmpohtclnxf

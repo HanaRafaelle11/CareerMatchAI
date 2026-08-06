@@ -672,7 +672,7 @@ export function useJobs(userId: string | undefined) {
           .order('created_at', { ascending: false });
 
         if (error) throw error;
-        return (data || []).map(j => ({
+        const rawJobs = (data || []).map(j => ({
           id: j.id,
           companyId: 'manual',
           companyName: j.company_name || 'Inserida Manualmente',
@@ -692,6 +692,18 @@ export function useJobs(userId: string | undefined) {
           salaryNumeric: j.salary_numeric || undefined,
           benefits: j.benefits || []
         }));
+
+        const uniqueJobs: Job[] = [];
+        const seenKeys = new Set<string>();
+        for (const job of rawJobs) {
+          const minuteKey = `${job.title.trim().toLowerCase()}::${job.companyName.trim().toLowerCase()}::${new Date(job.createdAt).toISOString().slice(0, 16)}`;
+          if (!seenKeys.has(job.id) && !seenKeys.has(minuteKey)) {
+            seenKeys.add(job.id);
+            seenKeys.add(minuteKey);
+            uniqueJobs.push(job);
+          }
+        }
+        return uniqueJobs;
       } else {
         return localDB.getJobs();
       }

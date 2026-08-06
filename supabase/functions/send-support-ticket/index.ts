@@ -119,6 +119,9 @@ Deno.serve(async (req) => {
         </div>
       `;
 
+      const ADMIN_EMAIL = Deno.env.get('ADMIN_EMAIL') ?? 'hanarafaelle11@gmail.com';
+      const recipients = Array.from(new Set([SUPPORT_DESTINATION_EMAIL, ADMIN_EMAIL, userEmail].filter(e => e && e.includes('@') && !e.includes('nao-identificado'))));
+
       const resendRes = await fetch('https://api.resend.com/emails', {
         method: 'POST',
         headers: {
@@ -127,7 +130,7 @@ Deno.serve(async (req) => {
         },
         body: JSON.stringify({
           from: FROM_EMAIL,
-          to: [SUPPORT_DESTINATION_EMAIL],
+          to: recipients.length > 0 ? recipients : [SUPPORT_DESTINATION_EMAIL],
           reply_to: userEmail,
           subject: `[VoCentro Suporte] ${subject}`,
           html: emailHtml,

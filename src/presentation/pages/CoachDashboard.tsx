@@ -6,13 +6,14 @@ import type { CareerProfileNew } from '../../application/hooks/useMyProfileAi';
 import { 
   Award, Play, MessageSquare, Send, 
   RefreshCcw, Star, Loader2, BarChart3, ChevronDown, Search, Sparkles,
-  ArrowRight, Bot, HelpCircle, AlertCircle
+  ArrowRight, Bot, HelpCircle, AlertCircle, Trash2, X
 } from 'lucide-react';
 import { ProgressRing, Badge, Toast, type ToastMessage } from '../components/ds';
 import { useCopilotEngine } from '../../application/hooks/useCopilotEngine';
 import { printElementHtml } from '../../application/utils/pdfExport';
 import { useAuth } from '../../application/hooks/useAuth';
 import { useEntitlements, PaywallModal, CheckoutModal } from '../../modules/billing';
+import { useCoach } from '../../application/hooks/useCoach';
 
 /** Converts **bold** markdown markers in text to <strong> tags */
 function formatBoldText(text: string): React.ReactNode[] {
@@ -58,6 +59,9 @@ export function CoachDashboard({
 }: CoachDashboardProps) {
   const { user } = useAuth();
   const { isPro, canUseAiTraining, canExportPdf, paywallState, triggerPaywall, closePaywall } = useEntitlements(user?.id);
+  const { getSimulationsHistoryQuery, deleteSimulation } = useCoach(user?.id);
+  const { data: simulationsHistory = [] } = getSimulationsHistoryQuery();
+  const [viewingSim, setViewingSim] = useState<any | null>(null);
   const [showCheckout, setShowCheckout] = useState(false);
   const [isCheckingVagas, setIsCheckingVagas] = useState(false);
   
@@ -851,32 +855,50 @@ export function CoachDashboard({
 
         {/* Coluna 3: Gaps and demand */}
         <div className="space-y-6">
-          {activeApps.length > 0 && (
-            <CardGlass className="p-6 space-y-4">
-              <h3 className="font-display font-bold text-base text-slate-900 dark:text-slate-100 pb-2 border-b border-slate-200 dark:border-slate-800 flex items-center gap-1.5">
-                <Star size={16} className="text-brand-500 fill-brand-500" />
-                Histórico de Simulações
-              </h3>
-              <div className="space-y-2 max-h-[220px] overflow-y-auto pr-1 select-none">
-                {activeApps.map(app => (
-                  <button
-                    key={app.id}
-                    onClick={() => setSelectedAppId(app.id)}
-                    className={`w-full p-2.5 rounded-xl border text-left text-xs transition-all flex items-center justify-between ${
-                      app.id === selectedAppId
-                        ? 'bg-brand-500/10 border-brand-500/30 text-brand-600 dark:text-slate-200 font-semibold font-sans'
-                        : 'bg-slate-100 dark:bg-slate-900/20 border-slate-200 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700 text-slate-700 dark:text-slate-300'
-                    }`}
+          <CardGlass className="p-6 space-y-4">
+            <h3 className="font-display font-bold text-base text-slate-900 dark:text-slate-100 pb-2 border-b border-slate-200 dark:border-slate-800 flex items-center gap-1.5">
+              <Star size={16} className="text-brand-500 fill-brand-500" />
+              Histórico de Simulações
+            </h3>
+            <div className="space-y-2 max-h-[260px] overflow-y-auto pr-1 select-none">
+              {simulationsHistory.length === 0 ? (
+                <div className="py-6 text-center text-xs text-slate-500 italic">
+                  Nenhuma simulação de entrevista gravada até o momento.
+                </div>
+              ) : (
+                simulationsHistory.map(sim => (
+                  <div
+                    key={sim.id}
+                    onClick={() => setViewingSim(sim)}
+                    className="w-full p-2.5 rounded-xl border bg-slate-100 dark:bg-slate-900/40 border-slate-200 dark:border-slate-800 hover:border-brand-500/40 text-left text-xs transition-all flex items-center justify-between cursor-pointer group"
+                    title="Clique para visualizar o relatório e conversa completa"
                   >
                     <div className="truncate pr-2">
-                      <span className="font-bold block truncate text-slate-900 dark:text-slate-100">{app.jobTitle}</span>
-                      <span className="text-[9px] text-slate-600 dark:text-slate-400 truncate block mt-0.5">{app.companyName}</span>
+                      <span className="font-bold block truncate text-slate-900 dark:text-slate-100 group-hover:text-brand-500">
+                        {sim.jobTitle}
+                      </span>
+                      <span className="text-[10px] text-slate-500 dark:text-slate-400 truncate block mt-0.5">
+                        {sim.companyName} • {new Date(sim.createdAt).toLocaleDateString('pt-BR')}
+                      </span>
                     </div>
-                  </button>
-                ))}
-              </div>
-            </CardGlass>
-          )}
+                    <button
+                      type="button"
+                      onClick={async (e) => {
+                        e.stopPropagation();
+                        if (window.confirm(`Tem certeza que deseja excluir a simulação de "${sim.jobTitle}"?`)) {
+                          await deleteSimulation(sim.id);
+                        }
+                      }}
+                      className="p-1.5 rounded-lg text-slate-400 hover:text-red-400 hover:bg-red-500/10 transition-colors shrink-0 cursor-pointer"
+                      title="Excluir Simulação"
+                    >
+                      <Trash2 size={14} />
+                    </button>
+                  </div>
+                ))
+              )}
+            </div>
+          </CardGlass>
 
           <CardGlass className="p-6 space-y-4">
             <h3 className="font-display font-bold text-base text-slate-900 dark:text-slate-100 pb-2 border-b border-slate-200 dark:border-slate-800 flex items-center gap-1.5">
@@ -999,6 +1021,84 @@ export function CoachDashboard({
         userEmail={user?.email}
         userName={user?.email?.split('@')[0]}
       />
+
+      {/* Modal de Detalhes da Simulação (Relatório + Transcrição Completa) */}
+      {viewingSim && (
+        <div className="fixed inset-0 z-[9999] bg-black/70 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-[#121927] border border-slate-700 w-full max-w-2xl max-h-[85vh] rounded-2xl shadow-2xl flex flex-col overflow-hidden text-white font-sans animate-scale-up">
+            <div className="p-4 border-b border-slate-800 flex items-center justify-between bg-slate-900/60">
+              <div>
+                <h3 className="font-extrabold text-base text-white">Simulação: {viewingSim.jobTitle}</h3>
+                <p className="text-xs text-slate-400">{viewingSim.companyName} • {new Date(viewingSim.createdAt).toLocaleDateString('pt-BR')}</p>
+              </div>
+              <button
+                onClick={() => setViewingSim(null)}
+                className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition cursor-pointer"
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            <div className="p-5 overflow-y-auto space-y-6 text-xs">
+              {viewingSim.evaluations ? (
+                <div className="space-y-4 p-4 rounded-xl bg-slate-900/60 border border-slate-800">
+                  <h4 className="font-bold text-sm text-brand-400 flex items-center gap-2">
+                    <Star size={16} /> Relatório de Desempenho (Método STAR)
+                  </h4>
+                  {viewingSim.evaluations.feedback && (
+                    <p className="text-slate-300 leading-relaxed bg-slate-950/40 p-3 rounded-lg border border-slate-800/60">
+                      {viewingSim.evaluations.feedback}
+                    </p>
+                  )}
+                  {viewingSim.evaluations.strengths?.length > 0 && (
+                    <div className="space-y-1">
+                      <span className="font-bold text-emerald-400 block text-[11px]">Pontos Fortes:</span>
+                      <ul className="list-disc pl-4 space-y-0.5 text-slate-300">
+                        {viewingSim.evaluations.strengths.map((s: string, idx: number) => <li key={idx}>{s}</li>)}
+                      </ul>
+                    </div>
+                  )}
+                  {viewingSim.evaluations.improvements?.length > 0 && (
+                    <div className="space-y-1">
+                      <span className="font-bold text-amber-400 block text-[11px]">Pontos de Melhora:</span>
+                      <ul className="list-disc pl-4 space-y-0.5 text-slate-300">
+                        {viewingSim.evaluations.improvements.map((imp: string, idx: number) => <li key={idx}>{imp}</li>)}
+                      </ul>
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <div className="p-3.5 rounded-xl bg-slate-900/40 border border-slate-800 text-slate-400 text-center italic">
+                  Simulação concluída.
+                </div>
+              )}
+
+              <div className="space-y-3">
+                <h4 className="font-bold text-sm text-slate-200 border-b border-slate-800 pb-2">
+                  Transcrição Completa da Simulação
+                </h4>
+                <div className="space-y-3 max-h-[300px] overflow-y-auto pr-2">
+                  {viewingSim.chatHistory?.map((msg: any, i: number) => (
+                    <div
+                      key={i}
+                      className={`p-3 rounded-xl text-xs leading-relaxed ${
+                        msg.role === 'interviewer'
+                          ? 'bg-slate-900 border border-slate-800 text-slate-200'
+                          : 'bg-brand-500/10 border border-brand-500/20 text-brand-200 ml-4'
+                      }`}
+                    >
+                      <span className="font-bold block text-[10px] uppercase tracking-wider mb-1 text-slate-400">
+                        {msg.role === 'interviewer' ? 'Recrutadora IA' : 'Você (Candidato)'}
+                      </span>
+                      <p>{msg.text}</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

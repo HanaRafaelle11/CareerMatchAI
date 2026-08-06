@@ -1426,7 +1426,7 @@ export function JobMatchHub({
   // ── UNIFIED MATCH SCORE (SINGLE SOURCE OF TRUTH FOR SELECTED JOB) ──
   const currentSelectedMatch = selectedJob ? matches.find(m => m.jobId === selectedJob.id) : null;
   const unifiedJobMatchScore = selectedJob
-    ? (currentSelectedMatch?.scoreOverall ?? null)
+    ? (currentSelectedMatch?.scoreOverall ?? explanation?.careerFitScore ?? (selectedJob?.scores as any)?.overall ?? null)
     : null;
 
   const jobsWithSalaries = jobs.filter(j => j.salaryNumeric || j.salaryMin || j.salaryMax);
@@ -2329,9 +2329,16 @@ export function JobMatchHub({
                             </span>
                             <span className="text-[10px] text-slate-300 block font-semibold">Compatibilidade Geral</span>
                           </div>
-                          <div className="w-14 h-14 rounded-full border-2 border-emerald-400 bg-emerald-500/20 flex items-center justify-center text-emerald-400 font-extrabold text-lg font-display shadow-lg shadow-emerald-500/20">
-                            {unifiedJobMatchScore !== null && unifiedJobMatchScore > 0 ? `${unifiedJobMatchScore}%` : '--'}
-                          </div>
+                          <ProgressRing 
+                            value={unifiedJobMatchScore ?? 0} 
+                            size={56} 
+                            strokeWidth={4}
+                            label={
+                              <span className="text-emerald-400 font-extrabold text-sm font-display">
+                                {unifiedJobMatchScore !== null && unifiedJobMatchScore > 0 ? `${unifiedJobMatchScore}%` : '--'}
+                              </span>
+                            } 
+                          />
                         </div>
                       </div>
                     </div>
@@ -4141,11 +4148,23 @@ export function JobMatchHub({
                 type="button"
                 onClick={async () => {
                   if (window.confirm('Tem certeza que deseja esvaziar a lixeira e excluir permanentemente todas as vagas contidas nela?')) {
+                    const linkedAppJobIds = new Set(applications.map(a => a.jobId));
+                    let deletedCount = 0;
+                    let skippedCount = 0;
                     for (const item of trashedJobs) {
-                      if (onDeleteJob) await onDeleteJob(item.id);
+                      if (linkedAppJobIds.has(item.id)) {
+                        skippedCount++;
+                      } else {
+                        if (onDeleteJob) await onDeleteJob(item.id);
+                        deletedCount++;
+                      }
                     }
                     clearTrash();
-                    showToast('Lixeira esvaziada com sucesso.', 'info');
+                    if (skippedCount > 0) {
+                      showToast(`${deletedCount} vaga(s) removida(s). ${skippedCount} vaga(s) mantida(s) por possuírem candidatura ativa no Pipeline.`, 'warning');
+                    } else {
+                      showToast('Lixeira esvaziada com sucesso.', 'success');
+                    }
                   }
                 }}
                 className="px-3.5 py-2 rounded-xl bg-red-950/40 hover:bg-red-900/60 border border-red-800/50 text-red-400 text-xs font-bold flex items-center gap-1.5 transition cursor-pointer self-start sm:self-center shadow-md shadow-red-950/20"
@@ -4197,8 +4216,14 @@ export function JobMatchHub({
                       onClick={async () => {
                         if (window.confirm(`Excluir permanentemente a vaga "${item.title}"? Esta ação não pode ser desfeita.`)) {
                           try {
+                            const linkedApp = applications.find(a => a.jobId === item.id);
+                            if (linkedApp) {
+                              showToast(`A vaga "${item.title}" possui uma candidatura ativa no seu Pipeline. Remova a candidatura no Pipeline antes de excluí-la definitivamente.`, 'warning');
+                              return;
+                            }
                             await removeFromTrash(item.id);
-                            showToast(`Vaga "${item.title}" excluída permanentemente.`, 'info');
+                            if (onDeleteJob) await onDeleteJob(item.id);
+                            showToast(`Vaga "${item.title}" excluída permanentemente.`, 'success');
                           } catch (err: any) {
                             showToast(err.message || `Não foi possível excluir a vaga "${item.title}".`, 'error');
                           }

@@ -122,7 +122,8 @@ export function CustomerPortal({ userId, onOpenCheckout }: CustomerPortalProps) 
   }
 
   const isUnexpiredCanceled = subscription?.status === 'canceled' && subscription?.current_period_end && new Date(subscription.current_period_end) > new Date();
-  const isPro = subscription?.status === 'active' || subscription?.status === 'trialing' || isUnexpiredCanceled;
+  const hasUnexpiredPaidPeriod = Boolean(subscription?.current_period_end && new Date(subscription.current_period_end) > new Date());
+  const isPro = subscription?.status === 'active' || subscription?.status === 'trialing' || isUnexpiredCanceled || hasUnexpiredPaidPeriod;
 
   return (
     <div className="p-6 bg-slate-900/60 border border-slate-800 rounded-3xl space-y-6 text-white font-sans">

@@ -861,6 +861,65 @@ export function useCoach(userId: string | undefined) {
     }
   });
 
+  type SimHistoryItem = {
+    id: string;
+    applicationId: string | null;
+    jobTitle: string;
+    companyName: string;
+    chatHistory: unknown[];
+    evaluations: unknown;
+    createdAt: string;
+  };
+
+  const getSimulationsHistoryQuery = () => {
+    return useQuery<SimHistoryItem[]>({
+      queryKey: ['simulations-history', userId],
+      queryFn: async () => {
+        if (!userId) return [];
+        if (isSupabaseConfigured && supabase) {
+          const { data, error } = await supabase
+            .from('interview_simulations')
+            .select(`
+              id, application_id, chat_history, evaluations, created_at,
+              application:applications(job_title, company_name)
+            `)
+            .order('created_at', { ascending: false });
+
+          if (error) throw error;
+          return (data || []).map(s => ({
+            id: s.id,
+            applicationId: s.application_id,
+            jobTitle: (s.application as any)?.job_title || 'Vaga Selecionada',
+            companyName: (s.application as any)?.company_name || 'Empresa',
+            chatHistory: (s.chat_history as unknown[]) || [],
+            evaluations: s.evaluations,
+            createdAt: s.created_at
+          }));
+        } else {
+          return [];
+        }
+      },
+      enabled: !!userId
+    });
+  };
+
+  const deleteSimulationMutation = useMutation({
+    mutationFn: async (simulationId: string) => {
+      if (isSupabaseConfigured && supabase && isValidUUID(simulationId)) {
+        const { error } = await supabase
+          .from('interview_simulations')
+          .delete()
+          .eq('id', simulationId);
+        if (error) throw error;
+      } else {
+        localDB.deleteInterviewSimulation(simulationId);
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['simulations-history'] });
+    }
+  });
+
   return {
     getResumeOptimizationQuery,
     generateResumeOptimization: generateResumeOptimizationMutation.mutateAsync,
@@ -872,6 +931,8 @@ export function useCoach(userId: string | undefined) {
     generateInterviewPrep: generateInterviewPrepMutation.mutateAsync,
     isGeneratingPrep: generateInterviewPrepMutation.isPending,
     getSimulationQuery,
+    getSimulationsHistoryQuery,
+    deleteSimulation: deleteSimulationMutation.mutateAsync,
     startSimulation: startSimulationMutation.mutateAsync,
     sendMessage: sendMessageMutation.mutateAsync,
     finalizeSimulation: finalizeSimulationMutation.mutateAsync,

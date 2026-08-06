@@ -160,7 +160,7 @@ export function Navbar({
         <div className="flex-1 flex flex-col">
           {/* Brand & Toggle Header — Sticky no topo da Sidebar */}
           <div className={`sticky top-0 z-10 flex items-center ${isCollapsed ? 'justify-center py-4 px-2' : 'justify-between px-4 pt-5 pb-4'} bg-[#FAFBFC] dark:bg-[#202632] border-b border-slate-200/80 dark:border-white/8 shrink-0`}>
-            <VocentroLogo className="h-7" showText={!isCollapsed} />
+            <VocentroLogo className="h-7" showText={false} />
             <button
               onClick={onClose}
               aria-label="Fechar menu"

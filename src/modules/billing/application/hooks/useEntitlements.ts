@@ -66,12 +66,13 @@ export function useEntitlements(userId?: string) {
         .from('subscriptions')
         .select('status, current_period_end')
         .eq('user_id', userId)
-        .in('status', ['active', 'trialing', 'canceled'])
+        .order('created_at', { ascending: false })
         .limit(1)
         .maybeSingle();
 
       const isUnexpiredCanceled = sub?.status === 'canceled' && sub?.current_period_end && new Date(sub.current_period_end) > new Date();
-      const userIsPro = Boolean(sub && (sub.status === 'active' || sub.status === 'trialing' || isUnexpiredCanceled));
+      const hasUnexpiredPeriod = Boolean(sub?.current_period_end && new Date(sub.current_period_end) > new Date());
+      const userIsPro = Boolean(sub && (sub.status === 'active' || sub.status === 'trialing' || isUnexpiredCanceled || hasUnexpiredPeriod));
       setIsPro(userIsPro);
 
       // 2. Contar Candidaturas na Semana Calendário (Reset toda Segunda 00:00)

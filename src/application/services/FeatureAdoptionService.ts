@@ -85,23 +85,26 @@ export class FeatureAdoptionService {
       featureCatalog.forEach(feat => {
         if (feat.id === 'match_calculation') {
           const matchLogs = aiLogs.filter(l => (l.feature_name || '').toLowerCase().includes('match'));
-          rawUsages[feat.id] = [...matches, ...matchLogs];
+          const matchEvents = events.filter(e => (e.event_name || '').toLowerCase().includes('match'));
+          rawUsages[feat.id] = [...matches, ...matchLogs, ...matchEvents];
         } else if (feat.id === 'star_simulation') {
           const interviewLogs = aiLogs.filter(l => (l.feature_name || '').toLowerCase().includes('interview') || (l.feature_name || '').toLowerCase().includes('star'));
-          const interviewEvents = events.filter(e => e.event_name.includes('interview'));
+          const interviewEvents = events.filter(e => (e.event_name || '').toLowerCase().includes('interview') || (e.event_name || '').toLowerCase().includes('star'));
           rawUsages[feat.id] = [...interviewLogs, ...interviewEvents];
         } else if (feat.id === 'resume_optimization') {
           const cvLogs = aiLogs.filter(l => (l.feature_name || '').toLowerCase().includes('resume') || (l.feature_name || '').toLowerCase().includes('cv') || (l.feature_name || '').toLowerCase().includes('optimize') || (l.feature_name || '').toLowerCase().includes('adapt'));
-          rawUsages[feat.id] = [...optimizations, ...cvLogs];
+          const cvEvents = events.filter(e => (e.event_name || '').toLowerCase().includes('resume') || (e.event_name || '').toLowerCase().includes('cv') || (e.event_name || '').toLowerCase().includes('adapt'));
+          rawUsages[feat.id] = [...optimizations, ...cvLogs, ...cvEvents];
         } else if (feat.id === 'cover_letter') {
           const letterLogs = aiLogs.filter(l => (l.feature_name || '').toLowerCase().includes('letter') || (l.feature_name || '').toLowerCase().includes('cover'));
-          rawUsages[feat.id] = [...coverLetters, ...letterLogs];
+          const letterEvents = events.filter(e => (e.event_name || '').toLowerCase().includes('letter') || (e.event_name || '').toLowerCase().includes('cover'));
+          rawUsages[feat.id] = [...coverLetters, ...letterLogs, ...letterEvents];
         } else if (feat.id === 'coach_chat') {
           const coachLogs = aiLogs.filter(l => (l.feature_name || '').toLowerCase().includes('coach') || (l.feature_name || '').toLowerCase().includes('chat') || (l.feature_name || '').toLowerCase().includes('copilot'));
-          const copilotEvents = events.filter(e => (e.event_name || '').includes('copilot') || (e.event_name || '').includes('chat'));
+          const copilotEvents = events.filter(e => (e.event_name || '').toLowerCase().includes('copilot') || (e.event_name || '').toLowerCase().includes('chat') || (e.event_name || '').toLowerCase().includes('coach'));
           rawUsages[feat.id] = [...coachLogs, ...copilotEvents];
         } else if (feat.id === 'job_discovery') {
-          const searchEvents = events.filter(e => e.event_name.includes('job') || e.event_name.includes('search'));
+          const searchEvents = events.filter(e => (e.event_name || '').toLowerCase().includes('job') || (e.event_name || '').toLowerCase().includes('search'));
           rawUsages[feat.id] = searchEvents.length > 0 ? searchEvents : applications;
         }
       });

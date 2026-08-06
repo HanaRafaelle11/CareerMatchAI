@@ -13,15 +13,15 @@ export class SerpApiAdapter {
       const locStr = res.location || location;
       
       // PRIORIZAR O LINK DIRETO DA VAGA DA EMPRESA OU PORTAL DE CANDIDATURA (LinkedIn, Catho, Glassdoor, Gupy, InfoJobs)
-      const directApplyUrl = res.apply_options?.[0]?.link || res.applyUrl || res.redirect_url || res.sourceUrl || res.url;
-      const fallbackUrl = res.share_link || res.link || '';
+      const validApplyOption = Array.isArray(res.apply_options)
+        ? res.apply_options.find((opt: any) => opt?.link && !opt.link.includes('google.com/search'))?.link
+        : null;
+      const directApplyUrl = validApplyOption || res.applyUrl || res.redirect_url || res.sourceUrl || res.url;
+      const fallbackUrl = (res.share_link && !res.share_link.includes('google.com/search')) ? res.share_link : ((res.link && !res.link.includes('google.com/search')) ? res.link : '');
       
       let finalUrl = directApplyUrl || fallbackUrl || '';
-      if (finalUrl.includes('google.com/search') && fallbackUrl && !fallbackUrl.includes('google.com/search')) {
-        finalUrl = fallbackUrl;
-      }
-      if (!finalUrl && res.apply_options && res.apply_options.length > 0) {
-        finalUrl = res.apply_options[0].link || '';
+      if (finalUrl.includes('google.com/search')) {
+        finalUrl = '';
       }
 
       const workMode = (locStr.toLowerCase().includes('remot') || title.toLowerCase().includes('remot') || res.detected_extensions?.work_from_home) ? 'remote' : 'onsite';

@@ -215,8 +215,15 @@ export function CoachDashboard({
   const [isResettingSim, setIsResettingSim] = useState(false);
 
   const handleStartSim = async (appIdToStart?: string) => {
-    const targetAppId = appIdToStart || selectedAppId;
-    if (!targetAppId) return;
+    let targetAppId = appIdToStart || selectedAppId;
+    if (!targetAppId && activeApps.length > 0) {
+      targetAppId = activeApps[0].id;
+      setSelectedAppId(targetAppId);
+    }
+    if (!targetAppId) {
+      setToast({ message: 'Por favor, adicione uma vaga no seu painel para iniciar o treino com IA.', type: 'warning' });
+      return;
+    }
     if (!isPro && !canUseAiTraining) {
       triggerPaywall('ia_training');
       return;

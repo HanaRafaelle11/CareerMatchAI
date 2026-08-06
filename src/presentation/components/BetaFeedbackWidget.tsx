@@ -14,7 +14,7 @@ export function FeedbackWidget({ userId, userEmail }: BetaFeedbackWidgetProps) {
 
   return (
     <>
-      <div className="fixed bottom-[calc(56px+env(safe-area-inset-bottom,0px)+12px)] md:bottom-6 right-4 md:right-6 z-[60] font-sans">
+      <div className="fixed bottom-[calc(56px+env(safe-area-inset-bottom,0px)+12px)] md:bottom-6 right-4 md:right-48 z-[60] font-sans">
         <button
           type="button"
           onClick={() => setIsOpen(true)}

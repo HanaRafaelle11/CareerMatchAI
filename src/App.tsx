@@ -12,7 +12,7 @@ import { CompactHeader } from './presentation/components/ds/CompactHeader';
 import { ThemeToggle } from './presentation/components/ThemeToggle';
 import { Menu, Loader2 } from 'lucide-react';
 import { VocentroLogo } from './presentation/components/ds/MyCareerIcons';
-import { isSupabaseConfigured, supabase } from './infrastructure/api/supabaseClient';
+import { supabase } from './infrastructure/api/supabaseClient';
 import { BetaFeedbackWidget } from './presentation/components/BetaFeedbackWidget';
 import { OnboardingModal } from './presentation/components/OnboardingModal';
 import { GlobalCopilotDrawer } from './presentation/components/GlobalCopilotDrawer';

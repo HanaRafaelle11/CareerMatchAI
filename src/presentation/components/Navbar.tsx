@@ -159,12 +159,16 @@ export function Navbar({
       }`}>
         <div className="flex-1 flex flex-col">
           {/* Brand & Toggle Header — Sticky no topo da Sidebar */}
-          <div className={`sticky top-0 z-10 flex items-center ${isCollapsed ? 'justify-center py-4 px-2' : 'justify-between px-4 pt-5 pb-4'} bg-[#FAFBFC] dark:bg-[#202632] border-b border-slate-200/80 dark:border-white/8 shrink-0`}>
-            <VocentroLogo className="h-7" showText={false} />
+          <div className={`sticky top-0 z-10 flex items-center ${isCollapsed ? 'justify-center py-3 px-2' : 'justify-between px-4 py-3'} bg-[#FAFBFC] dark:bg-[#202632] border-b border-slate-200/80 dark:border-white/8 shrink-0`}>
+            <div className="flex items-center gap-2">
+              <VocentroLogo className="h-7 w-7 text-brand-500" showText={false} variant="symbol" />
+              {!isCollapsed && <span className="font-extrabold text-sm text-foreground tracking-tight">VoCentro</span>}
+            </div>
+            
             <button
               onClick={onClose}
               aria-label="Fechar menu"
-              className="md:hidden p-2 rounded-lg hover:bg-slate-200/60 dark:hover:bg-white/8 text-slate-400 hover:text-slate-600 transition-colors"
+              className="md:hidden p-1.5 rounded-lg hover:bg-slate-200/60 dark:hover:bg-white/8 text-slate-400 hover:text-slate-600 transition-colors"
               title="Fechar menu"
             >
               <X size={18} />
@@ -174,7 +178,7 @@ export function Navbar({
               <button
                 type="button"
                 onClick={onToggleCollapse}
-                className={`hidden md:flex items-center justify-center p-2 rounded-lg hover:bg-slate-200/60 dark:hover:bg-white/8 text-slate-400 hover:text-slate-200 transition-colors cursor-pointer ${isCollapsed ? 'w-full' : ''}`}
+                className="hidden md:flex items-center justify-center p-1.5 rounded-lg hover:bg-slate-200/60 dark:hover:bg-white/8 text-slate-400 hover:text-slate-200 transition-colors cursor-pointer shrink-0"
                 title={isCollapsed ? "Expandir menu" : "Recolher menu"}
               >
                 {isCollapsed ? <ChevronRight size={18} /> : <ChevronLeft size={18} />}

@@ -1,4 +1,4 @@
-// supabase/functions/send-support-ticket/index.ts - Automated CI Trigger
+// supabase/functions/send-support-ticket/index.ts - Automated Support Ticket Function
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!;
@@ -31,7 +31,7 @@ Deno.serve(async (req) => {
     const authHeader = req.headers.get('Authorization');
     
     let userEmail = 'nao-identificado@vocentro.com.br';
-    let userName = 'Usuário do Sistema';
+    let userName = '';
     let userId: string | null = null;
 
     if (authHeader) {
@@ -40,8 +40,27 @@ Deno.serve(async (req) => {
       if (user) {
         userId = user.id;
         userEmail = user.email || userEmail;
-        userName = user.user_metadata?.full_name || user.user_metadata?.name || userEmail.split('@')[0];
+        userName = user.user_metadata?.full_name || user.user_metadata?.name || '';
+        
+        // Item 3: Buscar nome real cadastrado no perfil se não veio no metadata
+        if (!userName && userId) {
+          const { data: profile } = await supabase
+            .from('profiles')
+            .select('full_name, name')
+            .eq('id', userId)
+            .maybeSingle();
+          if (profile) {
+            userName = profile.full_name || profile.name || '';
+          }
+        }
+        if (!userName) {
+          userName = userEmail.split('@')[0];
+        }
       }
+    }
+
+    if (!userName) {
+      userName = 'Usuário do Sistema';
     }
 
     const body = await req.json();
@@ -70,16 +89,52 @@ Deno.serve(async (req) => {
       console.error('[send-support-ticket] Erro ao gravar feedback no DB:', dbError);
     }
 
-    // 2. Disparar e-mail via Resend para suporte@vocentro.com.br
+    // Item 5: Baixar arquivo do attachmentUrl para incluir como anexo físico no e-mail via Resend
+    let emailAttachments: { filename: string; content: string }[] | undefined = undefined;
+
+    if (attachmentUrl) {
+      try {
+        const fileRes = await fetch(attachmentUrl);
+        if (fileRes.ok) {
+          const arrayBuffer = await fileRes.arrayBuffer();
+          const bytes = new Uint8Array(arrayBuffer);
+          let binary = '';
+          for (let i = 0; i < bytes.byteLength; i++) {
+            binary += String.fromCharCode(bytes[i]);
+          }
+          const base64Content = btoa(binary);
+
+          const urlParts = attachmentUrl.split('/');
+          const rawFileName = urlParts[urlParts.length - 1] || 'anexo';
+          const cleanFileName = decodeURIComponent(rawFileName.split('?')[0]);
+
+          emailAttachments = [{
+            filename: cleanFileName,
+            content: base64Content
+          }];
+          console.log(`[send-support-ticket] Anexo processado com sucesso: ${cleanFileName} (${bytes.byteLength} bytes)`);
+        }
+      } catch (attachErr) {
+        console.warn('[send-support-ticket] Aviso ao processar anexo para e-mail:', attachErr);
+      }
+    }
+
+    // 2. Disparar e-mail via Resend
     let emailSent = false;
     let resendId = null;
 
     if (RESEND_API_KEY) {
+      // Item 4: Incluir logo horizontal oficial da VoCentro no cabeçalho
       const emailHtml = `
-        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e2e8f0; rounded: 12px;">
-          <h2 style="color: #0f172a; margin-top: 0;">📬 Novo Chamado de Suporte / Feedback — VoCentro</h2>
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e2e8f0; border-radius: 12px;">
+          
+          <div style="text-align: center; margin-bottom: 24px; padding-bottom: 16px; border-b: 1px solid #f1f5f9;">
+            <img src="https://vocentro.com.br/brand/logo-horizontal.png" alt="VoCentro" style="height: 38px; width: auto;" />
+          </div>
+
+          <h2 style="color: #0f172a; margin-top: 0; font-size: 18px;">📬 Novo Chamado de Suporte / Feedback</h2>
           <p style="font-size: 14px; color: #475569; margin-bottom: 20px;">
-            Um usuário enviou uma nova mensagem pela plataforma.
+            Um usuário enviou uma nova mensagem pela plataforma VoCentro.
           </p>
 
           <table style="width: 100%; font-size: 14px; color: #1e293b; border-collapse: collapse; margin-bottom: 20px;">
@@ -107,7 +162,7 @@ Deno.serve(async (req) => {
 
           ${attachmentUrl ? `
             <div style="margin-top: 15px; padding: 12px; background-color: #eff6ff; border: 1px solid #bfdbfe; border-radius: 8px;">
-              <p style="margin: 0; font-size: 13px; font-weight: bold; color: #1e40af;">📎 Anexo enviado:</p>
+              <p style="margin: 0; font-size: 13px; font-weight: bold; color: #1e40af;">📎 Anexo anexado a esta mensagem:</p>
               <p style="margin: 4px 0 0 0; font-size: 12px;"><a href="${escapeHtml(attachmentUrl)}" target="_blank" style="color: #2563eb; word-break: break-all;">${escapeHtml(attachmentUrl)}</a></p>
             </div>
           ` : ''}
@@ -134,6 +189,7 @@ Deno.serve(async (req) => {
           reply_to: userEmail,
           subject: `[VoCentro Suporte] ${subject}`,
           html: emailHtml,
+          attachments: emailAttachments,
         }),
       });
 

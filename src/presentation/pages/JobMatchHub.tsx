@@ -336,11 +336,11 @@ export function JobMatchHub({
   };
 
   useEffect(() => {
-    if (propSelectedJobId) {
-      setSubTab('my-jobs');
+    // Apenas seleciona a vaga se a aba não for explicitamente de descoberta de vagas
+    if (propSelectedJobId && subTab !== 'discover') {
       setCoachTab('optimize-cv');
     }
-  }, [propSelectedJobId]);
+  }, [propSelectedJobId, subTab]);
 
   // Keydown Escape hook calls are registered below to ensure all states are in scope
 
@@ -1501,8 +1501,8 @@ export function JobMatchHub({
               <Badge variant="premium" size="sm">Gemini Matching</Badge>
             </div>
             <h2 className="text-base font-semibold text-slate-900 dark:text-slate-100 mt-1">
-              {totalCount > 0 
-                ? `Identificamos ${totalCount} vaga(s) ativas com alto potencial para seu perfil.` 
+              {discoveredJobs.length > 0 
+                ? `Identificamos ${discoveredJobs.length} vaga(s) ativas com alto potencial para seu perfil.` 
                 : matches.length > 0
                 ? `Você possui ${matches.length} vaga(s) analisada(s) em seu histórico.`
                 : 'Insira palavras-chave ou cole o link de uma vaga para analisar o Match da vaga com a IA.'}

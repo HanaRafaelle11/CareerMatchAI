@@ -16,6 +16,10 @@ interface GlobalCopilotDrawerProps {
   careerProfileNew?: CareerProfileNew | null;
   setActiveTab?: (tab: string) => void;
   onStartSimulation?: (target: string | Job, reset?: boolean) => void;
+  isOpen?: boolean;
+  onToggleOpen?: () => void;
+  onClose?: () => void;
+  hideFloatingButton?: boolean;
 }
 
 export function GlobalCopilotDrawer({
@@ -24,17 +28,37 @@ export function GlobalCopilotDrawer({
   matches = [],
   careerProfileNew,
   setActiveTab,
-  onStartSimulation
+  onStartSimulation,
+  isOpen: propIsOpen,
+  onToggleOpen,
+  onClose,
+  hideFloatingButton = false
 }: GlobalCopilotDrawerProps) {
   const { user } = useAuth();
   const { isPro, canUseCopilot, paywallState, triggerPaywall, closePaywall } = useEntitlements(user?.id);
   const [showCheckout, setShowCheckout] = useState(false);
 
-  const [isOpen, setIsOpen] = useState(false);
+  const [localIsOpen, setLocalIsOpen] = useState(false);
+  const isOpen = propIsOpen !== undefined ? propIsOpen : localIsOpen;
+  
+  const handleClose = () => {
+    if (onClose) onClose();
+    else setLocalIsOpen(false);
+  };
+
+  const handleToggleOpen = () => {
+    if (!isPro && !canUseCopilot) {
+      triggerPaywall('copilot');
+      return;
+    }
+    if (onToggleOpen) onToggleOpen();
+    else setLocalIsOpen(prev => !prev);
+  };
+
   const drawerRef = useRef<HTMLDivElement>(null);
 
   // Listener da tecla ESC para fechar o drawer
-  useEscapeToClose(isOpen, () => setIsOpen(false));
+  useEscapeToClose(isOpen, handleClose);
 
   // Focus trap para prender navegação por Tab dentro do drawer enquanto aberto
   useFocusTrap(drawerRef, isOpen);
@@ -54,14 +78,6 @@ export function GlobalCopilotDrawer({
     matches,
     careerProfileNew
   });
-
-  const handleToggleOpen = () => {
-    if (!isPro && !canUseCopilot) {
-      triggerPaywall('copilot');
-      return;
-    }
-    setIsOpen(!isOpen);
-  };
 
 
   const handleSendMessage = (e: React.FormEvent) => {
@@ -87,7 +103,7 @@ export function GlobalCopilotDrawer({
         setTimeout(() => {
           if (setActiveTab) {
             setActiveTab('coach');
-            setIsOpen(false);
+            handleClose();
           }
         }, 2000);
       }, 300);
@@ -139,7 +155,7 @@ export function GlobalCopilotDrawer({
     } else if (targetTab && setActiveTab) {
       setActiveTab(targetTab);
     }
-    setIsOpen(false);
+    handleClose();
   };
 
 /** Utility to render markdown bold (**text**), italic (*text*), and line breaks (\n) in JSX */
@@ -172,7 +188,7 @@ function renderCopilotMarkdown(text: string): React.ReactNode {
   return (
     <>
       {/* Opção A: Botão Flutuante Único no Canto Inferior Direito (Item 17: z-index ajustado para z-40 e opacidade sutil) */}
-      {!isOpen && (
+      {!isOpen && !hideFloatingButton && (
         <button
           onClick={handleToggleOpen}
           aria-label="Abrir Copiloto IA"
@@ -211,7 +227,7 @@ function renderCopilotMarkdown(text: string): React.ReactNode {
               </div>
             </div>
             <button
-              onClick={() => setIsOpen(false)}
+              onClick={handleClose}
               aria-label="Fechar copiloto"
               className="p-1.5 rounded-lg text-slate-400 light:text-slate-500 hover:text-slate-100 light:hover:text-slate-900 hover:bg-slate-800 light:hover:bg-slate-100 transition-colors focus-visible:ring-2 focus-visible:ring-brand-500"
             >
@@ -306,7 +322,7 @@ function renderCopilotMarkdown(text: string): React.ReactNode {
             <button
               onClick={() => {
                 if (setActiveTab) setActiveTab('coach');
-                setIsOpen(false);
+                handleClose();
               }}
               className="w-full py-2 text-center text-[10px] font-bold text-slate-400 light:text-slate-500 hover:text-slate-200 light:hover:text-slate-700 border border-slate-800 light:border-slate-200 hover:border-slate-700 light:hover:border-slate-300 rounded-xl bg-slate-800/50 light:bg-white transition-colors"
             >

@@ -13,12 +13,12 @@ import { ThemeToggle } from './presentation/components/ThemeToggle';
 import { Menu, Loader2 } from 'lucide-react';
 import { VocentroLogo } from './presentation/components/ds/MyCareerIcons';
 import { supabase } from './infrastructure/api/supabaseClient';
-import { BetaFeedbackWidget } from './presentation/components/BetaFeedbackWidget';
 import { OnboardingModal } from './presentation/components/OnboardingModal';
 import { GlobalCopilotDrawer } from './presentation/components/GlobalCopilotDrawer';
 import { SatisfactionSurveyModal } from './presentation/components/SatisfactionSurveyModal';
 import { Toast, type ToastMessage } from './presentation/components/ds';
 import { CheckoutModal, useEntitlements } from './modules/billing';
+import { FloatingActionDeck } from './presentation/components/FloatingActionDeck';
 import type { Job } from './domain/models/types';
 
 // ── Code Splitting: Lazy-load de todas as páginas ──
@@ -341,6 +341,7 @@ function AuthenticatedApp({
   const [selectedJobId, setSelectedJobId] = useState<string | null>(null);
   const [activeSimulationAppId, setActiveSimulationAppId] = useState<string | null>(null);
   const [showOnboarding, setShowOnboarding] = useState(false);
+  const [isCopilotOpen, setIsCopilotOpen] = useState(false);
 
   const activeTabRef = useRef(activeTab);
   const resumeTransitionTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -996,7 +997,7 @@ function AuthenticatedApp({
         )}
       </main>
 
-      {/* Copiloto Flutuante Global — Opção A (Presente em todas as telas) */}
+      {/* Copiloto Flutuante Global — Drawer */}
       <GlobalCopilotDrawer
         applications={applications}
         jobs={jobs}
@@ -1004,9 +1005,23 @@ function AuthenticatedApp({
         careerProfileNew={careerProfileNew}
         setActiveTab={handleSetActiveTab}
         onStartSimulation={handleStartSimulation}
+        isOpen={isCopilotOpen}
+        onToggleOpen={() => setIsCopilotOpen(prev => !prev)}
+        onClose={() => setIsCopilotOpen(false)}
+        hideFloatingButton={true}
       />
 
-
+      {/* Deck de Ações Flutuantes Unificado (Suporte, Copiloto IA, Notificações) */}
+      {user && (
+        <FloatingActionDeck
+          userId={user.id}
+          userEmail={user.email}
+          notifications={notifications || []}
+          markAllNotificationsAsRead={markAllNotificationsAsRead}
+          onOpenCopilot={() => setIsCopilotOpen(true)}
+          onNavigateToTab={handleSetActiveTab}
+        />
+      )}
 
       {/* Pesquisa de Satisfação na 2ª e 3ª Visita (Item 4) */}
       {showSatisfactionSurvey && user && (
@@ -1027,10 +1042,6 @@ function AuthenticatedApp({
         userName={profile?.full_name}
       />
 
-
-
-      {/* Feedback & Suporte Widget — Floating Global */}
-      {user && <BetaFeedbackWidget userId={user.id} userEmail={user.email} />}
       <Toast toast={globalToast} onClose={() => setGlobalToast(null)} />
     </div>
   );

@@ -2313,7 +2313,7 @@ export function JobMatchHub({
                             💼 Career Fit Score
                           </span>
                           <span className="text-xs font-extrabold text-blue-300 block">
-                            {explanation?.careerFitScore ? `${explanation.careerFitScore}%` : (unifiedJobMatchScore > 0 ? `${unifiedJobMatchScore}%` : '--')}
+                            {explanation?.careerFitScore ? `${explanation.careerFitScore}%` : (unifiedJobMatchScore !== null && unifiedJobMatchScore > 0 ? `${unifiedJobMatchScore}%` : '--')}
                           </span>
                           <span className="text-[8px] text-slate-400 block">Alinhamento de objetivo</span>
                         </div>
@@ -2330,7 +2330,7 @@ export function JobMatchHub({
                             <span className="text-[10px] text-slate-300 block font-semibold">Compatibilidade Geral</span>
                           </div>
                           <div className="w-14 h-14 rounded-full border-2 border-emerald-400 bg-emerald-500/20 flex items-center justify-center text-emerald-400 font-extrabold text-lg font-display shadow-lg shadow-emerald-500/20">
-                            {unifiedJobMatchScore > 0 ? `${unifiedJobMatchScore}%` : '--'}
+                            {unifiedJobMatchScore !== null && unifiedJobMatchScore > 0 ? `${unifiedJobMatchScore}%` : '--'}
                           </div>
                         </div>
                       </div>

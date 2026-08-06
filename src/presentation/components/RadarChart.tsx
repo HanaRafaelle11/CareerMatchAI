@@ -11,11 +11,11 @@ interface RadarChartProps {
 }
 
 export function RadarChart({ scores, labels = ['Técnico', 'Comportamental', 'Senioridade', 'Geral', 'Localização'] }: RadarChartProps) {
-  const width = 320;
-  const height = 280;
+  const width = 360;
+  const height = 300;
   const centerX = width / 2;
   const centerY = height / 2;
-  const radius = 80;
+  const radius = 75;
   const totalSides = 5;
 
   const getCoordinates = (index: number, value: number) => {

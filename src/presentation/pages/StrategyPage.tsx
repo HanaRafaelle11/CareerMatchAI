@@ -778,7 +778,7 @@ export function StrategyPage({
           { id: 'pipeline', label: 'Pipeline (CRM Kanban)', icon: Layout },
           { id: 'strategy', label: 'Prioridades (ROI)', icon: Flame },
           { id: 'planner', label: 'Planner Semanal', icon: CheckSquare },
-          { id: 'journal', label: 'Diário & Journal', icon: BookOpen }
+          { id: 'journal', label: 'Diário de entrevistas', icon: BookOpen }
         ].map(tab => {
           const Icon = tab.icon;
           return (

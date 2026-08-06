@@ -94,7 +94,7 @@ export function CompactHeader({
             <>
               <button
                 onClick={() => setShowDropdown(!showDropdown)}
-                className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-[11px] font-semibold text-on-surface-variant hover:text-on-surface hover:bg-surface-container-high transition-colors cursor-pointer border border-outline-variant/20"
+                className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-[11px] font-semibold bg-slate-900 dark:bg-slate-900 light:bg-slate-100 text-slate-200 dark:text-slate-200 light:text-slate-800 hover:bg-slate-800 transition-colors cursor-pointer border border-slate-700 dark:border-slate-700 light:border-slate-300 shadow-xs"
               >
                 <RefreshCw size={12} />
                 Trocar CV

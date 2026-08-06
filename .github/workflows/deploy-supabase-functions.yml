@@ -6,6 +6,11 @@ on:
     branches: [ main, master ]
   workflow_dispatch:
 
+# Cancela runs anteriores automaticamente se um novo push for realizado
+concurrency:
+  group: deploy-supabase-functions-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   deploy-edge-functions:
     name: Deploy Edge Functions to Supabase

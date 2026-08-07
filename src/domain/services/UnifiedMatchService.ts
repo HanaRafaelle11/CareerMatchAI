@@ -1,6 +1,5 @@
 import { localDB } from '../../infrastructure/storage/localDatabase';
 import { isSupabaseConfigured, supabase } from '../../infrastructure/api/supabaseClient';
-import { MatchingEngine } from '../../application/services/matchingEngine';
 import { JobMatchExplanationService } from '../../application/services/JobMatchExplanationService';
 import type { Job, Resume, Match, JobMatchExplanation } from '../models/types';
 import type { CareerProfileNew } from '../../application/hooks/useMyProfileAi';
@@ -39,8 +38,10 @@ export class UnifiedMatchService {
 
     const activeResumeVersionId = resume?.resumeVersionId || resume?.id;
 
-    // 1. Se já existe um match oficial salvo para ESTE currículo ativo
-    if (existingMatch && (existingMatch.resumeId === resume?.id || (existingMatch as any).resumeVersionId === activeResumeVersionId)) {
+    // 1. Se já existe um match oficial salvo para ESTE currículo ativo: usa o scoreOverall salvo no banco como FONTE ÚNICA DE VERDADE
+    if (existingMatch && (existingMatch.resumeId === resume?.id || (existingMatch as any).resume_id === resume?.id || (existingMatch as any).resumeVersionId === activeResumeVersionId)) {
+      const score = existingMatch.scoreOverall;
+
       const explanation = await JobMatchExplanationService.getOrGenerateExplanation(
         userId,
         job,
@@ -49,48 +50,24 @@ export class UnifiedMatchService {
         activeResumeVersionId
       ).catch(() => null);
 
-      const score = existingMatch.scoreOverall ?? explanation?.careerFitScore ?? 50;
-
       return {
         scoreOverall: score,
         confidence: 'high',
         explanation,
-        missingSkills: (existingMatch as any).missingSkills || [],
-        matchedSkills: (existingMatch as any).matchedSkills || [],
+        missingSkills: (existingMatch as any).gap_analysis?.missingSkills || (existingMatch as any).missingSkills || [],
+        matchedSkills: (existingMatch as any).gap_analysis?.matchedSkills || (existingMatch as any).matchedSkills || [],
         reason: explanation?.overallMatchReason || `Match de ${score}% com o currículo ativo.`
       };
     }
 
-    // 2. Se não há match salvo, calcula deterministicamente com os dados do currículo ATIVO
-    let calculatedScore = (job as any).scoreOverall ?? (job as any).scores?.overall ?? 50;
-    let missingSkills: string[] = [];
-
-    if (resume) {
-      const calculated = await MatchingEngine.calculateMatch(resume, job, careerProfileNew).catch(() => null);
-      if (calculated?.match) {
-        calculatedScore = calculated.match.scoreOverall;
-        missingSkills = calculated.gapAnalysis?.missingSkills || [];
-      }
-    }
-    
-    // Tenta obter/gerar explicação garantindo o escopo por activeResumeVersionId
-    const explanation = await JobMatchExplanationService.getOrGenerateExplanation(
-      userId,
-      job,
-      resume,
-      careerProfileNew,
-      activeResumeVersionId
-    ).catch(() => null);
-
-    const finalScore = explanation?.careerFitScore ?? calculatedScore;
-
+    // 2. Se não há match salvo no banco: retorna não calculado (0%) sem gerar números falsos preliminares
     return {
-      scoreOverall: finalScore,
-      confidence: 'medium',
-      explanation,
-      missingSkills,
+      scoreOverall: 0,
+      confidence: 'low',
+      explanation: null,
+      missingSkills: [],
       matchedSkills: [],
-      reason: explanation?.overallMatchReason || `Match de ${finalScore}% com o currículo ativo.`
+      reason: 'Nenhum match calculado para esta vaga. Clique em "Calcular Match" para analisar.'
     };
   }
 

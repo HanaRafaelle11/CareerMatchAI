@@ -105,32 +105,33 @@ export function useMyProfileAi(userId: string | undefined, resumeVersionId?: str
       }
 
       try {
-        // 1. Buscar o perfil de carreira
-        let query = supabase
-          .from('career_profiles')
-          .select('*')
-          .eq('user_id', userId);
+        let targetVersionId = resumeVersionId;
+        if (!targetVersionId) {
+          const { data: primaryVersion } = await supabase
+            .from('resume_versions')
+            .select('id')
+            .eq('user_id', userId)
+            .order('created_at', { ascending: false })
+            .limit(1)
+            .maybeSingle();
 
-        if (resumeVersionId) {
-          query = query.eq('resume_version_id', resumeVersionId);
-        } else {
-          query = query.order('created_at', { ascending: false }).limit(1);
+          if (primaryVersion?.id) {
+            targetVersionId = primaryVersion.id;
+          } else {
+            return { profile: null, insights: null };
+          }
         }
 
-        const { data: profileData, error: profileErr } = await query.maybeSingle();
+        const { data: profileData, error: profileErr } = await supabase
+          .from('career_profiles')
+          .select('*')
+          .eq('user_id', userId)
+          .eq('resume_version_id', targetVersionId)
+          .maybeSingle();
 
         if (profileErr) throw profileErr;
         if (!profileData) {
-          const { data: resumes } = await supabase
-            .from('resumes')
-            .select('id')
-            .eq('user_id', userId)
-            .limit(1);
-
-          if (!resumes || resumes.length === 0) {
-            return { profile: null, insights: null };
-          }
-          return localDB.getMockMyProfileAi(userId, resumeVersionId);
+          return { profile: null, insights: null };
         }
 
         const profile: CareerProfileNew = {

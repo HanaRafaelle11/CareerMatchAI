@@ -1081,6 +1081,35 @@ export function JobMatchHub({
     }
   }, [careerProfile, careerProfileNew]);
 
+  // Sincronizar e resetar palavras-chave de busca quando o currículo ativo for alterado/trocado
+  useEffect(() => {
+    const activeProf = careerProfileNew || careerProfile;
+    if (activeProf) {
+      const preferences = (careerProfileNew?.personal as any)?.preferences || {};
+      const targetRolesList = preferences.targetRoles || (careerProfile as any)?.targetRoles || [];
+      const defaultKeyword = targetRolesList[0] || preferences.searchKeywords?.[0] || (careerProfile as any)?.searchKeywords?.[0] || (primaryResume as any)?.headline?.split('|')[0]?.trim() || '';
+      
+      setSearchKeyword(defaultKeyword);
+      setActiveFilters(prev => ({
+        ...prev,
+        keyword: defaultKeyword
+      }));
+
+      const defaultLoc = preferences.preferredLocations?.[0] || (careerProfile as any)?.preferredLocations?.[0] || 'Brasil';
+      setSearchLocation(defaultLoc);
+      setActiveFilters(prev => ({
+        ...prev,
+        location: defaultLoc
+      }));
+    } else {
+      setSearchKeyword('');
+      setActiveFilters(prev => ({
+        ...prev,
+        keyword: ''
+      }));
+    }
+  }, [primaryResume?.id, activeResumeVersionId, careerProfileNew?.id]);
+
   useEffect(() => {
     const activeProf = careerProfileNew || careerProfile;
     if (activeProf) {
@@ -1441,6 +1470,7 @@ export function JobMatchHub({
     } catch (err: any) {
       const formatted = AppError.from(err);
       setAppError(formatted);
+      setErrorMsg(err.message || '⚠️ Não foi possível calcular o Match da vaga. Tente novamente.');
       AppError.logError(err, supabase, 'JobMatchHub.handleTriggerMatch', userId);
     } finally {
       setAnalyzingJobId(null);
@@ -2336,6 +2366,24 @@ export function JobMatchHub({
           <div className="lg:col-span-2 space-y-6">
             {selectedJob ? (
               <div className="space-y-6">
+                {errorMsg && (
+                  <div className="p-3.5 rounded-xl bg-red-500/10 border border-red-500/30 text-red-400 text-xs flex items-center justify-between gap-3 animate-fade-in">
+                    <div className="flex items-center gap-2">
+                      <AlertTriangle size={16} className="shrink-0 text-red-400" />
+                      <span>{errorMsg}</span>
+                    </div>
+                    <button
+                      onClick={() => {
+                        setErrorMsg('');
+                        handleTriggerMatch();
+                      }}
+                      className="px-3 py-1 rounded-lg bg-red-500/20 hover:bg-red-500/30 text-red-300 text-xs font-bold shrink-0 transition cursor-pointer"
+                    >
+                      Tentar Novamente
+                    </button>
+                  </div>
+                )}
+
                 {/* Descrição e Trigger */}
                 <CardGlass className="space-y-4">
                   <div className="flex justify-between items-start gap-4">

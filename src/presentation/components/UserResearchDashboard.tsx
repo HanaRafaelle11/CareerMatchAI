@@ -35,6 +35,12 @@ export const UserResearchDashboard: React.FC<UserResearchDashboardProps> = () =>
   const [sendAdminCopy, setSendAdminCopy] = useState<boolean>(true);
   const [wavePreview, setWavePreview] = useState<{ wave: string; eligible: number; invited: number; pending: number } | null>(null);
 
+  // Additional Drawer & Filter state
+  const [selectedUserDetail, setSelectedUserDetail] = useState<any | null>(null);
+  const [cohortFilter, setCohortFilter] = useState<string>('ALL');
+  const [dispatchStatus, setDispatchStatus] = useState<string | null>(null);
+
+
   useEffect(() => {
     fetchResearchData();
   }, []);

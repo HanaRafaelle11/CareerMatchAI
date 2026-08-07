@@ -82,22 +82,49 @@ export const UserResearchDashboard: React.FC<UserResearchDashboardProps> = () =>
   };
 
 
-  // Dispatch survey emails via wave
-  const handleDispatchWave = async (wave: string) => {
-    setDispatchStatus(`Disparando onda [${wave}]...`);
+  // Campaign & Giveaway Config
+  const [campaignStatus] = useState<string>('OPEN');
+  const [drawDate] = useState<string>('30/08/2026 às 20:00 (Horário de Brasília)');
+  const [sendAdminCopy, setSendAdminCopy] = useState<boolean>(true);
+  const [wavePreview, setWavePreview] = useState<{ wave: string; eligible: number; invited: number; pending: number } | null>(null);
+
+
+  // Dispatch survey emails via wave with safety preview
+  const handlePreviewWave = (wave: string) => {
+    const totalEligible = 37; // Total real beta users
+    const invitedCount = emailCampaigns.filter(c => c.cohort === wave || wave === 'ALL').length;
+    const pendingCount = Math.max(0, totalEligible - invitedCount);
+
+    setWavePreview({
+      wave,
+      eligible: totalEligible,
+      invited: invitedCount,
+      pending: pendingCount
+    });
+  };
+
+  const handleConfirmDispatchWave = async () => {
+    if (!wavePreview) return;
+    setDispatchStatus(`Disparando onda [${wavePreview.wave}] para ${wavePreview.pending} destinatários pendentes...`);
     try {
-      const res = await fetch('/api/send-survey-email', {
+      const res = await fetch('https://bdlpfrwebsmpohtclnxf.supabase.co/functions/v1/send-survey-email', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ cohortTarget: wave, emailType: 'initial_invite' })
+        body: JSON.stringify({ 
+          cohortTarget: wavePreview.wave, 
+          emailType: 'initial_invite',
+          sendAdminCopy
+        })
       });
       const data = await res.json();
-      setDispatchStatus(`✓ Sucesso! ${data.count || 0} e-mails registrados na onda [${wave}].`);
+      setDispatchStatus(`✓ Sucesso! E-mails registrados na onda [${wavePreview.wave}] (${data.count || wavePreview.pending} candidatos). ${sendAdminCopy ? '+1 Cópia administrativa enviada.' : ''}`);
+      setWavePreview(null);
       fetchResearchData();
     } catch (err: any) {
-      setDispatchStatus(`⚠️ Falha ao conectar Edge Function: ${err.message || 'Tentativa simulada concluída'}`);
+      setDispatchStatus(`⚠️ Erro ao disparar onda: ${err.message || 'Falha na conexão'}`);
     }
   };
+
 
   // Perform Giveaway Draw
   const handleSelectGiveawayWinner = async () => {
@@ -261,52 +288,129 @@ export const UserResearchDashboard: React.FC<UserResearchDashboardProps> = () =>
           </div>
         </div>
 
-        {/* BARRA DA META (20-30 RESPOSTAS) */}
-        <div className="p-4 rounded-xl bg-slate-950/60 border border-slate-800 space-y-2">
-          <div className="flex items-center justify-between text-xs">
-            <span className="font-semibold text-slate-300 flex items-center gap-1.5">
-              <BarChart3 className="w-4 h-4 text-emerald-400" />
-              Progresso da Meta de Respostas Beta:
-            </span>
-            <span className="font-mono font-bold text-emerald-400">
-              {totalResponses} / {targetGoal} respostas ({progressPercent}%)
-            </span>
+        {/* CONFIGURAÇÃO E STATUS DA CAMPANHA DE SORTEIO */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {/* META DA PESQUISA BETA */}
+          <div className="p-4 rounded-xl bg-slate-950/60 border border-slate-800 space-y-2">
+            <div className="flex items-center justify-between text-xs">
+              <span className="font-semibold text-slate-300 flex items-center gap-1.5" title="30 é a meta de respostas desta rodada, não o total de usuários da plataforma.">
+                <BarChart3 className="w-4 h-4 text-emerald-400" />
+                Meta da Pesquisa Beta (Amostragem):
+              </span>
+              <span className="font-mono font-bold text-emerald-400">
+                {totalResponses} / {targetGoal} respostas válidas ({progressPercent}%)
+              </span>
+            </div>
+            <div className="w-full bg-slate-800 h-2.5 rounded-full overflow-hidden">
+              <div 
+                className="bg-gradient-to-r from-emerald-500 via-teal-400 to-cyan-400 h-full rounded-full transition-all duration-500" 
+                style={{ width: `${progressPercent}%` }}
+              />
+            </div>
+            <p className="text-[11px] text-slate-400 pt-1">
+              * 30 é a meta de respostas desta rodada para validarmos PMF por coorte, não o universo total da plataforma.
+            </p>
           </div>
-          <div className="w-full bg-slate-800 h-2.5 rounded-full overflow-hidden">
-            <div 
-              className="bg-gradient-to-r from-emerald-500 via-teal-400 to-cyan-400 h-full rounded-full transition-all duration-500" 
-              style={{ width: `${progressPercent}%` }}
-            />
+
+          {/* STATUS DO PRÓXIMO SORTEIO */}
+          <div className="p-4 rounded-xl bg-slate-950/60 border border-slate-800 space-y-2 text-xs">
+            <div className="flex items-center justify-between">
+              <span className="font-semibold text-slate-300 flex items-center gap-1.5">
+                <Gift className="w-4 h-4 text-amber-400" />
+                Status do Sorteio 7 Dias PRO:
+              </span>
+              <span className={`px-2 py-0.5 rounded font-bold uppercase text-[10px] ${
+                campaignStatus === 'OPEN' ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30' : 'bg-amber-500/20 text-amber-400'
+              }`}>
+                {campaignStatus}
+              </span>
+            </div>
+            <div className="text-slate-300">
+              📅 Próximo Sorteio: <span className="font-bold text-amber-400">{drawDate}</span>
+            </div>
+            <div className="text-slate-400 text-[11px]">
+              Participantes elegíveis cadastrados: <strong className="text-white">{giveawayParticipants.filter(g => g.status === 'eligible').length}</strong>
+            </div>
           </div>
-          <p className="text-[11px] text-slate-400 pt-1">
-            * Amostra ideal: 20+ respostas para conclusões estatísticas por coorte com alta confiança.
-          </p>
         </div>
 
-        {/* CONTROLES DE DISPARO DE E-MAIL POR ONDA */}
-        <div className="pt-2 border-t border-slate-800 flex flex-wrap items-center justify-between gap-3 text-xs">
-          <span className="text-slate-400 font-medium">Disparo de E-mails em Ondas (Resend):</span>
-          <div className="flex flex-wrap gap-2">
-            <button
-              onClick={() => handleDispatchWave('activated')}
-              className="py-1.5 px-3 rounded-lg bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/30 text-emerald-400 font-medium transition"
-            >
-              Enviar Onda [Ativados]
-            </button>
-            <button
-              onClick={() => handleDispatchWave('not_activated')}
-              className="py-1.5 px-3 rounded-lg bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/30 text-amber-400 font-medium transition"
-            >
-              Enviar Onda [Não Ativados]
-            </button>
-            <button
-              onClick={() => handleDispatchWave('beta_general')}
-              className="py-1.5 px-3 rounded-lg bg-cyan-500/10 hover:bg-cyan-500/20 border border-cyan-500/30 text-cyan-400 font-medium transition"
-            >
-              Enviar Onda [Beta Geral]
-            </button>
+        {/* CONTROLES DE DISPARO DE E-MAIL POR ONDA COM SEGURANÇA */}
+        <div className="pt-3 border-t border-slate-800 space-y-3">
+          <div className="flex flex-wrap items-center justify-between gap-3 text-xs">
+            <div className="flex items-center gap-3">
+              <span className="text-slate-300 font-bold">Disparo em Ondas (Resend):</span>
+              <label className="flex items-center gap-1.5 text-slate-400 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={sendAdminCopy}
+                  onChange={(e) => setSendAdminCopy(e.target.checked)}
+                  className="rounded text-emerald-500 focus:ring-emerald-500 bg-slate-950 border-slate-700"
+                />
+                <span>☑ Enviar uma cópia para mim (Admin)</span>
+              </label>
+            </div>
+
+            <div className="flex flex-wrap gap-2">
+              <button
+                onClick={() => handlePreviewWave('activated')}
+                className="py-1.5 px-3 rounded-lg bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/30 text-emerald-400 font-medium transition"
+              >
+                Enviar Onda [Ativados]
+              </button>
+              <button
+                onClick={() => handlePreviewWave('not_activated')}
+                className="py-1.5 px-3 rounded-lg bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/30 text-amber-400 font-medium transition"
+              >
+                Enviar Onda [Não Ativados]
+              </button>
+              <button
+                onClick={() => handlePreviewWave('beta_general')}
+                className="py-1.5 px-3 rounded-lg bg-cyan-500/10 hover:bg-cyan-500/20 border border-cyan-500/30 text-cyan-400 font-medium transition"
+              >
+                Enviar Onda [Beta Geral]
+              </button>
+            </div>
           </div>
+
+          {/* CARD DE PRÉ-VISUALIZAÇÃO DA ONDA */}
+          {wavePreview && (
+            <div className="p-4 rounded-xl bg-slate-900 border border-cyan-500/40 text-xs space-y-3">
+              <div className="flex items-center justify-between font-bold text-white">
+                <span>Pré-Visualização do Disparo — Onda: [{wavePreview.wave}]</span>
+                <button onClick={() => setWavePreview(null)} className="text-slate-400 hover:text-white">✕</button>
+              </div>
+              <div className="grid grid-cols-3 gap-3 text-center">
+                <div className="p-2 rounded bg-slate-950 border border-slate-800">
+                  <span className="text-slate-400 block text-[10px]">Usuários Elegíveis</span>
+                  <span className="font-bold text-white">{wavePreview.eligible}</span>
+                </div>
+                <div className="p-2 rounded bg-slate-950 border border-slate-800">
+                  <span className="text-slate-400 block text-[10px]">Já Convidados</span>
+                  <span className="font-bold text-amber-400">{wavePreview.invited}</span>
+                </div>
+                <div className="p-2 rounded bg-slate-950 border border-slate-800">
+                  <span className="text-slate-400 block text-[10px]">Pendentes</span>
+                  <span className="font-bold text-emerald-400">{wavePreview.pending}</span>
+                </div>
+              </div>
+              <div className="flex items-center justify-end gap-3 pt-2">
+                <button
+                  onClick={() => setWavePreview(null)}
+                  className="py-1.5 px-4 rounded-lg bg-slate-800 text-slate-300 font-semibold"
+                >
+                  Cancelar
+                </button>
+                <button
+                  onClick={handleConfirmDispatchWave}
+                  className="py-1.5 px-5 rounded-lg bg-emerald-500 text-slate-950 font-extrabold hover:bg-emerald-400 shadow-md shadow-emerald-500/20"
+                >
+                  Confirmar Envio para {wavePreview.pending} Usuários
+                </button>
+              </div>
+            </div>
+          )}
         </div>
+
         {dispatchStatus && (
           <div className="p-2.5 rounded-lg bg-emerald-500/10 border border-emerald-500/30 text-emerald-300 text-xs">
             {dispatchStatus}
@@ -390,10 +494,17 @@ export const UserResearchDashboard: React.FC<UserResearchDashboardProps> = () =>
 
           <div className="p-3.5 rounded-xl bg-slate-900/80 border border-slate-800 space-y-1">
             <span className="text-[11px] text-slate-400">Taxa de Conclusão</span>
-            <div className="text-xl font-mono font-bold text-teal-400">
-              {emailCampaigns.length > 0 ? ((totalResponses / emailCampaigns.length) * 100).toFixed(1) : '100.0'}%
+            <div className="text-sm font-mono font-bold text-teal-400">
+              {(() => {
+                const totalInvited = emailCampaigns.length;
+                if (totalInvited === 0) return `${Math.min(100, Math.round((totalResponses / Math.max(1, totalResponses)) * 100))}.0%`;
+                const rate = (totalResponses / totalInvited) * 100;
+                if (rate > 100) return '⚠️ Anomalia de tracking';
+                return `${Math.min(100, rate).toFixed(1)}%`;
+              })()}
             </div>
           </div>
+
 
           <div className="p-3.5 rounded-xl bg-slate-900/80 border border-slate-800 space-y-1">
             <span className="text-[11px] text-slate-400">Consentimentos LGPD</span>

@@ -344,7 +344,6 @@ function AuthenticatedApp({
   const [isCopilotOpen, setIsCopilotOpen] = useState(false);
 
   const activeTabRef = useRef(activeTab);
-  const resumeTransitionTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
     activeTabRef.current = activeTab;
@@ -826,24 +825,10 @@ function AuthenticatedApp({
                   if (result && (result as any).resumeVersionId) {
                     handleSelectResumeVersion((result as any).resumeVersionId);
 
-                    // Indicador visual claro sobre a transição para a busca de vagas
                     setGlobalToast({
-                      message: '✨ Currículo analisado! Buscando vagas compatíveis com seu perfil em instantes...',
-                      type: 'info'
+                      message: '✨ Currículo analisado com sucesso! Clique em "Buscar vagas e ver seu Match" para continuar.',
+                      type: 'success'
                     });
-
-                    // Transição automática guiada para o hub de vagas após exibição do resultado da análise (1.8s)
-                    if (resumeTransitionTimeoutRef.current) {
-                      clearTimeout(resumeTransitionTimeoutRef.current);
-                    }
-
-                    resumeTransitionTimeoutRef.current = setTimeout(() => {
-                      // Cancela o redirect se o usuário navegou manualmente para outra aba durante o intervalo
-                      if (activeTabRef.current === 'profile') {
-                        handleSetActiveTab('match');
-                        setMatchHubInitialSubTab('discover');
-                      }
-                    }, 1800);
                   }
                 } catch (err) {
                   console.error(err);

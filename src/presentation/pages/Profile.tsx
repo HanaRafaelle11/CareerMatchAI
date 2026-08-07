@@ -203,17 +203,43 @@ export function Profile({
   const setActiveTab = propSetActiveTab;
 
   useEffect(() => {
-    if (!isSupabaseConfigured || !supabase) return;
+    if (!isSupabaseConfigured || !supabase || !user?.id) {
+      setSuggestedJobs([]);
+      return;
+    }
+    
     supabase
       .from('jobs')
       .select('id, title, company_name, location')
-      .limit(3)
-      .then(({ data }) => {
-        if (data && data.length > 0) {
-          setSuggestedJobs(data);
+      .eq('user_id', user.id)
+      .order('created_at', { ascending: false })
+      .limit(10)
+      .then(({ data, error }) => {
+        if (!error && data && data.length > 0) {
+          const targetRoles = (careerProfileNew?.personal as any)?.preferences?.targetRoles || [];
+          const headline = (careerProfileNew?.personal?.headline || '').toLowerCase();
+          const userSkills = (careerProfileNew?.skills || []).map(s => (typeof s === 'string' ? s : s.name).toLowerCase());
+          
+          const isOfficeCandidate = userSkills.some(s => /customer success|cs|salesforce|react|typescript|node|gerência|gerente|diretor|lead|marketing/i.test(s)) ||
+            targetRoles.some((r: string) => /success|cs|dev|manager|eng|soft|lider|analista|customer/i.test(r.toLowerCase())) ||
+            headline.includes('customer success') || headline.includes('cs');
+
+          const validJobs = data.filter(job => {
+            const titleLower = (job.title || '').toLowerCase();
+            const isCulinaryOrOperational = /cozinheiro|cozinheira|cozinha|gastronomia|chefe de cozinha|garçom|garçonete|barista|gari|coletor|limpeza/i.test(titleLower);
+            
+            if (isOfficeCandidate && isCulinaryOrOperational) {
+              return false; // Descarta vagas fora do domínio do currículo ativo
+            }
+            return true;
+          });
+
+          setSuggestedJobs(validJobs.slice(0, 3));
+        } else {
+          setSuggestedJobs([]);
         }
       });
-  }, []);
+  }, [user?.id, activeResumeVersionId, careerProfileNew]);
 
   useEffect(() => {
     if (isUploading) {

@@ -38,46 +38,98 @@ export function useJobDiscovery(
       let finalLocation = filters.location;
       let finalRemoteOnly = filters.remoteOnly;
 
+      // ── Normalização de Localização (Cidade + UF) ──
+      const normalizeLocationWithUF = (locStr: string): string => {
+        if (!locStr) return 'Brasil';
+        const clean = locStr.trim();
+        if (clean.toLowerCase() === 'brasil' || clean.toLowerCase() === 'remoto') return clean;
+
+        // Se já possui sigla de UF de 2 letras ao final (ex: "São Paulo SP" ou "São Paulo, SP")
+        if (/\s+([A-Z]{2})$/i.test(clean) || /,\s*([A-Z]{2})$/i.test(clean)) {
+          return clean.replace(/,\s*/, ' ');
+        }
+
+        // Mapeamento de principais capitais e regiões metropolitanas do Brasil
+        const ufMap: Record<string, string> = {
+          'são paulo': 'São Paulo SP',
+          'sao paulo': 'São Paulo SP',
+          'rio de janeiro': 'Rio de Janeiro RJ',
+          'belo horizonte': 'Belo Horizonte MG',
+          'curitiba': 'Curitiba PR',
+          'porto alegre': 'Porto Alegre RS',
+          'brasília': 'Brasília DF',
+          'brasilia': 'Brasília DF',
+          'salvador': 'Salvador BA',
+          'fortaleza': 'Fortaleza CE',
+          'recife': 'Recife PE',
+          'campinas': 'Campinas SP',
+          'guarulhos': 'Guarulhos SP',
+          'osasco': 'Osasco SP',
+          'barueri': 'Barueri SP',
+          'santo andré': 'Santo André SP',
+          'santo andre': 'Santo André SP',
+          'são bernardo do campo': 'São Bernardo do Campo SP',
+          'diadema': 'Diadema SP',
+          'niterói': 'Niterói RJ',
+          'niteroi': 'Niterói RJ',
+          'florianópolis': 'Florianópolis SC',
+          'goiânia': 'Goiânia GO',
+          'goiania': 'Goiânia GO',
+          'manaus': 'Manaus AM',
+          'belém': 'Belém PA',
+          'belem': 'Belém PA'
+        };
+
+        const key = clean.toLowerCase();
+        return ufMap[key] || `${clean} SP`; // Fallback padrão adiciona UF se ausente
+      };
+
+      // ── Extração de Variações de Título (Do genérico de alto volume ao específico) ──
+      const extractTitleVariations = (rawTitle: string): string[] => {
+        if (!rawTitle) return ['Customer Success'];
+        const lower = rawTitle.toLowerCase();
+
+        if (lower.includes('customer success') || lower.includes('cs') || lower.includes('sucesso do cliente')) {
+          return ['Customer Success', 'Customer Success Manager', 'Analista de Customer Success', 'Sucesso do Cliente', 'Customer Experience'];
+        }
+        if (lower.includes('desenvolv') || lower.includes('dev') || lower.includes('software') || lower.includes('engineer')) {
+          return ['Desenvolvedor', 'Engenheiro de Software', 'Desenvolvedor Full Stack', 'Desenvolvedor Frontend'];
+        }
+        if (lower.includes('vendas') || lower.includes('account executive') || lower.includes('comercial') || lower.includes('sales')) {
+          return ['Account Executive', 'Executivo de Vendas', 'Consultor de Vendas', 'Vendedor'];
+        }
+        if (lower.includes('produto') || lower.includes('product')) {
+          return ['Product Manager', 'Product Owner', 'Gerente de Produto'];
+        }
+
+        // Caso genérico: remove prefixos hierárquicos e extrai o núcleo de mercado
+        let core = rawTitle
+          .replace(/^(supervisor|gerente|coordenador|analista|especialista|head|diretor|líder|lider|assistente|auxiliar)\s+(de\s+|em\s+)?/i, '')
+          .trim();
+
+        if (core.length > 30) core = core.split(/\s+/).slice(0, 2).join(' ');
+        return [core || rawTitle, rawTitle];
+      };
+
       // ── Busca Inteligente Baseada no Perfil Consolidado ──
       if (careerProfileNew) {
         const preferences = (careerProfileNew.personal as any)?.preferences || {};
 
-        const cleanSearchTerm = (raw: string): string => {
-          if (!raw) return '';
-          let clean = raw.replace(/\(.*?\)/g, '');
-          if (clean.includes('|')) clean = clean.split('|')[0];
-          if (clean.includes('-') && clean.length > 35) clean = clean.split('-')[0];
-          if (clean.includes('/')) clean = clean.split('/')[0];
-          clean = clean
-            .replace(/Profissional\s+(especialista\s+)?com\s+foco\s+em/i, '')
-            .replace(/Especialista\s+em/i, '')
-            .trim();
-          if (clean.length > 40) {
-            const words = clean.split(/\s+/);
-            clean = words.slice(0, 3).join(' ');
-          }
-          return clean.trim();
-        };
-
         if (filters.keyword) {
-          // Se o usuário digitou uma busca manual, foca estritamente nela
-          finalKeywords = [cleanSearchTerm(filters.keyword)];
+          finalKeywords = [filters.keyword.trim()];
         } else {
-          // 1. Gerar múltiplas palavras-chave/sinônimos dos cargos-alvo
-          const targetRoles = (preferences.targetRoles || []).map(cleanSearchTerm).filter(Boolean);
-          const searchKeywordsPref = (preferences.searchKeywords || []).map(cleanSearchTerm).filter(Boolean);
-          finalKeywords = [...searchKeywordsPref, ...targetRoles];
-
-          if (finalKeywords.length === 0) {
-            const headline = cleanSearchTerm(careerProfileNew.personal?.headline || '');
-            const lastRole = cleanSearchTerm(careerProfileNew.experience?.[0]?.role || '');
-            finalKeywords = [headline, lastRole].filter((v): v is string => !!v);
-          }
+          // 1. Gerar múltiplas variações de alto volume no mercado
+          const rawRole = preferences.targetRoles?.[0] || careerProfileNew.personal?.headline || careerProfileNew.experience?.[0]?.role || '';
+          const variations = extractTitleVariations(rawRole);
+          finalKeywords = variations;
         }
 
-        // 2. Otimizar localização (cidade ou país)
+        // 2. Otimizar localização (cidade + UF)
         if (!finalLocation) {
-          finalLocation = preferences.preferredLocations?.[0] || careerProfileNew.personal?.location || 'Brasil';
+          const rawLoc = preferences.preferredLocations?.[0] || careerProfileNew.personal?.location || 'Brasil';
+          finalLocation = normalizeLocationWithUF(rawLoc);
+        } else {
+          finalLocation = normalizeLocationWithUF(finalLocation);
         }
 
         // 3. Mapear modalidade remota
@@ -87,15 +139,16 @@ export function useJobDiscovery(
       } else {
         // Fallback básico se sem currículo/perfil estruturado
         finalKeywords = [filters.keyword || 'Vagas'];
+        finalLocation = normalizeLocationWithUF(finalLocation || 'Brasil');
       }
 
       // Limitar a no máximo 3 termos paralelos para evitar limites de tráfego
       const keywordsToSearch = finalKeywords.filter(Boolean).slice(0, 3);
       if (keywordsToSearch.length === 0) {
-        keywordsToSearch.push('Vagas');
+        keywordsToSearch.push('Customer Success');
       }
 
-      const searchResult = await JobSearchService.searchJobs({
+      let searchResult = await JobSearchService.searchJobs({
         keyword: keywordsToSearch[0],
         keywords: keywordsToSearch,
         location: finalLocation,
@@ -104,6 +157,20 @@ export function useJobDiscovery(
         seniority: filters.seniority,
         page: filters.page || 1
       });
+
+      // FALLBACK AUTOMÁTICO: Se o 1º termo retornar 0 vagas, tenta a próxima variação mais genérica
+      if ((!searchResult.results || searchResult.results.length === 0) && keywordsToSearch.length > 1) {
+        console.log(`[useJobDiscovery] 0 vagas retornadas para "${keywordsToSearch[0]}". Executando fallback automático para "${keywordsToSearch[1]}"...`);
+        searchResult = await JobSearchService.searchJobs({
+          keyword: keywordsToSearch[1],
+          keywords: keywordsToSearch.slice(1),
+          location: finalLocation,
+          remoteOnly: finalRemoteOnly,
+          workModes: filters.workModes,
+          seniority: filters.seniority,
+          page: filters.page || 1
+        });
+      }
 
       // ── Pós-processamento inteligente e Ordenação das vagas ──
       if (careerProfileNew) {

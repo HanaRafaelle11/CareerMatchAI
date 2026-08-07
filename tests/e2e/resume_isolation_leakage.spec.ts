@@ -59,7 +59,7 @@ test.describe('E2E Regressão — Prevenção Estrita de Vazamento de Dados Entr
     await ensureAuthenticated(page);
   });
 
-  test('Garantir isolamento total de dados de match ao trocar/excluir currículos', async ({ page }) => {
+  test('Garantir isolamento total de dados de match e estabilidade de navegação ao trocar/excluir currículos', async ({ page }) => {
     // ── PASSO 1: UPLOAD DO CURRÍCULO A (Gastronomia / Cozinheira) ──
     await navigateSidebar(page, "Currículo");
     const fileInput = page.locator('input[type="file"]');
@@ -76,14 +76,12 @@ test.describe('E2E Regressão — Prevenção Estrita de Vazamento de Dados Entr
       buffer: Buffer.from(cvAText)
     });
 
-    // Aguardar confirmação de upload/processamento do Currículo A
     await page.waitForTimeout(3000);
 
     // ── PASSO 2: IR PARA ENCONTRAR VAGAS E GERAR MATCH DE UMA VAGA DE GASTRONOMIA ──
     await navigateSidebar(page, "Compatibilidade");
     await page.waitForTimeout(2000);
 
-    // Selecionar ou buscar vaga de Cozinheiro
     const searchInput = page.locator('input[placeholder*="cargo"], input[placeholder*="vaga"]').first();
     if (await searchInput.isVisible()) {
       await searchInput.fill('Cozinheiro');
@@ -114,12 +112,25 @@ test.describe('E2E Regressão — Prevenção Estrita de Vazamento de Dados Entr
       buffer: Buffer.from(cvBText)
     });
 
-    await page.waitForTimeout(3000);
+    // ── PASSO 5: VERIFICAR QUE TELA PERMANECE NO MEU PERFIL (SEM NAVEGAÇÃO AUTOMÁTICA) ──
+    await page.waitForTimeout(2500);
+    const profileHeading = page.locator('h2:has-text("Estruturação do Currículo"), h3:has-text("Perfil Profissional")').first();
+    await expect(profileHeading).toBeVisible();
 
-    // ── PASSO 5: BUSCAR VAGA DE COZINHEIRO E VERIFICAR QUE ZERO DADOS DO CURRÍCULO A APARECEM ──
-    await navigateSidebar(page, "Compatibilidade");
-    await page.waitForTimeout(2000);
+    // ── PASSO 6: VERIFICAR QUE A LISTA DE VAGAS RECENTES NÃO EXIBE COZINHEIRO PARA O CURRÍCULO CS ──
+    const profilePageContent = await page.content();
+    expect(profilePageContent).not.toContain('Cozinheiro Industrial Chefe');
 
+    // ── PASSO 7: NAVEGAR VIA CLIQUE EXPLÍCITO NO CTA "Buscar vagas e ver seu Match" ──
+    const ctaButton = page.locator('button:has-text("Buscar vagas e ver seu Match")').first();
+    if (await ctaButton.isVisible()) {
+      await ctaButton.click();
+      await page.waitForTimeout(2000);
+    } else {
+      await navigateSidebar(page, "Compatibilidade");
+    }
+
+    // ── PASSO 8: BUSCAR VAGA DE COZINHEIRO E VERIFICAR ZERO VAZAMENTO DO CURRÍCULO A ──
     const searchInputB = page.locator('input[placeholder*="cargo"], input[placeholder*="vaga"]').first();
     if (await searchInputB.isVisible()) {
       await searchInputB.fill('Cozinheiro');
@@ -127,13 +138,12 @@ test.describe('E2E Regressão — Prevenção Estrita de Vazamento de Dados Entr
       await page.waitForTimeout(2500);
     }
 
-    // Validar na tela inteira que termos exclusivos do Currículo A não vazam no diagnóstico do Currículo B
     const pageContent = await page.content();
     expect(pageContent).not.toContain('Maria Gastronomia');
     expect(pageContent).not.toContain('Culinária Italiana');
     expect(pageContent).not.toContain('Preparo de Molhos');
     expect(pageContent).not.toContain('Segurança Alimentar');
 
-    console.log('✅ TESTE E2E ANTI-VAZAMENTO DE CURRÍCULO PASSOU: Zero dados do Currículo A vazaram para o Currículo B!');
+    console.log('✅ TESTE E2E ANTI-VAZAMENTO E ESTABILIDADE DE NAVEGAÇÃO PASSOU COM SUCESSO!');
   });
 });

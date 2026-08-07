@@ -243,9 +243,11 @@ export const PublicSurveyPage: React.FC = () => {
     setErrorMsg(null);
 
     try {
+      const anonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJkbHBmcndlYnNtcG9odGNsbnhmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODM0ODA0MzksImV4cCI6MjA5OTA1NjQzOX0.3bpXJsBTfRprliYbd9V4UKk9TgspjuXpcF541p1IovU';
       const response = await fetch('https://bdlpfrwebsmpohtclnxf.supabase.co/functions/v1/submit-survey', {
         method: 'POST',
         headers: {
+          'Authorization': `Bearer ${anonKey}`,
           'Content-Type': 'application/json'
         },
         body: JSON.stringify({
@@ -253,6 +255,7 @@ export const PublicSurveyPage: React.FC = () => {
           formData
         })
       });
+
 
       const result = await response.json();
 

@@ -475,11 +475,13 @@ export const UserResearchDashboard: React.FC<UserResearchDashboardProps> = () =>
           </div>
 
           <div className="p-3.5 rounded-xl bg-slate-900/80 border border-slate-800 space-y-1">
-            <span className="text-[11px] text-slate-400">E-mails Entregues</span>
+            <span className="text-[11px] text-slate-400">Abertura detectada</span>
             <div className="text-xl font-mono font-bold text-cyan-400">
-              {emailCampaigns.filter(c => c.status === 'delivered' || c.status === 'opened' || c.status === 'clicked' || c.status === 'responded' || c.status === 'sent').length}
+              {emailCampaigns.filter(c => c.status === 'opened' || c.status === 'clicked' || c.status === 'responded').length}
             </div>
+            <span className="text-[9px] text-slate-500 block">* Rastreio por imagem/pixel</span>
           </div>
+
 
           <div className="p-3.5 rounded-xl bg-slate-900/80 border border-slate-800 space-y-1">
             <span className="text-[11px] text-slate-400">Pesquisas Iniciadas</span>
@@ -506,12 +508,117 @@ export const UserResearchDashboard: React.FC<UserResearchDashboardProps> = () =>
             </div>
           </div>
 
-
           <div className="p-3.5 rounded-xl bg-slate-900/80 border border-slate-800 space-y-1 cursor-pointer hover:border-indigo-500/50 transition" onClick={() => setSegmentDrawer({ title: 'Consentimentos LGPD Concedidos', users: Object.values(contactsMap).filter(c => c.permission_status === 'granted') })}>
             <span className="text-[11px] text-slate-400">Consentimentos LGPD</span>
             <div className="text-xl font-mono font-bold text-indigo-400">
               {Object.values(contactsMap).filter(c => c.permission_status === 'granted').length}
             </div>
+          </div>
+        </div>
+      </div>
+
+      {/* RASTREABILIDADE CANDIDATO POR CANDIDATO — QUEM FEZ O QUÊ? */}
+      <div className="p-6 rounded-2xl bg-[#121927] border border-slate-800 space-y-4">
+        <div className="flex items-center justify-between">
+          <h3 className="text-base font-bold text-white flex items-center gap-2">
+            <Users className="w-5 h-5 text-cyan-400" />
+            Matriz de Rastreabilidade Candidato por Candidato ("Quem fez o quê?")
+          </h3>
+          <span className="text-xs font-semibold text-slate-400">Jornada Individual Auditável</span>
+        </div>
+
+        <div className="overflow-x-auto">
+          <table className="w-full text-left text-xs text-slate-300 border-collapse">
+            <thead>
+              <tr className="border-b border-slate-800 text-slate-400 uppercase text-[10px] tracking-wider bg-slate-900/50">
+                <th className="p-3 font-semibold">Candidato</th>
+                <th className="p-3 font-semibold text-center">Enviado</th>
+                <th className="p-3 font-semibold text-center">Entregue</th>
+                <th className="p-3 font-semibold text-center">Abertura Detectada</th>
+                <th className="p-3 font-semibold text-center">Clicou</th>
+                <th className="p-3 font-semibold text-center">Pesq. Aberta</th>
+                <th className="p-3 font-semibold text-center">Iniciou</th>
+                <th className="p-3 font-semibold text-center">Abandono</th>
+                <th className="p-3 font-semibold text-center">Concluiu</th>
+                <th className="p-3 font-semibold text-center">LGPD</th>
+                <th className="p-3 font-semibold text-center">Sorteio</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-800/60">
+              {emailCampaigns.length === 0 ? (
+                <tr>
+                  <td colSpan={11} className="p-4 text-center text-slate-500 italic">Nenhum envio registrado ainda.</td>
+                </tr>
+              ) : (
+                emailCampaigns.map((c, idx) => {
+                  const hasResponse = surveyResponses.some(r => r.user_id === c.user_id);
+                  const hasContact = contactsMap[c.user_id]?.permission_status === 'granted';
+                  const isGiveaway = giveawayParticipants.some(g => g.user_id === c.user_id);
+                  const userEvents = surveyEvents.filter(e => e.user_id === c.user_id);
+                  
+                  const isDelivered = c.status === 'delivered' || c.status === 'opened' || c.status === 'clicked' || c.status === 'responded' || c.status === 'sent';
+                  const isOpened = c.status === 'opened' || c.status === 'clicked' || c.status === 'responded' || userEvents.some(e => e.event_name === 'email_opened');
+                  const isClicked = c.status === 'clicked' || c.status === 'responded' || userEvents.some(e => e.event_name === 'email_clicked');
+                  const isSurveyOpened = userEvents.some(e => e.event_name === 'survey_opened') || isClicked || hasResponse;
+                  const isStarted = userEvents.some(e => e.event_name === 'survey_started') || hasResponse;
+
+                  // Find drop-off question if abandoned
+                  const lastQuestionEvent = userEvents.filter(e => e.event_name === 'survey_question_viewed').pop();
+                  const abandonedQuestion = (!hasResponse && isStarted) ? `Q${lastQuestionEvent?.question_number || 1}` : '—';
+
+                  return (
+                    <tr key={c.id || idx} className="hover:bg-slate-900/40 transition">
+                      <td className="p-3 font-medium text-white flex items-center gap-2">
+                        <span>Usuário #{String(idx + 1).padStart(3, '0')}</span>
+                        {c.email?.includes('test') && <span className="px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-400 text-[9px] font-bold">QA</span>}
+                      </td>
+                      <td className="p-3 text-center text-emerald-400">✅</td>
+                      <td className="p-3 text-center">{isDelivered ? <span className="text-emerald-400">✅</span> : <span className="text-slate-600">❌</span>}</td>
+                      <td className="p-3 text-center">{isOpened ? <span className="text-cyan-400">✅</span> : <span className="text-slate-600">❌</span>}</td>
+                      <td className="p-3 text-center">{isClicked ? <span className="text-indigo-400">✅</span> : <span className="text-slate-600">❌</span>}</td>
+                      <td className="p-3 text-center">{isSurveyOpened ? <span className="text-indigo-400">✅</span> : <span className="text-slate-600">❌</span>}</td>
+                      <td className="p-3 text-center">{isStarted ? <span className="text-amber-400">✅</span> : <span className="text-slate-600">❌</span>}</td>
+                      <td className="p-3 text-center font-mono">{abandonedQuestion !== '—' ? <span className="text-rose-400 font-bold">{abandonedQuestion}</span> : <span className="text-slate-600">—</span>}</td>
+                      <td className="p-3 text-center">{hasResponse ? <span className="text-emerald-400">✅</span> : <span className="text-slate-600">❌</span>}</td>
+                      <td className="p-3 text-center">{hasContact ? <span className="text-emerald-400">✅</span> : <span className="text-slate-600">❌</span>}</td>
+                      <td className="p-3 text-center">{isGiveaway ? <span className="text-amber-400">✅</span> : <span className="text-slate-600">❌</span>}</td>
+                    </tr>
+                  );
+                })
+              )}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      {/* PAINEL DE TRILHA DE AUDITORIA DO SORTEIO */}
+      <div className="p-6 rounded-2xl bg-[#121927] border border-slate-800 space-y-4">
+        <div className="flex items-center justify-between">
+          <h3 className="text-base font-bold text-white flex items-center gap-2">
+            <Gift className="w-5 h-5 text-amber-400" />
+            Trilha de Auditoria do Sorteio (7 Dias PRO Ilimitado)
+          </h3>
+          <span className="px-2.5 py-1 rounded-full bg-amber-500/10 border border-amber-500/30 text-amber-400 font-mono text-xs font-bold">
+            Status: {campaignStatus}
+          </span>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 text-xs">
+          <div className="p-4 rounded-xl bg-slate-900/80 border border-slate-800 space-y-1">
+            <span className="text-slate-400">Data Programada</span>
+            <div className="font-mono font-bold text-white text-sm">{drawDate}</div>
+          </div>
+          <div className="p-4 rounded-xl bg-slate-900/80 border border-slate-800 space-y-1">
+            <span className="text-slate-400">Participantes Elegíveis</span>
+            <div className="font-mono font-bold text-amber-400 text-sm">{giveawayParticipants.length} candidatos</div>
+          </div>
+          <div className="p-4 rounded-xl bg-slate-900/80 border border-slate-800 space-y-1">
+            <span className="text-slate-400">Método de Sorteio</span>
+            <div className="font-mono font-bold text-cyan-400 text-xs">Crypto.getRandomValues()</div>
+          </div>
+          <div className="p-4 rounded-xl bg-slate-900/80 border border-slate-800 space-y-1">
+            <span className="text-slate-400">Lifecycle do Prêmio</span>
+            <div className="font-mono font-bold text-emerald-400 text-xs">GRANTED (Automático)</div>
           </div>
         </div>
       </div>
@@ -579,6 +686,7 @@ export const UserResearchDashboard: React.FC<UserResearchDashboardProps> = () =>
           </div>
         </div>
       )}
+
 
 
 

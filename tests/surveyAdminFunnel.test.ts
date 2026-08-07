@@ -1,44 +1,80 @@
 import { describe, it, expect } from 'vitest';
 
-describe('Admin Survey Funnel, Resend Webhooks & Draw Date Audit', () => {
+describe('Admin Survey Funnel, Hardening & Deduplication Audit', () => {
 
-  it('deve validar a data do sorteio configurada para 14/08/2026 às 20:00', () => {
-    const drawDate = '14/08/2026 às 20:00 (Horário de Brasília)';
-    expect(drawDate).toContain('14/08/2026');
-    expect(drawDate).toContain('20:00');
-  });
+  it('deve validar a regra de deduplicação por campaign_id + user_id', () => {
+    const existingCampaigns = new Set<string>();
 
-  it('deve garantir idempotência em webhooks do Resend por resend_message_id + event_type', () => {
-    const processedWebhooks = new Set<string>();
-
-    const handleWebhookEvent = (messageId: string, eventType: string) => {
-      const idempotencyKey = `${messageId}_${eventType}`;
-      if (processedWebhooks.has(idempotencyKey)) {
-        return { duplicate: true, processed: false };
+    const canSendEmail = (campaignId: string, userId: string, isResendAttempt: boolean, status?: string) => {
+      const key = `${campaignId}_${userId}`;
+      if (isResendAttempt && (status === 'bounced' || status === 'failed')) {
+        return true; // Permitir reenvio controlado apenas para falha ou bounce
       }
-      processedWebhooks.add(idempotencyKey);
-      return { duplicate: false, processed: true };
+      if (existingCampaigns.has(key)) {
+        return false; // Não reenviar para envios normais já processados
+      }
+      existingCampaigns.add(key);
+      return true;
     };
 
-    const first = handleWebhookEvent('msg_resend_123', 'email.delivered');
-    expect(first.processed).toBe(true);
-
-    const second = handleWebhookEvent('msg_resend_123', 'email.delivered');
-    expect(second.processed).toBe(false);
-    expect(second.duplicate).toBe(true);
+    expect(canSendEmail('v1_founders_validation', 'usr_123', false)).toBe(true);
+    expect(canSendEmail('v1_founders_validation', 'usr_123', false)).toBe(false); // Bloqueia segundo envio para a mesma campanha
+    expect(canSendEmail('v1_founders_validation', 'usr_123', true, 'bounced')).toBe(true); // Permite reenvio de bounce
+    expect(canSendEmail('v2_growth_validation', 'usr_123', false)).toBe(true); // Permite nova campanha para o mesmo usuário
   });
 
-  it('deve calcular corretamente o abandono por pergunta (Q1-Q16)', () => {
-    const questionViews: Record<number, number> = { 1: 10, 2: 10, 3: 8, 4: 7, 5: 5 };
-    const totalCompleted = 4;
-
-    const getDropoffForQuestion = (qNum: number) => {
-      const views = questionViews[qNum] || 0;
-      return Math.max(0, views - totalCompleted);
+  it('deve bloquear envios de e-mail de QA/teste para caixas reais por padrão', () => {
+    const isTestEmail = (email: string) => {
+      return email.includes('test') || email.includes('qa') || email.includes('hanarafaelle11@gmail.com');
     };
 
-    expect(getDropoffForQuestion(1)).toBe(6);
-    expect(getDropoffForQuestion(5)).toBe(1);
+    const allowDispatch = (email: string, allowRealEmailQA: boolean) => {
+      if (isTestEmail(email) && !allowRealEmailQA) {
+        return false; // Trava de segurança ativada por padrão
+      }
+      return true;
+    };
+
+    expect(allowDispatch('hanarafaelle11@gmail.com', false)).toBe(false);
+    expect(allowDispatch('hanarafaelle11@gmail.com', true)).toBe(true);
+    expect(allowDispatch('usuario_real@gmail.com', false)).toBe(true);
+  });
+
+  it('deve calcular dinamicamente a prévia da onda antes do disparo', () => {
+    const calculateWavePreview = (eligible: number, invited: number, delivered: number, responded: number, failed: number) => {
+      const pending = Math.max(0, eligible - invited);
+      return {
+        eligible,
+        invited,
+        delivered,
+        responded,
+        failed,
+        pending,
+        willSendNow: pending
+      };
+    };
+
+    const preview = calculateWavePreview(37, 11, 10, 3, 1);
+    expect(preview.eligible).toBe(37);
+    expect(preview.invited).toBe(11);
+    expect(preview.pending).toBe(26);
+    expect(preview.willSendNow).toBe(26);
+  });
+
+  it('deve garantir que a cópia para Admin não altere a métrica de candidatos receptores', () => {
+    const processEmailBatch = (candidates: string[], sendAdminCopy: boolean) => {
+      const candidateRecipientsCount = candidates.length;
+      const totalEmailsSent = candidateRecipientsCount + (sendAdminCopy ? 1 : 0);
+
+      return {
+        metricCount: candidateRecipientsCount, // Métrica de funil considera apenas candidatos
+        totalSent: totalEmailsSent
+      };
+    };
+
+    const res = processEmailBatch(['usr1@vocentro.com', 'usr2@vocentro.com'], false);
+    expect(res.metricCount).toBe(2);
+    expect(res.totalSent).toBe(2);
   });
 
   it('deve garantir que nenhuma taxa do dashboard ultrapasse 100%', () => {

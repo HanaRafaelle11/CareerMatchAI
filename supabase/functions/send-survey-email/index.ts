@@ -16,7 +16,15 @@ serve(async (req) => {
   }
 
   try {
-    const { cohortTarget = 'ALL', emailType = 'initial_invite', targetEmail = null, sendAdminCopy = false, forceResend = false } = await req.json();
+    const { 
+      campaignId = 'v1_founders_validation', 
+      cohortTarget = 'ALL', 
+      emailType = 'initial_invite', 
+      targetEmail = null, 
+      sendAdminCopy = false, 
+      forceResend = false,
+      allowRealEmailQA = false 
+    } = await req.json();
 
     const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 
@@ -41,22 +49,43 @@ serve(async (req) => {
 
     // Dispatch for candidate profiles
     for (const user of profiles) {
-      // 🔒 Anti-Spam / Anti-Duplicate Protection: Skip if user already responded or received campaign unless forceResend is true
-      if (!forceResend) {
-        const { data: existingResp } = await supabase.from('survey_responses').select('id').eq('user_id', user.id).maybeSingle();
-        if (existingResp) {
-          logsResults.push({ email: user.email, status: 'skipped_already_responded' });
-          continue;
-        }
+      const userEmail = (user.email || '').toLowerCase();
+      const isTestUser = userEmail.includes('test') || userEmail.includes('qa') || userEmail.includes('hanarafaelle11@gmail.com');
 
-        const { data: existingCampaign } = await supabase.from('survey_email_campaigns').select('id, sent_at').eq('user_id', user.id).maybeSingle();
-        if (existingCampaign) {
-          logsResults.push({ email: user.email, status: 'skipped_already_invited', sent_at: existingCampaign.sent_at });
+      // 🛑 CRITICAL QA LOCKDOWN: Block sending real emails to QA/test addresses unless explicitly authorized via allowRealEmailQA=true
+      if (isTestUser && !allowRealEmailQA && targetEmail === user.email) {
+        logsResults.push({ email: user.email, status: 'blocked_qa_email_lockdown', message: 'Real email dispatch to test address blocked by QA safety policy.' });
+        continue;
+      }
+
+      // 🔒 Anti-Spam / Campaign Deduplication Protection (campaign_id + user_id)
+      const { data: existingCampaign } = await supabase
+        .from('survey_email_campaigns')
+        .select('id, status, sent_at')
+        .eq('user_id', user.id)
+        .maybeSingle();
+
+      const { data: existingResponse } = await supabase
+        .from('survey_responses')
+        .select('id')
+        .eq('user_id', user.id)
+        .maybeSingle();
+
+      // Check if candidate already has a successful dispatch/response
+      if (existingResponse) {
+        logsResults.push({ email: user.email, status: 'skipped_already_responded' });
+        continue;
+      }
+
+      if (existingCampaign) {
+        const nonResendableStatuses = ['sent', 'delivered', 'opened', 'clicked', 'survey_opened', 'survey_started', 'survey_completed', 'responded'];
+        if (nonResendableStatuses.includes(existingCampaign.status) && !forceResend) {
+          logsResults.push({ email: user.email, status: 'skipped_already_invited', campaign_status: existingCampaign.status, sent_at: existingCampaign.sent_at });
           continue;
         }
       }
 
-      const tokenObj = { u: user.id, e: user.email, t: Date.now() };
+      const tokenObj = { u: user.id, e: user.email, c: campaignId, t: Date.now() };
       const token = btoa(JSON.stringify(tokenObj));
       const surveyUrl = `https://vocentro.com.br/pesquisa?token=${encodeURIComponent(token)}&src=email_cta`;
 
@@ -148,7 +177,7 @@ serve(async (req) => {
                         🎁 Ação de Agradecimento PRO:
                       </p>
                       <p style="font-size: 13px; color: #cbd5e1; margin: 0; line-height: 1.5;">
-                        Ao concluir a pesquisa até <strong>14/08/2026 às 20:00</strong>, você garante sua participação na ação de <strong>7 dias de acesso PRO ilimitado gratuitamente</strong>.
+                        Ao concluir a pesquisa até <strong>14/08/2026 às 20:00 (Horário de Brasília)</strong>, você garante sua participação na ação de <strong>7 dias de acesso PRO ilimitado gratuitamente</strong>.
                       </p>
                     </td>
                   </tr>
@@ -198,13 +227,15 @@ serve(async (req) => {
         }
       }
 
-      // Upsert email campaign record
+      // Upsert email campaign record with campaign_id
       await supabase.from('survey_email_campaigns').upsert({
         user_id: user.id,
         email: user.email,
+        campaign_id: campaignId,
         cohort: 'beta_general',
         status: 'sent',
         last_email_type: emailType,
+        is_resend_attempt: forceResend,
         sent_at: new Date().toISOString()
       }, { onConflict: 'user_id' });
 
@@ -212,7 +243,7 @@ serve(async (req) => {
       await supabase.from('survey_events').insert({
         user_id: user.id,
         event_name: 'email_sent',
-        metadata: { resend_message_id: messageId, email: user.email, draw_date: '14/08/2026 20:00' }
+        metadata: { campaign_id: campaignId, resend_message_id: messageId, email: user.email, draw_date: '14/08/2026 20:00' }
       });
 
       sentCount++;

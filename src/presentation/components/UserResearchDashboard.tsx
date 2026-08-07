@@ -94,12 +94,18 @@ export const UserResearchDashboard: React.FC<UserResearchDashboardProps> = () =>
   const handlePreviewWave = (wave: string) => {
     const totalEligible = 37; // Total real beta users
     const invitedCount = emailCampaigns.filter(c => c.cohort === wave || wave === 'ALL').length;
+    const deliveredCount = emailCampaigns.filter(c => c.status === 'delivered' || c.status === 'opened' || c.status === 'clicked' || c.status === 'responded').length;
+    const respondedCount = surveyResponses.length;
+    const failedCount = emailCampaigns.filter(c => c.status === 'bounced' || c.status === 'failed').length;
     const pendingCount = Math.max(0, totalEligible - invitedCount);
 
     setWavePreview({
       wave,
       eligible: totalEligible,
       invited: invitedCount,
+      delivered: deliveredCount,
+      responded: respondedCount,
+      failed: failedCount,
       pending: pendingCount
     });
   };
@@ -125,6 +131,7 @@ export const UserResearchDashboard: React.FC<UserResearchDashboardProps> = () =>
       setDispatchStatus(`⚠️ Erro ao disparar onda: ${err.message || 'Falha na conexão'}`);
     }
   };
+
 
 
   // Perform Giveaway Draw
@@ -375,41 +382,68 @@ export const UserResearchDashboard: React.FC<UserResearchDashboardProps> = () =>
 
           {/* CARD DE PRÉ-VISUALIZAÇÃO DA ONDA */}
           {wavePreview && (
-            <div className="p-4 rounded-xl bg-slate-900 border border-cyan-500/40 text-xs space-y-3">
+            <div className="p-4 rounded-xl bg-slate-900 border border-cyan-500/40 text-xs space-y-3 shadow-xl">
               <div className="flex items-center justify-between font-bold text-white">
-                <span>Pré-Visualização do Disparo — Onda: [{wavePreview.wave}]</span>
+                <span className="flex items-center gap-1.5 text-cyan-400">
+                  <Sparkles className="w-4 h-4" />
+                  PRÉVIA DA CAMPANHA — Onda: [{wavePreview.wave === 'ALL' ? 'Beta Geral' : wavePreview.wave}]
+                </span>
                 <button onClick={() => setWavePreview(null)} className="text-slate-400 hover:text-white">✕</button>
               </div>
-              <div className="grid grid-cols-3 gap-3 text-center">
+              
+              <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-7 gap-2 text-center">
                 <div className="p-2 rounded bg-slate-950 border border-slate-800">
-                  <span className="text-slate-400 block text-[10px]">Usuários Elegíveis</span>
-                  <span className="font-bold text-white">{wavePreview.eligible}</span>
+                  <span className="text-slate-400 block text-[9px] uppercase font-bold">Elegíveis</span>
+                  <span className="font-bold text-white text-sm">{wavePreview.eligible}</span>
                 </div>
                 <div className="p-2 rounded bg-slate-950 border border-slate-800">
-                  <span className="text-slate-400 block text-[10px]">Já Convidados</span>
-                  <span className="font-bold text-amber-400">{wavePreview.invited}</span>
+                  <span className="text-slate-400 block text-[9px] uppercase font-bold">Já Convidados</span>
+                  <span className="font-bold text-amber-400 text-sm">{wavePreview.invited}</span>
                 </div>
                 <div className="p-2 rounded bg-slate-950 border border-slate-800">
-                  <span className="text-slate-400 block text-[10px]">Pendentes</span>
-                  <span className="font-bold text-emerald-400">{wavePreview.pending}</span>
+                  <span className="text-slate-400 block text-[9px] uppercase font-bold">Já Entregues</span>
+                  <span className="font-bold text-cyan-400 text-sm">{wavePreview.delivered || 0}</span>
+                </div>
+                <div className="p-2 rounded bg-slate-950 border border-slate-800">
+                  <span className="text-slate-400 block text-[9px] uppercase font-bold">Já Responderam</span>
+                  <span className="font-bold text-emerald-400 text-sm">{wavePreview.responded || 0}</span>
+                </div>
+                <div className="p-2 rounded bg-slate-950 border border-slate-800">
+                  <span className="text-slate-400 block text-[9px] uppercase font-bold">Bounce/Falha</span>
+                  <span className="font-bold text-rose-400 text-sm">{wavePreview.failed || 0}</span>
+                </div>
+                <div className="p-2 rounded bg-slate-950 border border-slate-800">
+                  <span className="text-slate-400 block text-[9px] uppercase font-bold">Pendentes</span>
+                  <span className="font-bold text-teal-400 text-sm">{wavePreview.pending}</span>
+                </div>
+                <div className="p-2 rounded bg-emerald-950/60 border border-emerald-500/40">
+                  <span className="text-emerald-300 block text-[9px] uppercase font-bold">Serão Enviados</span>
+                  <span className="font-black text-emerald-400 text-sm">{wavePreview.pending}</span>
                 </div>
               </div>
-              <div className="flex items-center justify-end gap-3 pt-2">
-                <button
-                  onClick={() => setWavePreview(null)}
-                  className="py-1.5 px-4 rounded-lg bg-slate-800 text-slate-300 font-semibold"
-                >
-                  Cancelar
-                </button>
-                <button
-                  onClick={handleConfirmDispatchWave}
-                  className="py-1.5 px-5 rounded-lg bg-emerald-500 text-slate-950 font-extrabold hover:bg-emerald-400 shadow-md shadow-emerald-500/20"
-                >
-                  Confirmar Envio para {wavePreview.pending} Usuários
-                </button>
+
+              <div className="flex items-center justify-between pt-2 border-t border-slate-800">
+                <span className="text-[11px] text-slate-400">
+                  Resumo: <strong className="text-white">{wavePreview.eligible} elegíveis</strong> → <strong className="text-amber-400">{wavePreview.invited} já convidados</strong> → <strong className="text-emerald-400">{wavePreview.pending} pendentes serão enviados agora</strong>.
+                </span>
+                <div className="flex items-center gap-3">
+                  <button
+                    onClick={() => setWavePreview(null)}
+                    className="py-1.5 px-4 rounded-lg bg-slate-800 text-slate-300 font-semibold hover:bg-slate-700 transition"
+                  >
+                    Cancelar
+                  </button>
+                  <button
+                    onClick={handleConfirmDispatchWave}
+                    className="py-1.5 px-5 rounded-lg bg-emerald-500 text-slate-950 font-extrabold hover:bg-emerald-400 shadow-md shadow-emerald-500/20 transition"
+                  >
+                    Confirmar Envio para {wavePreview.pending} Usuários
+                  </button>
+                </div>
               </div>
             </div>
           )}
+
         </div>
 
         {dispatchStatus && (

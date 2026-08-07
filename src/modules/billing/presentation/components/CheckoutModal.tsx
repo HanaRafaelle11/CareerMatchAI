@@ -285,51 +285,62 @@ export function CheckoutModal({ isOpen, onClose, userId, userEmail, userName, pl
             </button>
           </div>
         ) : (
+          <form onSubmit={handleFormSubmit} className="space-y-6 overflow-x-hidden">
 
-          /* ── Tela 3: Formulário SaaS Unificado (Benefícios + Ciclo + Forma de Pagamento) ── */
-          <form onSubmit={handleFormSubmit} className="space-y-6">
             
             {/* Cabecalho SaaS com Badge e Preço */}
-            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 border-b border-border pb-4">
-              <div>
-                <div className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-amber-500/10 border border-amber-500/30 text-amber-500 font-extrabold text-[11px]">
-                  <Sparkles size={13} />
+            <div className="space-y-3 border-b border-border pb-4">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-500/10 border border-amber-500/30 text-amber-500 dark:text-amber-400 font-extrabold text-xs">
+                  <Sparkles size={14} className="animate-pulse text-amber-500 dark:text-amber-400" />
                   <span>{planSlug === 'test' ? 'PLANO TESTE DE HOMOLOGAÇÃO' : 'PLANO PRO VOCENTRO'}</span>
                 </div>
-                <h2 className="text-xl sm:text-2xl font-black text-foreground mt-1">
-                  {planSlug === 'test' ? 'Homologação de Pagamento Real (R$ 5,00)' : 'Eleve sua busca de emprego a nível Pro'}
-                </h2>
+                {planSlug !== 'test' && (
+                  <span className="text-[10px] bg-emerald-500/20 text-emerald-500 dark:text-emerald-400 border border-emerald-500/40 font-black px-2.5 py-0.5 rounded-full uppercase tracking-wider">
+                    Economize 30% no Mensal
+                  </span>
+                )}
               </div>
+              <h2 className="text-xl sm:text-2xl font-black text-foreground">
+                {planSlug === 'test' ? 'Homologação de Pagamento Real (R$ 5,00)' : 'Eleve sua busca de emprego a nível Pro'}
+              </h2>
 
-              {/* Seletor de Ciclo (Semanal / Mensal) */}
-              <div className="flex items-center bg-card p-1 rounded-xl border border-border shrink-0 gap-1">
+              {/* Seletor de Ciclo Responsivo Grid 2 colunas */}
+              <div className="grid grid-cols-2 gap-2 p-1.5 bg-slate-950/80 rounded-2xl border border-slate-800/80 w-full mt-2">
                 <button
                   type="button"
                   onClick={() => setBillingCycle('WEEKLY')}
-                  className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
-                    billingCycle === 'WEEKLY' ? 'bg-brand-500 text-white shadow' : 'text-muted-foreground hover:text-foreground'
+                  className={`py-2.5 px-3 rounded-xl text-xs font-extrabold transition-all cursor-pointer flex flex-col items-center justify-center gap-0.5 ${
+                    billingCycle === 'WEEKLY' 
+                      ? 'bg-brand-500 text-white shadow-lg shadow-brand-500/20 border border-brand-400' 
+                      : 'text-slate-400 hover:text-white hover:bg-slate-900'
                   }`}
                 >
-                  {planSlug === 'test' ? 'Semanal (R$ 5,00/sem)' : 'Semanal (R$ 9,90/sem)'}
+                  <span>{planSlug === 'test' ? 'Semanal (R$ 5,00)' : 'Semanal (R$ 9,90)'}</span>
+                  <span className="text-[10px] font-normal opacity-80">R$ 9,90 cobrados por semana</span>
                 </button>
                 <button
                   type="button"
                   onClick={() => setBillingCycle('MONTHLY')}
-                  className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
-                    billingCycle === 'MONTHLY' ? 'bg-brand-500 text-white shadow' : 'text-muted-foreground hover:text-foreground'
+                  className={`py-2.5 px-3 rounded-xl text-xs font-extrabold transition-all cursor-pointer flex flex-col items-center justify-center gap-0.5 ${
+                    billingCycle === 'MONTHLY' 
+                      ? 'bg-brand-500 text-white shadow-lg shadow-brand-500/20 border border-brand-400' 
+                      : 'text-slate-400 hover:text-white hover:bg-slate-900'
                   }`}
                 >
-                  <span>{planSlug === 'test' ? 'Mensal (R$ 5,00/mês)' : 'Mensal (R$ 29,90/mês)'}</span>
-
-                  {planSlug !== 'test' && (
-                    <span className="text-[9px] bg-emerald-500 text-white font-black px-1.5 py-0.5 rounded-full uppercase">
-                      Mais Vantajoso (Economize 30%)
-                    </span>
-                  )}
+                  <div className="flex items-center gap-1.5">
+                    <span>{planSlug === 'test' ? 'Mensal (R$ 5,00)' : 'Mensal (R$ 29,90)'}</span>
+                    {planSlug !== 'test' && (
+                      <span className="bg-emerald-500 text-slate-950 font-black text-[9px] px-1.5 py-0.2 rounded uppercase">
+                        -30%
+                      </span>
+                    )}
+                  </div>
+                  <span className="text-[10px] font-normal opacity-80">R$ 29,90 cobrados por mês</span>
                 </button>
-
               </div>
             </div>
+
 
             {/* Grade de Benefícios do Plano Pro */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 p-3.5 bg-card/60 border border-border rounded-2xl text-xs">

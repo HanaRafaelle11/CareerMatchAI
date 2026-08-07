@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../../infrastructure/api/supabaseClient';
 import { tracker } from '../../infrastructure/analytics/tracker';
+import { SurveyService } from '../../application/services/SurveyService';
+
 import { 
   Sparkles, 
   Gift, 
@@ -48,8 +50,9 @@ export const ProductValidationSurveyModal: React.FC<ProductValidationSurveyModal
     q8_pro_intent: '',
     q9_fair_price: '',
     q10_subscription_driver: '',
-    q11_nps: 10,
+    q11_nps: null as number | null,
     q12_interview_opt_in: '',
+
     q13_pmf_missing_feature: '',
     q14_value_moment: '',
     q15_main_difficulty: '',
@@ -173,13 +176,15 @@ export const ProductValidationSurveyModal: React.FC<ProductValidationSurveyModal
       if (giveawayErr) console.warn('[Survey] Erro não fatal em giveaway_participants:', giveawayErr);
 
       // 4. Analytics Track Completion
-      tracker.trackSurveyCompleted(cohort, 'dashboard_modal', formData.q11_nps, formData.q8_pro_intent);
+      tracker.trackSurveyCompleted(cohort, 'dashboard_modal', formData.q11_nps ?? 10, formData.q8_pro_intent);
       tracker.trackGiveawayRegistered(userEmail, surveyId);
 
-      // Save completion locally to prevent re-opening
-      localStorage.setItem(`survey_completed_${userId}`, 'true');
+
+      // Save completion locally via SurveyService to prevent re-opening
+      SurveyService.markSurveyCompleted(userId);
 
       setStep(17); // Move to completion screen
+
     } catch (err: any) {
       console.error('[Survey] Erro ao salvar pesquisa:', err);
       setErrorMsg(err.message || 'Erro ao enviar respostas. Por favor, tente novamente.');
@@ -615,11 +620,12 @@ export const ProductValidationSurveyModal: React.FC<ProductValidationSurveyModal
                 {Array.from({ length: 11 }, (_, i) => i).map((score) => (
                   <button
                     key={score}
+                    type="button"
                     onClick={() => {
                       setFormData({ ...formData, q11_nps: score });
                       handleNext(12, 'q11_nps');
                     }}
-                    className={`h-11 rounded-lg border font-bold text-sm transition-all ${
+                    className={`h-11 rounded-lg border font-bold text-sm transition-all cursor-pointer ${
                       formData.q11_nps === score
                         ? 'bg-emerald-500 border-emerald-400 text-slate-950 scale-110 shadow-lg shadow-emerald-500/30'
                         : 'bg-slate-900 border-slate-800 text-slate-300 hover:border-slate-700 hover:bg-slate-800'
@@ -629,8 +635,12 @@ export const ProductValidationSurveyModal: React.FC<ProductValidationSurveyModal
                   </button>
                 ))}
               </div>
+              {formData.q11_nps === null && (
+                <p className="text-xs text-amber-400 font-medium">Selecione uma nota para continuar.</p>
+              )}
             </div>
           )}
+
 
           {/* PERGUNTA 12: Entrevista */}
           {step === 12 && (

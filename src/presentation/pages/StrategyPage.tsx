@@ -1428,6 +1428,7 @@ export function StrategyPage({
                             <CardGlass
                               key={app.id}
                               draggable
+                              title={`${app.jobTitle} — ${app.companyName}`}
                               onDragStart={e => {
                                 e.dataTransfer.effectAllowed = 'move';
                                 e.dataTransfer.setData('text/plain', app.id);
@@ -1439,6 +1440,7 @@ export function StrategyPage({
                                 draggedAppId === app.id ? 'opacity-40 border-brand-500 border-dashed' : ''
                               }`}
                             >
+
                               <div className="flex justify-between items-start gap-1">
                                 <div className="truncate flex-1">
                                   <h4 className="font-bold text-foreground truncate text-xs">{app.jobTitle}</h4>
@@ -1772,7 +1774,8 @@ export function StrategyPage({
       {subTab === 'journal' && (
         <div className="space-y-6 animate-slide-in">
           <div>
-            <h3 className="font-display font-bold text-base text-slate-200">Diário de Bordo & AI Journal</h3>
+            <h3 className="font-display font-bold text-base text-slate-200">Diário de Bordo</h3>
+
             <p className="text-xs text-slate-500 mt-1">Registre reflexões pós-entrevista para refinar sua comunicação.</p>
           </div>
 

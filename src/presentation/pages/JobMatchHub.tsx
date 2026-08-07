@@ -28,6 +28,8 @@ import { useEntitlements, PaywallModal, CheckoutModal } from '../../modules/bill
 import { ApplicationPipelineService } from '../../application/services/ApplicationPipelineService';
 import { useToast } from '../../application/context/ToastContext';
 import { ProductValidationSurveyModal } from '../components/ProductValidationSurveyModal';
+import { SurveyService } from '../../application/services/SurveyService';
+
 
 
 
@@ -264,32 +266,42 @@ export function JobMatchHub({
     // Exclusão estrita de contas de teste
     const email = user.email.toLowerCase();
     const isTestAccount = ['example.com', 'hardening', 'e2e', 'admin', 'vocentro.com.br', 'demo', 'qa'].some(pat => email.includes(pat));
-    if (isTestAccount) return;
+    // Verificar se já respondeu via fonte única da verdade (SurveyService) ou descartou a pesquisa
+    let isCancelled = false;
+    const checkCompletionAndTrigger = async () => {
+      const isDismissed = localStorage.getItem(`survey_dismissed_${user.id}`);
+      const searchParams = new URLSearchParams(window.location.search);
+      const forceOpen = searchParams.get('open_survey') === 'true';
 
-    // Verificar se já respondeu ou descartou a pesquisa
-    const isCompleted = localStorage.getItem(`survey_completed_${user.id}`);
-    const isDismissed = localStorage.getItem(`survey_dismissed_${user.id}`);
-    const searchParams = new URLSearchParams(window.location.search);
-    const forceOpen = searchParams.get('open_survey') === 'true';
+      const isCompleted = await SurveyService.hasCompletedSurvey(user.id);
+      if (isCancelled) return;
 
-    if (forceOpen || (!isCompleted && !isDismissed)) {
-      // Determinar Coorte
-      const matchesCount = matches?.length || 0;
-      const appsCount = applications?.length || 0;
-      let cohort: 'activated' | 'not_activated' | 'beta_general' = 'beta_general';
+      if (forceOpen || (!isCompleted && !isDismissed && !isTestAccount)) {
 
-      if (matchesCount >= 1 && (appsCount >= 1 || isPro)) {
-        cohort = 'activated';
-      } else if (matchesCount === 0) {
-        cohort = 'not_activated';
+        // Determinar Coorte
+        const matchesCount = matches?.length || 0;
+        const appsCount = applications?.length || 0;
+        let cohort: 'activated' | 'not_activated' | 'beta_general' = 'beta_general';
+
+        if (matchesCount >= 1 && (appsCount >= 1 || isPro)) {
+          cohort = 'activated';
+        } else if (matchesCount === 0) {
+          cohort = 'not_activated';
+        }
+
+        setSurveyCohort(cohort);
+        // Pequeno delay para não assustar o usuário no carregamento imediato
+        setShowSurveyModal(true);
       }
+    };
 
-      setSurveyCohort(cohort);
-      // Pequeno delay para não assustar o usuário no carregamento imediato
-      const timer = setTimeout(() => setShowSurveyModal(true), 2500);
-      return () => clearTimeout(timer);
-    }
+    const timer = setTimeout(checkCompletionAndTrigger, 2500);
+    return () => {
+      isCancelled = true;
+      clearTimeout(timer);
+    };
   }, [user, matches, applications, isPro]);
+
 
   useEffect(() => {
     if (showAdaptationModal || rejectReasonModal || matchRejectionModal || showSurveyModal) {
@@ -4216,22 +4228,8 @@ export function JobMatchHub({
                             key={idx} 
                             className="flex flex-col justify-between space-y-4 hover:border-brand-500/30 transition-all relative overflow-hidden"
                           >
-                            {isBlurred && (
-                              <div 
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  triggerPaywall('weekly_limit');
-                                }}
-                                className="absolute inset-0 bg-slate-950/30 backdrop-blur-[2px] z-30 flex flex-col items-center justify-center gap-1.5 cursor-pointer transition-all hover:bg-slate-950/40 rounded-xl"
-                              >
-                                <div className="flex items-center gap-1.5 bg-slate-900/80 border border-slate-700/60 rounded-lg px-3 py-1.5 shadow-lg">
-                                  <span className="text-amber-400 text-sm">🔒</span>
-                                  <span className="text-xs font-bold text-slate-200">Desbloqueie esta vaga</span>
-                                </div>
-                              </div>
-                            )}
+                            <div className="space-y-2">
 
-                            <div className={`space-y-2 ${isBlurred ? 'filter blur-[4px] select-none opacity-60' : ''}`}>
                               <div className="flex justify-between items-start gap-3">
                                 <div className="flex gap-3 min-w-0">
                                 <div className="w-10 h-10 rounded-xl bg-surface-container-high border border-outline-variant/20 flex items-center justify-center font-bold text-xs text-primary shrink-0">
@@ -4332,9 +4330,33 @@ export function JobMatchHub({
                                 </span>
                               )}
                             </div>
+
+                            {isBlurred && (
+                              <div 
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  triggerPaywall('weekly_limit');
+                                }}
+                                className="p-3 rounded-xl bg-slate-950/90 border border-amber-500/40 flex items-center justify-between gap-3 cursor-pointer hover:border-amber-500/80 transition-all shadow-lg my-1"
+                              >
+                                <div className="flex items-center gap-2.5">
+                                  <span className="text-amber-400 text-base shrink-0">🔒</span>
+                                  <div className="text-left">
+                                    <p className="text-xs font-extrabold text-slate-200">Análise Estratégica & Copiloto Protegidos</p>
+                                    <p className="text-[10px] text-slate-400">Desbloqueie Matching IA Gemini, ATS & Candidaturas</p>
+                                  </div>
+                                </div>
+                                <button className="px-3 py-1.5 rounded-lg bg-amber-500 hover:bg-amber-400 text-slate-950 text-xs font-black shrink-0 transition-colors shadow">
+                                  Desbloquear Vaga
+                                </button>
+                              </div>
+                            )}
+
                           </div>
 
+
                           <div className="pt-4 border-t border-slate-900 dark:border-slate-900 light:border-slate-200 flex justify-between items-center gap-4">
+
                             {isValidUrl(job.sourceUrl || '') ? (
                               <button
                                 type="button"

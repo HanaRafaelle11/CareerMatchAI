@@ -87,7 +87,8 @@ export function useJobDiscovery(
       // ── Extração de Variações de Título (Do genérico de alto volume ao específico) ──
       const extractTitleVariations = (rawTitle: string): string[] => {
         if (!rawTitle) return ['Customer Success'];
-        const lower = rawTitle.toLowerCase();
+        const clean = rawTitle.trim();
+        const lower = clean.toLowerCase();
 
         if (lower.includes('customer success') || lower.includes('cs') || lower.includes('sucesso do cliente')) {
           return ['Customer Success', 'Customer Success Manager', 'Analista de Customer Success', 'Sucesso do Cliente', 'Customer Experience'];
@@ -101,15 +102,21 @@ export function useJobDiscovery(
         if (lower.includes('produto') || lower.includes('product')) {
           return ['Product Manager', 'Product Owner', 'Gerente de Produto'];
         }
+        if (lower.includes('operaç') || lower.includes('operac') || lower.includes('operations')) {
+          return ['Operações', 'Analista de Operações', 'Coordenador de Operações', 'Operations Manager'];
+        }
 
-        // Caso genérico: remove prefixos hierárquicos e extrai o núcleo de mercado
-        let core = rawTitle
-          .replace(/^(supervisor|gerente|coordenador|analista|especialista|head|diretor|líder|lider|assistente|auxiliar)\s+(de\s+|em\s+)?/i, '')
+        // Caso genérico: remove prefixos hierárquicos (masculinos e femininos) e sufixos compostos "& Operations", etc.
+        let core = clean
+          .replace(/^(supervisor[a]?|gerente|coordenador[a]?|analista|especialista|head|diretor[a]?|líder|lider|assistente|auxiliar)\s+(de\s+|em\s+)?/i, '')
+          .replace(/\s*(&|\+|\be\b)\s*(operations|operações|processos|projetos|tech|it|rh|marketing|vendas).*/i, '')
           .trim();
 
-        if (core.length > 30) core = core.split(/\s+/).slice(0, 2).join(' ');
-        return [core || rawTitle, rawTitle];
+        if (core.length > 25) core = core.split(/\s+/).slice(0, 2).join(' ');
+        const result = [core, clean].filter(Boolean);
+        return Array.from(new Set(result.length > 0 ? result : [clean]));
       };
+
 
       // ── Busca Inteligente Baseada no Perfil Consolidado ──
       if (careerProfileNew) {

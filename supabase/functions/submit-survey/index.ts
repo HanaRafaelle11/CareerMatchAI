@@ -78,28 +78,29 @@ serve(async (req) => {
     const { data: profile } = await supabase.from('profiles').select('id, email').eq('id', userId).maybeSingle();
     const targetEmail = profile?.email || email || 'usuario@vocentro.com.br';
 
-    // 5. Idempotency Check: Prevent duplicate submissions
+    // 5. Idempotency Check: Check if user already submitted this survey version
     const { data: existingResponse } = await supabase
       .from('survey_responses')
       .select('id')
       .eq('user_id', userId)
+      .eq('survey_version', 'v1_founders_validation')
       .maybeSingle();
 
     if (existingResponse) {
       return new Response(JSON.stringify({ 
-        success: false, 
+        success: true, 
         alreadyCompleted: true,
-        error: 'Você já respondeu a esta pesquisa de fundadores. Muito obrigado por ajudar a construir o VoCentro!' 
+        message: 'Você já respondeu a esta pesquisa de fundadores. Muito obrigado por ajudar a construir o VoCentro!' 
       }), {
-        status: 409,
+        status: 200,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' }
       });
     }
 
-    // 6. Insert into survey_responses
+    // 6. Upsert into survey_responses (idempotent, handling unique_user_survey_version safely)
     const { data: surveyRes, error: surveyErr } = await supabase
       .from('survey_responses')
-      .insert({
+      .upsert({
         user_id: userId,
         research_cohort: 'beta_general',
         high_intent: false,
@@ -124,7 +125,7 @@ serve(async (req) => {
         q14_value_moment: formData.q14_value_moment,
         q15_main_difficulty: formData.q15_main_difficulty,
         q16_urgency: formData.q16_urgency
-      })
+      }, { onConflict: 'user_id,survey_version' })
       .select('id')
       .single();
 
@@ -142,14 +143,14 @@ serve(async (req) => {
       permission_updated_at: new Date().toISOString()
     }, { onConflict: 'user_id' });
 
-    // 8. Insert into giveaway_participants
-    await supabase.from('giveaway_participants').insert({
+    // 8. Upsert into giveaway_participants (idempotent)
+    await supabase.from('giveaway_participants').upsert({
       user_id: userId,
       email: targetEmail,
       survey_response_id: surveyId,
       status: 'eligible',
       participated_at: new Date().toISOString()
-    });
+    }, { onConflict: 'user_id' });
 
     // 9. Update survey_email_campaigns
     await supabase.from('survey_email_campaigns').update({
@@ -164,6 +165,7 @@ serve(async (req) => {
       status: 200,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' }
     });
+
 
   } catch (err: any) {
     console.error('[submit-survey] Erro:', err);

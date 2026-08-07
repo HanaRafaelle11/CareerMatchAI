@@ -75,7 +75,11 @@ export function useCareerIntelligence(
       queryClient.invalidateQueries({ queryKey: ['job-applications'] });
       queryClient.invalidateQueries({ queryKey: ['applications'] });
       queryClient.invalidateQueries({ queryKey: ['user-applications'] });
+      queryClient.invalidateQueries({ queryKey: ['jobs'] });
+      queryClient.invalidateQueries({ queryKey: ['job-trash'] });
+      queryClient.invalidateQueries({ queryKey: ['job-discovery'] });
     }
+
   });
 
   return {

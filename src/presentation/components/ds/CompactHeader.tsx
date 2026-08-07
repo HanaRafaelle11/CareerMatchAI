@@ -101,13 +101,13 @@ export function CompactHeader({
               </button>
 
               {showDropdown && (
-                <div className="absolute right-0 top-full mt-1.5 w-64 rounded-xl bg-surface-container-high border border-outline-variant/30 shadow-xl z-30 p-1 flex flex-col gap-0.5">
-                  <div className="px-2.5 py-1.5 text-[9px] uppercase font-bold text-on-surface-variant tracking-wider border-b border-outline-variant/20 select-none">
+                <div className="absolute right-0 top-full mt-1.5 w-72 rounded-2xl bg-slate-950 dark:bg-slate-950 light:bg-white border border-slate-800 dark:border-slate-800 light:border-slate-200 shadow-2xl z-50 p-2 flex flex-col gap-1">
+                  <div className="px-3 py-2 text-[10px] uppercase font-bold text-slate-400 dark:text-slate-400 light:text-slate-500 tracking-wider border-b border-slate-800/80 select-none">
                     Selecione o currículo ativo
                   </div>
-                  <div className="max-h-48 overflow-y-auto flex flex-col gap-0.5 py-1">
+                  <div className="max-h-56 overflow-y-auto flex flex-col gap-1 py-1">
                     {resumes.length === 0 ? (
-                      <div className="px-2.5 py-2 text-xs text-on-surface-variant/80 italic select-none">
+                      <div className="px-3 py-2 text-xs text-slate-400 italic select-none">
                         Nenhum outro CV encontrado
                       </div>
                     ) : (
@@ -120,15 +120,15 @@ export function CompactHeader({
                               if (onSelectResume && r.resumeVersionId) onSelectResume(r.resumeVersionId);
                               setShowDropdown(false);
                             }}
-                            className={`w-full text-left px-2.5 py-1.5 rounded-lg text-xs flex items-center justify-between transition-colors ${
+                            className={`w-full text-left px-3 py-2 rounded-xl text-xs flex items-center justify-between transition-colors cursor-pointer ${
                               isCurrent
-                                ? 'bg-primary/10 text-primary font-semibold'
-                                : 'text-on-surface hover:bg-surface-container-highest'
+                                ? 'bg-brand-500/20 text-brand-400 font-bold border border-brand-500/30'
+                                : 'text-slate-200 dark:text-slate-200 light:text-slate-800 hover:bg-slate-900 dark:hover:bg-slate-900 light:hover:bg-slate-100'
                             }`}
                           >
                             <span className="truncate pr-2">{r.fileName}</span>
                             {isCurrent && (
-                              <Check size={12} className="shrink-0 text-primary" />
+                              <Check size={14} className="shrink-0 text-brand-400" />
                             )}
                           </button>
                         );
@@ -140,13 +140,14 @@ export function CompactHeader({
                       setShowDropdown(false);
                       onSwitchResume();
                     }}
-                    className="w-full text-center py-2 px-2.5 text-[10px] font-bold text-primary hover:bg-primary/5 rounded-lg border-t border-outline-variant/20 transition-colors flex items-center justify-center gap-1 cursor-pointer"
+                    className="w-full text-center py-2 px-3 text-[11px] font-bold text-brand-400 hover:bg-brand-500/10 rounded-xl border-t border-slate-800/80 transition-colors flex items-center justify-center gap-1.5 cursor-pointer mt-1"
                   >
-                    <Settings size={12} />
+                    <Settings size={13} />
                     Gerenciar / Enviar Currículos
                   </button>
                 </div>
               )}
+
             </>
           )}
           {onReanalyze && (

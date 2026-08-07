@@ -1,6 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { supabase } from '../../infrastructure/api/supabaseClient';
 import { tracker } from '../../infrastructure/analytics/tracker';
+import { SurveyService } from '../../application/services/SurveyService';
+
 import { 
   Sparkles, 
   Gift, 
@@ -46,8 +48,9 @@ export const PublicSurveyPage: React.FC = () => {
     q8_pro_intent: '',
     q9_fair_price: '',
     q10_subscription_driver: '',
-    q11_nps: 10,
+    q11_nps: null as number | null,
     q12_interview_opt_in: '',
+
     q13_pmf_missing_feature: '',
     q14_value_moment: '',
     q15_main_difficulty: '',
@@ -181,12 +184,8 @@ export const PublicSurveyPage: React.FC = () => {
 
   const checkPreviousCompletion = async (userId: string) => {
     try {
-      if (!supabase) {
-        setTokenValid(true);
-        return;
-      }
-      const { data: existing } = await supabase.from('survey_responses').select('id').eq('user_id', userId).maybeSingle();
-      if (existing) {
+      const isDone = await SurveyService.hasCompletedSurvey(userId);
+      if (isDone) {
         setAlreadyCompleted(true);
         setTokenValid(false);
         tracker.track('survey_token_validation_failed', 'UserResearch', { reason: 'already_completed' });
@@ -199,6 +198,7 @@ export const PublicSurveyPage: React.FC = () => {
       setTokenValid(true);
     }
   };
+
 
   const handleStartSurvey = () => {
     setStep(1);
@@ -261,6 +261,7 @@ export const PublicSurveyPage: React.FC = () => {
 
       if (!response.ok || !result.success) {
         if (result.alreadyCompleted) {
+          SurveyService.markSurveyCompleted(userInfo.id);
           setAlreadyCompleted(true);
           setTokenValid(false);
           return;
@@ -268,11 +269,15 @@ export const PublicSurveyPage: React.FC = () => {
         throw new Error(result.error || 'Ocorreu um erro ao salvar suas respostas. Por favor tente novamente.');
       }
 
+      // Mark completed in SurveyService
+      SurveyService.markSurveyCompleted(userInfo.id);
+
       // Track completion
-      tracker.trackSurveyCompleted('beta_general', 'email_campaign', formData.q11_nps, formData.q8_pro_intent);
+      tracker.trackSurveyCompleted('beta_general', 'email_campaign', formData.q11_nps || 10, formData.q8_pro_intent);
       tracker.trackGiveawayRegistered(userInfo.email, userInfo.id);
 
       setStep(17);
+
     } catch (err: any) {
       console.error('[PublicSurvey] Erro ao enviar respostas:', err);
       setErrorMsg(err.message || 'Ocorreu um erro ao salvar suas respostas. Por favor tente novamente.');
@@ -604,13 +609,35 @@ export const PublicSurveyPage: React.FC = () => {
               {step === 9 && (
                 <div className="space-y-4">
                   <h3 className="text-lg font-bold text-white">De 0 a 10, qual a probabilidade de você recomendar o VoCentro a um amigo?</h3>
-                  <div className="grid grid-cols-11 gap-1">
-                    {Array.from({ length: 11 }, (_, i) => i).map(score => (
-                      <button key={score} onClick={() => { setFormData({ ...formData, q11_nps: score }); handleNext(10, 'q11_nps'); }} className="h-10 rounded font-bold text-xs bg-slate-900 border border-slate-800 text-slate-200 hover:bg-emerald-500 hover:text-slate-950 transition">{score}</button>
-                    ))}
+                  <p className="text-xs text-slate-400">Selecione uma nota de 0 (pouco provável) a 10 (muito provável):</p>
+                  <div className="grid grid-cols-11 gap-1.5">
+                    {Array.from({ length: 11 }, (_, i) => i).map(score => {
+                      const isSelected = formData.q11_nps === score;
+                      return (
+                        <button
+                          key={score}
+                          type="button"
+                          onClick={() => {
+                            setFormData({ ...formData, q11_nps: score });
+                            handleNext(10, 'q11_nps');
+                          }}
+                          className={`h-11 rounded-xl font-bold text-xs transition cursor-pointer ${
+                            isSelected
+                              ? 'bg-emerald-500 text-slate-950 border-2 border-emerald-400 shadow-lg shadow-emerald-500/20'
+                              : 'bg-slate-900 border border-slate-800 text-slate-200 hover:border-slate-700 hover:text-white'
+                          }`}
+                        >
+                          {score}
+                        </button>
+                      );
+                    })}
                   </div>
+                  {formData.q11_nps === null && (
+                    <p className="text-xs text-amber-400 font-medium">Selecione uma nota para continuar.</p>
+                  )}
                 </div>
               )}
+
 
               {/* QUESTÃO 10 (q13_pmf_missing_feature) */}
               {step === 10 && (

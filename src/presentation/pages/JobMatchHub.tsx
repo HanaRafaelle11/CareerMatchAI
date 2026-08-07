@@ -27,6 +27,9 @@ import { useAuth } from '../../application/hooks/useAuth';
 import { useEntitlements, PaywallModal, CheckoutModal } from '../../modules/billing';
 import { ApplicationPipelineService } from '../../application/services/ApplicationPipelineService';
 import { useToast } from '../../application/context/ToastContext';
+import { ProductValidationSurveyModal } from '../components/ProductValidationSurveyModal';
+
+
 
 const isValidUrl = (url?: string): boolean => !!(url && (url.startsWith('http://') || url.startsWith('https://')));
 
@@ -251,8 +254,45 @@ export function JobMatchHub({
   const { showToast } = useToast();
   const setToast = showToast;
 
+  // Lógica de Exibição da Pesquisa de Usuários Fundadores (v1_founders_validation)
+  const [showSurveyModal, setShowSurveyModal] = useState<boolean>(false);
+  const [surveyCohort, setSurveyCohort] = useState<'activated' | 'not_activated' | 'beta_general'>('beta_general');
+
   useEffect(() => {
-    if (showAdaptationModal || rejectReasonModal || matchRejectionModal) {
+    if (!user || !user.email) return;
+
+    // Exclusão estrita de contas de teste
+    const email = user.email.toLowerCase();
+    const isTestAccount = ['example.com', 'hardening', 'e2e', 'admin', 'vocentro.com.br', 'demo', 'qa'].some(pat => email.includes(pat));
+    if (isTestAccount) return;
+
+    // Verificar se já respondeu ou descartou a pesquisa
+    const isCompleted = localStorage.getItem(`survey_completed_${user.id}`);
+    const isDismissed = localStorage.getItem(`survey_dismissed_${user.id}`);
+    const searchParams = new URLSearchParams(window.location.search);
+    const forceOpen = searchParams.get('open_survey') === 'true';
+
+    if (forceOpen || (!isCompleted && !isDismissed)) {
+      // Determinar Coorte
+      const matchesCount = matches?.length || 0;
+      const appsCount = applications?.length || 0;
+      let cohort: 'activated' | 'not_activated' | 'beta_general' = 'beta_general';
+
+      if (matchesCount >= 1 && (appsCount >= 1 || isPro)) {
+        cohort = 'activated';
+      } else if (matchesCount === 0) {
+        cohort = 'not_activated';
+      }
+
+      setSurveyCohort(cohort);
+      // Pequeno delay para não assustar o usuário no carregamento imediato
+      const timer = setTimeout(() => setShowSurveyModal(true), 2500);
+      return () => clearTimeout(timer);
+    }
+  }, [user, matches, applications, isPro]);
+
+  useEffect(() => {
+    if (showAdaptationModal || rejectReasonModal || matchRejectionModal || showSurveyModal) {
       document.body.style.overflow = 'hidden';
     } else {
       document.body.style.overflow = '';
@@ -260,7 +300,8 @@ export function JobMatchHub({
     return () => {
       document.body.style.overflow = '';
     };
-  }, [showAdaptationModal, rejectReasonModal, matchRejectionModal]);
+  }, [showAdaptationModal, rejectReasonModal, matchRejectionModal, showSurveyModal]);
+
 
   const {
     explanation,
@@ -4541,6 +4582,18 @@ export function JobMatchHub({
         userEmail={user?.email}
         userName={user?.email?.split('@')[0]}
       />
+
+      {user?.id && (
+        <ProductValidationSurveyModal
+          isOpen={showSurveyModal}
+          onClose={() => setShowSurveyModal(false)}
+          userId={user.id}
+          userEmail={user.email || ''}
+          cohort={surveyCohort}
+          isHighIntent={isPro || (matches?.length || 0) >= 3}
+        />
+      )}
     </div>
   );
 }
+

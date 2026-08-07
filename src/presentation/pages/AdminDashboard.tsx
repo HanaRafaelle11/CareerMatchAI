@@ -10,7 +10,9 @@ import { CopilotInsightsDashboard } from '../components/CopilotInsightsDashboard
 import { CommercialIntelligenceDashboard } from '../components/CommercialIntelligenceDashboard';
 import { ExecutiveCopilotDashboard } from '../components/ExecutiveCopilotDashboard';
 import { EmailEngagementDashboard } from '../components/EmailEngagementDashboard';
+import { UserResearchDashboard } from '../components/UserResearchDashboard';
 import { ResumePreviewModal } from '../components/ResumePreviewModal';
+
 import { AdminAuditService } from '../../application/services/AdminAuditService';
 import { 
   Activity, Loader2, ShieldAlert, RefreshCw, 
@@ -1190,8 +1192,10 @@ export function AdminDashboard({ userId }: AdminDashboardProps) {
     hasUsersAccess && { id: 'users', label: '10. Usuários & Permissões (RBAC)' },
     { id: 'satisfaction_surveys', label: '11. Pesquisas de Satisfação (NPS)' },
     { id: 'email_engagement', label: '12. Engajamento de E-mails' },
-    hasTelemetryAccess && { id: 'infra_logs', label: '13. Infraestrutura & Logs Auditáveis' }
+    hasTelemetryAccess && { id: 'infra_logs', label: '13. Infraestrutura & Logs Auditáveis' },
+    { id: 'user_research', label: '14. Pesquisa de Usuários Fundadores' }
   ].filter(Boolean) as { id: string; label: string }[];
+
 
 
   const funnelData = [
@@ -2777,6 +2781,12 @@ export function AdminDashboard({ userId }: AdminDashboardProps) {
       {activeSubTab === 'email_engagement' && (
         <EmailEngagementDashboard />
       )}
+
+      {/* ── ABA 14: PESQUISA DE USUÁRIOS FUNDADORES (v1_founders_validation) ── */}
+      {activeSubTab === 'user_research' && (
+        <UserResearchDashboard adminUserId={userId} />
+      )}
+
       {/* MODAL DE DETALHES DO USUÁRIO & INSPEÇÃO DE CURRÍCULO (FASE 2) */}
       {selectedUser && (
         <div className="fixed inset-0 bg-black/80 backdrop-blur-md z-50 flex items-center justify-center p-4">

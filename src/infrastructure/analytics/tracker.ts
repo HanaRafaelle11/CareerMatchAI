@@ -227,7 +227,75 @@ class AnalyticsTracker {
   public trackResumeOptimizedPreviewViewed(jobId: string, metadata: any = {}) {
     this.track('resume_optimized_preview_viewed', 'Monetization', { job_id: jobId, ...metadata });
   }
-}
 
+  // ── Métodos de Telemetria da Pesquisa de Usuários Fundadores (v1_founders_validation) ──
+
+  public trackSurveyCampaignViewed(cohort: string, source: string) {
+    this.track('survey_campaign_viewed', 'UserResearch', { cohort, source, survey_version: 'v1_founders_validation' });
+  }
+
+  public trackSurveyStarted(cohort: string, source: string) {
+    this.track('survey_started', 'UserResearch', { cohort, source, survey_version: 'v1_founders_validation' });
+  }
+
+  public trackSurveyCompleted(cohort: string, source: string, nps: number, proIntent: string) {
+    this.track('survey_completed', 'UserResearch', {
+      cohort,
+      source,
+      nps,
+      pro_intent: proIntent,
+      survey_version: 'v1_founders_validation'
+    });
+  }
+
+  public trackSurveyAbandoned(questionNumber: number, questionName: string, cohort: string) {
+    this.track('survey_abandoned', 'UserResearch', {
+      question_number: questionNumber,
+      question_name: questionName,
+      cohort,
+      survey_version: 'v1_founders_validation'
+    });
+  }
+
+  public trackGiveawayRegistered(email: string, responseId: string) {
+    this.track('giveaway_registered', 'UserResearch', { email_masked: email.slice(0, 3) + '***', survey_response_id: responseId });
+  }
+
+  public trackSurveyQuestionAnswered(questionNumber: number, questionName: string, metadata: any = {}) {
+    this.track('survey_question_answered', 'UserResearch', {
+      question_number: questionNumber,
+      question_name: questionName,
+      ...metadata,
+      survey_version: 'v1_founders_validation'
+    });
+
+    if (isSupabaseConfigured && supabase) {
+      supabase.from('survey_events').insert({
+        event_name: 'survey_question_answered',
+        question_number: questionNumber,
+        question_name: questionName,
+        metadata
+      }).then(({ error }) => {
+        if (error) console.warn('[Analytics] Erro não fatal em survey_events:', error);
+      });
+    }
+  }
+
+  public trackSurveyEmailSent(email: string, cohort: string, emailType: string) {
+    this.track('survey_email_sent', 'UserResearch', { email_masked: email.slice(0, 3) + '***', cohort, email_type: emailType, survey_version: 'v1_founders_validation' });
+  }
+
+  public trackSurveyEmailDelivered(email: string, cohort: string) {
+    this.track('survey_email_delivered', 'UserResearch', { email_masked: email.slice(0, 3) + '***', cohort, survey_version: 'v1_founders_validation' });
+  }
+
+  public trackSurveyEmailOpened(email: string, cohort: string) {
+    this.track('survey_email_opened', 'UserResearch', { email_masked: email.slice(0, 3) + '***', cohort, survey_version: 'v1_founders_validation' });
+  }
+
+  public trackSurveyEmailClicked(email: string, cohort: string) {
+    this.track('survey_email_clicked', 'UserResearch', { email_masked: email.slice(0, 3) + '***', cohort, survey_version: 'v1_founders_validation' });
+  }
+}
 
 export const tracker = new AnalyticsTracker();

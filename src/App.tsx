@@ -63,35 +63,23 @@ function App() {
   useEffect(() => {
     const applyTheme = () => {
       const savedTheme = localStorage.getItem('theme') || preferences.theme || 'dark';
-      if (savedTheme === 'light') {
-        document.documentElement.classList.add('light');
-        document.documentElement.classList.remove('dark');
-        document.body.classList.add('light');
-        document.body.classList.remove('dark');
-      } else if (savedTheme === 'dark') {
-        document.documentElement.classList.add('dark');
-        document.documentElement.classList.remove('light');
-        document.body.classList.add('dark');
-        document.body.classList.remove('light');
-      } else {
-        const systemPrefersLight = window.matchMedia('(prefers-color-scheme: light)').matches;
-        if (systemPrefersLight) {
-          document.documentElement.classList.add('light');
-          document.documentElement.classList.remove('dark');
-          document.body.classList.add('light');
-          document.body.classList.remove('dark');
-        } else {
-          document.documentElement.classList.add('dark');
-          document.documentElement.classList.remove('light');
-          document.body.classList.add('dark');
-          document.body.classList.remove('light');
-        }
+      const isDark = savedTheme === 'dark' || (savedTheme !== 'light' && !window.matchMedia('(prefers-color-scheme: light)').matches);
+      
+      const targetClass = isDark ? 'dark' : 'light';
+      const currentClass = document.documentElement.classList.contains('dark') ? 'dark' : 'light';
+
+      if (targetClass !== currentClass) {
+        document.documentElement.classList.toggle('dark', isDark);
+        document.documentElement.classList.toggle('light', !isDark);
+        document.body.classList.toggle('dark', isDark);
+        document.body.classList.toggle('light', !isDark);
       }
     };
     applyTheme();
     window.addEventListener('theme-change', applyTheme);
     return () => window.removeEventListener('theme-change', applyTheme);
   }, [preferences.theme]);
+
 
   // Observa mudanças de histórico
   useEffect(() => {

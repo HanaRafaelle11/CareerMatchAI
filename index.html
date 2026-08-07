@@ -56,29 +56,44 @@
       }
     }
     </script>
+    <!-- Critical Inline CSS para FCP/LCP Instantâneo (< 0.5s) sem depender do bundle CSS externo -->
+    <style>
+      :root { color-scheme: dark; }
+      html, body { margin: 0; padding: 0; background-color: #090d16; color: #f8fafc; font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; -webkit-font-smoothing: antialiased; }
+      .v-shell-header { position: fixed; top: 0; left: 0; right: 0; height: 64px; background-color: rgba(9, 13, 22, 0.95); backdrop-filter: blur(8px); border-bottom: 1px solid #1e293b; z-index: 50; display: flex; items-center: center; justify-content: space-between; padding: 0 24px; box-sizing: border-box; }
+      .v-shell-logo { font-size: 18px; font-weight: 800; color: #f8fafc; }
+      .v-shell-btn { padding: 8px 16px; font-size: 12px; font-weight: 700; color: #ffffff; background-color: #2563eb; border-radius: 12px; font-family: inherit; display: inline-block; }
+      .v-shell-main { padding-top: 64px; width: 100%; box-sizing: border-box; }
+      .v-shell-section { padding: 48px 24px; max-width: 1280px; margin: 0 auto; box-sizing: border-box; }
+      .v-shell-grid { display: grid; grid-template-columns: 1fr; gap: 40px; align-items: center; }
+      @media (min-width: 1024px) { .v-shell-grid { grid-template-columns: repeat(12, 1fr); } .v-shell-col { grid-column: span 6 / span 6; } }
+      .v-shell-badge { display: inline-flex; align-items: center; gap: 8px; padding: 6px 14px; border-radius: 9999px; background-color: rgba(37, 99, 235, 0.1); border: 1px solid rgba(37, 99, 235, 0.2); color: #3b82f6; font-weight: 700; font-size: 12px; font-family: monospace; width: fit-content; }
+      .v-shell-h1 { font-size: 36px; font-weight: 900; color: #f8fafc; line-height: 1.2; margin: 24px 0 16px 0; letter-spacing: -0.02em; }
+      .v-shell-h2 { font-size: 18px; font-weight: 500; color: #94a3b8; line-height: 1.6; margin: 0; }
+    </style>
   </head>
-  <body>
+  <body class="dark">
     <div id="root">
-      <!-- Initial Static Shell com H1 e H2 correspondentes para zerar o Element Render Delay (< 0.2s) -->
-      <header class="fixed top-0 left-0 right-0 h-16 bg-card/95 backdrop-blur-md border-b border-border text-foreground flex items-center justify-between px-4 sm:px-6 z-50">
-        <div class="flex items-center gap-2">
-          <span class="font-bold text-lg text-foreground font-display">Vocentro</span>
+      <!-- Initial Static Shell com Critical Inline CSS para pintura instantânea em Frame 1 (< 0.3s) -->
+      <header class="v-shell-header">
+        <div style="display:flex;align-items:center;gap:8px;">
+          <span class="v-shell-logo">Vocentro</span>
         </div>
-        <div class="flex items-center gap-2 sm:gap-3">
-          <span class="px-4 py-2 text-xs font-bold text-white bg-brand-500 rounded-xl">Criar conta grátis</span>
+        <div style="display:flex;align-items:center;gap:12px;">
+          <span class="v-shell-btn">Criar conta grátis</span>
         </div>
       </header>
-      <main id="main-content" class="w-full pt-16">
-        <section class="py-12 sm:py-16 px-6 max-w-7xl mx-auto w-full">
-          <div class="grid grid-cols-1 lg:grid-cols-12 gap-10 items-center">
-            <div class="lg:col-span-6 space-y-6">
-              <div class="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-brand-500/10 border border-brand-500/20 text-brand-500 font-bold font-mono text-xs">
+      <main id="main-content" class="v-shell-main">
+        <section class="v-shell-section">
+          <div class="v-shell-grid">
+            <div class="v-shell-col" style="display:flex;flex-direction:column;gap:16px;">
+              <div class="v-shell-badge">
                 <span>🚀 Plataforma Oficial — Acelere sua Recolocação Profissional</span>
               </div>
-              <h1 class="text-3xl sm:text-4xl lg:text-4xl font-black font-display tracking-tight text-foreground leading-[1.2]">
+              <h1 class="v-shell-h1">
                 Conquiste a vaga ideal mais rápido com Inteligência Artificial
               </h1>
-              <h2 class="text-base sm:text-lg text-muted-foreground leading-relaxed font-medium">
+              <h2 class="v-shell-h2">
                 O Vocentro ajuda você a encontrar vagas compatíveis com seu perfil, melhorar seu currículo e se preparar para entrevistas — tudo em um só lugar.
               </h2>
             </div>
@@ -88,6 +103,7 @@
     </div>
     <script type="module" src="/src/main.tsx"></script>
   </body>
+
 
 
 </html>

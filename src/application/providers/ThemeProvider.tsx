@@ -30,6 +30,9 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     const root = document.documentElement;
     const body = document.body;
 
+    const isAlreadySet = targetTheme === 'dark' ? root.classList.contains('dark') : root.classList.contains('light');
+    if (isAlreadySet) return;
+
     // Suprimir todas as transições CSS durante a troca de tema para efeito instantâneo
     root.classList.add('theme-switching');
     body.classList.add('theme-switching');
@@ -54,6 +57,7 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
       });
     });
   };
+
 
   useEffect(() => {
     const activeTheme = theme === 'system' ? getSystemTheme() : theme;

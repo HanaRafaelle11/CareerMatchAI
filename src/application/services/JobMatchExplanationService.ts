@@ -13,53 +13,64 @@ export class JobMatchExplanationService {
     userId: string,
     job: Job,
     resume?: Resume | null,
-    careerProfileNew?: CareerProfileNew | null
+    careerProfileNew?: CareerProfileNew | null,
+    resumeVersionId?: string
   ): Promise<JobMatchExplanation> {
     if (!userId || !job) {
       throw new Error('Usuário e vaga são obrigatórios para explicação de match.');
     }
 
-    // ── 1. VERIFICAR CACHE EXISTENTE (NUNCA RE-EXECUTAR SE JÁ EXISTIR) ──
+    const activeVersionId = resumeVersionId || resume?.resumeVersionId || resume?.id;
+
+    // ── 1. VERIFICAR CACHE EXISTENTE (APENAS SE PERTENCER AO CURRÍCULO ATIVO) ──
     if (isSupabaseConfigured && supabase) {
       try {
         const { data, error } = await supabase
           .from('job_match_explanations')
-          .select('*, career_fit_breakdowns(*)')
+          .select('*, career_fit_breakdowns(*), career_profile_snapshots(resume_version_id)')
           .eq('user_id', userId)
           .eq('job_id', job.id)
           .maybeSingle();
 
         if (!error && data) {
-          const breakdownData = data.career_fit_breakdowns?.[0];
-          return {
-            id: data.id,
-            userId: data.user_id,
-            jobId: data.job_id,
-            careerProfileSnapshotId: data.career_profile_snapshot_id,
-            overallMatchReason: data.overall_match_reason,
-            strengths: data.strengths || [],
-            gaps: data.gaps || [],
-            recommendation: data.recommendation,
-            confidenceScore: data.confidence_score || 85,
-            careerFitScore: data.career_fit_score || 80,
-            breakdown: breakdownData ? {
-              skillsScore: breakdownData.skills_score,
-              experienceScore: breakdownData.experience_score,
-              seniorityScore: breakdownData.seniority_score,
-              careerGoalScore: breakdownData.career_goal_score,
-              salaryScore: breakdownData.salary_score,
-              locationScore: breakdownData.location_score,
-              semanticScore: breakdownData.semantic_score,
-            } : undefined,
-            createdAt: data.created_at
-          };
+          const snapshotVersionId = (data.career_profile_snapshots as any)?.resume_version_id;
+          const isSameVersion = !activeVersionId || !snapshotVersionId || snapshotVersionId === activeVersionId;
+
+          if (isSameVersion) {
+            const breakdownData = data.career_fit_breakdowns?.[0];
+            return {
+              id: data.id,
+              userId: data.user_id,
+              jobId: data.job_id,
+              resumeVersionId: snapshotVersionId || activeVersionId,
+              careerProfileSnapshotId: data.career_profile_snapshot_id,
+              overallMatchReason: data.overall_match_reason,
+              strengths: data.strengths || [],
+              gaps: data.gaps || [],
+              recommendation: data.recommendation,
+              confidenceScore: data.confidence_score || 85,
+              careerFitScore: data.career_fit_score || 80,
+              breakdown: breakdownData ? {
+                skillsScore: breakdownData.skills_score,
+                experienceScore: breakdownData.experience_score,
+                seniorityScore: breakdownData.seniority_score,
+                careerGoalScore: breakdownData.career_goal_score,
+                salaryScore: breakdownData.salary_score,
+                locationScore: breakdownData.location_score,
+                semanticScore: breakdownData.semantic_score,
+              } : undefined,
+              createdAt: data.created_at
+            };
+          } else {
+            console.log('[JobMatchExplanationService] Cache de explicação pertence a outro currículo. Ignorando e recalculando.');
+          }
         }
       } catch (err) {
         console.warn('[JobMatchExplanationService] Fallback para verificação local de cache:', err);
       }
     }
 
-    const localCached = localDB.getJobExplanation(userId, job.id);
+    const localCached = localDB.getJobExplanation(userId, job.id, activeVersionId);
     if (localCached) {
       return localCached;
     }
@@ -300,6 +311,7 @@ export class JobMatchExplanationService {
       }
     }
 
+    (explanation as any).resumeVersionId = activeVersionId;
     localDB.saveJobExplanation(explanation);
 
     // Métrica de produto: career_analysis_generated

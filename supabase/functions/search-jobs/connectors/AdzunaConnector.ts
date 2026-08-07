@@ -23,17 +23,27 @@ export class AdzunaConnector extends BaseJobConnector {
       if (!res.ok) return [];
 
       const data = await res.json();
-      const results = (data.results || []).map((j: any) => ({
-        title: j.title || "",
-        description: j.description || "",
-        companyName: j.company?.display_name || "Empresa Confidencial",
-        location: j.location?.display_name || "Brasil",
-        salaryMin: j.salary_min || undefined,
-        salaryMax: j.salary_max || undefined,
-        sourceUrl: j.redirect_url || "",
-        sourcePlatform: this.platformName,
-        publishedAt: j.created
-      }));
+      const results = (data.results || []).map((j: any) => {
+        let salMin = j.salary_min ? Math.round(j.salary_min) : undefined;
+        let salMax = j.salary_max ? Math.round(j.salary_max) : undefined;
+        
+        // Adzuna envia valores anuais (ex: 30000 = 2.5k/mês). Normalizar para mensal quando > 25.000.
+        if (salMin && salMin > 25000) salMin = Math.round(salMin / 12);
+        if (salMax && salMax > 25000) salMax = Math.round(salMax / 12);
+
+        return {
+          title: j.title || "",
+          description: j.description || "",
+          companyName: j.company?.display_name || "Empresa Confidencial",
+          location: j.location?.display_name || "Brasil",
+          salaryMin: salMin,
+          salaryMax: salMax,
+          sourceUrl: j.redirect_url || "",
+          sourcePlatform: this.platformName,
+          publishedAt: j.created,
+          totalMarketCount: data.count || 0
+        };
+      });
 
       return results;
     } catch (_) {

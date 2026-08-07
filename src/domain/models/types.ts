@@ -486,6 +486,7 @@ export interface JobMatchExplanation {
   id: string;
   userId: string;
   jobId: string;
+  resumeVersionId?: string;
   careerProfileSnapshotId?: string;
   overallMatchReason: string;
   strengths: MatchStrengthItem[];

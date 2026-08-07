@@ -1016,10 +1016,7 @@ function AuthenticatedApp({
         <FloatingActionDeck
           userId={user.id}
           userEmail={user.email}
-          notifications={notifications || []}
-          markAllNotificationsAsRead={markAllNotificationsAsRead}
           onOpenCopilot={() => setIsCopilotOpen(true)}
-          onNavigateToTab={handleSetActiveTab}
         />
       )}
 

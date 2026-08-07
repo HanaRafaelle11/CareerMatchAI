@@ -549,8 +549,14 @@ Total time: ${Date.now() - requestStartTime}ms
       intent_family: intent.family
     });
 
+    const maxMarketCount = Math.max(
+      filteredJobs.length,
+      ...rawJobsList.map(j => Number(j.totalMarketCount) || 0)
+    );
+
     const finalResponse = {
-      count: filteredJobs.length,
+      count: maxMarketCount,
+      pageSize: filteredJobs.length,
       results: filteredJobs,
       diagnostics
     };

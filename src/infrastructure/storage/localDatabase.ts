@@ -964,12 +964,17 @@ class LocalDatabase {
   }
 
   // ── Métodos para a Camada de Inteligência de Carreira ──
-  getJobExplanation(userId: string, jobId: string): any | null {
+  getJobExplanation(userId: string, jobId: string, resumeVersionId?: string): any | null {
     try {
       const raw = localStorage.getItem(KEYS.JOB_EXPLANATIONS);
       if (!raw) return null;
       const list: any[] = JSON.parse(raw);
-      return list.find(item => item.userId === userId && item.jobId === jobId) || null;
+      const found = list.find(item => item.userId === userId && item.jobId === jobId);
+      if (!found) return null;
+      if (resumeVersionId && found.resumeVersionId && found.resumeVersionId !== resumeVersionId) {
+        return null; // Isolamento estrito por currículo
+      }
+      return found;
     } catch (_) {
       return null;
     }

@@ -1469,13 +1469,19 @@ export function JobMatchHub({
     ? (currentSelectedMatch?.scoreOverall ?? explanation?.careerFitScore ?? (selectedJob?.scores as any)?.overall ?? null)
     : null;
 
-  const jobsWithSalaries = jobs.filter(j => j.salaryNumeric || j.salaryMin || j.salaryMax);
-  const averageSalary = jobs.length > 0 && jobsWithSalaries.length > 0
+  const targetJobsForSalary = (subTab === 'discover' && discoveredJobs.length > 0) ? discoveredJobs : jobs;
+  const jobsWithSalaries = targetJobsForSalary.filter(j => j.salaryNumeric || j.salaryMin || j.salaryMax);
+  const averageSalary = jobsWithSalaries.length > 0
     ? Math.round(
         jobsWithSalaries.reduce((acc, j) => {
-          const min = j.salaryMin || 0;
-          const max = j.salaryMax || 0;
-          const mid = min && max ? (min + max) / 2 : (j.salaryNumeric || max || min || 0);
+          let min = j.salaryMin || 0;
+          let max = j.salaryMax || 0;
+          let numeric = j.salaryNumeric || 0;
+          if (min > 25000) min = Math.round(min / 12);
+          if (max > 25000) max = Math.round(max / 12);
+          if (numeric > 25000) numeric = Math.round(numeric / 12);
+
+          const mid = min && max ? (min + max) / 2 : (numeric || max || min || 0);
           return acc + mid;
         }, 0) / jobsWithSalaries.length
       )
@@ -3991,23 +3997,6 @@ export function JobMatchHub({
                                     {src}
                                   </span>
                                 ))}
-                                <button
-                                  type="button"
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    moveToTrash({
-                                      id: (job as any).id || (job as any).jobId || `disc-${idx}`,
-                                      title: job.title,
-                                      companyName: job.companyName,
-                                      location: job.location
-                                    });
-                                    showToast(`Vaga "${job.title}" movida para a Lixeira.`, 'info');
-                                  }}
-                                  className="p-1 rounded-lg hover:bg-red-500/20 text-slate-500 hover:text-red-400 transition cursor-pointer"
-                                  title="Mover vaga para a Lixeira"
-                                >
-                                  <Trash2 size={13} />
-                                </button>
                               </div>
                             </div>
 

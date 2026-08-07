@@ -8,12 +8,13 @@ import {
   RefreshCcw, Star, Loader2, BarChart3, ChevronDown, Search, Sparkles,
   ArrowRight, Bot, HelpCircle, AlertCircle, Trash2, X
 } from 'lucide-react';
-import { ProgressRing, Badge, Toast, type ToastMessage } from '../components/ds';
+import { ProgressRing, Badge } from '../components/ds';
 import { useCopilotEngine } from '../../application/hooks/useCopilotEngine';
 import { printElementHtml } from '../../application/utils/pdfExport';
 import { useAuth } from '../../application/hooks/useAuth';
 import { useEntitlements, PaywallModal, CheckoutModal } from '../../modules/billing';
 import { useCoach } from '../../application/hooks/useCoach';
+import { useToast } from '../../application/context/ToastContext';
 
 /** Converts **bold** markdown markers in text to <strong> tags */
 function formatBoldText(text: string): React.ReactNode[] {
@@ -206,7 +207,8 @@ export function CoachDashboard({
   const activeJobs = jobs.filter(j => matchedJobIds.has(j.id));
   const marketTrends = MarketIntelligenceService.getMarketTrends(activeJobs, careerProfileNew);
 
-  const [toast, setToast] = useState<ToastMessage | null>(null);
+  const { showToast } = useToast();
+  const setToast = showToast;
 
   const { recommendations, greetingHeadline } = useCopilotEngine({
     applications,
@@ -299,7 +301,6 @@ export function CoachDashboard({
 
   return (
     <div className="space-y-6 animate-fade-in font-sans p-0 relative">
-      <Toast toast={toast} onClose={() => setToast(null)} />
       {/* Cabeçalho */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>

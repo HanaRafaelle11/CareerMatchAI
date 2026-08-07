@@ -8,7 +8,8 @@ import { ResumeOptimizationService } from '../../application/services/ResumeOpti
 import { isSupabaseConfigured, supabase } from '../../infrastructure/api/supabaseClient';
 import { ProcessingState, ErrorState } from '../components/ErrorVisuals';
 import { AppError } from '../../application/errors/AppError';
-import { ProgressRing, SkillChip, Badge, Toast, type ToastMessage } from '../components/ds';
+import { ProgressRing, SkillChip, Badge } from '../components/ds';
+import { useToast } from '../../application/context/ToastContext';
 import { printElementHtml } from '../../application/utils/pdfExport';
 import { useAuth } from '../../application/hooks/useAuth';
 import { useEntitlements, PaywallModal, CheckoutModal } from '../../modules/billing';
@@ -316,7 +317,7 @@ export function Profile({
     : (primaryResume?.yearsOfExperience || 0);
 
   // Toast State
-  const [toast, setToast] = useState<ToastMessage | null>(null);
+  const { showToast } = useToast();
 
   // Skills a exibir: usar career_profiles como fonte primária
   const displaySkills = careerProfileNew?.skills || [];
@@ -330,7 +331,7 @@ export function Profile({
       return;
     }
     if (!careerProfileNew && !primaryResume) {
-      setToast({ message: "Não há dados estruturados de perfil para exportar. Aguarde o processamento do currículo.", type: 'warning' });
+      showToast("Não há dados estruturados de perfil para exportar. Aguarde o processamento do currículo.", 'warning');
       return;
     }
 
@@ -943,10 +944,10 @@ export function Profile({
                           if (window.confirm(`Tem certeza que deseja deletar permanentemente o currículo "${res.fileName}"?`)) {
                             try {
                               await onDeleteResume(res.id);
-                              setToast({ message: 'Currículo excluído com sucesso.', type: 'info' });
+                              showToast('Currículo excluído com sucesso.', 'info');
                             } catch (err) {
                               console.error(err);
-                              setToast({ message: 'Erro ao excluir currículo. Verifique se ele não é o currículo ativo.', type: 'error' });
+                              showToast('Erro ao excluir currículo. Verifique se ele não é o currículo ativo.', 'error');
                             }
                           }
                         }}
@@ -1553,7 +1554,6 @@ export function Profile({
         </div>
       </div>
       )}
-      <Toast toast={toast} onClose={() => setToast(null)} />
 
       <PaywallModal
         isOpen={paywallState.isOpen}

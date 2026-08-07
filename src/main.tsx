@@ -7,6 +7,8 @@ import { ErrorBoundary } from './presentation/components/ErrorBoundary'
 import './index.css'
 import App from './App.tsx'
 
+import { ToastProvider } from './application/context/ToastContext'
+
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
@@ -22,7 +24,9 @@ createRoot(document.getElementById('root')!).render(
       <QueryClientProvider client={queryClient}>
         <ThemeProvider>
           <AnalyticsProvider>
-            <App />
+            <ToastProvider>
+              <App />
+            </ToastProvider>
           </AnalyticsProvider>
         </ThemeProvider>
       </QueryClientProvider>

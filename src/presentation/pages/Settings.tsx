@@ -1,6 +1,5 @@
 import { useState, useEffect } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
-import { motion, AnimatePresence } from 'framer-motion';
 import { CardGlass } from '../components/CardGlass';
 import { isSupabaseConfigured, supabase } from '../../infrastructure/api/supabaseClient';
 import { localDB } from '../../infrastructure/storage/localDatabase';
@@ -14,6 +13,7 @@ import {
 } from 'lucide-react';
 import { CustomerPortal } from '../../modules/billing';
 import { useJobTrash } from '../../application/hooks/useJobTrash';
+import { useToast } from '../../application/context/ToastContext';
 
 interface SettingsProps {
   profile: Profile | null;
@@ -60,11 +60,7 @@ export function Settings({
   const [linkedin, setLinkedin] = useState(careerProfileNew?.personal?.linkedin || '');
   const [isSaving, setIsSaving] = useState(false);
   const [email, setEmail] = useState('');
-  const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
-  const showToast = (message: string, type: 'success' | 'error' = 'success') => {
-    setToast({ message, type });
-    setTimeout(() => setToast(null), 3500);
-  };
+  const { showToast } = useToast();
 
 
   useEffect(() => {
@@ -1178,24 +1174,6 @@ export function Settings({
           )}
         </div>
       </div>
-
-      <AnimatePresence>
-        {toast && (
-          <motion.div
-            initial={{ opacity: 0, y: 30, scale: 0.95 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: 20, scale: 0.95 }}
-            role="alert"
-            aria-live="assertive"
-            className={`fixed bottom-6 right-6 z-[100] border px-4 py-3 rounded-xl shadow-2xl flex items-center gap-3 backdrop-blur-md text-xs font-semibold select-none bg-card text-foreground ${
-              toast.type === 'success' ? 'border-emerald-500' : 'border-red-500'
-            }`}
-          >
-            <span>{toast.type === 'success' ? '✅' : '❌'}</span>
-            <span>{toast.message}</span>
-          </motion.div>
-        )}
-      </AnimatePresence>
     </div>
   );
 }

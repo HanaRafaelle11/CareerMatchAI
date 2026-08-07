@@ -20,7 +20,7 @@ import { tracker } from '../../infrastructure/analytics/tracker';
 import { isSupabaseConfigured, supabase } from '../../infrastructure/api/supabaseClient';
 import { isAppliedStatus, isSavedStatus } from '../../domain/models/applicationStatusConstants';
 
-import { Toast, type ToastMessage } from '../components/ds';
+import { useToast } from '../../application/context/ToastContext';
 import { HiredCongratulationModal } from '../components/HiredCongratulationModal';
 
 interface StrategyPageProps {
@@ -149,7 +149,8 @@ export function StrategyPage({
   ];
 
   // Toast State
-  const [toast, setToast] = useState<ToastMessage | null>(null);
+  const { showToast } = useToast();
+  const setToast = showToast;
 
   const handleSoftDelete = async () => {
     if (!deletingApp) return;
@@ -167,7 +168,7 @@ export function StrategyPage({
         setSelectedAppId(null);
       }
       setDeletingApp(null);
-      setToast({ message: 'Candidatura excluída com sucesso.', type: 'info' });
+      showToast('Candidatura excluída com sucesso.', 'info');
       tracker.track('application_removed', 'StrategyPage', {
         appId: deletingApp.id,
         user_id: userId
@@ -1837,9 +1838,6 @@ export function StrategyPage({
         app={hiredModalApp}
         onClose={() => setHiredModalApp(null)}
       />
-
-      {/* Toast Notification */}
-      <Toast toast={toast} onClose={() => setToast(null)} />
     </div>
   );
 }

@@ -16,7 +16,7 @@ serve(async (req) => {
   }
 
   try {
-    const { cohortTarget = 'ALL', emailType = 'initial_invite', targetEmail = null } = await req.json();
+    const { cohortTarget = 'ALL', emailType = 'initial_invite', targetEmail = null, sendAdminCopy = true } = await req.json();
 
     const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 
@@ -39,10 +39,11 @@ serve(async (req) => {
     let sentCount = 0;
     const logsResults: any[] = [];
 
+    // Dispatch for candidate profiles
     for (const user of profiles) {
       const tokenObj = { u: user.id, e: user.email, t: Date.now() };
       const token = btoa(JSON.stringify(tokenObj));
-      const surveyUrl = `https://vocentro.com.br/pesquisa?token=${encodeURIComponent(token)}`;
+      const surveyUrl = `https://vocentro.com.br/pesquisa?token=${encodeURIComponent(token)}&src=email_cta`;
 
       const htmlContent = `
         <!DOCTYPE html>
@@ -98,7 +99,7 @@ serve(async (req) => {
                 <table border="0" cellpadding="0" cellspacing="0" width="100%" style="margin-bottom: 28px;">
                   <tr>
                     <td style="text-align: center;">
-                      <a href="${surveyUrl}" target="_blank" style="display: inline-block; background: linear-gradient(135deg, #10b981 0%, #06b6d4 100%); color: #020617; font-size: 15px; font-weight: 800; text-decoration: none; padding: 16px 36px; border-radius: 12px; box-shadow: 0 10px 15px -3px rgba(16, 185, 129, 0.3); text-transform: uppercase; letter-spacing: 0.5px;">
+                      <a href="${surveyUrl}" target="_blank" style="display: inline-block; background: linear-gradient(135deg, #10b981 0%, #06b6d4 100%); color: #020617; font-size: 15px; font-weight: 800; text-decoration: none; padding: 16px 36px; border-radius: 12px; shadow: 0 10px 15px -3px rgba(16, 185, 129, 0.3); text-transform: uppercase; letter-spacing: 0.5px;">
                         RESPONDER PESQUISA
                       </a>
                     </td>
@@ -124,15 +125,15 @@ serve(async (req) => {
                   </tr>
                 </table>
 
-                <!-- Thank You Card (Giveaway) -->
+                <!-- Thank You Card (Giveaway Date 14/08/2026) -->
                 <table border="0" cellpadding="0" cellspacing="0" width="100%" style="background-color: #0f172a; border-radius: 12px; border: 1px solid rgba(52, 211, 153, 0.3);">
                   <tr>
                     <td style="padding: 18px; text-align: left;">
                       <p style="font-size: 13px; font-weight: 700; color: #34d399; margin: 0 0 4px 0;">
-                        🎁 Como forma de agradecimento:
+                        🎁 Ação de Agradecimento PRO:
                       </p>
                       <p style="font-size: 13px; color: #cbd5e1; margin: 0; line-height: 1.5;">
-                        Ao final da pesquisa, você poderá participar da ação de <strong>7 dias de acesso PRO ilimitado gratuitamente</strong>.
+                        Ao concluir a pesquisa até <strong>14/08/2026 às 20:00</strong>, você garante sua participação na ação de <strong>7 dias de acesso PRO ilimitado gratuitamente</strong>.
                       </p>
                     </td>
                   </tr>
@@ -182,17 +183,53 @@ serve(async (req) => {
         }
       }
 
-      await supabase.from('survey_email_campaigns').insert({
+      // Upsert email campaign record
+      await supabase.from('survey_email_campaigns').upsert({
         user_id: user.id,
         email: user.email,
         cohort: 'beta_general',
         status: 'sent',
         last_email_type: emailType,
         sent_at: new Date().toISOString()
+      }, { onConflict: 'user_id' });
+
+      // Log email_sent event in survey_events
+      await supabase.from('survey_events').insert({
+        user_id: user.id,
+        event_name: 'email_sent',
+        metadata: { resend_message_id: messageId, email: user.email, draw_date: '14/08/2026 20:00' }
       });
 
       sentCount++;
       logsResults.push({ email: user.email, message_id: messageId, status: resendStatus });
+    }
+
+    // Handle Admin Copy separately without incrementing candidate funnel recipient metrics
+    if (sendAdminCopy) {
+      try {
+        const adminEmail = 'hanarafaelle11@gmail.com';
+        if (RESEND_API_KEY) {
+          await fetch('https://api.resend.com/emails', {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${RESEND_API_KEY}`,
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+              from: 'VoCentro <notificacoes@vocentro.com.br>',
+              to: [adminEmail],
+              subject: '[CÓPIA ADMIN] Você está ajudando a construir o VoCentro 🚀',
+              html: `
+                <div style="background-color: #0f172a; padding: 12px; color: #34d399; font-family: sans-serif; font-size: 12px; border-bottom: 2px solid #34d399;">
+                  📌 <strong>CÓPIA DE AUDITORIA ADMINISTRATIVA</strong> — Este e-mail é uma cópia de teste para o administrador e não afeta as métricas do funil de candidatos.
+                </div>
+              `
+            })
+          });
+        }
+      } catch (adminErr) {
+        console.warn('Erro ao enviar cópia admin:', adminErr);
+      }
     }
 
     return new Response(JSON.stringify({ success: true, count: sentCount, logs: logsResults }), {

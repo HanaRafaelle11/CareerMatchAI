@@ -149,6 +149,23 @@ export const PublicSurveyPage: React.FC = () => {
 
       setUserInfo({ id: userId, email: candidateEmail, name: candidateName });
 
+      // Log email_clicked and survey_opened events in survey_events
+      if (searchParams.get('src') === 'email_cta' && supabase) {
+        supabase.from('survey_events').insert({
+          user_id: userId,
+          event_name: 'email_clicked',
+          metadata: { email: candidateEmail, timestamp: new Date().toISOString() }
+        }).then(() => {});
+      }
+
+      if (supabase) {
+        supabase.from('survey_events').insert({
+          user_id: userId,
+          event_name: 'survey_opened',
+          metadata: { email: candidateEmail, timestamp: new Date().toISOString() }
+        }).then(() => {});
+      }
+
       // Check if user already submitted survey
       await checkPreviousCompletion(userId);
     } catch (err: any) {
@@ -187,14 +204,33 @@ export const PublicSurveyPage: React.FC = () => {
     setStep(1);
     tracker.trackSurveyStarted('beta_general', 'email_campaign');
     tracker.trackSurveyQuestionAnswered(1, 'urgency');
+    if (supabase && userInfo) {
+      supabase.from('survey_events').insert({
+        user_id: userInfo.id,
+        event_name: 'survey_started',
+        question_number: 1,
+        question_name: 'urgency',
+        metadata: { timestamp: new Date().toISOString() }
+      }).then(() => {});
+    }
   };
 
   const handleNext = (nextStep: number, currentQuestionName: string) => {
     tracker.trackSurveyQuestionAnswered(step, currentQuestionName, {
       value: formData[currentQuestionName as keyof typeof formData]
     });
+    if (supabase && userInfo) {
+      supabase.from('survey_events').insert({
+        user_id: userInfo.id,
+        event_name: 'survey_question_viewed',
+        question_number: nextStep,
+        question_name: currentQuestionName,
+        metadata: { timestamp: new Date().toISOString() }
+      }).then(() => {});
+    }
     setStep(nextStep);
   };
+
 
   const handlePrev = () => {
     if (step > 1) setStep(step - 1);

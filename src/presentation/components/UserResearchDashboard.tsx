@@ -26,16 +26,14 @@ export const UserResearchDashboard: React.FC<UserResearchDashboardProps> = () =>
   const [profilesMap, setProfilesMap] = useState<Record<string, any>>({});
   const [contactsMap, setContactsMap] = useState<Record<string, any>>({});
   const [emailCampaigns, setEmailCampaigns] = useState<any[]>([]);
-  
-  // Drawer detail state
-  const [selectedUserDetail, setSelectedUserDetail] = useState<any | null>(null);
-  
-  // Filter state
-  const [cohortFilter, setCohortFilter] = useState<string>('ALL');
-  
-  // Email dispatch status
-  const [dispatchStatus, setDispatchStatus] = useState<string | null>(null);
+  const [surveyEvents, setSurveyEvents] = useState<any[]>([]);
+  const [segmentDrawer, setSegmentDrawer] = useState<{ title: string; users: any[] } | null>(null);
 
+  // Campaign & Giveaway Config
+  const [campaignStatus] = useState<string>('OPEN');
+  const [drawDate] = useState<string>('14/08/2026 às 20:00 (Horário de Brasília)');
+  const [sendAdminCopy, setSendAdminCopy] = useState<boolean>(true);
+  const [wavePreview, setWavePreview] = useState<{ wave: string; eligible: number; invited: number; pending: number } | null>(null);
 
   useEffect(() => {
     fetchResearchData();
@@ -57,16 +55,19 @@ export const UserResearchDashboard: React.FC<UserResearchDashboardProps> = () =>
       const { data: campaigns } = await supabase.from('survey_email_campaigns').select('*');
       setEmailCampaigns(campaigns || []);
 
-      // 4. Fetch research contacts (LGPD decoupled)
+      // 4. Fetch survey events
+      const { data: events } = await supabase.from('survey_events').select('*').order('created_at', { ascending: false });
+      setSurveyEvents(events || []);
+
+      // 5. Fetch research contacts (LGPD decoupled)
       const { data: contacts } = await supabase.from('research_contacts').select('*');
       const cMap: Record<string, any> = {};
       (contacts || []).forEach(c => {
         cMap[c.user_id] = c;
       });
-
       setContactsMap(cMap);
 
-      // 4. Fetch profiles for real vs test identification
+      // 6. Fetch profiles for real vs test identification
       const { data: profiles } = await supabase.from('profiles').select('*');
       const pMap: Record<string, any> = {};
       (profiles || []).forEach(p => {
@@ -76,17 +77,11 @@ export const UserResearchDashboard: React.FC<UserResearchDashboardProps> = () =>
 
     } catch (err) {
       console.error('[UserResearch] Erro ao carregar dados:', err);
-    } fontally: {
+    } finally {
       setLoading(false);
     }
   };
 
-
-  // Campaign & Giveaway Config
-  const [campaignStatus] = useState<string>('OPEN');
-  const [drawDate] = useState<string>('30/08/2026 às 20:00 (Horário de Brasília)');
-  const [sendAdminCopy, setSendAdminCopy] = useState<boolean>(true);
-  const [wavePreview, setWavePreview] = useState<{ wave: string; eligible: number; invited: number; pending: number } | null>(null);
 
 
   // Dispatch survey emails via wave with safety preview
@@ -506,7 +501,7 @@ export const UserResearchDashboard: React.FC<UserResearchDashboardProps> = () =>
           </div>
 
 
-          <div className="p-3.5 rounded-xl bg-slate-900/80 border border-slate-800 space-y-1">
+          <div className="p-3.5 rounded-xl bg-slate-900/80 border border-slate-800 space-y-1 cursor-pointer hover:border-indigo-500/50 transition" onClick={() => setSegmentDrawer({ title: 'Consentimentos LGPD Concedidos', users: Object.values(contactsMap).filter(c => c.permission_status === 'granted') })}>
             <span className="text-[11px] text-slate-400">Consentimentos LGPD</span>
             <div className="text-xl font-mono font-bold text-indigo-400">
               {Object.values(contactsMap).filter(c => c.permission_status === 'granted').length}
@@ -514,6 +509,71 @@ export const UserResearchDashboard: React.FC<UserResearchDashboardProps> = () =>
           </div>
         </div>
       </div>
+
+      {/* BLOCO DE ABANDONO POR PERGUNTA (HEATMAP / DROP-OFF) */}
+      <div className="p-6 rounded-2xl bg-[#121927] border border-slate-800 space-y-4">
+        <h3 className="text-base font-bold text-white flex items-center gap-2">
+          <BarChart3 className="w-5 h-5 text-rose-400" />
+          Análise de Abandono por Pergunta (Fricção Q1 → Q16)
+        </h3>
+        <p className="text-xs text-slate-400">
+          Mapeamento dos pontos exatos de abandono durante o preenchimento da pesquisa para otimização da UX.
+        </p>
+
+        <div className="grid grid-cols-4 sm:grid-cols-8 md:grid-cols-16 gap-1.5 pt-2">
+          {Array.from({ length: 16 }, (_, i) => i + 1).map((qNum) => {
+            const viewedEvents = surveyEvents.filter(e => e.event_name === 'survey_question_viewed' && e.question_number === qNum);
+            const dropoffCount = Math.max(0, viewedEvents.length - surveyResponses.length);
+            return (
+              <div 
+                key={qNum} 
+                className={`p-2 rounded-lg border text-center space-y-1 ${
+                  dropoffCount > 0 ? 'bg-rose-500/10 border-rose-500/40 text-rose-300' : 'bg-slate-900 border-slate-800 text-slate-400'
+                }`}
+              >
+                <span className="text-[10px] font-bold block">Q{qNum}</span>
+                <span className="text-xs font-mono font-black text-white">{dropoffCount}</span>
+                <span className="text-[9px] block text-slate-500">saídas</span>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* MODAL DE DRILL-DOWN POR SEGMENTO */}
+      {segmentDrawer && (
+        <div className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-[#121927] border border-slate-800 rounded-2xl max-w-lg w-full p-6 space-y-4 shadow-2xl">
+            <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+              <h3 className="text-sm font-bold text-white">{segmentDrawer.title} ({segmentDrawer.users.length})</h3>
+              <button onClick={() => setSegmentDrawer(null)} className="text-slate-400 hover:text-white">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            <div className="max-h-64 overflow-y-auto space-y-2 text-xs">
+              {segmentDrawer.users.length === 0 ? (
+                <p className="text-slate-500 italic">Nenhum registro encontrado neste segmento.</p>
+              ) : (
+                segmentDrawer.users.map((u, idx) => (
+                  <div key={idx} className="p-3 rounded-xl bg-slate-900 border border-slate-800 flex justify-between items-center">
+                    <div>
+                      <span className="font-bold text-white block">Usuário #{String(idx + 1).padStart(3, '0')}</span>
+                      <span className="text-[10px] text-slate-400">ID: {u.user_id || u.id}</span>
+                    </div>
+                    <span className="px-2 py-1 rounded bg-slate-800 text-emerald-400 font-mono text-[10px]">
+                      {u.permission_status || u.status || 'Registrado'}
+                    </span>
+                  </div>
+                ))
+              )}
+            </div>
+            <button onClick={() => setSegmentDrawer(null)} className="w-full py-2.5 rounded-xl bg-slate-800 text-slate-200 text-xs font-bold">
+              Fechar Visualização
+            </button>
+          </div>
+        </div>
+      )}
+
 
 
       {/* DASHBOARD EXECUTIVO: INSIGHTS DE PRODUTO & MARKETING */}

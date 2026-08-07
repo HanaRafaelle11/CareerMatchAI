@@ -350,7 +350,7 @@ export function useJobDiscovery(
 
   return {
     discoveredJobs: discoveryQuery.data?.results || [],
-    totalCount: discoveryQuery.data?.results.length || 0,
+    totalCount: discoveryQuery.data?.count || discoveryQuery.data?.results.length || 0,
     totalApiCount: discoveryQuery.data?.count || 0,
     isLoading: discoveryQuery.isLoading,
     isError: discoveryQuery.isError,

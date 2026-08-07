@@ -146,14 +146,14 @@ export class JobMatchExplanationService {
       jobReqs = jobTitleLower.split(/\s+/).filter(w => w.length > 3 && !['para', 'com', 'mais', 'para', 'onde', 'como'].includes(w));
     }
 
-    // Fator 1: Skills (30%)
+    // Fator 1: Skills (30%) — Sem piso artificial quando 0 skills forem compatíveis
     let matchedSkillsCount = 0;
     if (jobReqs.length > 0) {
       matchedSkillsCount = jobReqs.filter(req => userSkills.some(us => us.includes(req) || req.includes(us))).length;
     } else {
       matchedSkillsCount = userSkills.filter(s => jobDescLower.includes(s)).length;
     }
-    const skillsScore = Math.min(100, Math.max(30, Math.round((matchedSkillsCount / Math.max(1, jobReqs.length)) * 100)));
+    const skillsScore = matchedSkillsCount === 0 ? 0 : Math.min(100, Math.max(10, Math.round((matchedSkillsCount / Math.max(1, jobReqs.length)) * 100)));
 
     // Fator 2: Experience (25%) — usando calcYearsFromExperiences robusto
     const { calcYearsFromExperiences } = await import('./matchingEngine');
@@ -183,7 +183,7 @@ export class JobMatchExplanationService {
     // Fator 4: Career Goal (15%)
     const targetRoles = (careerProfileNew?.personal as any)?.preferences?.targetRoles || [];
     const goalMatch = targetRoles.some((tr: string) => jobTitleLower.includes(tr.toLowerCase()));
-    const careerGoalScore = goalMatch ? 95 : 65;
+    const careerGoalScore = goalMatch ? 95 : 20;
 
     // EDGE CASE 3: Vaga sem salário -> Score neutro de 75%
     const expectedSalary = (careerProfileNew?.personal as any)?.preferences?.salaryExpectationMin || 0;
@@ -196,8 +196,15 @@ export class JobMatchExplanationService {
     // Fator 7: Semantic Context (5%)
     const semanticScore = (job.scores?.overall ? Math.min(100, job.scores.overall) : 75);
 
+    // Detecção de Incompatibilidade Crassa de Área (Ex: CS / Tech vs Cozinheiro / Limpeza / Operacional)
+    const isOperationalOrCulinary = /cozinheiro|cozinheira|cozinha|gastronomia|chefe de cozinha|garçom|garçonete|barista|gari|coletor|limpeza/i.test(jobTitleLower);
+    const isOfficeOrTechCandidate = userSkills.some(s => /customer success|cs|salesforce|react|typescript|node|gerência|gerente|diretor|lead|marketing/i.test(s)) ||
+      targetRoles.some((r: string) => /success|cs|dev|manager|eng|soft|lider|analista|customer/i.test(r.toLowerCase()));
+
+    const isCrossDomainMismatch = (isOperationalOrCulinary && isOfficeOrTechCandidate) || (!goalMatch && matchedSkillsCount === 0 && targetRoles.length > 0);
+
     // Score Composto Ponderado Final
-    const careerFitScore = Math.round(
+    let rawFitScore = Math.round(
       (skillsScore * 0.30) +
       (experienceScore * 0.25) +
       (seniorityScore * 0.15) +
@@ -206,6 +213,12 @@ export class JobMatchExplanationService {
       (locationScore * 0.05) +
       (semanticScore * 0.05)
     );
+
+    if (isCrossDomainMismatch) {
+      rawFitScore = Math.min(rawFitScore, 15);
+    }
+
+    const careerFitScore = rawFitScore;
 
     const breakdown: CareerFitBreakdown = {
       skillsScore,

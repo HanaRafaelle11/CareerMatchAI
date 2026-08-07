@@ -594,15 +594,15 @@ export class MatchingEngine {
       /react|typescript|javascript|node|python|java|c#|golang|php|sql|docker|aws|git|html|css|devops|frontend|backend|fullstack|software|programação/i.test(s)
     );
 
-    const isManualJob = /gari|coletor|limpeza|auxiliar de servicos gerais|serviços gerais|porteiro|copa/i.test(titleLower);
+    const isOperationalOrManualJob = /gari|coletor|limpeza|auxiliar de servicos gerais|serviços gerais|porteiro|copa|cozinheiro|cozinheira|cozinha|gastronomia|chefe de cozinha|garçom|garçonete|atendente de bar|barista/i.test(titleLower);
     const isOfficeCandidate = flatSkills.some((s: string) => 
-      /react|typescript|node|customer success|cs|salesforce|gerência|gerente|diretor|lead|liderança|marketing|agile/i.test(s)
-    ) || normalizedTargetRoles.some((r: string) => /success|cs|dev|manager|eng|soft|lider|analista/i.test(r));
+      /react|typescript|node|customer success|cs|salesforce|gerência|gerente|diretor|lead|liderança|marketing|agile|atendimento ao cliente/i.test(s)
+    ) || normalizedTargetRoles.some((r: string) => /success|cs|dev|manager|eng|soft|lider|analista|customer/i.test(r));
 
     let scoreRoleCompatibility = 100;
     if (isITJob && !hasITSkills) {
       scoreRoleCompatibility = 5;
-    } else if (isManualJob && isOfficeCandidate) {
+    } else if (isOperationalOrManualJob && isOfficeCandidate) {
       scoreRoleCompatibility = 5; 
     } else if (!hasRoleMatch && targetRoles.length > 0) {
       scoreRoleCompatibility = 25;
@@ -621,8 +621,10 @@ export class MatchingEngine {
     const containsOnlyGenericReqs = job.requirements.length === 1 && 
       ['tecnologia', 'saúde', 'saude', 'vendas', 'geral'].includes(job.requirements[0].toLowerCase());
 
-    if (scoreRoleCompatibility <= 30) {
-      scoreOverall = Math.min(scoreOverall, scoreRoleCompatibility + 15);
+    if (scoreRoleCompatibility <= 10) {
+      scoreOverall = Math.min(scoreOverall, 15);
+    } else if (scoreRoleCompatibility <= 30) {
+      scoreOverall = Math.min(scoreOverall, scoreRoleCompatibility + 10);
     } else if (scoreSeniority <= 35) {
       // Trava de Senioridade: Evita recomendar vaga Júnior para Sênior ou vice-versa (Item 10)
       scoreOverall = Math.min(scoreOverall, 35);

@@ -2,6 +2,7 @@ import { useQuery } from '@tanstack/react-query';
 import { CardGlass } from '../components/CardGlass';
 import { isSupabaseConfigured, supabase } from '../../infrastructure/api/supabaseClient';
 import { JobMatchFeedbackService } from '../../application/services/JobMatchFeedbackService';
+import { FunnelTelemetryService, type RealUserTelemetryItem } from '../../application/services/FunnelTelemetryService';
 import { 
   MessageSquare, BarChart2, Award, 
   RefreshCw, Zap, Heart, CheckCircle, Sparkles, Filter
@@ -71,6 +72,7 @@ export function AdminBetaDashboard() {
       const negativePercent = totalMatchFeedback > 0 ? Math.round((feedbackStats.negativeCount / totalMatchFeedback) * 100) : 0;
 
       const traceabilityList = await JobMatchFeedbackService.getEvaluationsTraceability();
+      const funnelTelemetry = await FunnelTelemetryService.getFunnelTelemetry();
 
       return {
         usersCount,
@@ -87,10 +89,13 @@ export function AdminBetaDashboard() {
         negativePercent,
         feedbacks,
         recentErrors,
-        traceabilityList
+        traceabilityList,
+        funnelTelemetry
       };
     }
   });
+
+  const telemetry = betaMetrics?.funnelTelemetry;
 
   return (
     <div className="space-y-6 animate-fade-in font-sans p-0 text-slate-100 max-w-7xl mx-auto mb-16">
@@ -105,7 +110,7 @@ export function AdminBetaDashboard() {
             Painel de Métricas e Telemetria (VoCentro)
           </h1>
           <p className="text-slate-400 text-xs mt-1">
-            Métricas de ativação, entrega de valor e qualidade do algoritmo para acompanhamento do produto.
+            Métricas de ativação, entrega de valor, qualidade do algoritmo e telemetria de retenção D1 de usuários reais.
           </p>
 
         </div>
@@ -195,14 +200,13 @@ export function AdminBetaDashboard() {
         </div>
       </div>
 
-      {/* SEÇÃO 3: QUALIDADE DO ALGORITMO DE IA (FEEDBACKS & MOTIVOS DE REJEIÇÃO) */}
+      {/* SEÇÃO 3: QUALIDADE DO ALGORITMO DE IA */}
       <div className="space-y-3 pt-2">
         <div className="flex items-center gap-2">
           <BarChart2 size={16} className="text-emerald-400" />
           <h2 className="text-sm font-bold text-white uppercase tracking-wider">3. Qualidade & Validação do Match IA</h2>
         </div>
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-          {/* Card de Satisfação do Match */}
           <div className="lg:col-span-5 space-y-4">
             <CardGlass className="p-5 space-y-4 border border-slate-800">
               <h3 className="font-bold text-xs uppercase tracking-wider text-slate-300">Aprovação das Recomendações IA</h3>
@@ -220,7 +224,6 @@ export function AdminBetaDashboard() {
               </div>
             </CardGlass>
 
-            {/* Motivos de Rejeição */}
             <CardGlass className="p-5 space-y-3 border border-slate-800">
               <h3 className="font-bold text-xs uppercase tracking-wider text-slate-300 flex items-center gap-1.5">
                 <Filter size={14} className="text-amber-400" />
@@ -243,7 +246,6 @@ export function AdminBetaDashboard() {
             </CardGlass>
           </div>
 
-          {/* Feedbacks Qualitativos & Erros */}
           <div className="lg:col-span-7 space-y-4">
             <CardGlass className="p-5 space-y-4 border border-slate-800">
               <div className="flex items-center justify-between border-b border-slate-800 pb-3">
@@ -283,7 +285,6 @@ export function AdminBetaDashboard() {
               </div>
             </CardGlass>
 
-            {/* Rastreabilidade de Avaliações por Usuário */}
             <CardGlass className="p-5 space-y-3 border border-slate-800">
               <h3 className="font-bold text-xs uppercase tracking-wider text-slate-300 flex items-center gap-1.5">
                 <BarChart2 size={14} className="text-purple-400" />
@@ -313,6 +314,130 @@ export function AdminBetaDashboard() {
             </CardGlass>
           </div>
         </div>
+      </div>
+
+      {/* SEÇÃO 4: TELEMETRIA DO FUNIL, RETENÇÃO D1 & DIAGNÓSTICO DE ABANDONO (USUÁRIOS REAIS) */}
+      <div className="space-y-4 pt-4 border-t border-slate-800">
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
+          <div className="flex items-center gap-2">
+            <Filter size={18} className="text-purple-400" />
+            <h2 className="text-sm font-bold text-white uppercase tracking-wider">
+              4. Telemetria do Funil & Análise de Abandono (Candidatos Reais)
+            </h2>
+          </div>
+          <span className="text-[10px] text-slate-400 font-mono px-2.5 py-1 rounded bg-slate-900 border border-slate-800">
+            Filtro Estrito: {telemetry?.excludedAccountsCount || 0} contas de teste/admin excluídas
+          </span>
+        </div>
+
+        {/* Cards de Métricas Reconciliadas Reais */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          <CardGlass className="p-4 border border-blue-500/30 bg-blue-950/20 space-y-1">
+            <span className="text-[10px] text-blue-300 font-bold uppercase block">Candidatos Reais Orgânicos</span>
+            <span className="text-2xl font-extrabold text-blue-400 font-display">{telemetry?.totalRegisteredReal ?? 0}</span>
+            <span className="text-[9px] text-slate-400 block">Excluídos testes/admin</span>
+          </CardGlass>
+
+          <CardGlass className="p-4 border border-emerald-500/30 bg-emerald-950/20 space-y-1">
+            <span className="text-[10px] text-emerald-300 font-bold uppercase block">Retenção D1 (Janela 24h-48h)</span>
+            <span className="text-2xl font-extrabold text-emerald-400 font-display">{telemetry?.d1RetentionRate ?? '0.0%'}</span>
+            <span className="text-[9px] text-emerald-300/80 block">{telemetry?.d1RetainedCount ?? 0} usuários com 2º acesso em [24h, 48h]</span>
+          </CardGlass>
+
+          <CardGlass className="p-4 border border-amber-500/30 bg-amber-950/20 space-y-1">
+            <span className="text-[10px] text-amber-300 font-bold uppercase block">Abandono Single-Day (&lt;24h)</span>
+            <span className="text-2xl font-extrabold text-amber-400 font-display">{telemetry?.singleDayDropoffRate ?? '0.0%'}</span>
+            <span className="text-[9px] text-amber-300/80 block">{telemetry?.singleDayDropoffCount ?? 0} usuários pararam &lt;24h</span>
+          </CardGlass>
+
+          <CardGlass className="p-4 border border-purple-500/30 bg-purple-950/20 space-y-1">
+            <span className="text-[10px] text-purple-300 font-bold uppercase block">Conversão Free ➔ Pro Real</span>
+            <span className="text-2xl font-extrabold text-purple-400 font-display">{telemetry?.proConversionRate ?? '0.0%'}</span>
+            <span className="text-[9px] text-purple-300/80 block">{telemetry?.paidProCount ?? 0} assinantes pagos orgânicos</span>
+          </CardGlass>
+        </div>
+
+        {/* Tabela de Rastreamento Individual de Usuários Reais */}
+        <CardGlass className="p-5 space-y-4 border border-slate-800">
+          <div className="flex justify-between items-center border-b border-slate-800 pb-3">
+            <h3 className="font-bold text-xs uppercase tracking-wider text-slate-200 flex items-center gap-2">
+              <Zap size={14} className="text-emerald-400" />
+              Linha do Tempo e Estágio de Abandono por Usuário Real
+            </h3>
+            <span className="text-[10px] text-slate-400 font-mono">
+              Mostrando {telemetry?.userTimelines?.length || 0} candidato(s)
+            </span>
+          </div>
+
+          <div className="overflow-x-auto max-h-[380px] overflow-y-auto">
+            <table className="w-full text-left border-collapse text-xs">
+              <thead>
+                <tr className="border-b border-slate-800 text-[10px] text-slate-400 uppercase font-mono">
+                  <th className="p-2">Candidato / E-mail</th>
+                  <th className="p-2">Cadastro</th>
+                  <th className="p-2">Última Ação</th>
+                  <th className="p-2">Estágio Alcançado</th>
+                  <th className="p-2">Paywall?</th>
+                  <th className="p-2">Status Erros</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-850">
+                {!telemetry?.userTimelines || telemetry.userTimelines.length === 0 ? (
+                  <tr>
+                    <td colSpan={6} className="p-4 text-center text-slate-500 italic">
+                      Nenhum usuário orgânico real registrado ou dados em carregamento...
+                    </td>
+                  </tr>
+                ) : (
+                  telemetry.userTimelines.map((user: RealUserTelemetryItem) => (
+                    <tr key={user.userId} className="hover:bg-slate-900/40 transition-colors">
+                      <td className="p-2 font-medium text-white">
+                        <span className="block text-[11px]">{user.name}</span>
+                        <span className="block text-[9px] text-slate-500 font-mono">{user.email}</span>
+                      </td>
+                      <td className="p-2 text-[10px] text-slate-400 font-mono">
+                        {new Date(user.createdAt).toLocaleDateString('pt-BR')}
+                      </td>
+                      <td className="p-2 text-[10px] text-slate-300">
+                        <span className="px-2 py-0.5 rounded bg-slate-900 border border-slate-800 font-mono">
+                          {user.lastAction}
+                        </span>
+                      </td>
+                      <td className="p-2">
+                        <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${
+                          user.dropoffStage === 'paid_pro' ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30' :
+                          user.dropoffStage === 'checkout_opened' ? 'bg-purple-500/20 text-purple-300 border border-purple-500/30' :
+                          user.dropoffStage === 'paywall_hit' ? 'bg-amber-500/20 text-amber-300 border border-amber-500/30' :
+                          user.dropoffStage === 'match_calculated' ? 'bg-blue-500/20 text-blue-300 border border-blue-500/30' :
+                          user.dropoffStage === 'uploaded_resume' ? 'bg-indigo-500/20 text-indigo-300 border border-indigo-500/30' :
+                          'bg-slate-800 text-slate-400'
+                        }`}>
+                          {user.dropoffStage.toUpperCase()}
+                        </span>
+                      </td>
+                      <td className="p-2 text-[10px]">
+                        {user.hitPaywall ? (
+                          <span className="text-amber-400 font-semibold">Sim ({user.paywallFeature || 'limite'})</span>
+                        ) : (
+                          <span className="text-slate-500">Não</span>
+                        )}
+                      </td>
+                      <td className="p-2 text-[10px]">
+                        {user.errorsCount > 0 ? (
+                          <span className="text-red-400 font-bold" title={user.lastErrorMessage}>
+                            ⚠️ {user.errorsCount} erro(s)
+                          </span>
+                        ) : (
+                          <span className="text-emerald-400">✓ OK</span>
+                        )}
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
+        </CardGlass>
       </div>
     </div>
   );

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { supabase } from '../../infrastructure/api/supabaseClient';
 import { tracker } from '../../infrastructure/analytics/tracker';
 import { 
@@ -9,9 +9,9 @@ import {
   HeartHandshake, 
   Star,
   AlertCircle,
-  Lock
+  Lock,
+  RefreshCw
 } from 'lucide-react';
-
 
 export const PublicSurveyPage: React.FC = () => {
   const [step, setStep] = useState<number>(0);
@@ -19,8 +19,11 @@ export const PublicSurveyPage: React.FC = () => {
   const [submitting, setSubmitting] = useState<boolean>(false);
   const [tokenValid, setTokenValid] = useState<boolean>(false);
   const [alreadyCompleted, setAlreadyCompleted] = useState<boolean>(false);
+  const [apiError, setApiError] = useState<boolean>(false);
   const [userInfo, setUserInfo] = useState<{ id: string; email: string; name: string } | null>(null);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
+
+  const validationTimeoutRef = useRef<any>(null);
 
   // Form State
   const [formData, setFormData] = useState({
@@ -48,93 +51,131 @@ export const PublicSurveyPage: React.FC = () => {
 
   useEffect(() => {
     validateTokenAndUser();
+    return () => {
+      if (validationTimeoutRef.current) clearTimeout(validationTimeoutRef.current);
+    };
   }, []);
 
   const validateTokenAndUser = async () => {
     setLoading(true);
     setErrorMsg(null);
+    setApiError(false);
 
-    const searchParams = new URLSearchParams(window.location.search);
-    const token = searchParams.get('token');
+    tracker.track('survey_token_validation_started', 'UserResearch', {
+      survey_version: 'v1_founders_validation',
+      url: window.location.href
+    });
 
-    if (!token) {
-      // Fallback: check logged in session
-      if (supabase) {
-        const { data: { session } } = await supabase.auth.getSession();
-        if (session?.user) {
-          setUserInfo({
-            id: session.user.id,
-            email: session.user.email || '',
-            name: session.user.user_metadata?.full_name || session.user.email?.split('@')[0] || 'Candidato'
-          });
-          checkPreviousCompletion(session.user.id);
-          return;
+    // 10-second safety timeout so page NEVER hangs infinitely
+    if (validationTimeoutRef.current) clearTimeout(validationTimeoutRef.current);
+    validationTimeoutRef.current = setTimeout(() => {
+      setLoading((prevLoading) => {
+        if (prevLoading) {
+          console.warn('[PublicSurvey] Timeout de 10s atingido na validação do token.');
+          setApiError(true);
+          setErrorMsg('A resposta do servidor demorou mais que o esperado.');
+          tracker.track('survey_token_validation_failed', 'UserResearch', { reason: 'timeout_10s' });
+          return false;
         }
-      }
-      setTokenValid(false);
-      setErrorMsg('Token de acesso à pesquisa não fornecido ou inválido.');
-      setLoading(false);
-      return;
-    }
+        return false;
+      });
+    }, 10000);
 
     try {
+      const searchParams = new URLSearchParams(window.location.search);
+      const token = searchParams.get('token');
+
+      if (!token) {
+        // Fallback: check logged in session
+        if (supabase) {
+          try {
+            const { data: { session } } = await supabase.auth.getSession();
+            if (session?.user) {
+              const uId = session.user.id;
+              setUserInfo({
+                id: uId,
+                email: session.user.email || '',
+                name: session.user.user_metadata?.full_name || session.user.email?.split('@')[0] || 'Candidato'
+              });
+              await checkPreviousCompletion(uId);
+              return;
+            }
+          } catch (authErr) {
+            console.warn('[PublicSurvey] Erro na sessão de fallback:', authErr);
+          }
+        }
+        setTokenValid(false);
+        setErrorMsg('Este convite de pesquisa expirou ou não é válido. Caso tenha recebido um novo convite, utilize o link mais recente.');
+        tracker.track('survey_token_validation_failed', 'UserResearch', { reason: 'missing_token' });
+        return;
+      }
+
       // Token format: base64 encoded JSON { u: userId, e: email } or raw userId
       let userId = token;
       let email = '';
 
       try {
-        const decoded = JSON.parse(atob(token));
-        if (decoded.u) {
+        const decodedStr = atob(token);
+        const decoded = JSON.parse(decodedStr);
+        if (decoded && decoded.u) {
           userId = decoded.u;
           email = decoded.e || '';
         }
       } catch {
-        // Raw UUID or token string
+        // Raw string / UUID
         userId = token;
       }
 
       if (!supabase) {
         setUserInfo({ id: userId, email: email || 'usuario@vocentro.com.br', name: 'Usuário Fundador' });
         setTokenValid(true);
-        setLoading(false);
+        tracker.track('survey_token_validation_success', 'UserResearch', { mode: 'no_supabase_fallback' });
         return;
       }
 
-      // Check if user exists in profiles or auth
-      const { data: profile } = await supabase.from('profiles').select('*').eq('id', userId).single();
+      // Check profile or auth user
+      const { data: profile, error: profErr } = await supabase.from('profiles').select('*').eq('id', userId).maybeSingle();
       
-      if (profile) {
-        setUserInfo({
-          id: profile.id,
-          email: profile.email || email,
-          name: profile.full_name || profile.email?.split('@')[0] || 'Usuário Fundador'
-        });
-        await checkPreviousCompletion(profile.id);
-      } else {
-        // Valid token payload even if profile table row pending
-        setUserInfo({ id: userId, email: email || 'usuario@vocentro.com.br', name: 'Usuário Fundador' });
-        setTokenValid(true);
+      if (profErr) {
+        console.warn('[PublicSurvey] Aviso ao consultar perfil:', profErr.message);
       }
+
+      const candidateName = profile?.full_name || (profile?.email || email).split('@')[0] || 'Usuário Fundador';
+      const candidateEmail = profile?.email || email || 'usuario@vocentro.com.br';
+
+      setUserInfo({ id: userId, email: candidateEmail, name: candidateName });
+
+      // Check if user already submitted survey
+      await checkPreviousCompletion(userId);
     } catch (err: any) {
-      console.error('[PublicSurvey] Erro de validação do token:', err);
-      setTokenValid(false);
-      setErrorMsg('Token expirado ou inválido. Por favor, solicite um novo acesso.');
+      console.error('[PublicSurvey] Erro fatal na validação do token:', err);
+      setApiError(true);
+      setErrorMsg('Ocorreu uma falha ao conectar com nossos servidores.');
+      tracker.track('survey_token_validation_failed', 'UserResearch', { error: err.message || 'unknown' });
     } finally {
+      if (validationTimeoutRef.current) clearTimeout(validationTimeoutRef.current);
       setLoading(false);
     }
   };
 
   const checkPreviousCompletion = async (userId: string) => {
-    if (!supabase) {
-      setTokenValid(true);
-      return;
-    }
-    const { data: existing } = await supabase.from('survey_responses').select('id').eq('user_id', userId).maybeSingle();
-    if (existing) {
-      setAlreadyCompleted(true);
-      setTokenValid(false);
-    } else {
-      setTokenValid(true);
+    try {
+      if (!supabase) {
+        setTokenValid(true);
+        return;
+      }
+      const { data: existing } = await supabase.from('survey_responses').select('id').eq('user_id', userId).maybeSingle();
+      if (existing) {
+        setAlreadyCompleted(true);
+        setTokenValid(false);
+        tracker.track('survey_token_validation_failed', 'UserResearch', { reason: 'already_completed' });
+      } else {
+        setTokenValid(true);
+        tracker.track('survey_token_validation_success', 'UserResearch', { user_id: userId });
+      }
+    } catch (cErr) {
+      console.warn('[PublicSurvey] Erro ao verificar resposta prévia:', cErr);
+      setTokenValid(true); // Allow user to attempt survey if check is non-fatal
     }
   };
 
@@ -236,20 +277,40 @@ export const PublicSurveyPage: React.FC = () => {
     }
   };
 
+  // ── 1. ESTADO: CARREGANDO COM ANIMAÇÃO SAAS PREMIUM ──
   if (loading) {
     return (
-      <div className="min-h-screen bg-[#090d16] flex items-center justify-center p-6 text-slate-400">
-        <div className="flex items-center space-x-3">
-          <Sparkles className="w-5 h-5 animate-spin text-emerald-400" />
-          <span>Validando token seguro da pesquisa...</span>
+      <div className="min-h-screen bg-[#090d16] flex flex-col items-center justify-center p-6 text-slate-100 font-sans">
+        <div className="flex flex-col items-center space-y-6 text-center max-w-sm">
+          {/* Logo VoCentro com Glow */}
+          <div className="relative flex items-center justify-center">
+            <div className="absolute -inset-2 bg-gradient-to-r from-emerald-500 to-cyan-500 rounded-full blur-lg opacity-40 animate-pulse" />
+            <div className="relative flex h-16 w-16 items-center justify-center rounded-2xl bg-[#121927] border border-emerald-500/40 text-emerald-400 shadow-xl">
+              <Sparkles className="w-8 h-8 animate-spin" />
+            </div>
+          </div>
+
+          <div className="space-y-2">
+            <h2 className="text-xl font-bold text-white tracking-tight">
+              Estamos preparando seu convite de fundador 🚀
+            </h2>
+            <p className="text-xs text-slate-400 leading-relaxed">
+              Validando credenciais seguras e personalizando sua experiência no VoCentro...
+            </p>
+          </div>
+
+          <div className="w-48 bg-slate-900 h-1.5 rounded-full overflow-hidden border border-slate-800">
+            <div className="bg-gradient-to-r from-emerald-500 to-cyan-400 h-full w-2/3 animate-pulse rounded-full" />
+          </div>
         </div>
       </div>
     );
   }
 
+  // ── 2. ESTADO: PESQUISA JÁ PREENCHIDA ──
   if (alreadyCompleted) {
     return (
-      <div className="min-h-screen bg-[#090d16] flex items-center justify-center p-6 text-slate-100">
+      <div className="min-h-screen bg-[#090d16] flex items-center justify-center p-6 text-slate-100 font-sans">
         <div className="max-w-md w-full p-8 rounded-2xl bg-[#121927] border border-slate-800 text-center space-y-6 shadow-2xl">
           <div className="inline-flex p-4 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/40">
             <CheckCircle2 className="w-10 h-10" />
@@ -271,25 +332,39 @@ export const PublicSurveyPage: React.FC = () => {
     );
   }
 
+  // ── 3. ESTADO: ERRO DE CONEXÃO/API OU TOKEN INVALIDO ──
   if (!tokenValid) {
     return (
-      <div className="min-h-screen bg-[#090d16] flex items-center justify-center p-6 text-slate-100">
-        <div className="max-w-md w-full p-8 rounded-2xl bg-[#121927] border border-rose-500/30 text-center space-y-6 shadow-2xl">
-          <div className="inline-flex p-4 rounded-full bg-rose-500/20 text-rose-400 border border-rose-500/40">
-            <Lock className="w-10 h-10" />
+      <div className="min-h-screen bg-[#090d16] flex items-center justify-center p-6 text-slate-100 font-sans">
+        <div className="max-w-md w-full p-8 rounded-2xl bg-[#121927] border border-slate-800 text-center space-y-6 shadow-2xl">
+          <div className={`inline-flex p-4 rounded-full border ${apiError ? 'bg-amber-500/20 text-amber-400 border-amber-500/40' : 'bg-rose-500/20 text-rose-400 border-rose-500/40'}`}>
+            {apiError ? <AlertCircle className="w-10 h-10" /> : <Lock className="w-10 h-10" />}
           </div>
           <div className="space-y-2">
-            <h2 className="text-xl font-bold text-white">Link de Acesso Indisponível</h2>
-            <p className="text-xs text-slate-400 leading-relaxed">
-              {errorMsg || 'Este link de pesquisa é inválido ou expirou.'}
+            <h2 className="text-xl font-bold text-white">
+              {apiError ? 'Falha Temporária de Conexão' : 'Convite Indisponível'}
+            </h2>
+            <p className="text-xs text-slate-300 leading-relaxed">
+              {errorMsg || 'Este convite de pesquisa expirou ou não é válido. Caso tenha recebido um novo convite, utilize o link mais recente.'}
             </p>
           </div>
-          <a
-            href="https://vocentro.com.br"
-            className="inline-flex items-center justify-center gap-2 py-3 px-6 rounded-xl font-medium bg-slate-800 text-slate-200 hover:bg-slate-700 transition text-xs"
-          >
-            Ir para a página principal
-          </a>
+
+          <div className="flex flex-col sm:flex-row items-center gap-3">
+            {apiError && (
+              <button
+                onClick={validateTokenAndUser}
+                className="w-full py-3 px-5 rounded-xl font-bold bg-emerald-500 text-slate-950 hover:bg-emerald-400 transition flex items-center justify-center gap-2 text-xs"
+              >
+                <RefreshCw className="w-4 h-4" /> Tentar novamente
+              </button>
+            )}
+            <a
+              href="https://vocentro.com.br"
+              className="w-full py-3 px-5 rounded-xl font-medium bg-slate-800 text-slate-200 hover:bg-slate-700 transition text-xs text-center"
+            >
+              Ir para o VoCentro
+            </a>
+          </div>
         </div>
       </div>
     );
@@ -419,7 +494,7 @@ export const PublicSurveyPage: React.FC = () => {
             </div>
           )}
 
-          {/* PERGUNTA 3 a 15 resumidas estruturadas */}
+          {/* PERGUNTAS 3 a 15 */}
           {step >= 3 && step <= 15 && (
             <div className="space-y-6">
               <div className="text-xs font-semibold text-emerald-400 uppercase tracking-wider">Pergunta {step} de {totalQuestions}</div>

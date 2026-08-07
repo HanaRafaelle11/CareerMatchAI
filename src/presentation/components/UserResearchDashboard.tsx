@@ -32,8 +32,9 @@ export const UserResearchDashboard: React.FC<UserResearchDashboardProps> = () =>
   // Campaign & Giveaway Config
   const [campaignStatus] = useState<string>('OPEN');
   const [drawDate] = useState<string>('14/08/2026 às 20:00 (Horário de Brasília)');
-  const [sendAdminCopy, setSendAdminCopy] = useState<boolean>(true);
-  const [wavePreview, setWavePreview] = useState<{ wave: string; eligible: number; invited: number; pending: number } | null>(null);
+  const [sendAdminCopy, setSendAdminCopy] = useState<boolean>(false);
+  const [wavePreview, setWavePreview] = useState<{ wave: string; eligible: number; invited: number; delivered?: number; responded?: number; failed?: number; pending: number } | null>(null);
+
 
   // Additional Drawer & Filter state
   const [selectedUserDetail, setSelectedUserDetail] = useState<any | null>(null);

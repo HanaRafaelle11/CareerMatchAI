@@ -23,6 +23,31 @@ export class ErrorBoundary extends Component<Props, State> {
 
   public componentDidCatch(error: Error, errorInfo: ErrorInfo) {
     console.error('[CRITICAL ERROR BOUNDARY CAPTURED]', error, errorInfo);
+    try {
+      if (typeof window !== 'undefined') {
+        const payload = {
+          component: 'Frontend/ErrorBoundary',
+          error_code: 'REACT_RENDER_CRASH',
+          message: error?.message || 'React render crashed',
+          stack: error?.stack || null,
+          metadata: {
+            componentStack: errorInfo?.componentStack || null,
+            url: window.location.href,
+            userAgent: navigator.userAgent,
+            timestamp: new Date().toISOString()
+          }
+        };
+
+        // Enviar para Supabase
+        import('../../infrastructure/api/supabaseClient').then(({ isSupabaseConfigured, supabase }) => {
+          if (isSupabaseConfigured && supabase) {
+            supabase.from('application_errors').insert(payload).then(({ error: dbErr }) => {
+              if (dbErr) console.warn('[ErrorBoundary] Aviso ao gravar erro no Supabase:', dbErr.message);
+            });
+          }
+        }).catch(() => {});
+      }
+    } catch (_) {}
   }
 
   private handleReload = () => {

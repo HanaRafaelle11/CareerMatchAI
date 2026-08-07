@@ -115,6 +115,9 @@ class AnalyticsTracker {
         created_at: new Date().toISOString()
       };
 
+      // Disparar evento de conversão do LinkedIn Insight Tag se configurado no navegador
+      this.trackLinkedInConversion(eventName, metadata);
+
       // Write to Supabase if available
       if (isSupabaseConfigured && supabase) {
         const { error } = await supabase.from('analytics_events').insert(eventPayload);
@@ -128,6 +131,31 @@ class AnalyticsTracker {
       }
     } catch (err) {
       console.error('Error in AnalyticsTracker:', err);
+    }
+  }
+
+  /**
+   * Dispara eventos customizados para o LinkedIn Insight Tag (lintrk) em pontos-chave do funil
+   */
+  private trackLinkedInConversion(eventName: string, metadata: any = {}) {
+    try {
+      if (typeof window !== 'undefined' && (window as any).lintrk) {
+        const conversionEvents: Record<string, string> = {
+          'signup_completed': 'signup_completed',
+          'resume_uploaded': 'resume_uploaded',
+          'match_calculated': 'match_calculated',
+          'pro_subscription_paid': 'pro_subscription_paid',
+          'payment_confirmed': 'pro_subscription_paid'
+        };
+
+        const targetEvent = conversionEvents[eventName];
+        if (targetEvent) {
+          (window as any).lintrk('track', { conversion_id: metadata?.conversion_id || targetEvent });
+          console.log(`[Analytics] Evento de conversão LinkedIn '${targetEvent}' disparado com sucesso.`);
+        }
+      }
+    } catch (lErr) {
+      console.warn('[Analytics] Erro não fatal ao disparar conversão LinkedIn:', lErr);
     }
   }
 

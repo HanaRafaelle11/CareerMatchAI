@@ -194,6 +194,93 @@ serve(async (req: Request) => {
             amount: paymentData?.value
           }
         });
+
+        // Disparo Automatizado de E-mail de Confirmação de Compra via Resend
+        const resendApiKey = Deno.env.get('RESEND_API_KEY');
+        if (resendApiKey && targetUserId) {
+          try {
+            const { data: userProfile } = await adminClient
+              .from('profiles')
+              .select('full_name, email')
+              .eq('id', targetUserId)
+              .maybeSingle();
+
+            const recipientEmail = userProfile?.email || paymentData?.customerEmail || paymentData?.email || payload?.customerEmail;
+            const recipientName = userProfile?.full_name || recipientEmail?.split('@')[0] || 'Assinante VoCentro';
+            const amountFormatted = paymentData?.value ? Number(paymentData.value).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }) : 'R$ 29,90';
+            const fromEmail = Deno.env.get('DIGEST_FROM_EMAIL') || 'VoCentro Suporte <noreply@vocentro.com.br>';
+
+            if (recipientEmail) {
+              const emailHtml = `
+                <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 24px; border: 1px solid #e2e8f0; border-radius: 16px; background-color: #ffffff;">
+                  <div style="text-align: center; margin-bottom: 24px; padding-bottom: 16px; border-bottom: 1px solid #f1f5f9;">
+                    <h1 style="color: #2563eb; margin: 0; font-size: 24px; font-weight: bold;">VoCentro</h1>
+                    <p style="color: #64748b; font-size: 13px; margin-top: 4px;">Plataforma de Carreira com IA</p>
+                  </div>
+
+                  <h2 style="color: #0f172a; margin-top: 0; font-size: 20px;">🎉 Sua Assinatura PRO foi Confirmada!</h2>
+                  <p style="font-size: 14px; color: #475569; line-height: 1.6;">
+                    Olá, <strong>${recipientName}</strong>! Confirmamos o pagamento da sua assinatura do <strong>VoCentro PRO</strong>. Seu acesso ilimitado a todos os recursos já está liberado.
+                  </p>
+
+                  <div style="background-color: #f8fafc; border: 1px solid #cbd5e1; padding: 18px; border-radius: 12px; margin: 20px 0;">
+                    <h3 style="margin-top: 0; font-size: 14px; color: #1e293b; border-bottom: 1px solid #e2e8f0; padding-bottom: 8px;">📋 Resumo do Pedido</h3>
+                    <table style="width: 100%; font-size: 13px; color: #334155; border-collapse: collapse;">
+                      <tr>
+                        <td style="padding: 6px 0; font-weight: bold;">Plano:</td>
+                        <td style="padding: 6px 0; text-align: right; font-weight: bold; color: #2563eb;">VoCentro PRO (${targetSub?.billing_cycle === 'WEEKLY' ? 'Semanal' : 'Mensal'})</td>
+                      </tr>
+                      <tr>
+                        <td style="padding: 6px 0; font-weight: bold;">Valor:</td>
+                        <td style="padding: 6px 0; text-align: right;">${amountFormatted}</td>
+                      </tr>
+                      <tr>
+                        <td style="padding: 6px 0; font-weight: bold;">Válido até:</td>
+                        <td style="padding: 6px 0; text-align: right;">${periodEnd.toLocaleDateString('pt-BR')}</td>
+                      </tr>
+                      <tr>
+                        <td style="padding: 6px 0; font-weight: bold;">ID da Transação:</td>
+                        <td style="padding: 6px 0; text-align: right; font-family: monospace; font-size: 12px;">${gatewayPayId}</td>
+                      </tr>
+                    </table>
+                  </div>
+
+                  <div style="text-align: center; margin: 28px 0;">
+                    <a href="https://vocentro.com.br" target="_blank" style="background-color: #2563eb; color: #ffffff; padding: 14px 28px; text-decoration: none; font-weight: bold; border-radius: 10px; font-size: 14px; display: inline-block;">
+                      🚀 Acessar o VoCentro PRO Agora
+                    </a>
+                  </div>
+
+                  <p style="font-size: 12px; color: #64748b; line-height: 1.5; text-align: center; margin-top: 24px;">
+                    Se tiver qualquer dúvida, responda a este e-mail ou entre em contato via <a href="mailto:suporte@vocentro.com.br" style="color: #2563eb;">suporte@vocentro.com.br</a>.
+                  </p>
+                </div>
+              `;
+
+              const resendRes = await fetch('https://api.resend.com/emails', {
+                method: 'POST',
+                headers: {
+                  'Authorization': `Bearer ${resendApiKey}`,
+                  'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                  from: fromEmail,
+                  to: [recipientEmail],
+                  subject: '🎉 Confirmação de Compra - Assinatura VoCentro PRO Ativa!',
+                  html: emailHtml,
+                }),
+              });
+
+              if (resendRes.ok) {
+                console.log(`[billing-webhook] E-mail de confirmação de compra enviado com sucesso para ${recipientEmail}`);
+              } else {
+                console.warn(`[billing-webhook] Erro ao enviar e-mail via Resend:`, await resendRes.text());
+              }
+            }
+          } catch (emailErr: any) {
+            console.error('[billing-webhook] Falha não bloqueante ao enviar e-mail de confirmação:', emailErr.message);
+          }
+        }
       }
     } else if (eventType === 'PAYMENT_OVERDUE' || eventType === 'PAYMENT_DELETED') {
       const { data: subs } = await adminClient

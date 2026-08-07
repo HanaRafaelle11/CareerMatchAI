@@ -1,4 +1,4 @@
-# Automated Edge Functions Deployment Workflow - Active
+# Automated Edge Functions Deployment Workflow - Active (CI/CD Automated)
 name: Deploy Supabase Edge Functions
 
 on:

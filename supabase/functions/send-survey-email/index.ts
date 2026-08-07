@@ -16,7 +16,7 @@ serve(async (req) => {
   }
 
   try {
-    const { cohortTarget = 'ALL', emailType = 'initial_invite', targetEmail = null, sendAdminCopy = true } = await req.json();
+    const { cohortTarget = 'ALL', emailType = 'initial_invite', targetEmail = null, sendAdminCopy = false, forceResend = false } = await req.json();
 
     const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 
@@ -41,6 +41,21 @@ serve(async (req) => {
 
     // Dispatch for candidate profiles
     for (const user of profiles) {
+      // 🔒 Anti-Spam / Anti-Duplicate Protection: Skip if user already responded or received campaign unless forceResend is true
+      if (!forceResend) {
+        const { data: existingResp } = await supabase.from('survey_responses').select('id').eq('user_id', user.id).maybeSingle();
+        if (existingResp) {
+          logsResults.push({ email: user.email, status: 'skipped_already_responded' });
+          continue;
+        }
+
+        const { data: existingCampaign } = await supabase.from('survey_email_campaigns').select('id, sent_at').eq('user_id', user.id).maybeSingle();
+        if (existingCampaign) {
+          logsResults.push({ email: user.email, status: 'skipped_already_invited', sent_at: existingCampaign.sent_at });
+          continue;
+        }
+      }
+
       const tokenObj = { u: user.id, e: user.email, t: Date.now() };
       const token = btoa(JSON.stringify(tokenObj));
       const surveyUrl = `https://vocentro.com.br/pesquisa?token=${encodeURIComponent(token)}&src=email_cta`;
@@ -204,7 +219,7 @@ serve(async (req) => {
       logsResults.push({ email: user.email, message_id: messageId, status: resendStatus });
     }
 
-    // Handle Admin Copy separately without incrementing candidate funnel recipient metrics
+    // Handle Admin Copy only if explicitly requested
     if (sendAdminCopy) {
       try {
         const adminEmail = 'hanarafaelle11@gmail.com';

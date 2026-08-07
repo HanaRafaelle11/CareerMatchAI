@@ -226,9 +226,9 @@ export function Profile({
 
           const validJobs = data.filter(job => {
             const titleLower = (job.title || '').toLowerCase();
-            const isCulinaryOrOperational = /cozinheiro|cozinheira|cozinha|gastronomia|chefe de cozinha|garçom|garçonete|barista|gari|coletor|limpeza/i.test(titleLower);
+            const isUnrelatedRole = /cozinheiro|cozinheira|cozinha|gastronomia|chefe de cozinha|garçom|garçonete|barista|gari|coletor|limpeza|vendedor|vendedora|vendas|comercial|balconista/i.test(titleLower);
             
-            if (isOfficeCandidate && isCulinaryOrOperational) {
+            if (isOfficeCandidate && isUnrelatedRole) {
               return false; // Descarta vagas fora do domínio do currículo ativo
             }
             return true;

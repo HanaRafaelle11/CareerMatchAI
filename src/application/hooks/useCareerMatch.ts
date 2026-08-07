@@ -853,45 +853,53 @@ export function useMatches(userId: string | undefined, resumeId?: string | null)
     queryFn: async () => {
       if (!userId) return [];
       if (isSupabaseConfigured && supabase) {
-        let query = supabase
-          .from('matches')
-          .select('*, jobs(*)')
-          .eq('user_id', userId)
-          .order('created_at', { ascending: false });
+        let targetResumeIds: string[] = [];
 
         if (resumeId) {
-          query = query.eq('resume_id', resumeId);
+          targetResumeIds = [resumeId];
         } else {
-          // Se resumeId não foi especificado, filtrar pelo currículo primário ativo para evitar vazamento entre currículos
-          const { data: primaryResume } = await supabase
+          // Buscar todos os IDs de currículo do usuário para consultar a tabela matches
+          const { data: userResumes } = await supabase
             .from('resumes')
-            .select('id')
-            .eq('user_id', userId)
-            .eq('is_primary', true)
-            .maybeSingle();
+            .select('id, is_primary')
+            .eq('user_id', userId);
 
-          if (primaryResume?.id) {
-            query = query.eq('resume_id', primaryResume.id);
+          if (userResumes && userResumes.length > 0) {
+            const primary = userResumes.find(r => r.is_primary);
+            if (primary) {
+              targetResumeIds = [primary.id];
+            } else {
+              targetResumeIds = userResumes.map(r => r.id);
+            }
           }
         }
 
-        const { data, error } = await query;
+        if (targetResumeIds.length === 0) return [];
 
-        if (error) throw error;
+        const { data, error } = await supabase
+          .from('matches')
+          .select('*, jobs(*)')
+          .in('resume_id', targetResumeIds)
+          .order('created_at', { ascending: false });
+
+        if (error) {
+          console.error('[MATCHES QUERY ERROR]', error);
+          return [];
+        }
         return (data || []).map(m => ({
           id: m.id,
           userId: userId,
           resumeId: m.resume_id,
           jobId: m.job_id,
           jobTitle: m.jobs?.title || 'Vaga',
-          companyName: m.jobs?.companyName || 'Inserida Manualmente',
+          companyName: m.jobs?.companyName || m.jobs?.company_name || 'Inserida Manualmente',
           scoreOverall: m.score_overall,
           scoreTechnical: m.score_technical,
           scoreBehavioral: m.score_behavioral,
           scoreSeniority: m.score_seniority,
           scoreLocation: 100,
           explanation: m.explanation,
-          gap_analysis: m.gap_analysis, // Adiciona o gap_analysis para o AI Coach
+          gap_analysis: m.gap_analysis,
           createdAt: m.created_at,
           processingTimeMs: m.processing_time_ms
         }));

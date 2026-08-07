@@ -116,7 +116,9 @@ export function useJobDiscovery(
         const preferences = (careerProfileNew.personal as any)?.preferences || {};
 
         if (filters.keyword) {
-          finalKeywords = [filters.keyword.trim()];
+          const rawK = filters.keyword.trim();
+          const variations = extractTitleVariations(rawK);
+          finalKeywords = [rawK, ...variations.filter(v => v.toLowerCase() !== rawK.toLowerCase())];
         } else {
           // 1. Gerar múltiplas variações de alto volume no mercado
           const rawRole = preferences.targetRoles?.[0] || careerProfileNew.personal?.headline || careerProfileNew.experience?.[0]?.role || '';

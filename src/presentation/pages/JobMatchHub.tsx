@@ -1438,7 +1438,6 @@ export function JobMatchHub({
         score,
         user_id: userId 
       });
-      showToast(`Match calculado com sucesso: ${score}%!`, 'success');
     } catch (err: any) {
       const formatted = AppError.from(err);
       setAppError(formatted);
@@ -2408,7 +2407,7 @@ export function JobMatchHub({
                             💼 Career Fit Score
                           </span>
                           <span className="text-xs font-extrabold text-blue-300 block">
-                            {explanation?.careerFitScore ? `${explanation.careerFitScore}%` : (unifiedJobMatchScore !== null && unifiedJobMatchScore > 0 ? `${unifiedJobMatchScore}%` : '--')}
+                            {currentMatch ? `${currentMatch.scoreOverall}%` : (explanation?.careerFitScore ? `${explanation.careerFitScore}%` : '--')}
                           </span>
                           <span className="text-[8px] text-slate-400 block">Alinhamento de objetivo</span>
                         </div>
@@ -2424,16 +2423,22 @@ export function JobMatchHub({
                             </span>
                             <span className="text-[10px] text-slate-300 block font-semibold">Compatibilidade Geral</span>
                           </div>
-                          <ProgressRing 
-                            value={unifiedJobMatchScore ?? 0} 
-                            size={56} 
-                            strokeWidth={4}
-                            label={
-                              <span className="text-emerald-400 font-extrabold text-sm font-display">
-                                {unifiedJobMatchScore !== null && unifiedJobMatchScore > 0 ? `${unifiedJobMatchScore}%` : '--'}
-                              </span>
-                            } 
-                          />
+                          {isCalculating ? (
+                            <div className="w-[56px] h-[56px] flex items-center justify-center">
+                              <Loader2 size={24} className="animate-spin text-brand-400" />
+                            </div>
+                          ) : (
+                            <ProgressRing 
+                              value={currentMatch ? currentMatch.scoreOverall : 0} 
+                              size={56} 
+                              strokeWidth={4}
+                              label={
+                                <span className="text-emerald-400 font-extrabold text-sm font-display">
+                                  {currentMatch ? `${currentMatch.scoreOverall}%` : '--'}
+                                </span>
+                              } 
+                            />
+                          )}
                         </div>
                       </div>
                     </div>
@@ -2585,7 +2590,7 @@ export function JobMatchHub({
                                 }`}
                               >
                                 <ThumbsUp size={13} className="text-emerald-400" />
-                                <span>👍 Sim, combina comigo</span>
+                                <span>Sim, combina comigo</span>
                               </button>
 
                               <button
@@ -2597,7 +2602,7 @@ export function JobMatchHub({
                                 }`}
                               >
                                 <ThumbsDown size={13} className="text-red-400" />
-                                <span>👎 Não combina comigo</span>
+                                <span>Não combina comigo</span>
                               </button>
                             </div>
                           </div>

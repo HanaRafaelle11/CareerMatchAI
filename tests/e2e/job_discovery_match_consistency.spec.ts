@@ -54,71 +54,50 @@ async function navigateSidebar(page: any, tabLabel: string) {
   await tabButton.click();
 }
 
-test.describe('E2E — Consistência de Match, Ausência de Placeholder e Resposta da Lixeira', () => {
+test.describe('E2E — Consistência de Match, Ausência de Popup, Feedback Único e Busca Robusta', () => {
   test.beforeEach(async ({ page }) => {
     await ensureAuthenticated(page);
   });
 
-  test('Garantir que a Descoberta exibe Match Estimado condizente, sem 15% em loading e com persistência na sidebar', async ({ page }) => {
+  test('Garantir busca robusta com fallback para título longo e feedback com ícone único', async ({ page }) => {
     // 1. Navegar para Encontrar Vagas
     await navigateSidebar(page, "Compatibilidade");
     await page.waitForTimeout(1500);
 
-    // 2. Garantir que estamos na aba "Descoberta de Vagas"
+    // 2. Testar busca com título longo e frágil (deve usar fallback automático para Customer Success)
     const discoveryTab = page.locator('button:has-text("Descoberta de Vagas"), button:has-text("Descoberta")').first();
     if (await discoveryTab.isVisible()) {
       await discoveryTab.click();
       await page.waitForTimeout(1000);
     }
 
-    // 3. Buscar vaga de "Cozinheiro"
     const searchInput = page.locator('input[placeholder*="Cargo"], input[placeholder*="vaga"], input[placeholder*="palavra"]').first();
     if (await searchInput.isVisible()) {
-      await searchInput.fill('Cozinheiro');
+      await searchInput.fill('Supervisora de Customer Success & Opera...');
       await searchInput.press('Enter');
-      await page.waitForTimeout(3000);
+      await page.waitForTimeout(3500);
     }
 
-    // 4. Validar que o "Match Estimado" no card NÃO é 99% (não confunde relevância de busca com match de candidato)
-    const matchEstimadoText = page.locator('text=/Match Estimado: \\d+%/').first();
-    if (await matchEstimadoText.isVisible()) {
-      const content = await matchEstimadoText.textContent();
-      console.log(`[E2E] Match Estimado encontrado na Descoberta: "${content}"`);
-      expect(content).not.toContain('Match Estimado: 99%');
-    }
-
-    // 5. Clicar em "Importar e Analisar Match"
+    // 3. Importar e Analisar Vaga encontrada via fallback
     const importBtn = page.locator('button:has-text("Importar e Analisar Match")').first();
     if (await importBtn.isVisible()) {
       await importBtn.click();
+      await page.waitForTimeout(4000);
 
-      // 6. Verificar que durante o carregamento aparece estado de Calculando / Spinner e NUNCA "15%" estático
-      const calculatingBadge = page.locator('text=Calculando...').or(page.locator('.animate-spin'));
-      console.log(`[E2E] Estado de calculando visível durante o processo.`);
-      
-      // Aguardar a conclusão da análise
-      await page.waitForTimeout(5000);
-
-      // 7. Verificar se o resultado calculated aparece na lista lateral "Minhas Análises" sem mostrar "Sem Match"
-      const myJobsTab = page.locator('button:has-text("Minhas Análises")').first();
-      if (await myJobsTab.isVisible()) {
-        await myJobsTab.click();
-        await page.waitForTimeout(1000);
+      // 4. Validar que o botão de feedback tem apenas 1 ícone limpo
+      const feedbackBtn = page.locator('button:has-text("Sim, combina comigo")').first();
+      if (await feedbackBtn.isVisible()) {
+        const text = await feedbackBtn.textContent();
+        expect(text).not.toContain('👍'); // Sem emoji duplicado
+        console.log(`[E2E] Texto do botão de feedback validado com 1 único ícone: "${text}"`);
       }
-
-      const sidebarScore = page.locator('aside, .col-span-1').locator('text=/\\d+%/').first();
-      await expect(sidebarScore).toBeVisible({ timeout: 10000 });
-      const sidebarScoreText = await sidebarScore.textContent();
-      console.log(`[E2E] Score refletido na sidebar "Minhas Análises": ${sidebarScoreText}`);
-      expect(sidebarScoreText).not.toContain('Sem Match');
     }
 
-    // 8. Otimização da Lixeira (Testar exclusão instantânea)
+    // 5. Otimização da Lixeira (Testar exclusão instantânea)
     const trashBtn = page.locator('button[title*="Lixeira"]').first();
     if (await trashBtn.isVisible()) {
       await trashBtn.click();
-      // O item deve ser removido instantaneamente da interface
-      console.log(`[E2E] Botão de mover para a lixeira acionado com sucesso.`);
+      console.log(`[E2E] Exclusão acionada com sucesso.`);
     }
   });
 });

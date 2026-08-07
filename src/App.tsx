@@ -39,6 +39,8 @@ const PrivacyPolicyPage = lazy(() => import('./presentation/pages/PrivacyPolicyP
 const TermsOfUsePage = lazy(() => import('./presentation/pages/TermsOfUsePage').then(m => ({ default: m.TermsOfUsePage })));
 const FaqHelpPage = lazy(() => import('./presentation/pages/FaqHelpPage').then(m => ({ default: m.FaqHelpPage })));
 const HowGoogleLoginWorksPage = lazy(() => import('./presentation/pages/HowGoogleLoginWorksPage').then(m => ({ default: m.HowGoogleLoginWorksPage })));
+const PublicSurveyPage = lazy(() => import('./presentation/pages/PublicSurveyPage').then(m => ({ default: m.PublicSurveyPage })));
+
 
 function LazyFallback() {
   return (
@@ -77,6 +79,10 @@ function App() {
   const [isTermsOfUseView, setIsTermsOfUseView] = useState(
     window.location.pathname === '/termos-de-uso' || window.location.pathname === '/termos-de-uso.html'
   );
+  const [isPublicSurveyView] = useState(
+    window.location.pathname === '/pesquisa' || window.location.pathname === '/survey' || window.location.search.includes('token=')
+  );
+
 
   const { preferences, updatePreferences } = useUserPreferences(user?.id);
 
@@ -248,7 +254,16 @@ function App() {
     );
   }
 
+  if (isPublicSurveyView) {
+    return (
+      <Suspense fallback={<LazyFallback />}>
+        <PublicSurveyPage />
+      </Suspense>
+    );
+  }
+
   if (isAboutView) {
+
     return (
       <Suspense fallback={<LazyFallback />}>
         <AboutPage

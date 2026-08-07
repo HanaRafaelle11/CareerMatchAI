@@ -347,6 +347,141 @@ export const UserResearchDashboard: React.FC<UserResearchDashboardProps> = () =>
         </div>
       </div>
 
+      {/* DASHBOARD EXECUTIVO: INSIGHTS DE PRODUTO & MARKETING */}
+      <div className="p-6 rounded-2xl bg-[#121927] border border-slate-800 space-y-6">
+        <h3 className="text-base font-bold text-white flex items-center gap-2">
+          <TrendingUp className="w-5 h-5 text-emerald-400" />
+          Insights de Produto & Inteligência de Marketing
+        </h3>
+
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          {/* Dores Principais (Q15) */}
+          <div className="p-4 rounded-xl bg-slate-900/60 border border-slate-800 space-y-3">
+            <h4 className="text-xs font-bold text-slate-200 uppercase tracking-wider">Principais Dores (Q15)</h4>
+            {(() => {
+              const difficulties: Record<string, number> = {};
+              surveyResponses.forEach(r => {
+                if (r.q15_main_difficulty) {
+                  difficulties[r.q15_main_difficulty] = (difficulties[r.q15_main_difficulty] || 0) + 1;
+                }
+              });
+              const entries = Object.entries(difficulties).sort((a, b) => b[1] - a[1]);
+              if (entries.length === 0) return <p className="text-xs text-slate-500 italic">Sem dados suficientes ainda.</p>;
+
+              return (
+                <div className="space-y-2 text-xs">
+                  {entries.map(([label, count]) => {
+                    const pct = Math.round((count / totalResponses) * 100);
+                    return (
+                      <div key={label} className="space-y-1">
+                        <div className="flex justify-between text-slate-300">
+                          <span className="truncate max-w-[180px]">{label}</span>
+                          <span className="font-mono font-bold text-emerald-400">{pct}% ({count})</span>
+                        </div>
+                        <div className="w-full bg-slate-800 h-1.5 rounded-full">
+                          <div className="bg-emerald-500 h-1.5 rounded-full" style={{ width: `${pct}%` }} />
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              );
+            })()}
+          </div>
+
+          {/* Features Mais Valorizadas (Q4) */}
+          <div className="p-4 rounded-xl bg-slate-900/60 border border-slate-800 space-y-3">
+            <h4 className="text-xs font-bold text-slate-200 uppercase tracking-wider">Ranking de Features (Q4)</h4>
+            {(() => {
+              const features: Record<string, number> = {};
+              surveyResponses.forEach(r => {
+                if (r.q4_valued_feature) {
+                  features[r.q4_valued_feature] = (features[r.q4_valued_feature] || 0) + 1;
+                }
+              });
+              const entries = Object.entries(features).sort((a, b) => b[1] - a[1]);
+              if (entries.length === 0) return <p className="text-xs text-slate-500 italic">Sem dados suficientes ainda.</p>;
+
+              return (
+                <div className="space-y-2 text-xs">
+                  {entries.map(([label, count]) => {
+                    const pct = Math.round((count / totalResponses) * 100);
+                    return (
+                      <div key={label} className="space-y-1">
+                        <div className="flex justify-between text-slate-300">
+                          <span className="truncate max-w-[180px]">{label}</span>
+                          <span className="font-mono font-bold text-cyan-400">{pct}% ({count})</span>
+                        </div>
+                        <div className="w-full bg-slate-800 h-1.5 rounded-full">
+                          <div className="bg-cyan-400 h-1.5 rounded-full" style={{ width: `${pct}%` }} />
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              );
+            })()}
+          </div>
+
+          {/* Momento Aha! (Q14) */}
+          <div className="p-4 rounded-xl bg-slate-900/60 border border-slate-800 space-y-3">
+            <h4 className="text-xs font-bold text-slate-200 uppercase tracking-wider">Momento Aha! (Q14)</h4>
+            {(() => {
+              const moments: Record<string, number> = {};
+              surveyResponses.forEach(r => {
+                if (r.q14_value_moment) {
+                  moments[r.q14_value_moment] = (moments[r.q14_value_moment] || 0) + 1;
+                }
+              });
+              const entries = Object.entries(moments).sort((a, b) => b[1] - a[1]);
+              if (entries.length === 0) return <p className="text-xs text-slate-500 italic">Sem dados suficientes ainda.</p>;
+
+              return (
+                <div className="space-y-2 text-xs">
+                  {entries.map(([label, count]) => {
+                    const pct = Math.round((count / totalResponses) * 100);
+                    return (
+                      <div key={label} className="space-y-1">
+                        <div className="flex justify-between text-slate-300">
+                          <span className="truncate max-w-[180px]">{label}</span>
+                          <span className="font-mono font-bold text-amber-400">{pct}% ({count})</span>
+                        </div>
+                        <div className="w-full bg-slate-800 h-1.5 rounded-full">
+                          <div className="bg-amber-400 h-1.5 rounded-full" style={{ width: `${pct}%` }} />
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              );
+            })()}
+          </div>
+        </div>
+
+        {/* CENTRAL DE VOZ DO CLIENTE (DEPOIMENTOS REAL PARA MARKETING) */}
+        <div className="space-y-3 border-t border-slate-800 pt-4">
+          <h4 className="text-xs font-bold text-slate-200 uppercase tracking-wider flex items-center gap-2">
+            <Sparkles className="w-4 h-4 text-emerald-400" />
+            Central de Voz do Cliente (Frases para Landing Page e Anúncios)
+          </h4>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            {surveyResponses.filter(r => r.q6_biggest_benefit || r.q13_pmf_missing_feature).slice(0, 6).map((r, idx) => (
+              <div key={r.id || idx} className="p-3.5 rounded-xl bg-slate-900/80 border border-slate-800 space-y-2 text-xs">
+                <p className="text-slate-300 italic">"{r.q6_biggest_benefit || r.q13_pmf_missing_feature}"</p>
+                <div className="flex items-center justify-between text-[11px] text-slate-500 pt-1 border-t border-slate-800/60">
+                  <span className="font-semibold text-emerald-400">Coorte: {r.research_cohort}</span>
+                  <span>NPS: {r.q11_nps} / 10</span>
+                </div>
+              </div>
+            ))}
+            {surveyResponses.filter(r => r.q6_biggest_benefit || r.q13_pmf_missing_feature).length === 0 && (
+              <p className="text-xs text-slate-500 italic">Nenhum depoimento em texto registrado até o momento.</p>
+            )}
+          </div>
+        </div>
+      </div>
+
+
       {/* GERENCIADOR DE PARTICIPANTES DO SORTEIO PRO */}
       <div className="p-6 rounded-2xl bg-[#121927] border border-slate-800 space-y-4">
         <div className="flex items-center justify-between">

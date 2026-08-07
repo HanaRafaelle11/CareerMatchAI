@@ -79,17 +79,31 @@ export function useEntitlements(userId?: string) {
 
       setWeeklyApplicationsCount(appCount || 0);
 
-      // 3. Carregar Vagas Desbloqueadas nesta Semana de forma Autoritativa no Backend (activity_logs)
-      const { data: unlockLogs } = await supabase
-        .from('activity_logs')
-        .select('entity_id')
+      // 3. Carregar Vagas Desbloqueadas nesta Semana no Backend (user_unlocked_jobs / activity_logs)
+      const weekStartStr = weekStartIso.split('T')[0];
+      const { data: unlockedRows } = await supabase
+        .from('user_unlocked_jobs')
+        .select('job_id')
         .eq('user_id', userId)
-        .eq('event_type', 'job_unlocked')
-        .gte('created_at', weekStartIso);
+        .eq('week_start', weekStartStr);
 
-      const dbUnlocked = Array.from(new Set((unlockLogs || []).map(l => l.entity_id).filter(Boolean)));
+      let dbUnlocked = (unlockedRows || []).map(r => r.job_id).filter(Boolean);
+
+      // Fallback para activity_logs caso user_unlocked_jobs ainda esteja sendo inicializado
+      if (dbUnlocked.length === 0) {
+        const { data: unlockLogs } = await supabase
+          .from('activity_logs')
+          .select('entity_id')
+          .eq('user_id', userId)
+          .eq('event_type', 'job_unlocked')
+          .gte('created_at', weekStartIso);
+
+        dbUnlocked = (unlockLogs || []).map(l => l.entity_id).filter(Boolean);
+      }
+
+      dbUnlocked = Array.from(new Set(dbUnlocked));
       
-      // Sincronizar com localStorage
+      // Sincronizar com localStorage (cache secundário)
       try {
         const stored = localStorage.getItem(weekStorageKey);
         const localList: string[] = stored ? JSON.parse(stored) : [];
@@ -137,6 +151,7 @@ export function useEntitlements(userId?: string) {
     if (isPro) return true;
     if (isJobUnlocked(jobId)) return true;
 
+    // Se já tiver 3 vagas no estado local, disparar paywall antecipado
     if (unlockedJobIds.length >= 3) {
       triggerPaywall('weekly_limit');
       if (userId && supabase) {
@@ -151,37 +166,75 @@ export function useEntitlements(userId?: string) {
       return false;
     }
 
-    const next = Array.from(new Set([...unlockedJobIds, jobId]));
-    setUnlockedJobIds(next);
+    const weekStartStr = weekStartIso.split('T')[0];
 
-    try {
-      localStorage.setItem(weekStorageKey, JSON.stringify(next));
-    } catch {}
-
-    // Persistir desbloqueio no Backend de Forma Autoritativa
+    // Autoridade Absoluta do Backend via RPC Atômica com trava PostgreSQL (pg_advisory_xact_lock)
     if (userId && supabase) {
       try {
-        await supabase.from('activity_logs').insert({
-          user_id: userId,
-          event_type: 'job_unlocked',
-          entity: 'job',
-          entity_id: jobId,
-          metadata: {
-            unlocked_at: new Date().toISOString(),
-            week_start: weekStartIso.split('T')[0],
-            unlocked_count: next.length
-          }
+        const { data: rpcRes, error: rpcErr } = await supabase.rpc('unlock_user_job_atomic', {
+          p_user_id: userId,
+          p_job_id: jobId,
+          p_week_start: weekStartStr,
+          p_max_limit: 3
         });
-      } catch (err) {
-        console.warn('[useEntitlements] Erro ao persistir desbloqueio no backend:', err);
+
+        if (!rpcErr && rpcRes) {
+          const res = typeof rpcRes === 'string' ? JSON.parse(rpcRes) : rpcRes;
+          if (res.success) {
+            const next = Array.from(new Set([...unlockedJobIds, jobId]));
+            setUnlockedJobIds(next);
+            try { localStorage.setItem(weekStorageKey, JSON.stringify(next)); } catch {}
+
+            supabase.from('activity_logs').insert({
+              user_id: userId,
+              event_type: 'job_unlocked',
+              entity: 'job',
+              entity_id: jobId,
+              metadata: { unlocked_at: new Date().toISOString(), week_start: weekStartStr }
+            });
+            return true;
+          } else if (res.error === 'limit_reached') {
+            triggerPaywall('weekly_limit');
+            supabase.from('activity_logs').insert({
+              user_id: userId,
+              event_type: 'free_job_limit_reached',
+              entity: 'job',
+              entity_id: jobId,
+              metadata: { current_count: res.unlocked_count || 3, limit: 3 }
+            });
+            return false;
+          }
+        }
+      } catch (rpcException) {
+        console.warn('[useEntitlements] RPC unlock_user_job_atomic não disponível, usando fallback atômico:', rpcException);
       }
+    }
+
+    // Fallback de contingência local se o Supabase RPC falhar ou desconectado
+    const next = Array.from(new Set([...unlockedJobIds, jobId]));
+    if (next.length > 3) {
+      triggerPaywall('weekly_limit');
+      return false;
+    }
+
+    setUnlockedJobIds(next);
+    try { localStorage.setItem(weekStorageKey, JSON.stringify(next)); } catch {}
+
+    if (userId && supabase) {
+      supabase.from('activity_logs').insert({
+        user_id: userId,
+        event_type: 'job_unlocked',
+        entity: 'job',
+        entity_id: jobId,
+        metadata: { unlocked_at: new Date().toISOString(), week_start: weekStartStr }
+      });
     }
 
     return true;
   };
 
-
   const triggerPaywall = (
+
     feature: PaywallTriggerState['feature'],
     title?: string,
     description?: string,

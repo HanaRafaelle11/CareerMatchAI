@@ -48,7 +48,11 @@ DECLARE
   v_current_count integer := 0;
   v_sub_status text;
 BEGIN
+  -- Trava de transação atômica exclusiva por usuário e semana de calendário (elimina Race Conditions)
+  PERFORM pg_advisory_xact_lock(hashtext(p_user_id::text || p_week_start::text));
+
   -- 1. Verificar se o usuário possui plano PRO ativo
+
   SELECT status INTO v_sub_status
   FROM public.subscriptions
   WHERE user_id = p_user_id

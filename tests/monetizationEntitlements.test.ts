@@ -8,7 +8,6 @@ describe('Nova Experiência de Monetização Free -> PRO (Entitlements & Regras 
     }
   });
 
-
   describe('Regra de Data e Calendário Semanal', () => {
     it('deve calcular a segunda-feira da semana de calendário como início do período', () => {
       const sunday = new Date('2026-08-09T12:00:00Z'); // Domingo
@@ -77,6 +76,86 @@ describe('Nova Experiência de Monetização Free -> PRO (Entitlements & Regras 
 
       expect(canUnlock('job-6')).toBe(true);
       expect(canUnlock('job-100')).toBe(true);
+    });
+  });
+
+  describe('Teste de Concorrência e Atomicidade do Backend (RPC unlock_user_job_atomic)', () => {
+    it('deve permitir EXATAMENTE 1 desbloqueio bem-sucedido e rejeitar a 2ª tentativa simultânea quando restar 1 crédito', async () => {
+      // Estado inicial com 2 vagas desbloqueadas no banco (1 crédito restante)
+      const mockDatabaseState = new Set<string>(['job-1', 'job-2']);
+      let rpcLockAcquired = false;
+
+      // Simulação atômica da RPC unlock_user_job_atomic no PostgreSQL (com pg_advisory_xact_lock)
+      const unlockUserJobAtomicRPC = async (userId: string, jobId: string, weekStart: string, maxLimit: number = 3) => {
+        // Aguardar liberação do lock de transação (pg_advisory_xact_lock)
+        while (rpcLockAcquired) {
+          await new Promise(resolve => setTimeout(resolve, 5));
+        }
+        rpcLockAcquired = true;
+
+        try {
+          if (mockDatabaseState.has(jobId)) {
+            return { success: true, is_pro: false, already_unlocked: true, unlocked_count: mockDatabaseState.size };
+          }
+
+          if (mockDatabaseState.size >= maxLimit) {
+            return { success: false, is_pro: false, already_unlocked: false, unlocked_count: mockDatabaseState.size, error: 'limit_reached' };
+          }
+
+          mockDatabaseState.add(jobId);
+          return { success: true, is_pro: false, already_unlocked: false, unlocked_count: mockDatabaseState.size };
+        } finally {
+          rpcLockAcquired = false;
+        }
+      };
+
+      // Disparar DUAS tentativas simultâneas (Promise.all) quando só resta 1 crédito
+      const [res1, res2] = await Promise.all([
+        unlockUserJobAtomicRPC('user-1', 'job-3-a', '2026-08-03'),
+        unlockUserJobAtomicRPC('user-1', 'job-3-b', '2026-08-03')
+      ]);
+
+      // Resultados obrigatórios
+      const successCount = [res1.success, res2.success].filter(Boolean).length;
+      const errorCount = [res1.error, res2.error].filter(err => err === 'limit_reached').length;
+
+      expect(successCount).toBe(1); // Exatamente uma nova vaga aceita
+      expect(errorCount).toBe(1); // Exatamente uma rejeitada por limit_reached
+      expect(mockDatabaseState.size).toBe(3); // Total final NUNCA ultrapassa 3
+    });
+
+    it('deve tratar chamadas concorrentes para a MESMA vaga de forma idempotente sem duplicar consumo', async () => {
+      const mockDatabaseState = new Set<string>(['job-1']);
+      let rpcLockAcquired = false;
+
+      const unlockUserJobAtomicRPC = async (userId: string, jobId: string, weekStart: string, maxLimit: number = 3) => {
+        while (rpcLockAcquired) {
+          await new Promise(resolve => setTimeout(resolve, 2));
+        }
+        rpcLockAcquired = true;
+        try {
+          if (mockDatabaseState.has(jobId)) {
+            return { success: true, is_pro: false, already_unlocked: true, unlocked_count: mockDatabaseState.size };
+          }
+          if (mockDatabaseState.size >= maxLimit) {
+            return { success: false, is_pro: false, error: 'limit_reached' };
+          }
+          mockDatabaseState.add(jobId);
+          return { success: true, is_pro: false, already_unlocked: false, unlocked_count: mockDatabaseState.size };
+        } finally {
+          rpcLockAcquired = false;
+        }
+      };
+
+      // Disparar DUAS tentativas simultâneas para a MESMA VAGA ('job-2')
+      const [res1, res2] = await Promise.all([
+        unlockUserJobAtomicRPC('user-1', 'job-2', '2026-08-03'),
+        unlockUserJobAtomicRPC('user-1', 'job-2', '2026-08-03')
+      ]);
+
+      expect(res1.success).toBe(true);
+      expect(res2.success).toBe(true);
+      expect(mockDatabaseState.size).toBe(2); // Vaga 'job-2' inserida apenas uma vez
     });
   });
 

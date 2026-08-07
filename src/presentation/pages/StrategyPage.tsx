@@ -79,11 +79,12 @@ export function StrategyPage({
   saveWeeklyPlanner,
   getWeeklyGoalQuery,
   saveWeeklyGoal: _saveWeeklyGoal,
-  getPostLogQuery,
+  getPostLogQuery: _getPostLogQuery,
   savePostLog,
   onStartSimulation: _onStartSimulation,
   initialSubTab
 }: StrategyPageProps) {
+
   const [subTab, setSubTab] = useState<'strategy' | 'planner' | 'pipeline' | 'journal'>(initialSubTab || 'pipeline');
 
   useEffect(() => {
@@ -242,14 +243,62 @@ export function StrategyPage({
   const [companyCulture, _setCompanyCulture] = useState(4);
   const [companyApplyAgain, _setCompanyApplyAgain] = useState(true);
 
-  // AI Journal reflection log states
+  // AI Journal reflection log states & persistent list
   const [journalAppId, setJournalAppId] = useState<string>('');
   const [journalFeeling, setJournalFeeling] = useState<string>('😐');
-  const [journalConfidence, _setJournalConfidence] = useState<number>(7);
   const [journalDiff, setJournalDiff] = useState<string>('');
-  const [journalLearned, setJournalLearned] = useState<string>('');
-  const [journalDifferent, setJournalDifferent] = useState<string>('');
-  const { data: activePostLog } = getPostLogQuery(journalAppId || 'none');
+
+  const [journalLogs, setJournalLogs] = useState<any[]>(() => {
+    try {
+      return JSON.parse(localStorage.getItem(`journal_reflections_${userId || 'guest'}`) || '[]');
+    } catch {
+      return [];
+    }
+  });
+
+  const handleSaveJournal = async (e: FormEvent) => {
+    e.preventDefault();
+    if (!journalAppId) {
+      showToast('Selecione uma vaga para salvar a reflexão.', 'warning');
+      return;
+    }
+
+    const app = applications.find(a => a.id === journalAppId);
+    const newEntry = {
+      id: String(Date.now()),
+      appId: journalAppId,
+      jobTitle: app?.jobTitle || 'Vaga de Emprego',
+      companyName: app?.companyName || 'Empresa',
+      feeling: journalFeeling,
+      difficulties: journalDiff,
+      createdAt: new Date().toISOString()
+    };
+
+    try {
+      if (savePostLog) {
+        await savePostLog(newEntry);
+      }
+      if (isSupabaseConfigured && supabase && userId) {
+        await Promise.resolve(supabase.from('interview_reflections').insert({
+          user_id: userId,
+          application_id: journalAppId,
+          feeling: journalFeeling,
+          difficulties: journalDiff
+        })).catch((e: any) => console.warn('[Journal] Save warning:', e));
+      }
+      const updated = [newEntry, ...journalLogs];
+      setJournalLogs(updated);
+      localStorage.setItem(`journal_reflections_${userId || 'guest'}`, JSON.stringify(updated));
+
+      setJournalDiff('');
+      showToast('Reflexão salva com sucesso no Diário de Bordo! 📖', 'info');
+    } catch (err) {
+      console.error(err);
+      showToast('Erro ao salvar reflexão.', 'error');
+    }
+  };
+
+
 
   useEscapeToClose(showAddForm, () => setShowAddForm(false));
   useEscapeToClose(!!rejectingApp, () => setRejectingApp(null));
@@ -644,30 +693,6 @@ export function StrategyPage({
   };
   void _handleSaveCompany; // reserved for Company Intelligence tab
 
-  const handleSaveJournal = async (e: FormEvent) => {
-    e.preventDefault();
-    if (!journalAppId) return;
-
-    try {
-      await savePostLog({
-        id: activePostLog?.id,
-        applicationId: journalAppId,
-        confidenceScore: journalConfidence,
-        difficultQuestions: journalDiff ? journalDiff.split('\n') : [],
-        improvements: journalDifferent,
-        companyPerception: journalLearned,
-        feeling: journalFeeling,
-        whatLearned: journalLearned,
-        doDifferent: journalDifferent
-      });
-      setJournalDiff('');
-      setJournalLearned('');
-      setJournalDifferent('');
-      setJournalAppId('');
-    } catch (err) {
-      console.error(err);
-    }
-  };
 
   // Mapeamento das recomendações ROI para a aba 'strategy'
   const mappedJobs = jobs.map(j => {
@@ -1345,25 +1370,37 @@ export function StrategyPage({
             </form>
           </div>
 
-          {/* ── BAIXA PRIORIDADE: AÇÕES DE ENCERRAMENTO E EXCLUSÃO NO RODAPÉ ── */}
-          <div className="pt-4 border-t border-border flex justify-between items-center text-xs">
-            <button
-              type="button"
-              onClick={() => setRejectingApp(selectedApp)}
-              className="text-red-600 dark:text-red-400 hover:text-red-500 font-semibold flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-red-500/20 bg-red-500/10 cursor-pointer transition-colors"
-            >
-              <AlertTriangle size={14} />
-              <span>Arquivar / Rejeitar Vaga</span>
-            </button>
-            <button
-              type="button"
-              onClick={() => setDeletingApp(selectedApp)}
-              className="text-muted-foreground hover:text-red-400 font-semibold flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-border bg-background cursor-pointer transition-colors"
-            >
-              <Trash2 size={14} />
-              <span>Excluir Permanentemente</span>
-            </button>
-          </div>
+            {/* ── BAIXA PRIORIDADE: AÇÕES DE ENCERRAMENTO E EXCLUSÃO NO RODAPÉ ── */}
+            <div className="pt-4 border-t border-border flex justify-between items-center text-xs">
+              {ApplicationPipelineService.getCleanStatus(selectedApp.status) !== 'rejected' && !(selectedApp as any).rejectionReason ? (
+                <button
+                  type="button"
+                  onClick={() => setRejectingApp(selectedApp)}
+                  className="text-red-600 dark:text-red-400 hover:text-red-500 font-semibold flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-red-500/20 bg-red-500/10 cursor-pointer transition-colors"
+                >
+                  <AlertTriangle size={14} />
+                  <span>Arquivar / Rejeitar Vaga</span>
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => handleQuickStatusChange(selectedApp, 'saved')}
+                  className="text-emerald-500 hover:text-emerald-400 font-semibold flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-emerald-500/20 bg-emerald-500/10 cursor-pointer transition-colors"
+                >
+                  <RefreshCcw size={14} />
+                  <span>Reativar vaga no Kanban</span>
+                </button>
+              )}
+              <button
+                type="button"
+                onClick={() => setDeletingApp(selectedApp)}
+                className="text-muted-foreground hover:text-red-400 font-semibold flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-border bg-background cursor-pointer transition-colors"
+              >
+                <Trash2 size={14} />
+                <span>Excluir Permanentemente</span>
+              </button>
+            </div>
+
         </div>
       )}
 
@@ -1827,14 +1864,48 @@ export function StrategyPage({
                   />
                 </div>
 
-                <button type="submit" className="w-full py-2.5 rounded-xl bg-brand-600 hover:bg-brand-500 text-white font-bold text-xs shadow-lg">
+                <button type="submit" className="w-full py-2.5 rounded-xl bg-brand-600 hover:bg-brand-500 text-white font-bold text-xs shadow-lg cursor-pointer transition-colors">
                   Salvar Reflexão no Diário
                 </button>
               </form>
             </CardGlass>
+
+            {/* Histórico do Diário de Bordo */}
+            <div className="space-y-4">
+              <h4 className="font-bold text-sm text-slate-200">Reflexões Registradas ({journalLogs.length})</h4>
+              {journalLogs.length === 0 ? (
+                <div className="p-8 text-center border border-dashed border-slate-800 rounded-2xl text-xs text-slate-500 italic">
+                  Nenhuma reflexão registrada ainda. Selecione uma candidatura ao lado para registrar suas impressões.
+                </div>
+              ) : (
+                <div className="space-y-3 max-h-[500px] overflow-y-auto pr-1">
+                  {journalLogs.map((log: any) => (
+                    <CardGlass key={log.id} className="p-4 space-y-2.5 text-xs relative border-slate-800">
+                      <div className="flex justify-between items-start">
+                        <div>
+                          <div className="flex items-center gap-2">
+                            <span className="text-xl">{log.feeling || '😐'}</span>
+                            <h5 className="font-bold text-slate-200">{log.jobTitle}</h5>
+                          </div>
+                          <span className="text-[11px] text-brand-400 font-semibold block mt-0.5">{log.companyName}</span>
+                        </div>
+                        <span className="text-[10px] text-slate-500 font-mono">{new Date(log.createdAt).toLocaleDateString('pt-BR')}</span>
+                      </div>
+                      {log.difficulties && (
+                        <div className="p-3 rounded-xl bg-slate-950/70 border border-slate-900 text-slate-300 text-[11px] leading-relaxed">
+                          <strong className="text-amber-400 block font-bold text-[10px] uppercase tracking-wider mb-1">Perguntas ou Dores da Entrevista:</strong>
+                          <p>{log.difficulties}</p>
+                        </div>
+                      )}
+                    </CardGlass>
+                  ))}
+                </div>
+              )}
+            </div>
           </div>
         </div>
       )}
+
       {/* Modal Celebratório de Contratação & SLA */}
       <HiredCongratulationModal
         isOpen={!!hiredModalApp}

@@ -269,8 +269,14 @@ export function CoachDashboard({
     const textToSend = candidateResponse.trim();
     if (!simulation || !textToSend || isSending) return;
 
+    if (!isPro && !canUseAiTraining) {
+      triggerPaywall('ia_training');
+      return;
+    }
+
     setCandidateResponse('');
     setIsSending(true);
+
     try {
       await sendMessage({
         sim: simulation,

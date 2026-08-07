@@ -466,16 +466,27 @@ export function useResumes(userId: string | undefined) {
     },
     onSuccess: () => {
       setPipelineSteps([]);
-      // Invalidar TODAS as queries dependentes do currículo
+      // Remover completamente a cache de busca para que o novo currículo calcule sugestões limpas
+      queryClient.removeQueries({ queryKey: ['job-discovery'] });
       queryClient.invalidateQueries({ queryKey: ['resumes', userId] });
       queryClient.invalidateQueries({ queryKey: ['career-profile', userId] });
       queryClient.invalidateQueries({ queryKey: ['my-profile-ai', userId] });
       queryClient.invalidateQueries({ queryKey: ['matches', userId] });
       queryClient.invalidateQueries({ queryKey: ['jobs', userId] });
       queryClient.invalidateQueries({ queryKey: ['applications', userId] });
-      queryClient.invalidateQueries({ queryKey: ['job-discovery', userId] });
+      queryClient.invalidateQueries({ queryKey: ['job-discovery'] });
+
+      // Limpar termos residuais de busca do currículo anterior
+      sessionStorage.removeItem('job_search_keyword');
+      sessionStorage.removeItem('job_search_location');
+      sessionStorage.removeItem('job_search_remote');
+      sessionStorage.removeItem('job_search_page');
+      sessionStorage.removeItem('job_search_input_keyword');
+      sessionStorage.removeItem('job_search_input_location');
+      sessionStorage.removeItem('job_search_input_remote');
     }
   });
+
 
   const deleteResumeMutation = useMutation({
     mutationFn: async (resumeId: string) => {
@@ -510,46 +521,32 @@ export function useResumes(userId: string | undefined) {
           }
         }
 
-        // 3. Limpeza profunda: apagar TUDO relacionado a este currículo
-        if (resumeVersionId) {
-          try {
-            await supabase.from('resume_processing_logs').delete().eq('resume_version_id', resumeVersionId);
-          } catch (e) {
-            console.warn('[DELETE] Falha ao apagar logs do CV:', e);
-          }
-        }
-
-        // 4. Deletar matches e explicações vinculados a este resume_id
-        try {
-          await UnifiedMatchService.clearStaleMatchesForUser(userId, resumeId);
-        } catch (e) {
-          console.warn('[DELETE] Falha ao apagar matches e explicações do CV:', e);
-        }
-
-        // 5. Deletar resume_optimizations vinculados
-        try {
-          await supabase.from('resume_optimizations').delete().eq('resume_id', resumeId);
-        } catch (e) {
-          console.warn('[DELETE] Falha ao apagar otimizações do CV:', e);
-        }
-
-        // 6. Deletar a resume_version (CASCADE apaga career_profiles, career_insights, job_matches)
-        if (resumeVersionId) {
-          try {
-            await supabase.from('resume_versions').delete().eq('id', resumeVersionId);
-          } catch (e) {
-            console.warn('[DELETE] Falha ao apagar versão de CV:', e);
-          }
-        }
-
-        // 7. Deletar da tabela resumes
+        // 3. Deletar currículo principal imediatamente do banco
         const { error } = await supabase
           .from('resumes')
           .delete()
           .eq('id', resumeId);
         if (error) throw error;
 
-        // 8. Limpeza final: se não restar nenhum currículo, varrer tudo do usuário
+        // 4. Executar limpezas vinculadas em paralelo em segundo plano (background cleanup)
+        const cleanupPromises: Promise<any>[] = [
+          UnifiedMatchService.clearStaleMatchesForUser(userId!, resumeId).catch(e => console.warn('[DELETE] Matches:', e)),
+          Promise.resolve(supabase.from('resume_optimizations').delete().eq('resume_id', resumeId)),
+        ];
+
+        if (resumeVersionId) {
+          cleanupPromises.push(Promise.resolve(supabase.from('resume_processing_logs').delete().eq('resume_version_id', resumeVersionId)));
+          cleanupPromises.push(Promise.resolve(supabase.from('resume_versions').delete().eq('id', resumeVersionId)));
+        }
+
+        if (resume?.file_path) {
+          cleanupPromises.push(Promise.resolve(supabase.storage.from('resumes').remove([resume.file_path])));
+        }
+
+
+        await Promise.allSettled(cleanupPromises);
+
+        // 5. Limpeza final se não restar nenhum currículo
         try {
           const { data: remainingResumes } = await supabase
             .from('resumes')
@@ -557,51 +554,61 @@ export function useResumes(userId: string | undefined) {
             .eq('user_id', userId);
 
           if (!remainingResumes || remainingResumes.length === 0) {
-            await supabase.from('resume_versions').delete().eq('user_id', userId);
-            await supabase.from('career_profiles').delete().eq('user_id', userId);
-            await supabase.from('career_insights').delete().eq('user_id', userId);
-            await supabase.from('resume_processing_logs').delete().eq('user_id', userId);
-            await supabase.from('resume_processing_errors').delete().eq('user_id', userId);
+            await Promise.allSettled([
+              supabase.from('resume_versions').delete().eq('user_id', userId),
+              supabase.from('career_profiles').delete().eq('user_id', userId),
+              supabase.from('career_insights').delete().eq('user_id', userId),
+              supabase.from('resume_processing_logs').delete().eq('user_id', userId),
+              supabase.from('resume_processing_errors').delete().eq('user_id', userId)
+            ]);
           }
         } catch (e) {
-          console.warn('[DELETE] Falha ao fazer limpeza profunda final:', e);
-        }
-
-        // 9. Limpar arquivo do Storage
-        if (resume?.file_path) {
-          try {
-            await supabase.storage.from('resumes').remove([resume.file_path]);
-          } catch (e) {
-            console.warn('[DELETE] Falha ao remover arquivo do Storage:', e);
-          }
+          console.warn('[DELETE] Falha na limpeza final:', e);
         }
       } else {
         localDB.deleteResume(resumeId);
       }
     },
+    onMutate: async (resumeId: string) => {
+      // Optimistic UI: Remove o currículo da interface em 0ms
+      await queryClient.cancelQueries({ queryKey: ['resumes', userId] });
+      const previousResumes = queryClient.getQueryData(['resumes', userId]);
+
+      if (previousResumes) {
+        queryClient.setQueryData(['resumes', userId], (old: any) => 
+          Array.isArray(old) ? old.filter(r => r.id !== resumeId) : []
+        );
+      }
+      return { previousResumes };
+    },
+    onError: (_err, _resumeId, context) => {
+      if (context?.previousResumes) {
+        queryClient.setQueryData(['resumes', userId], context.previousResumes);
+      }
+    },
     onSuccess: () => {
       setPipelineSteps([]);
-      // Invalidar TODAS as queries dependentes
+      // Remover completamente a cache de busca para evitar vazamento do perfil antigo
+      queryClient.removeQueries({ queryKey: ['job-discovery'] });
       queryClient.invalidateQueries({ queryKey: ['resumes', userId] });
       queryClient.invalidateQueries({ queryKey: ['career-profile', userId] });
       queryClient.invalidateQueries({ queryKey: ['my-profile-ai', userId] });
       queryClient.invalidateQueries({ queryKey: ['matches', userId] });
       queryClient.invalidateQueries({ queryKey: ['jobs', userId] });
       queryClient.invalidateQueries({ queryKey: ['applications', userId] });
-      queryClient.invalidateQueries({ queryKey: ['job-discovery', userId] });
+      queryClient.invalidateQueries({ queryKey: ['job-discovery'] });
       queryClient.invalidateQueries({ queryKey: ['resume-optimization'] });
       queryClient.invalidateQueries({ queryKey: ['interview-prep'] });
       queryClient.invalidateQueries({ queryKey: ['cover-letter'] });
-      // Limpar sessionStorage e localStorage de dados residuais
+
+      // Limpar termos salvos da busca no sessionStorage
       sessionStorage.removeItem('job_search_keyword');
       sessionStorage.removeItem('job_search_location');
-      sessionStorage.removeItem('job_search_remote');
-      sessionStorage.removeItem('job_search_page');
-      sessionStorage.removeItem('job_search_input_keyword');
       sessionStorage.removeItem('job_search_input_location');
       sessionStorage.removeItem('job_search_input_remote');
     }
   });
+
 
   const selectActiveResumeMutation = useMutation({
     mutationFn: async (resumeId: string) => {

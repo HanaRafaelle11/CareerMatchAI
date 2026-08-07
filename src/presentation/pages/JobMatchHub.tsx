@@ -1588,23 +1588,49 @@ export function JobMatchHub({
     ? (currentSelectedMatch?.scoreOverall ?? explanation?.careerFitScore ?? (selectedJob?.scores as any)?.overall ?? null)
     : null;
 
-  const targetJobsForSalary = (subTab === 'discover' && discoveredJobs.length > 0) ? discoveredJobs : jobs;
-  const jobsWithSalaries = targetJobsForSalary.filter(j => j.salaryNumeric || j.salaryMin || j.salaryMax);
-  const averageSalary = jobsWithSalaries.length > 0
-    ? Math.round(
-        jobsWithSalaries.reduce((acc, j) => {
-          let min = j.salaryMin || 0;
-          let max = j.salaryMax || 0;
-          let numeric = j.salaryNumeric || 0;
-          if (min > 25000) min = Math.round(min / 12);
-          if (max > 25000) max = Math.round(max / 12);
-          if (numeric > 25000) numeric = Math.round(numeric / 12);
+  // ── Cálculo Escalável e Robusto do Salário Médio ──
+  const targetJobsForSalary = (subTab === 'discover' && discoveredJobs.length > 0) ? discoveredJobs : (discoveredJobs.length > 0 ? discoveredJobs : jobs);
+  const rawSalaries: number[] = [];
 
-          const mid = min && max ? (min + max) / 2 : (numeric || max || min || 0);
-          return acc + mid;
-        }, 0) / jobsWithSalaries.length
-      )
-    : 0;
+  targetJobsForSalary.forEach(j => {
+    let min = j.salaryMin || 0;
+    let max = j.salaryMax || 0;
+    let numeric = j.salaryNumeric || 0;
+
+    // Normalização Anual -> Mensal (Valores > 15.000 vindos de APIs como Adzuna são remunerações anuais)
+    if (min > 15000) min = Math.round(min / 12);
+    if (max > 15000) max = Math.round(max / 12);
+    if (numeric > 15000) numeric = Math.round(numeric / 12);
+
+    const mid = min && max ? (min + max) / 2 : (numeric || max || min || 0);
+    if (mid > 0) rawSalaries.push(mid);
+  });
+
+  // Filtro Estatístico de Outliers Extremos (IQR / Median Trimmed Mean)
+  let averageSalary = 0;
+  if (rawSalaries.length > 0) {
+    const sorted = [...rawSalaries].sort((a, b) => a - b);
+    const median = sorted[Math.floor(sorted.length / 2)];
+    
+    // Manter valores dentro de 0.3x e 2.5x a mediana da busca
+    const validSalaries = sorted.filter(s => s >= median * 0.3 && s <= median * 2.5);
+    const pool = validSalaries.length > 0 ? validSalaries : sorted;
+    averageSalary = Math.round(pool.reduce((a, b) => a + b, 0) / pool.length);
+  }
+
+  // Fallback Inteligente de Segurança por Categoria/Senioridade caso os dados externos não contenham salários
+  if (averageSalary === 0 && searchKeyword) {
+    const key = searchKeyword.toLowerCase();
+    if (key.includes('cozinheir') || key.includes('auxiliar') || key.includes('atendente') || key.includes('operador') || key.includes('limpeza') || key.includes('portari')) {
+      averageSalary = 2450;
+    } else if (key.includes('analista') || key.includes('especialista') || key.includes('desenvolv') || key.includes('designer')) {
+      averageSalary = 6500;
+    } else if (key.includes('gerente') || key.includes('supervisor') || key.includes('coordenador') || key.includes('head') || key.includes('lead')) {
+      averageSalary = 12500;
+    }
+  }
+
+
 
   const uniqueCompaniesCount = new Set(jobs.map(j => j.companyName)).size;
 

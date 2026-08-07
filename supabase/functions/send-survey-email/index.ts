@@ -45,26 +45,116 @@ serve(async (req) => {
       const surveyUrl = `https://vocentro.com.br/pesquisa?token=${encodeURIComponent(token)}`;
 
       const htmlContent = `
-        <div style="font-family: sans-serif; background-color: #090d16; color: #f8fafc; padding: 32px; border-radius: 16px;">
-          <h2 style="color: #34d399;">Você faz parte da história do VoCentro 🚀</h2>
-          <p style="font-size: 16px; line-height: 1.6; color: #cbd5e1;">
-            Olá! Você está entre os primeiros profissionais que ajudaram a testar o VoCentro.
-          </p>
-          <p style="font-size: 15px; color: #cbd5e1; line-height: 1.6;">
-            Antes de expandirmos a plataforma para milhares de pessoas, queremos ouvir quem esteve conosco desde o começo. Sua experiência vai nos ajudar a decidir quais recursos realmente geram valor e como podemos tornar sua jornada profissional ainda mais inteligente com IA.
-          </p>
-          <div style="margin: 24px 0; padding: 20px; background-color: #121927; border-radius: 12px; border: 1px solid #10b981;">
-            <p style="margin: 0; color: #34d399; font-weight: bold; font-size: 15px;">
-              🎁 Como forma de agradecimento pela participação:
-            </p>
-            <p style="margin: 6px 0 0 0; color: #e2e8f0; font-size: 13px;">
-              Você concorre a <strong>7 dias de acesso PRO ilimitado gratuitamente</strong>!
-            </p>
-          </div>
-          <a href="${surveyUrl}" style="display: inline-block; background: linear-gradient(to right, #10b981, #06b6d4); color: #020617; font-weight: bold; text-decoration: none; padding: 14px 28px; border-radius: 12px; margin-top: 16px;">
-            Responder pesquisa e participar do sorteio 🚀
-          </a>
-        </div>
+        <!DOCTYPE html>
+        <html>
+        <head>
+          <meta charset="utf-8">
+          <meta name="viewport" content="width=device-width, initial-scale=1.0">
+          <title>Você está ajudando a construir o VoCentro</title>
+        </head>
+        <body style="margin: 0; padding: 0; background-color: #090d16; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; color: #f8fafc;">
+          <table border="0" cellpadding="0" cellspacing="0" width="100%" style="max-width: 600px; margin: 30px auto; background-color: #121927; border-radius: 16px; border: 1px solid #1e293b; overflow: hidden; box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.5);">
+            
+            <!-- Header -->
+            <tr>
+              <td style="padding: 32px 32px 24px 32px; border-bottom: 1px solid #1e293b; text-align: left;">
+                <table border="0" cellpadding="0" cellspacing="0" width="100%">
+                  <tr>
+                    <td>
+                      <span style="font-size: 22px; font-weight: 800; color: #ffffff; letter-spacing: -0.5px;">
+                        Vo<span style="color: #34d399;">Centro</span> 🚀
+                      </span>
+                    </td>
+                    <td style="text-align: right;">
+                      <span style="display: inline-block; background-color: rgba(52, 211, 153, 0.15); color: #34d399; font-size: 11px; font-weight: 700; padding: 6px 12px; border-radius: 9999px; border: 1px solid rgba(52, 211, 153, 0.3);">
+                        Usuário Fundador
+                      </span>
+                    </td>
+                  </tr>
+                </table>
+              </td>
+            </tr>
+
+            <!-- Hero Body -->
+            <tr>
+              <td style="padding: 32px;">
+                <h1 style="font-size: 24px; font-weight: 800; color: #ffffff; margin: 0 0 16px 0; line-height: 1.3;">
+                  Você está ajudando a construir o VoCentro 🚀
+                </h1>
+                
+                <p style="font-size: 15px; color: #e2e8f0; line-height: 1.6; margin: 0 0 16px 0;">
+                  Olá! Você acompanhou o VoCentro desde uma fase em que ainda estávamos descobrindo o que realmente deveria ser construído.
+                </p>
+
+                <p style="font-size: 15px; color: #cbd5e1; line-height: 1.6; margin: 0 0 24px 0;">
+                  Sua experiência e sua opinião sincera ajudam a decidir o que o VoCentro vai construir nas próximas semanas. Queremos ouvir quem esteve conosco desde o começo.
+                </p>
+
+                <p style="font-size: 13px; font-weight: 600; color: #34d399; margin: 0 0 24px 0;">
+                  ⏱️ Leva poucos minutos.
+                </p>
+
+                <!-- Primary CTA Button -->
+                <table border="0" cellpadding="0" cellspacing="0" width="100%" style="margin-bottom: 28px;">
+                  <tr>
+                    <td style="text-align: center;">
+                      <a href="${surveyUrl}" target="_blank" style="display: inline-block; background: linear-gradient(135deg, #10b981 0%, #06b6d4 100%); color: #020617; font-size: 15px; font-weight: 800; text-decoration: none; padding: 16px 36px; border-radius: 12px; box-shadow: 0 10px 15px -3px rgba(16, 185, 129, 0.3); text-transform: uppercase; letter-spacing: 0.5px;">
+                        RESPONDER PESQUISA
+                      </a>
+                    </td>
+                  </tr>
+                </table>
+
+                <hr style="border: none; border-top: 1px solid #1e293b; margin: 28px 0;" />
+
+                <!-- Why Your Opinion Matters -->
+                <h3 style="font-size: 15px; font-weight: 700; color: #ffffff; margin: 0 0 12px 0;">
+                  Por que sua opinião importa?
+                </h3>
+                
+                <table border="0" cellpadding="0" cellspacing="0" width="100%" style="margin-bottom: 24px;">
+                  <tr>
+                    <td style="padding: 6px 0; color: #cbd5e1; font-size: 14px;">✓ Influenciar diretamente o desenvolvimento do produto</td>
+                  </tr>
+                  <tr>
+                    <td style="padding: 6px 0; color: #cbd5e1; font-size: 14px;">✓ Compartilhar suas maiores dores na busca profissional</td>
+                  </tr>
+                  <tr>
+                    <td style="padding: 6px 0; color: #cbd5e1; font-size: 14px;">✓ Ajudar a construir uma plataforma mais inteligente com IA</td>
+                  </tr>
+                </table>
+
+                <!-- Thank You Card (Giveaway) -->
+                <table border="0" cellpadding="0" cellspacing="0" width="100%" style="background-color: #0f172a; border-radius: 12px; border: 1px solid rgba(52, 211, 153, 0.3);">
+                  <tr>
+                    <td style="padding: 18px; text-align: left;">
+                      <p style="font-size: 13px; font-weight: 700; color: #34d399; margin: 0 0 4px 0;">
+                        🎁 Como forma de agradecimento:
+                      </p>
+                      <p style="font-size: 13px; color: #cbd5e1; margin: 0; line-height: 1.5;">
+                        Ao final da pesquisa, você poderá participar da ação de <strong>7 dias de acesso PRO ilimitado gratuitamente</strong>.
+                      </p>
+                    </td>
+                  </tr>
+                </table>
+
+              </td>
+            </tr>
+
+            <!-- Footer -->
+            <tr>
+              <td style="padding: 24px 32px; border-top: 1px solid #1e293b; background-color: #0d131f; text-align: center;">
+                <p style="font-size: 13px; font-weight: 600; color: #cbd5e1; margin: 0 0 4px 0;">
+                  Obrigado por fazer parte dessa história.
+                </p>
+                <p style="font-size: 12px; color: #64748b; margin: 0;">
+                  Equipe VoCentro 🚀 • <a href="https://vocentro.com.br" style="color: #34d399; text-decoration: none;">vocentro.com.br</a>
+                </p>
+              </td>
+            </tr>
+          </table>
+        </body>
+        </html>
       `;
 
       let messageId = `msg_simulated_${Date.now()}`;
@@ -81,14 +171,14 @@ serve(async (req) => {
             body: JSON.stringify({
               from: 'VoCentro <notificacoes@vocentro.com.br>',
               to: [user.email],
-              subject: 'Você faz parte da história do VoCentro 🚀',
+              subject: 'Você está ajudando a construir o VoCentro 🚀',
               html: htmlContent
             })
           });
           const resData = await resendRes.json();
           if (resData.id) messageId = resData.id;
         } catch (resErr: any) {
-          console.warn('Erro ao enviar via Resend:', resErr);
+          console.warn('Erro Resend:', resErr);
         }
       }
 

@@ -10,7 +10,13 @@ import {
   Star,
   AlertCircle,
   Lock,
-  RefreshCw
+  RefreshCw,
+  Compass,
+  Zap,
+  MessageSquare,
+  Flame,
+  Award,
+  Target
 } from 'lucide-react';
 
 export const PublicSurveyPage: React.FC = () => {
@@ -22,10 +28,11 @@ export const PublicSurveyPage: React.FC = () => {
   const [apiError, setApiError] = useState<boolean>(false);
   const [userInfo, setUserInfo] = useState<{ id: string; email: string; name: string } | null>(null);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const [rawToken, setRawToken] = useState<string>('');
 
   const validationTimeoutRef = useRef<any>(null);
 
-  // Form State
+  // Form State with preserved exact field names
   const [formData, setFormData] = useState({
     q1_acquisition: '',
     q2_goal: '',
@@ -61,6 +68,10 @@ export const PublicSurveyPage: React.FC = () => {
     setErrorMsg(null);
     setApiError(false);
 
+    const searchParams = new URLSearchParams(window.location.search);
+    const token = searchParams.get('token') || '';
+    setRawToken(token);
+
     tracker.track('survey_token_validation_started', 'UserResearch', {
       survey_version: 'v1_founders_validation',
       url: window.location.href
@@ -73,7 +84,7 @@ export const PublicSurveyPage: React.FC = () => {
         if (prevLoading) {
           console.warn('[PublicSurvey] Timeout de 10s atingido na validação do token.');
           setApiError(true);
-          setErrorMsg('A resposta do servidor demorou mais que o esperado.');
+          setErrorMsg('A resposta do servidor demorou mais que o esperado. Por favor tente novamente.');
           tracker.track('survey_token_validation_failed', 'UserResearch', { reason: 'timeout_10s' });
           return false;
         }
@@ -82,9 +93,6 @@ export const PublicSurveyPage: React.FC = () => {
     }, 10000);
 
     try {
-      const searchParams = new URLSearchParams(window.location.search);
-      const token = searchParams.get('token');
-
       if (!token) {
         // Fallback: check logged in session
         if (supabase) {
@@ -133,13 +141,9 @@ export const PublicSurveyPage: React.FC = () => {
         return;
       }
 
-      // Check profile or auth user
-      const { data: profile, error: profErr } = await supabase.from('profiles').select('*').eq('id', userId).maybeSingle();
+      // Check profile
+      const { data: profile } = await supabase.from('profiles').select('*').eq('id', userId).maybeSingle();
       
-      if (profErr) {
-        console.warn('[PublicSurvey] Aviso ao consultar perfil:', profErr.message);
-      }
-
       const candidateName = profile?.full_name || (profile?.email || email).split('@')[0] || 'Usuário Fundador';
       const candidateEmail = profile?.email || email || 'usuario@vocentro.com.br';
 
@@ -148,9 +152,9 @@ export const PublicSurveyPage: React.FC = () => {
       // Check if user already submitted survey
       await checkPreviousCompletion(userId);
     } catch (err: any) {
-      console.error('[PublicSurvey] Erro fatal na validação do token:', err);
+      console.error('[PublicSurvey] Erro na validação do token:', err);
       setApiError(true);
-      setErrorMsg('Ocorreu uma falha ao conectar com nossos servidores.');
+      setErrorMsg('Ocorreu uma falha temporária ao conectar com o servidor.');
       tracker.track('survey_token_validation_failed', 'UserResearch', { error: err.message || 'unknown' });
     } finally {
       if (validationTimeoutRef.current) clearTimeout(validationTimeoutRef.current);
@@ -175,14 +179,14 @@ export const PublicSurveyPage: React.FC = () => {
       }
     } catch (cErr) {
       console.warn('[PublicSurvey] Erro ao verificar resposta prévia:', cErr);
-      setTokenValid(true); // Allow user to attempt survey if check is non-fatal
+      setTokenValid(true);
     }
   };
 
   const handleStartSurvey = () => {
     setStep(1);
     tracker.trackSurveyStarted('beta_general', 'email_campaign');
-    tracker.trackSurveyQuestionAnswered(1, 'acquisition');
+    tracker.trackSurveyQuestionAnswered(1, 'urgency');
   };
 
   const handleNext = (nextStep: number, currentQuestionName: string) => {
@@ -196,93 +200,53 @@ export const PublicSurveyPage: React.FC = () => {
     if (step > 1) setStep(step - 1);
   };
 
+  // Submit survey through backend Edge Function submit-survey for token authorization and RLS protection
   const handleSubmitSurvey = async () => {
     if (!userInfo) return;
     setSubmitting(true);
     setErrorMsg(null);
 
     try {
-      if (!supabase) throw new Error('Cliente Supabase não inicializado');
-
-      // 1. Save survey_responses (No PII)
-      const { data: surveyRes, error: surveyErr } = await supabase
-        .from('survey_responses')
-        .insert({
-          user_id: userInfo.id,
-          research_cohort: 'beta_general',
-          high_intent: false,
-          channel: 'email',
-          invitation_source: 'email_campaign',
-          survey_version: 'v1_founders_validation',
-          q1_acquisition: formData.q1_acquisition,
-          q2_goal: formData.q2_goal,
-          q3_previous_method: formData.q3_previous_method,
-          q4_valued_feature: formData.q4_valued_feature,
-          q4_why: formData.q4_why,
-          q5_had_match: formData.q5_had_match,
-          q5_match_changed_view: formData.q5_match_changed_view,
-          q6_biggest_benefit: formData.q6_biggest_benefit,
-          q7_improvements: formData.q7_improvements,
-          q8_pro_intent: formData.q8_pro_intent,
-          q9_fair_price: formData.q9_fair_price,
-          q10_subscription_driver: formData.q10_subscription_driver,
-          q11_nps: formData.q11_nps,
-          q12_interview_opt_in: formData.q12_interview_opt_in,
-          q13_pmf_missing_feature: formData.q13_pmf_missing_feature,
-          q14_value_moment: formData.q14_value_moment,
-          q15_main_difficulty: formData.q15_main_difficulty,
-          q16_urgency: formData.q16_urgency
+      const response = await fetch('https://bdlpfrwebsmpohtclnxf.supabase.co/functions/v1/submit-survey', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          token: rawToken || userInfo.id,
+          formData
         })
-        .select('id')
-        .single();
-
-      if (surveyErr) throw surveyErr;
-
-      const surveyId = surveyRes.id;
-
-      // 2. Save research_contacts (LGPD Decoupled)
-      await supabase.from('research_contacts').upsert({
-        user_id: userInfo.id,
-        email: userInfo.email,
-        whatsapp_phone: formData.whatsapp_phone || null,
-        permission_status: formData.research_contact_permission ? 'granted' : 'revoked',
-        permission_updated_at: new Date().toISOString()
-      }, { onConflict: 'user_id' });
-
-      // 3. Save giveaway_participants
-      await supabase.from('giveaway_participants').insert({
-        user_id: userInfo.id,
-        email: userInfo.email,
-        survey_response_id: surveyId,
-        status: 'eligible',
-        participated_at: new Date().toISOString()
       });
 
-      // 4. Update campaign status to 'responded'
-      await supabase.from('survey_email_campaigns').update({
-        status: 'responded',
-        last_activity_at: new Date().toISOString()
-      }).eq('user_id', userInfo.id);
+      const result = await response.json();
+
+      if (!response.ok || !result.success) {
+        if (result.alreadyCompleted) {
+          setAlreadyCompleted(true);
+          setTokenValid(false);
+          return;
+        }
+        throw new Error(result.error || 'Ocorreu um erro ao salvar suas respostas. Por favor tente novamente.');
+      }
 
       // Track completion
       tracker.trackSurveyCompleted('beta_general', 'email_campaign', formData.q11_nps, formData.q8_pro_intent);
-      tracker.trackGiveawayRegistered(userInfo.email, surveyId);
+      tracker.trackGiveawayRegistered(userInfo.email, userInfo.id);
 
       setStep(17);
     } catch (err: any) {
-      console.error('[PublicSurvey] Erro ao salvar:', err);
-      setErrorMsg(err.message || 'Erro ao enviar respostas. Tente novamente.');
+      console.error('[PublicSurvey] Erro ao enviar respostas:', err);
+      setErrorMsg(err.message || 'Ocorreu um erro ao salvar suas respostas. Por favor tente novamente.');
     } finally {
       setSubmitting(false);
     }
   };
 
-  // ── 1. ESTADO: CARREGANDO COM ANIMAÇÃO SAAS PREMIUM ──
+  // ── 1. ESTADO: CARREGANDO SAAS PREMIUM ──
   if (loading) {
     return (
       <div className="min-h-screen bg-[#090d16] flex flex-col items-center justify-center p-6 text-slate-100 font-sans">
         <div className="flex flex-col items-center space-y-6 text-center max-w-sm">
-          {/* Logo VoCentro com Glow */}
           <div className="relative flex items-center justify-center">
             <div className="absolute -inset-2 bg-gradient-to-r from-emerald-500 to-cyan-500 rounded-full blur-lg opacity-40 animate-pulse" />
             <div className="relative flex h-16 w-16 items-center justify-center rounded-2xl bg-[#121927] border border-emerald-500/40 text-emerald-400 shadow-xl">
@@ -317,8 +281,8 @@ export const PublicSurveyPage: React.FC = () => {
           </div>
           <div className="space-y-2">
             <h2 className="text-2xl font-black text-white">Pesquisa Já Respondida!</h2>
-            <p className="text-sm text-slate-300">
-              Você já enviou sua opinião sobre o VoCentro e está participando do sorteio de 7 Dias PRO. Muito obrigado!
+            <p className="text-sm text-slate-300 leading-relaxed">
+              Você já enviou sua opinião sobre o VoCentro e sua participação na ação PRO ilimitada está confirmada. Muito obrigado por nos ajudar a construir o futuro da plataforma!
             </p>
           </div>
           <a
@@ -332,7 +296,7 @@ export const PublicSurveyPage: React.FC = () => {
     );
   }
 
-  // ── 3. ESTADO: ERRO DE CONEXÃO/API OU TOKEN INVALIDO ──
+  // ── 3. ESTADO: ERRO AMIGÁVEL SEM STACK TRACE ──
   if (!tokenValid) {
     return (
       <div className="min-h-screen bg-[#090d16] flex items-center justify-center p-6 text-slate-100 font-sans">
@@ -373,6 +337,21 @@ export const PublicSurveyPage: React.FC = () => {
   const totalQuestions = 16;
   const progressPercent = Math.min(100, Math.round((step / totalQuestions) * 100));
 
+  // Visual Block Narrative Header
+  const getBlockHeader = (stepNum: number) => {
+    if (stepNum >= 1 && stepNum <= 2) return { title: 'BLOCO 1 • SEU MOMENTO & CONTEXTO', icon: <Compass className="w-4 h-4 text-emerald-400" /> };
+    if (stepNum >= 3 && stepNum <= 4) return { title: 'BLOCO 2 • SUA CHEGADA AO VOCENTRO', icon: <Target className="w-4 h-4 text-cyan-400" /> };
+    if (stepNum >= 5 && stepNum <= 6) return { title: 'BLOCO 3 • PRIMEIRO CONTATO & IA', icon: <Zap className="w-4 h-4 text-amber-400" /> };
+    if (stepNum >= 7 && stepNum <= 8) return { title: 'BLOCO 4 • RECURSOS & VALOR PERCEBIDO', icon: <Flame className="w-4 h-4 text-emerald-400" /> };
+    if (stepNum >= 9 && stepNum <= 10) return { title: 'BLOCO 5 • SATISFAÇÃO & RECOMENDAÇÃO', icon: <Star className="w-4 h-4 text-teal-400" /> };
+    if (stepNum >= 11 && stepNum <= 12) return { title: 'BLOCO 6 • O QUE PODEMOS MELHORAR', icon: <MessageSquare className="w-4 h-4 text-rose-400" /> };
+    if (stepNum >= 13 && stepNum <= 14) return { title: 'BLOCO 7 • O FUTURO & RECURSOS PRO', icon: <Award className="w-4 h-4 text-indigo-400" /> };
+    if (stepNum >= 15 && stepNum <= 16) return { title: 'BLOCO 8 • ENCERRAMENTO & COMUNIDADE', icon: <HeartHandshake className="w-4 h-4 text-emerald-400" /> };
+    return null;
+  };
+
+  const blockHeader = getBlockHeader(step);
+
   return (
     <div className="min-h-screen bg-[#090d16] flex items-center justify-center p-4 sm:p-6 text-slate-100 font-sans">
       <div className="w-full max-w-2xl bg-[#121927] border border-slate-800 rounded-2xl shadow-2xl overflow-hidden my-auto">
@@ -384,8 +363,8 @@ export const PublicSurveyPage: React.FC = () => {
               <Sparkles className="w-4 h-4" />
             </span>
             <div>
-              <h3 className="text-sm font-semibold text-white tracking-wide">VoCentro • Pesquisa Fundadores</h3>
-              <span className="text-[11px] text-slate-400">Canal Seguro via E-mail</span>
+              <h3 className="text-sm font-semibold text-white tracking-wide">VoCentro • Pesquisa de Usuários Fundadores</h3>
+              <span className="text-[11px] text-slate-400">Construindo o produto junto com você</span>
             </div>
           </div>
         </div>
@@ -401,280 +380,311 @@ export const PublicSurveyPage: React.FC = () => {
         )}
 
         <div className="p-6 sm:p-8">
-          {/* STEP 0: Convite público */}
+          {/* STEP 0: Convite público com storytelling de cocriação */}
           {step === 0 && (
             <div className="space-y-6">
-              <div className="inline-flex items-center space-x-2 px-3 py-1 rounded-full bg-amber-500/10 border border-amber-500/30 text-amber-400 text-xs font-medium">
+              <div className="inline-flex items-center space-x-2 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-xs font-semibold">
                 <Star className="w-3.5 h-3.5" />
-                <span>Olá, {userInfo?.name}! Você é um Usuário Fundador</span>
+                <span>Olá, {userInfo?.name}! Você está ajudando a construir o VoCentro</span>
               </div>
 
               <div className="space-y-2">
                 <h1 className="text-2xl sm:text-3xl font-extrabold text-white leading-tight">
-                  Ajude a construir o futuro da sua carreira com IA 🚀
+                  Sua experiência decide o que vamos construir a seguir 🚀
                 </h1>
                 <p className="text-sm sm:text-base text-slate-300 leading-relaxed">
-                  Você está entre os primeiros profissionais a testar o VoCentro. Antes de abrirmos para milhares de pessoas, queremos ouvir quem esteve conosco desde o começo.
+                  Você acompanhou o VoCentro desde o começo. Antes de abrirmos para milhares de pessoas, queremos ouvir quem esteve conosco para entender o que realmente gera valor no seu dia a dia profissional.
                 </p>
               </div>
 
-              <div className="p-4 rounded-xl bg-slate-900/80 border border-slate-800 text-xs sm:text-sm text-slate-300 space-y-2">
+              <div className="p-4 rounded-xl bg-slate-900/80 border border-slate-800 text-xs sm:text-sm text-slate-300 space-y-3">
                 <p className="font-medium text-emerald-400 flex items-center gap-1.5">
-                  <HeartHandshake className="w-4 h-4" /> Sua opinião ajudará a definir as próximas funcionalidades.
+                  <HeartHandshake className="w-4 h-4" /> Sua opinião tem impacto direto na nossa evolução.
                 </p>
                 <div className="flex flex-wrap gap-4 text-slate-400 pt-2 border-t border-slate-800 text-xs">
-                  <span>⏱️ Leva menos de 5 min</span>
-                  <span>🎁 Concorre a 7 dias PRO Ilimitado</span>
-                  <span>🔒 Dados protegidos por LGPD</span>
+                  <span>⏱️ Leva poucos minutos</span>
+                  <span>🎁 Agradecimento com 7 dias PRO</span>
+                  <span>🔒 Protegido por LGPD</span>
                 </div>
               </div>
 
               <button
                 onClick={handleStartSurvey}
-                className="w-full py-4 px-6 rounded-xl font-bold text-slate-950 bg-gradient-to-r from-emerald-400 via-teal-400 to-cyan-400 hover:from-emerald-300 hover:to-cyan-300 shadow-lg shadow-emerald-500/20 transition-all flex items-center justify-center gap-2"
+                className="w-full py-4 px-6 rounded-xl font-bold text-slate-950 bg-gradient-to-r from-emerald-400 via-teal-400 to-cyan-400 hover:from-emerald-300 hover:to-cyan-300 shadow-lg shadow-emerald-500/20 transition-all flex items-center justify-center gap-2 text-sm uppercase tracking-wide"
               >
-                <Gift className="w-5 h-5" />
-                Responder pesquisa e participar do sorteio
+                Responder Pesquisa
               </button>
             </div>
           )}
 
-          {/* PERGUNTAS 1 a 16 */}
-          {step === 1 && (
+          {/* NARRATIVA CONVERSACIONAL DE 8 BLOCOS (16 PERGUNTAS PRESERVANDO NOMES DE CAMPOS) */}
+          {step > 0 && step <= totalQuestions && (
             <div className="space-y-6">
-              <div className="text-xs font-semibold text-emerald-400 uppercase tracking-wider">Pergunta 1 de {totalQuestions}</div>
-              <h3 className="text-lg font-bold text-white">Como você conheceu o VoCentro?</h3>
-              <div className="grid grid-cols-1 gap-2.5">
-                {['LinkedIn', 'Indicação de alguém', 'Busca no Google', 'Redes sociais', 'Outro'].map((opt) => (
-                  <button
-                    key={opt}
-                    onClick={() => {
-                      setFormData({ ...formData, q1_acquisition: opt });
-                      handleNext(2, 'q1_acquisition');
-                    }}
-                    className={`p-3.5 rounded-xl border text-left font-medium transition-all ${
-                      formData.q1_acquisition === opt ? 'bg-emerald-500/20 border-emerald-500 text-white' : 'bg-slate-900 border-slate-800 text-slate-300 hover:bg-slate-800'
-                    }`}
-                  >
-                    {opt}
-                  </button>
-                ))}
-              </div>
-            </div>
-          )}
+              {blockHeader && (
+                <div className="flex items-center gap-2 pb-2 border-b border-slate-800 text-xs font-bold text-emerald-400 tracking-wider">
+                  {blockHeader.icon}
+                  <span>{blockHeader.title}</span>
+                </div>
+              )}
 
-          {/* PERGUNTA 2 */}
-          {step === 2 && (
-            <div className="space-y-6">
-              <div className="text-xs font-semibold text-emerald-400 uppercase tracking-wider">Pergunta 2 de {totalQuestions}</div>
-              <h3 className="text-lg font-bold text-white">Qual era seu principal objetivo quando entrou no VoCentro?</h3>
-              <div className="grid grid-cols-1 gap-2.5">
-                {[
-                  'Encontrar vagas mais compatíveis comigo',
-                  'Melhorar meu currículo',
-                  'Me preparar para entrevistas',
-                  'Organizar minhas candidaturas',
-                  'Entender minhas chances em uma vaga',
-                  'Outro'
-                ].map((opt) => (
-                  <button
-                    key={opt}
-                    onClick={() => {
-                      setFormData({ ...formData, q2_goal: opt });
-                      handleNext(3, 'q2_goal');
-                    }}
-                    className={`p-3.5 rounded-xl border text-left font-medium transition-all ${
-                      formData.q2_goal === opt ? 'bg-emerald-500/20 border-emerald-500 text-white' : 'bg-slate-900 border-slate-800 text-slate-300 hover:bg-slate-800'
-                    }`}
-                  >
-                    {opt}
-                  </button>
-                ))}
-              </div>
-            </div>
-          )}
+              {/* QUESTÃO 1 (q16_urgency) */}
+              {step === 1 && (
+                <div className="space-y-4">
+                  <h3 className="text-lg font-bold text-white">Em quanto tempo você gostaria de conseguir uma nova oportunidade profissional?</h3>
+                  <p className="text-xs text-slate-400">Queremos entender o seu momento atual para contextualizar suas respostas.</p>
+                  <div className="grid grid-cols-1 gap-2.5">
+                    {[
+                      'Estou procurando urgentemente (até 30 dias)',
+                      'Nos próximos 3 meses',
+                      'Nos próximos 6 meses',
+                      'Apenas estou explorando possibilidades',
+                      'Não estou buscando agora'
+                    ].map((opt) => (
+                      <button
+                        key={opt}
+                        onClick={() => {
+                          setFormData({ ...formData, q16_urgency: opt });
+                          handleNext(2, 'q16_urgency');
+                        }}
+                        className="p-3.5 rounded-xl border text-left font-medium bg-slate-900 border-slate-800 text-slate-300 hover:bg-slate-800 transition"
+                      >
+                        {opt}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
 
-          {/* PERGUNTAS 3 a 15 */}
-          {step >= 3 && step <= 15 && (
-            <div className="space-y-6">
-              <div className="text-xs font-semibold text-emerald-400 uppercase tracking-wider">Pergunta {step} de {totalQuestions}</div>
+              {/* QUESTÃO 2 (q2_goal) */}
+              {step === 2 && (
+                <div className="space-y-4">
+                  <h3 className="text-lg font-bold text-white">Qual era seu principal objetivo quando se cadastrou no VoCentro?</h3>
+                  <div className="grid grid-cols-1 gap-2.5">
+                    {[
+                      'Encontrar vagas mais compatíveis comigo',
+                      'Melhorar meu currículo',
+                      'Me preparar para entrevistas',
+                      'Organizar minhas candidaturas',
+                      'Entender minhas chances em uma vaga',
+                      'Outro'
+                    ].map((opt) => (
+                      <button
+                        key={opt}
+                        onClick={() => {
+                          setFormData({ ...formData, q2_goal: opt });
+                          handleNext(3, 'q2_goal');
+                        }}
+                        className="p-3.5 rounded-xl border text-left font-medium bg-slate-900 border-slate-800 text-slate-300 hover:bg-slate-800 transition"
+                      >
+                        {opt}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* QUESTÃO 3 (q1_acquisition) */}
               {step === 3 && (
-                <>
-                  <h3 className="text-lg font-bold text-white">Antes do VoCentro, como você normalmente procurava emprego?</h3>
+                <div className="space-y-4">
+                  <h3 className="text-lg font-bold text-white">Como você conheceu o VoCentro?</h3>
+                  <div className="grid grid-cols-1 gap-2.5">
+                    {['LinkedIn', 'Indicação de alguém', 'Busca no Google', 'Redes sociais', 'Outro'].map((opt) => (
+                      <button
+                        key={opt}
+                        onClick={() => {
+                          setFormData({ ...formData, q1_acquisition: opt });
+                          handleNext(4, 'q1_acquisition');
+                        }}
+                        className="p-3.5 rounded-xl border text-left font-medium bg-slate-900 border-slate-800 text-slate-300 hover:bg-slate-800 transition"
+                      >
+                        {opt}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* QUESTÃO 4 (q3_previous_method) */}
+              {step === 4 && (
+                <div className="space-y-4">
+                  <h3 className="text-lg font-bold text-white">Antes do VoCentro, como você procurava oportunidades de trabalho?</h3>
                   <div className="grid grid-cols-1 gap-2.5">
                     {['LinkedIn', 'Sites de vagas tradicionais', 'Indicações', 'Consultorias/recrutadores', 'Não tinha processo organizado'].map(opt => (
-                      <button key={opt} onClick={() => { setFormData({ ...formData, q3_previous_method: opt }); handleNext(4, 'q3_previous_method'); }} className="p-3.5 rounded-xl border text-left font-medium bg-slate-900 border-slate-800 text-slate-300 hover:bg-slate-800">{opt}</button>
+                      <button key={opt} onClick={() => { setFormData({ ...formData, q3_previous_method: opt }); handleNext(5, 'q3_previous_method'); }} className="p-3.5 rounded-xl border text-left font-medium bg-slate-900 border-slate-800 text-slate-300 hover:bg-slate-800 transition">{opt}</button>
                     ))}
                   </div>
-                </>
+                </div>
               )}
-              {step === 4 && (
-                <>
-                  <h3 className="text-lg font-bold text-white">Qual funcionalidade gerou mais valor para você?</h3>
-                  <div className="grid grid-cols-1 gap-2.5">
-                    {['Match com IA entre meu perfil e vagas', 'Análise de compatibilidade', 'Kanban para organizar candidaturas', 'Otimizador ATS', 'Simulador STAR', 'Copiloto de carreira'].map(opt => (
-                      <button key={opt} onClick={() => { setFormData({ ...formData, q4_valued_feature: opt }); handleNext(5, 'q4_valued_feature'); }} className="p-3.5 rounded-xl border text-left font-medium bg-slate-900 border-slate-800 text-slate-300 hover:bg-slate-800">{opt}</button>
-                    ))}
-                  </div>
-                </>
-              )}
+
+              {/* QUESTÃO 5 (q5_had_match) */}
               {step === 5 && (
-                <>
-                  <h3 className="text-lg font-bold text-white">Você chegou a realizar um Match com alguma vaga?</h3>
+                <div className="space-y-4">
+                  <h3 className="text-lg font-bold text-white">Você chegou a realizar um Match com alguma vaga no VoCentro?</h3>
                   <div className="grid grid-cols-1 gap-2.5">
                     {['Sim, várias vezes', 'Sim, uma vez', 'Ainda não'].map(opt => (
-                      <button key={opt} onClick={() => { setFormData({ ...formData, q5_had_match: opt }); handleNext(6, 'q5_had_match'); }} className="p-3.5 rounded-xl border text-left font-medium bg-slate-900 border-slate-800 text-slate-300 hover:bg-slate-800">{opt}</button>
+                      <button key={opt} onClick={() => { setFormData({ ...formData, q5_had_match: opt }); handleNext(6, 'q5_had_match'); }} className="p-3.5 rounded-xl border text-left font-medium bg-slate-900 border-slate-800 text-slate-300 hover:bg-slate-800 transition">{opt}</button>
                     ))}
                   </div>
-                </>
+                </div>
               )}
+
+              {/* QUESTÃO 6 (q14_value_moment) */}
               {step === 6 && (
-                <>
-                  <h3 className="text-lg font-bold text-white">Qual foi o maior benefício que você percebeu usando o VoCentro?</h3>
-                  <textarea rows={3} placeholder="Escreva livremente..." value={formData.q6_biggest_benefit} onChange={e => setFormData({...formData, q6_biggest_benefit: e.target.value})} className="w-full p-3.5 rounded-xl bg-slate-900 border border-slate-700 text-white text-sm focus:outline-none focus:border-emerald-500" />
-                  <button disabled={!formData.q6_biggest_benefit.trim()} onClick={() => handleNext(7, 'q6_biggest_benefit')} className="w-full py-3 rounded-xl font-bold bg-emerald-500 text-slate-950 disabled:opacity-50">Avançar</button>
-                </>
-              )}
-              {step === 7 && (
-                <>
-                  <h3 className="text-lg font-bold text-white">O que mais poderia melhorar na plataforma?</h3>
-                  <textarea rows={3} placeholder="Diga-nos dores ou melhorias..." value={formData.q7_improvements} onChange={e => setFormData({...formData, q7_improvements: e.target.value})} className="w-full p-3.5 rounded-xl bg-slate-900 border border-slate-700 text-white text-sm focus:outline-none focus:border-emerald-500" />
-                  <button disabled={!formData.q7_improvements.trim()} onClick={() => handleNext(8, 'q7_improvements')} className="w-full py-3 rounded-xl font-bold bg-emerald-500 text-slate-950 disabled:opacity-50">Avançar</button>
-                </>
-              )}
-              {step === 8 && (
-                <>
-                  <h3 className="text-lg font-bold text-white">Sentiu vontade de usar recursos ilimitados ou PRO?</h3>
-                  <div className="grid grid-cols-1 gap-2.5">
-                    {['Sim', 'Talvez', 'Não'].map(opt => (
-                      <button key={opt} onClick={() => { setFormData({ ...formData, q8_pro_intent: opt }); handleNext(9, 'q8_pro_intent'); }} className="p-3.5 rounded-xl border text-left font-medium bg-slate-900 border-slate-800 text-slate-300 hover:bg-slate-800">{opt}</button>
-                    ))}
-                  </div>
-                </>
-              )}
-              {step === 9 && (
-                <>
-                  <h3 className="text-lg font-bold text-white">Se existisse um plano PRO, qual valor mensal pareceria justo?</h3>
-                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5">
-                    {['Até R$ 9,90', 'R$ 19,90', 'R$ 29,90', 'R$ 39,90', 'Mais de R$ 39,90', 'Eu não pagaria'].map(opt => (
-                      <button key={opt} onClick={() => { setFormData({ ...formData, q9_fair_price: opt }); handleNext(10, 'q9_fair_price'); }} className="p-3.5 rounded-xl border text-center font-medium bg-slate-900 border-slate-800 text-slate-300 hover:bg-slate-800">{opt}</button>
-                    ))}
-                  </div>
-                </>
-              )}
-              {step === 10 && (
-                <>
-                  <h3 className="text-lg font-bold text-white">O que faria você assinar o VoCentro?</h3>
-                  <div className="grid grid-cols-1 gap-2.5">
-                    {['Mais análises de vagas com IA', 'Currículo ATS ilimitado', 'Simulações de entrevistas ilimitadas', 'Copiloto de carreira', 'Outro'].map(opt => (
-                      <button key={opt} onClick={() => { setFormData({ ...formData, q10_subscription_driver: opt }); handleNext(11, 'q10_subscription_driver'); }} className="p-3.5 rounded-xl border text-left font-medium bg-slate-900 border-slate-800 text-slate-300 hover:bg-slate-800">{opt}</button>
-                    ))}
-                  </div>
-                </>
-              )}
-              {step === 11 && (
-                <>
-                  <h3 className="text-lg font-bold text-white">Você recomendaria o VoCentro para alguém? (NPS 0-10)</h3>
-                  <div className="grid grid-cols-11 gap-1">
-                    {Array.from({ length: 11 }, (_, i) => i).map(score => (
-                      <button key={score} onClick={() => { setFormData({ ...formData, q11_nps: score }); handleNext(12, 'q11_nps'); }} className="h-10 rounded font-bold text-xs bg-slate-900 border border-slate-800 text-slate-200 hover:bg-emerald-500 hover:text-slate-950">{score}</button>
-                    ))}
-                  </div>
-                </>
-              )}
-              {step === 12 && (
-                <>
-                  <h3 className="text-lg font-bold text-white">Gostaria de participar de entrevistas rápidas de 15 minutos?</h3>
-                  <div className="grid grid-cols-2 gap-3">
-                    {['Sim', 'Não'].map(opt => (
-                      <button key={opt} onClick={() => { setFormData({ ...formData, q12_interview_opt_in: opt }); handleNext(13, 'q12_interview_opt_in'); }} className="p-3.5 rounded-xl border font-bold text-center bg-slate-900 border-slate-800 text-slate-300 hover:bg-slate-800">{opt}</button>
-                    ))}
-                  </div>
-                </>
-              )}
-              {step === 13 && (
-                <>
-                  <h3 className="text-lg font-bold text-white">Se o VoCentro deixasse de existir amanhã, o que você sentiria mais falta?</h3>
-                  <textarea rows={3} placeholder="Sua percepção..." value={formData.q13_pmf_missing_feature} onChange={e => setFormData({...formData, q13_pmf_missing_feature: e.target.value})} className="w-full p-3.5 rounded-xl bg-slate-900 border border-slate-700 text-white text-sm focus:outline-none focus:border-emerald-500" />
-                  <button disabled={!formData.q13_pmf_missing_feature.trim()} onClick={() => handleNext(14, 'q13_pmf_missing_feature')} className="w-full py-3 rounded-xl font-bold bg-emerald-500 text-slate-950 disabled:opacity-50">Avançar</button>
-                </>
-              )}
-              {step === 14 && (
-                <>
-                  <h3 className="text-lg font-bold text-white">Em qual momento você percebeu maior valor?</h3>
+                <div className="space-y-4">
+                  <h3 className="text-lg font-bold text-white">Em qual momento você percebeu maior valor na plataforma?</h3>
                   <div className="grid grid-cols-1 gap-2.5">
                     {['Quando encontrei vaga pelo Match IA', 'Quando entendi minhas chances', 'Quando organizei candidaturas', 'Quando melhorei currículo', 'Quando treinei entrevista', 'Ainda não percebi valor'].map(opt => (
-                      <button key={opt} onClick={() => { setFormData({ ...formData, q14_value_moment: opt }); handleNext(15, 'q14_value_moment'); }} className="p-3.5 rounded-xl border text-left font-medium bg-slate-900 border-slate-800 text-slate-300 hover:bg-slate-800">{opt}</button>
+                      <button key={opt} onClick={() => { setFormData({ ...formData, q14_value_moment: opt }); handleNext(7, 'q14_value_moment'); }} className="p-3.5 rounded-xl border text-left font-medium bg-slate-900 border-slate-800 text-slate-300 hover:bg-slate-800 transition">{opt}</button>
                     ))}
                   </div>
-                </>
+                </div>
               )}
-              {step === 15 && (
-                <>
+
+              {/* QUESTÃO 7 (q4_valued_feature) */}
+              {step === 7 && (
+                <div className="space-y-4">
+                  <h3 className="text-lg font-bold text-white">Qual funcionalidade gerou mais valor ou utilidade para você?</h3>
+                  <div className="grid grid-cols-1 gap-2.5">
+                    {['Match com IA entre meu perfil e vagas', 'Análise de compatibilidade', 'Kanban para organizar candidaturas', 'Otimizador ATS', 'Simulador STAR', 'Copiloto de carreira'].map(opt => (
+                      <button key={opt} onClick={() => { setFormData({ ...formData, q4_valued_feature: opt }); handleNext(8, 'q4_valued_feature'); }} className="p-3.5 rounded-xl border text-left font-medium bg-slate-900 border-slate-800 text-slate-300 hover:bg-slate-800 transition">{opt}</button>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* QUESTÃO 8 (q6_biggest_benefit) */}
+              {step === 8 && (
+                <div className="space-y-4">
+                  <h3 className="text-lg font-bold text-white">Qual foi o maior benefício concreto que você percebeu usando o VoCentro?</h3>
+                  <textarea rows={3} placeholder="Conte-nos em poucas palavras..." value={formData.q6_biggest_benefit} onChange={e => setFormData({...formData, q6_biggest_benefit: e.target.value})} className="w-full p-3.5 rounded-xl bg-slate-900 border border-slate-700 text-white text-sm focus:outline-none focus:border-emerald-500" />
+                  <button disabled={!formData.q6_biggest_benefit.trim()} onClick={() => handleNext(9, 'q6_biggest_benefit')} className="w-full py-3 rounded-xl font-bold bg-emerald-500 text-slate-950 disabled:opacity-50 transition">Avançar</button>
+                </div>
+              )}
+
+              {/* QUESTÃO 9 (q11_nps) */}
+              {step === 9 && (
+                <div className="space-y-4">
+                  <h3 className="text-lg font-bold text-white">De 0 a 10, qual a probabilidade de você recomendar o VoCentro a um amigo?</h3>
+                  <div className="grid grid-cols-11 gap-1">
+                    {Array.from({ length: 11 }, (_, i) => i).map(score => (
+                      <button key={score} onClick={() => { setFormData({ ...formData, q11_nps: score }); handleNext(10, 'q11_nps'); }} className="h-10 rounded font-bold text-xs bg-slate-900 border border-slate-800 text-slate-200 hover:bg-emerald-500 hover:text-slate-950 transition">{score}</button>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* QUESTÃO 10 (q13_pmf_missing_feature) */}
+              {step === 10 && (
+                <div className="space-y-4">
+                  <h3 className="text-lg font-bold text-white">Se o VoCentro deixasse de existir amanhã, o que você sentiria mais falta?</h3>
+                  <textarea rows={3} placeholder="Sua opinião sincera..." value={formData.q13_pmf_missing_feature} onChange={e => setFormData({...formData, q13_pmf_missing_feature: e.target.value})} className="w-full p-3.5 rounded-xl bg-slate-900 border border-slate-700 text-white text-sm focus:outline-none focus:border-emerald-500" />
+                  <button disabled={!formData.q13_pmf_missing_feature.trim()} onClick={() => handleNext(11, 'q13_pmf_missing_feature')} className="w-full py-3 rounded-xl font-bold bg-emerald-500 text-slate-950 disabled:opacity-50 transition">Avançar</button>
+                </div>
+              )}
+
+              {/* QUESTÃO 11 (q15_main_difficulty) */}
+              {step === 11 && (
+                <div className="space-y-4">
                   <h3 className="text-lg font-bold text-white">Qual é hoje sua maior dificuldade para conseguir uma oportunidade?</h3>
                   <div className="grid grid-cols-1 gap-2.5">
                     {['Encontrar vagas compatíveis comigo', 'Saber quais vagas realmente tenho chance', 'Melhorar meu currículo', 'Passar pelos filtros ATS', 'Me preparar para entrevistas', 'Organizar candidaturas', 'Outro'].map(opt => (
-                      <button key={opt} onClick={() => { setFormData({ ...formData, q15_main_difficulty: opt }); handleNext(16, 'q15_main_difficulty'); }} className="p-3.5 rounded-xl border text-left font-medium bg-slate-900 border-slate-800 text-slate-300 hover:bg-slate-800">{opt}</button>
+                      <button key={opt} onClick={() => { setFormData({ ...formData, q15_main_difficulty: opt }); handleNext(12, 'q15_main_difficulty'); }} className="p-3.5 rounded-xl border text-left font-medium bg-slate-900 border-slate-800 text-slate-300 hover:bg-slate-800 transition">{opt}</button>
                     ))}
                   </div>
-                </>
+                </div>
               )}
-            </div>
-          )}
 
-          {/* PERGUNTA 16 & Consentimento LGPD */}
-          {step === 16 && (
-            <div className="space-y-6">
-              <div className="text-xs font-semibold text-emerald-400 uppercase tracking-wider">Pergunta 16 de {totalQuestions}</div>
-              <h3 className="text-lg font-bold text-white">Em quanto tempo você gostaria de conseguir uma nova oportunidade profissional?</h3>
-              <div className="grid grid-cols-1 gap-2.5">
-                {[
-                  'Estou procurando urgentemente (até 30 dias)',
-                  'Nos próximos 3 meses',
-                  'Nos próximos 6 meses',
-                  'Apenas estou explorando possibilidades',
-                  'Não estou buscando agora'
-                ].map((opt) => (
-                  <button
-                    key={opt}
-                    onClick={() => setFormData({ ...formData, q16_urgency: opt })}
-                    className={`p-3.5 rounded-xl border text-left font-medium transition-all ${
-                      formData.q16_urgency === opt ? 'bg-emerald-500/20 border-emerald-500 text-white' : 'bg-slate-900 border-slate-800 text-slate-300 hover:bg-slate-800'
-                    }`}
-                  >
-                    {opt}
-                  </button>
-                ))}
-              </div>
+              {/* QUESTÃO 12 (q7_improvements) */}
+              {step === 12 && (
+                <div className="space-y-4">
+                  <h3 className="text-lg font-bold text-white">O que mais poderíamos melhorar ou adicionar na plataforma?</h3>
+                  <textarea rows={3} placeholder="Dores, dificuldades ou sugestões..." value={formData.q7_improvements} onChange={e => setFormData({...formData, q7_improvements: e.target.value})} className="w-full p-3.5 rounded-xl bg-slate-900 border border-slate-700 text-white text-sm focus:outline-none focus:border-emerald-500" />
+                  <button disabled={!formData.q7_improvements.trim()} onClick={() => handleNext(13, 'q7_improvements')} className="w-full py-3 rounded-xl font-bold bg-emerald-500 text-slate-950 disabled:opacity-50 transition">Avançar</button>
+                </div>
+              )}
 
-              {formData.q16_urgency && (
-                <div className="space-y-4 pt-4 border-t border-slate-800">
-                  <label className="flex items-start gap-3 text-xs text-slate-300 cursor-pointer p-3 rounded-xl bg-slate-900 border border-slate-800">
-                    <input
-                      type="checkbox"
-                      checked={formData.research_contact_permission}
-                      onChange={(e) => setFormData({ ...formData, research_contact_permission: e.target.checked })}
-                      className="mt-0.5 rounded text-emerald-500 focus:ring-emerald-500 bg-slate-950 border-slate-700"
-                    />
-                    <span>
-                      Autorizo o VoCentro a entrar em contato comigo para entrevistas, testes de novas funcionalidades e pesquisas futuras (LGPD).
-                    </span>
-                  </label>
+              {/* QUESTÃO 13 (q8_pro_intent) */}
+              {step === 13 && (
+                <div className="space-y-4">
+                  <h3 className="text-lg font-bold text-white">Você sentiria interesse em utilizar um plano PRO com recursos ilimitados?</h3>
+                  <div className="grid grid-cols-1 gap-2.5">
+                    {['Sim', 'Talvez', 'Não'].map(opt => (
+                      <button key={opt} onClick={() => { setFormData({ ...formData, q8_pro_intent: opt }); handleNext(14, 'q8_pro_intent'); }} className="p-3.5 rounded-xl border text-left font-medium bg-slate-900 border-slate-800 text-slate-300 hover:bg-slate-800 transition">{opt}</button>
+                    ))}
+                  </div>
+                </div>
+              )}
 
-                  {errorMsg && (
-                    <div className="p-3 rounded-lg bg-rose-500/10 border border-rose-500/30 text-rose-400 text-xs flex items-center gap-2">
-                      <AlertCircle className="w-4 h-4 shrink-0" />
-                      <span>{errorMsg}</span>
+              {/* QUESTÃO 14 (q9_fair_price e q10_subscription_driver) */}
+              {step === 14 && (
+                <div className="space-y-4">
+                  <h3 className="text-lg font-bold text-white">Se existisse um plano PRO, qual valor mensal pareceria justo?</h3>
+                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5">
+                    {['Até R$ 9,90', 'R$ 19,90', 'R$ 29,90', 'R$ 39,90', 'Mais de R$ 39,90', 'Eu não pagaria'].map(opt => (
+                      <button key={opt} onClick={() => { setFormData({ ...formData, q9_fair_price: opt }); handleNext(15, 'q9_fair_price'); }} className="p-3.5 rounded-xl border text-center font-medium bg-slate-900 border-slate-800 text-slate-300 hover:bg-slate-800 transition">{opt}</button>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* QUESTÃO 15 (q10_subscription_driver) */}
+              {step === 15 && (
+                <div className="space-y-4">
+                  <h3 className="text-lg font-bold text-white">O que faria você considerar assinar a versão PRO do VoCentro?</h3>
+                  <div className="grid grid-cols-1 gap-2.5">
+                    {['Mais análises de vagas com IA', 'Currículo ATS ilimitado', 'Simulações de entrevistas ilimitadas', 'Copiloto de carreira', 'Outro'].map(opt => (
+                      <button key={opt} onClick={() => { setFormData({ ...formData, q10_subscription_driver: opt }); handleNext(16, 'q10_subscription_driver'); }} className="p-3.5 rounded-xl border text-left font-medium bg-slate-900 border-slate-800 text-slate-300 hover:bg-slate-800 transition">{opt}</button>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* QUESTÃO 16 (q12_interview_opt_in & LGPD Consent) */}
+              {step === 16 && (
+                <div className="space-y-6">
+                  <h3 className="text-lg font-bold text-white">Gostaria de participar de entrevistas rápidas de 15 minutos para nos dar feedback direto?</h3>
+                  <div className="grid grid-cols-2 gap-3">
+                    {['Sim', 'Não'].map(opt => (
+                      <button 
+                        key={opt} 
+                        onClick={() => setFormData({ ...formData, q12_interview_opt_in: opt })} 
+                        className={`p-3.5 rounded-xl border font-bold text-center transition ${formData.q12_interview_opt_in === opt ? 'bg-emerald-500/20 border-emerald-500 text-white' : 'bg-slate-900 border-slate-800 text-slate-300'}`}
+                      >
+                        {opt}
+                      </button>
+                    ))}
+                  </div>
+
+                  {formData.q12_interview_opt_in && (
+                    <div className="space-y-4 pt-4 border-t border-slate-800">
+                      <label className="flex items-start gap-3 text-xs text-slate-300 cursor-pointer p-3.5 rounded-xl bg-slate-900 border border-slate-800">
+                        <input
+                          type="checkbox"
+                          checked={formData.research_contact_permission}
+                          onChange={(e) => setFormData({ ...formData, research_contact_permission: e.target.checked })}
+                          className="mt-0.5 rounded text-emerald-500 focus:ring-emerald-500 bg-slate-950 border-slate-700"
+                        />
+                        <span>
+                          Autorizo o VoCentro a entrar em contato comigo para entrevistas, testes de novas funcionalidades e pesquisas futuras (LGPD).
+                        </span>
+                      </label>
+
+                      {errorMsg && (
+                        <div className="p-3.5 rounded-xl bg-rose-500/10 border border-rose-500/30 text-rose-300 text-xs flex items-center gap-2">
+                          <AlertCircle className="w-4 h-4 shrink-0" />
+                          <span>{errorMsg}</span>
+                        </div>
+                      )}
+
+                      <button
+                        disabled={submitting}
+                        onClick={handleSubmitSurvey}
+                        className="w-full py-4 rounded-xl font-extrabold text-slate-950 bg-gradient-to-r from-emerald-400 via-teal-400 to-cyan-400 hover:from-emerald-300 hover:to-cyan-300 disabled:opacity-50 transition flex items-center justify-center gap-2 uppercase tracking-wider text-sm"
+                      >
+                        {submitting ? 'Salvando respostas com segurança...' : 'Concluir Pesquisa 🚀'}
+                      </button>
                     </div>
                   )}
-
-                  <button
-                    disabled={submitting}
-                    onClick={handleSubmitSurvey}
-                    className="w-full py-4 rounded-xl font-extrabold text-slate-950 bg-gradient-to-r from-emerald-400 via-teal-400 to-cyan-400 hover:from-emerald-300 hover:to-cyan-300 disabled:opacity-50 transition-all flex items-center justify-center gap-2"
-                  >
-                    {submitting ? 'Salvando respostas...' : 'Concluir pesquisa e entrar no sorteio PRO 🚀'}
-                  </button>
                 </div>
               )}
             </div>
@@ -691,22 +701,22 @@ export const PublicSurveyPage: React.FC = () => {
                   Obrigado por ajudar a construir o VoCentro 💙
                 </h2>
                 <p className="text-sm text-slate-300 max-w-lg mx-auto leading-relaxed">
-                  Sua opinião será usada para melhorar a plataforma e criar ferramentas que realmente ajudem sua carreira.
+                  Sua opinião será usada para decidir as próximas funcionalidades e criar um produto cada vez melhor para sua carreira.
                 </p>
               </div>
 
               <div className="p-4 rounded-xl bg-slate-900 border border-emerald-500/30 max-w-md mx-auto space-y-1">
                 <p className="text-sm font-semibold text-emerald-400 flex items-center justify-center gap-1.5">
-                  <Gift className="w-4 h-4" /> Inscrição Confirmada no Sorteio PRO
+                  <Gift className="w-4 h-4" /> Ação de Agradecimento PRO Registrada
                 </p>
                 <p className="text-xs text-slate-400">
-                  Sua participação nos 7 dias de acesso PRO ilimitado está registrada!
+                  Sua participação na ação de 7 dias PRO ilimitados foi gravada com sucesso!
                 </p>
               </div>
 
               <a
                 href="https://vocentro.com.br/dashboard"
-                className="inline-flex items-center justify-center gap-2 py-3 px-8 rounded-xl font-bold bg-slate-800 text-white hover:bg-slate-700 transition"
+                className="inline-flex items-center justify-center gap-2 py-3 px-8 rounded-xl font-bold bg-slate-800 text-white hover:bg-slate-700 transition text-sm"
               >
                 Voltar para o VoCentro 🚀
               </a>
@@ -716,7 +726,7 @@ export const PublicSurveyPage: React.FC = () => {
           {/* Controles de Navegação */}
           {step > 0 && step <= totalQuestions && (
             <div className="flex items-center justify-between pt-6 mt-6 border-t border-slate-800 text-xs text-slate-400">
-              <button onClick={handlePrev} disabled={step === 1} className="flex items-center gap-1 hover:text-white disabled:opacity-30">
+              <button onClick={handlePrev} disabled={step === 1} className="flex items-center gap-1 hover:text-white disabled:opacity-30 transition">
                 <ChevronLeft className="w-4 h-4" /> Anterior
               </button>
               <span>{step} de {totalQuestions}</span>

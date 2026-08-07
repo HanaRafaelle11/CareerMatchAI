@@ -25,6 +25,7 @@ export const UserResearchDashboard: React.FC<UserResearchDashboardProps> = () =>
   const [giveawayParticipants, setGiveawayParticipants] = useState<any[]>([]);
   const [profilesMap, setProfilesMap] = useState<Record<string, any>>({});
   const [contactsMap, setContactsMap] = useState<Record<string, any>>({});
+  const [emailCampaigns, setEmailCampaigns] = useState<any[]>([]);
   
   // Drawer detail state
   const [selectedUserDetail, setSelectedUserDetail] = useState<any | null>(null);
@@ -52,12 +53,17 @@ export const UserResearchDashboard: React.FC<UserResearchDashboardProps> = () =>
       const { data: giveaway } = await supabase.from('giveaway_participants').select('*');
       setGiveawayParticipants(giveaway || []);
 
-      // 3. Fetch research contacts (LGPD decoupled)
+      // 3. Fetch survey email campaigns
+      const { data: campaigns } = await supabase.from('survey_email_campaigns').select('*');
+      setEmailCampaigns(campaigns || []);
+
+      // 4. Fetch research contacts (LGPD decoupled)
       const { data: contacts } = await supabase.from('research_contacts').select('*');
       const cMap: Record<string, any> = {};
       (contacts || []).forEach(c => {
         cMap[c.user_id] = c;
       });
+
       setContactsMap(cMap);
 
       // 4. Fetch profiles for real vs test identification
@@ -346,6 +352,58 @@ export const UserResearchDashboard: React.FC<UserResearchDashboardProps> = () =>
           <div className="text-[11px] text-slate-400">Prontos para contato</div>
         </div>
       </div>
+
+      {/* PAINEL DE OBSERVABILIDADE & DIAGNÓSTICO DE FUNIL */}
+      <div className="p-6 rounded-2xl bg-[#121927] border border-slate-800 space-y-4">
+        <div className="flex items-center justify-between">
+          <h3 className="text-base font-bold text-white flex items-center gap-2">
+            <ShieldCheck className="w-5 h-5 text-emerald-400" />
+            Observabilidade & Funil da Pesquisa
+          </h3>
+          <span className="text-xs font-semibold text-slate-400">Monitoramento em Tempo Real</span>
+        </div>
+
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-3">
+          <div className="p-3.5 rounded-xl bg-slate-900/80 border border-slate-800 space-y-1">
+            <span className="text-[11px] text-slate-400">Convites Enviados</span>
+            <div className="text-xl font-mono font-bold text-white">{emailCampaigns.length}</div>
+          </div>
+
+          <div className="p-3.5 rounded-xl bg-slate-900/80 border border-slate-800 space-y-1">
+            <span className="text-[11px] text-slate-400">E-mails Entregues</span>
+            <div className="text-xl font-mono font-bold text-cyan-400">
+              {emailCampaigns.filter(c => c.status === 'delivered' || c.status === 'opened' || c.status === 'clicked' || c.status === 'responded' || c.status === 'sent').length}
+            </div>
+          </div>
+
+          <div className="p-3.5 rounded-xl bg-slate-900/80 border border-slate-800 space-y-1">
+            <span className="text-[11px] text-slate-400">Pesquisas Iniciadas</span>
+            <div className="text-xl font-mono font-bold text-amber-400">
+              {Math.max(totalResponses, emailCampaigns.filter(c => c.status === 'opened' || c.status === 'clicked' || c.status === 'responded').length)}
+            </div>
+          </div>
+
+          <div className="p-3.5 rounded-xl bg-slate-900/80 border border-slate-800 space-y-1">
+            <span className="text-[11px] text-slate-400">Pesquisas Concluídas</span>
+            <div className="text-xl font-mono font-bold text-emerald-400">{totalResponses}</div>
+          </div>
+
+          <div className="p-3.5 rounded-xl bg-slate-900/80 border border-slate-800 space-y-1">
+            <span className="text-[11px] text-slate-400">Taxa de Conclusão</span>
+            <div className="text-xl font-mono font-bold text-teal-400">
+              {emailCampaigns.length > 0 ? ((totalResponses / emailCampaigns.length) * 100).toFixed(1) : '100.0'}%
+            </div>
+          </div>
+
+          <div className="p-3.5 rounded-xl bg-slate-900/80 border border-slate-800 space-y-1">
+            <span className="text-[11px] text-slate-400">Consentimentos LGPD</span>
+            <div className="text-xl font-mono font-bold text-indigo-400">
+              {Object.values(contactsMap).filter(c => c.permission_status === 'granted').length}
+            </div>
+          </div>
+        </div>
+      </div>
+
 
       {/* DASHBOARD EXECUTIVO: INSIGHTS DE PRODUTO & MARKETING */}
       <div className="p-6 rounded-2xl bg-[#121927] border border-slate-800 space-y-6">

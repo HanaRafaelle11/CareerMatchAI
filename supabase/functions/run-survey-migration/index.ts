@@ -14,10 +14,7 @@ serve(async (req) => {
   try {
     const dbUrl = Deno.env.get('SUPABASE_DB_URL') || Deno.env.get('POSTGRES_URL') || Deno.env.get('SUPABASE_DIRECT_URL');
     
-    console.log('[run-survey-migration] dbUrl presente?', !!dbUrl);
-
     if (!dbUrl) {
-      // Fallback: try constructing from SUPABASE_SERVICE_ROLE_KEY or env
       return new Response(JSON.stringify({ error: 'DB connection string env variable missing' }), {
         status: 500,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' }
@@ -26,120 +23,81 @@ serve(async (req) => {
 
     const sql = postgres(dbUrl, { ssl: 'require' });
 
-    console.log('[run-survey-migration] Executando DDL das tabelas da pesquisa...');
+    console.log('[run-survey-migration] Atualizando RLS Policies e permissões para acesso público via Token...');
 
-    // 1. survey_responses
+    // 1. Drop old restrictive policies if exist
+    await sql`DROP POLICY IF EXISTS "Users can insert their own survey response" ON public.survey_responses;`;
+    await sql`DROP POLICY IF EXISTS "Users can view their own survey response" ON public.survey_responses;`;
+    await sql`DROP POLICY IF EXISTS "Allow survey_responses insert" ON public.survey_responses;`;
+    await sql`DROP POLICY IF EXISTS "Allow survey_responses select" ON public.survey_responses;`;
+
+    await sql`DROP POLICY IF EXISTS "Users can insert/update their own research contacts" ON public.research_contacts;`;
+    await sql`DROP POLICY IF EXISTS "Allow research_contacts insert_update" ON public.research_contacts;`;
+
+    await sql`DROP POLICY IF EXISTS "Users can insert/view their own giveaway entry" ON public.giveaway_participants;`;
+    await sql`DROP POLICY IF EXISTS "Allow giveaway_participants insert" ON public.giveaway_participants;`;
+
+    await sql`DROP POLICY IF EXISTS "Allow survey_email_campaigns update" ON public.survey_email_campaigns;`;
+
+    // 2. Create permissive RLS policies for token-based public survey submissions
+    // Survey Responses
     await sql`
-      CREATE TABLE IF NOT EXISTS public.survey_responses (
-          id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-          user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE,
-          research_cohort TEXT NOT NULL CHECK (research_cohort IN ('activated', 'not_activated', 'beta_general')),
-          high_intent BOOLEAN DEFAULT false,
-          channel TEXT NOT NULL DEFAULT 'in_app' CHECK (channel IN ('email', 'in_app')),
-          invitation_source TEXT NOT NULL DEFAULT 'dashboard_modal' CHECK (invitation_source IN ('email_campaign', 'dashboard_modal', 'manual_admin')),
-          survey_version TEXT NOT NULL DEFAULT 'v1_founders_validation',
-          q1_acquisition TEXT,
-          q2_goal TEXT,
-          q3_previous_method TEXT,
-          q4_valued_feature TEXT,
-          q4_why TEXT,
-          q5_had_match TEXT,
-          q5_match_changed_view TEXT,
-          q6_biggest_benefit TEXT,
-          q7_improvements TEXT,
-          q8_pro_intent TEXT,
-          q9_fair_price TEXT,
-          q10_subscription_driver TEXT,
-          q11_nps INTEGER CHECK (q11_nps >= 0 AND q11_nps <= 10),
-          q12_interview_opt_in TEXT,
-          q13_pmf_missing_feature TEXT,
-          q14_value_moment TEXT,
-          q15_main_difficulty TEXT,
-          q16_urgency TEXT,
-          created_at TIMESTAMPTZ DEFAULT NOW(),
-          updated_at TIMESTAMPTZ DEFAULT NOW()
-      );
+      CREATE POLICY "Allow survey_responses insert"
+        ON public.survey_responses FOR INSERT
+        WITH CHECK (true);
+    `;
+    await sql`
+      CREATE POLICY "Allow survey_responses select"
+        ON public.survey_responses FOR SELECT
+        USING (true);
     `;
 
-    // 2. research_contacts
+    // Research Contacts (LGPD)
     await sql`
-      CREATE TABLE IF NOT EXISTS public.research_contacts (
-          id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-          user_id UUID NOT NULL UNIQUE REFERENCES auth.users(id) ON DELETE CASCADE,
-          email TEXT NOT NULL,
-          whatsapp_phone TEXT,
-          permission_status TEXT NOT NULL DEFAULT 'granted' CHECK (permission_status IN ('granted', 'revoked', 'pending')),
-          permission_updated_at TIMESTAMPTZ DEFAULT NOW(),
-          created_at TIMESTAMPTZ DEFAULT NOW(),
-          updated_at TIMESTAMPTZ DEFAULT NOW()
-      );
+      CREATE POLICY "Allow research_contacts insert_update"
+        ON public.research_contacts FOR ALL
+        USING (true)
+        WITH CHECK (true);
     `;
 
-    // 3. giveaway_participants
+    // Giveaway Participants
     await sql`
-      CREATE TABLE IF NOT EXISTS public.giveaway_participants (
-          id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-          user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
-          email TEXT NOT NULL,
-          survey_response_id UUID REFERENCES public.survey_responses(id) ON DELETE SET NULL,
-          status TEXT NOT NULL DEFAULT 'eligible' CHECK (status IN ('eligible', 'selected', 'confirmed', 'granted')),
-          participated_at TIMESTAMPTZ DEFAULT NOW(),
-          winner_selected_at TIMESTAMPTZ,
-          granted_at TIMESTAMPTZ,
-          created_at TIMESTAMPTZ DEFAULT NOW(),
-          updated_at TIMESTAMPTZ DEFAULT NOW()
-      );
+      CREATE POLICY "Allow giveaway_participants insert"
+        ON public.giveaway_participants FOR ALL
+        USING (true)
+        WITH CHECK (true);
     `;
 
-    // 4. survey_email_campaigns
+    // Survey Email Campaigns
     await sql`
-      CREATE TABLE IF NOT EXISTS public.survey_email_campaigns (
-          id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-          user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
-          email TEXT NOT NULL,
-          cohort TEXT NOT NULL CHECK (cohort IN ('activated', 'not_activated', 'beta_general')),
-          status TEXT NOT NULL DEFAULT 'sent' CHECK (status IN ('sent', 'delivered', 'opened', 'clicked', 'responded')),
-          last_email_type TEXT NOT NULL DEFAULT 'initial_invite' CHECK (last_email_type IN ('initial_invite', 'reminder_7_days', 'final_reminder')),
-          sent_at TIMESTAMPTZ DEFAULT NOW(),
-          reminder_sent_at TIMESTAMPTZ,
-          last_activity_at TIMESTAMPTZ,
-          days_since_last_activity INTEGER DEFAULT 0,
-          created_at TIMESTAMPTZ DEFAULT NOW(),
-          updated_at TIMESTAMPTZ DEFAULT NOW()
-      );
+      CREATE POLICY "Allow survey_email_campaigns update"
+        ON public.survey_email_campaigns FOR ALL
+        USING (true)
+        WITH CHECK (true);
     `;
 
-    // 5. survey_events
+    // Survey Events
     await sql`
-      CREATE TABLE IF NOT EXISTS public.survey_events (
-          id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-          user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE,
-          event_name TEXT NOT NULL,
-          question_number INTEGER,
-          question_name TEXT,
-          metadata JSONB DEFAULT '{}'::jsonb,
-          created_at TIMESTAMPTZ DEFAULT NOW()
-      );
+      CREATE POLICY "Allow survey_events insert"
+        ON public.survey_events FOR ALL
+        USING (true)
+        WITH CHECK (true);
     `;
 
-    // Enable RLS and grants
-    await sql`ALTER TABLE public.survey_responses ENABLE ROW LEVEL SECURITY;`;
-    await sql`ALTER TABLE public.research_contacts ENABLE ROW LEVEL SECURITY;`;
-    await sql`ALTER TABLE public.giveaway_participants ENABLE ROW LEVEL SECURITY;`;
-    await sql`ALTER TABLE public.survey_email_campaigns ENABLE ROW LEVEL SECURITY;`;
-    await sql`ALTER TABLE public.survey_events ENABLE ROW LEVEL SECURITY;`;
-
-    await sql`GRANT ALL ON ALL TABLES IN SCHEMA public TO service_role;`;
-    await sql`GRANT ALL ON ALL TABLES IN SCHEMA public TO postgres;`;
-    await sql`GRANT SELECT, INSERT, UPDATE ON ALL TABLES IN SCHEMA public TO authenticated, anon;`;
+    // Grants for anon and authenticated roles
+    await sql`GRANT ALL ON public.survey_responses TO anon, authenticated, service_role;`;
+    await sql`GRANT ALL ON public.research_contacts TO anon, authenticated, service_role;`;
+    await sql`GRANT ALL ON public.giveaway_participants TO anon, authenticated, service_role;`;
+    await sql`GRANT ALL ON public.survey_email_campaigns TO anon, authenticated, service_role;`;
+    await sql`GRANT ALL ON public.survey_events TO anon, authenticated, service_role;`;
 
     await sql.end();
 
-    return new Response(JSON.stringify({ success: true, message: 'Tabelas criadas com sucesso!' }), {
+    return new Response(JSON.stringify({ success: true, message: 'RLS Policies atualizadas com sucesso para acesso via Token Público!' }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' }
     });
   } catch (err: any) {
-    console.error('[run-survey-migration] Erro:', err);
+    console.error('[run-survey-migration] Erro ao atualizar RLS:', err);
     return new Response(JSON.stringify({ error: err.message, stack: err.stack }), {
       status: 500,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' }

@@ -11,7 +11,7 @@ import type { CareerProfileNew } from '../../application/hooks/useMyProfileAi';
 import { useEscapeToClose } from '../../application/hooks/useEscapeToClose';
 import { 
   Flame, Sparkles, AlertCircle, Clock, Plus, Trash2, 
-  X, Layout, AlertTriangle,
+  X, Layout, AlertTriangle, Briefcase,
   CheckSquare, Square, BookOpen, Target, Loader2,
   Calendar, UserCheck, MessageSquare, ShieldAlert, Archive, Send, RefreshCcw
 } from 'lucide-react';
@@ -198,8 +198,17 @@ export function StrategyPage({
       setCardRecruiterName((selectedApp as any).recruiterName || (selectedApp as any).recruiter_name || '');
       setCardFeedback((selectedApp as any).feedback || '');
       setCardNotes(selectedApp.notes || '');
+    } else {
+      setCardNextAction('');
+      setCardNextActionDate('');
+      setCardRecruiterName('');
+      setCardFeedback('');
+      setCardNotes('');
     }
-  }, [selectedAppId]);
+    setNewStageName('applied');
+    setNewStageStatus('pending');
+    setNewStageNotes('');
+  }, [selectedAppId, (selectedApp as any)?.updatedAt, (selectedApp as any)?.status]);
 
   // Form for new Stage
   const [newStageName, setNewStageName] = useState('applied');
@@ -1074,25 +1083,43 @@ export function StrategyPage({
         </div>
       )}
 
-      {/* 5. Drawer Completo do Card da Candidatura — Item 12: padding compacto */}
+      {/* 5. Drawer Completo do Card da Candidatura — Centro de Gestão da Candidatura */}
       {selectedAppId && selectedApp && (
-        <div className="fixed inset-y-0 right-0 w-full max-w-2xl bg-card border-l border-border shadow-2xl z-[999] overflow-y-auto p-4 transition-all space-y-4">
-          <div className="flex justify-between items-start border-b border-border pb-3">
-            <div>
-              <span className="text-[10px] px-2 py-0.5 rounded bg-brand-500/10 text-brand-500 font-extrabold uppercase">
-                {selectedApp.status}
-              </span>
-              <h3 className="font-display font-bold text-lg text-foreground mt-1">{selectedApp.jobTitle}</h3>
-              <p className="text-xs text-muted-foreground font-semibold mt-0.5">{selectedApp.companyName}</p>
+        <div className="fixed inset-y-0 right-0 w-full max-w-2xl bg-card border-l border-border shadow-2xl z-[999] overflow-y-auto p-5 transition-all space-y-6">
+          {/* Header Visual: Cargo, Empresa, Status Atual e Botão Fechar */}
+          <div className="flex justify-between items-start border-b border-border pb-4">
+            <div className="space-y-1">
+              <div className="flex items-center gap-2 flex-wrap">
+                <span className="text-[10px] px-2.5 py-0.5 rounded-full bg-brand-500/10 text-brand-500 font-extrabold uppercase border border-brand-500/20">
+                  Etapa Atual: {ApplicationPipelineService.getCleanStatus(selectedApp.status)}
+                </span>
+                {selectedApp.jobId && (
+                  <span className="text-[10px] px-2.5 py-0.5 rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 font-extrabold border border-emerald-500/20">
+                    Match IA {getJobMatchScore(selectedApp.jobId)}%
+                  </span>
+                )}
+                {selectedApp.sourcePlatform && (
+                  <span className="text-[10px] px-2 py-0.5 rounded bg-muted text-muted-foreground font-semibold">
+                    Origem: {selectedApp.sourcePlatform}
+                  </span>
+                )}
+              </div>
+              <h3 className="font-display font-bold text-xl text-foreground mt-1">{selectedApp.jobTitle}</h3>
+              <p className="text-xs text-muted-foreground font-semibold flex items-center gap-1">
+                <Briefcase size={14} className="text-brand-400" />
+                {selectedApp.companyName}
+              </p>
             </div>
-            <button onClick={() => setSelectedAppId(null)} aria-label="Fechar detalhes da candidatura" className="text-muted-foreground hover:text-foreground p-3 min-w-[44px] min-h-[44px] flex items-center justify-center rounded-lg hover:bg-muted focus-visible:ring-2 focus-visible:ring-brand-500">
+            <button
+              onClick={() => setSelectedAppId(null)}
+              aria-label="Fechar detalhes da candidatura"
+              className="text-muted-foreground hover:text-foreground p-2 rounded-xl hover:bg-muted transition-colors min-w-[40px] min-h-[40px] flex items-center justify-center cursor-pointer"
+            >
               <X size={20} />
             </button>
-
-
           </div>
 
-          {/* Item 13: Tratar Vagas Arquivadas com Opção de Reativação em vez de Formulário Ativo */}
+          {/* ── ALTA PRIORIDADE: AÇÃO PRIMÁRIA DA CANDIDATURA ── */}
           {ApplicationPipelineService.getCleanStatus(selectedApp.status) === 'rejected' ? (
             <div className="p-4 rounded-2xl bg-red-950/20 border border-red-500/30 space-y-3">
               <div className="flex items-center gap-2 text-red-400 font-bold text-xs">
@@ -1115,7 +1142,6 @@ export function StrategyPage({
             </div>
           ) : (
             <>
-              {/* Botão de Candidatura Rápida */}
               {ApplicationPipelineService.getCleanStatus(selectedApp.status) !== 'applied' &&
                ApplicationPipelineService.getCleanStatus(selectedApp.status) !== 'hr' &&
                ApplicationPipelineService.getCleanStatus(selectedApp.status) !== 'interview' &&
@@ -1124,17 +1150,22 @@ export function StrategyPage({
                 <button
                   type="button"
                   onClick={() => handleQuickStatusChange(selectedApp, 'applied')}
-                  className="w-full py-2.5 px-4 rounded-xl bg-gradient-to-r from-emerald-600 via-teal-600 to-emerald-500 hover:from-emerald-500 hover:to-teal-400 text-white font-bold text-xs flex items-center justify-center gap-2 shadow-lg cursor-pointer transition-all border border-emerald-400/30"
+                  className="w-full py-3 px-4 rounded-xl bg-gradient-to-r from-emerald-600 via-teal-600 to-emerald-500 hover:from-emerald-500 hover:to-teal-400 text-white font-bold text-xs flex items-center justify-center gap-2 shadow-lg cursor-pointer transition-all border border-emerald-400/30"
                 >
-                  <Send size={15} />
+                  <Send size={16} />
                   <span>Informar que me candidatei a esta vaga</span>
                 </button>
               )}
             </>
           )}
 
-          {/* Form de Detalhes Estruturados */}
-          <form onSubmit={handleSaveCardDetails} className="space-y-3 text-xs text-foreground">
+          {/* ── MÉDIA PRIORIDADE: FORMULÁRIO DE GESTÃO DA VAGA SELECIONADA ── */}
+          <form onSubmit={handleSaveCardDetails} className="space-y-4 p-4 rounded-2xl bg-muted/40 border border-border/80 text-xs text-foreground">
+            <h4 className="font-bold text-xs text-foreground flex items-center gap-1.5 border-b border-border/60 pb-2">
+              <UserCheck size={15} className="text-brand-400" />
+              Gestão de Contato & Próximos Passos
+            </h4>
+
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="space-y-1">
                 <label className="text-[11px] font-bold text-muted-foreground flex items-center gap-1">
@@ -1187,7 +1218,7 @@ export function StrategyPage({
                 value={cardFeedback}
                 onChange={e => setCardFeedback(e.target.value)}
                 placeholder="Pontos fortes destacados pelo gestor, perguntas difíceis..."
-                className="w-full px-3 py-2 rounded-xl bg-background border border-border text-xs text-foreground outline-none focus:border-brand-500 h-20 resize-none placeholder:text-muted-foreground"
+                className="w-full px-3 py-2 rounded-xl bg-background border border-border text-xs text-foreground outline-none focus:border-brand-500 h-16 resize-none placeholder:text-muted-foreground"
               />
             </div>
 
@@ -1204,32 +1235,32 @@ export function StrategyPage({
               />
             </div>
 
-            <div className="flex justify-end pt-2">
+            <div className="flex justify-end pt-1">
               <button
                 type="submit"
                 disabled={isSavingCardDetails}
-                className="px-5 py-2 rounded-xl bg-brand-600 hover:bg-brand-500 text-white font-bold text-xs shadow-lg shadow-brand-500/20 disabled:opacity-50 cursor-pointer"
+                className="px-5 py-2 rounded-xl bg-brand-600 hover:bg-brand-500 text-white font-bold text-xs shadow-lg shadow-brand-500/20 disabled:opacity-50 cursor-pointer transition-all"
               >
                 {isSavingCardDetails ? 'Salvando...' : 'Salvar Alterações'}
               </button>
             </div>
           </form>
 
-          {/* Timeline de Etapas (application_stages) */}
-          <div className="border-t border-border pt-3 space-y-3">
-            <h4 className="text-xs font-bold text-foreground flex items-center gap-1.5">
+          {/* ── TIMELINE E REGISTRO DE ETAPAS (ISOLADO PARA ESTA VAGA) ── */}
+          <div className="p-4 rounded-2xl bg-card border border-border space-y-4">
+            <h4 className="text-xs font-bold text-foreground flex items-center gap-1.5 border-b border-border pb-2">
               <Clock size={15} className="text-brand-400" />
-              Histórico do Processo (Timeline)
+              Histórico do Processo (Timeline da Vaga)
             </h4>
 
             <div className="space-y-2 max-h-48 overflow-y-auto pr-1">
               {loadingStages ? (
                 <div className="flex items-center gap-2 text-xs text-muted-foreground py-2">
                   <Loader2 size={14} className="animate-spin text-brand-400" />
-                  <span>Carregando linha do tempo...</span>
+                  <span>Carregando linha do tempo da vaga...</span>
                 </div>
               ) : activeStages.length === 0 ? (
-                <span className="text-xs text-muted-foreground italic block">Nenhum evento registrado no histórico ainda.</span>
+                <span className="text-xs text-muted-foreground italic block py-1">Nenhum evento registrado no histórico desta vaga ainda.</span>
               ) : (
                 activeStages.map((st: ApplicationStage) => {
                   const stageNameTranslation: Record<string, string> = {
@@ -1276,13 +1307,14 @@ export function StrategyPage({
               )}
             </div>
 
-            {/* Adicionar nova etapa */}
-            <form onSubmit={handleAddStage} className="space-y-2 pt-2 border-t border-border">
+            {/* Adicionar nova etapa exclusiva */}
+            <form onSubmit={handleAddStage} className="space-y-2.5 pt-3 border-t border-border">
+              <span className="text-[11px] font-bold text-muted-foreground block">Registrar Novo Evento na Timeline</span>
               <div className="grid grid-cols-2 gap-2">
                 <select
                   value={newStageName}
                   onChange={e => setNewStageName(e.target.value)}
-                  className="bg-background border border-border text-xs rounded-xl p-2 text-foreground outline-none"
+                  className="bg-background border border-border text-xs rounded-xl p-2 text-foreground outline-none focus:border-brand-500"
                 >
                   <option value="applied">📨 Aplicada</option>
                   <option value="hr">👥 Entrevista RH</option>
@@ -1293,7 +1325,7 @@ export function StrategyPage({
                 <select
                   value={newStageStatus}
                   onChange={e => setNewStageStatus(e.target.value as any)}
-                  className="bg-background border border-border text-xs rounded-xl p-2 text-foreground outline-none"
+                  className="bg-background border border-border text-xs rounded-xl p-2 text-foreground outline-none focus:border-brand-500"
                 >
                   <option value="pending">Pendente</option>
                   <option value="passed">Aprovado</option>
@@ -1304,32 +1336,32 @@ export function StrategyPage({
                 placeholder="Observação da etapa..."
                 value={newStageNotes}
                 onChange={e => setNewStageNotes(e.target.value)}
-                className="w-full bg-background border border-border text-xs rounded-xl px-3 py-2 outline-none text-foreground placeholder:text-muted-foreground"
+                className="w-full bg-background border border-border text-xs rounded-xl px-3 py-2 outline-none text-foreground placeholder:text-muted-foreground focus:border-brand-500"
               />
-              <button type="submit" className="w-full py-2 rounded-xl bg-primary hover:bg-primary/95 text-primary-foreground font-bold text-xs">
+              <button type="submit" className="w-full py-2 rounded-xl bg-brand-600 hover:bg-brand-500 text-white font-bold text-xs cursor-pointer shadow-md transition-all">
                 Registrar no Histórico
               </button>
             </form>
+          </div>
 
-            {/* Ações de Encerramento e Exclusão no Rodapé do Drawer */}
-            <div className="pt-4 border-t border-border flex justify-between items-center text-xs">
-              <button
-                type="button"
-                onClick={() => setRejectingApp(selectedApp)}
-                className="text-red-600 dark:text-red-400 hover:text-red-500 font-semibold flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-red-500/20 bg-red-500/10"
-              >
-                <AlertTriangle size={14} />
-                <span>Arquivar / Rejeitar Vaga</span>
-              </button>
-              <button
-                type="button"
-                onClick={() => setDeletingApp(selectedApp)}
-                className="text-muted-foreground hover:text-red-400 font-semibold flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-border bg-background"
-              >
-                <Trash2 size={14} />
-                <span>Excluir Permanentemente</span>
-              </button>
-            </div>
+          {/* ── BAIXA PRIORIDADE: AÇÕES DE ENCERRAMENTO E EXCLUSÃO NO RODAPÉ ── */}
+          <div className="pt-4 border-t border-border flex justify-between items-center text-xs">
+            <button
+              type="button"
+              onClick={() => setRejectingApp(selectedApp)}
+              className="text-red-600 dark:text-red-400 hover:text-red-500 font-semibold flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-red-500/20 bg-red-500/10 cursor-pointer transition-colors"
+            >
+              <AlertTriangle size={14} />
+              <span>Arquivar / Rejeitar Vaga</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => setDeletingApp(selectedApp)}
+              className="text-muted-foreground hover:text-red-400 font-semibold flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-border bg-background cursor-pointer transition-colors"
+            >
+              <Trash2 size={14} />
+              <span>Excluir Permanentemente</span>
+            </button>
           </div>
         </div>
       )}

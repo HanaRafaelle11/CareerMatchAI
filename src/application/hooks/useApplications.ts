@@ -270,9 +270,25 @@ export function useApplications(userId: string | undefined, resumeVersionId?: st
         return saved;
       }
     },
-    onSuccess: (data) => {
+    onMutate: async (updatedApp: Application) => {
+      await queryClient.cancelQueries({ queryKey: ['applications', userId] });
+      const previousApps = queryClient.getQueryData<Application[]>(['applications', userId]);
+
+      queryClient.setQueryData<Application[]>(['applications', userId], old => {
+        if (!old) return [updatedApp];
+        return old.map(a => a.id === updatedApp.id ? { ...a, ...updatedApp } : a);
+      });
+
+      return { previousApps };
+    },
+    onError: (_err, _updatedApp, context) => {
+      if (context?.previousApps) {
+        queryClient.setQueryData(['applications', userId], context.previousApps);
+      }
+    },
+    onSettled: (data) => {
       queryClient.invalidateQueries({ queryKey: ['applications', userId] });
-      if (data.status === 'applied') {
+      if (data?.status === 'applied') {
         tracker.track('job_applied', 'applications');
       }
     }
@@ -302,7 +318,7 @@ export function useApplications(userId: string | undefined, resumeVersionId?: st
     return useQuery<ApplicationStage[]>({
       queryKey: ['stages', appId],
       queryFn: () => applicationTrackerService.getStages(appId),
-      enabled: !!appId
+      enabled: !!appId && appId.trim().length > 0
     });
   };
 
@@ -310,7 +326,30 @@ export function useApplications(userId: string | undefined, resumeVersionId?: st
     mutationFn: async ({ appId, stage }: { appId: string, stage: Omit<ApplicationStage, 'id' | 'createdAt'> }) => {
       return applicationTrackerService.addStage(appId, stage);
     },
-    onSuccess: (_, variables) => {
+    onMutate: async ({ appId, stage }) => {
+      await queryClient.cancelQueries({ queryKey: ['stages', appId] });
+      const previousStages = queryClient.getQueryData<ApplicationStage[]>(['stages', appId]);
+
+      const tempStage: ApplicationStage = {
+        id: `temp-${Date.now()}`,
+        applicationId: appId,
+        stageName: stage.stageName,
+        status: stage.status,
+        notes: stage.notes,
+        stageDate: stage.stageDate || new Date().toISOString(),
+        createdAt: new Date().toISOString()
+      };
+
+      queryClient.setQueryData<ApplicationStage[]>(['stages', appId], old => [...(old || []), tempStage]);
+
+      return { previousStages };
+    },
+    onError: (_err, variables, context) => {
+      if (context?.previousStages) {
+        queryClient.setQueryData(['stages', variables.appId], context.previousStages);
+      }
+    },
+    onSettled: (_, __, variables) => {
       queryClient.invalidateQueries({ queryKey: ['stages', variables.appId] });
     }
   });

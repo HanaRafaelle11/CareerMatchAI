@@ -59,32 +59,35 @@
   </head>
   <body>
     <div id="root">
-      <!-- Initial Static Shell para FCP e LCP Instantâneos (< 0.5s) -->
-      <header style="position:fixed;top:0;left:0;right:0;height:64px;background:#090d16;border-bottom:1px solid #1e293b;z-index:50;display:flex;align-items:center;justify-content:space-between;padding:0 24px;box-sizing:border-box;">
-        <div style="font-weight:800;font-size:20px;color:#f8fafc;font-family:system-ui,-apple-system,sans-serif;display:flex;align-items:center;gap:8px;">
-          <span style="color:#2563eb;">Vocentro</span>
+      <!-- Initial Static Shell com H1 e H2 correspondentes para zerar o Element Render Delay (< 0.2s) -->
+      <header class="fixed top-0 left-0 right-0 h-16 bg-card/95 backdrop-blur-md border-b border-border text-foreground flex items-center justify-between px-4 sm:px-6 z-50">
+        <div class="flex items-center gap-2">
+          <span class="font-bold text-lg text-foreground font-display">Vocentro</span>
         </div>
-        <div style="display:flex;align-items:center;gap:12px;">
-          <span style="font-size:12px;font-weight:700;color:#ffffff;background:#2563eb;padding:8px 16px;border-radius:12px;font-family:system-ui,-apple-system,sans-serif;">Criar conta grátis</span>
+        <div class="flex items-center gap-2 sm:gap-3">
+          <span class="px-4 py-2 text-xs font-bold text-white bg-brand-500 rounded-xl">Criar conta grátis</span>
         </div>
       </header>
-      <main style="padding-top:64px;width:100%;box-sizing:border-box;">
-        <section style="padding:48px 24px;max-width:1280px;margin:0 auto;box-sizing:border-box;">
-          <div style="max-width:672px;display:flex;flex-direction:column;gap:24px;">
-            <div style="display:inline-flex;align-items:center;gap:8px;padding:6px 14px;border-radius:9999px;background:rgba(37,99,235,0.1);border:1px solid rgba(37,99,235,0.2);color:#3b82f6;font-weight:700;font-size:12px;font-family:monospace;width:fit-content;">
-              🚀 Plataforma Oficial — Acelere sua Recolocação Profissional
+      <main id="main-content" class="w-full pt-16">
+        <section class="py-12 sm:py-16 px-6 max-w-7xl mx-auto w-full">
+          <div class="grid grid-cols-1 lg:grid-cols-12 gap-10 items-center">
+            <div class="lg:col-span-6 space-y-6">
+              <div class="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-brand-500/10 border border-brand-500/20 text-brand-500 font-bold font-mono text-xs">
+                <span>🚀 Plataforma Oficial — Acelere sua Recolocação Profissional</span>
+              </div>
+              <h1 class="text-3xl sm:text-4xl lg:text-4xl font-black font-display tracking-tight text-foreground leading-[1.2]">
+                Conquiste a vaga ideal mais rápido com Inteligência Artificial
+              </h1>
+              <h2 class="text-base sm:text-lg text-muted-foreground leading-relaxed font-medium">
+                O Vocentro ajuda você a encontrar vagas compatíveis com seu perfil, melhorar seu currículo e se preparar para entrevistas — tudo em um só lugar.
+              </h2>
             </div>
-            <h1 style="font-size:36px;font-weight:900;color:#f8fafc;line-height:1.2;margin:0;font-family:system-ui,-apple-system,sans-serif;letter-spacing:-0.02em;">
-              Conquiste a vaga ideal mais rápido com Inteligência Artificial
-            </h1>
-            <p style="font-size:18px;color:#94a3b8;line-height:1.6;margin:0;font-family:system-ui,-apple-system,sans-serif;font-weight:500;">
-              O Vocentro ajuda você a encontrar vagas compatíveis com seu perfil, melhorar seu currículo e se preparar para entrevistas — tudo em um só lugar.
-            </p>
           </div>
         </section>
       </main>
     </div>
     <script type="module" src="/src/main.tsx"></script>
   </body>
+
 
 </html>

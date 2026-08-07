@@ -9,9 +9,9 @@ import {
   HeartHandshake, 
   Star,
   AlertCircle,
-  Lock,
-  ArrowRight
+  Lock
 } from 'lucide-react';
+
 
 export const PublicSurveyPage: React.FC = () => {
   const [step, setStep] = useState<number>(0);

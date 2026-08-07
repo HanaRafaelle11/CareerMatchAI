@@ -135,7 +135,7 @@ export function useJobDiscovery(
             } else if (jobSeniority && jobSeniority !== filterSeniority && !jobTitleLower.includes(filterSeniority)) {
               return false;
             }
-          } else if (targetSeniority) {
+          } else if (targetSeniority && filters.seniority !== 'all') {
             const jobTitleLower = job.title.toLowerCase();
             
             // Usuário Júnior -> descarta vagas explicitamente Sênior/Lead/Diretor

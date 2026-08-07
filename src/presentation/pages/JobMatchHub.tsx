@@ -11,7 +11,7 @@ import { MatchingEngine } from '../../application/services/matchingEngine';
 import type { Job, Resume, Match, CareerProfile, JobFeedbackReason } from '../../domain/models/types';
 import type { CareerProfileNew } from '../../application/hooks/useMyProfileAi';
 import { useEscapeToClose } from '../../application/hooks/useEscapeToClose';
-import { Play, Clipboard, Award, CheckCircle, AlertTriangle, AlertCircle, X, ChevronRight, BookOpen, Plus, Search, MapPin, Loader2, ArrowUpRight, Flame, Sparkles, Trash2, Briefcase, Heart, DollarSign, Building, FileText, Printer, Check, Target, Zap, ThumbsUp, ThumbsDown, RotateCcw } from 'lucide-react';
+import { Play, Clipboard, Award, CheckCircle, AlertTriangle, AlertCircle, X, ChevronRight, BookOpen, Plus, Search, MapPin, Loader2, ArrowUpRight, Flame, Sparkles, Trash2, Briefcase, Heart, DollarSign, Building, FileText, Printer, Check, Target, Zap, ThumbsUp, ThumbsDown, RotateCcw, Filter } from 'lucide-react';
 import { useJobTrash } from '../../application/hooks/useJobTrash';
 
 import { isSupabaseConfigured, supabase } from '../../infrastructure/api/supabaseClient';
@@ -132,6 +132,45 @@ interface JobMatchHubProps {
   initialSubTab?: 'my-jobs' | 'discover' | 'trash';
 }
 
+const METRO_REGIONS: Record<string, string[]> = {
+  'são paulo': ['são paulo', 'sao paulo', 'sp', 'itapevi', 'osasco', 'barueri', 'guarulhos', 'santo andré', 'santo andre', 'são bernardo', 'sao bernardo', 'diadema', 'alphaville', 'cotia', 'taboão', 'taboao', 'mauá', 'maua', 'mogi', 'jundiaí', 'jundiai', 'campinas', 'santos', 'santana de parnaíba', 'araraquara', 'sorocaba', 'piracicaba'],
+  'rio de janeiro': ['rio de janeiro', 'rj', 'niterói', 'niteroi', 'duque de caxias', 'nova iguaçu', 'nova iguacu', 'petrópolis', 'petropolis', 'volta redonda', 'macaé', 'macae'],
+  'belo horizonte': ['belo horizonte', 'bh', 'mg', 'contagem', 'betim', 'nova lima', 'uberlândia', 'uberlandia', 'juiz de fora', 'sete lagoas'],
+  'curitiba': ['curitiba', 'pr', 'são josé dos pinhais', 'sao jose dos pinhais', 'londrina', 'maringá', 'maringa'],
+  'porto alegre': ['porto alegre', 'rs', 'canoas', 'caxias do sul', 'pelotas'],
+  'florianópolis': ['florianópolis', 'florianopolis', 'sc', 'joinville', 'blumenau', 'são josé', 'sao jose']
+};
+
+function isMetropolitanMatch(targetLocRaw: string, jobLocRaw: string, workMode?: string): boolean {
+  if (!targetLocRaw) return true;
+
+  const targetLoc = targetLocRaw.toLowerCase().trim();
+  const jobLoc = (jobLocRaw || '').toLowerCase().trim();
+
+  if (targetLoc === 'brasil' || targetLoc === 'remoto' || targetLoc === '') return true;
+  if (workMode === 'remote' || jobLoc.includes('remot') || jobLoc.includes('qualquer lugar') || jobLoc.includes('brasil')) return true;
+
+  const cleanTarget = targetLoc.replace(/,\s*sp/g, '').replace(/,\s*rj/g, '').replace(/,\s*mg/g, '').trim();
+  if (jobLoc.includes(cleanTarget)) return true;
+
+  for (const [regionName, cities] of Object.entries(METRO_REGIONS)) {
+    const isTargetInRegion = cities.some(c => targetLoc.includes(c) || regionName.includes(cleanTarget));
+    if (isTargetInRegion) {
+      const isJobInRegion = cities.some(c => jobLoc.includes(c));
+      if (isJobInRegion) return true;
+    }
+  }
+
+  const targetStateMatch = targetLoc.match(/\b(sp|rj|mg|pr|rs|sc|ba|pe|ce|df|go|am|pa)\b/);
+  const jobStateMatch = jobLoc.match(/\b(sp|rj|mg|pr|rs|sc|ba|pe|ce|df|go|am|pa)\b/);
+
+  if (targetStateMatch && jobStateMatch && targetStateMatch[1] === jobStateMatch[1]) {
+    return true;
+  }
+
+  return false;
+}
+
 export function JobMatchHub({
   userId,
   resumes,
@@ -170,6 +209,7 @@ export function JobMatchHub({
 
   const queryClient = useQueryClient();
   const [subTab, setSubTab] = useState<'my-jobs' | 'discover' | 'trash'>(initialSubTab || 'discover');
+  const [showHiddenJobs, setShowHiddenJobs] = useState(false);
   
   useEffect(() => {
     if (initialSubTab) {
@@ -3612,11 +3652,13 @@ export function JobMatchHub({
         const targetLoc = (activeFilters.location || '').toLowerCase().trim();
         const targetModes = activeFilters.workModes || [];
 
+        const hiddenDiscoveredJobs: any[] = [];
+
         const scoredDiscoveredJobs = rawScored.filter(job => {
           if (filterActiveOnly && job.isActive === false) return false;
           if (filterScoreOver80 && job.scoreOverall < 80 && job.cpi < 80) return false;
 
-          // Filtragem estrita de Modelo de Trabalho
+          // Filtragem de Modelo de Trabalho
           if (targetModes.length > 0) {
             const jMode = (job.workMode || 'onsite').toLowerCase();
             const titleLower = (job.title || '').toLowerCase();
@@ -3626,19 +3668,22 @@ export function JobMatchHub({
               if (m === 'onsite') return jMode === 'onsite' || (!jMode.includes('remot') && !jMode.includes('hibrid'));
               return false;
             });
-            if (!modeMatches) return false;
-          }
-
-          // Filtragem estrita de Localidade
-          if (targetLoc && targetLoc !== 'brasil' && targetLoc !== 'remoto') {
-            const jLoc = (job.location || '').toLowerCase();
-            const cleanTarget = targetLoc.replace(', sp', '').replace(', rj', '').replace(', mg', '').trim();
-            if (!jLoc.includes(cleanTarget) && job.workMode !== 'remote') {
+            if (!modeMatches) {
+              hiddenDiscoveredJobs.push({ ...job, isHiddenByFilter: true, filterReason: `Modalidade de trabalho (${job.workMode || 'presencial'})` });
               return false;
             }
           }
 
-          // Relevância Mínima: Se há palavra-chave de busca ativa, descartar vagas com score < 20 sem relevância textual
+          // Filtragem Metropolitana Regional de Localidade
+          if (targetLoc && targetLoc !== 'brasil' && targetLoc !== 'remoto') {
+            const isMetro = isMetropolitanMatch(targetLoc, job.location, job.workMode);
+            if (!isMetro) {
+              hiddenDiscoveredJobs.push({ ...job, isHiddenByFilter: true, filterReason: `Fora da região metropolitana (${job.location})` });
+              return false;
+            }
+          }
+
+          // Relevância Mínima
           const currentKw = (activeFilters.keyword || '').trim().toLowerCase();
           if (currentKw && currentKw !== 'vagas' && currentKw !== 'brasil') {
             const titleLow = (job.title || '').toLowerCase();
@@ -3650,6 +3695,7 @@ export function JobMatchHub({
             
             const hasKeywordMatch = tokens.some((t: string) => titleLow.includes(t) || descLow.includes(t) || companyLow.includes(t));
             if (!hasKeywordMatch && (job.scoreOverall < 20 && job.cpi < 20)) {
+              hiddenDiscoveredJobs.push({ ...job, isHiddenByFilter: true, filterReason: 'Baixa relevância com a busca' });
               return false;
             }
           }
@@ -3865,16 +3911,44 @@ export function JobMatchHub({
                   </div>
                 </CardGlass>
 
+                {/* Banner de Transparência dos Filtros de Localidade/Senioridade */}
+                {hiddenDiscoveredJobs.length > 0 && (
+                  <div className="p-4 rounded-2xl bg-slate-900/90 border border-slate-800 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs shadow-lg">
+                    <div className="flex items-center gap-3 text-slate-300">
+                      <div className="p-2 rounded-xl bg-amber-500/10 text-amber-400 border border-amber-500/20 shrink-0">
+                        <Filter size={16} />
+                      </div>
+                      <div>
+                        <span className="font-semibold text-slate-200">
+                          Filtros de Transparência: <strong>{hiddenDiscoveredJobs.length} vaga(s) adicional(is)</strong> oculta(s) por filtro de região/modalidade.
+                        </span>
+                        <p className="text-[11px] text-slate-400 mt-0.5">
+                          Todas as oportunidades encontradas no mercado permanecem acessíveis para você.
+                        </p>
+                      </div>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setShowHiddenJobs(prev => !prev)}
+                      className="px-4 py-2 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-400 font-bold text-xs hover:bg-amber-500/20 transition cursor-pointer shrink-0 shadow-xs"
+                    >
+                      {showHiddenJobs ? 'Ocultar Vagas Filtradas' : `Ver Todas (${hiddenDiscoveredJobs.length} ocultas)`}
+                    </button>
+                  </div>
+                )}
+
                 {/* Listagem de Resultados */}
                 {isLoadingDiscovery ? (
                   <ProcessingState
                     title="🔎 Procurando oportunidades compatíveis..."
                     subtitle="Buscando e unificando as melhores oportunidades do mercado..."
                   />
-                ) : scoredDiscoveredJobs.filter(j => !trashedJobIds.has((j as any).id || (j as any).jobId)).length > 0 ? (
+                ) : (scoredDiscoveredJobs.length > 0 || (showHiddenJobs && hiddenDiscoveredJobs.length > 0)) ? (
                   <div className="space-y-6">
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                      {scoredDiscoveredJobs.filter(j => !trashedJobIds.has((j as any).id || (j as any).jobId)).map((job, idx) => {
+                      {(showHiddenJobs ? [...scoredDiscoveredJobs, ...hiddenDiscoveredJobs] : scoredDiscoveredJobs)
+                        .filter(j => !trashedJobIds.has((j as any).id || (j as any).jobId))
+                        .map((job, idx) => {
                         const isUnlocked = isJobUnlocked((job as any).id || (job as any).jobId || String(idx));
                         const isBlurred = !isPro && !isUnlocked && (weeklyActionCount >= 3 || idx >= 3);
 
@@ -3937,9 +4011,14 @@ export function JobMatchHub({
                               </div>
                             </div>
 
-                            {/* Selo de Prioridade CPI */}
+                            {/* Selo de Prioridade CPI e Transparência */}
                             <div className="pt-1 flex gap-2 items-center flex-wrap">
                               {getPriorityBadge(job.scoreOverall)}
+                              {(job as any).isHiddenByFilter && (
+                                <span className="inline-flex items-center gap-1 text-[9px] px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-400 font-bold border border-amber-500/20">
+                                  💡 Oculta: {(job as any).filterReason}
+                                </span>
+                              )}
                               <span className="text-[10px] text-slate-500 font-semibold">
                                 Match Estimado: {job.scoreOverall}%
                               </span>

@@ -9,7 +9,8 @@ export const HeroProductMockup: React.FC<HeroProductMockupProps> = ({ onSimulate
   return (
     <div className="relative w-full max-w-xl mx-auto font-sans select-none">
       {/* Background Subtle Ambient Glow */}
-      <div className="absolute -inset-1 bg-gradient-to-r from-brand-500/20 via-indigo-500/20 to-emerald-500/20 rounded-3xl blur-2xl opacity-70 pointer-events-none" />
+      <div className="absolute -inset-1 bg-gradient-to-r from-brand-500/15 via-indigo-500/15 to-emerald-500/15 rounded-3xl blur-md opacity-60 pointer-events-none" />
+
 
       {/* Main SaaS Interface Glassmorphism Container */}
       <div className="relative rounded-2xl bg-card border border-border shadow-2xl overflow-hidden p-5 sm:p-6 space-y-4">

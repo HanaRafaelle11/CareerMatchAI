@@ -52,24 +52,30 @@ export const LinkedInInsightTag: React.FC<LinkedInInsightTagProps> = ({ partnerI
         window.lintrk.q = [];
       }
 
-      // 6. Inserir dinamicamente a tag de script do LinkedIn
+      // 6. Inserir a tag de script do LinkedIn diferida para não impactar a renderização inicial (FCP/TBT)
       const script = document.createElement('script');
       script.id = 'linkedin-insight-script';
       script.type = 'text/javascript';
       script.async = true;
       script.src = 'https://snap.licdn.com/li.lms-analytics/insight.min.js';
 
-      // Compatibilidade com CSP (Content Security Policy)
       const nonce = document.querySelector('meta[name="csp-nonce"]')?.getAttribute('content');
       if (nonce) {
         script.setAttribute('nonce', nonce);
       }
 
-      document.head.appendChild(script);
+      const timer = setTimeout(() => {
+        if (!document.getElementById('linkedin-insight-script')) {
+          document.head.appendChild(script);
+        }
+      }, 3500);
+
+      return () => clearTimeout(timer);
     } catch (analyticsErr) {
       console.warn('[Analytics] Erro não fatal ao inicializar LinkedIn Insight Tag:', analyticsErr);
     }
   }, [partnerId]);
+
 
   if (!partnerId) {
     return null;

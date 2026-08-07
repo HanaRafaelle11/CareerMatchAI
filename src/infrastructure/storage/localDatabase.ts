@@ -990,6 +990,19 @@ class LocalDatabase {
     } catch (_) {}
   }
 
+  clearJobExplanations(userId?: string): void {
+    try {
+      if (!userId) {
+        localStorage.removeItem(KEYS.JOB_EXPLANATIONS);
+      } else {
+        const raw = localStorage.getItem(KEYS.JOB_EXPLANATIONS) || '[]';
+        const list: any[] = JSON.parse(raw);
+        const filtered = list.filter(item => item.userId !== userId);
+        localStorage.setItem(KEYS.JOB_EXPLANATIONS, JSON.stringify(filtered));
+      }
+    } catch (_) {}
+  }
+
   saveJobFeedback(feedback: any): void {
     try {
       const raw = localStorage.getItem(KEYS.JOB_FEEDBACK) || '[]';

@@ -4,6 +4,7 @@ import { isSupabaseConfigured, supabase } from '../../infrastructure/api/supabas
 import { localDB } from '../../infrastructure/storage/localDatabase';
 import { tracker } from '../../infrastructure/analytics/tracker';
 import { MatchingEngine } from '../services/matchingEngine';
+import { UnifiedMatchService } from '../../domain/services/UnifiedMatchService';
 import { sanitizeFileName } from '../utils/fileUtils';
 import { AppError } from '../errors/AppError';
 import type { Resume, Job, Match, PipelineStep } from '../../domain/models/types';
@@ -518,11 +519,11 @@ export function useResumes(userId: string | undefined) {
           }
         }
 
-        // 4. Deletar matches vinculados a este resume_id
+        // 4. Deletar matches e explicações vinculados a este resume_id
         try {
-          await supabase.from('matches').delete().eq('resume_id', resumeId);
+          await UnifiedMatchService.clearStaleMatchesForUser(userId, resumeId);
         } catch (e) {
-          console.warn('[DELETE] Falha ao apagar matches do CV:', e);
+          console.warn('[DELETE] Falha ao apagar matches e explicações do CV:', e);
         }
 
         // 5. Deletar resume_optimizations vinculados

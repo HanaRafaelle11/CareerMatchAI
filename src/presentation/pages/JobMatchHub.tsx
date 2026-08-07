@@ -200,11 +200,14 @@ export function JobMatchHub({
     isPro, 
     canExportPdf,
     weeklyActionCount, 
-    isJobUnlocked, 
+    isJobUnlocked,
+    canUnlockJob,
+    unlockJob,
     paywallState, 
     triggerPaywall, 
     closePaywall 
   } = useEntitlements(user?.id || userId);
+
   const [showCheckout, setShowCheckout] = useState(false);
   const { trashedJobs, trashedJobIds, moveToTrash, restoreFromTrash, removeFromTrash, clearTrash } = useJobTrash(user?.id || userId, jobs);
 
@@ -2298,13 +2301,24 @@ export function JobMatchHub({
                     return (
                       <div
                         key={job.id}
-                        onClick={() => setSelectedJobId(job.id)}
+                        onClick={async () => {
+                          setSelectedJobId(job.id);
+                          tracker.trackJobDiscovered(job.id, { title: job.title, company: job.companyName });
+                          if (!isPro && !isJobUnlocked(job.id)) {
+                            if (!canUnlockJob(job.id)) {
+                              triggerPaywall('weekly_limit');
+                            } else {
+                              await unlockJob(job.id);
+                            }
+                          }
+                        }}
                         className={`p-3 rounded-xl cursor-pointer border transition-all text-xs flex justify-between items-center group ${
                           isActive
                             ? 'bg-brand-500/10 border-brand-500/30 text-slate-200'
                             : 'bg-slate-900/20 dark:bg-slate-900/20 light:bg-slate-50 border-slate-900 dark:border-slate-900 light:border-slate-200 text-slate-400 dark:text-slate-400 light:text-slate-700 hover:border-slate-800'
                         }`}
                       >
+
                         <div className="truncate max-w-[130px]">
                           <h4 className="font-bold truncate text-slate-200 dark:text-slate-200 light:text-slate-800">{job.title}</h4>
                           <p className="text-[10px] text-slate-500 truncate mt-0.5">{job.companyName}</p>
@@ -2643,6 +2657,72 @@ export function JobMatchHub({
                           </div>
                         </div>
 
+                        {/* ── REGRA 6: BANNERS E CTAS CONTEXTUAIS DE MATCH (FREE -> PRO CONVERSION) ── */}
+                        {explanation && (
+                          (explanation.careerFitScore || 0) < 70 ? (
+                            <div className="p-4 rounded-xl bg-amber-950/40 border border-amber-500/40 space-y-3 animate-fade-in">
+                              <div className="flex items-start gap-3">
+                                <div className="p-2 rounded-xl bg-amber-500/20 text-amber-400 border border-amber-500/30 shrink-0 mt-0.5">
+                                  <AlertTriangle size={20} />
+                                </div>
+                                <div className="space-y-1">
+                                  <h4 className="font-bold text-sm text-amber-300">
+                                    ⚠️ Seu currículo tem {explanation.careerFitScore || 45}% de aderência a esta vaga.
+                                  </h4>
+                                  <p className="text-xs text-amber-200/90 leading-relaxed">
+                                    O Copiloto IA pode ajudar a adaptar suas experiências aos requisitos desta oportunidade.
+                                  </p>
+                                </div>
+                              </div>
+                              <div className="pt-1">
+                                <button
+                                  onClick={() => {
+                                    tracker.trackMatchUpgradeCtaClicked(explanation.careerFitScore || 0, selectedJob.id, 'copilot');
+                                    if (isPro) {
+                                      onStartSimulation?.(selectedJob);
+                                    } else {
+                                      triggerPaywall('copilot', 'Adapte suas Experiências com o Copiloto IA 🤖', 'O Copiloto IA analisa os requisitos desta vaga e ajuda você a destacar as habilidades certas para aumentar sua aderência!');
+                                    }
+                                  }}
+                                  className="w-full sm:w-auto px-5 py-2.5 rounded-xl bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-400 hover:to-orange-500 text-white font-bold text-xs shadow-lg flex items-center justify-center gap-2 cursor-pointer transition"
+                                >
+                                  <Sparkles size={16} />
+                                  <span>Melhorar meu Match com IA</span>
+                                </button>
+                              </div>
+                            </div>
+                          ) : (
+                            <div className="p-4 rounded-xl bg-emerald-950/40 border border-emerald-500/40 space-y-3 animate-fade-in">
+                              <div className="flex items-start gap-3">
+                                <div className="p-2 rounded-xl bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 shrink-0 mt-0.5">
+                                  <Sparkles size={20} />
+                                </div>
+                                <div className="space-y-1">
+                                  <h4 className="font-bold text-sm text-emerald-300">
+                                    🎉 Excelente compatibilidade! ({explanation.careerFitScore}%)
+                                  </h4>
+                                  <p className="text-xs text-emerald-200/90 leading-relaxed">
+                                    Seu currículo está bem alinhado a esta vaga. Gere a versão otimizada para ATS e prepare-se para a candidatura.
+                                  </p>
+                                </div>
+                              </div>
+                              <div className="pt-1">
+                                <button
+                                  onClick={() => {
+                                    tracker.trackResumeExportUpgradeCtaClicked(explanation.careerFitScore || 0, selectedJob.id, 'resume_export');
+                                    setShowAdaptationModal(true);
+                                  }}
+                                  className="w-full sm:w-auto px-5 py-2.5 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-400 hover:to-teal-500 text-white font-bold text-xs shadow-lg flex items-center justify-center gap-2 cursor-pointer transition"
+                                >
+                                  <FileText size={16} />
+                                  <span>Exportar currículo otimizado</span>
+                                </button>
+                              </div>
+                            </div>
+                          )
+                        )}
+
+
                         {/* Botão de Adaptação de Currículo */}
                         <div className="flex flex-col sm:flex-row items-center justify-between gap-3 pt-2">
                           <button
@@ -2769,18 +2849,24 @@ export function JobMatchHub({
                             )}
                           </div>
 
-                          {/* Seções Recomendadas */}
+                          {/* Seções Recomendadas (Preview Borrado para Free na Regra 7) */}
                           {adaptation?.adaptedSections?.map((section, idx) => (
-                            <div key={idx} className="p-4 rounded-xl bg-slate-900/90 border border-slate-800 space-y-3">
+                            <div key={idx} className={`p-4 rounded-xl bg-slate-900/90 border border-slate-800 space-y-3 transition-all ${
+                              !isPro && idx >= 1 ? 'blur-[5px] select-none pointer-events-none opacity-60' : ''
+                            }`}>
                               <div className="flex items-center justify-between">
                                 <span className="font-bold text-blue-400 block uppercase tracking-wider text-[11px]">{section.sectionName}</span>
-                                <button
-                                  onClick={() => handleCopySummary(section.suggestedText)}
-                                  className="text-[10px] text-slate-400 hover:text-blue-300 flex items-center gap-1 font-semibold cursor-pointer"
-                                >
-                                  <Clipboard size={12} />
-                                  <span>Copiar Texto</span>
-                                </button>
+                                {isPro ? (
+                                  <button
+                                    onClick={() => handleCopySummary(section.suggestedText)}
+                                    className="text-[10px] text-slate-400 hover:text-blue-300 flex items-center gap-1 font-semibold cursor-pointer"
+                                  >
+                                    <Clipboard size={12} />
+                                    <span>Copiar Texto</span>
+                                  </button>
+                                ) : (
+                                  <span className="text-[10px] text-amber-400 font-mono font-bold">🔒 PRO</span>
+                                )}
                               </div>
                               <div className="p-2.5 rounded-xl bg-slate-950/80 border border-slate-800/90 text-slate-400 text-[11px]">
                                 <span className="font-semibold text-slate-500 block mb-0.5 uppercase text-[9px] tracking-wider">Texto Atual no Currículo:</span>
@@ -2794,9 +2880,34 @@ export function JobMatchHub({
                             </div>
                           ))}
 
+                          {/* ── REGRA 7: OVERLAY DE PREVIEW DO CURRÍCULO PRO ── */}
+                          {!isPro && (
+                            <div className="p-5 rounded-2xl bg-gradient-to-r from-amber-950/90 via-slate-900 to-purple-950/90 border border-amber-500/40 space-y-3 text-center animate-fade-in shadow-xl">
+                              <div className="flex flex-col items-center gap-1.5">
+                                <span className="px-3 py-1 rounded-full bg-amber-500/20 text-amber-300 font-extrabold text-[10px] uppercase border border-amber-500/30">
+                                  🔒 Seu currículo otimizado para esta vaga está pronto!
+                                </span>
+                                <p className="text-xs text-slate-200 max-w-md mx-auto leading-relaxed">
+                                  Desbloqueie a exportação em PDF e o formato ATS amigável com o plano PRO.
+                                </p>
+                              </div>
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  tracker.trackPaywallCtaClicked('pdf_export', { cta_text: 'Desbloquear currículo PRO' });
+                                  triggerPaywall('pdf_export', 'Desbloqueie a Exportação em PDF ATS 📄', 'Baixe a versão final do seu currículo formatada profissionalmente para aprovação em filtros ATS.');
+                                }}
+                                className="py-2.5 px-6 rounded-xl bg-gradient-to-r from-amber-500 via-emerald-500 to-brand-500 hover:from-amber-400 hover:to-brand-400 text-white font-black text-xs shadow-lg cursor-pointer transition-all inline-flex items-center gap-2"
+                              >
+                                <Sparkles size={16} />
+                                <span>Desbloquear currículo PRO</span>
+                              </button>
+                            </div>
+                          )}
+
                           {/* Palavras-chave Adicionadas */}
                           {adaptation?.keywordsAdded && adaptation.keywordsAdded.length > 0 && (
-                            <div className="p-4 rounded-xl bg-slate-900/90 border border-slate-800 space-y-2">
+                            <div className={`p-4 rounded-xl bg-slate-900/90 border border-slate-800 space-y-2 ${!isPro ? 'blur-[4px] select-none opacity-50' : ''}`}>
                               <span className="font-bold text-emerald-400 block uppercase tracking-wider text-[11px]">Palavras-chave ATS Sugeridas:</span>
                               <div className="flex flex-wrap gap-2">
                                 {adaptation.keywordsAdded.map((kw, i) => (
@@ -2813,6 +2924,10 @@ export function JobMatchHub({
                           <div className="flex flex-col sm:flex-row justify-between items-center gap-3 pt-4 border-t border-slate-800">
                             <button
                               onClick={() => {
+                                if (!isPro) {
+                                  triggerPaywall('pdf_export', 'Desbloqueie a Copia e Exportação em PDF 📄', 'A cópia e exportação completa em formato ATS é exclusiva do plano PRO.');
+                                  return;
+                                }
                                 const allTexts = (adaptation?.adaptedSections || []).map(s => `=== ${s.sectionName} ===\n${s.suggestedText}`).join('\n\n');
                                 handleCopySummary(allTexts);
                                 showToast('✓ Todas as sugestões copiadas para a área de transferência!', 'success');
@@ -2835,6 +2950,10 @@ export function JobMatchHub({
                               </button>
                               <button
                                 onClick={() => {
+                                  if (!isPro) {
+                                    triggerPaywall('pdf_export', 'Desbloqueie a Exportação em PDF ATS 📄', 'Aprovar e exportar versões ilimitadas do currículo em PDF é um recurso exclusivo do plano PRO.');
+                                    return;
+                                  }
                                   if (adaptation) updateAdaptationStatus({ adaptationId: adaptation.id, status: 'APPLIED' });
                                   setShowAdaptationModal(false);
                                   showToast('✓ Otimizações marcadas como aplicadas!', 'success');
@@ -2846,6 +2965,7 @@ export function JobMatchHub({
                               </button>
                             </div>
                           </div>
+
                         </div>
                       )}
                     </div>

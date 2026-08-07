@@ -41,27 +41,22 @@ export function useEntitlements(userId?: string) {
   const weekStartIso = getCalendarWeekStart().toISOString();
   const weekStorageKey = `vocentro_unlocked_jobs_${weekStartIso.split('T')[0]}`;
 
-  // Carregar vagas já desbloqueadas pelo candidato na semana corrente
-  useEffect(() => {
-    try {
-      const stored = localStorage.getItem(weekStorageKey);
-      if (stored) {
-        setUnlockedJobIds(JSON.parse(stored));
-      } else {
-        setUnlockedJobIds([]);
-      }
-    } catch {
-      setUnlockedJobIds([]);
-    }
-  }, [weekStorageKey]);
-
+  // Carregar vagas desbloqueadas do backend (Supabase) + cache local
   const checkStatus = useCallback(async () => {
     if (!userId || !supabase) {
+      // Fallback local se não autenticado
+      try {
+        const stored = localStorage.getItem(weekStorageKey);
+        setUnlockedJobIds(stored ? JSON.parse(stored) : []);
+      } catch {
+        setUnlockedJobIds([]);
+      }
       setLoading(false);
       return;
     }
 
     try {
+      // 1. Status de Assinatura PRO
       const { data: sub } = await supabase
         .from('subscriptions')
         .select('status, current_period_end')
@@ -84,7 +79,28 @@ export function useEntitlements(userId?: string) {
 
       setWeeklyApplicationsCount(appCount || 0);
 
-      // 3. Contar Versões de Currículo Salvas
+      // 3. Carregar Vagas Desbloqueadas nesta Semana de forma Autoritativa no Backend (activity_logs)
+      const { data: unlockLogs } = await supabase
+        .from('activity_logs')
+        .select('entity_id')
+        .eq('user_id', userId)
+        .eq('event_type', 'job_unlocked')
+        .gte('created_at', weekStartIso);
+
+      const dbUnlocked = Array.from(new Set((unlockLogs || []).map(l => l.entity_id).filter(Boolean)));
+      
+      // Sincronizar com localStorage
+      try {
+        const stored = localStorage.getItem(weekStorageKey);
+        const localList: string[] = stored ? JSON.parse(stored) : [];
+        const merged = Array.from(new Set([...dbUnlocked, ...localList]));
+        setUnlockedJobIds(merged);
+        localStorage.setItem(weekStorageKey, JSON.stringify(merged));
+      } catch {
+        setUnlockedJobIds(dbUnlocked);
+      }
+
+      // 4. Contar Versões de Currículo Salvas
       const { count: resumeCount } = await supabase
         .from('resume_versions')
         .select('id', { count: 'exact', head: true })
@@ -96,14 +112,14 @@ export function useEntitlements(userId?: string) {
     } finally {
       setLoading(false);
     }
-  }, [userId, weekStartIso]);
+  }, [userId, weekStartIso, weekStorageKey]);
 
   useEffect(() => {
     checkStatus();
   }, [checkStatus]);
 
-  // Cota unificada semanal de ações (vagas desbloqueadas + candidaturas + IA resume/letter)
-  const weeklyActionCount = Math.max(weeklyApplicationsCount, unlockedJobIds.length);
+  // Cota unificada semanal de vagas desbloqueadas (limite: 3 vagas/semana para Free)
+  const weeklyActionCount = unlockedJobIds.length;
   const maxWeeklyActions = isPro ? Infinity : 3;
 
   const isJobUnlocked = (jobId: string): boolean => {
@@ -114,23 +130,56 @@ export function useEntitlements(userId?: string) {
   const canUnlockJob = (jobId: string): boolean => {
     if (isPro) return true;
     if (isJobUnlocked(jobId)) return true;
-    return weeklyActionCount < 3;
+    return unlockedJobIds.length < 3;
   };
 
-  const unlockJob = (jobId: string): boolean => {
+  const unlockJob = async (jobId: string): Promise<boolean> => {
     if (isPro) return true;
     if (isJobUnlocked(jobId)) return true;
-    if (weeklyActionCount >= 3) {
+
+    if (unlockedJobIds.length >= 3) {
       triggerPaywall('weekly_limit');
+      if (userId && supabase) {
+        supabase.from('activity_logs').insert({
+          user_id: userId,
+          event_type: 'free_job_limit_reached',
+          entity: 'job',
+          entity_id: jobId,
+          metadata: { current_count: unlockedJobIds.length, limit: 3 }
+        });
+      }
       return false;
     }
-    const next = [...unlockedJobIds, jobId];
+
+    const next = Array.from(new Set([...unlockedJobIds, jobId]));
     setUnlockedJobIds(next);
+
     try {
       localStorage.setItem(weekStorageKey, JSON.stringify(next));
     } catch {}
+
+    // Persistir desbloqueio no Backend de Forma Autoritativa
+    if (userId && supabase) {
+      try {
+        await supabase.from('activity_logs').insert({
+          user_id: userId,
+          event_type: 'job_unlocked',
+          entity: 'job',
+          entity_id: jobId,
+          metadata: {
+            unlocked_at: new Date().toISOString(),
+            week_start: weekStartIso.split('T')[0],
+            unlocked_count: next.length
+          }
+        });
+      } catch (err) {
+        console.warn('[useEntitlements] Erro ao persistir desbloqueio no backend:', err);
+      }
+    }
+
     return true;
   };
+
 
   const triggerPaywall = (
     feature: PaywallTriggerState['feature'],

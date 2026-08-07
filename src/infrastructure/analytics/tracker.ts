@@ -185,6 +185,49 @@ class AnalyticsTracker {
   }) {
     this.track('qualified_career_action', 'Growth', metadata);
   }
+
+  // ── Métodos de Telemetria do Funil de Monetização (Free -> PRO) ──
+
+  public trackJobDiscovered(jobId: string, metadata: { title?: string; company?: string; source?: string } = {}) {
+    this.track('job_discovered', 'Monetization', { job_id: jobId, ...metadata });
+  }
+
+  public trackJobUnlocked(jobId: string, metadata: { unlocked_count: number; is_pro: boolean } = { unlocked_count: 1, is_pro: false }) {
+    this.track('job_unlocked', 'Monetization', { job_id: jobId, ...metadata });
+  }
+
+  public trackFreeJobLimitReached(jobId: string, metadata: { current_count: number; limit: number } = { current_count: 3, limit: 3 }) {
+    this.track('free_job_limit_reached', 'Monetization', { job_id: jobId, ...metadata });
+  }
+
+  public trackPaywallViewed(feature: string, metadata: { title?: string; location?: string } = {}) {
+    this.track('paywall_viewed', 'Monetization', { feature, ...metadata });
+  }
+
+  public trackPaywallCtaClicked(feature: string, metadata: { cta_text?: string; plan?: string } = {}) {
+    this.track('paywall_cta_clicked', 'Monetization', { feature, ...metadata });
+  }
+
+  public trackCheckoutStarted(plan: string, metadata: { feature?: string; amount?: number } = {}) {
+    this.track('checkout_started', 'Monetization', { plan, ...metadata });
+  }
+
+  public trackMatchCompleted(matchScore: number, jobId: string, metadata: any = {}) {
+    this.track('match_completed', 'Monetization', { match_score: matchScore, job_id: jobId, ...metadata });
+  }
+
+  public trackMatchUpgradeCtaClicked(matchScore: number, jobId: string, ctaType: 'copilot' | 'resume_export') {
+    this.track('match_upgrade_cta_clicked', 'Monetization', { match_score: matchScore, job_id: jobId, type: ctaType });
+  }
+
+  public trackResumeExportUpgradeCtaClicked(matchScore: number, jobId: string, ctaType: 'resume_export') {
+    this.track('resume_export_upgrade_cta_clicked', 'Monetization', { match_score: matchScore, job_id: jobId, type: ctaType });
+  }
+
+  public trackResumeOptimizedPreviewViewed(jobId: string, metadata: any = {}) {
+    this.track('resume_optimized_preview_viewed', 'Monetization', { job_id: jobId, ...metadata });
+  }
 }
+
 
 export const tracker = new AnalyticsTracker();

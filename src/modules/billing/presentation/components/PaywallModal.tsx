@@ -32,17 +32,18 @@ export function PaywallModal({
       case 'weekly_limit':
         return {
           icon: <Calendar className="text-amber-500" size={32} />,
-          badge: 'Cota Semanal Esgotada (3/3)',
-          defaultTitle: 'Suas 3 análises da semana já foram usadas',
-          defaultDesc: `Sua cota gratuita de 3 análises de vagas nesta semana foi totalmente utilizada. Ela será renovada em ${daysText} (na próxima segunda-feira às 00:00). Assine o Premium para continuar sem interrupções!`,
-          defaultPrimaryBtn: 'Assinar Premium agora',
-          defaultSecondaryBtn: `Esperar ${daysText}`,
+          badge: 'Cota Semanal de Vagas (3/3)',
+          defaultTitle: 'Você já encontrou boas oportunidades. Quer acessar todas?',
+          defaultDesc: 'Com o PRO, você desbloqueia vagas ilimitadas e ainda pode analisar sua compatibilidade, otimizar seu currículo com IA e aumentar suas chances de passar pelos filtros ATS.',
+          defaultPrimaryBtn: 'Desbloquear vagas e recursos PRO',
+          defaultSecondaryBtn: `Renova em ${daysText} (Segunda-feira 00:00)`,
           benefits: [
-            'Análises e buscas de vagas 100% ilimitadas',
-            'Candidaturas e otimização de currículo sem trava semanal',
-            'Acesso completo ao Copiloto IA e Simulações STAR'
+            'Acesso e desbloqueio de vagas 100% ilimitado',
+            'Análise de compatibilidade profunda com IA Gemini',
+            'Otimização de currículo em PDF ATS & Copiloto IA 24/7'
           ]
         };
+
       case 'applications':
         return {
           icon: <Send className="text-brand-500" size={32} />,

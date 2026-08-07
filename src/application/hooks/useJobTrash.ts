@@ -1,3 +1,4 @@
+import { useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { isSupabaseConfigured, supabase } from '../../infrastructure/api/supabaseClient';
 import type { Job } from '../../domain/models/types';
@@ -16,20 +17,22 @@ export function useJobTrash(userId?: string, activeJobs: Job[] = []) {
   const queryClient = useQueryClient();
 
   // Limpa residual antigo do localStorage durante essa transição (Migração Ponto 6)
-  if (typeof window !== 'undefined') {
-    try {
-      const keysToRemove: string[] = [];
-      for (let i = 0; i < localStorage.length; i++) {
-        const key = localStorage.key(i);
-        if (key && key.startsWith('vocentro_job_trash_')) {
-          keysToRemove.push(key);
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      try {
+        const keysToRemove: string[] = [];
+        for (let i = 0; i < localStorage.length; i++) {
+          const key = localStorage.key(i);
+          if (key && key.startsWith('vocentro_job_trash_')) {
+            keysToRemove.push(key);
+          }
         }
+        keysToRemove.forEach(k => localStorage.removeItem(k));
+      } catch {
+        // Ignorar erros de storage
       }
-      keysToRemove.forEach(k => localStorage.removeItem(k));
-    } catch {
-      // Ignorar erros de storage
     }
-  }
+  }, []);
 
   // Query ao banco de dados Supabase (tabela job_feedback com action = 'REJECTED')
   const trashQuery = useQuery<TrashedJob[]>({
@@ -103,7 +106,7 @@ export function useJobTrash(userId?: string, activeJobs: Job[] = []) {
   const trashedJobs = trashQuery.data || [];
   const trashedJobIds = new Set(trashedJobs.map(t => String(t.jobId)));
 
-  // 1. Mutation para Mover para a Lixeira (Soft Delete no Banco via job_feedback)
+  // 1. Mutation para Mover para a Lixeira (Soft Delete no Banco via job_feedback) com Optimistic UI Update
   const moveToTrashMutation = useMutation({
     mutationFn: async (job: Job | { id: string; title?: string; companyName?: string; location?: string }) => {
       if (!userId) throw new Error('Usuário não autenticado.');
@@ -125,7 +128,47 @@ export function useJobTrash(userId?: string, activeJobs: Job[] = []) {
       }
       return targetJobId;
     },
-    onSuccess: () => {
+    onMutate: async (job) => {
+      const targetId = String(job.id);
+      await queryClient.cancelQueries({ queryKey: ['job-trash', userId] });
+      await queryClient.cancelQueries({ queryKey: ['jobs', userId] });
+
+      const previousJobs = queryClient.getQueryData<Job[]>(['jobs', userId]);
+      const previousTrash = queryClient.getQueryData<TrashedJob[]>(['job-trash', userId]);
+
+      // Atualização otimista imediata na interface (0ms delay)
+      if (previousJobs) {
+        queryClient.setQueryData<Job[]>(['jobs', userId], old => 
+          (old || []).filter(j => String(j.id) !== targetId)
+        );
+      }
+
+      if (previousTrash) {
+        queryClient.setQueryData<TrashedJob[]>(['job-trash', userId], old => [
+          {
+            id: targetId,
+            jobId: targetId,
+            title: (job as any).title || 'Vaga Excluída',
+            companyName: (job as any).companyName || 'Empresa',
+            location: (job as any).location || 'Brasil',
+            deletedAt: new Date().toISOString(),
+            originalJob: job as Job
+          },
+          ...(old || [])
+        ]);
+      }
+
+      return { previousJobs, previousTrash };
+    },
+    onError: (_err, _job, context) => {
+      if (context?.previousJobs) {
+        queryClient.setQueryData(['jobs', userId], context.previousJobs);
+      }
+      if (context?.previousTrash) {
+        queryClient.setQueryData(['job-trash', userId], context.previousTrash);
+      }
+    },
+    onSettled: () => {
       queryClient.invalidateQueries({ queryKey: ['job-trash', userId] });
       queryClient.invalidateQueries({ queryKey: ['jobs', userId] });
       queryClient.invalidateQueries({ queryKey: ['matches', userId] });

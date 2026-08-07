@@ -230,6 +230,7 @@ export function JobMatchHub({
   const [letterStyle, setLetterStyle] = useState<'formal' | 'direct' | 'executive'>('formal');
   const [appError, setAppError] = useState<AppError | null>(null);
   const [isAddingToStrategy, setIsAddingToStrategy] = useState(false);
+  const [analyzingJobId, setAnalyzingJobId] = useState<string | null>(null);
   const [manualStrategyStatus, setManualStrategyStatus] = useState<string>('auto');
   const [localSelectedJobId, setLocalSelectedJobId] = useState<string | null>(jobs[0]?.id || null);
   const selectedJobId = propSelectedJobId !== undefined ? propSelectedJobId : localSelectedJobId;
@@ -1361,7 +1362,7 @@ export function JobMatchHub({
     if (!activeJob) return;
 
     let jobToMatch: Job = activeJob;
-
+    setAnalyzingJobId(String(jobToMatch.id));
     setErrorMsg('');
     setAppError(null);
     try {
@@ -1372,6 +1373,7 @@ export function JobMatchHub({
           if (imported && imported.id) {
             jobToMatch = imported as any;
             setSelectedJobId(imported.id);
+            setAnalyzingJobId(String(imported.id));
           }
         } catch (e) {
           console.warn('[handleTriggerMatch] Falha ao importar vaga da descoberta:', e);
@@ -1386,6 +1388,36 @@ export function JobMatchHub({
 
       const score = matchResult?.score_overall ?? matchResult?.scoreOverall ?? 0;
       
+      // Atualização Otimista Imediata do Cache de Matches no React Query (0ms delay no refletimento)
+      if (matchResult) {
+        queryClient.setQueryData<Match[]>(['matches', userId], old => {
+          const list = old || [];
+          const existingIdx = list.findIndex(m => String(m.jobId) === String(jobToMatch.id));
+          const newMatchObj: Match = {
+            id: matchResult.id || `match-${jobToMatch.id}`,
+            userId: userId || '',
+            resumeId: primaryResume.id,
+            jobId: jobToMatch.id,
+            jobTitle: jobToMatch.title,
+            companyName: jobToMatch.companyName || '',
+            scoreOverall: score,
+            scoreTechnical: matchResult.scoreTechnical ?? matchResult.score_technical ?? score,
+            scoreBehavioral: matchResult.scoreBehavioral ?? matchResult.score_behavioral ?? score,
+            scoreSeniority: matchResult.scoreSeniority ?? matchResult.score_seniority ?? score,
+            scoreLocation: 100,
+            explanation: matchResult.explanation || '',
+            createdAt: matchResult.created_at || new Date().toISOString()
+          };
+          if (existingIdx >= 0) {
+            const updated = [...list];
+            updated[existingIdx] = newMatchObj;
+            return updated;
+          }
+          return [newMatchObj, ...list];
+        });
+        queryClient.invalidateQueries({ queryKey: ['matches'] });
+      }
+
       // Inserção Idempotente: Se a vaga ainda não estiver no Pipeline, insere com status 'found'
       if (onCreateApplication) {
         const existingApp = applications.find((app: any) => String(app.jobId) === String(jobToMatch.id));
@@ -1411,6 +1443,8 @@ export function JobMatchHub({
       const formatted = AppError.from(err);
       setAppError(formatted);
       AppError.logError(err, supabase, 'JobMatchHub.handleTriggerMatch', userId);
+    } finally {
+      setAnalyzingJobId(null);
     }
   };
 
@@ -1429,11 +1463,14 @@ export function JobMatchHub({
   const handleImportAndMatch = async (discJob: any) => {
     setErrorMsg('');
     setAppError(null);
+    const initialJobId = String(discJob.id || discJob.jobId || 'temp_disc');
+    setAnalyzingJobId(initialJobId);
     try {
       // Importa a vaga para a lista do usuário
       const imported = await importJob(discJob);
       setSelectedJobId(imported.id);
       setSubTab('my-jobs');
+      setAnalyzingJobId(String(imported.id));
       
       // Executa o match automaticamente
       await handleTriggerMatch(imported as any);
@@ -1441,6 +1478,8 @@ export function JobMatchHub({
       const formatted = AppError.from(err);
       setAppError(formatted);
       AppError.logError(err, supabase, 'JobMatchHub.handleImportAndMatch', userId);
+    } finally {
+      setAnalyzingJobId(null);
     }
   };
 
@@ -2234,7 +2273,12 @@ export function JobMatchHub({
 
                   return listToRender.map(job => {
                     const isActive = String(job.id) === String(selectedJobId);
-                    const match = matches.find(m => String(m.jobId) === String(job.id));
+                    const match = matches.find(m => 
+                      String(m.jobId) === String(job.id) || 
+                      (m as any).job_id === String(job.id) || 
+                      ((job as any).sourceUrl && (m as any).sourceUrl === (job as any).sourceUrl)
+                    );
+                    const isItemAnalyzing = (isCalculating && isActive) || analyzingJobId === String(job.id);
                     return (
                       <div
                         key={job.id}
@@ -2250,7 +2294,12 @@ export function JobMatchHub({
                           <p className="text-[10px] text-slate-500 truncate mt-0.5">{job.companyName}</p>
                         </div>
                         <div className="flex items-center gap-1.5 shrink-0">
-                          {match ? (
+                          {isItemAnalyzing ? (
+                            <span className="font-bold font-display text-xs px-2 py-0.5 rounded-lg border bg-brand-500/10 text-brand-400 border-brand-500/20 flex items-center gap-1">
+                              <Loader2 size={11} className="animate-spin" />
+                              Calculando...
+                            </span>
+                          ) : match ? (
                             <span className={`font-bold font-display text-xs px-2 py-0.5 rounded-lg border ${
                               match.scoreOverall >= 85 
                                 ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' 
@@ -3641,17 +3690,20 @@ export function JobMatchHub({
             };
           }
 
-          // FONTE ÚNICA DE VERDADE DO MOTOR DE MATCH:
-          // Utiliza diretamente o scoreOverall retornado pela Edge Function agregadora (backend),
-          // eliminando qualquer recálculo secundário no frontend.
-          const effectiveScore = (job as any).scoreOverall ?? (job as any).scores?.overall ?? 50;
+          // CÁLCULO DE ADERÊNCIA REAL DO CURRÍCULO ATIVO DO CANDIDATO:
+          // Se ainda não houver um match oficial no banco de dados para esta vaga,
+          // calcula deterministicamente a aderência do candidato via MatchingEngine.calculateMatchSync.
+          // Isso substitui o score de busca por palavra-chave do backend (ex: 99% em Cozinheiro x Cozinheiro),
+          // garantindo que vagas totalmente fora da área do perfil (ex: CS x Cozinheiro) exibam pontuação condizente (~5-15%).
+          const syncMatch = primaryResume ? MatchingEngine.calculateMatchSync(primaryResume, job as any, careerProfileNew) : null;
+          const candidateFitScore = syncMatch ? syncMatch.scoreOverall : 15;
 
           return {
             ...job,
-            scoreOverall: effectiveScore,
-            cpi: effectiveScore,
-            missingSkills: (job as any).missingSkills || [],
-            matchedSkills: (job as any).matchedSkills || []
+            scoreOverall: candidateFitScore,
+            cpi: candidateFitScore,
+            missingSkills: syncMatch?.missingSkills || (job as any).missingSkills || [],
+            matchedSkills: syncMatch?.matchedSkills || (job as any).matchedSkills || []
           };
         });
 

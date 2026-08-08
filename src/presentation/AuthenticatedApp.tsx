@@ -622,6 +622,7 @@ export function AuthenticatedApp({
               activeResumeVersionId={selectedResumeVersionId}
               applications={applications}
               onCreateApplication={createApplication}
+              onUpdateApplication={updateApplication}
               setActiveTab={handleSetActiveTab}
               selectedJobId={selectedJobId}
               onSelectJob={setSelectedJobId}

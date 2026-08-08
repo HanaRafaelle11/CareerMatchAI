@@ -658,7 +658,8 @@ export function useCoach(userId: string | undefined) {
         createdAt: new Date().toISOString()
       };
 
-      const isMock = log.applicationId.includes('mock') || !isValidUUID(log.applicationId);
+      const appIdStr = log.applicationId || '';
+      const isMock = !appIdStr || appIdStr.includes('mock') || !isValidUUID(appIdStr);
 
       if (isSupabaseConfigured && supabase && !isMock) {
         const { error } = await supabase.from('post_interview_logs').upsert({

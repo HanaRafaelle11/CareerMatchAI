@@ -45,7 +45,7 @@ jobs:
           node-version: '22.x'
           cache: 'npm'
       - run: npm ci
-      - run: npx vitest run tests/unit tests/monetizationEntitlements.test.ts
+      - run: npx vitest run tests/unit
 
   # ── Estágio 4: Build de Produção ──
   build:

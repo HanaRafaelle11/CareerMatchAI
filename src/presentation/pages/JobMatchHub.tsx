@@ -1168,7 +1168,7 @@ export function JobMatchHub({
     if (activeProf) {
       const preferences = (careerProfileNew?.personal as any)?.preferences || {};
       const targetRolesList = preferences.targetRoles || (careerProfile as any)?.targetRoles || [];
-      const defaultKeyword = targetRolesList.join(', ') || preferences.searchKeywords?.[0] || (careerProfile as any)?.searchKeywords?.[0] || (primaryResume as any)?.headline?.split('|')[0]?.trim() || '';
+      const defaultKeyword = targetRolesList[0] || preferences.searchKeywords?.[0] || (careerProfile as any)?.searchKeywords?.[0] || (primaryResume as any)?.headline?.split('|')[0]?.trim() || '';
       
       if (defaultKeyword && !searchKeyword) {
         setSearchKeyword(defaultKeyword);
@@ -1545,11 +1545,18 @@ export function JobMatchHub({
   };
 
   const handleImportAndMatch = async (discJob: any) => {
-    setErrorMsg('');
-    setAppError(null);
     const initialJobId = String(discJob.id || discJob.jobId || 'temp_disc');
+    if (!isPro && !canUnlockJob(initialJobId)) {
+      triggerPaywall('weekly_limit', 'Limite Semanal Atingido', 'Usuários no plano gratuito possuem cota semanal de análises de match.');
+      return;
+    }
+
     setAnalyzingJobId(initialJobId);
     try {
+      if (!isPro) {
+        await unlockJob(initialJobId);
+      }
+
       // Importa a vaga para a lista do usuário
       const imported = await importJob(discJob);
       setSelectedJobId(imported.id);
@@ -1568,7 +1575,16 @@ export function JobMatchHub({
   };
 
   const handleSimulateDiscovery = async (discJob: any) => {
+    const initialJobId = String(discJob.id || discJob.jobId || 'temp_disc');
+    if (!isPro && !canUnlockJob(initialJobId)) {
+      triggerPaywall('weekly_limit', 'Limite Semanal Atingido', 'Simulações de entrevista exigem plano Pro ou cota disponível.');
+      return;
+    }
+
     try {
+      if (!isPro) {
+        await unlockJob(initialJobId);
+      }
       const imported = await importJob(discJob);
       setSelectedJobId(imported.id);
       setSubTab('my-jobs');

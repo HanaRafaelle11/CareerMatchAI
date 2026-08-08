@@ -344,7 +344,7 @@ serve(async (req: Request) => {
           .eq('gateway_invoice_id', gatewayPayId);
 
         const now = new Date();
-        const GRACE_PERIOD_DAYS = 1; // Grace period definido pela operação: 1 dia
+        const GRACE_PERIOD_DAYS = 3; // Grace period atualizado para 3 dias
         const gracePeriodEnd = new Date(now.getTime() + GRACE_PERIOD_DAYS * 24 * 60 * 60 * 1000);
 
         // 2. Se o status já é past_due ou canceled, não aplica grace period novamente
@@ -382,12 +382,12 @@ serve(async (req: Request) => {
                       <h1 style="color: #2563eb; margin: 0; font-size: 24px; font-weight: bold;">VoCentro</h1>
                       <p style="color: #64748b; font-size: 13px; margin-top: 4px;">Plataforma de Carreira com IA</p>
                     </div>
-                    <h2 style="color: #92400e; margin-top: 0; font-size: 18px;">⚠️ Pagamento Vencido — Você tem 1 dia para regularizar</h2>
+                    <h2 style="color: #92400e; margin-top: 0; font-size: 18px;">⚠️ Pagamento Vencido — Você tem 3 dias para regularizar</h2>
                     <p style="font-size: 14px; color: #78350f; line-height: 1.6;">
                       Olá, <strong>${recipientName}</strong>! Identificamos que o pagamento da sua assinatura <strong>VoCentro PRO</strong> não foi confirmado.
                     </p>
                     <p style="font-size: 14px; color: #78350f; line-height: 1.6;">
-                      Seu acesso PRO está mantido até <strong>${graceDateFormatted}</strong>. Após essa data, os recursos exclusivos serão suspensos até a regularização do pagamento.
+                      Seu acesso PRO está mantido até <strong>${graceDateFormatted}</strong> (tolerância de 3 dias). Após essa data, os recursos exclusivos serão suspensos até a regularização do pagamento.
                     </p>
                     <div style="text-align: center; margin: 28px 0;">
                       <a href="https://vocentro.com.br" target="_blank" style="background-color: #f59e0b; color: #1c1917; padding: 14px 28px; text-decoration: none; font-weight: bold; border-radius: 10px; font-size: 14px; display: inline-block;">💳 Regularizar Pagamento</a>
@@ -404,7 +404,7 @@ serve(async (req: Request) => {
                   body: JSON.stringify({
                     from: fromEmail,
                     to: [recipientEmail],
-                    subject: '⚠️ Pagamento Vencido — Seu acesso VoCentro PRO expira em 1 dia',
+                    subject: '⚠️ Pagamento Vencido — Seu acesso VoCentro PRO expira em 3 dias',
                     html: emailHtml
                   })
                 });

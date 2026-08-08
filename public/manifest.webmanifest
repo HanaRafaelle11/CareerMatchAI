@@ -1,6 +1,8 @@
 {
   "short_name": "Vocentro",
   "name": "Vocentro",
+  "id": "/",
+  "scope": "/",
   "icons": [
     {
       "src": "/pwa-icon-192.png",

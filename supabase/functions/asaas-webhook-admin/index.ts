@@ -12,6 +12,20 @@ const WEBHOOK_ID = 'e265492f-6132-4800-8a24-e50c938a7573';
 serve(async (req: Request) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders });
 
+  // 🛡️ CAMADA OBRIGATÓRIA DE SEGURANÇA E AUTENTICAÇÃO
+  // Bloqueia qualquer chamada pública sem a chave secreta de admin ou Service Role Key
+  const adminSecret = Deno.env.get('ADMIN_SECRET') || Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || '';
+  const reqSecret = req.headers.get('x-admin-secret') || '';
+  const authHeader = req.headers.get('authorization') || '';
+  const bearerToken = authHeader.replace(/^Bearer\s+/i, '').trim();
+
+  if (!adminSecret || (reqSecret !== adminSecret && bearerToken !== adminSecret)) {
+    return new Response(
+      JSON.stringify({ error: 'Unauthorized: Access denied. Valid admin secret header or authorization token required.' }),
+      { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+    );
+  }
+
   const asaasApiKey = Deno.env.get('ASAAS_API_KEY') || '';
   const asaasApiUrl = (Deno.env.get('ASAAS_API_URL') || 'https://api.asaas.com/v3').replace(/\/+$/, '');
   const supabaseUrl = Deno.env.get('SUPABASE_URL') || '';

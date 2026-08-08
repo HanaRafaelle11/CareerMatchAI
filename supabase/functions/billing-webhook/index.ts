@@ -1,3 +1,12 @@
+import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.8";
+
+const corsHeaders = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, asaas-access-token',
+  'Access-Control-Allow-Methods': 'POST, GET, OPTIONS',
+};
+
 // Função assíncrona isolada para envio de alertas críticos de checkout via Resend (NUNCA trava a resposta HTTP)
 async function sendCriticalCheckoutAlert(params: {
   eventId: string;
@@ -82,17 +91,24 @@ serve(async (req: Request) => {
 
   try {
     const webhookSecret = Deno.env.get('ASAAS_WEBHOOK_SECRET');
-    const tokenHeader = req.headers.get('asaas-access-token');
+    const tokenHeader = req.headers.get('asaas-access-token') || req.headers.get('Asaas-Access-Token');
 
     // 1. Validação de Segurança do Token do Asaas (se configurado)
-    if (webhookSecret && tokenHeader && tokenHeader !== webhookSecret) {
+    if (webhookSecret && tokenHeader !== webhookSecret) {
+      console.warn('[billing-webhook] Requisição rejeitada: token de acesso inválido ou ausente.');
       return new Response(
-        JSON.stringify({ error: 'Token de acesso do webhook inválido' }),
+        JSON.stringify({ error: 'Token de acesso do webhook inválido ou ausente' }),
         { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
-    const payload = await req.json();
+    let payload: any = {};
+    try {
+      payload = await req.json();
+    } catch {
+      payload = {};
+    }
+
     const eventType = payload.event || payload.eventType || 'UNKNOWN';
     const paymentData = payload.payment || payload.subscription || payload;
     const paymentId = paymentData?.id || payload.id || 'evt_unknown';

@@ -41,6 +41,8 @@ scratch/
 
 .env*
 
-# scripts de diagnóstico/investigação temporários, não versionados
+# scripts e evidências de diagnóstico/investigação temporários, não versionados
 scratch_*.cjs
+scratch_*.png
+scratch_*.mjs
 

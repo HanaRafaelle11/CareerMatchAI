@@ -51,7 +51,99 @@ serve(async (req) => {
 
     await sql.end();
 
-    return new Response(JSON.stringify({ success: true, message: 'Constraints de Unicidade (unique_user_survey_version e unique_user_giveaway) aplicadas com sucesso!' }), {
+    // 2. Consultar e Reativar Webhook no Asaas via API
+    const asaasApiKey = Deno.env.get('ASAAS_API_KEY') || '';
+    const rawAsaasApiUrl = Deno.env.get('ASAAS_API_URL') || 'https://www.asaas.com/api/v3';
+    const cleanAsaasUrl = rawAsaasApiUrl.replace(/\/+$/, '');
+
+    let asaasResult: any = null;
+
+    if (asaasApiKey) {
+      try {
+        console.log(`[run-survey-migration] Consultando webhooks na API do Asaas em ${cleanAsaasUrl}...`);
+        
+        // Tentar endpoint de webhooks
+        let listRes = await fetch(`${cleanAsaasUrl}/webhooks`, {
+          headers: { 'accept': 'application/json', 'access_token': asaasApiKey }
+        });
+
+        if (!listRes.ok && cleanAsaasUrl.includes('www.asaas.com')) {
+          const altUrl = cleanAsaasUrl.replace('www.asaas.com', 'api.asaas.com');
+          console.log(`[run-survey-migration] Tentando URL alternativa ${altUrl}...`);
+          listRes = await fetch(`${altUrl}/webhooks`, {
+            headers: { 'accept': 'application/json', 'access_token': asaasApiKey }
+          });
+        }
+
+        const resText = await listRes.text();
+        let listData: any = {};
+        try { listData = JSON.parse(resText); } catch { listData = { rawText: resText }; }
+
+        const webhooks = Array.isArray(listData.data) ? listData.data : (listData.id ? [listData] : []);
+        
+        let targetWebhook = webhooks.find((w: any) => 
+          (w.name && w.name.toLowerCase().includes('vocentr')) ||
+          (w.url && w.url.includes('billing-webhook'))
+        ) || webhooks[0] || listData;
+
+        let reactivateResData: any = null;
+
+        if (targetWebhook && targetWebhook.id) {
+          const webhookId = targetWebhook.id;
+          const updateUrl = `${cleanAsaasUrl}/webhooks/${webhookId}`;
+
+          console.log(`[run-survey-migration] Enviando POST com interrupted: false para ${updateUrl}...`);
+          
+          const patchBody = {
+            name: targetWebhook.name || 'Vocentr',
+            url: targetWebhook.url || 'https://bdlpfrwebsmpohtclnxf.supabase.co/functions/v1/billing-webhook',
+            email: 'hanarafaelle11@gmail.com',
+            enabled: true,
+            interrupted: false,
+            apiVersion: 3,
+            sendType: targetWebhook.sendType || 'NON_SEQUENTIALLY',
+            events: targetWebhook.events || [
+              "PAYMENT_RESTORED",
+              "PAYMENT_OVERDUE",
+              "PAYMENT_CONFIRMED",
+              "SUBSCRIPTION_DELETED",
+              "PAYMENT_DELETED",
+              "PAYMENT_RECEIVED"
+            ]
+          };
+
+          const patchRes = await fetch(updateUrl, {
+            method: 'POST',
+            headers: {
+              'accept': 'application/json',
+              'content-type': 'application/json',
+              'access_token': asaasApiKey
+            },
+            body: JSON.stringify(patchBody)
+          });
+
+          const patchText = await patchRes.text();
+          try { reactivateResData = JSON.parse(patchText); } catch { reactivateResData = { status: patchRes.status, rawText: patchText }; }
+        }
+
+        asaasResult = {
+          apiUrl: cleanAsaasUrl,
+          listStatus: listRes.status,
+          listData,
+          targetWebhook,
+          reactivateResult: reactivateResData
+        };
+      } catch (asaasErr: any) {
+        console.error('[run-survey-migration] Erro ao comunicar com API do Asaas:', asaasErr);
+        asaasResult = { error: asaasErr.message || String(asaasErr) };
+      }
+    }
+
+    return new Response(JSON.stringify({
+      success: true,
+      message: 'Migration e Reativação Asaas executadas.',
+      asaasResult
+    }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' }
     });
   } catch (err: any) {

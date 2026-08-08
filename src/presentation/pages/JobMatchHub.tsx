@@ -4242,6 +4242,23 @@ export function JobMatchHub({
                   </div>
                 )}
 
+                {/* Banner Discreto Inline de Expansão de Busca por Área Relacionada (Cascata Camada 3+) */}
+                {fallbackLevel >= 3 && fallbackTermUsed && (
+                  <div className="p-4 rounded-2xl bg-slate-900/90 border border-slate-800 flex items-center gap-3 text-xs shadow-lg">
+                    <div className="p-2 rounded-xl bg-brand-500/10 text-brand-400 border border-brand-500/20 shrink-0">
+                      <Sparkles size={16} />
+                    </div>
+                    <div>
+                      <span className="font-semibold text-slate-200">
+                        Ampliamos sua busca para incluir vagas de áreas relacionadas.
+                      </span>
+                      <p className="text-[11px] text-slate-400 mt-0.5">
+                        Oportunidades expandidas para a área de <strong className="text-brand-300">{fallbackTermUsed}</strong> para apresentar mais opções relevantes.
+                      </p>
+                    </div>
+                  </div>
+                )}
+
                 {/* Listagem de Resultados */}
                 {isLoadingDiscovery ? (
                   <ProcessingState

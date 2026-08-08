@@ -15,6 +15,10 @@ dist-ssr
 .env.local
 .env.*.local
 
+# Vercel CLI — nunca commitar credenciais/project.json
+.vercel
+
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json

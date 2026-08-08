@@ -400,19 +400,47 @@ export function Login({ initialMode = 'login', onLogin, onSignUp, onOAuth, onRes
 
         {/* Footer Link */}
         {!isResetPasswordMode && (
-          <p className="text-center text-xs text-muted-foreground font-sans">
-            {isSignUp ? 'Já tem uma conta?' : 'Ainda não possui uma conta?'}
-            <button
-              onClick={() => {
-                setIsSignUp(!isSignUp);
-                setErrorMsg('');
-                setSuccessMsg('');
-              }}
-              className="text-brand-500 hover:underline font-semibold ml-1.5 focus:outline-none cursor-pointer"
-            >
-              {isSignUp ? 'Faça login' : 'Cadastre-se agora gratuitamente'}
-            </button>
-          </p>
+          <div className="space-y-2 text-center font-sans">
+            <p className="text-xs text-muted-foreground">
+              {isSignUp ? 'Já tem uma conta?' : 'Ainda não possui uma conta?'}
+              <button
+                onClick={() => {
+                  setIsSignUp(!isSignUp);
+                  setErrorMsg('');
+                  setSuccessMsg('');
+                }}
+                className="text-brand-500 hover:underline font-semibold ml-1.5 focus:outline-none cursor-pointer"
+              >
+                {isSignUp ? 'Faça login' : 'Cadastre-se agora gratuitamente'}
+              </button>
+            </p>
+            <p className="text-[10px] text-muted-foreground">
+              Ao continuar, você concorda com os{' '}
+              <a
+                href="/termos-de-uso"
+                onClick={(e) => {
+                  e.preventDefault();
+                  window.history.pushState(null, '', '/termos-de-uso');
+                  window.dispatchEvent(new PopStateEvent('popstate'));
+                }}
+                className="text-brand-500 hover:underline font-medium"
+              >
+                Termos de Uso
+              </a>{' '}
+              e a{' '}
+              <a
+                href="/politica-de-privacidade"
+                onClick={(e) => {
+                  e.preventDefault();
+                  window.history.pushState(null, '', '/politica-de-privacidade');
+                  window.dispatchEvent(new PopStateEvent('popstate'));
+                }}
+                className="text-brand-500 hover:underline font-medium"
+              >
+                Política de Privacidade
+              </a>.
+            </p>
+          </div>
         )}
       </div>
     </div>

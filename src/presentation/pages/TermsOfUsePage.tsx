@@ -46,7 +46,7 @@ export const TermsOfUsePage: React.FC<TermsOfUsePageProps> = ({ onBack }) => {
         <div className="space-y-3 border-b border-border pb-6">
           <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-brand-500/10 border border-brand-500/20 text-brand-500 text-xs font-bold font-mono">
             <FileText size={14} />
-            <span>Condições Gerais de Uso (Rascunho de Trabalho)</span>
+            <span>Condições Gerais de Uso</span>
           </div>
           <h1 className="text-3xl sm:text-4xl font-black font-display tracking-tight text-foreground">
             Termos de Uso - Vocentro

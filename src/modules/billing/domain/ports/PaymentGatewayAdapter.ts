@@ -10,6 +10,7 @@ export interface CreateCustomerParams {
 
 export interface CreateSubscriptionParams {
   gatewayCustomerId: string;
+  userId?: string;
   planSlug: string;
   amount: number;
   billingCycle: BillingCycle;

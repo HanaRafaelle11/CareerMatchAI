@@ -71,7 +71,7 @@ export class AsaasAdapter implements PaymentGatewayAdapter {
       nextDueDate: today,
       cycle: params.billingCycle === 'WEEKLY' ? 'WEEKLY' : 'MONTHLY',
       description: `Assinatura Vocentro - Plano ${params.planSlug.toUpperCase()}`,
-      externalReference: (params as any).userId
+      externalReference: params.userId || (params as any).userId
     };
 
     if (params.billingType === 'CREDIT_CARD' && params.creditCard) {

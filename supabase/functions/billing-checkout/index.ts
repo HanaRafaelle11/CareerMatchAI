@@ -56,6 +56,7 @@ class AsaasEdgeAdapter {
 
   async createSubscription(params: {
     gatewayCustomerId: string;
+    userId?: string;
     planSlug: string;
     amount: number;
     billingCycle: 'WEEKLY' | 'MONTHLY';
@@ -73,7 +74,7 @@ class AsaasEdgeAdapter {
       nextDueDate: today,
       cycle: params.billingCycle === 'WEEKLY' ? 'WEEKLY' : 'MONTHLY',
       description: `Assinatura Vocentro - Plano ${params.planSlug.toUpperCase()}`,
-      externalReference: (params as any).userId
+      externalReference: params.userId || (params as any).userId
     };
 
     if (params.billingType === 'CREDIT_CARD' && params.creditCard) {
@@ -418,6 +419,7 @@ serve(async (req: Request) => {
     // 3. Criar Assinatura no Asaas
     const asaasSubscription = await asaasAdapter.createSubscription({
       gatewayCustomerId: gatewayCustomerId!,
+      userId: user.id,
       planSlug: planData.slug,
       amount,
       billingCycle,

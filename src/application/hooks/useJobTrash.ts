@@ -209,21 +209,15 @@ export function useJobTrash(userId?: string, activeJobs: Job[] = []) {
     mutationFn: async (jobId: string) => {
       if (!userId) throw new Error('Usuário não autenticado.');
       const targetId = String(jobId);
-
       if (isSupabaseConfigured && supabase) {
-        // A. Verificar se o usuário possui candidatura ativa no Pipeline
-        const { data: existingApps } = await supabase
+        // A. Se houver candidatura no Pipeline/Kanban, remover a associação no Pipeline para permitir a exclusão completa confirmada
+        await supabase
           .from('applications')
-          .select('id, status')
+          .delete()
           .eq('user_id', userId)
           .eq('job_id', targetId);
 
-        if (existingApps && existingApps.length > 0) {
-          throw new Error('Esta vaga possui uma candidatura registrada no seu Pipeline. Para preservar seu histórico profissional e métricas, remova a candidatura no Pipeline antes de excluí-la definitivamente.');
-        }
-
-        // B. Apagar APENAS registros que representam a associação deste usuário com a vaga (job_feedback, job_matches, matches)
-        // NUNCA apaga a linha na tabela jobs (catálogo compartilhado) nem candidaturas
+        // B. Apagar registros que representam a associação deste usuário com a vaga (job_feedback, job_matches, matches)
         await supabase
           .from('job_feedback')
           .delete()
@@ -248,6 +242,8 @@ export function useJobTrash(userId?: string, activeJobs: Job[] = []) {
       queryClient.invalidateQueries({ queryKey: ['job-trash', userId] });
       queryClient.invalidateQueries({ queryKey: ['jobs', userId] });
       queryClient.invalidateQueries({ queryKey: ['matches', userId] });
+      queryClient.invalidateQueries({ queryKey: ['applications', userId] });
+      queryClient.invalidateQueries({ queryKey: ['applications'] });
       queryClient.invalidateQueries({ queryKey: ['applications', userId] });
       queryClient.invalidateQueries({ queryKey: ['job-discovery'] });
     }

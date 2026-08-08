@@ -66,12 +66,11 @@ export function useEntitlements(userId?: string) {
       }
 
       if (!activeUserId) {
-        // Fallback local se não autenticado
+        // Fallback local se não autenticado (nunca concede Pro sem ID de usuário)
         try {
           const stored = localStorage.getItem(weekStorageKey);
           setUnlockedJobIds(stored ? JSON.parse(stored) : []);
-          const storedIsPro = localStorage.getItem('vocentro_is_pro') === 'true';
-          setIsPro(storedIsPro);
+          setIsPro(false);
         } catch {
           setUnlockedJobIds([]);
         }
@@ -92,6 +91,9 @@ export function useEntitlements(userId?: string) {
       const isInActiveGracePeriod = sub?.status === 'grace_period' && sub?.grace_period_end && new Date(sub.grace_period_end) > new Date();
       const isActiveOrTrialing = Boolean(sub && (sub.status === 'active' || sub.status === 'trialing'));
       let userIsPro = isActiveOrTrialing || Boolean(isUnexpiredCanceled) || Boolean(isInActiveGracePeriod);
+
+      // Whitelist estrita de administradores/emergência (apenas e-mails exatos)
+      const ALLOWED_PRO_EMAILS = ['hanarafaelle11@gmail.com', 'rafaelaletbey@gmail.com', 'admin@vocentro.com.br'];
 
       // Fallback 1: Checar tabela billing_subscriptions caso subscriptions não tenha registro ativo
       if (!userIsPro) {
@@ -116,11 +118,13 @@ export function useEntitlements(userId?: string) {
           .maybeSingle();
 
         if (profile) {
-          const isRoleAdmin = profile.role === 'admin';
+          const isRoleAdmin = profile.role === 'admin' || profile.role === 'administrador';
           const isPlanPro = profile.plan === 'pro';
           const isFlagPro = profile.is_pro === true;
-          const isWhitelistedProEmail = (profile.email || authUserEmail) && 
-            ['hanarafaelle11@gmail.com', 'rafaelaletbey@gmail.com', 'admin@vocentro.com.br'].includes((profile.email || authUserEmail).toLowerCase());
+          const cleanProfEmail = (profile.email || '').trim().toLowerCase();
+          const cleanAuthEmail = (authUserEmail || '').trim().toLowerCase();
+          const isWhitelistedProEmail = (cleanProfEmail && ALLOWED_PRO_EMAILS.some(e => e === cleanProfEmail)) ||
+                                        (cleanAuthEmail && ALLOWED_PRO_EMAILS.some(e => e === cleanAuthEmail));
 
           if (isRoleAdmin || isPlanPro || isFlagPro || isWhitelistedProEmail) {
             userIsPro = true;
@@ -130,25 +134,31 @@ export function useEntitlements(userId?: string) {
 
       // Fallback 3: Checar user_metadata do Supabase Auth e Email Whitelist
       if (!userIsPro) {
-        const isMetadataPro = authUserMetadata.plan === 'pro' || authUserMetadata.role === 'admin' || authUserMetadata.is_pro === true;
-        const isEmailPro = authUserEmail && ['hanarafaelle11@gmail.com', 'rafaelaletbey@gmail.com', 'admin@vocentro.com.br'].includes(authUserEmail.toLowerCase());
+        const isMetadataPro = authUserMetadata.plan === 'pro' || authUserMetadata.role === 'admin' || authUserMetadata.role === 'administrador' || authUserMetadata.is_pro === true;
+        const cleanAuthEmail = (authUserEmail || '').trim().toLowerCase();
+        const isEmailPro = cleanAuthEmail && ALLOWED_PRO_EMAILS.some(e => e === cleanAuthEmail);
         if (isMetadataPro || isEmailPro) {
           userIsPro = true;
         }
       }
 
-      // Fallback 4: Checar cache local de emergência (localStorage)
+      // Fallback 4: Checar cache local estritamente escopado por ID de usuário
       if (!userIsPro) {
-        const localPro = localStorage.getItem('vocentro_is_pro') === 'true' || localStorage.getItem(`vocentro_is_pro_${activeUserId}`) === 'true';
-        if (localPro) {
+        const localUserPro = localStorage.getItem(`vocentro_is_pro_${activeUserId}`) === 'true';
+        if (localUserPro) {
           userIsPro = true;
         }
       }
 
+      // Sincronizar cache de armazenamento local estritamente por ID de usuário
       if (userIsPro) {
         try {
-          localStorage.setItem('vocentro_is_pro', 'true');
           localStorage.setItem(`vocentro_is_pro_${activeUserId}`, 'true');
+        } catch {}
+      } else {
+        try {
+          localStorage.removeItem(`vocentro_is_pro_${activeUserId}`);
+          localStorage.removeItem('vocentro_is_pro'); // Remove qualquer resíduo legado não escopado
         } catch {}
       }
 

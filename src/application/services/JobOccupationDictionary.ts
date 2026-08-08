@@ -80,6 +80,13 @@ export const OCCUPATION_FAMILIES: Record<string, string[]> = {
   'financeiro':           ['Analista Financeiro', 'Financeiro', 'Controladoria'],
   'contabilidade':        ['Contador', 'Analista Contábil', 'Controladoria'],
   'contador':             ['Contador', 'Analista Contábil', 'Financeiro'],
+
+  // Educação / Pedagogia
+  'pedagogia':            ['Pedagogia', 'Pedagogo', 'Educação', 'Auxiliar de Sala'],
+  'pedagogo':             ['Pedagogo', 'Pedagogia', 'Educação', 'Professor'],
+  'pedagoga':            ['Pedagoga', 'Pedagogia', 'Educação', 'Professora'],
+  'professor':            ['Professor', 'Educação', 'Docente'],
+  'professora':           ['Professora', 'Educação', 'Docente'],
 };
 
 // Qualificadores de senioridade/hierarquia a remover antes da busca

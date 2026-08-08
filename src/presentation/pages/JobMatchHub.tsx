@@ -270,7 +270,17 @@ export function JobMatchHub({
     // Exclusão estrita de contas de teste
     const email = user.email.toLowerCase();
     const isTestAccount = ['example.com', 'hardening', 'e2e', 'admin', 'vocentro.com.br', 'demo', 'qa'].some(pat => email.includes(pat));
-    // Verificar se já respondeu via fonte única da verdade (SurveyService) ou descartou a pesquisa
+    
+    // Contagem de Sessões de Uso Real (exige pelo menos o 2º login/acesso para exibir pesquisa)
+    const sessionKey = `vocentro_session_count_${user.id}`;
+    const sessionTrackedKey = `vocentro_session_tracked_${user.id}`;
+    if (!sessionStorage.getItem(sessionTrackedKey)) {
+      sessionStorage.setItem(sessionTrackedKey, 'true');
+      const currentSessions = Number(localStorage.getItem(sessionKey) || '0');
+      localStorage.setItem(sessionKey, String(currentSessions + 1));
+    }
+    const sessionCount = Number(localStorage.getItem(sessionKey) || '1');
+
     let isCancelled = false;
     const checkCompletionAndTrigger = async () => {
       const isDismissed = localStorage.getItem(`survey_dismissed_${user.id}`);
@@ -280,8 +290,11 @@ export function JobMatchHub({
       const isCompleted = await SurveyService.hasCompletedSurvey(user.id);
       if (isCancelled) return;
 
-      if (forceOpen || (!isCompleted && !isDismissed && !isTestAccount)) {
+      // Exibir APENAS a partir do 2º acesso com uso real (vagas/matches), ou se forçado pela URL
+      const hasRealUsage = (matches?.length || 0) >= 1 || isPro;
+      const isEligibleForSurvey = sessionCount >= 2 && hasRealUsage;
 
+      if (forceOpen || (isEligibleForSurvey && !isCompleted && !isDismissed && !isTestAccount)) {
         // Determinar Coorte
         const matchesCount = matches?.length || 0;
         const appsCount = applications?.length || 0;
@@ -294,12 +307,11 @@ export function JobMatchHub({
         }
 
         setSurveyCohort(cohort);
-        // Pequeno delay para não assustar o usuário no carregamento imediato
         setShowSurveyModal(true);
       }
     };
 
-    const timer = setTimeout(checkCompletionAndTrigger, 2500);
+    const timer = setTimeout(checkCompletionAndTrigger, 3500);
     return () => {
       isCancelled = true;
       clearTimeout(timer);
@@ -1618,14 +1630,22 @@ export function JobMatchHub({
   }
 
   // Fallback Inteligente de Segurança por Categoria/Senioridade caso os dados externos não contenham salários
-  if (averageSalary === 0 && searchKeyword) {
+  if (searchKeyword && /estágio|estagio|estagiár|estagiario|internship|bolsa/i.test(searchKeyword)) {
+    if (averageSalary === 0 || averageSalary > 3500) {
+      averageSalary = 1500;
+    }
+  } else if (averageSalary === 0 && searchKeyword) {
     const key = searchKeyword.toLowerCase();
-    if (key.includes('cozinheir') || key.includes('auxiliar') || key.includes('atendente') || key.includes('operador') || key.includes('limpeza') || key.includes('portari')) {
+    if (key.includes('estágio') || key.includes('estagio') || key.includes('estagiár') || key.includes('intern')) {
+      averageSalary = 1500;
+    } else if (key.includes('cozinheir') || key.includes('auxiliar') || key.includes('atendente') || key.includes('operador') || key.includes('limpeza') || key.includes('portari')) {
       averageSalary = 2450;
     } else if (key.includes('analista') || key.includes('especialista') || key.includes('desenvolv') || key.includes('designer')) {
       averageSalary = 6500;
     } else if (key.includes('gerente') || key.includes('supervisor') || key.includes('coordenador') || key.includes('head') || key.includes('lead')) {
       averageSalary = 12500;
+    } else {
+      averageSalary = 3800;
     }
   }
 
@@ -4053,7 +4073,7 @@ export function JobMatchHub({
               <div className="p-3.5 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-300 text-xs flex items-center gap-2 animate-fade-in">
                 <Info size={16} className="text-amber-400 shrink-0" />
                 <span>
-                  Buscando por <strong>"{fallbackTermUsed}"</strong> (ajuste de inteligência nível {fallbackLevel}) para garantir um bom volume de vagas relevantes.
+                  Ampliamos sua busca para incluir vagas de áreas relacionadas.
                 </span>
               </div>
             )}

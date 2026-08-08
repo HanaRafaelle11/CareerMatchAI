@@ -195,16 +195,20 @@ export function useJobDiscovery(
       }
 
       // Camada 5: ampliação geográfica (busca em todo o Brasil / remoto)
-      if ((searchResult.results?.length || 0) < MIN_RESULTS_THRESHOLD && finalLocation !== 'Brasil' && !filters.keyword) {
-        rawFallbackLevel = 5;
-        const brazilResult = await runSearch(fallbackTermUsed, 'Brasil') as any;
-        if ((brazilResult.results?.length || 0) > (searchResult.results?.length || 0)) {
-          searchResult = brazilResult;
+      if ((searchResult.results?.length || 0) < MIN_RESULTS_THRESHOLD) {
+        for (const candidateTerm of finalKeywords) {
+          const brazilResult = await runSearch(candidateTerm, 'Brasil') as any;
+          if ((brazilResult.results?.length || 0) > (searchResult.results?.length || 0)) {
+            searchResult = brazilResult;
+            fallbackTermUsed = candidateTerm;
+            rawFallbackLevel = 5;
+            if ((searchResult.results?.length || 0) >= MIN_RESULTS_THRESHOLD) break;
+          }
         }
       }
 
-      // Garantir que o nível da cascata seja estritamente limitado entre 0 e 5
-      const fallbackLevel = Math.min(5, Math.max(0, rawFallbackLevel));
+      // Se mesmo após toda a cascata não houver vagas encontradas (0 resultados), zerar o fallbackLevel para evitar banner falso
+      const fallbackLevel = (searchResult.results?.length || 0) > 0 ? Math.min(5, Math.max(0, rawFallbackLevel)) : 0;
 
       console.log(`[useJobDiscovery] Resultado final: ${searchResult.results?.length} vagas | termo: "${fallbackTermUsed}" | fallbackLevel: ${fallbackLevel}`);
 

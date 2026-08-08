@@ -804,7 +804,7 @@ export function CoachDashboard({
                                   setIsSending(false);
                                 }
                               }}
-                              className="px-3 py-1.5 rounded-xl bg-red-950/20 border border-red-500/30 text-red-400 hover:bg-red-950/40 text-[10px] font-bold tracking-wide transition cursor-pointer flex items-center gap-1.5"
+                              className="px-3 py-1.5 rounded-xl bg-red-950/20 border border-red-500/30 text-red-400 hover:bg-red-950/40 disabled:opacity-50 disabled:cursor-not-allowed text-[10px] font-bold tracking-wide transition cursor-pointer flex items-center gap-1.5"
                             >
                               {isSending ? (
                                 <>

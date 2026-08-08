@@ -4,7 +4,7 @@ import { CardGlass } from './CardGlass';
 import { CommercialIntelligenceService } from '../../application/services/CommercialIntelligenceService';
 import { 
   TrendingUp, Tag, Gift, Award, Star, Activity, 
-  RefreshCw, Search, Loader2, Info, HelpCircle
+  RefreshCw, Search, Loader2, Info, HelpCircle, AlertCircle
 } from 'lucide-react';
 
 import { ContactActionModal, type ContactTargetUser } from './ContactActionModal';
@@ -98,11 +98,22 @@ export function CommercialIntelligenceDashboard() {
       {/* KPI Cards Overview */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3.5">
         
-        {/* Card 1: Upgrade Candidates */}
-        <CardGlass className="p-4 flex flex-col justify-between space-y-3 border-emerald-500/20">
+        {/* Card 1: Upgrade Candidates (Clicável) */}
+        <CardGlass 
+          onClick={() => setActiveTab('upgrade')}
+          className="p-4 flex flex-col justify-between space-y-3 border-emerald-500/20 hover:border-emerald-500/60 transition-all cursor-pointer group"
+        >
           <div className="flex justify-between items-start">
-            <span className="text-[10px] text-muted-foreground font-extrabold uppercase tracking-wider">Chance de Upgrade</span>
-            <TrendingUp size={16} className="text-emerald-500" />
+            <div className="flex items-center gap-1.5">
+              <span className="text-[10px] text-muted-foreground font-extrabold uppercase tracking-wider group-hover:text-emerald-400 transition-colors">Chance de Upgrade (Preditivo)</span>
+              <div className="relative group/tooltip">
+                <AlertCircle size={12} className="text-muted-foreground hover:text-emerald-400 transition-colors" />
+                <div className="absolute left-0 top-5 w-64 p-3 rounded-xl bg-slate-900 border border-slate-700 shadow-2xl text-[10px] text-slate-300 hidden group-hover/tooltip:block z-50 leading-relaxed font-sans">
+                  <strong>Modelo Preditivo M2.7:</strong> Avalia usuários com alta retenção (≥70% propensão) baseando-se em volume de CVs otimizados, simulações STAR e limite semanal atingido.
+                </div>
+              </div>
+            </div>
+            <TrendingUp size={16} className="text-emerald-500 group-hover:scale-110 transition-transform" />
           </div>
           <div>
             <div className="flex items-baseline gap-2">
@@ -111,15 +122,18 @@ export function CommercialIntelligenceDashboard() {
               </span>
               <span className="text-[10px] text-muted-foreground font-semibold">usuários</span>
             </div>
-            <span className="text-[9px] text-muted-foreground block mt-1">Alta propensão (Score &ge; 70%)</span>
+            <span className="text-[9px] text-emerald-500/80 block mt-1 font-medium">Clique para ver lista filtrada →</span>
           </div>
         </CardGlass>
 
         {/* Card 2: Discount Eligible */}
-        <CardGlass className="p-4 flex flex-col justify-between space-y-3 border-brand-500/20">
+        <CardGlass 
+          onClick={() => setActiveTab('desconto')}
+          className="p-4 flex flex-col justify-between space-y-3 border-brand-500/20 hover:border-brand-500/60 transition-all cursor-pointer group"
+        >
           <div className="flex justify-between items-start">
-            <span className="text-[10px] text-muted-foreground font-extrabold uppercase tracking-wider">Elegíveis a Desconto</span>
-            <Tag size={16} className="text-brand-500" />
+            <span className="text-[10px] text-muted-foreground font-extrabold uppercase tracking-wider group-hover:text-brand-400 transition-colors">Elegíveis a Desconto</span>
+            <Tag size={16} className="text-brand-500 group-hover:scale-110 transition-transform" />
           </div>
           <div>
             <div className="flex items-baseline gap-2">
@@ -132,11 +146,22 @@ export function CommercialIntelligenceDashboard() {
           </div>
         </CardGlass>
 
-        {/* Card 3: Offer Eligible */}
-        <CardGlass className="p-4 flex flex-col justify-between space-y-3 border-purple-500/20">
+        {/* Card 3: Offer Eligible (Clicável) */}
+        <CardGlass 
+          onClick={() => setActiveTab('oferta')}
+          className="p-4 flex flex-col justify-between space-y-3 border-purple-500/20 hover:border-purple-500/60 transition-all cursor-pointer group"
+        >
           <div className="flex justify-between items-start">
-            <span className="text-[10px] text-muted-foreground font-extrabold uppercase tracking-wider">Gatilhos de Oferta</span>
-            <Gift size={16} className="text-purple-500" />
+            <div className="flex items-center gap-1.5">
+              <span className="text-[10px] text-muted-foreground font-extrabold uppercase tracking-wider group-hover:text-purple-400 transition-colors">Gatilhos de Oferta</span>
+              <div className="relative group/tooltip">
+                <AlertCircle size={12} className="text-muted-foreground hover:text-purple-400 transition-colors" />
+                <div className="absolute left-0 top-5 w-64 p-3 rounded-xl bg-slate-900 border border-slate-700 shadow-2xl text-[10px] text-slate-300 hidden group-hover/tooltip:block z-50 leading-relaxed font-sans">
+                  <strong>Gatilhos de Engajamento:</strong> Usuários que atingiram marcos chave (ex: 3 candidaturas enviadas no limite gratuito) e têm alta probabilidade de converter com cupom promocional.
+                </div>
+              </div>
+            </div>
+            <Gift size={16} className="text-purple-500 group-hover:scale-110 transition-transform" />
           </div>
           <div>
             <div className="flex items-baseline gap-2">
@@ -145,7 +170,7 @@ export function CommercialIntelligenceDashboard() {
               </span>
               <span className="text-[10px] text-muted-foreground font-semibold">gatilhos</span>
             </div>
-            <span className="text-[9px] text-muted-foreground block mt-1">Marcos recentes de progresso</span>
+            <span className="text-[9px] text-purple-400/80 block mt-1 font-medium">Clique para ver lista filtrada →</span>
           </div>
         </CardGlass>
 

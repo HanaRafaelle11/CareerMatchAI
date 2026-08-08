@@ -593,15 +593,18 @@ export function AdminDashboard({ userId }: AdminDashboardProps) {
       const lCount = lRes.count || 0;
       const sCount = sRes.count || 0;
 
-      // Se a contagem de ai_usage_logs for parcial (logs legados sem token), complementar estimativa real por operacao
+      // Metodologia Dinâmica Contínua de Custo:
+      // 1. Base Histórica Não-Registrada (GCP Console): R$ 24,19 (período pré-telemetria)
+      // 2. Telemetria Dinâmica (ai_usage_logs): (input_tokens * $0.075/1M + output_tokens * $0.30/1M + grounding * $0.035) × Câmbio (R$ 5,40)
       const totalEstimatedCalls = Math.max(totalCalls, mCount + oCount + lCount + sCount);
-      // Estimativa real alinhada ao Google Cloud Console: Gemini Flash + Grounding Requests (~R$ 25,23 total acumulado)
-      const adjustedCostBrl = Math.max(rawCostUsd * 5.4, 25.23);
+      const historicalUnloggedBaseBrl = 24.19;
+      const dynamicLoggedCostBrl = rawCostUsd * 5.4;
+      const totalCostBrl = historicalUnloggedBaseBrl + dynamicLoggedCostBrl;
 
       return {
         total_calls: totalEstimatedCalls,
         total_tokens: totalTokens > 0 ? totalTokens : 3450000,
-        total_cost_brl: Number(adjustedCostBrl.toFixed(2)),
+        total_cost_brl: Number(totalCostBrl.toFixed(2)),
         raw_cost_usd: Number(rawCostUsd.toFixed(4)),
         avg_processing_time: 2.45,
         errors_count: 0,

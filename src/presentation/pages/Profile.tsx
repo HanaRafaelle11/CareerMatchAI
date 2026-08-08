@@ -937,15 +937,18 @@ export function Profile({
                         )}
                       </div>
                       <button
+                        type="button"
                         onClick={async (e) => {
                           e.stopPropagation();
-                          if (window.confirm(`Tem certeza que deseja deletar permanentemente o currículo "${res.fileName}"?`)) {
+                          e.preventDefault();
+                          const confirmMsg = `Tem certeza que deseja deletar permanentemente o currículo "${res.fileName}"?`;
+                          if (window.confirm(confirmMsg)) {
                             try {
                               await onDeleteResume(res.id);
                               showToast('Currículo excluído com sucesso.', 'info');
-                            } catch (err) {
-                              console.error(err);
-                              showToast('Erro ao excluir currículo. Verifique se ele não é o currículo ativo.', 'error');
+                            } catch (err: any) {
+                              console.error('[Profile] Erro ao excluir currículo:', err);
+                              showToast(err?.message || 'Erro ao excluir currículo.', 'error');
                             }
                           }
                         }}

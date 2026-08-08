@@ -18,6 +18,8 @@ import {
   ChevronRight
 } from 'lucide-react';
 
+import { FloatingActionDeck } from './FloatingActionDeck';
+
 interface NavbarProps {
   activeTab: string;
   setActiveTab: (tab: string) => void;
@@ -34,6 +36,9 @@ interface NavbarProps {
   interviewCount?: number;
   isCollapsed?: boolean;
   onToggleCollapse?: () => void;
+  onOpenCopilot?: () => void;
+  userId?: string;
+  userEmail?: string;
 }
 
 interface JourneyStep {
@@ -60,24 +65,27 @@ export function Navbar({
   applicationCount = 0,
   interviewCount = 0,
   isCollapsed = false,
-  onToggleCollapse
+  onToggleCollapse,
+  onOpenCopilot,
+  userId,
+  userEmail
 }: NavbarProps) {
   const journeySteps: JourneyStep[] = [
     {
       id: 'profile',
       label: 'Perfil & Currículo',
       icon: 'person',
-      completed: hasProfile && hasResume,
+      completed: (hasProfile || hasResume) && hasResume,
       active: activeTab === 'profile',
-      description: hasProfile && hasResume ? 'Completo' : 'Configure seu perfil'
+      description: (hasProfile || hasResume) && hasResume ? 'Perfil Configurado' : 'Configure seu perfil'
     },
     {
       id: 'match',
       label: 'Vagas & Match',
       icon: 'search',
-      completed: matchCount > 0,
-      active: activeTab === 'match',
-      description: matchCount > 0 ? `${matchCount} match${matchCount > 1 ? 'es' : ''}` : 'Descubra oportunidades'
+      completed: hasResume || matchCount > 0,
+      active: activeTab === 'match' || activeTab === 'discover',
+      description: hasResume || matchCount > 0 ? 'Vagas Sincronizadas' : 'Descubra oportunidades'
     },
     {
       id: 'strategy',
@@ -91,7 +99,7 @@ export function Navbar({
       id: 'coach',
       label: 'Copiloto IA',
       icon: 'psychology',
-      completed: interviewCount > 0,
+      completed: interviewCount > 0 || isPro,
       active: activeTab === 'coach',
       description: interviewCount > 0 ? `${interviewCount} simulaç${interviewCount > 1 ? 'ões' : 'ão'}` : 'Assistente & Treino'
     },
@@ -368,6 +376,15 @@ export function Navbar({
               </button>
             </div>
           )
+        )}
+
+        {/* Ajuda & IA dentro do menu lateral (fixo e recolhível) */}
+        {!isCollapsed && onOpenCopilot && (
+          <FloatingActionDeck
+            userId={userId}
+            userEmail={userEmail}
+            onOpenCopilot={onOpenCopilot}
+          />
         )}
 
         {/* User Profile Footer */}

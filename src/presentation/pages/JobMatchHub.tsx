@@ -131,6 +131,7 @@ interface JobMatchHubProps {
   applications?: any[];
   onCreateApplication?: (data: any) => Promise<any>;
   onUpdateApplication?: (data: any) => Promise<any>;
+  onDeleteApplication?: (id: string) => Promise<any>;
   setActiveTab?: (tab: string) => void;
   selectedJobId?: string | null;
   onSelectJob?: (id: string | null) => void;
@@ -194,6 +195,7 @@ export function JobMatchHub({
   applications = [],
   onCreateApplication,
   onUpdateApplication,
+  onDeleteApplication,
   setActiveTab,
   selectedJobId: propSelectedJobId,
   onSelectJob: propOnSelectJob,
@@ -440,6 +442,12 @@ export function JobMatchHub({
 
   const handleApplyClick = async (targetJob: any) => {
     if (!targetJob) return;
+
+    const targetJobId = String(targetJob.id || targetJob.jobId || '');
+    if (!isPro && !canUnlockJob(targetJobId)) {
+      triggerPaywall('weekly_limit', 'Link de Candidatura Exclusivo Pro', 'Desbloqueie o acesso direto aos links oficiais de candidatura com o Plano Pro.');
+      return;
+    }
 
     // Normalizar a busca da URL da vaga em todas as variantes de propriedade
     const rawUrl = targetJob.sourceUrl || targetJob.source_url || targetJob.url || targetJob.external_url || targetJob.link;
@@ -1134,26 +1142,33 @@ export function JobMatchHub({
     }
   }, [careerProfile, careerProfileNew]);
 
-  // Sincronizar e resetar palavras-chave de busca quando o currículo ativo for alterado/trocado
+  // Sincronizar e resetar palavras-chave de busca quando o currículo ativo for alterado/carregado
   useEffect(() => {
     const activeProf = careerProfileNew || careerProfile;
     if (activeProf) {
       const preferences = (careerProfileNew?.personal as any)?.preferences || {};
       const targetRolesList = preferences.targetRoles || (careerProfile as any)?.targetRoles || [];
-      const defaultKeyword = targetRolesList[0] || preferences.searchKeywords?.[0] || (careerProfile as any)?.searchKeywords?.[0] || (primaryResume as any)?.headline?.split('|')[0]?.trim() || '';
-      
-      setSearchKeyword(defaultKeyword);
-      setActiveFilters(prev => ({
-        ...prev,
-        keyword: defaultKeyword
-      }));
 
+      // Regra de Negócio Item 8: Priorizar cargo mais recente da experiência em relação ao headline consolidado
+      const latestExpRole = careerProfileNew?.experience?.[0]?.role || (careerProfile as any)?.experience?.[0]?.role;
+      const primaryKeyword = latestExpRole || targetRolesList[0] || preferences.searchKeywords?.[0] || (careerProfile as any)?.searchKeywords?.[0] || (primaryResume as any)?.headline?.split('|')[0]?.trim() || '';
+      
       const defaultLoc = preferences.preferredLocations?.[0] || (careerProfile as any)?.preferredLocations?.[0] || 'Brasil';
+      const defaultRemote = preferences.preferredWorkModes ? preferences.preferredWorkModes.includes('remote') : ((careerProfile as any)?.preferredWorkModes?.includes('remote') ?? true);
+      const preferredModes = preferences.preferredWorkModes || (careerProfile as any)?.preferredWorkModes || ['remote'];
+
+      setSearchKeyword(primaryKeyword);
       setSearchLocation(defaultLoc);
-      setActiveFilters(prev => ({
-        ...prev,
-        location: defaultLoc
-      }));
+      setSearchRemoteOnly(defaultRemote);
+      setSearchWorkModes(preferredModes);
+
+      setActiveFilters({
+        keyword: primaryKeyword,
+        location: defaultLoc,
+        remoteOnly: defaultRemote,
+        workModes: preferredModes,
+        seniority: 'all'
+      });
     } else {
       setSearchKeyword('');
       setActiveFilters(prev => ({
@@ -1161,43 +1176,7 @@ export function JobMatchHub({
         keyword: ''
       }));
     }
-  }, [primaryResume?.id, activeResumeVersionId, careerProfileNew?.id]);
-
-  useEffect(() => {
-    const activeProf = careerProfileNew || careerProfile;
-    if (activeProf) {
-      const preferences = (careerProfileNew?.personal as any)?.preferences || {};
-      const targetRolesList = preferences.targetRoles || (careerProfile as any)?.targetRoles || [];
-      const defaultKeyword = targetRolesList[0] || preferences.searchKeywords?.[0] || (careerProfile as any)?.searchKeywords?.[0] || (primaryResume as any)?.headline?.split('|')[0]?.trim() || '';
-      
-      if (defaultKeyword && !searchKeyword) {
-        setSearchKeyword(defaultKeyword);
-        setActiveFilters(prev => ({
-          ...prev,
-          keyword: defaultKeyword
-        }));
-      }
-
-      const defaultLoc = preferences.preferredLocations?.[0] || (careerProfile as any)?.preferredLocations?.[0] || 'Brasil';
-      if (defaultLoc && (!searchLocation || searchLocation === 'Brasil')) {
-        setSearchLocation(defaultLoc);
-        setActiveFilters(prev => ({
-          ...prev,
-          location: defaultLoc
-        }));
-      }
-
-      const defaultRemote = preferences.preferredWorkModes ? preferences.preferredWorkModes.includes('remote') : ((careerProfile as any)?.preferredWorkModes?.includes('remote') ?? true);
-      const isInitialRemote = sessionStorage.getItem('job_search_input_remote') === null;
-      if (isInitialRemote) {
-        setSearchRemoteOnly(defaultRemote);
-        setActiveFilters(prev => ({
-          ...prev,
-          remoteOnly: defaultRemote
-        }));
-      }
-    }
-  }, [careerProfileNew, careerProfile]);
+  }, [primaryResume?.id, activeResumeVersionId, careerProfileNew?.id, (careerProfileNew as any)?.updated_at]);
 
   const { data: optimization = null, isLoading: isLoadingOpt } = getResumeOptimizationQuery(primaryResume || null, selectedJob || null);
   const { data: prep = null, isLoading: isLoadingPrep } = getInterviewPrepQuery(primaryResume || null, selectedJob || null);
@@ -2548,14 +2527,14 @@ export function JobMatchHub({
                       <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 shrink-0">
                         {/* Secondary Score Badge: Career Fit (Objetivo de Carreira) */}
                         <div 
-                          className="p-2.5 rounded-xl bg-slate-900/80 border border-slate-800 text-right space-y-0.5 relative group cursor-help opacity-90"
-                          title="Career Fit Score: Além do match técnico direto da vaga, mede o alinhamento de carreira a longo prazo (objetivos profissionais, senioridade e expectativas)."
+                          className="bg-slate-900/60 p-2.5 rounded-2xl border border-blue-500/20 text-right shrink-0 relative group cursor-help"
+                          title="Career Fit Score: Pontuação de sinergia entre os objetivos da sua carreira e a empresa contratante."
                         >
                           <span className="text-[9px] uppercase font-bold text-slate-300 flex items-center gap-1 justify-end">
                             💼 Career Fit Score
                           </span>
                           <span className="text-xs font-extrabold text-blue-300 block">
-                            {currentMatch ? `${currentMatch.scoreOverall}%` : (explanation?.careerFitScore ? `${explanation.careerFitScore}%` : '--')}
+                            {isCalculating || (analyzingJobId && selectedJob && analyzingJobId === selectedJob.id) || isLoadingExplanation ? '--' : (currentMatch ? `${currentMatch.scoreOverall}%` : '--')}
                           </span>
                           <span className="text-[8px] text-slate-400 block">Alinhamento de objetivo</span>
                         </div>
@@ -2571,7 +2550,7 @@ export function JobMatchHub({
                             </span>
                             <span className="text-[10px] text-slate-300 block font-semibold">Compatibilidade Geral</span>
                           </div>
-                          {isCalculating ? (
+                          {isCalculating || (analyzingJobId && selectedJob && analyzingJobId === selectedJob.id) || isLoadingExplanation ? (
                             <div className="w-[56px] h-[56px] flex items-center justify-center">
                               <Loader2 size={24} className="animate-spin text-brand-400" />
                             </div>
@@ -4232,21 +4211,7 @@ export function JobMatchHub({
                       </label>
                     </div>
                     <span className="text-[11px] text-slate-500 font-mono flex items-center gap-1.5 flex-wrap">
-                      <span>Exibindo {scoredDiscoveredJobs.length} de {discoveredJobs.length} vaga(s)</span>
-                      {discoveredJobs.length > scoredDiscoveredJobs.length && (
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setFilterActiveOnly(false);
-                            setFilterScoreOver80(false);
-                            setSearchWorkModes(['remote', 'hybrid', 'onsite']);
-                            setSearchSeniority('all');
-                          }}
-                          className="text-amber-400 hover:text-amber-300 underline font-bold text-[10px] cursor-pointer"
-                        >
-                          ({discoveredJobs.length - scoredDiscoveredJobs.length} oculta(s) por filtros — Exibir Mantendo Busca)
-                        </button>
-                      )}
+                      <span>Exibindo {scoredDiscoveredJobs.length} vaga(s) visível(is)</span>
                     </span>
                   </div>
                 </CardGlass>
@@ -4302,13 +4267,21 @@ export function JobMatchHub({
                               <div className="flex justify-between items-start gap-3">
                                 <div className="flex gap-3 min-w-0">
                                 <div className="w-10 h-10 rounded-xl bg-surface-container-high border border-outline-variant/20 flex items-center justify-center font-bold text-xs text-primary shrink-0">
-                                  {job.companyName?.substring(0, 2).toUpperCase()}
+                                  {!isPro && !canUnlockJob(String(job.id || job.jobId || '')) ? '🔒' : job.companyName?.substring(0, 2).toUpperCase()}
                                 </div>
                                 <div className="min-w-0">
                                   <h4 className="font-bold text-sm text-slate-200 dark:text-slate-200 light:text-slate-800 truncate" title={job.title}>
                                     {job.title}
                                   </h4>
-                                  <span className="text-xs text-brand-500 font-semibold truncate block">{job.companyName}</span>
+                                  <span className="text-xs text-brand-500 font-semibold truncate block">
+                                    {!isPro && !canUnlockJob(String(job.id || job.jobId || '')) ? (
+                                      <span className="text-slate-400 font-medium filter blur-[4px] select-none pointer-events-none" title="Empresa oculta na versão Free">
+                                        Empresa Confidencial (Pro)
+                                      </span>
+                                    ) : (
+                                      job.companyName
+                                    )}
+                                  </span>
                                 </div>
                               </div>
                               <div className="flex gap-1.5 items-center flex-wrap shrink-0">
@@ -4626,18 +4599,22 @@ export function JobMatchHub({
                     <button
                       type="button"
                       onClick={async () => {
-                        if (window.confirm(`Excluir permanentemente a vaga "${item.title}"? Esta ação não pode ser desfeita.`)) {
+                        const linkedApp = applications.find(a => String(a.jobId) === String(item.id) || String(a.id) === String(item.id));
+                        let confirmMsg = `Excluir permanentemente a vaga "${item.title}"? Esta ação não pode ser desfeita.`;
+                        if (linkedApp) {
+                          confirmMsg = `A vaga "${item.title}" possui uma candidatura ativa no seu Kanban. Deseja excluir permanentemente a vaga E a candidatura do Kanban?`;
+                        }
+
+                        if (window.confirm(confirmMsg)) {
                           try {
-                            const linkedApp = applications.find(a => a.jobId === item.id);
-                            if (linkedApp) {
-                              showToast(`A vaga "${item.title}" possui uma candidatura ativa no seu Pipeline. Remova a candidatura no Pipeline antes de excluí-la definitivamente.`, 'warning');
-                              return;
+                            if (linkedApp && onDeleteApplication) {
+                              await onDeleteApplication(linkedApp.id);
                             }
                             await removeFromTrash(item.id);
                             if (onDeleteJob) await onDeleteJob(item.id);
                             showToast(`Vaga "${item.title}" excluída permanentemente.`, 'success');
                           } catch (err: any) {
-                            showToast(err.message || `Não foi possível excluir a vaga "${item.title}".`, 'error');
+                            showToast(err?.message || `Não foi possível excluir a vaga "${item.title}".`, 'error');
                           }
                         }
                       }}

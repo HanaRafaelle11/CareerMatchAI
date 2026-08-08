@@ -124,20 +124,22 @@ export function useJobDiscovery(
       // ── Busca Inteligente com Cascata de 5 Camadas ──
       let originalKeyword = '';
 
+      if (filters.keyword && filters.keyword.trim()) {
+        originalKeyword = filters.keyword.trim();
+      } else if (careerProfileNew) {
+        const preferences = (careerProfileNew.personal as any)?.preferences || {};
+        originalKeyword = preferences.targetRoles?.[0] || careerProfileNew.personal?.headline || careerProfileNew.experience?.[0]?.role || '';
+      } else {
+        originalKeyword = 'Vagas';
+      }
+
+      // Gerar cascata de candidatos ordenados do mais específico ao mais amplo
+      finalKeywords = simplifySearchTitle(originalKeyword);
+      if (finalKeywords.length === 0) finalKeywords = [originalKeyword || 'Vagas'];
+
+      // Otimizar localização
       if (careerProfileNew) {
         const preferences = (careerProfileNew.personal as any)?.preferences || {};
-
-        if (filters.keyword) {
-          originalKeyword = filters.keyword.trim();
-        } else {
-          originalKeyword = preferences.targetRoles?.[0] || careerProfileNew.personal?.headline || careerProfileNew.experience?.[0]?.role || '';
-        }
-
-        // Gerar cascata de candidatos ordenados do mais específico ao mais amplo
-        finalKeywords = simplifySearchTitle(originalKeyword);
-        if (finalKeywords.length === 0) finalKeywords = [originalKeyword || 'Vagas'];
-
-        // Otimizar localização
         if (!finalLocation) {
           const rawLoc = preferences.preferredLocations?.[0] || careerProfileNew.personal?.location || 'Brasil';
           finalLocation = normalizeLocationWithUF(rawLoc);
@@ -149,14 +151,12 @@ export function useJobDiscovery(
           finalRemoteOnly = preferences.preferredWorkModes?.includes('remote') ?? true;
         }
       } else {
-        originalKeyword = filters.keyword || 'Vagas';
-        finalKeywords = [originalKeyword];
         finalLocation = normalizeLocationWithUF(finalLocation || 'Brasil');
       }
 
       // ── Cascata de 5 Camadas com limiar mínimo ──
       let searchResult = { results: [] as any[], count: 0, providerUsed: '' };
-      let fallbackLevel = 0;
+      let rawFallbackLevel = 0;
       let fallbackTermUsed = finalKeywords[0] || originalKeyword;
 
       const runSearch = async (keyword: string, location: string) => {
@@ -171,7 +171,7 @@ export function useJobDiscovery(
         });
       };
 
-      // Camada 1: termo literal do currículo
+      // Camada 1: termo literal do currículo/campo de busca
       const layer1Term = finalKeywords[0];
       searchResult = await runSearch(layer1Term, finalLocation) as any;
       fallbackTermUsed = layer1Term;
@@ -179,8 +179,7 @@ export function useJobDiscovery(
       // Camadas 2-4: avançar quando resultado abaixo do limiar
       if ((searchResult.results?.length || 0) < MIN_RESULTS_THRESHOLD) {
         for (let i = 1; i < finalKeywords.length; i++) {
-          console.log(`[useJobDiscovery] Cascata camada ${i + 1}: "${finalKeywords[i]}" (${searchResult.results?.length || 0} < ${MIN_RESULTS_THRESHOLD} vagas)`);
-          fallbackLevel = i;
+          rawFallbackLevel = i;
           const nextResult = await runSearch(finalKeywords[i], finalLocation) as any;
           if ((nextResult.results?.length || 0) >= MIN_RESULTS_THRESHOLD) {
             searchResult = nextResult;
@@ -197,13 +196,15 @@ export function useJobDiscovery(
 
       // Camada 5: ampliação geográfica (busca em todo o Brasil / remoto)
       if ((searchResult.results?.length || 0) < MIN_RESULTS_THRESHOLD && finalLocation !== 'Brasil' && !filters.keyword) {
-        console.log(`[useJobDiscovery] Cascata camada 5: ampliando para Brasil (${searchResult.results?.length || 0} vagas em ${finalLocation})`);
-        fallbackLevel = 5;
+        rawFallbackLevel = 5;
         const brazilResult = await runSearch(fallbackTermUsed, 'Brasil') as any;
         if ((brazilResult.results?.length || 0) > (searchResult.results?.length || 0)) {
           searchResult = brazilResult;
         }
       }
+
+      // Garantir que o nível da cascata seja estritamente limitado entre 0 e 5
+      const fallbackLevel = Math.min(5, Math.max(0, rawFallbackLevel));
 
       console.log(`[useJobDiscovery] Resultado final: ${searchResult.results?.length} vagas | termo: "${fallbackTermUsed}" | fallbackLevel: ${fallbackLevel}`);
 

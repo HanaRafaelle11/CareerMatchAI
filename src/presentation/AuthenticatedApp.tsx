@@ -16,7 +16,6 @@ import { GlobalCopilotDrawer } from './components/GlobalCopilotDrawer';
 import { SatisfactionSurveyModal } from './components/SatisfactionSurveyModal';
 import { Toast, type ToastMessage } from './components/ds';
 import { CheckoutModal, useEntitlements } from '../modules/billing';
-import { FloatingActionDeck } from './components/FloatingActionDeck';
 import type { Job } from '../domain/models/types';
 import { useQueryClient } from '@tanstack/react-query';
 
@@ -467,6 +466,9 @@ export function AuthenticatedApp({
         interviewCount={applications.filter(a => ['👥 Entrevista com recrutador', '🎯 Entrevista com gestor', '🧩 Case técnico', '🤝 Fit cultural'].includes(a.status)).length}
         isCollapsed={isSidebarCollapsed}
         onToggleCollapse={() => setIsSidebarCollapsed((prev: boolean) => !prev)}
+        onOpenCopilot={() => setIsCopilotOpen(true)}
+        userId={user?.id}
+        userEmail={user?.email}
       />
 
       <main className={`flex-1 w-full min-w-0 px-4 sm:px-6 transition-all duration-300 ${
@@ -485,7 +487,7 @@ export function AuthenticatedApp({
                 setSettingsInitialSubTab('resumes');
                 handleSetActiveTab('settings');
               }}
-              onReanalyze={async () => {
+              onReanalyze={(activeTab === 'discover' || activeTab === 'match') ? undefined : async () => {
                 try {
                   if (selectedResumeVersionId && user?.id) {
                     await queryClient.invalidateQueries({ queryKey: ['my-profile-ai', user.id, selectedResumeVersionId] });
@@ -623,6 +625,7 @@ export function AuthenticatedApp({
               applications={applications}
               onCreateApplication={createApplication}
               onUpdateApplication={updateApplication}
+              onDeleteApplication={deleteApplication}
               setActiveTab={handleSetActiveTab}
               selectedJobId={selectedJobId}
               onSelectJob={setSelectedJobId}
@@ -704,13 +707,7 @@ export function AuthenticatedApp({
         hideFloatingButton={true}
       />
 
-      {user && (
-        <FloatingActionDeck
-          userId={user.id}
-          userEmail={user.email}
-          onOpenCopilot={() => setIsCopilotOpen(true)}
-        />
-      )}
+
 
       {showSatisfactionSurvey && user && (
         <SatisfactionSurveyModal

@@ -247,6 +247,7 @@ export function StrategyPage({
   const [journalAppId, setJournalAppId] = useState<string>('');
   const [journalFeeling, setJournalFeeling] = useState<string>('😐');
   const [journalDiff, setJournalDiff] = useState<string>('');
+  const [editingJournalId, setEditingJournalId] = useState<string | null>(null);
 
   const [journalLogs, setJournalLogs] = useState<any[]>(() => {
     try {
@@ -264,6 +265,27 @@ export function StrategyPage({
     }
 
     const app = applications.find(a => a.id === journalAppId);
+    
+    if (editingJournalId) {
+      // Atualizar reflexão existente
+      const updated = journalLogs.map((l: any) => l.id === editingJournalId ? {
+        ...l,
+        appId: journalAppId,
+        jobTitle: app?.jobTitle || l.jobTitle || 'Vaga de Emprego',
+        companyName: app?.companyName || l.companyName || 'Empresa',
+        feeling: journalFeeling,
+        difficulties: journalDiff,
+        updatedAt: new Date().toISOString()
+      } : l);
+      setJournalLogs(updated);
+      localStorage.setItem(`journal_reflections_${userId || 'guest'}`, JSON.stringify(updated));
+      setEditingJournalId(null);
+      setJournalAppId('');
+      setJournalDiff('');
+      showToast('Reflexão atualizada com sucesso! 📖', 'info');
+      return;
+    }
+
     const newEntry = {
       id: String(Date.now()),
       appId: journalAppId,
@@ -290,12 +312,37 @@ export function StrategyPage({
       setJournalLogs(updated);
       localStorage.setItem(`journal_reflections_${userId || 'guest'}`, JSON.stringify(updated));
 
+      setJournalAppId('');
       setJournalDiff('');
       showToast('Reflexão salva com sucesso no Diário de Bordo! 📖', 'info');
     } catch (err) {
       console.error(err);
       showToast('Erro ao salvar reflexão.', 'error');
     }
+  };
+
+  const handleDeleteJournal = async (logId: string) => {
+    if (window.confirm('Tem certeza que deseja excluir esta reflexão do Diário de Bordo?')) {
+      const updated = journalLogs.filter((l: any) => l.id !== logId);
+      setJournalLogs(updated);
+      localStorage.setItem(`journal_reflections_${userId || 'guest'}`, JSON.stringify(updated));
+      if (isSupabaseConfigured && supabase) {
+        await Promise.resolve(supabase.from('interview_reflections').delete().eq('id', logId)).catch(() => {});
+      }
+      if (editingJournalId === logId) {
+        setEditingJournalId(null);
+        setJournalAppId('');
+        setJournalDiff('');
+      }
+      showToast('Reflexão excluída com sucesso.', 'info');
+    }
+  };
+
+  const handleEditJournal = (log: any) => {
+    setEditingJournalId(log.id);
+    setJournalAppId(log.appId || log.application_id || '');
+    setJournalFeeling(log.feeling || '😐');
+    setJournalDiff(log.difficulties || log.difficultQuestions || '');
   };
 
 
@@ -1832,9 +1879,11 @@ export function StrategyPage({
                     className="w-full bg-slate-900 border border-slate-800 rounded-xl px-3 py-2 text-xs text-slate-200 outline-none"
                   >
                     <option value="">Selecione uma vaga...</option>
-                    {applications.map(app => (
-                      <option key={app.id} value={app.id}>{app.jobTitle} - {app.companyName}</option>
-                    ))}
+                    {applications
+                      .filter(app => !journalLogs.some((l: any) => String(l.appId || l.applicationId) === String(app.id)) || String(app.id) === String(journalAppId))
+                      .map(app => (
+                        <option key={app.id} value={app.id}>{app.jobTitle} - {app.companyName}</option>
+                      ))}
                   </select>
                 </div>
 
@@ -1865,7 +1914,7 @@ export function StrategyPage({
                 </div>
 
                 <button type="submit" className="w-full py-2.5 rounded-xl bg-brand-600 hover:bg-brand-500 text-white font-bold text-xs shadow-lg cursor-pointer transition-colors">
-                  Salvar Reflexão no Diário
+                  {editingJournalId ? 'Atualizar Reflexão' : 'Salvar Reflexão no Diário'}
                 </button>
               </form>
             </CardGlass>
@@ -1889,12 +1938,30 @@ export function StrategyPage({
                           </div>
                           <span className="text-[11px] text-brand-400 font-semibold block mt-0.5">{log.companyName}</span>
                         </div>
-                        <span className="text-[10px] text-slate-500 font-mono">{new Date(log.createdAt).toLocaleDateString('pt-BR')}</span>
+                        <div className="flex items-center gap-2">
+                          <span className="text-[10px] text-slate-500 font-mono">{new Date(log.createdAt || Date.now()).toLocaleDateString('pt-BR')}</span>
+                          <button
+                            type="button"
+                            onClick={() => handleEditJournal(log)}
+                            className="p-1 text-slate-400 hover:text-brand-400 transition-colors"
+                            title="Editar reflexão"
+                          >
+                            <Sparkles size={13} />
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => handleDeleteJournal(log.id)}
+                            className="p-1 text-slate-400 hover:text-red-400 transition-colors"
+                            title="Excluir reflexão"
+                          >
+                            <Trash2 size={13} />
+                          </button>
+                        </div>
                       </div>
-                      {log.difficulties && (
+                      {(log.difficulties || log.difficultQuestions) && (
                         <div className="p-3 rounded-xl bg-slate-950/70 border border-slate-900 text-slate-300 text-[11px] leading-relaxed">
                           <strong className="text-amber-400 block font-bold text-[10px] uppercase tracking-wider mb-1">Perguntas ou Dores da Entrevista:</strong>
-                          <p>{log.difficulties}</p>
+                          <p>{log.difficulties || log.difficultQuestions}</p>
                         </div>
                       )}
                     </CardGlass>

@@ -19,10 +19,10 @@ export function FloatingActionDeck({
   return (
     <>
       <div 
-        className="fixed bottom-6 right-4 md:right-6 z-[50] flex flex-col items-end gap-2 font-sans select-none"
+        className="w-full px-3 my-2 flex flex-col items-start gap-2 font-sans select-none"
       >
         {isExpanded ? (
-          <div className="flex flex-col items-end gap-2 animate-fade-in">
+          <div className="w-full flex flex-col items-start gap-2 animate-fade-in">
             {/* BOTÃO 1: Copiloto IA */}
             <button
               type="button"

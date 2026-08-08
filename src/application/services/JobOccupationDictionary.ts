@@ -100,6 +100,8 @@ const SENIORITY_QUALIFIERS = [
   'auxiliar',
   'trainee',
   'consultor', 'consultora',
+  'nível 1', 'nível 2', 'nível 3', 'nivel 1', 'nivel 2', 'nivel 3',
+  'level 1', 'level 2', 'level 3', 'n1', 'n2', 'n3'
 ];
 
 const CONNECTOR_PATTERN = /\s*[&,\/]\s*|\s+e\s+/gi;

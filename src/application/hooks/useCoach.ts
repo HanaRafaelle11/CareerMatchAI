@@ -19,7 +19,7 @@ export function useCoach(userId: string | undefined) {
   const queryClient = useQueryClient();
 
   // 1. Resume Optimization
-  const getResumeOptimizationQuery = (
+  const useResumeOptimizationQuery = (
     resume: Resume | null, 
     job: Job | Omit<Job, 'id' | 'userId' | 'createdAt' | 'updatedAt'> | null
   ) => {
@@ -103,7 +103,7 @@ export function useCoach(userId: string | undefined) {
   });
 
   // 2. Cover Letter
-  const getCoverLetterQuery = (applicationId: string | undefined) => {
+  const useCoverLetterQuery = (applicationId: string | undefined) => {
     return useQuery<CoverLetter | null>({
       queryKey: ['cover-letter', applicationId],
       queryFn: async () => {
@@ -277,7 +277,7 @@ export function useCoach(userId: string | undefined) {
   });
 
   // 4. Interview Simulation
-  const getSimulationQuery = (applicationId: string | undefined) => {
+  const useSimulationQuery = (applicationId: string | undefined) => {
     return useQuery<InterviewSimulation | null>({
       queryKey: ['simulation', applicationId],
       queryFn: async () => {
@@ -607,7 +607,7 @@ export function useCoach(userId: string | undefined) {
   });
 
   // 5. Post Interview Log (AI Journal)
-  const getPostLogQuery = (applicationId: string | undefined) => {
+  const usePostLogQuery = (applicationId: string | undefined) => {
     return useQuery<PostInterviewLog | null>({
       queryKey: ['post-log', applicationId],
       queryFn: async () => {
@@ -871,7 +871,7 @@ export function useCoach(userId: string | undefined) {
     createdAt: string;
   };
 
-  const getSimulationsHistoryQuery = () => {
+  const useSimulationsHistoryQuery = () => {
     return useQuery<SimHistoryItem[]>({
       queryKey: ['simulations-history', userId],
       queryFn: async () => {
@@ -921,17 +921,17 @@ export function useCoach(userId: string | undefined) {
   });
 
   return {
-    getResumeOptimizationQuery,
+    useResumeOptimizationQuery,
     generateResumeOptimization: generateResumeOptimizationMutation.mutateAsync,
     isGeneratingOptimization: generateResumeOptimizationMutation.isPending,
-    getCoverLetterQuery,
+    useCoverLetterQuery,
     generateCoverLetter: generateCoverLetterMutation.mutateAsync,
     isGeneratingLetter: generateCoverLetterMutation.isPending,
     getInterviewPrepQuery,
     generateInterviewPrep: generateInterviewPrepMutation.mutateAsync,
     isGeneratingPrep: generateInterviewPrepMutation.isPending,
-    getSimulationQuery,
-    getSimulationsHistoryQuery,
+    useSimulationQuery,
+    useSimulationsHistoryQuery,
     deleteSimulation: deleteSimulationMutation.mutateAsync,
     startSimulation: startSimulationMutation.mutateAsync,
     sendMessage: sendMessageMutation.mutateAsync,

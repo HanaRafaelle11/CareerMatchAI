@@ -8,6 +8,7 @@ import { useCheckout } from '../../application/hooks/useCheckout';
 import { useAuth } from '../../../../application/hooks/useAuth';
 import { isSupabaseConfigured, supabase } from '../../../../infrastructure/api/supabaseClient';
 import type { BillingCycle, BillingType } from '../../domain/types/billingTypes';
+import { PLAN_PRICING } from '../../../../domain/config/pricing';
 
 interface CheckoutModalProps {
   isOpen: boolean;
@@ -316,8 +317,8 @@ export function CheckoutModal({ isOpen, onClose, userId, userEmail, userName, pl
                       : 'text-slate-400 hover:text-white hover:bg-slate-900'
                   }`}
                 >
-                  <span>{planSlug === 'test' ? 'Semanal (R$ 5,00)' : 'Semanal (R$ 9,90)'}</span>
-                  <span className="text-[10px] font-normal opacity-80">R$ 9,90 cobrados por semana</span>
+                  <span>{planSlug === 'test' ? 'Semanal (R$ 5,00)' : `Semanal (${PLAN_PRICING.proWeeklyFormatted})`}</span>
+                  <span className="text-[10px] font-normal opacity-80">{PLAN_PRICING.proWeeklyFormatted} cobrados por semana</span>
                 </button>
                 <button
                   type="button"
@@ -329,14 +330,14 @@ export function CheckoutModal({ isOpen, onClose, userId, userEmail, userName, pl
                   }`}
                 >
                   <div className="flex items-center gap-1.5">
-                    <span>{planSlug === 'test' ? 'Mensal (R$ 5,00)' : 'Mensal (R$ 29,90)'}</span>
+                    <span>{planSlug === 'test' ? 'Mensal (R$ 5,00)' : `Mensal (${PLAN_PRICING.proMonthlyFormatted})`}</span>
                     {planSlug !== 'test' && (
                       <span className="bg-emerald-500 text-slate-950 font-black text-[9px] px-1.5 py-0.2 rounded uppercase">
                         -30%
                       </span>
                     )}
                   </div>
-                  <span className="text-[10px] font-normal opacity-80">R$ 29,90 cobrados por mês</span>
+                  <span className="text-[10px] font-normal opacity-80">{PLAN_PRICING.proMonthlyFormatted} cobrados por mês</span>
                 </button>
               </div>
             </div>
@@ -564,7 +565,7 @@ export function CheckoutModal({ isOpen, onClose, userId, userEmail, userName, pl
                   </>
                 ) : (
                   <>
-                    <span>Confirmar Assinatura Pro — {billingCycle === 'WEEKLY' ? 'R$ 9,90/semana' : 'R$ 29,90/mês'}</span>
+                    <span>Confirmar Assinatura Pro — {billingCycle === 'WEEKLY' ? `${PLAN_PRICING.proWeeklyFormatted}/semana` : `${PLAN_PRICING.proMonthlyFormatted}/mês`}</span>
                     <ArrowRight size={18} />
                   </>
                 )}

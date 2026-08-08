@@ -464,28 +464,32 @@ class JobMatchingEngine {
     if (!geminiApiKey) throw new Error("GEMINI_API_KEY não configurada nos segredos do Supabase.");
 
     const prompt = `
-      Você é um especialista em recrutamento e otimização de currículos para ATS (Applicant Tracking Systems).
-      Sua tarefa é otimizar o resumo profissional e as experiências do candidato para a vaga abaixo, sem inventar fatos ou mentiras.
-      Melhore a redação e destaque as palavras-chave solicitadas.
+      Você é um especialista em recrutamento executivo e otimização de currículos para ATS (Applicant Tracking Systems).
+      Sua tarefa é otimizar o resumo profissional e a reestruturação de experiências do candidato para a vaga-alvo abaixo.
+
+      INSTRUÇÕES ESTRITAS:
+      1. RESUMO PROFISSIONAL: Reescreva o resumo profissional destacando alinhamento com a vaga-alvo ("${jobTitle}").
+      2. REESTRUTURAÇÃO DE EXPERIÊNCIAS ("key_experiences"): Para CADA experiência listada no perfil do candidato, reescreva a descrição adaptando o vocabulário, terminologia técnica, verbos de ação e foco para a área/domínio da vaga-alvo ("${jobTitle}"). Destaque competências transferíveis relevantes.
+      3. REGRA DE INTEGRIDADE: NUNCA invente mentiras, empresas falsas, datas falsas ou cargos falsos. Reframe e reescreva apenas os fatos reais apresentados.
 
       JSON Schema de Saída:
       {
-        "optimized_summary": "Resumo profissional reescrito de forma premium...",
+        "optimized_summary": "Resumo profissional reescrito de forma premium e alinhado à vaga...",
         "key_experiences": [
           {
-            "role": "Cargo",
-            "company": "Empresa",
-            "description": "Descrição da experiência aprimorada para dar destaque às competências da vaga"
+            "role": "Cargo original real",
+            "company": "Empresa original real",
+            "description": "Descrição reestruturada com vocabulário e métricas adaptados ao domínio da vaga-alvo"
           }
         ],
-        "missing_keywords": ["competência 1", "competência 2"],
-        "redundant_info": ["informação 1 a reduzir"]
+        "missing_keywords": ["competência 1 da vaga a destacar", "competência 2"],
+        "redundant_info": ["informação irrelevante ao domínio da vaga a reduzir"]
       }
 
       Perfil do Candidato:
       ${JSON.stringify(careerProfile, null, 2)}
 
-      Vaga:
+      Vaga-Alvo:
       Título: ${jobTitle}
       Descrição: ${jobDescription}
     `;

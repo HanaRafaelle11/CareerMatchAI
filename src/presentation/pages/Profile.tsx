@@ -5,7 +5,8 @@ import type { CareerProfileNew, CareerInsight } from '../../application/hooks/us
 import { calcYearsFromExperiences } from '../../application/services/matchingEngine';
 import { Upload, FileText, Calendar, Trash2, AlertCircle, Briefcase, Award, Clock, Activity, Brain, Zap, Info, Sparkles, CheckCircle, ArrowRight } from 'lucide-react';
 import { ResumeOptimizationService } from '../../application/services/ResumeOptimizationService';
-import { isSupabaseConfigured, supabase } from '../../infrastructure/api/supabaseClient';
+import { isSupabaseConfigured } from '../../infrastructure/api/supabaseClient';
+import { JobSearchService } from '../../application/services/JobSearchService';
 import { ProcessingState, ErrorState } from '../components/ErrorVisuals';
 import { AppError } from '../../application/errors/AppError';
 import { ProgressRing, SkillChip, Badge } from '../components/ds';
@@ -204,42 +205,33 @@ export function Profile({
   const setActiveTab = propSetActiveTab;
 
   useEffect(() => {
-    if (!isSupabaseConfigured || !supabase || !user?.id) {
+    // Busca dinâmica baseada no título/domínio real do currículo ativo
+    // Usa a mesma fonte da Descoberta de Vagas — sem regex hardcoded nem query genérica de tabela
+    const activeTitle =
+      (careerProfileNew?.personal as any)?.preferences?.targetRoles?.[0] ||
+      careerProfileNew?.personal?.headline ||
+      careerProfileNew?.experience?.[0]?.role ||
+      '';
+
+    if (!activeTitle || !user?.id) {
       setSuggestedJobs([]);
       return;
     }
-    
-    supabase
-      .from('jobs')
-      .select('id, title, company_name, location')
-      .eq('user_id', user.id)
-      .order('created_at', { ascending: false })
-      .limit(10)
-      .then(({ data, error }) => {
-        if (!error && data && data.length > 0) {
-          const targetRoles = (careerProfileNew?.personal as any)?.preferences?.targetRoles || [];
-          const headline = (careerProfileNew?.personal?.headline || '').toLowerCase();
-          const userSkills = (careerProfileNew?.skills || []).map(s => (typeof s === 'string' ? s : s.name).toLowerCase());
-          
-          const isOfficeCandidate = userSkills.some(s => /customer success|cs|salesforce|react|typescript|node|gerência|gerente|diretor|lead|marketing/i.test(s)) ||
-            targetRoles.some((r: string) => /success|cs|dev|manager|eng|soft|lider|analista|customer/i.test(r.toLowerCase())) ||
-            headline.includes('customer success') || headline.includes('cs');
 
-          const validJobs = data.filter(job => {
-            const titleLower = (job.title || '').toLowerCase();
-            const isUnrelatedRole = /cozinheiro|cozinheira|cozinha|gastronomia|chefe de cozinha|garçom|garçonete|barista|gari|coletor|limpeza|vendedor|vendedora|vendas|comercial|balconista/i.test(titleLower);
-            
-            if (isOfficeCandidate && isUnrelatedRole) {
-              return false; // Descarta vagas fora do domínio do currículo ativo
-            }
-            return true;
-          });
+    let cancelled = false;
+    JobSearchService.searchJobs({
+      keyword: activeTitle,
+      location: (careerProfileNew?.personal as any)?.preferences?.preferredLocations?.[0] || careerProfileNew?.personal?.location || 'Brasil',
+      page: 1
+    }).then(({ results }) => {
+      if (!cancelled) {
+        setSuggestedJobs((results || []).slice(0, 3));
+      }
+    }).catch(() => {
+      if (!cancelled) setSuggestedJobs([]);
+    });
 
-          setSuggestedJobs(validJobs.slice(0, 3));
-        } else {
-          setSuggestedJobs([]);
-        }
-      });
+    return () => { cancelled = true; };
   }, [user?.id, activeResumeVersionId, careerProfileNew]);
 
   useEffect(() => {
@@ -977,7 +969,7 @@ export function Profile({
               </div>
               
               <div className="space-y-3">
-                {versionStats.map(stat => (
+                {versionStats.map((stat: any) => (
                   <div key={stat.resumeId} className="p-3.5 rounded-xl bg-slate-900/40 border border-slate-800 space-y-2">
                     <div className="flex justify-between items-center text-xs">
                       <span className="font-bold text-slate-200">{stat.versionLabel}</span>

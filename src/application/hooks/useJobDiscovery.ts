@@ -1,5 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { JobSearchService } from '../services/JobSearchService';
+import { simplifySearchTitle } from '../services/JobOccupationDictionary';
 import { isSupabaseConfigured, supabase } from '../../infrastructure/api/supabaseClient';
 import { localDB } from '../../infrastructure/storage/localDatabase';
 import type { Job } from '../../domain/models/types';
@@ -14,6 +15,9 @@ export function useJobDiscovery(
   careerProfileNew?: CareerProfileNew | null
 ) {
   const queryClient = useQueryClient();
+
+  // Limiar mínimo de vagas — cascata avança se ficar abaixo deste valor
+  const MIN_RESULTS_THRESHOLD = 8;
 
   const discoveryQuery = useQuery<{ results: Omit<Job, 'id' | 'userId' | 'createdAt' | 'updatedAt'>[]; count: number }>({
     queryKey: [
@@ -38,102 +42,102 @@ export function useJobDiscovery(
       let finalLocation = filters.location;
       let finalRemoteOnly = filters.remoteOnly;
 
-      // ── Normalização de Localização (Cidade + UF) ──
+      // ── Normalização de Localização robusta (aceita nome completo do estado ou sigla) ──
       const normalizeLocationWithUF = (locStr: string): string => {
         if (!locStr) return 'Brasil';
         const clean = locStr.trim();
         if (clean.toLowerCase() === 'brasil' || clean.toLowerCase() === 'remoto') return clean;
 
-        // Se já possui sigla de UF de 2 letras ao final (ex: "São Paulo SP" ou "São Paulo, SP")
-        if (/\s+([A-Z]{2})$/i.test(clean) || /,\s*([A-Z]{2})$/i.test(clean)) {
-          return clean.replace(/,\s*/, ' ');
-        }
-
-        // Mapeamento de principais capitais e regiões metropolitanas do Brasil
-        const ufMap: Record<string, string> = {
-          'são paulo': 'São Paulo SP',
-          'sao paulo': 'São Paulo SP',
-          'rio de janeiro': 'Rio de Janeiro RJ',
-          'belo horizonte': 'Belo Horizonte MG',
-          'curitiba': 'Curitiba PR',
-          'porto alegre': 'Porto Alegre RS',
-          'brasília': 'Brasília DF',
-          'brasilia': 'Brasília DF',
-          'salvador': 'Salvador BA',
-          'fortaleza': 'Fortaleza CE',
-          'recife': 'Recife PE',
-          'campinas': 'Campinas SP',
-          'guarulhos': 'Guarulhos SP',
-          'osasco': 'Osasco SP',
-          'barueri': 'Barueri SP',
-          'santo andré': 'Santo André SP',
-          'santo andre': 'Santo André SP',
-          'são bernardo do campo': 'São Bernardo do Campo SP',
-          'diadema': 'Diadema SP',
-          'niterói': 'Niterói RJ',
-          'niteroi': 'Niterói RJ',
-          'florianópolis': 'Florianópolis SC',
-          'goiânia': 'Goiânia GO',
-          'goiania': 'Goiânia GO',
-          'manaus': 'Manaus AM',
-          'belém': 'Belém PA',
-          'belem': 'Belém PA'
+        // Mapa de nomes completos de estado → sigla (para tratar formato Adzuna: "Florianópolis, Santa Catarina")
+        const stateNameToUF: Record<string, string> = {
+          'acre': 'AC', 'alagoas': 'AL', 'amapá': 'AP', 'amapa': 'AP',
+          'amazonas': 'AM', 'bahia': 'BA', 'ceará': 'CE', 'ceara': 'CE',
+          'distrito federal': 'DF', 'espírito santo': 'ES', 'espirito santo': 'ES',
+          'goiás': 'GO', 'goias': 'GO', 'maranhão': 'MA', 'maranhao': 'MA',
+          'mato grosso do sul': 'MS', 'mato grosso': 'MT',
+          'minas gerais': 'MG', 'pará': 'PA', 'para': 'PA',
+          'paraíba': 'PB', 'paraiba': 'PB', 'paraná': 'PR', 'parana': 'PR',
+          'pernambuco': 'PE', 'piauí': 'PI', 'piaui': 'PI',
+          'rio de janeiro': 'RJ', 'rio grande do norte': 'RN',
+          'rio grande do sul': 'RS', 'rondônia': 'RO', 'rondonia': 'RO',
+          'roraima': 'RR', 'santa catarina': 'SC', 'são paulo': 'SP', 'sao paulo': 'SP',
+          'sergipe': 'SE', 'tocantins': 'TO'
         };
 
-        const key = clean.toLowerCase();
-        return ufMap[key] || `${clean} SP`; // Fallback padrão adiciona UF se ausente
+        // Extrair cidade e estado (formatos: "Cidade, Estado", "Cidade Estado", "Cidade UF")
+        const commaIdx = clean.indexOf(',');
+        let city = commaIdx > 0 ? clean.slice(0, commaIdx).trim() : clean;
+        let stateHint = commaIdx > 0 ? clean.slice(commaIdx + 1).trim() : '';
+
+        // Verificar se já possui sigla UF de 2 letras ao final
+        const ufSuffixMatch = clean.match(/\s+([A-Z]{2})$/i);
+        if (ufSuffixMatch) {
+          const uf = ufSuffixMatch[1].toUpperCase();
+          city = clean.slice(0, clean.lastIndexOf(ufSuffixMatch[0])).trim();
+          return `${city} ${uf}`;
+        }
+
+        // Converter nome completo de estado para sigla
+        if (stateHint) {
+          const uf = stateNameToUF[stateHint.toLowerCase()];
+          if (uf) return `${city} ${uf}`;
+          // Pode já ser uma sigla de 2 letras
+          if (/^[A-Z]{2}$/i.test(stateHint)) return `${city} ${stateHint.toUpperCase()}`;
+        }
+
+        // Mapeamento de capitais conhecidas
+        const cityToUF: Record<string, string> = {
+          'são paulo': 'SP', 'sao paulo': 'SP',
+          'rio de janeiro': 'RJ', 'belo horizonte': 'MG',
+          'curitiba': 'PR', 'porto alegre': 'RS',
+          'brasília': 'DF', 'brasilia': 'DF',
+          'salvador': 'BA', 'fortaleza': 'CE', 'recife': 'PE',
+          'campinas': 'SP', 'guarulhos': 'SP', 'osasco': 'SP',
+          'barueri': 'SP', 'santo andré': 'SP', 'santo andre': 'SP',
+          'são bernardo do campo': 'SP', 'diadema': 'SP',
+          'niterói': 'RJ', 'niteroi': 'RJ',
+          'florianópolis': 'SC', 'florianopolis': 'SC',
+          'goiânia': 'GO', 'goiania': 'GO',
+          'manaus': 'AM', 'belém': 'PA', 'belem': 'PA',
+          'macaé': 'RJ', 'macae': 'RJ', 'vitória': 'ES', 'vitoria': 'ES',
+          'joinville': 'SC', 'blumenau': 'SC', 'londrina': 'PR', 'maringá': 'PR'
+        };
+
+        const cityLower = city.toLowerCase();
+        const mappedUF = cityToUF[cityLower];
+        if (mappedUF) return `${city} ${mappedUF}`;
+
+        // Último recurso: adicionar SP como fallback se nada mapeou
+        return city ? `${city} SP` : 'Brasil';
       };
 
-      // ── Extração de Variações de Título (Do genérico de alto volume ao específico) ──
-      const extractTitleVariations = (rawTitle: string): string[] => {
-        if (!rawTitle) return ['Customer Success'];
-        const clean = rawTitle.trim();
-        const lower = clean.toLowerCase();
-
-        if (lower.includes('customer success') || lower.includes('cs') || lower.includes('sucesso do cliente')) {
-          return ['Customer Success', 'Customer Success Manager', 'Analista de Customer Success', 'Sucesso do Cliente', 'Customer Experience'];
-        }
-        if (lower.includes('desenvolv') || lower.includes('dev') || lower.includes('software') || lower.includes('engineer')) {
-          return ['Desenvolvedor', 'Engenheiro de Software', 'Desenvolvedor Full Stack', 'Desenvolvedor Frontend'];
-        }
-        if (lower.includes('vendas') || lower.includes('account executive') || lower.includes('comercial') || lower.includes('sales')) {
-          return ['Account Executive', 'Executivo de Vendas', 'Consultor de Vendas', 'Vendedor'];
-        }
-        if (lower.includes('produto') || lower.includes('product')) {
-          return ['Product Manager', 'Product Owner', 'Gerente de Produto'];
-        }
-        if (lower.includes('operaç') || lower.includes('operac') || lower.includes('operations')) {
-          return ['Operações', 'Analista de Operações', 'Coordenador de Operações', 'Operations Manager'];
-        }
-
-        // Caso genérico: remove prefixos hierárquicos (masculinos e femininos) e sufixos compostos "& Operations", etc.
-        let core = clean
-          .replace(/^(supervisor[a]?|gerente|coordenador[a]?|analista|especialista|head|diretor[a]?|líder|lider|assistente|auxiliar)\s+(de\s+|em\s+)?/i, '')
-          .replace(/\s*(&|\+|\be\b)\s*(operations|operações|processos|projetos|tech|it|rh|marketing|vendas).*/i, '')
-          .trim();
-
-        if (core.length > 25) core = core.split(/\s+/).slice(0, 2).join(' ');
-        const result = [core, clean].filter(Boolean);
-        return Array.from(new Set(result.length > 0 ? result : [clean]));
+      // Função auxiliar para normalizar apenas o nome da cidade (sem UF) para comparação
+      const extractCityName = (locStr: string): string => {
+        if (!locStr) return '';
+        return locStr
+          .replace(/,.*$/, '')           // remove tudo após vírgula
+          .replace(/\s+[A-Z]{2}$/i, '')  // remove sigla UF ao final
+          .trim()
+          .toLowerCase();
       };
 
+      // ── Busca Inteligente com Cascata de 5 Camadas ──
+      let originalKeyword = '';
 
-      // ── Busca Inteligente Baseada no Perfil Consolidado ──
       if (careerProfileNew) {
         const preferences = (careerProfileNew.personal as any)?.preferences || {};
 
         if (filters.keyword) {
-          const rawK = filters.keyword.trim();
-          const variations = extractTitleVariations(rawK);
-          finalKeywords = [rawK, ...variations.filter(v => v.toLowerCase() !== rawK.toLowerCase())];
+          originalKeyword = filters.keyword.trim();
         } else {
-          // 1. Gerar múltiplas variações de alto volume no mercado
-          const rawRole = preferences.targetRoles?.[0] || careerProfileNew.personal?.headline || careerProfileNew.experience?.[0]?.role || '';
-          const variations = extractTitleVariations(rawRole);
-          finalKeywords = variations;
+          originalKeyword = preferences.targetRoles?.[0] || careerProfileNew.personal?.headline || careerProfileNew.experience?.[0]?.role || '';
         }
 
-        // 2. Otimizar localização (cidade + UF)
+        // Gerar cascata de candidatos ordenados do mais específico ao mais amplo
+        finalKeywords = simplifySearchTitle(originalKeyword);
+        if (finalKeywords.length === 0) finalKeywords = [originalKeyword || 'Vagas'];
+
+        // Otimizar localização
         if (!finalLocation) {
           const rawLoc = preferences.preferredLocations?.[0] || careerProfileNew.personal?.location || 'Brasil';
           finalLocation = normalizeLocationWithUF(rawLoc);
@@ -141,45 +145,67 @@ export function useJobDiscovery(
           finalLocation = normalizeLocationWithUF(finalLocation);
         }
 
-        // 3. Mapear modalidade remota
         if (finalRemoteOnly === undefined) {
           finalRemoteOnly = preferences.preferredWorkModes?.includes('remote') ?? true;
         }
       } else {
-        // Fallback básico se sem currículo/perfil estruturado
-        finalKeywords = [filters.keyword || 'Vagas'];
+        originalKeyword = filters.keyword || 'Vagas';
+        finalKeywords = [originalKeyword];
         finalLocation = normalizeLocationWithUF(finalLocation || 'Brasil');
       }
 
-      // Limitar a no máximo 3 termos paralelos para evitar limites de tráfego
-      const keywordsToSearch = finalKeywords.filter(Boolean).slice(0, 3);
-      if (keywordsToSearch.length === 0) {
-        keywordsToSearch.push('Customer Success');
-      }
+      // ── Cascata de 5 Camadas com limiar mínimo ──
+      let searchResult = { results: [] as any[], count: 0, providerUsed: '' };
+      let fallbackLevel = 0;
+      let fallbackTermUsed = finalKeywords[0] || originalKeyword;
 
-      let searchResult = await JobSearchService.searchJobs({
-        keyword: keywordsToSearch[0],
-        keywords: keywordsToSearch,
-        location: finalLocation,
-        remoteOnly: finalRemoteOnly,
-        workModes: filters.workModes,
-        seniority: filters.seniority,
-        page: filters.page || 1
-      });
-
-      // FALLBACK AUTOMÁTICO: Se o 1º termo retornar 0 vagas, tenta a próxima variação mais genérica
-      if ((!searchResult.results || searchResult.results.length === 0) && keywordsToSearch.length > 1) {
-        console.log(`[useJobDiscovery] 0 vagas retornadas para "${keywordsToSearch[0]}". Executando fallback automático para "${keywordsToSearch[1]}"...`);
-        searchResult = await JobSearchService.searchJobs({
-          keyword: keywordsToSearch[1],
-          keywords: keywordsToSearch.slice(1),
-          location: finalLocation,
+      const runSearch = async (keyword: string, location: string) => {
+        return JobSearchService.searchJobs({
+          keyword,
+          keywords: [keyword],
+          location,
           remoteOnly: finalRemoteOnly,
           workModes: filters.workModes,
           seniority: filters.seniority,
           page: filters.page || 1
         });
+      };
+
+      // Camada 1: termo literal do currículo
+      const layer1Term = finalKeywords[0];
+      searchResult = await runSearch(layer1Term, finalLocation) as any;
+      fallbackTermUsed = layer1Term;
+
+      // Camadas 2-4: avançar quando resultado abaixo do limiar
+      if ((searchResult.results?.length || 0) < MIN_RESULTS_THRESHOLD) {
+        for (let i = 1; i < finalKeywords.length; i++) {
+          console.log(`[useJobDiscovery] Cascata camada ${i + 1}: "${finalKeywords[i]}" (${searchResult.results?.length || 0} < ${MIN_RESULTS_THRESHOLD} vagas)`);
+          fallbackLevel = i;
+          const nextResult = await runSearch(finalKeywords[i], finalLocation) as any;
+          if ((nextResult.results?.length || 0) >= MIN_RESULTS_THRESHOLD) {
+            searchResult = nextResult;
+            fallbackTermUsed = finalKeywords[i];
+            break;
+          }
+          // Usar o que tiver mais vagas
+          if ((nextResult.results?.length || 0) > (searchResult.results?.length || 0)) {
+            searchResult = nextResult;
+            fallbackTermUsed = finalKeywords[i];
+          }
+        }
       }
+
+      // Camada 5: ampliação geográfica (busca em todo o Brasil / remoto)
+      if ((searchResult.results?.length || 0) < MIN_RESULTS_THRESHOLD && finalLocation !== 'Brasil' && !filters.keyword) {
+        console.log(`[useJobDiscovery] Cascata camada 5: ampliando para Brasil (${searchResult.results?.length || 0} vagas em ${finalLocation})`);
+        fallbackLevel = 5;
+        const brazilResult = await runSearch(fallbackTermUsed, 'Brasil') as any;
+        if ((brazilResult.results?.length || 0) > (searchResult.results?.length || 0)) {
+          searchResult = brazilResult;
+        }
+      }
+
+      console.log(`[useJobDiscovery] Resultado final: ${searchResult.results?.length} vagas | termo: "${fallbackTermUsed}" | fallbackLevel: ${fallbackLevel}`);
 
       // ── Pós-processamento inteligente e Ordenação das vagas ──
       if (careerProfileNew) {
@@ -258,7 +284,6 @@ export function useJobDiscovery(
           let score = 0;
           const jobTitleLower = job.title.toLowerCase();
           const jobDescLower = job.description.toLowerCase();
-          const jobLocLower = job.location.toLowerCase();
 
           // A. Cargo (targetRoles)
           targetRoles.forEach((role: string) => {
@@ -267,9 +292,11 @@ export function useJobDiscovery(
             }
           });
 
-          // B. Localização
+          // B. Localização (compara cidade sem UF para tolerar descasamento de formato Adzuna)
           preferredLocations.forEach((loc: string) => {
-            if (jobLocLower.includes(loc.toLowerCase())) {
+            const preferredCity = extractCityName(loc);
+            const jobCity = extractCityName(job.location);
+            if (jobCity && preferredCity && (jobCity.includes(preferredCity) || preferredCity.includes(jobCity))) {
               score += 10;
             }
           });
@@ -336,7 +363,7 @@ export function useJobDiscovery(
         }))
       }, null, 2));
 
-      return searchResult;
+      return { ...searchResult, fallbackLevel, fallbackTermUsed };
     },
     enabled: !!userId, // Habilitado sempre que o usuário estiver logado
     retry: false, // Evita retrying infinito em caso de chaves de API ausentes
@@ -428,6 +455,8 @@ export function useJobDiscovery(
     discoveredJobs: discoveryQuery.data?.results || [],
     totalCount: discoveryQuery.data?.count || discoveryQuery.data?.results.length || 0,
     totalApiCount: discoveryQuery.data?.count || 0,
+    fallbackLevel: (discoveryQuery.data as any)?.fallbackLevel || 0,
+    fallbackTermUsed: (discoveryQuery.data as any)?.fallbackTermUsed || '',
     isLoading: discoveryQuery.isLoading,
     isError: discoveryQuery.isError,
     error: discoveryQuery.error,

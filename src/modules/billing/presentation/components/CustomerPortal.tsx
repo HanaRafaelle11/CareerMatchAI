@@ -4,6 +4,7 @@ import {
   Sparkles, CheckCircle2, XCircle, Clock, ExternalLink, RefreshCw
 } from 'lucide-react';
 import { supabase } from '../../../../infrastructure/api/supabaseClient';
+import { PLAN_PRICING } from '../../../../domain/config/pricing';
 
 interface CustomerPortalProps {
   userId?: string;
@@ -181,7 +182,7 @@ export function CustomerPortal({ userId, onOpenCheckout }: CustomerPortalProps) 
             </span>
             {subscription?.billing_cycle && (
               <span className="text-[10px] text-slate-300 font-medium px-2 py-0.5 rounded bg-slate-800/80 border border-slate-700">
-                {subscription.billing_cycle === 'WEEKLY' ? 'Ciclo Semanal (R$ 9,90/sem)' : 'Ciclo Mensal (R$ 29,90/mês)'}
+                {subscription.billing_cycle === 'WEEKLY' ? `Ciclo Semanal (${PLAN_PRICING.proWeeklyFormatted}/sem)` : `Ciclo Mensal (${PLAN_PRICING.proMonthlyFormatted}/mês)`}
               </span>
             )}
           </div>

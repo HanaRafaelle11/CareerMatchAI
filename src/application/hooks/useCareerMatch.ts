@@ -917,7 +917,7 @@ export function useMatches(userId: string | undefined, resumeId?: string | null)
     enabled: !!userId,
   });
 
-  const getMatchDetailsQuery = (matchId: string) => {
+  const useMatchDetailsQuery = (matchId: string) => {
     return useQuery({
       queryKey: ['match-details', matchId],
       queryFn: async () => {
@@ -984,6 +984,6 @@ export function useMatches(userId: string | undefined, resumeId?: string | null)
     isLoading: matchesQuery.isLoading,
     calculateMatch: calculateMatchMutation.mutateAsync,
     isCalculating: calculateMatchMutation.isPending,
-    getMatchDetails: getMatchDetailsQuery
+    getMatchDetails: useMatchDetailsQuery
   };
 }

@@ -101,7 +101,7 @@ export function CareerProfilePage({
         setIsApproved(true);
       }
       setTimeout(() => setSuccessMsg(''), 3000);
-    } catch (err: any) {
+    } catch (_err: any) {
       setErrorMsg('Erro ao salvar as alterações do perfil.');
     }
   };

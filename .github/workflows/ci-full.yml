@@ -1,0 +1,146 @@
+name: Continuous Integration & Full Quality Gate
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+
+jobs:
+  # ── Estágio 1: Linting ──
+  lint:
+    name: 1. Lint Codebase
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22.x'
+          cache: 'npm'
+      - run: npm ci
+      - run: npm run lint
+
+  # ── Estágio 2: Typecheck (TypeScript Strict) ──
+  typecheck:
+    name: 2. TypeScript Typecheck
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22.x'
+          cache: 'npm'
+      - run: npm ci
+      - run: npx tsc -b
+
+  # ── Estágio 3: Unit Tests (Vitest - Lógica de Negócio Mockada) ──
+  unit-tests:
+    name: 3. Unit Tests (Vitest)
+    runs-on: ubuntu-latest
+    needs: [lint, typecheck]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22.x'
+          cache: 'npm'
+      - run: npm ci
+      - run: npx vitest run tests/unit tests/monetizationEntitlements.test.ts
+
+  # ── Estágio 4: Build de Produção ──
+  build:
+    name: 4. Build Bundle
+    runs-on: ubuntu-latest
+    needs: [unit-tests]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22.x'
+          cache: 'npm'
+      - run: npm ci
+      - run: npm run build
+
+  # ── Estágio 5: Vercel Preview Deploy (somente em Pull Requests) ──
+  preview-deploy:
+    name: 5. Vercel Preview Deploy
+    runs-on: ubuntu-latest
+    needs: [build]
+    if: github.event_name == 'pull_request'
+    outputs:
+      preview_url: ${{ steps.deploy.outputs.preview_url }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22.x'
+          cache: 'npm'
+      - run: npm ci
+      - name: Install Vercel CLI
+        run: npm install -g vercel@latest
+      - name: Pull Vercel Environment Information
+        run: vercel pull --yes --environment=preview --token=${{ secrets.VERCEL_TOKEN }}
+        env:
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+      - name: Build Project Artifacts
+        run: vercel build --token=${{ secrets.VERCEL_TOKEN }}
+        env:
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+      - name: Deploy Project Artifacts to Vercel
+        id: deploy
+        run: |
+          url=$(vercel deploy --prebuilt --token=${{ secrets.VERCEL_TOKEN }})
+          echo "preview_url=$url" >> $GITHUB_OUTPUT
+        env:
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+
+  # ── Estágio 6: E2E Tests contra Preview Deploy (somente em PRs) ──
+  e2e-preview:
+    name: 6. E2E Tests (Headless contra Preview)
+    runs-on: ubuntu-latest
+    needs: [preview-deploy]
+    if: github.event_name == 'pull_request'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22.x'
+          cache: 'npm'
+      - run: npm ci
+      - run: npx playwright install --with-deps
+      - name: Run E2E Tests against Preview URL
+        run: npx playwright test tests/e2e/job_search_cascade.spec.ts tests/e2e/ai_coach_domain.spec.ts tests/e2e/paywall_pricing.spec.ts
+        env:
+          BASE_URL: ${{ needs.preview-deploy.outputs.preview_url }}
+
+  # ── Estágio 7: Smoke Test Pós-Deploy em Produção (somente em pushes para main) ──
+  smoke-test-production:
+    name: 7. Production Smoke Test (https://vocentro.com.br)
+    runs-on: ubuntu-latest
+    needs: [build]
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22.x'
+          cache: 'npm'
+      - run: npm ci
+      - run: npx playwright install --with-deps
+      - name: Aguardar Deploy da Vercel (30s)
+        run: sleep 30
+      - name: Validação HTTP 200 em Produção
+        run: |
+          STATUS=$(curl -s -o /dev/null -w "%{http_code}" https://vocentro.com.br)
+          echo "Status HTTP Produção: $STATUS"
+          if [ "$STATUS" -ne 200 ]; then
+            echo "ERRO CRÍTICO: Produção https://vocentro.com.br não retornou HTTP 200!"
+            exit 1
+          fi
+      - name: Executar Smoke Test E2E em Produção
+        run: npx playwright test tests/e2e/paywall_pricing.spec.ts tests/e2e/job_search_cascade.spec.ts
+        env:
+          BASE_URL: https://vocentro.com.br

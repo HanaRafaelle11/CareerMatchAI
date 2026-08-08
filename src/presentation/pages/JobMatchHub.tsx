@@ -11,7 +11,7 @@ import { MatchingEngine } from '../../application/services/matchingEngine';
 import type { Job, Resume, Match, CareerProfile, JobFeedbackReason } from '../../domain/models/types';
 import type { CareerProfileNew } from '../../application/hooks/useMyProfileAi';
 import { useEscapeToClose } from '../../application/hooks/useEscapeToClose';
-import { Play, Clipboard, Award, CheckCircle, AlertTriangle, AlertCircle, X, ChevronRight, BookOpen, Plus, Search, MapPin, Loader2, ArrowUpRight, Flame, Sparkles, Trash2, Briefcase, Heart, DollarSign, Building, FileText, Printer, Check, Target, Zap, ThumbsUp, ThumbsDown, RotateCcw, Filter } from 'lucide-react';
+import { Play, Clipboard, Award, CheckCircle, AlertTriangle, AlertCircle, X, ChevronRight, BookOpen, Plus, Search, MapPin, Loader2, ArrowUpRight, Flame, Sparkles, Trash2, Briefcase, Heart, DollarSign, Building, FileText, Printer, Check, Target, Zap, ThumbsUp, ThumbsDown, RotateCcw, Filter, Info } from 'lucide-react';
 import { useJobTrash } from '../../application/hooks/useJobTrash';
 
 import { isSupabaseConfigured, supabase } from '../../infrastructure/api/supabaseClient';
@@ -208,6 +208,8 @@ export function JobMatchHub({
     isJobUnlocked,
     canUnlockJob,
     unlockJob,
+    canImproveResume,
+    canGenerateCoverLetter,
     paywallState, 
     triggerPaywall, 
     closePaywall 
@@ -1258,6 +1260,8 @@ export function JobMatchHub({
   const { 
     discoveredJobs, 
     totalCount,
+    fallbackLevel,
+    fallbackTermUsed,
     isLoading: isLoadingDiscovery, 
     isError: isErrorDiscovery,
     error: errorDiscovery,
@@ -3521,7 +3525,22 @@ export function JobMatchHub({
                           ].map(tab => (
                             <button
                               key={tab.id}
-                              onClick={() => setCoachTab(tab.id as any)}
+                              onClick={() => {
+                                if (tab.id === 'coach-evaluation') {
+                                  setCoachTab('coach-evaluation');
+                                  return;
+                                }
+                                // Bloqueia a geração com base na cota semanal compartilhada
+                                const hasEntitlement = tab.id === 'cover-letter' 
+                                  ? canGenerateCoverLetter(selectedJobId || undefined)
+                                  : canImproveResume(selectedJobId || undefined);
+
+                                if (!isPro && !hasEntitlement) {
+                                  triggerPaywall('weekly_limit');
+                                  return;
+                                }
+                                setCoachTab(tab.id as any);
+                              }}
                               type="button"
                               className={`px-3 py-1.5 rounded-lg font-bold text-[10px] transition-all ${
                                 coachTab === tab.id
@@ -4035,6 +4054,14 @@ export function JobMatchHub({
 
         return (
           <div className="space-y-6">
+            {fallbackLevel > 0 && fallbackTermUsed && (
+              <div className="p-3.5 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-300 text-xs flex items-center gap-2 animate-fade-in">
+                <Info size={16} className="text-amber-400 shrink-0" />
+                <span>
+                  Buscando por <strong>"{fallbackTermUsed}"</strong> (ajuste de inteligência nível {fallbackLevel}) para garantir um bom volume de vagas relevantes.
+                </span>
+              </div>
+            )}
             {/* Warning de API não configurada */}
             {isErrorDiscovery && errorDiscovery?.message?.includes('API_NOT_CONFIGURED') ? (
               <div className="py-12 border border-dashed border-slate-800 rounded-2xl flex flex-col items-center justify-center text-slate-400 max-w-lg mx-auto p-8 bg-slate-900/10">

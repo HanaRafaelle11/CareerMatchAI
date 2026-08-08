@@ -120,7 +120,7 @@ export function useEntitlements(userId?: string) {
           const isPlanPro = profile.plan === 'pro';
           const isFlagPro = profile.is_pro === true;
           const isWhitelistedProEmail = (profile.email || authUserEmail) && 
-            ['rafaelaletbey@gmail.com', 'admin@vocentro.com.br'].includes((profile.email || authUserEmail).toLowerCase());
+            ['hanarafaelle11@gmail.com', 'rafaelaletbey@gmail.com', 'admin@vocentro.com.br'].includes((profile.email || authUserEmail).toLowerCase());
 
           if (isRoleAdmin || isPlanPro || isFlagPro || isWhitelistedProEmail) {
             userIsPro = true;
@@ -131,7 +131,7 @@ export function useEntitlements(userId?: string) {
       // Fallback 3: Checar user_metadata do Supabase Auth e Email Whitelist
       if (!userIsPro) {
         const isMetadataPro = authUserMetadata.plan === 'pro' || authUserMetadata.role === 'admin' || authUserMetadata.is_pro === true;
-        const isEmailPro = authUserEmail && ['rafaelaletbey@gmail.com', 'admin@vocentro.com.br'].includes(authUserEmail.toLowerCase());
+        const isEmailPro = authUserEmail && ['hanarafaelle11@gmail.com', 'rafaelaletbey@gmail.com', 'admin@vocentro.com.br'].includes(authUserEmail.toLowerCase());
         if (isMetadataPro || isEmailPro) {
           userIsPro = true;
         }
@@ -158,7 +158,7 @@ export function useEntitlements(userId?: string) {
       const { count: appCount } = await supabase
         .from('applications')
         .select('id', { count: 'exact', head: true })
-        .eq('user_id', userId)
+        .eq('user_id', activeUserId)
         .gte('created_at', weekStartIso);
 
       setWeeklyApplicationsCount(appCount || 0);
@@ -168,7 +168,7 @@ export function useEntitlements(userId?: string) {
       const { data: unlockedRows } = await supabase
         .from('user_unlocked_jobs')
         .select('job_id')
-        .eq('user_id', userId)
+        .eq('user_id', activeUserId)
         .eq('week_start', weekStartStr);
 
       let dbUnlocked = (unlockedRows || []).map(r => r.job_id).filter(Boolean);
@@ -178,7 +178,7 @@ export function useEntitlements(userId?: string) {
         const { data: unlockLogs } = await supabase
           .from('activity_logs')
           .select('entity_id')
-          .eq('user_id', userId)
+          .eq('user_id', activeUserId)
           .eq('event_type', 'job_unlocked')
           .gte('created_at', weekStartIso);
 
@@ -202,7 +202,7 @@ export function useEntitlements(userId?: string) {
       const { count: resumeCount } = await supabase
         .from('resume_versions')
         .select('id', { count: 'exact', head: true })
-        .eq('user_id', userId);
+        .eq('user_id', activeUserId);
 
       setResumeVersionsCount(resumeCount || 0);
     } catch (err) {
@@ -214,6 +214,15 @@ export function useEntitlements(userId?: string) {
 
   useEffect(() => {
     checkStatus();
+
+    if (supabase) {
+      const { data: authListener } = supabase.auth.onAuthStateChange(() => {
+        checkStatus();
+      });
+      return () => {
+        authListener?.subscription?.unsubscribe();
+      };
+    }
   }, [checkStatus]);
 
   // Cota unificada semanal de vagas desbloqueadas (limite: 3 vagas/semana para Free)

@@ -322,37 +322,171 @@ serve(async (req: Request) => {
           }
         }
       }
-    } else if (eventType === 'PAYMENT_OVERDUE' || eventType === 'PAYMENT_DELETED' || eventType === 'PAYMENT_REFUSED') {
+    } else if (eventType === 'PAYMENT_OVERDUE' || eventType === 'PAYMENT_REFUSED') {
+      // PAYMENT_OVERDUE: pagamento venceu sem ser pago (PIX sem pagamento, boleto expirado)
+      // PAYMENT_REFUSED: cobrança recorrente de cartão recusada pelo emissor
+      // Ambos aplicam o mesmo tratamento: grace period de 1 dia antes de revogar o acesso Pro.
+
       const { data: subs } = await adminClient
         .from('subscriptions')
-        .select('id, current_period_end, status, user_id')
-        .eq('gateway_subscription_id', gatewaySubId)
+        .select('id, current_period_end, status, user_id, billing_cycle')
+        .or(`gateway_subscription_id.eq.${gatewaySubId},gateway_subscription_id.eq.${gatewayPayId}`)
         .limit(1);
 
       if (subs?.[0]) {
-        globalUserId = subs[0].user_id;
-        await adminClient.from('invoices').update({ status: 'overdue' }).eq('gateway_invoice_id', gatewayPayId);
+        const sub = subs[0];
+        globalUserId = sub.user_id;
 
-        const hasActivePeriod = Boolean(subs[0].current_period_end && new Date(subs[0].current_period_end) > new Date());
-        if (!hasActivePeriod) {
-          await adminClient.from('subscriptions').update({ status: 'past_due' }).eq('id', subs[0].id);
+        // 1. Marcar invoice como vencida
+        await adminClient
+          .from('invoices')
+          .update({ status: 'overdue' })
+          .eq('gateway_invoice_id', gatewayPayId);
+
+        const now = new Date();
+        const GRACE_PERIOD_DAYS = 1; // Grace period definido pela operação: 1 dia
+        const gracePeriodEnd = new Date(now.getTime() + GRACE_PERIOD_DAYS * 24 * 60 * 60 * 1000);
+
+        // 2. Se o status já é past_due ou canceled, não aplica grace period novamente
+        if (sub.status === 'active' || sub.status === 'trialing' || sub.status === 'grace_period') {
+          await adminClient
+            .from('subscriptions')
+            .update({
+              status: 'grace_period',
+              grace_period_end: gracePeriodEnd.toISOString(),
+              overdue_at: now.toISOString()
+            })
+            .eq('id', sub.id);
+
+          console.log(`[billing-webhook] Assinatura ${sub.id} do usuário ${sub.user_id} entrou em grace_period. Acesso Pro mantido até: ${gracePeriodEnd.toISOString()}`);
+
+          // 3. Notificar o usuário sobre o vencimento e o grace period
+          const resendApiKey = Deno.env.get('RESEND_API_KEY');
+          if (resendApiKey && sub.user_id) {
+            try {
+              const { data: userProfile } = await adminClient
+                .from('profiles')
+                .select('full_name, email')
+                .eq('id', sub.user_id)
+                .maybeSingle();
+
+              const recipientEmail = userProfile?.email || paymentData?.customerEmail || paymentData?.email;
+              if (recipientEmail) {
+                const recipientName = userProfile?.full_name || recipientEmail.split('@')[0] || 'Assinante VoCentro';
+                const graceDateFormatted = gracePeriodEnd.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' });
+                const fromEmail = Deno.env.get('DIGEST_FROM_EMAIL') || 'VoCentro Suporte <noreply@vocentro.com.br>';
+
+                const emailHtml = `
+                  <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 24px; border: 2px solid #f59e0b; border-radius: 16px; background-color: #fffbeb;">
+                    <div style="text-align: center; margin-bottom: 24px; padding-bottom: 16px; border-bottom: 1px solid #fde68a;">
+                      <h1 style="color: #2563eb; margin: 0; font-size: 24px; font-weight: bold;">VoCentro</h1>
+                      <p style="color: #64748b; font-size: 13px; margin-top: 4px;">Plataforma de Carreira com IA</p>
+                    </div>
+                    <h2 style="color: #92400e; margin-top: 0; font-size: 18px;">⚠️ Pagamento Vencido — Você tem 1 dia para regularizar</h2>
+                    <p style="font-size: 14px; color: #78350f; line-height: 1.6;">
+                      Olá, <strong>${recipientName}</strong>! Identificamos que o pagamento da sua assinatura <strong>VoCentro PRO</strong> não foi confirmado.
+                    </p>
+                    <p style="font-size: 14px; color: #78350f; line-height: 1.6;">
+                      Seu acesso PRO está mantido até <strong>${graceDateFormatted}</strong>. Após essa data, os recursos exclusivos serão suspensos até a regularização do pagamento.
+                    </p>
+                    <div style="text-align: center; margin: 28px 0;">
+                      <a href="https://vocentro.com.br" target="_blank" style="background-color: #f59e0b; color: #1c1917; padding: 14px 28px; text-decoration: none; font-weight: bold; border-radius: 10px; font-size: 14px; display: inline-block;">💳 Regularizar Pagamento</a>
+                    </div>
+                    <p style="font-size: 12px; color: #92400e; line-height: 1.5; text-align: center; margin-top: 24px;">
+                      Dúvidas? Entre em contato via <a href="mailto:suporte@vocentro.com.br" style="color: #2563eb;">suporte@vocentro.com.br</a>.
+                    </p>
+                  </div>
+                `;
+
+                await fetch('https://api.resend.com/emails', {
+                  method: 'POST',
+                  headers: { 'Authorization': `Bearer ${resendApiKey}`, 'Content-Type': 'application/json' },
+                  body: JSON.stringify({
+                    from: fromEmail,
+                    to: [recipientEmail],
+                    subject: '⚠️ Pagamento Vencido — Seu acesso VoCentro PRO expira em 1 dia',
+                    html: emailHtml
+                  })
+                });
+              }
+            } catch (emailErr: any) {
+              console.error('[billing-webhook] Falha ao enviar e-mail de aviso de grace period:', emailErr.message);
+            }
+          }
+        } else {
+          // Já estava em past_due ou similar — apenas registrar no log de atividade
+          await adminClient.from('activity_logs').insert({
+            user_id: sub.user_id,
+            event_type: 'payment_overdue_already_past_due',
+            metadata: { gateway: 'asaas', payment_id: gatewayPayId, event_type: eventType }
+          });
+          console.log(`[billing-webhook] Assinatura ${sub.id} já estava em status ${sub.status}. Nenhuma ação adicional.`);
         }
+
+        // 4. Log de atividade
+        await adminClient.from('activity_logs').insert({
+          user_id: sub.user_id,
+          event_type: 'payment_overdue_webhook',
+          metadata: {
+            gateway: 'asaas',
+            payment_id: gatewayPayId,
+            event_type: eventType,
+            grace_period_end: gracePeriodEnd.toISOString()
+          }
+        });
+      } else {
+        console.warn(`[billing-webhook] ${eventType}: nenhuma assinatura encontrada para gateway_subscription_id=${gatewaySubId} ou ${gatewayPayId}`);
       }
 
-      // Disparar Alerta Crítico no Resend para Cobrança Recusada/Vencida
+      // 5. Alerta interno crítico
       sendCriticalCheckoutAlert({
         eventId,
         userId: globalUserId,
         paymentId: gatewayPayId,
         eventType,
-        errorMessage: `Pagamento recusado ou vencido no Asaas (Status: ${eventType}).`
+        errorMessage: `Pagamento recusado ou vencido no Asaas (Status: ${eventType}). Grace period de 1 dia aplicado.`
       });
+
+    } else if (eventType === 'PAYMENT_DELETED') {
+      // PAYMENT_DELETED: pagamento foi excluído manualmente — cancelamento imediato, sem grace period.
+      const { data: subs } = await adminClient
+        .from('subscriptions')
+        .select('id, user_id')
+        .or(`gateway_subscription_id.eq.${gatewaySubId},gateway_subscription_id.eq.${gatewayPayId}`)
+        .limit(1);
+
+      if (subs?.[0]) {
+        globalUserId = subs[0].user_id;
+        await adminClient
+          .from('subscriptions')
+          .update({
+            status: 'past_due',
+            overdue_at: new Date().toISOString(),
+            grace_period_end: null
+          })
+          .eq('id', subs[0].id);
+
+        await adminClient
+          .from('invoices')
+          .update({ status: 'overdue' })
+          .eq('gateway_invoice_id', gatewayPayId);
+
+        console.log(`[billing-webhook] PAYMENT_DELETED: assinatura ${subs[0].id} marcada como past_due imediatamente (sem grace period).`);
+
+        await adminClient.from('activity_logs').insert({
+          user_id: subs[0].user_id,
+          event_type: 'payment_deleted_webhook',
+          metadata: { gateway: 'asaas', payment_id: gatewayPayId }
+        });
+      }
+
     } else if (eventType === 'SUBSCRIPTION_DELETED' || eventType === 'SUBSCRIPTION_CANCELLED') {
       await adminClient
         .from('subscriptions')
-        .update({ status: 'canceled', canceled_at: new Date().toISOString() })
-        .eq('gateway_subscription_id', gatewaySubId);
-    }
+        .update({ status: 'canceled', canceled_at: new Date().toISOString(), grace_period_end: null })
+        .or(`gateway_subscription_id.eq.${gatewaySubId},gateway_subscription_id.eq.${gatewayPayId}`);
+
+      console.log(`[billing-webhook] ${eventType}: assinatura cancelada para gateway_subscription_id=${gatewaySubId}`);
 
     await adminClient
       .from('webhook_logs')

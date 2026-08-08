@@ -116,12 +116,12 @@ async function callGeminiWithFallback(
   geminiApiKey: string,
   responseMimeType: string | undefined = undefined
 ): Promise<{ resJson: any; selectedModel: string }> {
-  // DEPRECATION REMINDER: The older models (e.g. Gemini 2.x/2.5 family) have been retired.
-  // The primary model chain uses the latest active Gemini tier (Gemini 3.x family).
+  // Cadeia de modelos Gemini ativos (verificada em agosto/2026).
+  // Ordem: primário mais capaz → fallbacks progressivamente mais leves.
   const modelsToTry = [
-    'gemini-3.6-flash',       // Modelo Primário
-    'gemini-3.5-flash',       // Fallback Secundário
-    'gemini-3.5-flash-lite'   // Fallback Terciário
+    'gemini-2.5-flash',       // Modelo Primário (mais capaz e custo-eficiente)
+    'gemini-2.0-flash',       // Fallback Secundário
+    'gemini-1.5-flash'        // Fallback Terciário (maior disponibilidade)
   ];
 
   let lastError: any = null;
@@ -313,7 +313,7 @@ class JobMatchingEngine {
       throw new Error("GEMINI_API_KEY não configurada nos segredos do Supabase.");
     }
 
-    const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.6-flash:generateContent?key=${geminiApiKey}`;
+    const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${geminiApiKey}`;
 
     const prompt = `
       Você é o motor de match semântico e recrutador automatizado do Vocentro.
@@ -513,7 +513,7 @@ class JobMatchingEngine {
     const geminiApiKey = Deno.env.get('GEMINI_API_KEY');
     if (!geminiApiKey) throw new Error("GEMINI_API_KEY não configurada nos segredos do Supabase.");
 
-    const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.6-flash:generateContent?key=${geminiApiKey}`;
+    const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${geminiApiKey}`;
 
     const prompt = `
       Você é um redator profissional de carreiras.
@@ -569,7 +569,7 @@ class JobMatchingEngine {
     const geminiApiKey = Deno.env.get('GEMINI_API_KEY');
     if (!geminiApiKey) throw new Error("GEMINI_API_KEY não configurada nos segredos do Supabase.");
 
-    const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.6-flash:generateContent?key=${geminiApiKey}`;
+    const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${geminiApiKey}`;
 
     const prompt = `
       Você é um preparador profissional de entrevistas de emprego.

@@ -59,15 +59,22 @@ export function useEntitlements(userId?: string) {
       // 1. Status de Assinatura PRO
       const { data: sub } = await supabase
         .from('subscriptions')
-        .select('status, current_period_end')
+        .select('status, current_period_end, grace_period_end')
         .eq('user_id', userId)
         .order('created_at', { ascending: false })
         .limit(1)
         .maybeSingle();
 
+      // Usuário cancelou mas o período pago ainda não expirou (cancelamento honrado até o fim)
       const isUnexpiredCanceled = sub?.status === 'canceled' && sub?.current_period_end && new Date(sub.current_period_end) > new Date();
-      const hasUnexpiredPeriod = Boolean(sub?.current_period_end && new Date(sub.current_period_end) > new Date());
-      const userIsPro = Boolean(sub && (sub.status === 'active' || sub.status === 'trialing' || isUnexpiredCanceled || hasUnexpiredPeriod));
+      // Usuário está em grace period (1 dia após vencimento) e ele ainda não expirou
+      const isInActiveGracePeriod = sub?.status === 'grace_period' && sub?.grace_period_end && new Date(sub.grace_period_end) > new Date();
+      // Assinatura ativa ou em trial
+      const isActiveOrTrialing = Boolean(sub && (sub.status === 'active' || sub.status === 'trialing'));
+
+      // isPro = true em: active, trialing, canceled-com-período, grace_period-ainda-válido
+      // isPro = false em: past_due, grace_period-expirado, canceled-expirado, null
+      const userIsPro = isActiveOrTrialing || Boolean(isUnexpiredCanceled) || Boolean(isInActiveGracePeriod);
       setIsPro(userIsPro);
 
       // 2. Contar Candidaturas na Semana Calendário (Reset toda Segunda 00:00)

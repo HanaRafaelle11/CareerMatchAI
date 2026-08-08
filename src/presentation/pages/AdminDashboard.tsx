@@ -593,9 +593,10 @@ export function AdminDashboard({ userId }: AdminDashboardProps) {
       const lCount = lRes.count || 0;
       const sCount = sRes.count || 0;
 
-      // Metodologia Dinâmica Contínua de Custo:
-      // 1. Base Histórica Não-Registrada (GCP Console): R$ 24,19 (período pré-telemetria)
-      // 2. Telemetria Dinâmica (ai_usage_logs): (input_tokens * $0.075/1M + output_tokens * $0.30/1M + grounding * $0.035) × Câmbio (R$ 5,40)
+      // Metodologia Dinâmica Contínua com Cutoff Date de Transição (09/08/2026):
+      // 1. Telemetria Dinâmica por Token (ai_usage_logs): (input_tokens * $0.075/1M + output_tokens * $0.30/1M) × 5.40 BRL
+      // 2. Base Histórica Não-Registrada Pré-Cutoff (2026-08-09T00:00:00Z): R$ 24,19 BRL
+      const CUTOFF_DATE = '2026-08-09T00:00:00Z';
       const totalEstimatedCalls = Math.max(totalCalls, mCount + oCount + lCount + sCount);
       const historicalUnloggedBaseBrl = 24.19;
       const dynamicLoggedCostBrl = rawCostUsd * 5.4;
@@ -605,6 +606,9 @@ export function AdminDashboard({ userId }: AdminDashboardProps) {
         total_calls: totalEstimatedCalls,
         total_tokens: totalTokens > 0 ? totalTokens : 3450000,
         total_cost_brl: Number(totalCostBrl.toFixed(2)),
+        dynamic_telemetry_brl: Number(dynamicLoggedCostBrl.toFixed(2)),
+        historical_base_brl: historicalUnloggedBaseBrl,
+        cutoff_date: CUTOFF_DATE,
         raw_cost_usd: Number(rawCostUsd.toFixed(4)),
         avg_processing_time: 2.45,
         errors_count: 0,

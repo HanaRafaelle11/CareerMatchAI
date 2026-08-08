@@ -70,7 +70,7 @@ async function checkRateLimit(supabaseClient: any, userId: string, feature: stri
   }
 }
 
-async function logAiUsage(supabaseClient: any, userId: string, feature: string, model: string, inputTokens: number, outputTokens: number) {
+async function logAiUsage(supabaseClient: any, userId: string | null, feature: string, model: string, inputTokens: number, outputTokens: number, errorMessage?: string) {
   const estimatedCost = (inputTokens * 0.000000075) + (outputTokens * 0.0000003);
   const { error } = await supabaseClient
     .from('ai_usage_logs')
@@ -80,7 +80,8 @@ async function logAiUsage(supabaseClient: any, userId: string, feature: string, 
       model,
       input_tokens: inputTokens,
       output_tokens: outputTokens,
-      estimated_cost: estimatedCost
+      estimated_cost: estimatedCost,
+      error_message: errorMessage || null
     });
 
   if (error) {

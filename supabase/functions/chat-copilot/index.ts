@@ -70,7 +70,7 @@ async function callGeminiWithFallback(
   throw new Error(`Falha em todos os modelos do Gemini. Último erro: ${lastError?.message || lastError}`);
 }
 
-async function logAiUsage(supabaseClient: any, userId: string, feature: string, model: string, inputTokens: number, outputTokens: number) {
+async function logAiUsage(supabaseClient: any, userId: string | null, feature: string, model: string, inputTokens: number, outputTokens: number, errorMessage?: string) {
   const estimatedCost = (inputTokens * 0.000000075) + (outputTokens * 0.0000003);
   try {
     await supabaseClient
@@ -81,7 +81,8 @@ async function logAiUsage(supabaseClient: any, userId: string, feature: string, 
         model,
         input_tokens: inputTokens,
         output_tokens: outputTokens,
-        estimated_cost: estimatedCost
+        estimated_cost: estimatedCost,
+        error_message: errorMessage || null
       });
   } catch (err: any) {
     console.error(`[AI LOG] Erro ao salvar log de uso:`, err.message);

@@ -867,8 +867,14 @@ export function Profile({
                         const companyDisplayName = (rawComp && rawComp !== 'Empresa') ? rawComp : 'Empresa Confidencial';
                         return (
                           <div
-                            key={j.id}
-                            onClick={() => setActiveTab?.('match')}
+                            key={j.id || j.title}
+                            onClick={() => {
+                              if (j.title) {
+                                sessionStorage.setItem('job_search_keyword', j.title);
+                                sessionStorage.setItem('job_search_input_keyword', j.title);
+                              }
+                              setActiveTab?.('match');
+                            }}
                             className="p-2.5 rounded-xl bg-slate-900/90 border border-slate-800 hover:border-brand-500/50 cursor-pointer transition-all flex items-center justify-between gap-2 group"
                           >
                             <div className="min-w-0 flex-1">

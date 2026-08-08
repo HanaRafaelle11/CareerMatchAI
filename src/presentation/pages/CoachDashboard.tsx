@@ -873,7 +873,7 @@ export function CoachDashboard({
                   Nenhuma simulação de entrevista gravada até o momento.
                 </div>
               ) : (
-                simulationsHistory.map(sim => (
+                simulationsHistory.map((sim: any) => (
                   <div
                     key={sim.id}
                     onClick={() => setViewingSim(sim)}

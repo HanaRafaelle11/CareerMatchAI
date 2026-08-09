@@ -88,8 +88,6 @@ Equipe Vocentro`
 };
 
 export function ContactActionModal({ user, onClose, onSuccess }: ContactActionModalProps) {
-  if (!user) return null;
-
   const [actionType, setActionType] = useState<ActionType>('email');
   const [subject, setSubject] = useState('');
   const [messageText, setMessageText] = useState('');
@@ -104,6 +102,8 @@ export function ContactActionModal({ user, onClose, onSuccess }: ContactActionMo
     setMessageText(user.contextMessage || template.body(user.name));
     setHasUnsaved(false);
   }, [actionType, user]);
+
+  if (!user) return null;
 
   const handleActionChange = (type: ActionType) => {
     setActionType(type);

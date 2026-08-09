@@ -33,7 +33,7 @@ interface StrategyPageProps {
   onCreateApplication: (data: Omit<Application, 'id' | 'userId' | 'createdAt' | 'updatedAt'>) => Promise<any>;
   onUpdateApplication: (data: Application) => Promise<any>;
   onDeleteApplication: (id: string) => Promise<any>;
-  getStagesQuery: (appId: string) => any;
+  useStagesQuery: (appId: string) => any;
   addStage: (args: { appId: string, stage: Omit<ApplicationStage, 'id' | 'createdAt'> }) => Promise<any>;
   deleteStage: (args: { appId: string, stageId: string }) => Promise<any>;
   setActiveTab: (tab: string) => void;
@@ -44,9 +44,9 @@ interface StrategyPageProps {
   companyProfiles: CompanyProfile[];
   saveCompanyProfile: (profile: CompanyProfile) => Promise<any>;
   deleteCompanyProfile: (id: string) => Promise<any>;
-  getWeeklyPlannerQuery: (weekNumber: number) => any;
+  useWeeklyPlannerQuery: (weekNumber: number) => any;
   saveWeeklyPlanner: (planner: WeeklyPlanner) => Promise<any>;
-  getWeeklyGoalQuery: (weekNumber: number) => any;
+  useWeeklyGoalQuery: (weekNumber: number) => any;
   saveWeeklyGoal: (goal: WeeklyGoal) => Promise<any>;
   getPostLogQuery: (appId: string) => any;
   savePostLog: (log: any) => Promise<any>;
@@ -65,7 +65,7 @@ export function StrategyPage({
   onCreateApplication,
   onUpdateApplication,
   onDeleteApplication,
-  getStagesQuery,
+  useStagesQuery,
   addStage,
   deleteStage,
   setActiveTab: _setActiveTab,
@@ -75,9 +75,9 @@ export function StrategyPage({
   companyProfiles: _companyProfiles,
   saveCompanyProfile,
   deleteCompanyProfile: _deleteCompanyProfile,
-  getWeeklyPlannerQuery,
+  useWeeklyPlannerQuery,
   saveWeeklyPlanner,
-  getWeeklyGoalQuery,
+  useWeeklyGoalQuery,
   saveWeeklyGoal: _saveWeeklyGoal,
   getPostLogQuery: _getPostLogQuery,
   savePostLog,
@@ -133,8 +133,8 @@ export function StrategyPage({
   void _handleMoveJobColumn; // reserved for future Strategy tab
 
   // Fetch planner and goals queries
-  const { data: planner } = getWeeklyPlannerQuery(currentWeekNumber);
-  const { data: _goal } = getWeeklyGoalQuery(currentWeekNumber);
+  const { data: planner } = useWeeklyPlannerQuery(currentWeekNumber);
+  const { data: _goal } = useWeeklyGoalQuery(currentWeekNumber);
 
   // Kanban Pipeline Map
   const pipelineColumns = ApplicationPipelineService.getColumnMap(applications);
@@ -183,7 +183,7 @@ export function StrategyPage({
   // Detailed Card Drawer State
   const [selectedAppId, setSelectedAppId] = useState<string | null>(null);
   const selectedApp = applications.find(a => a.id === selectedAppId);
-  const { data: activeStages = [], isLoading: loadingStages } = getStagesQuery(selectedAppId || '');
+  const { data: activeStages = [], isLoading: loadingStages } = useStagesQuery(selectedAppId || '');
 
   // Card Drawer Form States
   const [cardNextAction, setCardNextAction] = useState('');

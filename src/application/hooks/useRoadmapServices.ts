@@ -41,7 +41,7 @@ export function useRoadmapServices(userId: string | undefined) {
   // ==========================================
   // 2. WEEKLY PLANNERS
   // ==========================================
-  const getWeeklyPlannerQuery = (weekNumber: number) => {
+  const useWeeklyPlannerQuery = (weekNumber: number) => {
     return useQuery<WeeklyPlanner | null>({
       queryKey: ['weekly-planner', userId, weekNumber],
       queryFn: async () => {
@@ -160,7 +160,7 @@ export function useRoadmapServices(userId: string | undefined) {
   // ==========================================
   // 3. WEEKLY GOALS
   // ==========================================
-  const getWeeklyGoalQuery = (weekNumber: number) => {
+  const useWeeklyGoalQuery = (weekNumber: number) => {
     return useQuery<WeeklyGoal | null>({
       queryKey: ['weekly-goal', userId, weekNumber],
       queryFn: async () => {
@@ -346,10 +346,10 @@ export function useRoadmapServices(userId: string | undefined) {
     saveCompanyProfile: saveCompanyProfileMutation.mutateAsync,
     deleteCompanyProfile: deleteCompanyProfileMutation.mutateAsync,
 
-    getWeeklyPlannerQuery,
+    useWeeklyPlannerQuery,
     saveWeeklyPlanner: saveWeeklyPlannerMutation.mutateAsync,
 
-    getWeeklyGoalQuery,
+    useWeeklyGoalQuery,
     saveWeeklyGoal: saveWeeklyGoalMutation.mutateAsync,
 
     careerGoals: careerGoalsQuery.data || [],

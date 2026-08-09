@@ -187,7 +187,7 @@ export function useCoach(userId: string | undefined) {
   });
 
   // 3. Interview Prep
-  const getInterviewPrepQuery = (_resume: Resume | null, job: Job | Omit<Job, 'id' | 'userId' | 'createdAt' | 'updatedAt'> | null) => {
+  const useInterviewPrepQuery = (_resume: Resume | null, job: Job | Omit<Job, 'id' | 'userId' | 'createdAt' | 'updatedAt'> | null) => {
     return useQuery<any | null>({
       queryKey: ['interview-prep', (job as any)?.id],
       queryFn: async () => {
@@ -930,7 +930,7 @@ export function useCoach(userId: string | undefined) {
     getCoverLetterQuery: useCoverLetterQuery,
     generateCoverLetter: generateCoverLetterMutation.mutateAsync,
     isGeneratingLetter: generateCoverLetterMutation.isPending,
-    getInterviewPrepQuery,
+    useInterviewPrepQuery,
     generateInterviewPrep: generateInterviewPrepMutation.mutateAsync,
     isGeneratingPrep: generateInterviewPrepMutation.isPending,
     useSimulationQuery,

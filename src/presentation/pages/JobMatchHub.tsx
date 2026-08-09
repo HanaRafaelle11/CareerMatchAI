@@ -948,7 +948,7 @@ export function JobMatchHub({
     getCoverLetterQuery, 
     generateCoverLetter, 
     isGeneratingLetter, 
-    getInterviewPrepQuery,
+    useInterviewPrepQuery,
     generateInterviewPrep,
     isGeneratingPrep
   } = useCoach(userId);
@@ -1191,7 +1191,7 @@ export function JobMatchHub({
   }, [primaryResume?.id, activeResumeVersionId, careerProfileNew?.id, (careerProfileNew as any)?.updated_at]);
 
   const { data: optimization = null, isLoading: isLoadingOpt } = getResumeOptimizationQuery(primaryResume || null, selectedJob || null);
-  const { data: prep = null, isLoading: isLoadingPrep } = getInterviewPrepQuery(primaryResume || null, selectedJob || null);
+  const { data: prep = null, isLoading: isLoadingPrep } = useInterviewPrepQuery(primaryResume || null, selectedJob || null);
   const mockAppId = selectedJob ? `app-mock-${selectedJob.id}` : undefined;
   const realApp = selectedJob ? applications.find((app: any) => app.jobId === selectedJob.id) : null;
   const { data: coverLetter = null } = getCoverLetterQuery(realApp?.id || mockAppId);

@@ -314,7 +314,7 @@ export function useApplications(userId: string | undefined, resumeVersionId?: st
   });
 
   // Queries e Mutações de Estágios (timeline)
-  const getStagesQuery = (appId: string) => {
+  const useStagesQuery = (appId: string) => {
     return useQuery<ApplicationStage[]>({
       queryKey: ['stages', appId],
       queryFn: () => applicationTrackerService.getStages(appId),
@@ -373,7 +373,7 @@ export function useApplications(userId: string | undefined, resumeVersionId?: st
     deleteApplication: deleteApplicationMutation.mutateAsync,
     
     // Stages helpers expostos
-    getStagesQuery,
+    useStagesQuery,
     addStage: addStageMutation.mutateAsync,
     deleteStage: deleteStageMutation.mutateAsync
   };

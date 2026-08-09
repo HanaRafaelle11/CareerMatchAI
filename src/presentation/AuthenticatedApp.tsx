@@ -322,7 +322,7 @@ export function AuthenticatedApp({
     createApplication, 
     updateApplication, 
     deleteApplication,
-    getStagesQuery,
+    useStagesQuery,
     addStage,
     deleteStage
   } = useApplications(user?.id, selectedResumeVersionId);
@@ -345,9 +345,9 @@ export function AuthenticatedApp({
     companyProfiles,
     saveCompanyProfile,
     deleteCompanyProfile,
-    getWeeklyPlannerQuery,
+    useWeeklyPlannerQuery,
     saveWeeklyPlanner,
-    getWeeklyGoalQuery,
+    useWeeklyGoalQuery,
     saveWeeklyGoal,
     careerGoals
   } = useRoadmapServices(user?.id);
@@ -586,16 +586,16 @@ export function AuthenticatedApp({
               onCreateApplication={createApplication}
               onUpdateApplication={updateApplication}
               onDeleteApplication={deleteApplication}
-              getStagesQuery={getStagesQuery}
+              useStagesQuery={useStagesQuery}
               addStage={addStage}
               deleteStage={deleteStage}
               setActiveTab={handleSetActiveTab}
               companyProfiles={companyProfiles}
               saveCompanyProfile={saveCompanyProfile}
               deleteCompanyProfile={deleteCompanyProfile}
-              getWeeklyPlannerQuery={getWeeklyPlannerQuery}
+              useWeeklyPlannerQuery={useWeeklyPlannerQuery}
               saveWeeklyPlanner={saveWeeklyPlanner}
-              getWeeklyGoalQuery={getWeeklyGoalQuery}
+              useWeeklyGoalQuery={useWeeklyGoalQuery}
               saveWeeklyGoal={saveWeeklyGoal}
               getPostLogQuery={getPostLogQuery}
               savePostLog={savePostLog}

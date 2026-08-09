@@ -19,13 +19,13 @@ jobs:
       - name: Checkout Repository
         uses: actions/checkout@v4
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
+      - name: Setup Supabase CLI
+        uses: supabase/setup-cli@v1
         with:
-          node-version: '22.x'
+          version: latest
 
-      - name: Deploy All 13 Edge Functions to Supabase
+      - name: Deploy All Edge Functions to Supabase
         env:
           SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
         run: |
-          npx supabase functions deploy analyze-resume billing-checkout billing-portal billing-webhook chat-copilot ingest-inhire-jobs match-job parse-job resend-webhook search-jobs send-support-ticket simulate-interview weekly-digest --project-ref bdlpfrwebsmpohtclnxf
+          supabase functions deploy analyze-resume billing-checkout billing-portal billing-webhook chat-copilot ingest-inhire-jobs match-job parse-job resend-webhook search-jobs send-support-ticket simulate-interview weekly-digest asaas-webhook-admin send-survey-email run-survey-migration submit-survey --project-ref bdlpfrwebsmpohtclnxf

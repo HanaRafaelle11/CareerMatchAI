@@ -1,5 +1,4 @@
 import { execSync } from 'child_process';
-import fs from 'fs';
 
 /**
  * Selective Edge Function Deployer with Network Resilience (Retry + Backoff)

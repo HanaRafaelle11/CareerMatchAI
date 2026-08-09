@@ -77,10 +77,21 @@ test.describe('Real Candidate User Journey E2E — VoCentro', () => {
       await page.waitForTimeout(500);
     }
 
+    // Interactive Tooltip Check: Clicar no botão '?' de informação de completude
+    const infoTooltipBtn = page.locator('button[aria-label*="completude"]').first();
+    if (await infoTooltipBtn.isVisible()) {
+      await infoTooltipBtn.click();
+      await page.waitForTimeout(300);
+      const tooltipContent = page.locator('text=/Cálculo de Completude do Perfil|Upload de Currículo/i').first();
+      if (await tooltipContent.isVisible()) {
+        await expect(tooltipContent).toBeVisible();
+      }
+    }
+
     // 7. Trocar Resume A -> Resume B (se houver seletor de currículo)
-    const resumeSelect = page.locator('select, button:has-text("Versão"), button:has-text("Currículo")').first();
-    if (await resumeSelect.isVisible()) {
-      await resumeSelect.click();
+    const switchCvBtn = page.locator('button:has-text("Trocar CV"), button:has-text("Trocar")').first();
+    if (await switchCvBtn.isVisible()) {
+      await switchCvBtn.click();
       await page.waitForTimeout(300);
     }
 

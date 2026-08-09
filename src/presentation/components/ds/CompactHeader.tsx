@@ -115,9 +115,10 @@ export function CompactHeader({
                         const isCurrent = r.resumeVersionId === activeResume?.resumeVersionId;
                         return (
                           <button
-                            key={r.resumeVersionId}
+                            key={r.resumeVersionId || r.id}
                             onClick={() => {
-                              if (onSelectResume && r.resumeVersionId) onSelectResume(r.resumeVersionId);
+                              const target = r.resumeVersionId || r.id;
+                              if (onSelectResume && target) onSelectResume(target);
                               setShowDropdown(false);
                             }}
                             className={`w-full text-left px-3 py-2 rounded-xl text-xs flex items-center justify-between transition-colors cursor-pointer ${

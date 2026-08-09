@@ -81,8 +81,8 @@ jobs:
           cache: 'npm'
       - run: npm ci
       - run: npx playwright install --with-deps
-      - name: Executar Suíte E2E Completa (User Journey, Routes, Isolation)
-        run: npx playwright test tests/e2e/userJourney.spec.ts tests/e2e/routeSmokeMatrix.spec.ts tests/e2e/pipeline_stage_isolation.spec.ts
+      - name: Executar Suíte E2E Completa (User Journey, Resume Switcher, Pro Entitlement, Routes, Isolation)
+        run: npx playwright test tests/e2e/userJourney.spec.ts tests/e2e/resume_switcher_persistence.spec.ts tests/e2e/pro_entitlement_no_flash.spec.ts tests/e2e/routeSmokeMatrix.spec.ts tests/e2e/pipeline_stage_isolation.spec.ts
 
   # ── Estágio 6: Vercel Preview Deploy (somente em Pull Requests, requer E2E Gate PASS) ──
   preview-deploy:

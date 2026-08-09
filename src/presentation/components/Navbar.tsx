@@ -112,7 +112,9 @@ export function Navbar({
     },
   ];
 
-  const journeyProgress = profileCompleteness;
+  const completedJourneySteps = journeySteps.filter(s => s.completed).length;
+  const totalJourneySteps = journeySteps.length;
+  const journeyProgress = totalJourneySteps > 0 ? Math.round((completedJourneySteps / totalJourneySteps) * 100) : 0;
 
   const utilityItems = [
     { id: 'dashboard', label: 'Meu Copiloto', icon: 'dashboard' },

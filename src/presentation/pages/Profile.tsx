@@ -201,6 +201,7 @@ export function Profile({
   const [suggestedJobs, setSuggestedJobs] = useState<any[]>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [showDelayWarning, setShowDelayWarning] = useState(false);
+  const [showProfileCompletenessTooltip, setShowProfileCompletenessTooltip] = useState(false);
   const timerRef = useRef<any>(null);
 
   const setActiveTab = propSetActiveTab;
@@ -692,16 +693,70 @@ export function Profile({
             Mapeamento de competências, histórico profissional e otimização para ATS.
           </p>
         </div>
-        <div className="flex items-center gap-3 shrink-0">
+        <div className="flex items-center gap-3 shrink-0 relative">
           <ProgressRing value={completeness} size={36} strokeWidth={3} />
           <div className="text-left">
-            <span className="text-xs font-bold text-slate-900 dark:text-slate-100 block leading-tight">Perfil {completeness}% Completo</span>
+            <div className="flex items-center gap-1.5">
+              <span className="text-xs font-bold text-slate-900 dark:text-slate-100 block leading-tight">Perfil {completeness}% Completo</span>
+              <button
+                type="button"
+                aria-label="Explicação da completude do perfil"
+                onClick={() => setShowProfileCompletenessTooltip(v => !v)}
+                className="p-1 rounded-full text-slate-400 hover:text-brand-500 hover:bg-brand-500/10 transition-colors cursor-pointer"
+                title="Entenda como a completude do seu perfil é calculada"
+              >
+                <Info size={14} />
+              </button>
+            </div>
             {completeness === 100 ? (
               <span className="text-[10px] text-emerald-500 block mt-0.5 font-medium">Perfil totalmente otimizado! 🔥</span>
             ) : (
               <span className="text-[10px] text-muted-foreground block mt-0.5">Em progresso</span>
             )}
           </div>
+
+          {showProfileCompletenessTooltip && (
+            <div className="absolute right-0 top-12 z-50 w-80 p-4 rounded-2xl bg-slate-900 text-slate-100 border border-slate-700 shadow-2xl animate-scale-up text-xs">
+              <div className="flex items-center justify-between pb-2 border-b border-slate-800 mb-2">
+                <span className="font-extrabold text-white text-xs">Cálculo de Completude do Perfil</span>
+                <button
+                  type="button"
+                  onClick={() => setShowProfileCompletenessTooltip(false)}
+                  className="text-slate-400 hover:text-white"
+                >
+                  ✕
+                </button>
+              </div>
+              <p className="text-[11px] text-slate-300 leading-relaxed mb-3">
+                A pontuação de completude mede a riqueza de dados do seu perfil para calibrar as sugestões de vagas e simulações com IA:
+              </p>
+              <ul className="space-y-1.5 text-[11px]">
+                <li className="flex items-center justify-between">
+                  <span>✅ Cadastro Base</span>
+                  <span className="font-bold text-brand-400">+10%</span>
+                </li>
+                <li className="flex items-center justify-between">
+                  <span>{hasResume ? '✅' : '○'} Upload de Currículo (PDF/TXT)</span>
+                  <span className="font-bold text-brand-400">+30%</span>
+                </li>
+                <li className="flex items-center justify-between">
+                  <span>{displayExperience.length > 0 ? '✅' : '○'} Histórico Profissional</span>
+                  <span className="font-bold text-brand-400">+20%</span>
+                </li>
+                <li className="flex items-center justify-between">
+                  <span>{displaySkills.length > 0 ? '✅' : '○'} Competências & Habilidades</span>
+                  <span className="font-bold text-brand-400">+20%</span>
+                </li>
+                <li className="flex items-center justify-between">
+                  <span>{((profile as any)?.linkedinUrl || (profile as any)?.linkedin_url || careerProfileNew?.personal?.linkedin) ? '✅' : '○'} Perfil LinkedIn Vinculado</span>
+                  <span className="font-bold text-brand-400">+20%</span>
+                </li>
+              </ul>
+              <p className="mt-3 pt-2 border-t border-slate-800 text-[10px] text-slate-400">
+                Complete as informações acima para alcançar 100% de otimização.
+              </p>
+            </div>
+          )}
         </div>
       </div>
 

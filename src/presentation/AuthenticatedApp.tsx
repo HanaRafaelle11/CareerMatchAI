@@ -482,7 +482,7 @@ export function AuthenticatedApp({
               activeResume={selectedResume || null}
               aiScore={matches.length > 0 ? Math.round(matches.reduce((a, m) => a + m.scoreOverall, 0) / matches.length) : undefined}
               resumes={resumes}
-              onSelectResume={selectActiveResume}
+              onSelectResume={handleSelectResumeVersion}
               onSwitchResume={() => {
                 setSettingsInitialSubTab('resumes');
                 handleSetActiveTab('settings');

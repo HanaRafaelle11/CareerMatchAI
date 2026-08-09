@@ -611,35 +611,52 @@ export function useResumes(userId: string | undefined) {
 
 
   const selectActiveResumeMutation = useMutation({
-    mutationFn: async (resumeId: string) => {
+    mutationFn: async (targetId: string) => {
       if (!userId) throw new Error('Usuário não autenticado.');
 
       if (isSupabaseConfigured && supabase) {
-        // 1. Set all resumes for this user to is_primary = false
-        const { error: resetError } = await supabase
+        // 1. Resetar is_primary = false em todos os currículos do usuário
+        await supabase
           .from('resumes')
           .update({ is_primary: false })
           .eq('user_id', userId);
-        if (resetError) throw resetError;
 
-        // 2. Set the selected resume to is_primary = true
+        // 2. Definir o currículo selecionado como is_primary = true (por id ou por resume_version)
         const { error: setError } = await supabase
           .from('resumes')
           .update({ is_primary: true })
-          .eq('id', resumeId);
-        if (setError) throw setError;
+          .eq('id', targetId)
+          .eq('user_id', userId);
+
+        if (setError) {
+          // Se targetId for um resumeVersionId, buscar a resume_version correspondente
+          const { data: rv } = await supabase
+            .from('resume_versions')
+            .select('file_name, file_url')
+            .eq('id', targetId)
+            .maybeSingle();
+
+          if (rv) {
+            await supabase
+              .from('resumes')
+              .update({ is_primary: true })
+              .eq('user_id', userId)
+              .or(`file_name.eq.${rv.file_name},file_url.eq.${rv.file_url}`);
+          }
+        }
       } else {
-        // Local mode
+        // Modo Local DB / Mock
         const allResumes = JSON.parse(localStorage.getItem('vocentro_resumes') || '[]');
         const updated = allResumes.map((r: any) => {
-          if (r.userId === userId) {
-            return { ...r, isPrimary: r.id === resumeId };
+          if (r.userId === userId || !r.userId) {
+            const isMatch = r.id === targetId || r.resumeVersionId === targetId;
+            return { ...r, isPrimary: isMatch };
           }
           return r;
         });
         localStorage.setItem('vocentro_resumes', JSON.stringify(updated));
       }
-      return resumeId;
+      return targetId;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['resumes', userId] });

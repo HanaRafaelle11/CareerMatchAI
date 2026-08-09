@@ -28,7 +28,27 @@ export function getDaysUntilNextMonday(now: Date = new Date()): number {
 }
 
 export function useEntitlements(userId?: string) {
-  const [isPro, setIsPro] = useState(false);
+  // Inicialização síncrona do cache local por ID de usuário para evitar flash visual de Free
+  const getInitialProState = (): boolean => {
+    let activeUid = userId;
+    if (!activeUid) {
+      try {
+        const authUserStr = localStorage.getItem('vocentro_auth_user') || localStorage.getItem('vocentro_mock_user');
+        if (authUserStr) {
+          const parsed = JSON.parse(authUserStr);
+          if (parsed?.id) activeUid = parsed.id;
+        }
+      } catch {}
+    }
+    if (!activeUid) return false;
+    try {
+      return localStorage.getItem(`vocentro_is_pro_${activeUid}`) === 'true' || localStorage.getItem('vocentro_is_pro') === 'true';
+    } catch {
+      return false;
+    }
+  };
+
+  const [isPro, setIsPro] = useState<boolean>(getInitialProState);
   const [loading, setLoading] = useState(true);
   const [weeklyApplicationsCount, setWeeklyApplicationsCount] = useState(0);
   const [unlockedJobIds, setUnlockedJobIds] = useState<string[]>([]);
@@ -337,13 +357,15 @@ export function useEntitlements(userId?: string) {
   };
 
   const triggerPaywall = (
-
     feature: PaywallTriggerState['feature'],
     title?: string,
     description?: string,
     primaryButtonText?: string,
     secondaryButtonText?: string
   ) => {
+    // NUNCA abrir paywall se o usuário for PRO ou se a verificação ainda estiver carregando
+    if (isPro || loading) return;
+
     setPaywallState({
       isOpen: true,
       feature,
@@ -394,7 +416,8 @@ export function useEntitlements(userId?: string) {
 
   return {
     isPro,
-    loading,
+    isLoading: loading,
+    isEntitlementLoading: loading,
     weeklyActionCount,
     maxWeeklyActions,
     weeklyApplicationsCount,

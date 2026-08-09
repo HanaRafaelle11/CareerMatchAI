@@ -141,6 +141,6 @@ jobs:
             exit 1
           fi
       - name: Executar Smoke Test E2E em Produção
-        run: npx playwright test tests/e2e/paywall_pricing.spec.ts tests/e2e/job_search_cascade.spec.ts
+        run: npx playwright test tests/e2e/productionSmokeTest.spec.ts
         env:
           BASE_URL: https://vocentro.com.br

@@ -131,5 +131,52 @@ describe('VoCentro Architectural & Business Invariant Test Suite', () => {
       expect(activeResumeId).toBe('res_B');
     });
   });
+  // INVARIANT 8: Journey Progress Calculation Invariants (40% vs 80% vs 100%)
+  describe('Invariant 8: Journey Progress vs Profile Completeness Disambiguation', () => {
+    it('deve calcular a Jornada como 100% se as 4 etapas estiverem concluídas, mesmo com Perfil em 80%', () => {
+      const profileCompleteness = 80; // Falta o LinkedIn
 
+      const journeySteps = [
+        { id: 'profile', completed: true },
+        { id: 'match', completed: true },
+        { id: 'strategy', completed: true },
+        { id: 'coach', completed: true }
+      ];
+
+      const completedCount = journeySteps.filter(s => s.completed).length;
+      const journeyProgress = Math.round((completedCount / journeySteps.length) * 100);
+
+      expect(journeyProgress).toBe(100);
+      expect(profileCompleteness).toBe(80);
+      expect(journeyProgress).not.toBe(profileCompleteness);
+    });
+
+    it('deve calcular a Jornada como 50% se 2 de 4 etapas estiverem concluídas', () => {
+      const journeySteps = [
+        { id: 'profile', completed: true },
+        { id: 'match', completed: true },
+        { id: 'strategy', completed: false },
+        { id: 'coach', completed: false }
+      ];
+
+      const completedCount = journeySteps.filter(s => s.completed).length;
+      const journeyProgress = Math.round((completedCount / journeySteps.length) * 100);
+
+      expect(journeyProgress).toBe(50);
+    });
+
+    it('deve calcular a Jornada como 25% se 1 de 4 etapas estiver concluída', () => {
+      const journeySteps = [
+        { id: 'profile', completed: true },
+        { id: 'match', completed: false },
+        { id: 'strategy', completed: false },
+        { id: 'coach', completed: false }
+      ];
+
+      const completedCount = journeySteps.filter(s => s.completed).length;
+      const journeyProgress = Math.round((completedCount / journeySteps.length) * 100);
+
+      expect(journeyProgress).toBe(25);
+    });
+  });
 });

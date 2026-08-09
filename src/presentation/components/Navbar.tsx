@@ -241,7 +241,10 @@ export function Navbar({
                       <div className="fixed inset-0 z-[9998]" onClick={() => setShowJourneyTooltip(false)} />
                       <div className="fixed left-4 border-slate-700/90 rounded-2xl shadow-2xl p-4 text-xs text-slate-200 animate-scale-up z-[9999] w-72 md:w-80 bg-[#121927] top-16 md:left-[248px]">
                         <div className="font-extrabold text-white text-xs mb-3 flex items-center justify-between pb-2 border-b border-slate-800">
-                          <span>Perfil Profissional — <strong className="text-[#4F8EF7]">{profileCompleteness}% concluído</strong></span>
+                          <div>
+                            <span className="block">Jornada — <strong className="text-[#4F8EF7]">{journeyProgress}% concluída</strong></span>
+                            <span className="text-[10px] text-slate-400 font-normal">{completedJourneySteps} de {totalJourneySteps} ações concluídas</span>
+                          </div>
                           <span className="text-[10px] px-2 py-0.5 rounded-full bg-brand-500/10 text-brand-400 border border-brand-500/20 font-bold uppercase">Meta 100%</span>
                         </div>
                         
@@ -274,7 +277,7 @@ export function Navbar({
                         </div>
 
                         <p className="mt-3 pt-2.5 border-t border-slate-800 text-[10px] font-semibold text-slate-400 leading-relaxed text-center">
-                          💡 Complete as etapas pendentes acima para aumentar sua Jornada.
+                          💡 Este percentual mede as 4 ações de aceleração da sua jornada profissional.
                         </p>
                       </div>
                     </>,

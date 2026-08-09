@@ -718,7 +718,7 @@ export function Profile({
           {showProfileCompletenessTooltip && (
             <div className="absolute right-0 top-12 z-50 w-80 p-4 rounded-2xl bg-slate-900 text-slate-100 border border-slate-700 shadow-2xl animate-scale-up text-xs">
               <div className="flex items-center justify-between pb-2 border-b border-slate-800 mb-2">
-                <span className="font-extrabold text-white text-xs">Cálculo de Completude do Perfil</span>
+                <span className="font-extrabold text-white text-xs">O que significa Perfil {completeness}% completo?</span>
                 <button
                   type="button"
                   onClick={() => setShowProfileCompletenessTooltip(false)}

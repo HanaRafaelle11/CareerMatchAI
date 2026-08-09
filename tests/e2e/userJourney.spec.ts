@@ -82,7 +82,7 @@ test.describe('Real Candidate User Journey E2E — VoCentro', () => {
     if (await infoTooltipBtn.isVisible()) {
       await infoTooltipBtn.click();
       await page.waitForTimeout(300);
-      const tooltipContent = page.locator('text=/Cálculo de Completude do Perfil|Upload de Currículo/i').first();
+      const tooltipContent = page.locator('text=/O que significa Perfil|Upload de Currículo/i').first();
       if (await tooltipContent.isVisible()) {
         await expect(tooltipContent).toBeVisible();
       }

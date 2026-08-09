@@ -434,6 +434,7 @@ export function JobMatchHub({
       setAppError(null);
     }
     prevResumeIdRef.current = currentResumeId;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [primaryResume?.id, primaryResume?.resumeVersionId, careerProfileNew]);
 
   const [copiedSummary, setCopiedSummary] = useState(false);
@@ -1152,6 +1153,7 @@ export function JobMatchHub({
         seniority: 'all'
       });
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [careerProfile, careerProfileNew]);
 
   // Sincronizar e resetar palavras-chave de busca quando o currículo ativo for alterado/carregado
@@ -1188,7 +1190,8 @@ export function JobMatchHub({
         keyword: ''
       }));
     }
-  }, [primaryResume?.id, activeResumeVersionId, careerProfileNew?.id, (careerProfileNew as any)?.updated_at]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [primaryResume?.id, activeResumeVersionId, careerProfileNew]);
 
   const { data: optimization = null, isLoading: isLoadingOpt } = getResumeOptimizationQuery(primaryResume || null, selectedJob || null);
   const { data: prep = null, isLoading: isLoadingPrep } = useInterviewPrepQuery(primaryResume || null, selectedJob || null);

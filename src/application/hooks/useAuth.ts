@@ -38,6 +38,26 @@ export function useAuth() {
     }, 5000);
 
     if (isSupabaseConfigured && supabase) {
+      const mockAuthFlag = localStorage.getItem('vocentro_mock_authenticated');
+      const mockUserStr = localStorage.getItem('vocentro_mock_user') || localStorage.getItem('vocentro_auth_user');
+      if (mockAuthFlag === 'true' && mockUserStr) {
+        try {
+          const parsedMock = JSON.parse(mockUserStr);
+          setUser(parsedMock);
+          setProfile({
+            id: parsedMock.id,
+            fullName: parsedMock.user_metadata?.full_name || parsedMock.name || 'Candidato E2E',
+            headline: 'Desenvolvedor Full Stack',
+            email: parsedMock.email || 'candidato.e2e@vocentro.com.br',
+            role: 'user',
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString()
+          } as any);
+          setLoading(false);
+          return;
+        } catch (_) {}
+      }
+
       // Obter sessão atual do Supabase
       supabase.auth.getSession()
         .then(({ data: { session } }) => {

@@ -5,6 +5,9 @@ on:
     branches: [ main, master ]
   pull_request:
     branches: [ main, master ]
+  schedule:
+    # Execução Nightly Programada às 03:00 UTC (00:00 Horário de Brasília)
+    - cron: '0 3 * * *'
 
 jobs:
   # ── Estágio 1: Linting ──
@@ -33,9 +36,9 @@ jobs:
       - run: npm ci
       - run: npx tsc -b
 
-  # ── Estágio 3: Unit Tests (Vitest - Lógica de Negócio Mockada) ──
+  # ── Estágio 3: Unit Tests & Business Invariants ──
   unit-tests:
-    name: 3. Unit Tests (Vitest)
+    name: 3. Unit Tests & Business Invariants
     runs-on: ubuntu-latest
     needs: [lint, typecheck]
     steps:
@@ -97,12 +100,12 @@ jobs:
           VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
           VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
 
-  # ── Estágio 6: E2E Tests contra Preview Deploy (somente em PRs) ──
+  # ── Estágio 6: E2E Tests contra Preview Deploy (somente em PRs ou Nightly) ──
   e2e-preview:
-    name: 6. E2E Tests (Headless contra Preview)
+    name: 6. E2E Tests (Jornadas P0 contra Preview/Nightly)
     runs-on: ubuntu-latest
     needs: [preview-deploy]
-    if: github.event_name == 'pull_request'
+    if: github.event_name == 'pull_request' || github.event_name == 'schedule'
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -111,17 +114,17 @@ jobs:
           cache: 'npm'
       - run: npm ci
       - run: npx playwright install --with-deps
-      - name: Run E2E Tests against Preview URL
-        run: npx playwright test tests/e2e/job_search_cascade.spec.ts tests/e2e/ai_coach_domain.spec.ts tests/e2e/paywall_pricing.spec.ts
+      - name: Run Full E2E Journey Suite against Preview URL
+        run: npx playwright test tests/e2e/userJourney.spec.ts tests/e2e/routeSmokeMatrix.spec.ts tests/e2e/pipeline_stage_isolation.spec.ts
         env:
-          BASE_URL: ${{ needs.preview-deploy.outputs.preview_url }}
+          BASE_URL: ${{ needs.preview-deploy.outputs.preview_url || 'https://vocentro.com.br' }}
 
-  # ── Estágio 7: Smoke Test Pós-Deploy em Produção (somente em pushes para main) ──
+  # ── Estágio 7: Smoke Test Pós-Deploy em Produção (somente em pushes para main ou Nightly) ──
   smoke-test-production:
     name: 7. Production Smoke Test (https://vocentro.com.br)
     runs-on: ubuntu-latest
     needs: [build]
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    if: (github.event_name == 'push' && github.ref == 'refs/heads/main') || github.event_name == 'schedule'
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -141,6 +144,6 @@ jobs:
             exit 1
           fi
       - name: Executar Smoke Test E2E em Produção
-        run: npx playwright test tests/e2e/productionSmokeTest.spec.ts
+        run: npx playwright test tests/e2e/productionSmokeTest.spec.ts tests/e2e/routeSmokeMatrix.spec.ts
         env:
           BASE_URL: https://vocentro.com.br

@@ -2,7 +2,7 @@ import { execSync } from 'child_process';
 import fs from 'fs';
 
 /**
- * Selective Edge Function Deployer
+ * Selective Edge Function Deployer with Network Resilience (Retry + Backoff)
  * Prevents unnecessary deploy of all Edge Functions when only one function changed.
  * Avoids HTTP 522 Cloudflare/esm.sh timeout issues on unchanged functions (e.g. billing-portal).
  */
@@ -48,12 +48,30 @@ function deploySelectiveEdgeFunctions() {
   const command = `npx supabase functions deploy ${targetFunctions.join(' ')} --project-ref ${PROJECT_REF}`;
   console.log(`[SelectiveDeploy] Executando: ${command}`);
 
-  try {
-    execSync(command, { stdio: 'inherit' });
-    console.log('[SelectiveDeploy] ✓ Deploy concluído com sucesso!');
-  } catch (err) {
-    console.error('[SelectiveDeploy] ❌ Erro ao realizar deploy direcionado:', err.message);
-    process.exit(1);
+  const maxAttempts = 3;
+  let attempt = 1;
+  let success = false;
+
+  while (attempt <= maxAttempts && !success) {
+    try {
+      if (attempt > 1) {
+        console.log(`[SelectiveDeploy] Retry #${attempt}/${maxAttempts} após falha de rede/CDN...`);
+      }
+      execSync(command, { stdio: 'inherit' });
+      success = true;
+      console.log('[SelectiveDeploy] ✓ Deploy concluído com sucesso!');
+    } catch (err) {
+      console.error(`[SelectiveDeploy] ⚠️ Tentativa ${attempt}/${maxAttempts} falhou: ${err.message}`);
+      if (attempt < maxAttempts) {
+        const backoffMs = attempt * 3000;
+        console.log(`[SelectiveDeploy] Aguardando ${backoffMs / 1000}s para retentar...`);
+        execSync(`node -e "setTimeout(() => {}, ${backoffMs})"`);
+      } else {
+        console.error('[SelectiveDeploy] ❌ Todas as tentativas de deploy falharam.');
+        process.exit(1);
+      }
+      attempt++;
+    }
   }
 }
 

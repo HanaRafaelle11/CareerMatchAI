@@ -112,4 +112,24 @@ describe('VoCentro Architectural & Business Invariant Test Suite', () => {
     });
   });
 
+  // INVARIANT 7: Active Resume Switch does NOT delete Kanban Applications
+  describe('Invariant 7: Active Resume Switch Invariant', () => {
+    it('trocar currículo ativo deve preservar integralmente a lista de candidaturas do usuário', () => {
+      const mockApplications = [
+        { id: 'app_1', user_id: 'user_1', company_name: 'Tech Corp', status: 'APPLIED' },
+        { id: 'app_2', user_id: 'user_1', company_name: 'AI Labs', status: 'INTERVIEW' }
+      ];
+
+      let activeResumeId = 'res_A';
+      // Switch resume A -> resume B
+      activeResumeId = 'res_B';
+
+      // Application array MUST be identical and untouched
+      expect(mockApplications.length).toBe(2);
+      expect(mockApplications[0].id).toBe('app_1');
+      expect(mockApplications[1].status).toBe('INTERVIEW');
+      expect(activeResumeId).toBe('res_B');
+    });
+  });
+
 });

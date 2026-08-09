@@ -487,6 +487,7 @@ serve(async (req: Request) => {
         .or(`gateway_subscription_id.eq.${gatewaySubId},gateway_subscription_id.eq.${gatewayPayId}`);
 
       console.log(`[billing-webhook] ${eventType}: assinatura cancelada para gateway_subscription_id=${gatewaySubId}`);
+    }
 
     await adminClient
       .from('webhook_logs')

@@ -10,6 +10,7 @@ import { CareerScoreDashboardCard } from '../components/CareerScoreDashboardCard
 import { useQuery } from '@tanstack/react-query';
 import { isSupabaseConfigured, supabase } from '../../infrastructure/api/supabaseClient';
 import { isAppliedStatus, isSavedStatus, isHiredStatus } from '../../domain/models/applicationStatusConstants';
+import { calculateProfileCompleteness } from '../../domain/services/ProfileCompletenessService';
 
 interface DashboardProps {
   profile: Profile | null;
@@ -177,12 +178,16 @@ export function Dashboard({
     linkedinVal.toLowerCase().includes('linkedin.com');
   const hasSkills = (careerProfileNew?.skills?.length || 0) > 0;
   const hasExperiences = (careerProfileNew?.experience?.length || 0) > 0;
-  
-  let completeness = 10;
-  if (hasResume) completeness += 30;
-  if (hasLinkedin) completeness += 20;
-  if (hasSkills) completeness += 20;
-  if (hasExperiences) completeness += 20;
+
+  const completenessResult = calculateProfileCompleteness({
+    hasResume,
+    hasLinkedin,
+    hasSkills,
+    hasExperiences,
+    profile,
+    careerProfile: careerProfileNew
+  });
+  const completeness = completenessResult.score;
 
   // Average match da vaga (ou baseline do Career Score)
   const hasMatches = matches.length > 0;

@@ -14,6 +14,7 @@ import { useToast } from '../../application/context/ToastContext';
 import { printElementHtml } from '../../application/utils/pdfExport';
 import { useAuth } from '../../application/hooks/useAuth';
 import { useEntitlements, PaywallModal, CheckoutModal } from '../../modules/billing';
+import { calculateProfileCompleteness } from '../../domain/services/ProfileCompletenessService';
 
 interface ProfileProps {
   profile: UserProfile | null;
@@ -668,12 +669,16 @@ export function Profile({
     linkedinVal.toLowerCase().includes('linkedin.com');
   const hasSkills = (careerProfileNew?.skills?.length || 0) > 0;
   const hasExperiences = (careerProfileNew?.experience?.length || 0) > 0;
-  
-  let completeness = 10;
-  if (hasResume) completeness += 30;
-  if (hasLinkedin) completeness += 20;
-  if (hasSkills) completeness += 20;
-  if (hasExperiences) completeness += 20;
+
+  const completenessResult = calculateProfileCompleteness({
+    hasResume,
+    hasLinkedin,
+    hasSkills,
+    hasExperiences,
+    profile,
+    careerProfile: careerProfileNew
+  });
+  const completeness = completenessResult.score;
 
   return (
     <div className="space-y-6 w-full min-w-0 max-w-7xl mx-auto animate-fade-in font-sans block">

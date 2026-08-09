@@ -24,8 +24,8 @@ jobs:
         with:
           version: latest
 
-      - name: Deploy All Edge Functions to Supabase
+      - name: Deploy Selective Edge Functions to Supabase
         env:
           SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
         run: |
-          supabase functions deploy analyze-resume billing-checkout billing-portal billing-webhook chat-copilot ingest-inhire-jobs match-job parse-job resend-webhook search-jobs send-support-ticket simulate-interview weekly-digest asaas-webhook-admin send-survey-email run-survey-migration submit-survey --project-ref bdlpfrwebsmpohtclnxf
+          node scripts/deploy-edge-functions.js auto

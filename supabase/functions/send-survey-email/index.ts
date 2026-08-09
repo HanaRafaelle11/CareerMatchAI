@@ -248,7 +248,7 @@ serve(async (req) => {
         user_id: user.id,
         email: user.email,
         campaign_id: campaignId,
-        cohort: 'beta_general',
+        cohort: cohortTarget || 'beta_general',
         status: 'sent',
         last_email_type: emailType,
         is_resend_attempt: forceResend,

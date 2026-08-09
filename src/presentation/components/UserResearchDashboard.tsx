@@ -121,11 +121,41 @@ export const UserResearchDashboard: React.FC<UserResearchDashboardProps> = () =>
     const totalEligible = targetProfiles.length;
     const targetUserIds = new Set(targetProfiles.map((p: any) => p.id));
 
-    const waveCampaigns = emailCampaigns.filter(c => targetUserIds.has(c.user_id));
-    const invitedCount = waveCampaigns.length;
-    const deliveredCount = waveCampaigns.filter(c => c.status === 'delivered' || c.status === 'opened' || c.status === 'clicked' || c.status === 'responded').length;
-    const respondedCount = surveyResponses.filter(r => targetUserIds.has(r.user_id)).length;
-    const failedCount = waveCampaigns.filter(c => c.status === 'bounced' || c.status === 'failed').length;
+    const isCohortMatch = (cCohort: string, targetWave: string) => {
+      if (targetWave === 'beta_general' || targetWave === 'ALL') {
+        return cCohort === 'beta_general' || cCohort === 'ALL';
+      }
+      return cCohort === targetWave;
+    };
+
+    const invitedUserIds = new Set(
+      emailCampaigns
+        .filter(c => targetUserIds.has(c.user_id) && isCohortMatch(c.cohort, wave))
+        .map(c => c.user_id)
+    );
+
+    const deliveredUserIds = new Set(
+      emailCampaigns
+        .filter(c => targetUserIds.has(c.user_id) && isCohortMatch(c.cohort, wave) && ['delivered', 'opened', 'clicked', 'responded', 'survey_completed'].includes(c.status))
+        .map(c => c.user_id)
+    );
+
+    const respondedUserIds = new Set(
+      surveyResponses
+        .filter(r => targetUserIds.has(r.user_id) && isCohortMatch(r.research_cohort, wave))
+        .map(r => r.user_id)
+    );
+
+    const failedUserIds = new Set(
+      emailCampaigns
+        .filter(c => targetUserIds.has(c.user_id) && isCohortMatch(c.cohort, wave) && ['bounced', 'failed'].includes(c.status))
+        .map(c => c.user_id)
+    );
+
+    const invitedCount = invitedUserIds.size;
+    const deliveredCount = deliveredUserIds.size;
+    const respondedCount = respondedUserIds.size;
+    const failedCount = failedUserIds.size;
     const pendingCount = Math.max(0, totalEligible - invitedCount);
 
     setWavePreview({

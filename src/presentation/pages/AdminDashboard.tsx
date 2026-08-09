@@ -560,17 +560,21 @@ export function AdminDashboard({ userId }: AdminDashboardProps) {
       };
 
       if (logs && logs.length > 0) {
+        // Tarifas derivadas da fatura real do SKU "gemini 3.6 flash text" do Google Cloud:
+        // Input: R$ 2,09 / 240.090 tokens = R$ 0,000008705 / token (~US$ 1.61 / 1M)
+        // Output: R$ 23,11 / 529.733 tokens = R$ 0,0000436254 / token (~US$ 8.08 / 1M)
+        const INPUT_RATE_BRL = 0.000008705;
+        const OUTPUT_RATE_BRL = 0.0000436254;
+
         logs.forEach((l: any) => {
           const inp = l.input_tokens || 0;
           const out = l.output_tokens || 0;
           const tok = inp + out;
           totalTokens += tok;
           
-          let cost = Number(l.estimated_cost) || 0;
-          if (cost === 0 && tok > 0) {
-            cost = (inp * 0.000000075) + (out * 0.0000003);
-          }
-          rawCostUsd += cost;
+          const callCostBrl = (inp * INPUT_RATE_BRL) + (out * OUTPUT_RATE_BRL);
+          const callCostUsd = callCostBrl / 5.4;
+          rawCostUsd += callCostUsd;
 
           const feat = l.feature || 'job-matching';
           if (!featureBreakdown[feat]) {
@@ -578,7 +582,7 @@ export function AdminDashboard({ userId }: AdminDashboardProps) {
           }
           featureBreakdown[feat].calls += 1;
           featureBreakdown[feat].tokens += tok;
-          featureBreakdown[feat].costBrl += (cost * 5.4);
+          featureBreakdown[feat].costBrl += callCostBrl;
         });
       }
 
@@ -599,9 +603,9 @@ export function AdminDashboard({ userId }: AdminDashboardProps) {
       // 2. Base Histórica Não-Registrada Pré-Cutoff (2026-08-09T00:00:00Z): R$ 24,19 BRL
       const CUTOFF_DATE = '2026-08-09T00:00:00Z';
       const totalEstimatedCalls = Math.max(totalCalls, mCount + oCount + lCount + sCount);
-      const historicalUnloggedBaseBrl = 24.19;
+      const historicalUnloggedBaseBrl = 0;
       const dynamicLoggedCostBrl = rawCostUsd * 5.4;
-      const totalCostBrl = historicalUnloggedBaseBrl + dynamicLoggedCostBrl;
+      const totalCostBrl = dynamicLoggedCostBrl;
 
       return {
         total_calls: totalEstimatedCalls,

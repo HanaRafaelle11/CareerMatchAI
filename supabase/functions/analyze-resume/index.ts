@@ -592,9 +592,9 @@ class ResumeParserService {
     // DEPRECATION REMINDER: The older models (e.g. Gemini 2.x/2.5 family) have been retired.
     // The primary model chain uses the latest active Gemini tier (Gemini 3.x family).
     const modelsToTry = [
-      'gemini-3.6-flash',       // Modelo Primário
-      'gemini-3.5-flash',       // Fallback Secundário
-      'gemini-3.5-flash-lite'   // Fallback Terciário
+      'gemini-2.5-flash',       // Modelo Primário
+      'gemini-2.0-flash',       // Fallback Secundário
+      'gemini-1.5-flash'        // Fallback Terciário
     ];
 
     let lastError: any = null;
@@ -905,7 +905,7 @@ serve(async (req) => {
                            contentType || 'application/pdf';
 
           const visionResponse = await fetch(
-            `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.6-flash:generateContent?key=${geminiApiKey}`,
+            `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${geminiApiKey}`,
             {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },

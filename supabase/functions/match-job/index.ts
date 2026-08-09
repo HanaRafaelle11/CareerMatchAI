@@ -93,9 +93,8 @@ async function checkRateLimit(supabaseClient: any, userId: string, feature: stri
   }
 }
 
-async function logAiUsage(supabaseClient: any, userId: string, feature: string, model: string, inputTokens: number, outputTokens: number, usesGrounding = false) {
-  const groundingFeeUsd = usesGrounding ? 0.035 : 0;
-  const estimatedCost = (inputTokens * 0.000000075) + (outputTokens * 0.0000003) + groundingFeeUsd;
+async function logAiUsage(supabaseClient: any, userId: string, feature: string, model: string, inputTokens: number, outputTokens: number) {
+  const estimatedCost = (inputTokens * 0.000000075) + (outputTokens * 0.0000003);
   const { error } = await supabaseClient
     .from('ai_usage_logs')
     .insert({
@@ -363,7 +362,7 @@ class JobMatchingEngine {
 
     const promptTokens = resJson.usageMetadata?.promptTokenCount || 0;
     const candidatesTokens = resJson.usageMetadata?.candidatesTokenCount || 0;
-    await logAiUsage(supabaseClient, userId, 'job-matching', selectedModel, promptTokens, candidatesTokens, true);
+    await logAiUsage(supabaseClient, userId, 'job-matching', selectedModel, promptTokens, candidatesTokens);
 
     const matchJson = JSON.parse(extractedText);
 

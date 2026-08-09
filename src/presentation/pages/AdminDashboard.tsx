@@ -566,24 +566,19 @@ export function AdminDashboard({ userId }: AdminDashboardProps) {
           const tok = inp + out;
           totalTokens += tok;
           
-          const feat = l.feature || 'job-matching';
-          const usesGrounding = (feat === 'job-matching' || feat === 'search-jobs');
-          const groundingFeeUsd = usesGrounding ? 0.035 : 0;
-
           let cost = Number(l.estimated_cost) || 0;
           if (cost === 0 && tok > 0) {
             cost = (inp * 0.000000075) + (out * 0.0000003);
           }
-          // Inclui explicitamente a taxa fixa de Grounding/Google Search (~US$0.035 por requisição)
-          const totalCallCostUsd = cost + groundingFeeUsd;
-          rawCostUsd += totalCallCostUsd;
+          rawCostUsd += cost;
 
+          const feat = l.feature || 'job-matching';
           if (!featureBreakdown[feat]) {
             featureBreakdown[feat] = { calls: 0, tokens: 0, costBrl: 0 };
           }
           featureBreakdown[feat].calls += 1;
           featureBreakdown[feat].tokens += tok;
-          featureBreakdown[feat].costBrl += (totalCallCostUsd * 5.4);
+          featureBreakdown[feat].costBrl += (cost * 5.4);
         });
       }
 

@@ -24,6 +24,7 @@ export const UserResearchDashboard: React.FC<UserResearchDashboardProps> = () =>
   const [surveyResponses, setSurveyResponses] = useState<any[]>([]);
   const [giveawayParticipants, setGiveawayParticipants] = useState<any[]>([]);
   const [profilesMap, setProfilesMap] = useState<Record<string, any>>({});
+  const [activeUserIds, setActiveUserIds] = useState<Set<string>>(new Set());
   const [contactsMap, setContactsMap] = useState<Record<string, any>>({});
   const [emailCampaigns, setEmailCampaigns] = useState<any[]>([]);
   const [surveyEvents, setSurveyEvents] = useState<any[]>([]);
@@ -82,6 +83,18 @@ export const UserResearchDashboard: React.FC<UserResearchDashboardProps> = () =>
       });
       setProfilesMap(pMap);
 
+      // 7. Fetch activity markers for activation segmentation
+      const { data: activeResumes } = await supabase.from('resume_versions').select('user_id');
+      const { data: activeMatches } = await supabase.from('job_feedback').select('user_id');
+      const { data: activeApps } = await supabase.from('applications').select('user_id');
+
+      const actSet = new Set<string>([
+        ...(activeResumes || []).map((r: any) => r.user_id),
+        ...(activeMatches || []).map((m: any) => m.user_id),
+        ...(activeApps || []).map((a: any) => a.user_id)
+      ]);
+      setActiveUserIds(actSet);
+
     } catch (err) {
       console.error('[UserResearch] Erro ao carregar dados:', err);
     } finally {
@@ -89,15 +102,30 @@ export const UserResearchDashboard: React.FC<UserResearchDashboardProps> = () =>
     }
   };
 
-
-
   // Dispatch survey emails via wave with safety preview
   const handlePreviewWave = (wave: string) => {
-    const totalEligible = 37; // Total real beta users
-    const invitedCount = emailCampaigns.filter(c => c.cohort === wave || wave === 'ALL').length;
-    const deliveredCount = emailCampaigns.filter(c => c.status === 'delivered' || c.status === 'opened' || c.status === 'clicked' || c.status === 'responded').length;
-    const respondedCount = surveyResponses.length;
-    const failedCount = emailCampaigns.filter(c => c.status === 'bounced' || c.status === 'failed').length;
+    const testPatterns = ['e2e', 'hardening', 'test', 'admin', 'vocentro.com.br', 'example.com', 'demo', 'qa'];
+    const realProfiles = Object.values(profilesMap).filter((p: any) => {
+      const email = (p.email || '').toLowerCase();
+      const name = (p.full_name || '').toLowerCase();
+      return !testPatterns.some(pat => email.includes(pat) || name.includes(pat));
+    });
+
+    const targetProfiles = realProfiles.filter((p: any) => {
+      const isActivated = Boolean(p.primary_resume_id) || activeUserIds.has(p.id);
+      if (wave === 'activated') return isActivated;
+      if (wave === 'not_activated') return !isActivated;
+      return true; // beta_general or ALL
+    });
+
+    const totalEligible = targetProfiles.length;
+    const targetUserIds = new Set(targetProfiles.map((p: any) => p.id));
+
+    const waveCampaigns = emailCampaigns.filter(c => targetUserIds.has(c.user_id));
+    const invitedCount = waveCampaigns.length;
+    const deliveredCount = waveCampaigns.filter(c => c.status === 'delivered' || c.status === 'opened' || c.status === 'clicked' || c.status === 'responded').length;
+    const respondedCount = surveyResponses.filter(r => targetUserIds.has(r.user_id)).length;
+    const failedCount = waveCampaigns.filter(c => c.status === 'bounced' || c.status === 'failed').length;
     const pendingCount = Math.max(0, totalEligible - invitedCount);
 
     setWavePreview({

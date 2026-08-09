@@ -36,11 +36,27 @@ serve(async (req) => {
       const { data: allProfiles, error: pErr } = await supabase.from('profiles').select('*');
       if (pErr) throw pErr;
 
+      const { data: activeResumes } = await supabase.from('resume_versions').select('user_id');
+      const { data: activeMatches } = await supabase.from('job_feedback').select('user_id');
+      const { data: activeApps } = await supabase.from('applications').select('user_id');
+
+      const activeUserIds = new Set([
+        ...(activeResumes || []).map((r: any) => r.user_id),
+        ...(activeMatches || []).map((m: any) => m.user_id),
+        ...(activeApps || []).map((a: any) => a.user_id)
+      ]);
+
       const testPatterns = ['e2e', 'hardening', 'test', 'admin', 'vocentro.com.br', 'example.com', 'demo', 'qa'];
-      profiles = (allProfiles || []).filter(p => {
+      profiles = (allProfiles || []).filter((p: any) => {
         const email = (p.email || '').toLowerCase();
         const name = (p.full_name || '').toLowerCase();
-        return !testPatterns.some(pat => email.includes(pat) || name.includes(pat));
+        const isTest = testPatterns.some(pat => email.includes(pat) || name.includes(pat));
+        if (isTest) return false;
+
+        const isActivated = activeUserIds.has(p.id) || Boolean(p.primary_resume_id);
+        if (cohortTarget === 'activated') return isActivated;
+        if (cohortTarget === 'not_activated') return !isActivated;
+        return true; // beta_general or ALL
       });
     }
 

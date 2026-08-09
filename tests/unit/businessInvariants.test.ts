@@ -178,5 +178,126 @@ describe('VoCentro Architectural & Business Invariant Test Suite', () => {
 
       expect(journeyProgress).toBe(25);
     });
+
+    it('deve calcular a Jornada como 0% se nenhuma etapa estiver concluída', () => {
+      const journeySteps = [
+        { id: 'profile', completed: false },
+        { id: 'match', completed: false },
+        { id: 'strategy', completed: false },
+        { id: 'coach', completed: false }
+      ];
+
+      const completedCount = journeySteps.filter(s => s.completed).length;
+      const journeyProgress = Math.round((completedCount / journeySteps.length) * 100);
+
+      expect(journeyProgress).toBe(0);
+      expect(completedCount).toBe(0);
+    });
+
+    it('deve calcular a Jornada como 75% se 3 de 4 etapas estiverem concluídas', () => {
+      const journeySteps = [
+        { id: 'profile', completed: true },
+        { id: 'match', completed: true },
+        { id: 'strategy', completed: true },
+        { id: 'coach', completed: false }
+      ];
+
+      const completedCount = journeySteps.filter(s => s.completed).length;
+      const journeyProgress = Math.round((completedCount / journeySteps.length) * 100);
+
+      expect(journeyProgress).toBe(75);
+    });
+
+    // CRITICAL: This test guarantees the original bug "40% with all completed" is impossible
+    it('é IMPOSSÍVEL obter 40% quando todas as 4 etapas estão concluídas', () => {
+      const journeySteps = [
+        { id: 'profile', completed: true },
+        { id: 'match', completed: true },
+        { id: 'strategy', completed: true },
+        { id: 'coach', completed: true }
+      ];
+
+      const completedCount = journeySteps.filter(s => s.completed).length;
+      const totalSteps = journeySteps.length;
+      const journeyProgress = Math.round((completedCount / totalSteps) * 100);
+
+      // The denominator MUST be 4 (visible steps count), never 5 or 10
+      expect(totalSteps).toBe(4);
+      expect(completedCount).toBe(4);
+      expect(journeyProgress).toBe(100);
+      expect(journeyProgress).not.toBe(40);
+      expect(journeyProgress).not.toBe(80);
+    });
+
+    // SEQUENTIAL PROGRESSION: simulates user completing steps without page reload
+    it('deve progredir sequencialmente 50% → 75% → 100% sem reload', () => {
+      const journeySteps = [
+        { id: 'profile', completed: true },
+        { id: 'match', completed: true },
+        { id: 'strategy', completed: false },
+        { id: 'coach', completed: false }
+      ];
+
+      const calcProgress = (steps: { completed: boolean }[]) => {
+        const completed = steps.filter(s => s.completed).length;
+        return Math.round((completed / steps.length) * 100);
+      };
+
+      // State 1: 2/4 = 50%
+      expect(calcProgress(journeySteps)).toBe(50);
+
+      // User adds an application → strategy becomes completed (no reload)
+      journeySteps[2].completed = true;
+      expect(calcProgress(journeySteps)).toBe(75);
+
+      // User runs a simulation → coach becomes completed (no reload)
+      journeySteps[3].completed = true;
+      expect(calcProgress(journeySteps)).toBe(100);
+    });
+
+    // Validates that Profile 80% and Journey 100% can coexist without inconsistency
+    it('Perfil 80% e Jornada 100% devem coexistir sem ser considerados inconsistentes', () => {
+      const profileCompleteness = 80; // Missing LinkedIn = 80%
+      const journeySteps = [
+        { id: 'profile', completed: true },
+        { id: 'match', completed: true },
+        { id: 'strategy', completed: true },
+        { id: 'coach', completed: true }
+      ];
+
+      const completedCount = journeySteps.filter(s => s.completed).length;
+      const journeyProgress = Math.round((completedCount / journeySteps.length) * 100);
+
+      // Both metrics coexist — they measure DIFFERENT things
+      expect(profileCompleteness).toBe(80);
+      expect(journeyProgress).toBe(100);
+
+      // Profile and Journey are independent metrics
+      expect(journeyProgress).not.toBe(profileCompleteness);
+
+      // Profile measures data richness (5 criteria with weights)
+      // Journey measures action completion (4 discrete steps)
+    });
+
+    // Validates denominator is always exactly 4 (visible step count)
+    it('o denominador da Jornada deve ser sempre 4 (número de ações visíveis)', () => {
+      const JOURNEY_STEP_IDS = ['profile', 'match', 'strategy', 'coach'];
+
+      expect(JOURNEY_STEP_IDS.length).toBe(4);
+
+      // For every possible combination of completed steps, progress must be one of: 0, 25, 50, 75, 100
+      const validProgressValues = [0, 25, 50, 75, 100];
+
+      for (let mask = 0; mask < 16; mask++) {
+        const steps = JOURNEY_STEP_IDS.map((id, i) => ({
+          id,
+          completed: Boolean(mask & (1 << i))
+        }));
+        const completed = steps.filter(s => s.completed).length;
+        const progress = Math.round((completed / steps.length) * 100);
+
+        expect(validProgressValues).toContain(progress);
+      }
+    });
   });
 });

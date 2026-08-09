@@ -1,4 +1,4 @@
-# Automated Edge Functions Deployment Workflow - Active (CI/CD Automated)
+# Automated Edge Functions Deployment Workflow - Fail-Closed (CI/CD Automated)
 name: Deploy Supabase Edge Functions
 
 on:
@@ -6,18 +6,40 @@ on:
     branches: [ main, master ]
   workflow_dispatch:
 
-# Cancela runs anteriores automaticamente se um novo push for realizado
 concurrency:
   group: deploy-supabase-functions-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
-  deploy-edge-functions:
-    name: Deploy Edge Functions to Supabase
+  # ── Gate Obrigatório: Validação de Qualidade antes de Deploy de Função ──
+  quality-gate:
+    name: 1. Quality Gate (Lint, Typecheck & Unit Tests)
     runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22.x'
+          cache: 'npm'
+      - run: npm ci
+      - run: npm run lint
+      - run: npx tsc -b
+      - run: npx vitest run tests/unit
+
+  # ── Estágio de Deploy Seletivo (Apenas executa se o Quality Gate passar) ──
+  deploy-edge-functions:
+    name: 2. Deploy Edge Functions to Supabase
+    runs-on: ubuntu-latest
+    needs: [quality-gate]
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22.x'
+          cache: 'npm'
 
       - name: Setup Supabase CLI
         uses: supabase/setup-cli@v1

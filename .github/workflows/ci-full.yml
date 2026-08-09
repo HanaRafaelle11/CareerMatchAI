@@ -1,4 +1,4 @@
-name: Continuous Integration & Full Quality Gate
+name: Continuous Integration & Fail-Closed Quality Gate
 
 on:
   push:
@@ -8,6 +8,10 @@ on:
   schedule:
     # Execução Nightly Programada às 03:00 UTC (00:00 Horário de Brasília)
     - cron: '0 3 * * *'
+
+concurrency:
+  group: ci-full-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   # ── Estágio 1: Linting ──
@@ -64,11 +68,27 @@ jobs:
       - run: npm ci
       - run: npm run build
 
-  # ── Estágio 5: Vercel Preview Deploy (somente em Pull Requests) ──
-  preview-deploy:
-    name: 5. Vercel Preview Deploy
+  # ── Estágio 5: Headless E2E Journeys (Gate Obrigatório para PR, Push e Nightly) ──
+  e2e-journey-gate:
+    name: 5. E2E Journeys & Route Smoke Gate
     runs-on: ubuntu-latest
     needs: [build]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22.x'
+          cache: 'npm'
+      - run: npm ci
+      - run: npx playwright install --with-deps
+      - name: Executar Suíte E2E Completa (User Journey, Routes, Isolation)
+        run: npx playwright test tests/e2e/userJourney.spec.ts tests/e2e/routeSmokeMatrix.spec.ts tests/e2e/pipeline_stage_isolation.spec.ts
+
+  # ── Estágio 6: Vercel Preview Deploy (somente em Pull Requests, requer E2E Gate PASS) ──
+  preview-deploy:
+    name: 6. Vercel Preview Deploy
+    runs-on: ubuntu-latest
+    needs: [e2e-journey-gate]
     if: github.event_name == 'pull_request'
     outputs:
       preview_url: ${{ steps.deploy.outputs.preview_url }}
@@ -100,30 +120,11 @@ jobs:
           VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
           VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
 
-  # ── Estágio 6: E2E Tests contra Preview Deploy (somente em PRs ou Nightly) ──
-  e2e-preview:
-    name: 6. E2E Tests (Jornadas P0 contra Preview/Nightly)
-    runs-on: ubuntu-latest
-    needs: [preview-deploy]
-    if: github.event_name == 'pull_request' || github.event_name == 'schedule'
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: '22.x'
-          cache: 'npm'
-      - run: npm ci
-      - run: npx playwright install --with-deps
-      - name: Run Full E2E Journey Suite against Preview URL
-        run: npx playwright test tests/e2e/userJourney.spec.ts tests/e2e/routeSmokeMatrix.spec.ts tests/e2e/pipeline_stage_isolation.spec.ts
-        env:
-          BASE_URL: ${{ needs.preview-deploy.outputs.preview_url || 'https://vocentro.com.br' }}
-
-  # ── Estágio 7: Smoke Test Pós-Deploy em Produção (somente em pushes para main ou Nightly) ──
+  # ── Estágio 7: Smoke Test Pós-Deploy em Produção (somente em pushes para main ou Nightly, requer E2E Gate PASS) ──
   smoke-test-production:
     name: 7. Production Smoke Test (https://vocentro.com.br)
     runs-on: ubuntu-latest
-    needs: [build]
+    needs: [e2e-journey-gate]
     if: (github.event_name == 'push' && github.ref == 'refs/heads/main') || github.event_name == 'schedule'
     steps:
       - uses: actions/checkout@v4

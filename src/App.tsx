@@ -57,6 +57,35 @@ function App() {
     window.location.pathname === '/pesquisa' || window.location.pathname === '/survey' || window.location.search.includes('token=')
   );
 
+  // Rotas públicas conhecidas — fonte de verdade derivada dos state initializers acima.
+  const PUBLIC_PATHS = new Set([
+    '/', '/about', '/google-auth', '/google-auth.html',
+    '/how-google-login-works', '/how-google-login-works.html',
+    '/faq', '/ajuda', '/faq.html',
+    '/politica-de-privacidade', '/politica-de-privacidade.html',
+    '/termos-de-uso', '/termos-de-uso.html',
+    '/pesquisa', '/survey'
+  ]);
+
+  // Normaliza o caminho (remove trailing slash se houver e converte para minúsculas)
+  const normalizePath = (rawPath: string) => {
+    const lower = rawPath.toLowerCase();
+    if (lower.length > 1 && lower.endsWith('/')) {
+      return lower.slice(0, -1);
+    }
+    return lower;
+  };
+
+  // Redireciona rotas não-públicas para '/' quando usuário não está autenticado
+  useEffect(() => {
+    if (!loading && !user) {
+      const normalized = normalizePath(window.location.pathname);
+      if (!PUBLIC_PATHS.has(normalized)) {
+        window.history.replaceState(null, '', '/');
+      }
+    }
+  }, [loading, user]);
+
   const { preferences, updatePreferences } = useUserPreferences(user?.id);
 
   // Synchronize visual theme on mount and on 'theme-change' / preferences update

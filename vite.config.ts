@@ -8,6 +8,8 @@ export default defineConfig({
     react(),
     tailwindcss()
   ],
+  // base: './' garante caminhos relativos para a WebView do Capacitor (Android)
+  base: './',
   build: {
     chunkSizeWarningLimit: 600,
     cssCodeSplit: true,

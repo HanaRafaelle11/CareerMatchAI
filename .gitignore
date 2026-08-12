@@ -46,3 +46,13 @@ scratch_*.cjs
 scratch_*.png
 scratch_*.mjs
 
+# Android — artefatos de build intermediários (não versionar)
+android/build/
+android/app/build/
+android/.gradle/
+android/local.properties
+
+# APKs de build intermediário (não versionar) — exceto o publicado em public/
+android/**/*.apk
+# O APK publicado para download é mantido no repositório:
+!public/vocentro-*.apk

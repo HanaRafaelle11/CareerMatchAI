@@ -589,53 +589,62 @@ export const UserResearchDashboard: React.FC<UserResearchDashboardProps> = () =>
           <span className="text-xs font-semibold text-slate-400">Monitoramento em Tempo Real</span>
         </div>
 
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-3">
-          <div className="p-3.5 rounded-xl bg-slate-900/80 border border-slate-800 space-y-1">
-            <span className="text-[11px] text-slate-400">Convites Enviados</span>
-            <div className="text-xl font-mono font-bold text-white">{emailCampaigns.length}</div>
-          </div>
+        {/* Métricas derivadas de survey_events — fonte de verdade confiável */}
+        {(() => {
+          // survey_events é escrito diretamente pela edge function e pelo resend-webhook
+          // Usa user_id único para evitar duplicatas (cada usuário conta 1 vez por evento)
+          const sentUserIds = new Set(
+            surveyEvents.filter(e => e.event_name === 'email_sent').map(e => e.user_id).filter(Boolean)
+          );
+          const openedUserIds = new Set(
+            surveyEvents.filter(e => e.event_name === 'email_opened' || e.event_name === 'email_clicked').map(e => e.user_id).filter(Boolean)
+          );
+          // Fallback: se survey_events não tiver email_sent, usar emailCampaigns como backup
+          const invitesSent = sentUserIds.size > 0 ? sentUserIds.size : emailCampaigns.length;
+          const openedCount = openedUserIds.size;
+          const surveyStarted = Math.max(totalResponses, openedCount);
+          const completionRate = invitesSent === 0
+            ? (totalResponses > 0 ? '100.0%' : '0.0%')
+            : `${Math.min(100, (totalResponses / invitesSent) * 100).toFixed(1)}%`;
 
-          <div className="p-3.5 rounded-xl bg-slate-900/80 border border-slate-800 space-y-1">
-            <span className="text-[11px] text-slate-400">Abertura detectada</span>
-            <div className="text-xl font-mono font-bold text-cyan-400">
-              {emailCampaigns.filter(c => c.status === 'opened' || c.status === 'clicked' || c.status === 'responded').length}
+          return (
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-3">
+              <div className="p-3.5 rounded-xl bg-slate-900/80 border border-slate-800 space-y-1">
+                <span className="text-[11px] text-slate-400">Convites Enviados</span>
+                <div className="text-xl font-mono font-bold text-white">{invitesSent}</div>
+                <span className="text-[9px] text-slate-500 block">survey_events · email_sent</span>
+              </div>
+
+              <div className="p-3.5 rounded-xl bg-slate-900/80 border border-slate-800 space-y-1">
+                <span className="text-[11px] text-slate-400">Abertura detectada</span>
+                <div className="text-xl font-mono font-bold text-cyan-400">{openedCount}</div>
+                <span className="text-[9px] text-slate-500 block">* Rastreio por imagem/pixel</span>
+              </div>
+
+              <div className="p-3.5 rounded-xl bg-slate-900/80 border border-slate-800 space-y-1">
+                <span className="text-[11px] text-slate-400">Pesquisas Iniciadas</span>
+                <div className="text-xl font-mono font-bold text-amber-400">{surveyStarted}</div>
+              </div>
+
+              <div className="p-3.5 rounded-xl bg-slate-900/80 border border-slate-800 space-y-1">
+                <span className="text-[11px] text-slate-400">Pesquisas Concluídas</span>
+                <div className="text-xl font-mono font-bold text-emerald-400">{totalResponses}</div>
+              </div>
+
+              <div className="p-3.5 rounded-xl bg-slate-900/80 border border-slate-800 space-y-1">
+                <span className="text-[11px] text-slate-400">Taxa de Conclusão</span>
+                <div className="text-sm font-mono font-bold text-teal-400">{completionRate}</div>
+              </div>
+
+              <div className="p-3.5 rounded-xl bg-slate-900/80 border border-slate-800 space-y-1 cursor-pointer hover:border-indigo-500/50 transition" onClick={() => setSegmentDrawer({ title: 'Consentimentos LGPD Concedidos', users: Object.values(contactsMap).filter(c => c.permission_status === 'granted') })}>
+                <span className="text-[11px] text-slate-400">Consentimentos LGPD</span>
+                <div className="text-xl font-mono font-bold text-indigo-400">
+                  {Object.values(contactsMap).filter(c => c.permission_status === 'granted').length}
+                </div>
+              </div>
             </div>
-            <span className="text-[9px] text-slate-500 block">* Rastreio por imagem/pixel</span>
-          </div>
-
-
-          <div className="p-3.5 rounded-xl bg-slate-900/80 border border-slate-800 space-y-1">
-            <span className="text-[11px] text-slate-400">Pesquisas Iniciadas</span>
-            <div className="text-xl font-mono font-bold text-amber-400">
-              {Math.max(totalResponses, emailCampaigns.filter(c => c.status === 'opened' || c.status === 'clicked' || c.status === 'responded').length)}
-            </div>
-          </div>
-
-          <div className="p-3.5 rounded-xl bg-slate-900/80 border border-slate-800 space-y-1">
-            <span className="text-[11px] text-slate-400">Pesquisas Concluídas</span>
-            <div className="text-xl font-mono font-bold text-emerald-400">{totalResponses}</div>
-          </div>
-
-          <div className="p-3.5 rounded-xl bg-slate-900/80 border border-slate-800 space-y-1">
-            <span className="text-[11px] text-slate-400">Taxa de Conclusão</span>
-            <div className="text-sm font-mono font-bold text-teal-400">
-              {(() => {
-                const totalInvited = emailCampaigns.length;
-                if (totalInvited === 0) return `${Math.min(100, Math.round((totalResponses / Math.max(1, totalResponses)) * 100))}.0%`;
-                const rate = (totalResponses / totalInvited) * 100;
-                if (rate > 100) return '⚠️ Anomalia de tracking';
-                return `${Math.min(100, rate).toFixed(1)}%`;
-              })()}
-            </div>
-          </div>
-
-          <div className="p-3.5 rounded-xl bg-slate-900/80 border border-slate-800 space-y-1 cursor-pointer hover:border-indigo-500/50 transition" onClick={() => setSegmentDrawer({ title: 'Consentimentos LGPD Concedidos', users: Object.values(contactsMap).filter(c => c.permission_status === 'granted') })}>
-            <span className="text-[11px] text-slate-400">Consentimentos LGPD</span>
-            <div className="text-xl font-mono font-bold text-indigo-400">
-              {Object.values(contactsMap).filter(c => c.permission_status === 'granted').length}
-            </div>
-          </div>
-        </div>
+          );
+        })()}
       </div>
 
       {/* RASTREABILIDADE CANDIDATO POR CANDIDATO — QUEM FEZ O QUÊ? */}

@@ -60,12 +60,12 @@ export const UserResearchDashboard: React.FC<UserResearchDashboardProps> = () =>
       setGiveawayParticipants(giveaway || []);
 
       // 3. Fetch survey email campaigns
-      const { data: campaigns } = await supabase.from('survey_email_campaigns').select('*');
-      setEmailCampaigns(campaigns || []);
+      const { data: campaigns, error: cErr } = await supabase.from('survey_email_campaigns').select('*');
+      if (cErr) console.warn('[UserResearch] Erro ao buscar survey_email_campaigns:', cErr);
 
       // 4. Fetch survey events
-      const { data: events } = await supabase.from('survey_events').select('*').order('created_at', { ascending: false });
-      setSurveyEvents(events || []);
+      const { data: events, error: eErr } = await supabase.from('survey_events').select('*').order('created_at', { ascending: false });
+      if (eErr) console.warn('[UserResearch] Erro ao buscar survey_events:', eErr);
 
       // 5. Fetch research contacts (LGPD decoupled)
       const { data: contacts } = await supabase.from('research_contacts').select('*');
@@ -82,6 +82,50 @@ export const UserResearchDashboard: React.FC<UserResearchDashboardProps> = () =>
         pMap[p.id] = p;
       });
       setProfilesMap(pMap);
+
+      // 🔄 CONSOLIDAÇÃO DE DADOS DE CAMPANHA (FAILSFE MERGE)
+      const rawEvents = events || [];
+      const rawCampaigns = campaigns || [];
+      const campaignUserMap = new Map<string, any>();
+
+      // Adiciona campanhas registradas
+      rawCampaigns.forEach((c: any) => {
+        if (c.user_id) campaignUserMap.set(c.user_id, c);
+      });
+
+      // Adiciona eventos de disparo email_sent caso a campanha não estivesse mapeada
+      rawEvents.filter((e: any) => e.event_name === 'email_sent').forEach((e: any) => {
+        if (e.user_id && !campaignUserMap.has(e.user_id)) {
+          campaignUserMap.set(e.user_id, {
+            id: e.id,
+            user_id: e.user_id,
+            email: e.metadata?.email || pMap[e.user_id]?.email || 'candidato@vocentro.com.br',
+            campaign_id: e.metadata?.campaign_id || 'v1_founders_validation',
+            cohort: 'beta_general',
+            status: 'sent',
+            sent_at: e.created_at
+          });
+        }
+      });
+
+      // Adiciona respondentes da pesquisa caso ainda não mapeados
+      (responses || []).forEach((r: any) => {
+        if (r.user_id && !campaignUserMap.has(r.user_id)) {
+          campaignUserMap.set(r.user_id, {
+            id: r.id,
+            user_id: r.user_id,
+            email: pMap[r.user_id]?.email || 'candidato@vocentro.com.br',
+            campaign_id: 'v1_founders_validation',
+            cohort: 'beta_general',
+            status: 'responded',
+            sent_at: r.created_at
+          });
+        }
+      });
+
+      const mergedCampaigns = Array.from(campaignUserMap.values());
+      setEmailCampaigns(mergedCampaigns);
+      setSurveyEvents(rawEvents);
 
       // 7. Fetch activity markers for activation segmentation
       const { data: activeResumes } = await supabase.from('resume_versions').select('user_id');

@@ -18,9 +18,27 @@ serve(async (req) => {
 
     const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 
-    // Find profile
-    const { data: profile } = await supabase.from('profiles').select('id').eq('email', email).maybeSingle();
-    const userId = profile?.id || null;
+    const cleanEmail = (email || '').trim().toLowerCase();
+
+    // 1. Find profile by email (case-insensitive)
+    let { data: profile } = await supabase.from('profiles').select('id').ilike('email', cleanEmail).maybeSingle();
+    let userId = profile?.id || null;
+
+    // 2. Fallback: Find user_id from survey_events matching resend_message_id
+    if (!userId && messageId) {
+      const { data: sentEvt } = await supabase
+        .from('survey_events')
+        .select('user_id')
+        .filter('metadata->>resend_message_id', 'eq', messageId)
+        .maybeSingle();
+      if (sentEvt?.user_id) userId = sentEvt.user_id;
+    }
+
+    // 3. Fallback: Find user_id from survey_email_campaigns
+    if (!userId && cleanEmail) {
+      const { data: camp } = await supabase.from('survey_email_campaigns').select('user_id').ilike('email', cleanEmail).maybeSingle();
+      if (camp?.user_id) userId = camp.user_id;
+    }
 
     const eventNameMap: Record<string, string> = {
       'email.sent': 'email_sent',
@@ -45,20 +63,25 @@ serve(async (req) => {
       await supabase.from('survey_events').insert({
         user_id: userId,
         event_name: mappedEventName,
-        metadata: { resend_message_id: messageId, email, eventType, timestamp: new Date().toISOString() }
+        metadata: { resend_message_id: messageId, email: cleanEmail, eventType, timestamp: new Date().toISOString() }
       });
 
-      // 2. Update status in survey_email_campaigns if user exists
-      if (userId) {
-        let campaignStatus = 'sent';
-        if (eventType === 'email.delivered') campaignStatus = 'delivered';
-        if (eventType === 'email.opened') campaignStatus = 'opened';
-        if (eventType === 'email.clicked') campaignStatus = 'clicked';
+      // 2. Update status in survey_email_campaigns
+      let campaignStatus = 'sent';
+      if (eventType === 'email.delivered') campaignStatus = 'delivered';
+      if (eventType === 'email.opened') campaignStatus = 'opened';
+      if (eventType === 'email.clicked') campaignStatus = 'clicked';
 
+      if (userId) {
         await supabase.from('survey_email_campaigns').update({
           status: campaignStatus,
           last_activity_at: new Date().toISOString()
         }).eq('user_id', userId);
+      } else if (cleanEmail) {
+        await supabase.from('survey_email_campaigns').update({
+          status: campaignStatus,
+          last_activity_at: new Date().toISOString()
+        }).ilike('email', cleanEmail);
       }
     }
 

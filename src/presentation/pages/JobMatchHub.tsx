@@ -140,12 +140,32 @@ interface JobMatchHubProps {
 }
 
 const METRO_REGIONS: Record<string, string[]> = {
-  'são paulo': ['são paulo', 'sao paulo', 'sp', 'itapevi', 'osasco', 'barueri', 'guarulhos', 'santo andré', 'santo andre', 'são bernardo', 'sao bernardo', 'diadema', 'alphaville', 'cotia', 'taboão', 'taboao', 'mauá', 'maua', 'mogi', 'jundiaí', 'jundiai', 'campinas', 'santos', 'santana de parnaíba', 'araraquara', 'sorocaba', 'piracicaba'],
-  'rio de janeiro': ['rio de janeiro', 'rj', 'niterói', 'niteroi', 'duque de caxias', 'nova iguaçu', 'nova iguacu', 'petrópolis', 'petropolis', 'volta redonda', 'macaé', 'macae'],
-  'belo horizonte': ['belo horizonte', 'bh', 'mg', 'contagem', 'betim', 'nova lima', 'uberlândia', 'uberlandia', 'juiz de fora', 'sete lagoas'],
-  'curitiba': ['curitiba', 'pr', 'são josé dos pinhais', 'sao jose dos pinhais', 'londrina', 'maringá', 'maringa'],
-  'porto alegre': ['porto alegre', 'rs', 'canoas', 'caxias do sul', 'pelotas'],
-  'florianópolis': ['florianópolis', 'florianopolis', 'sc', 'joinville', 'blumenau', 'são josé', 'sao jose']
+  'são paulo': [
+    'são paulo', 'sao paulo', 'osasco', 'barueri', 'guarulhos', 'santo andré', 'santo andre', 
+    'são bernardo', 'sao bernardo', 'diadema', 'alphaville', 'cotia', 'taboão da serra', 
+    'taboao da serra', 'taboão', 'taboao', 'mauá', 'maua', 'mogi das cruzes', 'mogi', 
+    'santana de parnaíba', 'santana de parnaiba', 'itapecerica da serra', 'carapicuíba', 
+    'carapicuiba', 'embu das artes', 'poá', 'poa', 'ferraz de vasconcelos', 'suzano', 
+    'caieiras', 'franco da rocha', 'jandira', 'ribeirão pires', 'ribeirao pires', 'itapevi'
+  ],
+  'campinas': [
+    'campinas', 'indaiatuba', 'sumaré', 'sumare', 'hortolândia', 'hortolandia', 'americana', 'valinhos', 'vinhedo', 'paulinia', 'paulínia'
+  ],
+  'rio de janeiro': [
+    'rio de janeiro', 'niterói', 'niteroi', 'duque de caxias', 'nova iguaçu', 'nova iguacu', 'são gonçalo', 'sao goncalo', 'nilópolis', 'nilopolis', 'belford roxo', 'magé', 'mage'
+  ],
+  'belo horizonte': [
+    'belo horizonte', 'bh', 'contagem', 'betim', 'nova lima', 'sabará', 'sabara', 'ibirité', 'ibirite', 'santa luzia'
+  ],
+  'curitiba': [
+    'curitiba', 'são josé dos pinhais', 'sao jose dos pinhais', 'colombo', 'pinhais', 'araucaria', 'araucária'
+  ],
+  'porto alegre': [
+    'porto alegre', 'canoas', 'novo hamburgo', 'são leopoldo', 'sao leopoldo', 'alvorada', 'viamão', 'viamao', 'gravataí', 'gravatai'
+  ],
+  'florianópolis': [
+    'florianópolis', 'florianopolis', 'são josé', 'sao jose', 'palhoça', 'palhoca', 'biguaçu', 'biguacu'
+  ]
 };
 
 function isMetropolitanMatch(targetLocRaw: string, jobLocRaw: string, workMode?: string): boolean {
@@ -156,23 +176,35 @@ function isMetropolitanMatch(targetLocRaw: string, jobLocRaw: string, workMode?:
 
   if (targetLoc === 'brasil' || targetLoc === 'remoto' || targetLoc === '') return true;
   if (workMode === 'remote' || jobLoc.includes('remot') || jobLoc.includes('qualquer lugar') || jobLoc.includes('brasil')) return true;
+  if (!jobLoc || jobLoc === 'desconhecida') return true;
 
-  const cleanTarget = targetLoc.replace(/,\s*sp/g, '').replace(/,\s*rj/g, '').replace(/,\s*mg/g, '').trim();
-  if (jobLoc.includes(cleanTarget)) return true;
+  // Clean state suffix like ', sp', ' sp', '- sp'
+  const cleanTarget = targetLoc
+    .replace(/,\s*[a-z]{2}$/i, '')
+    .replace(/\s+-\s*[a-z]{2}$/i, '')
+    .replace(/\s+[a-z]{2}$/i, '')
+    .trim();
 
+  // 1. Direct City Name Match
+  if (cleanTarget && jobLoc.includes(cleanTarget)) return true;
+
+  // 2. Metropolitan Region Match
   for (const [regionName, cities] of Object.entries(METRO_REGIONS)) {
-    const isTargetInRegion = cities.some(c => targetLoc.includes(c) || regionName.includes(cleanTarget));
+    const isTargetInRegion = regionName.includes(cleanTarget) || cities.some(c => cleanTarget.includes(c));
     if (isTargetInRegion) {
       const isJobInRegion = cities.some(c => jobLoc.includes(c));
       if (isJobInRegion) return true;
     }
   }
 
-  const targetStateMatch = targetLoc.match(/\b(sp|rj|mg|pr|rs|sc|ba|pe|ce|df|go|am|pa)\b/);
-  const jobStateMatch = jobLoc.match(/\b(sp|rj|mg|pr|rs|sc|ba|pe|ce|df|go|am|pa)\b/);
-
-  if (targetStateMatch && jobStateMatch && targetStateMatch[1] === jobStateMatch[1]) {
-    return true;
+  // 3. State Search ONLY if target explicitly requests state (e.g. 'sp', 'estado de são paulo', 'são paulo - sp')
+  const isExplicitStateSearch = /^(sp|rj|mg|pr|rs|sc|ba|pe|ce|df|go|am|pa)$/i.test(targetLoc) || targetLoc.includes('estado de');
+  if (isExplicitStateSearch) {
+    const targetStateMatch = targetLoc.match(/\b(sp|rj|mg|pr|rs|sc|ba|pe|ce|df|go|am|pa)\b/);
+    const jobStateMatch = jobLoc.match(/\b(sp|rj|mg|pr|rs|sc|ba|pe|ce|df|go|am|pa)\b/);
+    if (targetStateMatch && jobStateMatch && targetStateMatch[1] === jobStateMatch[1]) {
+      return true;
+    }
   }
 
   return false;
@@ -4486,7 +4518,18 @@ export function JobMatchHub({
                     {/* Controles de Paginação com suporte a navegação remota contínua */}
                     {(() => {
                       const itemsPerPage = 15;
-                      const calculatedTotalPages = Math.max(1, Math.ceil((totalCount || scoredDiscoveredJobs.length) / itemsPerPage));
+                      const currentVisibleCount = showHiddenJobs 
+                        ? (scoredDiscoveredJobs.length + hiddenDiscoveredJobs.length)
+                        : scoredDiscoveredJobs.length;
+
+                      const isCitySearch = Boolean(activeFilters.location && activeFilters.location.trim().toLowerCase() !== 'brasil');
+                      
+                      // Quando há busca por cidade específica, totalCount é calibrado pela quantidade real de vagas elegíveis
+                      const effectiveCount = isCitySearch
+                        ? (currentVisibleCount > 0 ? currentVisibleCount : (totalCount || 0))
+                        : (totalCount || currentVisibleCount);
+
+                      const calculatedTotalPages = Math.max(1, Math.ceil(effectiveCount / itemsPerPage));
                       const totalPages = calculatedTotalPages;
                       const safePage = Math.min(Math.max(1, searchPage), totalPages);
 

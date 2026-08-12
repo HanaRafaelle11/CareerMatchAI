@@ -137,21 +137,24 @@ export function useJobDiscovery(
       finalKeywords = simplifySearchTitle(originalKeyword);
       if (finalKeywords.length === 0) finalKeywords = [originalKeyword || 'Vagas'];
 
-      // Otimizar localização
-      if (careerProfileNew) {
+      // Otimizar localização:
+      // Se o usuário digitou uma busca manual por palavra-chave (filters.keyword) e deixou a localidade vazia,
+      // devemos buscar em todo o 'Brasil' (sem sobrescrever com a cidade do perfil).
+      const hasManualKeyword = Boolean(filters.keyword && filters.keyword.trim().length > 0);
+      
+      if (finalLocation) {
+        finalLocation = normalizeLocationWithUF(finalLocation);
+      } else if (!hasManualKeyword && careerProfileNew) {
         const preferences = (careerProfileNew.personal as any)?.preferences || {};
-        if (!finalLocation) {
-          const rawLoc = preferences.preferredLocations?.[0] || careerProfileNew.personal?.location || 'Brasil';
-          finalLocation = normalizeLocationWithUF(rawLoc);
-        } else {
-          finalLocation = normalizeLocationWithUF(finalLocation);
-        }
-
-        if (finalRemoteOnly === undefined) {
-          finalRemoteOnly = preferences.preferredWorkModes?.includes('remote') ?? true;
-        }
+        const rawLoc = preferences.preferredLocations?.[0] || careerProfileNew.personal?.location || 'Brasil';
+        finalLocation = normalizeLocationWithUF(rawLoc);
       } else {
-        finalLocation = normalizeLocationWithUF(finalLocation || 'Brasil');
+        finalLocation = 'Brasil';
+      }
+
+      if (careerProfileNew && finalRemoteOnly === undefined) {
+        const preferences = (careerProfileNew.personal as any)?.preferences || {};
+        finalRemoteOnly = preferences.preferredWorkModes?.includes('remote') ?? false;
       }
 
       // ── Cascata de 5 Camadas com limiar mínimo ──

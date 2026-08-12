@@ -171,22 +171,50 @@ export const UserResearchDashboard: React.FC<UserResearchDashboardProps> = () =>
 
   const handleConfirmDispatchWave = async () => {
     if (!wavePreview) return;
+    if (!supabase) {
+      setDispatchStatus('⚠️ Erro: Conexão com Supabase não configurada.');
+      return;
+    }
+
+    // ── VERIFICAÇÃO DE SESSÃO E TOKEN NO FRONTEND ──
+    const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
+    const session = sessionData?.session;
+
+    if (sessionError || !session || !session.access_token) {
+      setDispatchStatus('⚠️ Erro: Sessão de administrador não encontrada ou expirada. Por favor, autentique-se novamente.');
+      console.warn('[UserResearchDashboard] Disparo cancelado: token de acesso ausente ou sessão inválida.');
+      return;
+    }
+
     setDispatchStatus(`Disparando onda [${wavePreview.wave}] para ${wavePreview.pending} destinatários pendentes...`);
     try {
       const res = await fetch('https://bdlpfrwebsmpohtclnxf.supabase.co/functions/v1/send-survey-email', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session.access_token}`
+        },
         body: JSON.stringify({ 
           cohortTarget: wavePreview.wave, 
           emailType: 'initial_invite',
           sendAdminCopy
         })
       });
+
       const data = await res.json();
+
+      if (!res.ok) {
+        const errorMsg = data?.error || `Erro HTTP ${res.status}: ${res.statusText}`;
+        console.error(`[UserResearchDashboard] Erro no disparo (${res.status}):`, errorMsg);
+        setDispatchStatus(`⚠️ Falha no disparo (${res.status}): ${errorMsg}`);
+        return;
+      }
+
       setDispatchStatus(`✓ Sucesso! E-mails registrados na onda [${wavePreview.wave}] (${data.count || wavePreview.pending} candidatos). ${sendAdminCopy ? '+1 Cópia administrativa enviada.' : ''}`);
       setWavePreview(null);
       fetchResearchData();
     } catch (err: any) {
+      console.error('[UserResearchDashboard] Exceção na requisição:', err?.message || err);
       setDispatchStatus(`⚠️ Erro ao disparar onda: ${err.message || 'Falha na conexão'}`);
     }
   };

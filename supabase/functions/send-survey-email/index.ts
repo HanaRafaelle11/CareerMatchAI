@@ -10,10 +10,48 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
+// E-mail do administrador autorizado a disparar campanhas
+const AUTHORIZED_ADMIN_EMAIL = 'hanarafaelle11@gmail.com';
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders });
   }
+
+  // ── AUTENTICAÇÃO E AUTORIZAÇÃO ────────────────────────────────────────────
+  // verify_jwt:true (configuração Supabase) já validou a assinatura do JWT.
+  // Aqui verificamos adicionalmente que o chamador é o administrador.
+  const authHeader = req.headers.get('Authorization');
+  if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    return new Response(
+      JSON.stringify({ error: 'Unauthorized: Authorization header ausente ou mal-formado.' }),
+      { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+    );
+  }
+
+  const callerToken = authHeader.replace('Bearer ', '').trim();
+
+  // Usamos o service role client apenas para validar quem é o usuário do token.
+  // O SUPABASE_SERVICE_ROLE_KEY nunca é exposto ao frontend.
+  const supabaseAdmin = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
+  const { data: { user: callerUser }, error: authError } = await supabaseAdmin.auth.getUser(callerToken);
+
+  if (authError || !callerUser) {
+    return new Response(
+      JSON.stringify({ error: 'Unauthorized: Token inválido ou sessão expirada.' }),
+      { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+    );
+  }
+
+  const callerEmail = (callerUser.email || '').trim().toLowerCase();
+  if (callerEmail !== AUTHORIZED_ADMIN_EMAIL) {
+    console.warn(`[send-survey-email] Tentativa de acesso negada — usuário não é admin.`);
+    return new Response(
+      JSON.stringify({ error: 'Forbidden: Somente o administrador autorizado pode disparar campanhas de e-mail.' }),
+      { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+    );
+  }
+  // ── FIM DA AUTORIZAÇÃO ────────────────────────────────────────────────────
 
   try {
     const { 

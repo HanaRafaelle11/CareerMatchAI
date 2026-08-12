@@ -730,23 +730,27 @@ export const UserResearchDashboard: React.FC<UserResearchDashboardProps> = () =>
                   const isGiveaway = giveawayParticipants.some(g => g.user_id === c.user_id);
                   const userEvents = surveyEvents.filter(e => e.user_id === c.user_id);
                   
-                  const isDelivered = c.status === 'delivered' || c.status === 'opened' || c.status === 'clicked' || c.status === 'responded' || c.status === 'sent';
+                  const isSent = c.status === 'sent' || c.status === 'delivered' || c.status === 'opened' || c.status === 'clicked' || c.status === 'responded' || userEvents.some(e => e.event_name === 'email_sent');
+                  const isDelivered = c.status === 'delivered' || c.status === 'opened' || c.status === 'clicked' || c.status === 'responded' || userEvents.some(e => e.event_name === 'email_delivered');
                   const isOpened = c.status === 'opened' || c.status === 'clicked' || c.status === 'responded' || userEvents.some(e => e.event_name === 'email_opened');
                   const isClicked = c.status === 'clicked' || c.status === 'responded' || userEvents.some(e => e.event_name === 'email_clicked');
                   const isSurveyOpened = userEvents.some(e => e.event_name === 'survey_opened') || isClicked || hasResponse;
                   const isStarted = userEvents.some(e => e.event_name === 'survey_started') || hasResponse;
 
-                  // Find drop-off question if abandoned
-                  const lastQuestionEvent = userEvents.filter(e => e.event_name === 'survey_question_viewed').pop();
-                  const abandonedQuestion = (!hasResponse && isStarted) ? `Q${lastQuestionEvent?.question_number || 1}` : '—';
+                  // Find highest question_number viewed if abandoned
+                  const questionEvents = userEvents.filter(e => (e.event_name === 'survey_question_viewed' || e.event_name === 'survey_started') && e.question_number);
+                  const maxQ = questionEvents.length > 0 ? Math.max(...questionEvents.map(e => e.question_number)) : 1;
+                  const abandonedQuestion = (!hasResponse && (isStarted || isSurveyOpened)) ? `Q${maxQ}` : '—';
+
+                  const displayEmail = c.email || profilesMap[c.user_id]?.email || `Usuário #${String(idx + 1).padStart(3, '0')}`;
 
                   return (
                     <tr key={c.id || idx} className="hover:bg-slate-900/40 transition">
                       <td className="p-3 font-medium text-white flex items-center gap-2">
-                        <span>Usuário #{String(idx + 1).padStart(3, '0')}</span>
-                        {c.email?.includes('test') && <span className="px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-400 text-[9px] font-bold">QA</span>}
+                        <span className="font-mono text-xs text-slate-200" title={displayEmail}>{displayEmail}</span>
+                        {displayEmail.includes('test') && <span className="px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-400 text-[9px] font-bold">QA</span>}
                       </td>
-                      <td className="p-3 text-center text-emerald-400">✅</td>
+                      <td className="p-3 text-center">{isSent ? <span className="text-emerald-400">✅</span> : <span className="text-slate-600">❌</span>}</td>
                       <td className="p-3 text-center">{isDelivered ? <span className="text-emerald-400">✅</span> : <span className="text-slate-600">❌</span>}</td>
                       <td className="p-3 text-center">{isOpened ? <span className="text-cyan-400">✅</span> : <span className="text-slate-600">❌</span>}</td>
                       <td className="p-3 text-center">{isClicked ? <span className="text-indigo-400">✅</span> : <span className="text-slate-600">❌</span>}</td>
@@ -807,24 +811,51 @@ export const UserResearchDashboard: React.FC<UserResearchDashboardProps> = () =>
           Mapeamento dos pontos exatos de abandono durante o preenchimento da pesquisa para otimização da UX.
         </p>
 
-        <div className="grid grid-cols-4 sm:grid-cols-8 md:grid-cols-16 gap-1.5 pt-2">
-          {Array.from({ length: 16 }, (_, i) => i + 1).map((qNum) => {
-            const viewedEvents = surveyEvents.filter(e => e.event_name === 'survey_question_viewed' && e.question_number === qNum);
-            const dropoffCount = Math.max(0, viewedEvents.length - surveyResponses.length);
-            return (
-              <div 
-                key={qNum} 
-                className={`p-2 rounded-lg border text-center space-y-1 ${
-                  dropoffCount > 0 ? 'bg-rose-500/10 border-rose-500/40 text-rose-300' : 'bg-slate-900 border-slate-800 text-slate-400'
-                }`}
-              >
-                <span className="text-[10px] font-bold block">Q{qNum}</span>
-                <span className="text-xs font-mono font-black text-white">{dropoffCount}</span>
-                <span className="text-[9px] block text-slate-500">saídas</span>
-              </div>
-            );
-          })}
-        </div>
+        {(() => {
+          // Mapeia última pergunta alcançada pelos usuários que NÃO concluíram a pesquisa
+          const completedUserIds = new Set(surveyResponses.map(r => r.user_id).filter(Boolean));
+          const userEventsGrouped = new Map<string, any[]>();
+
+          surveyEvents.forEach(e => {
+            if (e.user_id) {
+              if (!userEventsGrouped.has(e.user_id)) userEventsGrouped.set(e.user_id, []);
+              userEventsGrouped.get(e.user_id)!.push(e);
+            }
+          });
+
+          const abandonedUserMaxQMap = new Map<string, number>();
+          userEventsGrouped.forEach((uEvts, uId) => {
+            if (!completedUserIds.has(uId)) {
+              const qEvts = uEvts.filter(e => e.event_name === 'survey_question_viewed' || e.event_name === 'survey_started');
+              if (qEvts.length > 0) {
+                const maxQ = Math.max(...qEvts.map(e => e.question_number || 1));
+                abandonedUserMaxQMap.set(uId, maxQ);
+              }
+            }
+          });
+
+          const abandonedQs = Array.from(abandonedUserMaxQMap.values());
+
+          return (
+            <div className="grid grid-cols-4 sm:grid-cols-8 md:grid-cols-16 gap-1.5 pt-2">
+              {Array.from({ length: 16 }, (_, i) => i + 1).map((qNum) => {
+                const dropoffCount = abandonedQs.filter(q => q === qNum).length;
+                return (
+                  <div 
+                    key={qNum} 
+                    className={`p-2 rounded-lg border text-center space-y-1 ${
+                      dropoffCount > 0 ? 'bg-rose-500/20 border-rose-500/60 text-rose-300 font-bold' : 'bg-slate-900 border-slate-800 text-slate-400'
+                    }`}
+                  >
+                    <span className="text-[10px] font-bold block">Q{qNum}</span>
+                    <span className={`text-xs font-mono font-black ${dropoffCount > 0 ? 'text-rose-400' : 'text-slate-500'}`}>{dropoffCount}</span>
+                    <span className="text-[9px] block text-slate-500">saídas</span>
+                  </div>
+                );
+              })}
+            </div>
+          );
+        })()}
       </div>
 
       {/* MODAL DE DRILL-DOWN POR SEGMENTO */}

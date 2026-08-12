@@ -158,7 +158,10 @@ export const PublicSurveyPage: React.FC = () => {
           user_id: userId,
           event_name: 'email_clicked',
           metadata: { email: candidateEmail, timestamp: new Date().toISOString() }
-        }).then(() => {});
+        }).then(
+          ({ error }) => { if (error) console.warn('[PublicSurvey] Erro email_clicked:', error.message); },
+          (err: any) => { console.warn('[PublicSurvey] Exceção email_clicked:', err); }
+        );
       }
 
       if (supabase) {
@@ -166,7 +169,10 @@ export const PublicSurveyPage: React.FC = () => {
           user_id: userId,
           event_name: 'survey_opened',
           metadata: { email: candidateEmail, timestamp: new Date().toISOString() }
-        }).then(() => {});
+        }).then(
+          ({ error }) => { if (error) console.warn('[PublicSurvey] Erro survey_opened:', error.message); },
+          (err: any) => { console.warn('[PublicSurvey] Exceção survey_opened:', err); }
+        );
       }
 
       // Check if user already submitted survey
@@ -211,7 +217,10 @@ export const PublicSurveyPage: React.FC = () => {
         question_number: 1,
         question_name: 'urgency',
         metadata: { timestamp: new Date().toISOString() }
-      }).then(() => {});
+      }).then(
+        ({ error }) => { if (error) console.warn('[PublicSurvey] Erro survey_started:', error.message); },
+        (err: any) => { console.warn('[PublicSurvey] Exceção survey_started:', err); }
+      );
     }
   };
 
@@ -226,7 +235,10 @@ export const PublicSurveyPage: React.FC = () => {
         question_number: nextStep,
         question_name: currentQuestionName,
         metadata: { timestamp: new Date().toISOString() }
-      }).then(() => {});
+      }).then(
+        ({ error }) => { if (error) console.warn('[PublicSurvey] Erro survey_question_viewed:', error.message); },
+        (err: any) => { console.warn('[PublicSurvey] Exceção survey_question_viewed:', err); }
+      );
     }
     setStep(nextStep);
   };

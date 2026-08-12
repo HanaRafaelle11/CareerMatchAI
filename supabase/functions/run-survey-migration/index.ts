@@ -49,44 +49,40 @@ serve(async (req) => {
       END $$;
     `;
 
-    // Grant SELECT RLS policies on survey tables for authenticated & anon clients
+    // Remove FK constraints that block survey_events & survey_email_campaigns for non-logged-in email tokens
     await sql`
       DO $$ 
       BEGIN
+        ALTER TABLE public.survey_events DROP CONSTRAINT IF EXISTS survey_events_user_id_fkey;
+        ALTER TABLE public.survey_email_campaigns DROP CONSTRAINT IF EXISTS survey_email_campaigns_user_id_fkey;
+        ALTER TABLE public.survey_responses DROP CONSTRAINT IF EXISTS survey_responses_user_id_fkey;
+        ALTER TABLE public.giveaway_participants DROP CONSTRAINT IF EXISTS giveaway_participants_user_id_fkey;
+        ALTER TABLE public.research_contacts DROP CONSTRAINT IF EXISTS research_contacts_user_id_fkey;
+
         -- survey_email_campaigns
         ALTER TABLE public.survey_email_campaigns ENABLE ROW LEVEL SECURITY;
-        DROP POLICY IF EXISTS "Allow select for authenticated" ON public.survey_email_campaigns;
-        CREATE POLICY "Allow select for authenticated" ON public.survey_email_campaigns FOR SELECT TO authenticated USING (true);
-        DROP POLICY IF EXISTS "Allow select for anon" ON public.survey_email_campaigns;
-        CREATE POLICY "Allow select for anon" ON public.survey_email_campaigns FOR SELECT TO anon USING (true);
+        DROP POLICY IF EXISTS "Allow all for survey_email_campaigns" ON public.survey_email_campaigns;
+        CREATE POLICY "Allow all for survey_email_campaigns" ON public.survey_email_campaigns FOR ALL TO anon, authenticated USING (true) WITH CHECK (true);
 
         -- survey_events
         ALTER TABLE public.survey_events ENABLE ROW LEVEL SECURITY;
-        DROP POLICY IF EXISTS "Allow select for authenticated" ON public.survey_events;
-        CREATE POLICY "Allow select for authenticated" ON public.survey_events FOR SELECT TO authenticated USING (true);
-        DROP POLICY IF EXISTS "Allow select for anon" ON public.survey_events;
-        CREATE POLICY "Allow select for anon" ON public.survey_events FOR SELECT TO anon USING (true);
-        DROP POLICY IF EXISTS "Allow insert for anon" ON public.survey_events;
-        CREATE POLICY "Allow insert for anon" ON public.survey_events FOR INSERT TO anon WITH CHECK (true);
-        DROP POLICY IF EXISTS "Allow insert for authenticated" ON public.survey_events;
-        CREATE POLICY "Allow insert for authenticated" ON public.survey_events FOR INSERT TO authenticated WITH CHECK (true);
+        DROP POLICY IF EXISTS "Allow all for survey_events" ON public.survey_events;
+        CREATE POLICY "Allow all for survey_events" ON public.survey_events FOR ALL TO anon, authenticated USING (true) WITH CHECK (true);
 
         -- survey_responses
         ALTER TABLE public.survey_responses ENABLE ROW LEVEL SECURITY;
-        DROP POLICY IF EXISTS "Allow select for authenticated" ON public.survey_responses;
-        CREATE POLICY "Allow select for authenticated" ON public.survey_responses FOR SELECT TO authenticated USING (true);
-        DROP POLICY IF EXISTS "Allow select for anon" ON public.survey_responses;
-        CREATE POLICY "Allow select for anon" ON public.survey_responses FOR SELECT TO anon USING (true);
+        DROP POLICY IF EXISTS "Allow all for survey_responses" ON public.survey_responses;
+        CREATE POLICY "Allow all for survey_responses" ON public.survey_responses FOR ALL TO anon, authenticated USING (true) WITH CHECK (true);
 
         -- giveaway_participants
         ALTER TABLE public.giveaway_participants ENABLE ROW LEVEL SECURITY;
-        DROP POLICY IF EXISTS "Allow select for authenticated" ON public.giveaway_participants;
-        CREATE POLICY "Allow select for authenticated" ON public.giveaway_participants FOR SELECT TO authenticated USING (true);
+        DROP POLICY IF EXISTS "Allow all for giveaway_participants" ON public.giveaway_participants;
+        CREATE POLICY "Allow all for giveaway_participants" ON public.giveaway_participants FOR ALL TO anon, authenticated USING (true) WITH CHECK (true);
 
         -- research_contacts
         ALTER TABLE public.research_contacts ENABLE ROW LEVEL SECURITY;
-        DROP POLICY IF EXISTS "Allow select for authenticated" ON public.research_contacts;
-        CREATE POLICY "Allow select for authenticated" ON public.research_contacts FOR SELECT TO authenticated USING (true);
+        DROP POLICY IF EXISTS "Allow all for research_contacts" ON public.research_contacts;
+        CREATE POLICY "Allow all for research_contacts" ON public.research_contacts FOR ALL TO anon, authenticated USING (true) WITH CHECK (true);
       END $$;
     `;
 

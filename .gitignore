@@ -56,3 +56,8 @@ android/local.properties
 android/**/*.apk
 # O APK publicado para download é mantido no repositório:
 !public/vocentro-*.apk
+
+# SEGURANÇA: Keystore de produção e credenciais — NUNCA commitar
+android/**/*.jks
+android/**/*.keystore
+android/keystore.properties

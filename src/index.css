@@ -89,20 +89,11 @@ html.dark, body.dark, .dark {
     color: var(--color-foreground);
     font-family: var(--font-sans);
     line-height: 1.6;
-    transition: background-color 0.2s ease, color 0.2s ease;
+    transition: background-color 150ms ease, color 150ms ease;
   }
 
   *, ::before, ::after {
     box-sizing: border-box;
-  }
-
-  /* Desabilita TODAS as transições durante troca de tema — Item 10 */
-  .theme-switching,
-  .theme-switching *,
-  .theme-switching ::before,
-  .theme-switching ::after {
-    transition: none !important;
-    animation-duration: 0ms !important;
   }
 }
 

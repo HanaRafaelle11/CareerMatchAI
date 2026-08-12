@@ -9,7 +9,7 @@ export function ThemeToggle({ className = '' }: { className?: string }) {
     <button
       onClick={toggleTheme}
       type="button"
-      className={`p-2 rounded-xl border border-border bg-card text-foreground hover:scale-105 active:scale-95 transition-all shadow-xs cursor-pointer flex items-center justify-center ${className}`}
+      className={`p-2 rounded-xl border border-border bg-card text-foreground hover:scale-105 active:scale-95 transition-transform duration-150 shadow-xs cursor-pointer flex items-center justify-center ${className}`}
       aria-label={isLight ? "Alternar para Modo Escuro" : "Alternar para Modo Claro"}
       title={isLight ? "Alternar para Modo Escuro" : "Alternar para Modo Claro"}
     >

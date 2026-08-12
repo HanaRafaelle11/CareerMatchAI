@@ -11,75 +11,91 @@ interface ThemeProviderContextType {
 
 const ThemeProviderContext = createContext<ThemeProviderContextType | undefined>(undefined);
 
+const getSystemTheme = (): 'light' | 'dark' => {
+  if (typeof window === 'undefined') return 'dark';
+  return window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark';
+};
+
+const applyThemeToDOM = (targetTheme: 'light' | 'dark') => {
+  if (typeof document === 'undefined') return;
+  const root = document.documentElement;
+  const body = document.body;
+
+  // Atualização síncrona e imediata das classes e atributos no DOM
+  root.setAttribute('data-theme', targetTheme);
+  body.setAttribute('data-theme', targetTheme);
+
+  if (targetTheme === 'light') {
+    root.classList.add('light');
+    root.classList.remove('dark');
+    body.classList.add('light');
+    body.classList.remove('dark');
+  } else {
+    root.classList.add('dark');
+    root.classList.remove('light');
+    body.classList.add('dark');
+    body.classList.remove('light');
+  }
+};
+
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
   const [theme, setThemeState] = useState<Theme>(() => {
     const saved = localStorage.getItem('theme') as Theme | null;
     return saved || 'dark';
   });
 
-  const getSystemTheme = (): 'light' | 'dark' => {
-    return window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark';
-  };
-
   const [effectiveTheme, setEffectiveTheme] = useState<'light' | 'dark'>(() => {
-    if (theme === 'system') return getSystemTheme();
-    return theme;
+    const active = theme === 'system' ? getSystemTheme() : theme;
+    // Aplicar no DOM no instante da montagem inicial
+    applyThemeToDOM(active);
+    return active;
   });
 
-  const applyThemeToDOM = (targetTheme: 'light' | 'dark') => {
-    const root = document.documentElement;
-    const body = document.body;
+  // Função de troca síncrona e imediata acionada no clique do botão
+  const setTheme = (newTheme: Theme) => {
+    const activeTheme = newTheme === 'system' ? getSystemTheme() : newTheme;
 
-    const isAlreadySet = targetTheme === 'dark' ? root.classList.contains('dark') : root.classList.contains('light');
-    if (isAlreadySet) return;
+    // 1. Aplicação IMEDIATA e síncrona no DOM no mesmo evento do clique (0ms de atraso)
+    applyThemeToDOM(activeTheme);
 
-    // Suprimir todas as transições CSS durante a troca de tema para efeito instantâneo
-    root.classList.add('theme-switching');
-    body.classList.add('theme-switching');
+    // 2. Atualização dos estados do React
+    setThemeState(newTheme);
+    setEffectiveTheme(activeTheme);
 
-    if (targetTheme === 'light') {
-      root.classList.add('light');
-      root.classList.remove('dark');
-      body.classList.add('light');
-      body.classList.remove('dark');
-    } else {
-      root.classList.add('dark');
-      root.classList.remove('light');
-      body.classList.add('dark');
-      body.classList.remove('light');
-    }
-
-    // Re-habilitar transições após a próxima repintura
-    requestAnimationFrame(() => {
-      requestAnimationFrame(() => {
-        root.classList.remove('theme-switching');
-        body.classList.remove('theme-switching');
-      });
-    });
+    // 3. Persistência e notificação
+    localStorage.setItem('theme', newTheme);
+    window.dispatchEvent(new CustomEvent('theme-change', { detail: { theme: newTheme } }));
   };
 
+  const toggleTheme = () => {
+    const nextTheme = effectiveTheme === 'light' ? 'dark' : 'light';
+    setTheme(nextTheme);
+  };
 
   useEffect(() => {
+    // Sincronização inicial do DOM para garantir o estado correto
     const activeTheme = theme === 'system' ? getSystemTheme() : theme;
-    setEffectiveTheme(activeTheme);
     applyThemeToDOM(activeTheme);
 
     const handleSystemChange = (e: MediaQueryListEvent) => {
       if (theme === 'system') {
-        const newSystemTheme = e.matches ? 'dark' : 'light';
-        setEffectiveTheme(newSystemTheme);
+        const newSystemTheme = e.matches ? 'light' : 'dark';
         applyThemeToDOM(newSystemTheme);
+        setEffectiveTheme(newSystemTheme);
       }
     };
 
-    const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
+    const mediaQuery = window.matchMedia('(prefers-color-scheme: light)');
     mediaQuery.addEventListener('change', handleSystemChange);
 
     const handleExternalThemeChange = (e: Event) => {
       const detail = (e as CustomEvent)?.detail;
-      const newTheme = detail?.theme || localStorage.getItem('theme') as Theme | null;
+      const newTheme = detail?.theme || (localStorage.getItem('theme') as Theme | null);
       if (newTheme && ['light', 'dark', 'system'].includes(newTheme)) {
+        const active = newTheme === 'system' ? getSystemTheme() : (newTheme as 'light' | 'dark');
+        applyThemeToDOM(active);
         setThemeState(newTheme as Theme);
+        setEffectiveTheme(active);
       }
     };
 
@@ -90,17 +106,6 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
       window.removeEventListener('theme-change', handleExternalThemeChange);
     };
   }, [theme]);
-
-  const setTheme = (newTheme: Theme) => {
-    setThemeState(newTheme);
-    localStorage.setItem('theme', newTheme);
-    window.dispatchEvent(new CustomEvent('theme-change', { detail: { theme: newTheme } }));
-  };
-
-  const toggleTheme = () => {
-    const nextTheme = effectiveTheme === 'light' ? 'dark' : 'light';
-    setTheme(nextTheme);
-  };
 
   return (
     <ThemeProviderContext.Provider value={{ theme, effectiveTheme, setTheme, toggleTheme }}>

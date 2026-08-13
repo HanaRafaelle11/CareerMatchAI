@@ -380,8 +380,8 @@ serve(async (req) => {
         if (tc.tier === 'C' && isBrazilianSearch) return true;
         return false;
       });
-      // Injetar conector do banco local de vagas ingeridas (InHire / Crons) — desativado temporariamente
-      const dbConnector = { connector: new DbIngestedJobsConnector(supabaseClient), tier: 'A' as const, enabled: false };
+      // Injetar conector do banco local de vagas ingeridas (InHire / Crons)
+      const dbConnector = { connector: new DbIngestedJobsConnector(supabaseClient), tier: 'A' as const, enabled: true };
       if (dbConnector.enabled) connectorsToRun.push(dbConnector);
     }
 

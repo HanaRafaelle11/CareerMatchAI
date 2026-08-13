@@ -460,6 +460,15 @@ export function aggregateAndNormalizeJobs(
 
   const deduplicatedJobs = Array.from(deduplicatedMap.values());
 
+  // Garantir que todo id de vaga seja estritamente único no array final
+  const seenJobIds = new Set<string>();
+  deduplicatedJobs.forEach((job, index) => {
+    if (!job.id || seenJobIds.has(job.id)) {
+      job.id = `${job.id || 'job'}_${index}_${Math.random().toString(36).slice(2, 6)}`;
+    }
+    seenJobIds.add(job.id);
+  });
+
   // Step 3: Smart Block Bucketing & Dynamic Penalties for Companies & Cities
   // Group jobs by primary provider
   const jobsByProvider = new Map<string, NormalizedJob[]>();

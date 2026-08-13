@@ -1,9 +1,14 @@
 // Fonte Única de Verdade para Modelos Gemini e Fallback em Edge Functions (Vocentro)
+// RASTRO DE AUDITORIA (13/08/2026):
+// - Tier 1: 'gemini-flash-latest' -> Mapeado pela Google API para modelVersion: 'gemini-3.6-flash'
+// - Tier 2: 'gemini-flash-lite-latest' -> Mapeado pela Google API para modelVersion: 'gemini-3.5-flash-lite'
+// - Tier 3: 'gemma-4-26b-a4b-it' -> Modelo Open-Weights do Google AI API (Verificado HTTP 200 OK)
+// - Tier 4: Fallback Determinístico Local em Memória (Com telemetria match_source: 'fallback_deterministic')
 
 export const GEMINI_MODEL_CHAIN = [
-  'gemini-flash-latest',       // Modelo Primário (Flash Estável de Produção)
-  'gemini-flash-lite-latest',  // Fallback Secundário (Flash Lite de Baixíssimo Custo)
-  'gemma-4-26b-a4b-it'         // Fallback Terciário (Open Weights via Google AI API)
+  'gemini-flash-latest',       // Tier 1 Primário (Flash Estável de Produção)
+  'gemini-flash-lite-latest',  // Tier 2 Fallback Secundário (Flash Lite de Baixíssimo Custo)
+  'gemma-4-26b-a4b-it'         // Tier 3 Fallback Terciário (Gemma 4 Open Weights via Google AI)
 ];
 
 export async function fetchWithRetry(url: string, options: any, maxRetries = 3, initialDelay = 1000): Promise<Response> {
@@ -64,7 +69,7 @@ export async function callGeminiWithFallbackShared(
       }
 
       const resJson = await response.json();
-      console.log(`[GEMINI SHARED HELPER] Sucesso com o modelo: ${model}!`);
+      console.log(`[GEMINI SHARED HELPER] Sucesso com o modelo: ${model} (modelVersion: ${resJson.modelVersion || 'gemma'})!`);
       return { resJson, selectedModel: model };
     } catch (err: any) {
       console.warn(`[GEMINI SHARED HELPER] Falha ao usar modelo ${model}:`, err.message || err);

@@ -1,38 +1,62 @@
 import { execSync } from 'child_process';
+import fs from 'fs';
+import path from 'path';
 
 /**
- * Selective Edge Function Deployer with Network Resilience (Retry + Backoff)
- * Prevents unnecessary deploy of all Edge Functions when only one function changed.
- * Avoids HTTP 522 Cloudflare/esm.sh timeout issues on unchanged functions (e.g. billing-portal).
+ * Selective & Dependents-Aware Edge Function Deployer with Network Resilience
+ * - Detects modified Edge Functions via git diff.
+ * - CRITICAL FIX: If `supabase/functions/_shared/` is modified (or argument is 'all'),
+ *   re-deploys ALL Edge Functions to ensure shared dependencies (e.g. geminiModels.ts)
+ *   are propagated to every dependent function.
  */
 function deploySelectiveEdgeFunctions() {
   const args = process.argv.slice(2);
   const explicitFunction = args[0];
 
+  const functionsDir = path.join(process.cwd(), 'supabase', 'functions');
+  const allFunctions = fs.readdirSync(functionsDir).filter(name => {
+    const fullPath = path.join(functionsDir, name);
+    return fs.statSync(fullPath).isDirectory() && !name.startsWith('_') && !name.startsWith('.');
+  });
+
   let targetFunctions = [];
 
   if (explicitFunction && explicitFunction !== 'auto') {
-    targetFunctions = [explicitFunction];
+    if (explicitFunction === 'all') {
+      targetFunctions = allFunctions;
+    } else {
+      targetFunctions = [explicitFunction];
+    }
   } else {
-    // Detect modified edge functions via git diff
     try {
       const diffOutput = execSync('git diff --name-only HEAD~1 HEAD || git diff --name-only', { encoding: 'utf8' });
       const changedFiles = diffOutput.split('\n').map(f => f.trim()).filter(Boolean);
 
       const functionMatches = new Set();
+      let sharedChanged = false;
+
       changedFiles.forEach(file => {
         if (file.startsWith('supabase/functions/')) {
           const parts = file.split('/');
           if (parts[2]) {
-            functionMatches.add(parts[2]);
+            if (parts[2] === '_shared') {
+              sharedChanged = true;
+            } else if (allFunctions.includes(parts[2])) {
+              functionMatches.add(parts[2]);
+            }
           }
         }
       });
 
-      targetFunctions = Array.from(functionMatches);
+      if (sharedChanged) {
+        console.log('[SelectiveDeploy] ⚠️ Alteração detectada em supabase/functions/_shared/. Acionando deploy de TODAS as 17 Edge Functions para garantir atualização de dependências compartilhadas.');
+        targetFunctions = allFunctions;
+      } else {
+        targetFunctions = Array.from(functionMatches);
+      }
     } catch (err) {
-      console.warn('[SelectiveDeploy] Não foi possível obter git diff, utilizando lista padrão mínima:', err.message);
-      targetFunctions = ['send-survey-email'];
+      console.warn('[SelectiveDeploy] Não foi possível obter git diff, executando deploy completo por segurança:', err.message);
+      targetFunctions = allFunctions;
     }
   }
 
@@ -41,7 +65,7 @@ function deploySelectiveEdgeFunctions() {
     return;
   }
 
-  console.log(`[SelectiveDeploy] Edge Functions direcionadas para deploy: ${targetFunctions.join(', ')}`);
+  console.log(`[SelectiveDeploy] ${targetFunctions.length} Edge Functions direcionadas para deploy: ${targetFunctions.join(', ')}`);
 
   const PROJECT_REF = 'bdlpfrwebsmpohtclnxf';
   const command = `npx supabase functions deploy ${targetFunctions.join(' ')} --project-ref ${PROJECT_REF}`;

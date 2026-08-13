@@ -437,6 +437,7 @@ serve(async (req) => {
     // ── 4. AGGREGATE, NORMALIZE, DEDUPLICATE & RANK ──
     const normalizedJobs = aggregateAndNormalizeJobs(rawJobsList, intent, searchLocation);
     const duplicatesRemoved = totalCount - normalizedJobs.length;
+    console.log(`[SEARCH-JOBS DEBUG] rawJobs: ${totalCount}, normalizedJobs: ${normalizedJobs.length}, duplicatesRemoved: ${duplicatesRemoved}`);
 
     // ── 4.5. GEO FILTER ──
     const locLower = searchLocation.toLowerCase();

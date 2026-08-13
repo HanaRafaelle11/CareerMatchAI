@@ -1099,6 +1099,9 @@ export function JobMatchHub({
   useEscapeToClose(matchRejectionModal, () => setMatchRejectionModal(false));
   useEscapeToClose(!!selectedJobId, () => setSelectedJobId(null));
 
+  const [showClearTrashModal, setShowClearTrashModal] = useState(false);
+  useEscapeToClose(showClearTrashModal, () => setShowClearTrashModal(false));
+
   // States para a descoberta de vagas baseada no Career Profile ou fallback
   const pref = (careerProfileNew?.personal as any)?.preferences || {};
   const initialKeyword = sessionStorage.getItem('job_search_keyword') || pref.searchKeywords?.[0] || pref.targetRoles?.[0] || careerProfile?.searchKeywords?.[0] || primaryResume?.skills?.[0]?.name || '';
@@ -1174,7 +1177,7 @@ export function JobMatchHub({
       const keyword = preferences.targetRoles?.[0] || preferences.searchKeywords?.[0] || (careerProfile as any)?.targetRoles?.[0] || (careerProfile as any)?.searchKeywords?.[0] || (primaryResume as any)?.headline?.split('|')[0]?.trim() || '';
       const loc = preferences.preferredLocations?.[0] || (careerProfile as any)?.preferredLocations?.[0] || 'Brasil';
       const isRemote = preferences.preferredWorkModes ? preferences.preferredWorkModes.includes('remote') : ((careerProfile as any)?.preferredWorkModes?.includes('remote') ?? true);
-      const preferredModes = preferences.preferredWorkModes || (careerProfile as any)?.preferredWorkModes || ['remote'];
+      const preferredModes = (preferences.preferredWorkModes && preferences.preferredWorkModes.length > 0) ? preferences.preferredWorkModes : ((careerProfile as any)?.preferredWorkModes && (careerProfile as any)?.preferredWorkModes.length > 0 ? (careerProfile as any).preferredWorkModes : ['remote', 'hybrid', 'onsite']);
       
       setSearchKeyword(keyword);
       setSearchLocation(loc);
@@ -1205,7 +1208,7 @@ export function JobMatchHub({
       
       const defaultLoc = preferences.preferredLocations?.[0] || (careerProfile as any)?.preferredLocations?.[0] || 'Brasil';
       const defaultRemote = preferences.preferredWorkModes ? preferences.preferredWorkModes.includes('remote') : ((careerProfile as any)?.preferredWorkModes?.includes('remote') ?? true);
-      const preferredModes = preferences.preferredWorkModes || (careerProfile as any)?.preferredWorkModes || ['remote'];
+      const preferredModes = (preferences.preferredWorkModes && preferences.preferredWorkModes.length > 0) ? preferences.preferredWorkModes : ((careerProfile as any)?.preferredWorkModes && (careerProfile as any)?.preferredWorkModes.length > 0 ? (careerProfile as any).preferredWorkModes : ['remote', 'hybrid', 'onsite']);
 
       setSearchKeyword(primaryKeyword);
       setSearchLocation(defaultLoc);
@@ -4646,33 +4649,13 @@ export function JobMatchHub({
                 Lixeira de Vagas Excluídas
               </h3>
               <p className="text-xs text-slate-400 mt-0.5">
-                Vagas removidas temporariamente. Você pode restaurá-las para a lista de Vagas Disponíveis ou excluí-las permanentemente.
+                Vagas removidas temporariamente. Clique em "Esvaziar Lixeira" para escolher entre restaurar todas de volta ou excluí-las permanentemente.
               </p>
             </div>
             {trashedJobs.length > 0 && (
               <button
                 type="button"
-                onClick={async () => {
-                  if (window.confirm('Tem certeza que deseja esvaziar a lixeira e excluir permanentemente todas as vagas contidas nela?')) {
-                    const linkedAppJobIds = new Set(applications.map(a => a.jobId));
-                    let deletedCount = 0;
-                    let skippedCount = 0;
-                    for (const item of trashedJobs) {
-                      if (linkedAppJobIds.has(item.id)) {
-                        skippedCount++;
-                      } else {
-                        if (onDeleteJob) await onDeleteJob(item.id);
-                        deletedCount++;
-                      }
-                    }
-                    clearTrash();
-                    if (skippedCount > 0) {
-                      showToast(`${deletedCount} vaga(s) removida(s). ${skippedCount} vaga(s) mantida(s) por possuírem candidatura ativa no Pipeline.`, 'warning');
-                    } else {
-                      showToast('Lixeira esvaziada com sucesso.', 'success');
-                    }
-                  }
-                }}
+                onClick={() => setShowClearTrashModal(true)}
                 className="px-3.5 py-2 rounded-xl bg-red-950/40 hover:bg-red-900/60 border border-red-800/50 text-red-400 text-xs font-bold flex items-center gap-1.5 transition cursor-pointer self-start sm:self-center shadow-md shadow-red-950/20"
               >
                 <Trash2 size={14} />
@@ -4692,7 +4675,7 @@ export function JobMatchHub({
               {trashedJobs.map(item => (
                 <div
                   key={item.id}
-                  className="p-4 rounded-2xl bg-slate-900/60 border border-slate-800 flex flex-col justify-between gap-3 hover:border-slate-700 transition"
+                  className="p-4 rounded-2xl bg-slate-900/60 border border-slate-800 flex flex-col justify-between gap-2 hover:border-slate-700 transition"
                 >
                   <div>
                     <div className="flex justify-between items-start gap-2">
@@ -4704,53 +4687,105 @@ export function JobMatchHub({
                     <p className="text-xs text-brand-400 font-medium mt-0.5">{item.companyName}</p>
                     {item.location && <p className="text-[10px] text-slate-500 mt-1">{item.location}</p>}
                   </div>
-
-                  <div className="flex items-center gap-2 pt-3 border-t border-slate-800/80">
-                    <button
-                      type="button"
-                      onClick={() => {
-                        restoreFromTrash(item.id);
-                        showToast(`Vaga "${item.title}" restaurada para Vagas Disponíveis!`, 'success');
-                      }}
-                      className="flex-1 py-2 px-3 rounded-xl bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/30 text-emerald-400 text-xs font-bold flex items-center justify-center gap-1.5 transition cursor-pointer"
-                    >
-                      <RotateCcw size={13} />
-                      Restaurar Vaga
-                    </button>
-                    <button
-                      type="button"
-                      onClick={async () => {
-                        const linkedApp = applications.find(a => String(a.jobId) === String(item.id) || String(a.id) === String(item.id));
-                        let confirmMsg = `Excluir permanentemente a vaga "${item.title}"? Esta ação não pode ser desfeita.`;
-                        if (linkedApp) {
-                          confirmMsg = `A vaga "${item.title}" possui uma candidatura ativa no seu Kanban. Deseja excluir permanentemente a vaga E a candidatura do Kanban?`;
-                        }
-
-                        if (window.confirm(confirmMsg)) {
-                          try {
-                            if (linkedApp && onDeleteApplication) {
-                              await onDeleteApplication(linkedApp.id);
-                            }
-                            await removeFromTrash(item.id);
-                            if (onDeleteJob) await onDeleteJob(item.id);
-                            showToast(`Vaga "${item.title}" excluída permanentemente.`, 'success');
-                          } catch (err: any) {
-                            showToast(err?.message || `Não foi possível excluir a vaga "${item.title}".`, 'error');
-                          }
-                        }
-                      }}
-                      className="py-2 px-3 rounded-xl bg-red-500/10 hover:bg-red-500/20 border border-red-500/30 text-red-400 text-xs font-bold flex items-center justify-center gap-1.5 transition cursor-pointer"
-                      title="Excluir permanentemente"
-                    >
-                      <Trash2 size={13} />
-                      Excluir Definitivamente
-                    </button>
-                  </div>
                 </div>
               ))}
             </div>
           )}
         </CardGlass>
+      )}
+
+      {showClearTrashModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm animate-in fade-in duration-200">
+          <CardGlass className="w-full max-w-lg p-6 space-y-6 border-slate-700 shadow-2xl relative">
+            <button
+              onClick={() => setShowClearTrashModal(false)}
+              className="absolute top-4 right-4 text-slate-400 hover:text-slate-200 transition"
+            >
+              <X size={18} />
+            </button>
+
+            <div className="flex items-center gap-3">
+              <div className="p-3 rounded-2xl bg-red-500/10 border border-red-500/20 text-red-400">
+                <Trash2 size={24} />
+              </div>
+              <div>
+                <h3 className="text-lg font-bold text-slate-100 font-display">Esvaziar Lixeira de Vagas</h3>
+                <p className="text-xs text-slate-400">
+                  Existem <strong className="text-slate-200">{trashedJobs.length} vaga(s)</strong> na sua lixeira. Escolha o que deseja fazer:
+                </p>
+              </div>
+            </div>
+
+            <div className="space-y-3 pt-2">
+              <button
+                type="button"
+                onClick={() => {
+                  for (const item of trashedJobs) {
+                    restoreFromTrash(item.id);
+                  }
+                  clearTrash();
+                  setShowClearTrashModal(false);
+                  showToast(`${trashedJobs.length} vaga(s) restaurada(s) com sucesso para Vagas Disponíveis!`, 'success');
+                }}
+                className="w-full p-4 rounded-2xl bg-slate-900/80 hover:bg-emerald-950/40 border border-slate-800 hover:border-emerald-500/50 text-left transition group flex items-start gap-3.5 cursor-pointer"
+              >
+                <div className="p-2.5 rounded-xl bg-emerald-500/10 text-emerald-400 group-hover:scale-105 transition shrink-0 mt-0.5">
+                  <RotateCcw size={18} />
+                </div>
+                <div>
+                  <h4 className="font-bold text-sm text-emerald-400 group-hover:text-emerald-300">
+                    Mover todas de volta para Vagas Disponíveis
+                  </h4>
+                  <p className="text-xs text-slate-400 mt-0.5">
+                    Restaura todas as vagas da lixeira de volta para a sua lista ativa de buscas.
+                  </p>
+                </div>
+              </button>
+
+              <button
+                type="button"
+                onClick={async () => {
+                  let deletedCount = 0;
+                  for (const item of trashedJobs) {
+                    const linkedApp = applications.find(a => String(a.jobId) === String(item.id) || String(a.id) === String(item.id));
+                    if (linkedApp && onDeleteApplication) {
+                      try { await onDeleteApplication(linkedApp.id); } catch (_) {}
+                    }
+                    await removeFromTrash(item.id);
+                    if (onDeleteJob) await onDeleteJob(item.id);
+                    deletedCount++;
+                  }
+                  clearTrash();
+                  setShowClearTrashModal(false);
+                  showToast(`${deletedCount} vaga(s) excluída(s) permanentemente do banco de dados.`, 'success');
+                }}
+                className="w-full p-4 rounded-2xl bg-slate-900/80 hover:bg-red-950/40 border border-slate-800 hover:border-red-500/50 text-left transition group flex items-start gap-3.5 cursor-pointer"
+              >
+                <div className="p-2.5 rounded-xl bg-red-500/10 text-red-400 group-hover:scale-105 transition shrink-0 mt-0.5">
+                  <Trash2 size={18} />
+                </div>
+                <div>
+                  <h4 className="font-bold text-sm text-red-400 group-hover:text-red-300">
+                    Excluir permanentemente todas do banco de dados
+                  </h4>
+                  <p className="text-xs text-slate-400 mt-0.5">
+                    Remove definitivamente todas as vagas da lixeira. Esta ação não poderá ser desfeita.
+                  </p>
+                </div>
+              </button>
+            </div>
+
+            <div className="flex justify-end pt-2">
+              <button
+                type="button"
+                onClick={() => setShowClearTrashModal(false)}
+                className="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-bold transition cursor-pointer"
+              >
+                Cancelar
+              </button>
+            </div>
+          </CardGlass>
+        </div>
       )}
 
       <PaywallModal

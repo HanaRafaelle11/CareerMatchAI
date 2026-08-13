@@ -23,9 +23,8 @@ export class DbIngestedJobsConnector extends BaseJobConnector {
     try {
       const cleanKeyword = (keyword || '').trim();
       let query = this.supabaseClient
-        .from('ingested_jobs')
+        .from('jobs')
         .select('*')
-        .eq('is_active', true)
         .order('created_at', { ascending: false })
         .range(from, to);
 
@@ -51,7 +50,7 @@ export class DbIngestedJobsConnector extends BaseJobConnector {
       const { data, error } = await query;
 
       if (error) {
-        console.warn("[DbIngestedJobsConnector] Erro ao consultar tabela ingested_jobs:", error.message);
+        console.warn("[DbIngestedJobsConnector] Erro ao consultar tabela jobs:", error.message);
         return [];
       }
 
@@ -62,8 +61,8 @@ export class DbIngestedJobsConnector extends BaseJobConnector {
         description: j.description || `Oportunidade publicada na empresa ${j.company_name}.`,
         companyName: j.company_name || "Empresa Parceira",
         location: j.location || "Brasil",
-        workMode: j.work_mode as any || 'onsite',
-        sourceUrl: j.url || "",
+        workMode: (j.work_mode as any) || 'onsite',
+        sourceUrl: j.url || j.source_url || "",
         sourcePlatform: j.source_platform ? `Ingested (${j.source_platform})` : this.platformName,
         publishedAt: j.created_at,
         salaryMin: j.salary_min || undefined,

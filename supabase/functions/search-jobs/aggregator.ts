@@ -93,7 +93,7 @@ function calculateFreshness(publishedAt?: string): { score: number; ageDays: num
   const ageMs = Date.now() - pubDate.getTime();
   const ageDays = Math.max(0, Math.floor(ageMs / (1000 * 60 * 60 * 24)));
 
-  if (ageDays > 90) return { score: 0, ageDays, isExpired: true };
+  if (ageDays > 90) return { score: 20, ageDays, isExpired: false };
   if (ageDays <= 1) return { score: 100, ageDays, isExpired: false }; // 0-24h: +15
   if (ageDays <= 3) return { score: 90, ageDays, isExpired: false };  // 1-3d: +12
   if (ageDays <= 7) return { score: 80, ageDays, isExpired: false };  // 4-7d: +8
@@ -122,6 +122,11 @@ function getBigramSimilarity(str1: string, str2: string): number {
 
 // Mapa Taxonômico de Sinônimos de Domínio (PT/EN)
 const DOMAIN_SYNONYMS: Record<string, string[]> = {
+  "vendedor": ["vendas", "comercial", "consultor de vendas", "vendedora", "promotor", "atendimento", "consultor"],
+  "vendas": ["vendedor", "comercial", "consultor de vendas", "vendedora", "atendimento"],
+  "comercial": ["vendedor", "vendas", "consultor", "atendimento"],
+  "ajudante": ["auxiliar", "assistente", "operacional", "ajudante geral"],
+  "auxiliar": ["ajudante", "assistente", "operacional"],
   "customer success": ["sucesso do cliente", "customer experience", "cx", "relacionamento com cliente", "relacionamento", "retenção", "pos-vendas", "pós-vendas", "atendimento ao cliente", "atendimento"],
   "sucesso do cliente": ["customer success", "customer experience", "cx", "relacionamento com cliente", "atendimento"],
   "customer experience": ["cx", "customer success", "sucesso do cliente", "experiência do cliente", "atendimento"],
@@ -139,8 +144,8 @@ function calculateSemanticMatch(
   const titleLower = titleClean.toLowerCase();
   const descLower = (j.description || '').toLowerCase();
   const combinedText = `${titleLower} ${descLower}`;
-  const rawQuery = (intent.family || intent.primary_titles?.[0] || '').toLowerCase().trim();
-
+  const primaryTitlesStr = (intent?.primary_titles || []).join(" ");
+  const rawQuery = (`${intent?.family || ''} ${primaryTitlesStr}`.trim() || titleClean).toLowerCase();
 
   const stopwords = new Set(['de', 'da', 'do', 'das', 'dos', 'em', 'para', 'com', 'por', 'sem', 'ou', 'e', 'a', 'o', 'of', 'for', 'in', 'and']);
   const queryTokens = Array.from(new Set(rawQuery.split(/\s+/).filter(w => !stopwords.has(w) && w.length >= 2)));
@@ -148,7 +153,7 @@ function calculateSemanticMatch(
   // 1. Expansão Semântica por Taxonomia de Domínio
   const expandedQueryTokens = new Set<string>(queryTokens);
   for (const [key, synonyms] of Object.entries(DOMAIN_SYNONYMS)) {
-    if (rawQuery.includes(key)) {
+    if (rawQuery.includes(key) || titleLower.includes(key)) {
       synonyms.forEach(syn => syn.split(/\s+/).forEach(w => {
         if (!stopwords.has(w) && w.length >= 2) expandedQueryTokens.add(w);
       }));
@@ -316,6 +321,7 @@ export function aggregateAndNormalizeJobs(
     const company = normalizeCompany(j.companyName);
     const titleClean = (j.title || '').replace(/<\/?[^>]+(>|$)/g, "").trim();
     const locStr = normalizeLocation(j.location);
+    const srcPlatform = j.sourcePlatform || 'Desconhecido';
     
     // a/b/c) Chave de Deduplicação Inteligente e Rica (Evita falsos positivos em empresas confidenciais)
     const buildKey = (): string => {
@@ -323,23 +329,22 @@ export function aggregateAndNormalizeJobs(
       if (rawUrl && typeof rawUrl === 'string' && rawUrl.trim().length > 12) {
         try {
           const urlObj = new URL(rawUrl.trim());
-          const cleanPath = (urlObj.origin + urlObj.pathname).toLowerCase().replace(/\/+$/, '');
+          const cleanPath = (urlObj.origin + urlObj.pathname + urlObj.search).toLowerCase().replace(/\/+$/, '');
           if (cleanPath.length > 15 && !cleanPath.includes('/search') && !cleanPath.includes('/vagas/busca')) {
             return `url:${cleanPath}`;
           }
         } catch {
-          const cleanUrl = rawUrl.trim().split('?')[0].toLowerCase();
+          const cleanUrl = rawUrl.trim().toLowerCase();
           if (cleanUrl.length > 15 && !cleanUrl.includes('/search')) return `url:${cleanUrl}`;
         }
       }
 
-      const cleanCompany = (company || '').toLowerCase().replace(/[^a-z0-9]/g, '');
-      const cleanTitle = (titleClean || '').toLowerCase().replace(/[^a-z0-9]/g, '');
-      // Normalização de Cidade: remove pontuações, espaços e siglas de estado para alinhar provedores
+      const cleanCompany = (company || j.companyName || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+      const rawTitle = (j.title || titleClean || '').toLowerCase().replace(/[^a-z0-9]/g, '');
       const cleanLoc = (locStr || '')
         .toLowerCase()
         .replace(/[^a-z0-9]/g, '')
-        .replace(/\b(sp|rj|mg|pr|rs|sc|ba|pe|ce|go|df|es|am|pa|ma|pb|rn|al|se|pi|mt|ms|to|ro|ac|ap|rr|brasil|brazil|remoto|remote)\b/g, '');
+        .replace(/\b(brasil|brazil|remoto|remote)\b/g, '');
 
       const isConfidential = !cleanCompany || 
         cleanCompany.includes('empresaconfidencial') || 
@@ -348,12 +353,13 @@ export function aggregateAndNormalizeJobs(
         cleanCompany === 'jobaggregator' ||
         cleanCompany === 'adzuna';
 
+      const descSnippet = (j.description || '').replace(/[^a-z0-9]/gi, '').slice(0, 60).toLowerCase();
+
       if (isConfidential) {
-        const descSnippet = (j.description || '').replace(/[^a-z0-9]/gi, '').slice(0, 80).toLowerCase();
-        return `conf:${cleanTitle}|${cleanLoc}|${descSnippet}`;
+        return `conf:${rawTitle}|${cleanLoc}|${descSnippet}`;
       }
 
-      return `comp:${cleanCompany}|${cleanTitle}|${cleanLoc}`;
+      return `comp:${cleanCompany}|${rawTitle}|${cleanLoc}|${descSnippet}`;
     };
 
     const key = buildKey();

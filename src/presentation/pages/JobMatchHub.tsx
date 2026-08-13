@@ -1109,7 +1109,7 @@ export function JobMatchHub({
   const initialLocation = sessionStorage.getItem('job_search_location') || pref.preferredLocations?.[0] || careerProfile?.preferredLocations?.[0] || 'Brasil';
   
   const storedRemote = sessionStorage.getItem('job_search_remote');
-  const initialRemote = storedRemote !== null ? storedRemote === 'true' : (pref.preferredWorkModes ? pref.preferredWorkModes.includes('remote') : (careerProfile ? careerProfile.preferredWorkModes.includes('remote') : true));
+  const initialRemote = storedRemote !== null ? storedRemote === 'true' : false;
 
   const initialInputKeyword = sessionStorage.getItem('job_search_input_keyword') || initialKeyword;
   const initialInputLocation = sessionStorage.getItem('job_search_input_location') || initialLocation;
@@ -1177,19 +1177,18 @@ export function JobMatchHub({
       const preferences = (careerProfileNew?.personal as any)?.preferences || {};
       const keyword = preferences.targetRoles?.[0] || preferences.searchKeywords?.[0] || (careerProfile as any)?.targetRoles?.[0] || (careerProfile as any)?.searchKeywords?.[0] || (primaryResume as any)?.headline?.split('|')[0]?.trim() || '';
       const loc = preferences.preferredLocations?.[0] || (careerProfile as any)?.preferredLocations?.[0] || 'Brasil';
-      const isRemote = preferences.preferredWorkModes ? preferences.preferredWorkModes.includes('remote') : ((careerProfile as any)?.preferredWorkModes?.includes('remote') ?? true);
       const isUserModified = sessionStorage.getItem('job_search_user_modified_work_modes') === 'true' || hasUserModifiedWorkModes;
-      const preferredModes = isUserModified ? searchWorkModes : ((preferences.preferredWorkModes && preferences.preferredWorkModes.length > 0) ? preferences.preferredWorkModes : ((careerProfile as any)?.preferredWorkModes && (careerProfile as any)?.preferredWorkModes.length > 0 ? (careerProfile as any).preferredWorkModes : ['remote', 'hybrid', 'onsite']));
+      const preferredModes = isUserModified ? searchWorkModes : ['remote', 'hybrid', 'onsite'];
       
       setSearchKeyword(keyword);
       setSearchLocation(loc);
-      setSearchRemoteOnly(isRemote);
+      setSearchRemoteOnly(false);
       setSearchWorkModes(preferredModes);
       
       setActiveFilters({
         keyword,
         location: loc,
-        remoteOnly: isRemote,
+        remoteOnly: false,
         workModes: preferredModes,
         seniority: 'all'
       });
@@ -1209,20 +1208,18 @@ export function JobMatchHub({
       const primaryKeyword = latestExpRole || targetRolesList[0] || preferences.searchKeywords?.[0] || (careerProfile as any)?.searchKeywords?.[0] || (primaryResume as any)?.headline?.split('|')[0]?.trim() || '';
       
       const defaultLoc = preferences.preferredLocations?.[0] || (careerProfile as any)?.preferredLocations?.[0] || 'Brasil';
-      const defaultRemote = preferences.preferredWorkModes ? preferences.preferredWorkModes.includes('remote') : ((careerProfile as any)?.preferredWorkModes?.includes('remote') ?? true);
-      
       const isUserModified = sessionStorage.getItem('job_search_user_modified_work_modes') === 'true' || hasUserModifiedWorkModes;
-      const preferredModes = isUserModified ? searchWorkModes : ((preferences.preferredWorkModes && preferences.preferredWorkModes.length > 0) ? preferences.preferredWorkModes : ((careerProfile as any)?.preferredWorkModes && (careerProfile as any)?.preferredWorkModes.length > 0 ? (careerProfile as any).preferredWorkModes : ['remote', 'hybrid', 'onsite']));
+      const preferredModes = isUserModified ? searchWorkModes : ['remote', 'hybrid', 'onsite'];
 
       setSearchKeyword(primaryKeyword);
       setSearchLocation(defaultLoc);
-      setSearchRemoteOnly(defaultRemote);
+      setSearchRemoteOnly(false);
       setSearchWorkModes(preferredModes);
 
       setActiveFilters({
         keyword: primaryKeyword,
         location: defaultLoc,
-        remoteOnly: defaultRemote,
+        remoteOnly: false,
         workModes: preferredModes,
         seniority: 'all'
       });

@@ -255,8 +255,7 @@ const isValidUUID = (uuid: string) => {
   return /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/.test(uuid);
 };
 
-class JobMatchingEngine {
-  static async matchWithGemini(careerProfile: any, jobTitle: string, jobDescription: string, supabaseClient: any, userId: string, jobId: string, mockEnabled = false, parentStartTime: number): Promise<any> {
+async function matchWithGemini(careerProfile: any, jobTitle: string, jobDescription: string, supabaseClient: any, userId: string, jobId: string, mockEnabled = false, parentStartTime: number): Promise<any> {
     await logMatchStep(supabaseClient, userId, jobId, 'comparing_job', 'running', Date.now() - parentStartTime);
     await checkRateLimit(supabaseClient, userId, 'job-matching');
 
@@ -328,13 +327,11 @@ class JobMatchingEngine {
       JSON Schema de Saída:
       {
         "match_score": 85,
-        "strengths": ["Ponto forte técnico ou comportamental 1", "Ponto forte 2"],
-        "weaknesses": ["Ponto fraco ou gap identificado 1", "Ponto fraco 2"],
-        "missing_keywords": ["Palavra-chave ou competência ausente 1", "Palavra-chave 2"],
-        "interview_probability": 75,
-        "recommendation": "Recomendação detalhada de como o candidato pode otimizar seu currículo ou se preparar para a entrevista.",
-        "to_include": ["Recomendação 1 de o que destacar ou incluir no currículo"],
-        "to_exclude": ["Recomendação 1 de o que excluir ou reduzir do currículo"],
+        "strengths": ["Ponto forte 1 relativo à vaga", "Ponto forte 2"],
+        "weaknesses": ["Ponto fraco ou atenção 1 relativo à vaga"],
+        "missing_keywords": ["Keyword 1 ausente no currículo"],
+        "interview_probability": 80,
+        "recommendation": "Diagnóstico do copiloto detalhado e personalizado em 2-3 parágrafos.",
         "skills_to_learn": ["Habilidade 1 que o candidato deve aprender/estudar"]
       }
 
@@ -375,15 +372,15 @@ class JobMatchingEngine {
           response: matchJson,
           expires_at: expiresAt
         });
-    } catch (saveCacheErr) {
+    } catch (saveCacheErr: any) {
       console.error("[CACHE SAVE ERROR] Falha ao salvar no cache:", saveCacheErr.message);
     }
 
     await logMatchStep(supabaseClient, userId, jobId, 'generating_score', 'completed', Date.now() - parentStartTime);
     return matchJson;
-  }
+}
 
-  static async saveJobMatch(supabaseClient: any, userId: string, resumeId: string, resumeVersionId: string, jobId: string, matchResult: any, processingTimeMs?: number) {
+async function saveJobMatch(supabaseClient: any, userId: string, resumeId: string, resumeVersionId: string, jobId: string, matchResult: any, processingTimeMs?: number) {
     const gapAnalysis = {
       missingSkills: matchResult.missing_keywords || [],
       skillsToLearn: matchResult.skills_to_learn || ["Aprofundar os conhecimentos técnicos exigidos na vaga."],
@@ -426,7 +423,7 @@ class JobMatchingEngine {
         .from('job_matches')
         .insert({
           user_id: userId,
-          resume_version_id: resumeVersionId,
+          resume_version_id: isValidUUID(resumeVersionId) ? resumeVersionId : null,
           job_id: jobId,
           match_score: matchResult.match_score,
           strengths: matchResult.strengths || [],
@@ -436,59 +433,43 @@ class JobMatchingEngine {
           recommendation: matchResult.recommendation,
           processing_time_ms: processingTimeMs
         });
-    } catch (dbErr) {
+    } catch (dbErr: any) {
       console.warn("[BACKWARD COMPATIBILITY] Não foi possível espelhar na tabela job_matches:", dbErr.message);
     }
 
     return data;
-  }
+}
 
-  static async optimizeResumeWithGemini(careerProfile: any, jobTitle: string, jobDescription: string, supabaseClient: any, userId: string, resumeId: string, jobId: string, mockEnabled = false): Promise<any> {
+async function optimizeResumeWithGemini(careerProfile: any, jobTitle: string, jobDescription: string, supabaseClient: any, userId: string, resumeId: string, jobId: string, mockEnabled = false): Promise<any> {
     await checkRateLimit(supabaseClient, userId, 'resume-optimization');
 
     if (mockEnabled) {
       return {
-        optimized_summary: "Profissional sênior e estratégico, atuando diretamente em projetos complexos relacionados a " + jobTitle,
-        key_experiences: (careerProfile.experience || []).map((exp: any) => ({
-          role: exp.role,
-          company: exp.companyName || exp.company || "Empresa",
-          description: exp.description + " Foco em entregar impacto alinhado a " + jobTitle
-        })),
-        missing_keywords: ["Desenvolvimento", "Metodologia Ágil"],
-        redundant_info: ["Cursos antigos não correlacionados"]
+        summary: "Profissional orientado a resultados com vasta experiência.",
+        skillsToHighlight: ["Gestão de Projetos", "Liderança"],
+        sectionsToReorder: ["Experiência", "Habilidades"],
+        suggestedBullets: ["Aumentou a eficiência operacional em 25%."]
       };
     }
 
     const geminiApiKey = Deno.env.get('GEMINI_API_KEY');
-    if (!geminiApiKey) throw new Error("GEMINI_API_KEY não configurada nos segredos do Supabase.");
+    if (!geminiApiKey) throw new Error("Chave GEMINI_API_KEY não configurada.");
 
     const prompt = `
-      Você é um especialista em recrutamento executivo e otimização de currículos para ATS (Applicant Tracking Systems).
-      Sua tarefa é otimizar o resumo profissional e a reestruturação de experiências do candidato para a vaga-alvo abaixo.
-
-      INSTRUÇÕES ESTRITAS:
-      1. RESUMO PROFISSIONAL: Reescreva o resumo profissional destacando alinhamento com a vaga-alvo ("${jobTitle}").
-      2. REESTRUTURAÇÃO DE EXPERIÊNCIAS ("key_experiences"): Para CADA experiência listada no perfil do candidato, reescreva a descrição adaptando o vocabulário, terminologia técnica, verbos de ação e foco para a área/domínio da vaga-alvo ("${jobTitle}"). Destaque competências transferíveis relevantes.
-      3. REGRA DE INTEGRIDADE: NUNCA invente mentiras, empresas falsas, datas falsas ou cargos falsos. Reframe e reescreva apenas os fatos reais apresentados.
-
-      JSON Schema de Saída:
+      Você é um especialista em otimização de currículos para ATS.
+      Analise o perfil do candidato e a vaga a seguir, e sugira otimizações específicas.
+      Retorne SOMENTE um JSON válido com a estrutura:
       {
-        "optimized_summary": "Resumo profissional reescrito de forma premium e alinhado à vaga...",
-        "key_experiences": [
-          {
-            "role": "Cargo original real",
-            "company": "Empresa original real",
-            "description": "Descrição reestruturada com vocabulário e métricas adaptados ao domínio da vaga-alvo"
-          }
-        ],
-        "missing_keywords": ["competência 1 da vaga a destacar", "competência 2"],
-        "redundant_info": ["informação irrelevante ao domínio da vaga a reduzir"]
+        "summary": "Resumo otimizado",
+        "skillsToHighlight": ["Skill 1", "Skill 2"],
+        "sectionsToReorder": ["Seção 1", "Seção 2"],
+        "suggestedBullets": ["Bullet 1", "Bullet 2"]
       }
 
-      Perfil do Candidato:
+      Perfil:
       ${JSON.stringify(careerProfile, null, 2)}
 
-      Vaga-Alvo:
+      Vaga:
       Título: ${jobTitle}
       Descrição: ${jobDescription}
     `;
@@ -500,37 +481,28 @@ class JobMatchingEngine {
 
     await logAiUsage(supabaseClient, userId, 'resume-optimization', selectedModel, resJson.usageMetadata?.promptTokenCount || 0, resJson.usageMetadata?.candidatesTokenCount || 0);
     return JSON.parse(extractedText);
-  }
+}
 
-  static async generateCoverLetterWithGemini(careerProfile: any, jobTitle: string, companyName: string, jobDescription: string, supabaseClient: any, userId: string, mockEnabled = false): Promise<any> {
+async function generateCoverLetterWithGemini(careerProfile: any, jobTitle: string, companyName: string, jobDescription: string, supabaseClient: any, userId: string, mockEnabled = false): Promise<any> {
     await checkRateLimit(supabaseClient, userId, 'cover-letter');
 
     if (mockEnabled) {
       return {
-        text_formal: `Prezada equipe da ${companyName},\n\nGostaria de expressar meu interesse na vaga de ${jobTitle}...`,
-        text_direct: `Olá time da ${companyName},\n\nEstou me candidatando para a vaga de ${jobTitle}...`,
-        text_executive: `Prezados executivos da ${companyName},\n\nSubmeto minha candidatura ao cargo de ${jobTitle}...`
+        coverLetterText: "Prezado recrutador, apresento minha candidatura para a vaga de " + jobTitle + "."
       };
     }
 
     const geminiApiKey = Deno.env.get('GEMINI_API_KEY');
-    if (!geminiApiKey) throw new Error("GEMINI_API_KEY não configurada nos segredos do Supabase.");
-
-    const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${geminiApiKey}`;
+    if (!geminiApiKey) throw new Error("Chave GEMINI_API_KEY não configurada.");
 
     const prompt = `
-      Você é um redator profissional de carreiras.
-      Escreva 3 cartas de apresentação personalizadas (Formal, Direta e Executiva) para a vaga e empresa especificadas abaixo.
-      Use o nome real da empresa e do cargo. Se o nome da empresa for genérico ou nulo, use "Equipe de Recrutamento".
-
-      JSON Schema de Saída:
+      Escreva uma carta de apresentação altamente persuasiva para a vaga de ${jobTitle}.
+      Retorne SOMENTE um JSON válido com a estrutura:
       {
-        "text_formal": "Texto formal da carta...",
-        "text_direct": "Texto direto e moderno da carta...",
-        "text_executive": "Texto executivo e focado em impacto..."
+        "coverLetterText": "Texto da carta de apresentação..."
       }
 
-      Perfil do Candidato:
+      Perfil:
       ${JSON.stringify(careerProfile, null, 2)}
 
       Vaga:
@@ -546,14 +518,13 @@ class JobMatchingEngine {
 
     await logAiUsage(supabaseClient, userId, 'cover-letter', selectedModel, resJson.usageMetadata?.promptTokenCount || 0, resJson.usageMetadata?.candidatesTokenCount || 0);
     return JSON.parse(extractedText);
-  }
+}
 
-  static async generateInterviewPrepWithGemini(careerProfile: any, jobTitle: string, jobDescription: string, supabaseClient: any, userId: string, mockEnabled = false): Promise<any> {
+async function generateInterviewPrepWithGemini(careerProfile: any, jobTitle: string, jobDescription: string, supabaseClient: any, userId: string, mockEnabled = false): Promise<any> {
     await checkRateLimit(supabaseClient, userId, 'interview-prep');
 
     if (mockEnabled) {
       return {
-        introduction: "O método STAR é um padrão comportamental para estruturar respostas em entrevistas.",
         questions: [
           {
             question: "Conte sobre um desafio técnico superado.",
@@ -612,7 +583,6 @@ class JobMatchingEngine {
 
     await logAiUsage(supabaseClient, userId, 'interview-prep', selectedModel, resJson.usageMetadata?.promptTokenCount || 0, resJson.usageMetadata?.candidatesTokenCount || 0);
     return JSON.parse(extractedText);
-  }
 }
 
 serve(async (req) => {
@@ -778,7 +748,7 @@ serve(async (req) => {
           personal: {
             fullName: resumeData.file_name || 'Candidato',
             seniority: 'senior',
-            preferences: { targetRoles: [job?.title || 'Profissional'] }
+            preferences: { targetRoles: [reqBody?.job?.title || 'Profissional'] }
           }
         };
       }
@@ -795,7 +765,7 @@ serve(async (req) => {
         ats_keywords: { existing_keywords: [], recommended_keywords: [] },
         summary: 'Perfil cadastrado na plataforma.',
         experience: [],
-        personal: { fullName: 'Candidato', seniority: 'pleno', preferences: { targetRoles: [job?.title || 'Vaga'] } }
+        personal: { fullName: 'Candidato', seniority: 'pleno', preferences: { targetRoles: [reqBody?.job?.title || 'Vaga'] } }
       };
     }
 
@@ -866,7 +836,7 @@ serve(async (req) => {
 
       let matchResult: any = null;
       try {
-        matchResult = await JobMatchingEngine.matchWithGemini(
+        matchResult = await matchWithGemini(
           careerProfile,
           jobData.title,
           jobData.description,
@@ -893,7 +863,7 @@ serve(async (req) => {
         };
       }
 
-      const savedMatch = await JobMatchingEngine.saveJobMatch(
+      const savedMatch = await saveJobMatch(
         supabaseClient,
         resolvedUserId,
         resolvedResumeId || '00000000-0000-0000-0000-000000000000',
@@ -909,7 +879,7 @@ serve(async (req) => {
       return new Response(JSON.stringify(savedMatch), { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
 
     } else if (operation === 'optimize-cv') {
-      const result = await JobMatchingEngine.optimizeResumeWithGemini(
+      const result = await optimizeResumeWithGemini(
         careerProfile,
         jobData.title,
         jobData.description,
@@ -946,7 +916,7 @@ serve(async (req) => {
       );
 
     } else if (operation === 'cover-letter') {
-      const result = await JobMatchingEngine.generateCoverLetterWithGemini(
+      const result = await generateCoverLetterWithGemini(
         careerProfile,
         jobData ? jobData.title : "Vaga",
         jobData ? (jobData.company_name || jobData.companyName || "Empresa") : "Empresa",
@@ -980,7 +950,7 @@ serve(async (req) => {
       );
 
     } else if (operation === 'interview-prep') {
-      const result = await JobMatchingEngine.generateInterviewPrepWithGemini(
+      const result = await generateInterviewPrepWithGemini(
         careerProfile,
         jobData.title,
         jobData.description,

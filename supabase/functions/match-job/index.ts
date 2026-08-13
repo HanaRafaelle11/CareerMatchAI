@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.8"
+import { callGeminiWithFallbackShared } from "../_shared/geminiModels.ts"
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -116,48 +117,7 @@ async function callGeminiWithFallback(
   geminiApiKey: string,
   responseMimeType: string | undefined = undefined
 ): Promise<{ resJson: any; selectedModel: string }> {
-  // Cadeia de modelos Gemini ativos (verificada em agosto/2026).
-  // Ordem: primário mais capaz → fallbacks progressivamente mais leves.
-  const modelsToTry = [
-    'gemini-3.6-flash',
-    'gemini-3.5-flash',
-    'gemini-flash-latest'
-  ];
-
-  let lastError: any = null;
-  for (const model of modelsToTry) {
-    try {
-      console.log(`[GEMINI FALLBACK HELPER] Tentando modelo: ${model}...`);
-      const targetUrl = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${geminiApiKey}`;
-      const response = await fetchWithRetry(targetUrl, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          contents: [{
-            parts: [{ text: prompt }]
-          }],
-          generationConfig: {
-            ...(responseMimeType ? { responseMimeType } : {})
-          }
-        })
-      });
-
-      if (!response.ok) {
-        const errText = await response.text();
-        throw new Error(`Erro na API (${response.status} ${response.statusText}): ${errText}`);
-      }
-
-      const resJson = await response.json();
-      console.log(`[GEMINI FALLBACK HELPER] Sucesso com o modelo: ${model}!`);
-      return { resJson, selectedModel: model };
-    } catch (err: any) {
-      console.warn(`[GEMINI FALLBACK HELPER] Falha ao usar modelo ${model}:`, err.message || err);
-      lastError = err;
-    }
-  }
-  throw new Error(`Falha em todos os modelos do Gemini. Último erro: ${lastError?.message || lastError}`);
+  return await callGeminiWithFallbackShared(prompt, geminiApiKey, responseMimeType);
 }
 
 function calcYearsFromExperiences(experiences: any[]): number {

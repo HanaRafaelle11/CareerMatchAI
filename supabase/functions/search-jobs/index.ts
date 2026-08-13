@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.8"
+import { callGeminiWithFallbackShared } from "../_shared/geminiModels.ts"
 
 // Import Connectors
 import { AdzunaConnector } from "./connectors/AdzunaConnector.ts";
@@ -132,31 +133,13 @@ The response must be valid JSON matching this schema:
 Raw JSON only.`;
 
   const prompt = `${systemPrompt}\n\nQuery: "${keyword}"\nOutput JSON:`;
-  const targetUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${geminiApiKey}`;
-
-  const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), 1500);
-
   try {
-    const response = await fetch(targetUrl, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        contents: [{ parts: [{ text: prompt }] }],
-        generationConfig: { responseMimeType: "application/json" }
-      }),
-      signal: controller.signal
-    });
-    clearTimeout(timeoutId);
-
-    if (!response.ok) throw new Error(`Gemini status ${response.status}`);
-    const resJson = await response.json();
+    const { resJson } = await callGeminiWithFallbackShared(prompt, geminiApiKey, "application/json");
     const candidateText = resJson.candidates?.[0]?.content?.parts?.[0]?.text;
     if (!candidateText) throw new Error('No candidate text');
     
     return JSON.parse(candidateText) as JobIntent;
   } catch (err: any) {
-    clearTimeout(timeoutId);
     console.warn(`[INTENT CLASSIFIER] Fast fallback used (${err.message})`);
     return getFallbackIntent(keyword);
   }

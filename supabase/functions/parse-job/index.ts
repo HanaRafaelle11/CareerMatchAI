@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.8"
+import { callGeminiWithFallbackShared } from "../_shared/geminiModels.ts"
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -53,46 +54,7 @@ async function callGeminiWithFallback(
   geminiApiKey: string,
   responseMimeType: string | undefined = undefined
 ): Promise<{ resJson: any; selectedModel: string }> {
-  // DEPRECATION REMINDER: The older models (e.g. Gemini 2.x/2.5 family) have been retired.
-  // The primary model chain uses the latest active Gemini tier (Gemini 3.x family).
-  const modelsToTry = [
-    'gemini-2.5-flash',       // Modelo Primário
-    'gemini-2.0-flash',       // Fallback Secundário
-    'gemini-1.5-flash'        // Fallback Terciário
-  ];
-
-  let lastError: any = null;
-  for (const model of modelsToTry) {
-    try {
-      console.log(`[GEMINI FALLBACK HELPER] Tentando modelo: ${model}...`);
-      const targetUrl = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${geminiApiKey}`;
-      const response = await fetchWithRetry(targetUrl, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          contents,
-          generationConfig: {
-            ...(responseMimeType ? { responseMimeType } : {})
-          }
-        })
-      });
-
-      if (!response.ok) {
-        const errText = await response.text();
-        throw new Error(`Erro na API (${response.status} ${response.statusText}): ${errText}`);
-      }
-
-      const resJson = await response.json();
-      console.log(`[GEMINI FALLBACK HELPER] Sucesso com o modelo: ${model}!`);
-      return { resJson, selectedModel: model };
-    } catch (err: any) {
-      console.warn(`[GEMINI FALLBACK HELPER] Falha ao usar modelo ${model}:`, err.message || err);
-      lastError = err;
-    }
-  }
-  throw new Error(`Falha em todos os modelos do Gemini. Último erro: ${lastError?.message || lastError}`);
+  return await callGeminiWithFallbackShared(contents, geminiApiKey, responseMimeType);
 }
 
 function cleanHTML(html: string): string {

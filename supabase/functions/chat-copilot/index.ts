@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.8"
+import { callGeminiWithFallbackShared } from "../_shared/geminiModels.ts"
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -7,67 +8,11 @@ const corsHeaders = {
   'Access-Control-Allow-Methods': 'POST, GET, OPTIONS',
 }
 
-async function fetchWithRetry(url: string, options: any, maxRetries = 3): Promise<Response> {
-  const delays = [2000, 5000, 10000];
-  for (let attempt = 1; attempt <= maxRetries; attempt++) {
-    try {
-      const response = await fetch(url, options);
-      if (response.ok) return response;
-      
-      if (response.status === 429 || response.status >= 500) {
-        console.warn(`[GEMINI RETRY] Tentativa ${attempt} falhou com status ${response.status}. Aguardando ${delays[attempt - 1] || 10000}ms...`);
-        await new Promise(resolve => setTimeout(resolve, delays[attempt - 1] || 10000));
-        continue;
-      }
-      return response;
-    } catch (err: any) {
-      if (attempt === maxRetries) throw err;
-      console.warn(`[GEMINI RETRY] Tentativa ${attempt} falhou com erro de rede: ${err.message}. Aguardando ${delays[attempt - 1] || 10000}ms...`);
-      await new Promise(resolve => setTimeout(resolve, delays[attempt - 1] || 10000));
-    }
-  }
-  throw new Error(`Falha no processamento com Gemini após ${maxRetries} tentativas.`);
-}
-
 async function callGeminiWithFallback(
   contents: any[],
   geminiApiKey: string
 ): Promise<{ resJson: any; selectedModel: string }> {
-  const modelsToTry = [
-    'gemini-2.5-flash',
-    'gemini-2.0-flash',
-    'gemini-1.5-flash'
-  ];
-
-  let lastError: any = null;
-  for (const model of modelsToTry) {
-    try {
-      console.log(`[GEMINI FALLBACK HELPER] Tentando modelo: ${model}...`);
-      const targetUrl = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${geminiApiKey}`;
-      const response = await fetchWithRetry(targetUrl, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          contents
-        })
-      });
-
-      if (!response.ok) {
-        const errText = await response.text();
-        throw new Error(`Erro na API (${response.status} ${response.statusText}): ${errText}`);
-      }
-
-      const resJson = await response.json();
-      console.log(`[GEMINI FALLBACK HELPER] Sucesso com o modelo: ${model}!`);
-      return { resJson, selectedModel: model };
-    } catch (err: any) {
-      console.warn(`[GEMINI FALLBACK HELPER] Falha ao usar modelo ${model}:`, err.message || err);
-      lastError = err;
-    }
-  }
-  throw new Error(`Falha em todos os modelos do Gemini. Último erro: ${lastError?.message || lastError}`);
+  return await callGeminiWithFallbackShared(contents, geminiApiKey);
 }
 
 async function logAiUsage(supabaseClient: any, userId: string | null, feature: string, model: string, inputTokens: number, outputTokens: number, errorMessage?: string) {

@@ -1,14 +1,14 @@
 // Fonte Única de Verdade para Modelos Gemini e Fallback em Edge Functions (Vocentro)
-// RASTRO DE AUDITORIA (13/08/2026):
-// - Tier 1: 'gemini-flash-latest' -> Mapeado pela Google API para modelVersion: 'gemini-3.6-flash'
-// - Tier 2: 'gemini-flash-lite-latest' -> Mapeado pela Google API para modelVersion: 'gemini-3.5-flash-lite'
-// - Tier 3: 'gemma-4-26b-a4b-it' -> Modelo Open-Weights do Google AI API (Verificado HTTP 200 OK)
-// - Tier 4: Fallback Determinístico Local em Memória (Com telemetria match_source: 'fallback_deterministic')
+// RASTRO DE AUDITORIA E PRICING (Auditado em 13/08/2026):
+// - Tier 1 (Primário): 'gemini-flash-lite-latest' -> Mapeia para 'gemini-3.5-flash-lite' ($0.015/1M tokens input - MAIS BARATO DO GOOGLE)
+// - Tier 2 (Secundário): 'gemini-flash-latest'      -> Mapeia para 'gemini-3.6-flash' ($0.075/1M tokens input - Flash Standard)
+// - Tier 3 (Terciário): 'gemma-4-26b-a4b-it'        -> Modelo Open-Weights via Google AI API (HTTP 200 OK)
+// - Tier 4 (Emergência): Fallback Determinístico Local em Memória (Sem custo externo)
 
 export const GEMINI_MODEL_CHAIN = [
-  'gemini-flash-latest',       // Tier 1 Primário (Flash Estável de Produção)
-  'gemini-flash-lite-latest',  // Tier 2 Fallback Secundário (Flash Lite de Baixíssimo Custo)
-  'gemma-4-26b-a4b-it'         // Tier 3 Fallback Terciário (Gemma 4 Open Weights via Google AI)
+  'gemini-flash-lite-latest',  // Tier 1 Primário (Flash-Lite: Ultra-baixo custo $0.015/1M tokens)
+  'gemini-flash-latest',       // Tier 2 Fallback Secundário (Flash Standard: $0.075/1M tokens)
+  'gemma-4-26b-a4b-it'         // Tier 3 Fallback Terciário (Gemma 4 Open Weights via Google AI API)
 ];
 
 export async function fetchWithRetry(url: string, options: any, maxRetries = 3, initialDelay = 1000): Promise<Response> {

@@ -5,7 +5,7 @@ import type { CareerProfileNew, CareerInsight } from '../../application/hooks/us
 import { calcYearsFromExperiences } from '../../application/services/matchingEngine';
 import { Upload, FileText, Calendar, Trash2, AlertCircle, Briefcase, Award, Clock, Activity, Brain, Zap, Info, Sparkles, CheckCircle, ArrowRight } from 'lucide-react';
 import { ResumeOptimizationService } from '../../application/services/ResumeOptimizationService';
-import { isSupabaseConfigured } from '../../infrastructure/api/supabaseClient';
+import { isSupabaseConfigured, supabase } from '../../infrastructure/api/supabaseClient';
 import { JobSearchService } from '../../application/services/JobSearchService';
 import { ProcessingState, ErrorState } from '../components/ErrorVisuals';
 import { AppError } from '../../application/errors/AppError';
@@ -319,25 +319,47 @@ export function Profile({
   const displayLanguages = careerProfileNew?.languages || [];
   const displayExperience = careerProfileNew?.experience || primaryResume?.experiences || [];
 
-  const handleExportPDF = () => {
+  const handleExportPDF = async () => {
     if (!isPro && !canExportPdf) {
       triggerPaywall('pdf_export');
       return;
     }
-    if (!careerProfileNew && !primaryResume) {
+
+    let activeCP = careerProfileNew;
+
+    // Se careerProfileNew ainda não carregou no estado local, buscar diretamente no Supabase
+    if (!activeCP && user?.id && isSupabaseConfigured && supabase) {
+      showToast("Carregando perfil estruturado para exportação...", 'info');
+      try {
+        const { data: fetchedCP } = await supabase
+          .from('career_profiles')
+          .select('*')
+          .eq('user_id', user.id)
+          .order('created_at', { ascending: false })
+          .limit(1)
+          .maybeSingle();
+        if (fetchedCP) {
+          activeCP = fetchedCP;
+        }
+      } catch (e) {
+        console.warn("[PDF EXPORT] Erro ao buscar perfil em tempo de execução:", e);
+      }
+    }
+
+    if (!activeCP && !primaryResume) {
       showToast("Não há dados estruturados de perfil para exportar. Aguarde o processamento do currículo.", 'warning');
       return;
     }
 
     // ── Dados do careerProfileNew (fonte primária) ──
-    const cpPersonal = careerProfileNew?.personal;
-    const cpExperience = careerProfileNew?.experience || [];
-    const cpSkills = careerProfileNew?.skills || [];
-    const cpEducation = careerProfileNew?.education || [];
-    const cpSummary = careerProfileNew?.summary || '';
-    const cpSoftSkills = careerProfileNew?.soft_skills || [];
-    const cpLanguages = careerProfileNew?.languages || [];
-    const cpCertifications = careerProfileNew?.certifications || [];
+    const cpPersonal = activeCP?.personal;
+    const cpExperience = activeCP?.experience || [];
+    const cpSkills = activeCP?.skills || [];
+    const cpEducation = activeCP?.education || [];
+    const cpSummary = activeCP?.summary || '';
+    const cpSoftSkills = activeCP?.soft_skills || [];
+    const cpLanguages = activeCP?.languages || [];
+    const cpCertifications = activeCP?.certifications || [];
 
     // ── Fallback: dados do Resume local (fonte secundária) ──
     const resumeExperiences = primaryResume?.experiences || [];

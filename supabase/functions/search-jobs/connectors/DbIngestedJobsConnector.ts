@@ -30,7 +30,22 @@ export class DbIngestedJobsConnector extends BaseJobConnector {
         .range(from, to);
 
       if (cleanKeyword && cleanKeyword !== 'Vagas' && cleanKeyword !== 'Brasil') {
-        query = query.or(`title.ilike.%${cleanKeyword}%,company_name.ilike.%${cleanKeyword}%,description.ilike.%${cleanKeyword}%`);
+        const terms = [cleanKeyword];
+        const lowerKwd = cleanKeyword.toLowerCase();
+
+        // Mapeamento de Sinônimos Comuns (Fuzzy Match Expandido)
+        if (lowerKwd.includes('ajudante')) terms.push(lowerKwd.replace('ajudante', 'auxiliar'), lowerKwd.replace('ajudante', 'assistente'));
+        if (lowerKwd.includes('auxiliar')) terms.push(lowerKwd.replace('auxiliar', 'ajudante'), lowerKwd.replace('auxiliar', 'assistente'));
+        if (lowerKwd.includes('vendedor')) terms.push('vendas', 'comercial', 'consultor');
+        if (lowerKwd.includes('desenvolvedor')) terms.push('programador', 'developer', 'software');
+
+        const uniqueTerms = Array.from(new Set(terms));
+        const orClauses: string[] = [];
+        uniqueTerms.forEach(t => {
+          orClauses.push(`title.ilike.%${t}%,company_name.ilike.%${t}%,description.ilike.%${t}%`);
+        });
+
+        query = query.or(orClauses.join(','));
       }
 
       const { data, error } = await query;

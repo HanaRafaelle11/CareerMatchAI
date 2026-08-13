@@ -455,11 +455,15 @@ export function JobMatchHub({
       setSearchLocation(newLocation);
       setSearchRemoteOnly(newRemote);
       setSearchPage(1);
+      const preferredModes = newPref.preferredWorkModes && newPref.preferredWorkModes.length > 0 
+        ? newPref.preferredWorkModes 
+        : ['remote', 'hybrid', 'onsite'];
+
       setActiveFilters({
         keyword: newKeyword,
         location: newLocation,
         remoteOnly: newRemote,
-        workModes: ['remote'],
+        workModes: preferredModes,
         seniority: 'all'
       });
       setErrorMsg('');

@@ -75,6 +75,10 @@ export function useCoach(userId: string | undefined) {
           }
         });
         if (error) throw error;
+        const summary = data?.optimizedSummary || data?.optimized_summary || '';
+        if (!data || !summary || summary.trim().length === 0) {
+          throw new Error('Não foi possível gerar as melhorias para este currículo. Tente novamente.');
+        }
         return data;
       } else {
         const resume = localDB.getResumes().find(r => r.id === resumeId);

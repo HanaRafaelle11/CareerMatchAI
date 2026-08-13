@@ -335,7 +335,11 @@ export function aggregateAndNormalizeJobs(
 
       const cleanCompany = (company || '').toLowerCase().replace(/[^a-z0-9]/g, '');
       const cleanTitle = (titleClean || '').toLowerCase().replace(/[^a-z0-9]/g, '');
-      const cleanLoc = (locStr || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+      // Normalização de Cidade: remove pontuações, espaços e siglas de estado para alinhar provedores
+      const cleanLoc = (locStr || '')
+        .toLowerCase()
+        .replace(/[^a-z0-9]/g, '')
+        .replace(/\b(sp|rj|mg|pr|rs|sc|ba|pe|ce|go|df|es|am|pa|ma|pb|rn|al|se|pi|mt|ms|to|ro|ac|ap|rr|brasil|brazil|remoto|remote)\b/g, '');
 
       const isConfidential = !cleanCompany || 
         cleanCompany.includes('empresaconfidencial') || 
@@ -349,9 +353,7 @@ export function aggregateAndNormalizeJobs(
         return `conf:${cleanTitle}|${cleanLoc}|${descSnippet}`;
       }
 
-      const dateStr = j.publishedAt ? String(j.publishedAt).slice(0, 10) : '';
-      const descShort = (j.description || '').replace(/[^a-z0-9]/gi, '').slice(0, 40).toLowerCase();
-      return `comp:${cleanCompany}|${cleanTitle}|${cleanLoc}|${dateStr || descShort}`;
+      return `comp:${cleanCompany}|${cleanTitle}|${cleanLoc}`;
     };
 
     const key = buildKey();
@@ -368,8 +370,6 @@ export function aggregateAndNormalizeJobs(
     const isBrazilLoc = locLower.includes("brasil") || locLower.includes("sp") || locLower.includes("rj") || locLower.includes("mg") || locLower.includes("pr") || locLower.includes("remoto");
 
     // ── FONTE ÚNICA DE VERDADE ──
-    // scores.overall É O SCORE DE COMPATIBILIDADE CANDIDATO-VAGA (0 - 100%).
-    // O jobScore/rankingScore de frescor e ATS é mantido apenas como critério interno de desempate.
     const candidateMatchScore = Math.min(99, Math.max(5, matchScore));
 
     // Calculate Confidence Score %
@@ -402,30 +402,50 @@ export function aggregateAndNormalizeJobs(
         salaryConfidence: 50,
         descriptionCompleteness: Math.min(100, j.description.length / 10),
         remoteConfidence: locLower.includes('remoto') ? 100 : 50,
-        overall: candidateMatchScore, // FONTE ÚNICA DE VERDADE PARA MATCH DO CANDIDATO
+        overall: candidateMatchScore,
         explanation: `${detail} | Frescor: ${ageDays}d | Link: ${ats || providerName}`,
         confidence: confidencePercent >= 85 ? 'high' : confidencePercent >= 70 ? 'medium' : 'low'
       }
     };
 
     if (deduplicatedMap.has(key)) {
-      duplicatesRemoved++;
       const existing = deduplicatedMap.get(key)!;
 
-      // Merge sources array
-      const mergedSources = Array.from(new Set([...(existing.sources || []), ...(normalizedItem.sources || [])]));
-      existing.sources = mergedSources;
+      // Regra de Tolerância de 14 Dias:
+      // Se AMBOS os registros possuírem publishedAt e a diferença for > 14 dias (14 * 24 * 60 * 60 * 1000 ms),
+      // trata-se de um processo seletivo reaberto -> MANTER como vagas distintas!
+      let isReopenedDistinctJob = false;
+      if (existing.publishedAt && normalizedItem.publishedAt) {
+        const d1 = new Date(existing.publishedAt).getTime();
+        const d2 = new Date(normalizedItem.publishedAt).getTime();
+        if (!isNaN(d1) && !isNaN(d2)) {
+          const diffDays = Math.abs(d1 - d2) / (1000 * 60 * 60 * 24);
+          if (diffDays > 14) {
+            isReopenedDistinctJob = true;
+          }
+        }
+      }
 
-      // Priority upgrade: Replace Adzuna redirect link if an official ATS or direct URL is found
-      const existingATS = detectATS(existing.sourceUrl, existing.source);
-      const newATS = detectATS(normalizedItem.sourceUrl, normalizedItem.source);
+      if (isReopenedDistinctJob) {
+        // Vaga reaberta após mais de 14 dias: salva com sufixo de chave única
+        deduplicatedMap.set(`${key}|reopened:${normalizedItem.publishedAt}`, normalizedItem);
+      } else {
+        // Duplicata confirmada (mesmo período ou pelo menos uma data nula): Mesclar fontes!
+        duplicatesRemoved++;
 
-      if (newATS.score > existingATS.score) {
-        existing.sourceUrl = normalizedItem.sourceUrl;
-        existing.provider = normalizedItem.provider;
-        existing.ats = newATS.ats;
-        existing.scores.providerQuality = newATS.score;
-        existing.scores.overall = Math.max(existing.scores.overall, normalizedItem.scores.overall);
+        const mergedSources = Array.from(new Set([...(existing.sources || []), ...(normalizedItem.sources || [])]));
+        existing.sources = mergedSources;
+
+        const existingATS = detectATS(existing.sourceUrl, existing.source);
+        const newATS = detectATS(normalizedItem.sourceUrl, normalizedItem.source);
+
+        if (newATS.score > existingATS.score) {
+          existing.sourceUrl = normalizedItem.sourceUrl;
+          existing.provider = normalizedItem.provider;
+          existing.ats = newATS.ats;
+          existing.scores.providerQuality = newATS.score;
+          existing.scores.overall = Math.max(existing.scores.overall, normalizedItem.scores.overall);
+        }
       }
     } else {
       deduplicatedMap.set(key, normalizedItem);

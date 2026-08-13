@@ -857,10 +857,10 @@ serve(async (req) => {
       const toSave = {
         resume_id: resolvedResumeId,
         job_id: actualJobId || null,
-        optimized_summary: result.optimized_summary,
-        key_experiences: result.key_experiences || [],
-        missing_keywords: result.missing_keywords || [],
-        redundant_info: result.redundant_info || []
+        optimized_summary: result.optimized_summary || result.summary || 'Profissional com perfil otimizado para os requisitos da vaga.',
+        key_experiences: result.key_experiences || result.suggestedBullets || [],
+        missing_keywords: result.missing_keywords || result.skillsToHighlight || [],
+        redundant_info: result.redundant_info || result.sectionsToReorder || []
       };
 
       let savedRecord = null;

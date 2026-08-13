@@ -37,6 +37,22 @@ const corsHeaders = {
   'Access-Control-Allow-Methods': 'POST, GET, OPTIONS',
 }
 
+// ── DOCUMENTED VOLUME LIMITS (Intentional Design) ──
+// The search pipeline fetches raw jobs from multiple providers and applies:
+//   1. Per-connector page limits:
+//      - Adzuna: 3 pages × 50 = up to 150 raw jobs (API has 6000+ for popular terms)
+//      - Gupy: 3 pages × 30 = up to 90 raw jobs
+//      - Jooble: 1 page × 50 = up to 50 raw jobs
+//      - SerpApi: 1 page × 10 = up to 10 raw jobs (Google Jobs API limit)
+//      - Others: 1 page each, varying volumes
+//   2. Deduplication: removes ~20-30% of raw jobs (title+company match)
+//   3. Source diversity cap: max 30 jobs per provider (aggregator.ts SOURCE_MAX)
+//   4. Relevance filter: scores.overall >= 20 (local Jaccard/bigram, zero AI cost)
+//   5. Geo filter: removes non-Brazilian jobs for Brazilian searches
+//   Target final output: ~150-200 unique, relevant jobs for popular terms.
+//   Gemini API is called ONCE per search (intent classification only), not per job.
+//   Cache TTL: 5 minutes per query_key (term + location + page).
+
 // ── TIER SYSTEM ──
 // Tier A: Major ATS platforms + Brazilian platforms with high volume
 // Tier B: Secondary aggregators

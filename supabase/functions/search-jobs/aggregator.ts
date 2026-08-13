@@ -530,11 +530,13 @@ export function aggregateAndNormalizeJobs(
   const relevantJobs = rankedResults.filter(j => j.scores.overall >= 20);
 
   // ── 2. SOURCE DIVERSITY CAP ON RELEVANT JOBS ONLY ──
-  // Limit each provider to max 15 results to prevent any single source (e.g., Adzuna)
-  // from dominating the final list when it returns 37+ raw jobs vs 1-8 from others.
+  // Limit each provider to max 30 results to maintain source diversity without
+  // artificially capping volume. With ~8 active providers × 30, the theoretical
+  // ceiling is ~240 jobs — filtered further by relevance and geo filters.
+  // Previous value of 15 was an accidental bottleneck; 30 balances diversity vs. volume.
   const sourceCountMap = new Map<string, number>();
   const diverseResults: NormalizedJob[] = [];
-  const SOURCE_MAX = 15;
+  const SOURCE_MAX = 30;
   for (const job of relevantJobs) {
     const src = job.provider || 'Outros';
     const count = sourceCountMap.get(src) || 0;

@@ -4,10 +4,10 @@ export class GupyConnector extends BaseJobConnector {
   readonly platformName = "Gupy";
 
   async searchJobs(keyword: string, _location: string, pageNum: number): Promise<RawJob[]> {
-    if (pageNum > 2) return []; // Limite de 2 páginas para reduzir latência
+    if (pageNum > 3) return []; // Limite de 3 páginas (até 90 vagas brutas) para equilibrar volume vs. latência
 
     const jobs: RawJob[] = [];
-    const limit = 20;
+    const limit = 30;
     const offset = Math.max(0, (pageNum - 1) * limit);
 
     // Tentativa 1: API v1 do employability portal (endpoint público)

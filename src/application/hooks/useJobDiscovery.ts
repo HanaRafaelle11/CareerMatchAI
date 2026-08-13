@@ -29,6 +29,7 @@ export function useJobDiscovery(
       filters.workModes,
       filters.seniority,
       filters.page,
+      filters.searchTimestamp,
       careerProfileNew?.id,
       (careerProfileNew as any)?.updated_at || (careerProfileNew as any)?.updatedAt,
       careerProfileNew?.personal?.headline,

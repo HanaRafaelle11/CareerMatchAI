@@ -1608,8 +1608,9 @@ export function JobMatchHub({
       location: searchLocation,
       remoteOnly: searchWorkModes.includes('remote') && searchWorkModes.length === 1,
       workModes: searchWorkModes,
-      seniority: searchSeniority
-    });
+      seniority: searchSeniority,
+      searchTimestamp: Date.now()
+    } as any);
   };
 
   const handleImportAndMatch = async (discJob: any) => {
@@ -4606,7 +4607,7 @@ export function JobMatchHub({
                             </button>
                           </div>
                           <div className="text-[10px] text-slate-500 font-medium">
-                            Exibindo {scoredDiscoveredJobs.length} vagas nesta página (Página {safePage})
+                            Exibindo {scoredDiscoveredJobs.length} vagas nesta página de um total de {totalCount || scoredDiscoveredJobs.length} vagas encontradas (Página {safePage} de {totalPages})
                           </div>
                         </div>
                       );

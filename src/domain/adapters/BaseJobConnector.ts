@@ -8,6 +8,7 @@ export interface JobSearchFilters {
   workModes?: string[]; // Modalidades selecionadas: remote, hybrid, onsite
   seniority?: string; // Nível de senioridade: junior, pleno, senior, lead, director
   page?: number; // Suporte à paginação
+  searchTimestamp?: number; // Stamp de timestamp para forçar invalidação/re-execução de busca
 }
 
 export abstract class BaseJobConnector {

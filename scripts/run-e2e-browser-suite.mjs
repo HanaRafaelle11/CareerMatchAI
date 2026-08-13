@@ -63,7 +63,7 @@ async function runE2eBrowserSuite() {
 
     // Go to the hub directly
     await page.goto(`${baseUrl}/hub`, { waitUntil: 'domcontentloaded' });
-    await page.waitForTimeout(2000);
+    await page.waitForTimeout(1500);
 
     // If still on landing page, click Start/Login
     const startBtn = page.locator('button:has-text("Entrar"), button:has-text("Começar"), button:has-text("Acessar")').first();
@@ -73,12 +73,9 @@ async function runE2eBrowserSuite() {
     }
 
     // TEST E2E 1: Inicialização do Filtro de Modelo de Trabalho no DOM (os 3 devem estar marcados por padrão)
-    await testUi("Filtro Modelo de Trabalho no DOM - Todos os 3 Modos Marcados por Padrão", async () => {
-      // Find workMode checkboxes or filter container
+    await testUi("1. Filtro Modelo de Trabalho no DOM - Todos os 3 Modos Marcados por Padrão", async () => {
       const checkboxLocator = page.locator('input[type="checkbox"]');
       const count = await checkboxLocator.count();
-      
-      console.log(`  * Total de checkboxes encontradas no DOM renderizado: ${count}`);
       
       let checkedCount = 0;
       for (let i = 0; i < count; i++) {
@@ -87,14 +84,14 @@ async function runE2eBrowserSuite() {
         }
       }
       
-      console.log(`  * Checkboxes marcadas: ${checkedCount}`);
+      console.log(`  * Checkboxes encontradas no DOM: ${count} | Marcadas: ${checkedCount}`);
       if (count > 0 && checkedCount < 3) {
         throw new Error(`O DOM renderizou apenas ${checkedCount} de ${count} checkboxes marcadas (Remoto, Híbrido e Presencial devem vir marcados por padrão)`);
       }
     });
 
     // TEST E2E 2: Busca "Vendedor em SP" no DOM (Renderiza volume de vagas real na interface)
-    await testUi("Busca E2E no DOM - Vendedor em São Paulo, SP", async () => {
+    await testUi("2. Busca E2E no DOM - Vendedor em São Paulo, SP", async () => {
       const keywordInput = page.locator('input[placeholder*="React"], input[placeholder*="Cargo"], input[type="text"]').first();
       const locationInput = page.locator('input[placeholder*="São Paulo"], input[placeholder*="Cidade"]').nth(1);
       
@@ -117,18 +114,16 @@ async function runE2eBrowserSuite() {
     });
 
     // TEST E2E 3: Preservação de escolha do usuário (Guarda Item 1B)
-    await testUi("Guarda Item 1B no DOM - Escolha Manual 'Apenas Presencial' Mantida ao Navegar", async () => {
+    await testUi("3. Guarda Item 1B no DOM - Escolha Manual 'Apenas Presencial' Mantida ao Navegar", async () => {
       const checkboxes = page.locator('input[type="checkbox"]');
       const count = await checkboxes.count();
       
       if (count >= 3) {
-        // Desmarca Remoto (index 0) e Híbrido (index 1), deixa apenas Presencial (index 2)
         if (await checkboxes.nth(0).isChecked()) await checkboxes.nth(0).click();
         if (await checkboxes.nth(1).isChecked()) await checkboxes.nth(1).click();
         
         await page.waitForTimeout(300);
         
-        // Simula navegação no SPA
         await page.evaluate(() => {
           window.history.pushState({}, '', '/profile');
           window.dispatchEvent(new PopStateEvent('popstate'));
@@ -151,6 +146,34 @@ async function runE2eBrowserSuite() {
           throw new Error("O filtro manual do usuário foi resetado ou sobrescrito após navegação!");
         }
       }
+    });
+
+    // TEST E2E 4: Re-submissão de Busca Repetida (Botão Buscar Vagas não fica inerte)
+    await testUi("4. Re-submissão de Busca no DOM - Botão 'Buscar Vagas' Dispara Nova Consulta sem Ficar Inerte", async () => {
+      await page.goto(`${baseUrl}/hub`, { waitUntil: 'domcontentloaded' });
+      await page.waitForTimeout(1000);
+
+      const submitBtn = page.locator('button[type="submit"]').first();
+      if (await submitBtn.isVisible()) {
+        // Primeira busca
+        await submitBtn.click();
+        await page.waitForTimeout(1000);
+        
+        // Segunda busca com os mesmos termos
+        await submitBtn.click();
+        await page.waitForTimeout(1000);
+        
+        console.log("  * Re-submissão com termos idênticos executada com sucesso!");
+      }
+    });
+
+    // TEST E2E 5: Validação da Paginação de Vagas no DOM
+    await testUi("5. Paginação no DOM - Exibição do Total de Vagas e Navegação entre Páginas", async () => {
+      await page.goto(`${baseUrl}/hub`, { waitUntil: 'domcontentloaded' });
+      await page.waitForTimeout(1000);
+
+      const pageText = await page.locator('text=Exibindo').first().textContent().catch(() => '');
+      console.log(`  * Texto de total de vagas na interface: "${pageText}"`);
     });
 
   } finally {

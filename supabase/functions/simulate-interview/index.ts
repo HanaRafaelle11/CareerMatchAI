@@ -38,7 +38,9 @@ async function callGeminiWithFallback(
   // DEPRECATION REMINDER: The older models (e.g. Gemini 2.x/2.5 family) have been retired.
   // The primary model chain uses the latest active Gemini tier (Gemini 3.x family).
   const modelsToTry = [
-    'gemini-2.5-flash'
+    'gemini-3.6-flash',
+    'gemini-3.5-flash',
+    'gemini-flash-latest'
   ];
 
   let lastError: any = null;

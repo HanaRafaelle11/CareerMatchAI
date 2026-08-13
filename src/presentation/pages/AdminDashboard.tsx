@@ -890,21 +890,35 @@ export function AdminDashboard({ userId }: AdminDashboardProps) {
 
       // CRITÉRIO ATUALIZADO (2026-08): "Candidatado" = apenas quem confirmou no Kanban
       // com status '📨 Me candidatei' (ação explícita do usuário), NÃO apenas abrir o site.
-      const [usersRes, resumesRes, matchesRes, optsRes, simsRes, lettersRes, appsRes] = await Promise.all([
+      const [usersRes, resumesRes, matchesRes, optsRes, simsRes, lettersRes, appsRes, matchesDetailsRes] = await Promise.all([
         addCutoff(supabase.from('profiles').select('id', { count: 'exact', head: true }).neq('is_test_account', true)),
         addCutoff(supabase.from('resumes').select('id', { count: 'exact', head: true })),
         addCutoff(supabase.from('matches').select('id', { count: 'exact', head: true })),
         addCutoff(supabase.from('resume_optimizations').select('id', { count: 'exact', head: true })),
         addCutoff(supabase.from('interview_simulations').select('id', { count: 'exact', head: true })),
         addCutoff(supabase.from('cover_letters').select('id', { count: 'exact', head: true })),
-        // Conta apenas candidaturas confirmadas no Kanban (ação explícita), não apenas "em andamento"
         addCutoff(supabase.from('applications').select('id', { count: 'exact', head: true }).eq('status', '📨 Me candidatei')),
+        addCutoff(supabase.from('matches').select('explanation').limit(500)),
       ]);
+
+      const matchesList = matchesDetailsRes.data || [];
+      let matchesFallback = 0;
+      let matchesAi = 0;
+      matchesList.forEach((m: any) => {
+        const source = m.explanation?.details?.match_source;
+        if (source === 'fallback_deterministic') {
+          matchesFallback++;
+        } else {
+          matchesAi++;
+        }
+      });
 
       return {
         users: usersRes.count ?? 0,
         resumes: resumesRes.count ?? 0,
         matches: matchesRes.count ?? 0,
+        matchesAi,
+        matchesFallback,
         optimizations: optsRes.count ?? 0,
         simulations: simsRes.count ?? 0,
         letters: lettersRes.count ?? 0,
@@ -2024,6 +2038,18 @@ export function AdminDashboard({ userId }: AdminDashboardProps) {
                   </div>
                 );
               })}
+            </div>
+
+            <div className="mt-4 pt-3 border-t border-slate-900 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-1.5 text-[11px]">
+              <span className="font-semibold text-slate-400">Telemetria de Origem dos Matches:</span>
+              <div className="flex items-center gap-2 font-mono text-xs">
+                <span className="px-2 py-0.5 rounded bg-emerald-950/80 text-emerald-400 border border-emerald-800/60 font-bold">
+                  🤖 IA Gemini: {funnelStats?.matchesAi ?? 0} ({Math.round(((funnelStats?.matchesAi ?? 0) * 100) / Math.max(1, funnelStats?.matches ?? 1))}%)
+                </span>
+                <span className="px-2 py-0.5 rounded bg-amber-950/80 text-amber-400 border border-amber-800/60 font-bold">
+                  🛡️ Fallback: {funnelStats?.matchesFallback ?? 0} ({Math.round(((funnelStats?.matchesFallback ?? 0) * 100) / Math.max(1, funnelStats?.matches ?? 1))}%)
+                </span>
+              </div>
             </div>
           </CardGlass>
 

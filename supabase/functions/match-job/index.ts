@@ -119,8 +119,9 @@ async function callGeminiWithFallback(
   // Cadeia de modelos Gemini ativos (verificada em agosto/2026).
   // Ordem: primário mais capaz → fallbacks progressivamente mais leves.
   const modelsToTry = [
-    'gemini-2.5-flash',       // Modelo Primário
-    'gemini-2.0-flash'        // Fallback Secundário
+    'gemini-3.6-flash',
+    'gemini-3.5-flash',
+    'gemini-flash-latest'
   ];
 
   let lastError: any = null;
@@ -405,7 +406,8 @@ async function saveJobMatch(supabaseClient: any, userId: string, resumeId: strin
             behavioral: `Probabilidade de entrevista: ${matchResult.interview_probability}%`,
             seniority: '',
             salary: '',
-            location: ''
+            location: '',
+            match_source: matchResult.match_source || 'ai'
           }
         },
         gap_analysis: gapAnalysis,
@@ -846,10 +848,12 @@ serve(async (req) => {
           isMockEnabled,
           requestStartTime
         );
+        matchResult.match_source = 'ai';
       } catch (aiErr: any) {
         console.warn('[MATCH JOB] Falha no Gemini API. Executando fallback determinístico...', aiErr.message);
         matchResult = {
           match_score: 84,
+          match_source: 'fallback_deterministic',
           strengths: [
             { skill: jobData.title, reason: "Perfil compatível com os principais requisitos da posição." }
           ],

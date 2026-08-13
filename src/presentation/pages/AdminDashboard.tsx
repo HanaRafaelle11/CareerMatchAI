@@ -559,6 +559,11 @@ export function AdminDashboard({ userId }: AdminDashboardProps) {
         'copilot-chat': { calls: 0, tokens: 0, costBrl: 0 }
       };
 
+      let tier1Calls7d = 0;
+      let tier2Calls7d = 0;
+      let tier3Calls7d = 0;
+      const sevenDaysAgoTime = Date.now() - 7 * 24 * 60 * 60 * 1000;
+
       if (logs && logs.length > 0) {
         // Tarifas derivadas da fatura real do SKU "gemini 3.6 flash text" do Google Cloud:
         // Input: R$ 2,09 / 240.090 tokens = R$ 0,000008705 / token (~US$ 1.61 / 1M)
@@ -583,6 +588,18 @@ export function AdminDashboard({ userId }: AdminDashboardProps) {
           featureBreakdown[feat].calls += 1;
           featureBreakdown[feat].tokens += tok;
           featureBreakdown[feat].costBrl += callCostBrl;
+
+          const isRecent = !l.created_at || new Date(l.created_at).getTime() >= sevenDaysAgoTime;
+          if (isRecent) {
+            const modelStr = (l.model || '').toLowerCase();
+            if (modelStr.includes('lite')) {
+              tier1Calls7d++;
+            } else if (modelStr.includes('flash') || modelStr.includes('3.6') || modelStr.includes('2.5')) {
+              tier2Calls7d++;
+            } else {
+              tier3Calls7d++;
+            }
+          }
         });
       }
 
@@ -623,7 +640,10 @@ export function AdminDashboard({ userId }: AdminDashboardProps) {
         matches_count: mCount,
         avg_match_score: 78.5,
         hours_saved: Number(((oCount * 0.5) + (lCount * 0.25) + (sCount * 0.75) + (mCount * 0.17)).toFixed(1)),
-        feature_breakdown: featureBreakdown
+        feature_breakdown: featureBreakdown,
+        tier1_calls_7d: tier1Calls7d,
+        tier2_calls_7d: tier2Calls7d,
+        tier3_calls_7d: tier3Calls7d
       };
     },
     enabled: true
@@ -2558,6 +2578,47 @@ export function AdminDashboard({ userId }: AdminDashboardProps) {
                     <span className="text-[9px] text-slate-550 block mt-1">Erros na API Gemini ou Parsing</span>
                   </div>
                 </CardGlass>
+              </div>
+
+              {/* BANNER DE MONITORAMENTO DE TIERS GEMINI (ÚLTIMOS 7 DIAS) */}
+              <div className="p-5 rounded-2xl bg-slate-950/80 border border-slate-800 space-y-3 shadow-lg">
+                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 pb-2 border-b border-slate-900">
+                  <div className="flex items-center gap-2">
+                    <Activity size={18} className="text-brand-400 animate-pulse" />
+                    <h3 className="text-sm font-bold text-slate-100 uppercase tracking-wider">
+                      Monitoramento de Tiers de IA — Distribuição dos Últimos 7 Dias
+                    </h3>
+                  </div>
+                  <span className="text-[10px] font-mono text-slate-400 bg-slate-900 px-2.5 py-1 rounded-md border border-slate-800">
+                    Fonte: ai_usage_logs
+                  </span>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 font-sans text-xs">
+                  <div className="p-3.5 rounded-xl bg-emerald-500/10 border border-emerald-500/30 flex justify-between items-center">
+                    <div>
+                      <span className="text-[10px] font-bold text-emerald-400 block uppercase tracking-wider">🤖 Tier 1 (Flash-Lite)</span>
+                      <span className="text-2xl font-extrabold text-emerald-400 font-mono mt-0.5 block">{iaStats?.tier1_calls_7d ?? 0}</span>
+                      <span className="text-[9px] text-emerald-400/80 block mt-0.5 font-mono">$0.015 / 1M tokens (Econômico)</span>
+                    </div>
+                  </div>
+
+                  <div className="p-3.5 rounded-xl bg-amber-500/10 border border-amber-500/30 flex justify-between items-center">
+                    <div>
+                      <span className="text-[10px] font-bold text-amber-400 block uppercase tracking-wider">⚠️ Tier 2 (Flash Standard)</span>
+                      <span className="text-2xl font-extrabold text-amber-400 font-mono mt-0.5 block">{iaStats?.tier2_calls_7d ?? 0}</span>
+                      <span className="text-[9px] text-amber-400/80 block mt-0.5 font-mono">$0.300 / 1M tokens (Standard)</span>
+                    </div>
+                  </div>
+
+                  <div className="p-3.5 rounded-xl bg-indigo-500/10 border border-indigo-500/30 flex justify-between items-center">
+                    <div>
+                      <span className="text-[10px] font-bold text-indigo-400 block uppercase tracking-wider">🛡️ Tier 3 / Outros</span>
+                      <span className="text-2xl font-extrabold text-indigo-400 font-mono mt-0.5 block">{iaStats?.tier3_calls_7d ?? 0}</span>
+                      <span className="text-[9px] text-indigo-400/80 block mt-0.5 font-mono">Gemma / Fallback Local</span>
+                    </div>
+                  </div>
+                </div>
               </div>
 
               {/* Value Metrics / ROI (Mixpanel/Linear style) */}

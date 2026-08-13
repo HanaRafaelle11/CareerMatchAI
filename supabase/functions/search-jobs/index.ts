@@ -135,16 +135,16 @@ async function classifyIntentWithGemini(
   keyword: string,
   geminiApiKey: string
 ): Promise<JobIntent> {
-  const systemPrompt = `You are a career search intent parser. Analyze the user's search query and output a JSON object classifying the intent.
+  const systemPrompt = `You are a career search intent parser for Brazilian job market. Analyze the user's search query and output a JSON object classifying the intent in Brazilian Portuguese (PT-BR).
 The response must be valid JSON matching this schema:
 {
-  "family": "The job family or category name",
-  "primary_titles": ["The most common exact titles"],
-  "secondary_titles": ["Alternative titles"],
-  "negative_titles": ["Unrelated roles"],
-  "skills": ["Key skills"],
-  "preferred_skills": ["Secondary skills"],
-  "negative_keywords": ["Keywords indicating mismatch"]
+  "family": "Nome da família ou cargo principal em português (ex: Vendedor, Desenvolvedor)",
+  "primary_titles": ["Títulos comuns em português"],
+  "secondary_titles": ["Títulos alternativos ou sinônimos em português"],
+  "negative_titles": ["Cargos não relacionados"],
+  "skills": ["Competências chave"],
+  "preferred_skills": ["Competências secundárias"],
+  "negative_keywords": ["Palavras que indicam incompatibilidade"]
 }
 Raw JSON only.`;
 
@@ -154,10 +154,14 @@ Raw JSON only.`;
     const candidateText = resJson.candidates?.[0]?.content?.parts?.[0]?.text;
     if (!candidateText) throw new Error('No candidate text');
     
-    return JSON.parse(candidateText) as JobIntent;
+    const parsed = JSON.parse(candidateText) as JobIntent;
+    (parsed as any).rawKeyword = keyword;
+    return parsed;
   } catch (err: any) {
     console.warn(`[INTENT CLASSIFIER] Fast fallback used (${err.message})`);
-    return getFallbackIntent(keyword);
+    const fallback = getFallbackIntent(keyword);
+    (fallback as any).rawKeyword = keyword;
+    return fallback;
   }
 }
 

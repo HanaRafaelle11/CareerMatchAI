@@ -103,10 +103,19 @@ function calculateFreshness(publishedAt?: string): { score: number; ageDays: num
   return { score: 30, ageDays, isExpired: false };                    // 61-90d: -5
 }
 
-// Substring Bigram Similarity (0.0 to 1.0)
+// Helper de normalização de texto sem acentos e case-insensitive (suporta "vendedor", "VENDEDOR", "vendedôr")
+function removeAccents(str: string): string {
+  return (str || '')
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .trim();
+}
+
+// Substring Bigram Similarity (0.0 to 1.0) com tolerância a acentos e casing
 function getBigramSimilarity(str1: string, str2: string): number {
-  const s1 = str1.toLowerCase().replace(/[^\w]/g, '');
-  const s2 = str2.toLowerCase().replace(/[^\w]/g, '');
+  const s1 = removeAccents(str1).replace(/[^\w]/g, '');
+  const s2 = removeAccents(str2).replace(/[^\w]/g, '');
   if (s1 === s2) return 1.0;
   if (s1.length < 2 || s2.length < 2) return 0.0;
 
@@ -120,19 +129,110 @@ function getBigramSimilarity(str1: string, str2: string): number {
   return (2.0 * matches) / (s1.length - 1 + s2.length - 1);
 }
 
-// Mapa Taxonômico de Sinônimos de Domínio (PT/EN)
-const DOMAIN_SYNONYMS: Record<string, string[]> = {
-  "vendedor": ["vendas", "comercial", "consultor de vendas", "vendedora", "promotor", "atendimento", "consultor"],
-  "vendas": ["vendedor", "comercial", "consultor de vendas", "vendedora", "atendimento"],
-  "comercial": ["vendedor", "vendas", "consultor", "atendimento"],
-  "ajudante": ["auxiliar", "assistente", "operacional", "ajudante geral"],
-  "auxiliar": ["ajudante", "assistente", "operacional"],
-  "customer success": ["sucesso do cliente", "customer experience", "cx", "relacionamento com cliente", "relacionamento", "retenção", "pos-vendas", "pós-vendas", "atendimento ao cliente", "atendimento"],
-  "sucesso do cliente": ["customer success", "customer experience", "cx", "relacionamento com cliente", "atendimento"],
-  "customer experience": ["cx", "customer success", "sucesso do cliente", "experiência do cliente", "atendimento"],
-  "cx": ["customer experience", "customer success", "sucesso do cliente", "atendimento"],
-  "relacionamento com cliente": ["customer success", "sucesso do cliente", "atendimento", "cx"],
-  "supervisor": ["supervisora", "coordenador", "coordenadora", "líder", "lider", "gerente", "head"]
+// Mapa Taxonômico Extensivo de Sinônimos e Cargos Equivalentes de Domínio (PT/EN)
+// Cobre variações lexicais, cargos com nomes diferentes da mesma função e acentuações
+export const DOMAIN_SYNONYMS: Record<string, string[]> = {
+  // Família Vendas & Comercial
+  "vendedor": [
+    "vendas", "comercial", "consultor de vendas", "consultora de vendas", "vendedora",
+    "representante de vendas", "representante comercial", "executivo de vendas",
+    "executiva de vendas", "executivo de contas", "executiva de contas", "account executive",
+    "inside sales", "sdr", "bdr", "promotor de vendas", "promotora de vendas",
+    "atendente de vendas", "operador de vendas", "assessor de vendas", "assessora de vendas",
+    "assistente de vendas", "analista de vendas", "consultor comercial", "consultora comercial",
+    "agente de vendas", "atendimento e vendas", "vendedor interno", "vendedora interna",
+    "vendedor externo", "vendedora externa", "balconista", "atendente de loja", "especialista de vendas"
+  ],
+  "vendas": [
+    "vendedor", "vendedora", "comercial", "consultor de vendas", "consultora de vendas",
+    "representante de vendas", "representante comercial", "executivo de contas", "inside sales",
+    "sdr", "bdr", "promotor", "atendimento", "consultor"
+  ],
+  "comercial": [
+    "vendedor", "vendedora", "vendas", "consultor comercial", "representante comercial",
+    "executivo de contas", "prospecção", "inside sales", "consultor", "atendimento"
+  ],
+  "representante de vendas": [
+    "vendedor", "vendedora", "vendas", "representante comercial", "consultor de vendas",
+    "executivo de vendas", "consultor comercial"
+  ],
+  "representante comercial": [
+    "vendedor", "vendedora", "vendas", "representante de vendas", "consultor de vendas",
+    "executivo de vendas", "comercial"
+  ],
+  "consultor de vendas": [
+    "vendedor", "vendedora", "vendas", "consultora de vendas", "representante comercial",
+    "executivo de vendas", "consultor comercial"
+  ],
+  "promotor de vendas": [
+    "vendedor", "vendedora", "promotor", "promotora", "promotora de vendas",
+    "demonstrador", "vendas", "trade marketing", "repositor"
+  ],
+
+  // Família Operacional & Suporte Geral
+  "ajudante": [
+    "auxiliar", "assistente", "operacional", "ajudante geral", "servente", "meio oficial", "apoio"
+  ],
+  "auxiliar": [
+    "ajudante", "assistente", "operacional", "apoio", "auxiliar geral"
+  ],
+  "ajudante de cozinha": [
+    "auxiliar de cozinha", "assistente de cozinha", "cozinha", "meio oficial de cozinha",
+    "copeiro", "copeira", "auxiliar de preparo", "steward", "atendente de restaurante"
+  ],
+  "auxiliar de cozinha": [
+    "ajudante de cozinha", "assistente de cozinha", "cozinha", "copeiro", "copeira",
+    "auxiliar de preparo", "steward"
+  ],
+
+  // Família Atendimento & Customer Experience
+  "customer success": [
+    "sucesso do cliente", "customer experience", "cx", "relacionamento com cliente",
+    "relacionamento", "retenção", "pos-vendas", "pós-vendas", "atendimento ao cliente",
+    "atendimento", "onboarding specialist", "gerente de contas", "account manager"
+  ],
+  "sucesso do cliente": [
+    "customer success", "customer experience", "cx", "relacionamento com cliente",
+    "atendimento", "retenção", "pós-vendas"
+  ],
+  "customer experience": [
+    "cx", "customer success", "sucesso do cliente", "experiência do cliente",
+    "atendimento", "relacionamento"
+  ],
+  "cx": [
+    "customer experience", "customer success", "sucesso do cliente", "atendimento", "relacionamento"
+  ],
+  "relacionamento com cliente": [
+    "customer success", "sucesso do cliente", "atendimento", "cx", "relacionamento", "sac"
+  ],
+  "atendimento ao cliente": [
+    "sac", "suporte", "atendente", "operador de teleatendimento", "telemarketing",
+    "customer service", "helpdesk", "relacionamento"
+  ],
+  "recepcionista": [
+    "atendente", "recepção", "secretária", "portaria", "atendimento", "telefonista"
+  ],
+
+  // Família Administrativa & Financeira
+  "assistente administrativo": [
+    "auxiliar administrativo", "analista administrativo", "assistente de escritório", "secretária", "apoio administrativo"
+  ],
+  "analista financeiro": [
+    "assistente financeiro", "auxiliar financeiro", "contas a pagar", "contas a receber", "tesouraria", "finanças"
+  ],
+
+  // Família Tecnologia
+  "desenvolvedor": [
+    "developer", "software engineer", "programador", "engenheiro de software", "dev", "analista de sistemas"
+  ],
+  "programador": [
+    "desenvolvedor", "developer", "software engineer", "engenheiro de software", "dev"
+  ],
+
+  // Liderança
+  "supervisor": [
+    "supervisora", "coordenador", "coordenadora", "líder", "lider", "gerente", "head", "team lead"
+  ]
 };
 
 // Calculate Semantic Similarity Match Score (0 - 100) — SINGLE SOURCE OF TRUTH FOR CANDIDATE MATCH
@@ -144,23 +244,35 @@ function calculateSemanticMatch(
   const titleLower = titleClean.toLowerCase();
   const descLower = (j.description || '').toLowerCase();
   const combinedText = `${titleLower} ${descLower}`;
+  const titleNorm = removeAccents(titleClean);
+  const descNorm = removeAccents(j.description || '');
   const primaryTitlesStr = (intent?.primary_titles || []).join(" ");
-  const rawQuery = (`${intent?.family || ''} ${primaryTitlesStr}`.trim() || titleClean).toLowerCase();
+  const userKeyword = (intent as any)?.rawKeyword || '';
+  const rawQuery = removeAccents(`${userKeyword} ${intent?.family || ''} ${primaryTitlesStr}`.trim() || titleClean);
 
   const stopwords = new Set(['de', 'da', 'do', 'das', 'dos', 'em', 'para', 'com', 'por', 'sem', 'ou', 'e', 'a', 'o', 'of', 'for', 'in', 'and']);
   const queryTokens = Array.from(new Set(rawQuery.split(/\s+/).filter(w => !stopwords.has(w) && w.length >= 2)));
 
-  // 1. Expansão Semântica por Taxonomia de Domínio
+  // 1. Expansão Semântica por Taxonomia de Domínio com busca de frases compostas
   const expandedQueryTokens = new Set<string>(queryTokens);
+  let hasSynonymPhraseMatch = false;
+
   for (const [key, synonyms] of Object.entries(DOMAIN_SYNONYMS)) {
-    if (rawQuery.includes(key) || titleLower.includes(key)) {
-      synonyms.forEach(syn => syn.split(/\s+/).forEach(w => {
-        if (!stopwords.has(w) && w.length >= 2) expandedQueryTokens.add(w);
-      }));
+    const normKey = removeAccents(key);
+    if (rawQuery.includes(normKey) || normKey.includes(rawQuery)) {
+      synonyms.forEach(syn => {
+        const normSyn = removeAccents(syn);
+        if (titleNorm.includes(normSyn) || normSyn.includes(titleNorm)) {
+          hasSynonymPhraseMatch = true;
+        }
+        normSyn.split(/\s+/).forEach(w => {
+          if (!stopwords.has(w) && w.length >= 2) expandedQueryTokens.add(w);
+        });
+      });
     }
   }
 
-  const titleTokens = Array.from(new Set(titleLower.split(/\s+/).filter(w => !stopwords.has(w) && w.length >= 2)));
+  const titleTokens = Array.from(new Set(titleNorm.split(/\s+/).filter(w => !stopwords.has(w) && w.length >= 2)));
 
   // 2. Similaridade de Jaccard com Tokens Diretos e Expandidos
   const directMatches = queryTokens.filter(t => titleTokens.some(tt => tt.includes(t) || t.includes(tt)));
@@ -171,19 +283,19 @@ function calculateSemanticMatch(
   const effectiveJaccard = Math.max(jaccardDirect, jaccardSemantic * 0.85);
 
   // 3. Character Bigram Similarity (0.0 to 1.0)
-  const bigramSim = getBigramSimilarity(rawQuery, titleLower);
+  const bigramSim = getBigramSimilarity(rawQuery, titleNorm);
 
-  // 4. Exact Substring Match Bonus
-  const isExactPhrase = titleLower.includes(rawQuery) && rawQuery.length > 3;
-  const phraseBonus = isExactPhrase ? 0.28 : 0;
+  // 4. Exact Substring / Synonym Phrase Match Bonus
+  const isExactPhrase = titleNorm.includes(rawQuery) && rawQuery.length > 3;
+  const phraseBonus = isExactPhrase ? 0.28 : hasSynonymPhraseMatch ? 0.25 : 0;
 
   // VERIFICAÇÃO RIGOROSA DE CORRESPONDÊNCIA TEXTUAL / SEMÂNTICA
-  const descMatches = queryTokens.filter(t => descLower.includes(t));
-  const descSemanticMatches = Array.from(expandedQueryTokens).filter(t => descLower.includes(t));
+  const descMatches = queryTokens.filter(t => descNorm.includes(t));
+  const descSemanticMatches = Array.from(expandedQueryTokens).filter(t => descNorm.includes(t));
   const hasDescMatch = descMatches.length > 0 || descSemanticMatches.length > 0;
-  const hasTitleMatch = directMatches.length > 0 || semanticMatches.length > 0 || isExactPhrase || bigramSim >= 0.40;
+  const hasTitleMatch = directMatches.length > 0 || semanticMatches.length > 0 || isExactPhrase || hasSynonymPhraseMatch || bigramSim >= 0.40;
 
-  // Se NÃO HOUVER match nem no título nem na descrição (ex: Diretor de Arte, Analista Contábil para customer success)
+  // Se NÃO HOUVER match nem no título nem na descrição
   if (!hasTitleMatch && !hasDescMatch) {
     return { 
       matchScore: 5, 

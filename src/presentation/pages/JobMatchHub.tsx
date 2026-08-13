@@ -4309,11 +4309,27 @@ export function JobMatchHub({
                         <span className="text-emerald-400 font-semibold">Match Superior a 80% (Match alto com a vaga)</span>
                       </label>
                     </div>
-                    <span className="text-[11px] text-slate-500 font-mono flex items-center gap-1.5 flex-wrap">
-                      <span>Exibindo {scoredDiscoveredJobs.length} vaga(s) visível(is)</span>
-                    </span>
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-brand-500/10 border border-brand-500/20 text-brand-300 font-semibold text-xs">
+                        <Sparkles size={12} className="text-brand-400" />
+                        {scoredDiscoveredJobs.length} vagas com match analisado
+                      </span>
+                      <span className="text-[11px] text-slate-500 hidden sm:inline" title="O Vocentro cruza vagas de múltiplas fontes oficiais, filtrando duplicatas e vagas desatualizadas para exibir apenas oportunidades compatíveis.">
+                        (Curadoria inteligente de mercado)
+                      </span>
+                    </div>
                   </div>
                 </CardGlass>
+
+                {/* Banner de Curadoria Inteligente */}
+                <div className="p-3 rounded-2xl bg-brand-500/5 border border-brand-500/15 flex items-center gap-2.5 text-xs text-slate-300 shadow-xs">
+                  <div className="p-1.5 rounded-lg bg-brand-500/10 text-brand-400 shrink-0">
+                    <Sparkles size={14} />
+                  </div>
+                  <div className="text-[11px] leading-relaxed">
+                    <span className="font-semibold text-slate-200">Curadoria Ativa de Oportunidades:</span> O Vocentro cruza vagas de múltiplos portais (Adzuna, Gupy, Greenhouse, etc.), eliminando duplicatas e vagas desatualizadas para entregar apenas oportunidades com real compatibilidade com seu perfil.
+                  </div>
+                </div>
 
                 {/* Banner de Transparência dos Filtros de Localidade/Senioridade */}
                 {hiddenDiscoveredJobs.length > 0 && (
@@ -4606,8 +4622,13 @@ export function JobMatchHub({
                               Próxima
                             </button>
                           </div>
-                          <div className="text-[10px] text-slate-500 font-medium">
-                            Exibindo {scoredDiscoveredJobs.length} vagas nesta página de um total de {totalCount || scoredDiscoveredJobs.length} vagas encontradas (Página {safePage} de {totalPages})
+                          <div className="text-center space-y-0.5">
+                            <div className="text-[11px] text-slate-300 font-semibold">
+                              Exibindo {scoredDiscoveredJobs.length} vagas com match analisado nesta página (Página {safePage} de {totalPages})
+                            </div>
+                            <div className="text-[10px] text-slate-500">
+                              Oportunidades curadas e consolidadas de múltiplos portais do mercado ({totalCount || scoredDiscoveredJobs.length} no total).
+                            </div>
                           </div>
                         </div>
                       );

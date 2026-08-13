@@ -205,7 +205,8 @@ export function CoachDashboard({
   // Estatísticas de Mercado
   const matchedJobIds = new Set((matches || []).map((m: any) => m.jobId || m.job_id));
   const activeJobs = jobs.filter(j => matchedJobIds.has(j.id));
-  const marketTrends = MarketIntelligenceService.getMarketTrends(activeJobs, careerProfileNew);
+  const jobsToAnalyze = activeJobs.length > 0 ? activeJobs : jobs;
+  const marketTrends = MarketIntelligenceService.getMarketTrends(jobsToAnalyze, careerProfileNew);
 
   const { showToast } = useToast();
   const setToast = showToast;

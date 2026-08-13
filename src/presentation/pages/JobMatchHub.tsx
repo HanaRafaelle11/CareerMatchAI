@@ -1549,9 +1549,43 @@ export function JobMatchHub({
         user_id: userId 
       });
     } catch (err: any) {
-      const formatted = AppError.from(err);
-      setAppError(formatted);
-      setErrorMsg(err.message || '⚠️ Não foi possível calcular o Match da vaga. Tente novamente.');
+      console.warn('[JobMatchHub.handleTriggerMatch] Falha no cálculo remoto. Aplicando fallback síncrono local...', err);
+      if (primaryResume && jobToMatch) {
+        try {
+          const fallback = MatchingEngine.calculateMatchSync(primaryResume, jobToMatch, careerProfileNew);
+          queryClient.setQueryData<Match[]>(['matches', userId], old => {
+            const list = old || [];
+            const existingIdx = list.findIndex(m => String(m.jobId) === String(jobToMatch.id));
+            const fallbackMatchObj: Match = {
+              id: `fallback-match-${jobToMatch.id}`,
+              userId: userId || '',
+              resumeId: primaryResume.id,
+              jobId: jobToMatch.id,
+              jobTitle: jobToMatch.title,
+              companyName: jobToMatch.companyName || '',
+              scoreOverall: fallback.scoreOverall,
+              scoreTechnical: fallback.scoreTechnical,
+              scoreBehavioral: fallback.scoreBehavioral,
+              scoreSeniority: fallback.scoreSeniority,
+              scoreLocation: 100,
+              explanation: {
+                strengths: [],
+                weaknesses: [],
+                details: { technical: `Match calculado localmente (${fallback.scoreOverall}%).`, behavioral: '', seniority: '', salary: '', location: '' }
+              },
+              createdAt: new Date().toISOString()
+            };
+            if (existingIdx >= 0) {
+              const updated = [...list];
+              updated[existingIdx] = fallbackMatchObj;
+              return updated;
+            }
+            return [fallbackMatchObj, ...list];
+          });
+        } catch (_) {}
+      }
+
+      setErrorMsg('Não foi possível calcular o match com a IA agora, tente novamente.');
       AppError.logError(err, supabase, 'JobMatchHub.handleTriggerMatch', userId);
     } finally {
       setAnalyzingJobId(null);

@@ -146,12 +146,25 @@ export class JobMatchExplanationService {
       jobReqs = jobTitleLower.split(/\s+/).filter(w => w.length > 3 && !['para', 'com', 'mais', 'para', 'onde', 'como'].includes(w));
     }
 
-    // Fator 1: Skills (30%) — Sem piso artificial quando 0 skills forem compatíveis
+    /**
+     * Fator 1: Skills (30%)
+     * MITIGAÇÃO DE BUG (0% Indevido): Requisitos longos são tokenizados e comparados contra competências
+     * e sinônimos do candidato.
+     * LIMITAÇÃO CONHECIDA: O modelo de correspondência lexical por palavras-chave + mapa de sinônimos
+     * mitiga o bug dos 0% indevidos, mas possui limitação inerente comparado a embeddings vetoriais profundos
+     * para casos de equivalência semântica complexa sem palavras em comum.
+     */
     let matchedSkillsCount = 0;
     if (jobReqs.length > 0) {
-      matchedSkillsCount = jobReqs.filter(req => userSkills.some(us => us.includes(req) || req.includes(us))).length;
+      matchedSkillsCount = jobReqs.filter(req => {
+        const reqTokens = req.toLowerCase().split(/[\s,./()\-+]+/).filter(t => t.length > 2);
+        return userSkills.some(us => {
+          const usLower = us.toLowerCase();
+          return usLower.includes(req) || req.includes(usLower) || reqTokens.some(t => usLower.includes(t) || t.includes(usLower));
+        });
+      }).length;
     } else {
-      matchedSkillsCount = userSkills.filter(s => jobDescLower.includes(s)).length;
+      matchedSkillsCount = userSkills.filter(s => jobDescLower.includes(s.toLowerCase())).length;
     }
     const skillsScore = matchedSkillsCount === 0 ? 0 : Math.min(100, Math.max(10, Math.round((matchedSkillsCount / Math.max(1, jobReqs.length)) * 100)));
 

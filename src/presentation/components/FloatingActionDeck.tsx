@@ -1,17 +1,17 @@
 import { useState } from 'react';
-import { Sparkles, MessageSquare, ChevronLeft, ChevronRight, Bot } from 'lucide-react';
+import { MessageSquare, ChevronLeft, ChevronRight, Bot } from 'lucide-react';
 import { SupportFeedbackModal } from './SupportFeedbackModal';
 
 interface FloatingActionDeckProps {
   userId?: string;
   userEmail?: string;
-  onOpenCopilot: () => void;
+  onOpenCopilot?: () => void;
 }
 
 export function FloatingActionDeck({
   userId,
   userEmail,
-  onOpenCopilot
+  onOpenCopilot: _onOpenCopilot
 }: FloatingActionDeckProps) {
   const [isSupportOpen, setIsSupportOpen] = useState(false);
   const [isExpanded, setIsExpanded] = useState(false);
@@ -23,18 +23,7 @@ export function FloatingActionDeck({
       >
         {isExpanded ? (
           <div className="w-full flex flex-col items-start gap-2 animate-fade-in">
-            {/* BOTÃO 1: Copiloto IA */}
-            <button
-              type="button"
-              onClick={onOpenCopilot}
-              className="px-3.5 py-2 rounded-full bg-gradient-to-r from-brand-600 via-brand-500 to-indigo-600 hover:from-brand-500 hover:to-indigo-500 text-white font-extrabold text-xs shadow-2xl flex items-center gap-2 cursor-pointer transition-all transform hover:scale-105 active:scale-95 border border-brand-400/30 group"
-              title="Abrir Copiloto IA"
-            >
-              <Sparkles size={14} className="text-amber-300 animate-pulse shrink-0" />
-              <span className="tracking-tight">Copiloto IA</span>
-            </button>
-
-            {/* BOTÃO 2: Suporte VoCentro */}
+            {/* BOTÃO: Suporte VoCentro */}
             <button
               type="button"
               onClick={() => setIsSupportOpen(true)}
@@ -43,7 +32,7 @@ export function FloatingActionDeck({
             >
               <div className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse shrink-0" />
               <MessageSquare size={13} className="text-brand-400 shrink-0" />
-              <span className="tracking-tight">Suporte</span>
+              <span className="tracking-tight">Suporte & Feedback</span>
             </button>
 
             {/* BOTÃO DE RECOLHER */}
@@ -63,12 +52,12 @@ export function FloatingActionDeck({
             type="button"
             onClick={() => setIsExpanded(true)}
             className="px-3 py-2 rounded-full bg-slate-900/95 hover:bg-slate-800/95 border border-slate-700/80 text-slate-200 font-bold text-xs shadow-2xl flex items-center gap-2 cursor-pointer transition-all transform hover:scale-105 active:scale-95 backdrop-blur-md group"
-            title="Expandir Copiloto e Suporte"
+            title="Expandir Suporte"
           >
             <div className="w-6 h-6 rounded-full bg-brand-500/20 border border-brand-400/30 flex items-center justify-center text-brand-400">
               <Bot size={13} />
             </div>
-            <span className="text-[11px] tracking-tight">Ajuda & IA</span>
+            <span className="text-[11px] tracking-tight">Ajuda & Suporte</span>
             <ChevronRight size={14} className="text-slate-400 group-hover:text-slate-200 group-hover:translate-x-0.5 transition-all" />
           </button>
         )}

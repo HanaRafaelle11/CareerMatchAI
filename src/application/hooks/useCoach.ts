@@ -159,6 +159,10 @@ export function useCoach(userId: string | undefined) {
           }
         });
         if (error) throw error;
+        const formalText = data?.textFormal || data?.text_formal || data?.coverLetterText || '';
+        if (!data || !formalText || formalText.trim().length === 0) {
+          throw new Error('Não foi possível gerar a carta de apresentação. Tente novamente.');
+        }
         return data;
       } else {
         const letter: CoverLetter = {
@@ -175,16 +179,24 @@ export function useCoach(userId: string | undefined) {
     },
     onSuccess: (data: any, variables) => {
       const isMock = variables.applicationId.includes('mock') || !isValidUUID(variables.applicationId);
-      if (isMock && data) {
-        localDB.saveCoverLetter({
-          id: data.id || `letter-mock-${Date.now()}`,
-          applicationId: variables.applicationId,
-          textFormal: data.textFormal || data.text_formal || '',
-          textDirect: data.textDirect || data.text_direct || '',
-          textExecutive: data.textExecutive || data.text_executive || '',
-          createdAt: new Date().toISOString()
-        });
+      const formal = data?.textFormal || data?.text_formal || data?.coverLetterText || '';
+      const direct = data?.textDirect || data?.text_direct || data?.coverLetterText || '';
+      const executive = data?.textExecutive || data?.text_executive || data?.coverLetterText || '';
+
+      const normalizedLetter: CoverLetter = {
+        id: data.id || `letter-${Date.now()}`,
+        applicationId: variables.applicationId,
+        textFormal: formal,
+        textDirect: direct,
+        textExecutive: executive,
+        createdAt: data.createdAt || data.created_at || new Date().toISOString()
+      };
+
+      if (isMock) {
+        localDB.saveCoverLetter(normalizedLetter);
       }
+
+      queryClient.setQueryData(['cover-letter', variables.applicationId], normalizedLetter);
       queryClient.invalidateQueries({ queryKey: ['cover-letter', variables.applicationId] });
       tracker.track('resume_optimized', 'letter', { type: 'cover_letter' });
     }

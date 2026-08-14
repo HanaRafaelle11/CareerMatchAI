@@ -61,21 +61,30 @@ export class ResumeOptimizationService {
     const userSkills = resume.skills.map(s => s.name.toLowerCase());
     const missing = job.requirements.filter(req => !userSkills.some(us => us.includes(req.toLowerCase()) || req.toLowerCase().includes(us)));
 
+    const primaryRole = resume.experiences?.[0]?.role || job.title || 'Profissional';
     const optimizedSummary = resume.structuredSummary
-      ? `${resume.structuredSummary} Foco em resultados de Customer Success no segmento SaaS, atuando na retenção de carteira de clientes de grande escala e implementando rotinas analíticas.`
-      : `Profissional de Customer Success com experiência de liderança e gestão em produtos SaaS. Habilidades focadas na otimização de Churn, fidelização de contas corporativas e reporte executivo.`;
+      ? `${resume.structuredSummary} Foco em excelência operacional, aplicação de melhores práticas para ${job.title} e entregas com alto padrão de qualidade.`
+      : `Profissional com sólida trajetória em ${primaryRole}, atuando com foco em resultados, eficiência de processos e aplicação prática de competências alinhadas aos requisitos da posição de ${job.title}.`;
 
-    const keyExperiences = (resume.experiences || []).map(exp => {
-      let description = exp.description;
-      if (missing.length > 0 && exp.role.toLowerCase().includes('success')) {
-        description = `${exp.description} Destaque de métricas analíticas e controle do stack operacional (incluindo ${missing.slice(0, 2).join(', ')}).`;
-      }
-      return {
-        role: exp.role,
-        company: exp.companyName,
-        description
-      };
-    });
+    const keyExperiences = (resume.experiences && resume.experiences.length > 0)
+      ? resume.experiences.map((exp, i) => {
+          let description = exp.description || 'Atuação com foco em resultados e qualidade.';
+          if (missing.length > 0 && i === 0) {
+            description = `${description} Recomenda-se destacar conhecimentos aplicados em ${missing.slice(0, 2).join(' e ')}.`;
+          }
+          return {
+            role: exp.role || primaryRole,
+            company: exp.companyName || 'Empresa',
+            description
+          };
+        })
+      : [
+          {
+            role: primaryRole,
+            company: 'Experiência Relevante',
+            description: `Atuação estratégica alinhada às principais competências exigidas para ${job.title}.`
+          }
+        ];
 
     const opt: ResumeOptimization = {
       id: `opt-${Date.now()}`,
@@ -83,8 +92,8 @@ export class ResumeOptimizationService {
       jobId: (job as any).id || undefined,
       optimizedSummary,
       keyExperiences,
-      missingKeywords: missing.length > 0 ? missing : ['SQL', 'Salesforce'],
-      redundantInfo: ['Competências genéricas de Microsoft Office', 'Cursos extracurriculares não-correlacionados'],
+      missingKeywords: missing.length > 0 ? missing : (job.requirements?.slice(0, 3) || ['Comunicação', 'Organização']),
+      redundantInfo: ['Termos genéricos sem evidências de resultados', 'Informações não correlacionadas à vaga'],
       createdAt: new Date().toISOString()
     };
 

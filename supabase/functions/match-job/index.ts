@@ -406,11 +406,18 @@ async function optimizeResumeWithGemini(careerProfile: any, jobTitle: string, jo
     await checkRateLimit(supabaseClient, userId, 'resume-optimization');
 
     if (mockEnabled) {
+      const candidateExps = careerProfile.experience || [];
       return {
-        summary: "Profissional orientado a resultados com vasta experiência.",
-        skillsToHighlight: ["Gestão de Projetos", "Liderança"],
-        sectionsToReorder: ["Experiência", "Habilidades"],
-        suggestedBullets: ["Aumentou a eficiência operacional em 25%."]
+        optimized_summary: "Profissional orientado a resultados com vasta experiência e histórico comprovado de entregas estratégicas.",
+        key_experiences: candidateExps.length > 0 ? candidateExps.map((e: any) => ({
+          role: e.role || 'Profissional',
+          company: e.companyName || 'Empresa',
+          description: e.description || 'Atuação destacada com foco em processos e qualidade.'
+        })) : [
+          { role: jobTitle, company: "Empresa", description: "Otimização de rotinas operacionais e aplicação de boas práticas do setor." }
+        ],
+        missing_keywords: ["Planejamento Estratégico", "Gestão de Indicadores"],
+        redundant_info: ["Termos genéricos sem métricas associadas"]
       };
     }
 
@@ -418,20 +425,27 @@ async function optimizeResumeWithGemini(careerProfile: any, jobTitle: string, jo
     if (!geminiApiKey) throw new Error("Chave GEMINI_API_KEY não configurada.");
 
     const prompt = `
-      Você é um especialista em otimização de currículos para ATS.
-      Analise o perfil do candidato e a vaga a seguir, e sugira otimizações específicas.
+      Você é um especialista sênior em otimização de currículos para sistemas ATS e recrutadores humanos.
+      Analise o histórico e experiências reais do candidato em relação à vaga pretendida e gere uma reestruturação estratégica completa.
+      
       Retorne SOMENTE um JSON válido com a estrutura:
       {
-        "summary": "Resumo otimizado",
-        "skillsToHighlight": ["Skill 1", "Skill 2"],
-        "sectionsToReorder": ["Seção 1", "Seção 2"],
-        "suggestedBullets": ["Bullet 1", "Bullet 2"]
+        "optimized_summary": "Resumo profissional de alto impacto em 3-4 linhas, destacando o alinhamento com a vaga.",
+        "key_experiences": [
+          {
+            "role": "Cargo real do candidato na experiência",
+            "company": "Empresa onde trabalhou",
+            "description": "Texto reestruturado com verbos de ação, métricas e competências aderentes à vaga."
+          }
+        ],
+        "missing_keywords": ["Palavra-chave 1", "Palavra-chave 2"],
+        "redundant_info": ["Termo vago ou irrelevante a reduzir"]
       }
 
-      Perfil:
+      Perfil do Candidato:
       ${JSON.stringify(careerProfile, null, 2)}
 
-      Vaga:
+      Vaga Alvo:
       Título: ${jobTitle}
       Descrição: ${jobDescription}
     `;
@@ -442,7 +456,45 @@ async function optimizeResumeWithGemini(careerProfile: any, jobTitle: string, jo
     if (!extractedText) throw new Error("Resposta do Gemini vazia.");
 
     await logAiUsage(supabaseClient, userId, 'resume-optimization', selectedModel, resJson.usageMetadata?.promptTokenCount || 0, resJson.usageMetadata?.candidatesTokenCount || 0);
-    return JSON.parse(extractedText);
+    const parsed = JSON.parse(extractedText);
+
+    // Normalizar key_experiences para garantir estrutura completa de objetos
+    let normalizedExperiences = [];
+    if (Array.isArray(parsed.key_experiences) && parsed.key_experiences.length > 0) {
+      normalizedExperiences = parsed.key_experiences.map((exp: any, i: number) => {
+        if (typeof exp === 'object' && exp !== null) {
+          return {
+            role: exp.role || careerProfile.experience?.[i]?.role || 'Experiência Profissional',
+            company: exp.company || exp.companyName || careerProfile.experience?.[i]?.companyName || 'Empresa',
+            description: exp.description || exp.text || exp.bullet || String(exp)
+          };
+        }
+        return {
+          role: careerProfile.experience?.[i]?.role || 'Experiência Profissional',
+          company: careerProfile.experience?.[i]?.companyName || 'Empresa',
+          description: String(exp)
+        };
+      });
+    } else if (Array.isArray(parsed.suggestedBullets) && parsed.suggestedBullets.length > 0) {
+      normalizedExperiences = parsed.suggestedBullets.map((bullet: string, i: number) => ({
+        role: careerProfile.experience?.[i]?.role || 'Experiência Profissional',
+        company: careerProfile.experience?.[i]?.companyName || 'Empresa',
+        description: bullet
+      }));
+    } else if (Array.isArray(careerProfile.experience) && careerProfile.experience.length > 0) {
+      normalizedExperiences = careerProfile.experience.map((e: any) => ({
+        role: e.role || 'Profissional',
+        company: e.companyName || 'Empresa',
+        description: e.description || 'Experiência relevante para os requisitos da vaga.'
+      }));
+    }
+
+    return {
+      optimized_summary: parsed.optimized_summary || parsed.summary || 'Profissional com sólida experiência e perfil alinhado aos requisitos da vaga.',
+      key_experiences: normalizedExperiences,
+      missing_keywords: parsed.missing_keywords || parsed.skillsToHighlight || [],
+      redundant_info: parsed.redundant_info || parsed.sectionsToReorder || []
+    };
 }
 
 async function generateCoverLetterWithGemini(careerProfile: any, jobTitle: string, companyName: string, jobDescription: string, supabaseClient: any, userId: string, mockEnabled = false): Promise<any> {
@@ -450,7 +502,9 @@ async function generateCoverLetterWithGemini(careerProfile: any, jobTitle: strin
 
     if (mockEnabled) {
       return {
-        coverLetterText: "Prezado recrutador, apresento minha candidatura para a vaga de " + jobTitle + "."
+        text_formal: `Prezada equipe de recrutamento da ${companyName},\n\nVenho por meio desta apresentar minha candidatura para a posição de ${jobTitle}. Com base no meu histórico profissional, estou preparado(a) para agregar valor imediato aos projetos da empresa.`,
+        text_direct: `Olá equipe ${companyName},\n\nVi a oportunidade para ${jobTitle} e me identifiquei muito com o desafio. Possuo vivência prática nas principais demandas desta função e gostaria de contribuir com os resultados do time.`,
+        text_executive: `À Direção da ${companyName},\n\nEscrevo para formalizar meu interesse na oportunidade de ${jobTitle}. Trago experiência consolidada na entrega de resultados e forte compromisso com a excelência operacional.`
       };
     }
 
@@ -458,13 +512,17 @@ async function generateCoverLetterWithGemini(careerProfile: any, jobTitle: strin
     if (!geminiApiKey) throw new Error("Chave GEMINI_API_KEY não configurada.");
 
     const prompt = `
-      Escreva uma carta de apresentação altamente persuasiva para a vaga de ${jobTitle}.
+      Você é um especialista em cartas de apresentação persuasivas para processos seletivos.
+      Gere 3 versões distintas e completas da carta de apresentação para a vaga de ${jobTitle} na empresa ${companyName}.
+      
       Retorne SOMENTE um JSON válido com a estrutura:
       {
-        "coverLetterText": "Texto da carta de apresentação..."
+        "text_formal": "Carta formal e corporativa detalhada com introdução, parágrafos de argumentação e encerramento...",
+        "text_direct": "Carta moderna e direta, focada em impacto e soluções práticas para a empresa...",
+        "text_executive": "Carta executiva e estratégica, enfatizando liderança, resultados e sinergia de negócios..."
       }
 
-      Perfil:
+      Perfil do Candidato:
       ${JSON.stringify(careerProfile, null, 2)}
 
       Vaga:
@@ -479,7 +537,14 @@ async function generateCoverLetterWithGemini(careerProfile: any, jobTitle: strin
     if (!extractedText) throw new Error("Resposta do Gemini vazia.");
 
     await logAiUsage(supabaseClient, userId, 'cover-letter', selectedModel, resJson.usageMetadata?.promptTokenCount || 0, resJson.usageMetadata?.candidatesTokenCount || 0);
-    return JSON.parse(extractedText);
+    const parsed = JSON.parse(extractedText);
+
+    const baseText = parsed.coverLetterText || `Apresento minha candidatura para a vaga de ${jobTitle} na ${companyName}.`;
+    return {
+      text_formal: parsed.text_formal || baseText,
+      text_direct: parsed.text_direct || baseText,
+      text_executive: parsed.text_executive || baseText
+    };
 }
 
 async function generateInterviewPrepWithGemini(careerProfile: any, jobTitle: string, jobDescription: string, supabaseClient: any, userId: string, mockEnabled = false): Promise<any> {

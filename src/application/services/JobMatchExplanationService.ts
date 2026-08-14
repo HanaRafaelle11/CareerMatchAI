@@ -133,26 +133,29 @@ export class JobMatchExplanationService {
     }
 
     // ── 3. CÁLCULO HÍBRIDO DO CAREER FIT SCORE (7 FATORES DETALHADOS) ──
+    const { calcYearsFromExperiences, buildFlatSkillsFromProfile } = await import('./matchingEngine');
     const jobTitleLower = (job.title || '').toLowerCase();
     const jobDescLower = (job.description || '').toLowerCase();
-    const userSkills = (careerProfileNew?.skills || resume?.skills || []).map(s => (typeof s === 'string' ? s : s.name).toLowerCase());
     
-    // EDGE CASE 2: Vaga sem requisitos explícitos -> Extrair tokens do título/descrição
+    // Extrai lista completa de competências (técnicas, soft skills, ats keywords e histórico)
+    const flatUserSkills = careerProfileNew ? buildFlatSkillsFromProfile(careerProfileNew) : [];
+    const directResumeSkills = (resume?.skills || []).map(s => (typeof s === 'string' ? s : s.name).toLowerCase());
+    const userSkills = [...new Set([...flatUserSkills, ...directResumeSkills])];
+    
+    // Requisitos explícitos da vaga
     let jobReqs = (job.requirements || [])
       .map(r => r.toLowerCase().trim())
       .filter(r => r && r !== 'geral' && r !== 'geral/outros' && r !== 'geral/outra' && r.length > 2);
 
-    if (jobReqs.length === 0) {
-      jobReqs = jobTitleLower.split(/\s+/).filter(w => w.length > 3 && !['para', 'com', 'mais', 'para', 'onde', 'como'].includes(w));
+    const hasExplicitReqs = jobReqs.length > 0;
+    if (!hasExplicitReqs) {
+      jobReqs = jobTitleLower.split(/[\s,./()\-+]+/).filter(w => w.length > 3 && !['para', 'com', 'mais', 'para', 'onde', 'como', 'vaga'].includes(w));
     }
 
     /**
      * Fator 1: Skills (30%)
-     * MITIGAÇÃO DE BUG (0% Indevido): Requisitos longos são tokenizados e comparados contra competências
-     * e sinônimos do candidato.
-     * LIMITAÇÃO CONHECIDA: O modelo de correspondência lexical por palavras-chave + mapa de sinônimos
-     * mitiga o bug dos 0% indevidos, mas possui limitação inerente comparado a embeddings vetoriais profundos
-     * para casos de equivalência semântica complexa sem palavras em comum.
+     * MITIGAÇÃO DE BUG (0% Indevido): Requisitos são tokenizados e comparados contra competências,
+     * sinônimos e textos de experiência do candidato.
      */
     let matchedSkillsCount = 0;
     if (jobReqs.length > 0) {
@@ -166,10 +169,18 @@ export class JobMatchExplanationService {
     } else {
       matchedSkillsCount = userSkills.filter(s => jobDescLower.includes(s.toLowerCase())).length;
     }
-    const skillsScore = matchedSkillsCount === 0 ? 0 : Math.min(100, Math.max(10, Math.round((matchedSkillsCount / Math.max(1, jobReqs.length)) * 100)));
+
+    // Se a vaga não possui requisitos explícitos mas há aderência contextual, calcula pela descrição
+    let skillsScore = 0;
+    if (hasExplicitReqs) {
+      skillsScore = matchedSkillsCount === 0 ? 0 : Math.min(100, Math.max(15, Math.round((matchedSkillsCount / Math.max(1, jobReqs.length)) * 100)));
+    } else {
+      // Vaga sem requisitos em tópicos: infere pela correspondência com título/descrição
+      const titleMatches = userSkills.some(s => jobTitleLower.includes(s) || s.includes(jobTitleLower));
+      skillsScore = titleMatches ? 85 : (matchedSkillsCount > 0 ? 70 : 60);
+    }
 
     // Fator 2: Experience (25%) — usando calcYearsFromExperiences robusto
-    const { calcYearsFromExperiences } = await import('./matchingEngine');
     const currentRole = careerProfileNew?.experience?.[0]?.role || (resume?.structured_data?.experience?.[0]?.role);
     const userYears = calcYearsFromExperiences(
       careerProfileNew?.experience ?? [],
@@ -196,7 +207,7 @@ export class JobMatchExplanationService {
     // Fator 4: Career Goal (15%)
     const targetRoles = (careerProfileNew?.personal as any)?.preferences?.targetRoles || [];
     const goalMatch = targetRoles.some((tr: string) => jobTitleLower.includes(tr.toLowerCase()));
-    const careerGoalScore = goalMatch ? 95 : 20;
+    const careerGoalScore = goalMatch ? 95 : 60;
 
     // EDGE CASE 3: Vaga sem salário -> Score neutro de 75%
     const expectedSalary = (careerProfileNew?.personal as any)?.preferences?.salaryExpectationMin || 0;
@@ -209,15 +220,15 @@ export class JobMatchExplanationService {
     // Fator 7: Semantic Context (5%)
     const semanticScore = (job.scores?.overall ? Math.min(100, job.scores.overall) : 75);
 
-    // Detecção de Incompatibilidade Crassa de Área (Ex: CS / Tech vs Cozinheiro / Limpeza / Operacional)
+    // Detecção de Incompatibilidade Crassa de Área
     const isOperationalOrCulinary = /cozinheiro|cozinheira|cozinha|gastronomia|chefe de cozinha|garçom|garçonete|barista|gari|coletor|limpeza/i.test(jobTitleLower);
     const isOfficeOrTechCandidate = userSkills.some(s => /customer success|cs|salesforce|react|typescript|node|gerência|gerente|diretor|lead|marketing/i.test(s)) ||
       targetRoles.some((r: string) => /success|cs|dev|manager|eng|soft|lider|analista|customer/i.test(r.toLowerCase()));
 
     const isCrossDomainMismatch = (isOperationalOrCulinary && isOfficeOrTechCandidate) || (!goalMatch && matchedSkillsCount === 0 && targetRoles.length > 0);
 
-    // Score Composto Ponderado Final
-    let rawFitScore = Math.round(
+    // Score Composto Ponderado
+    let calculatedFitScore = Math.round(
       (skillsScore * 0.30) +
       (experienceScore * 0.25) +
       (seniorityScore * 0.15) +
@@ -228,10 +239,12 @@ export class JobMatchExplanationService {
     );
 
     if (isCrossDomainMismatch) {
-      rawFitScore = Math.min(rawFitScore, 15);
+      calculatedFitScore = Math.min(calculatedFitScore, 15);
     }
 
-    const careerFitScore = rawFitScore;
+    // FONTE ÚNICA DA VERDADE: Se o matchingEngine já calculou o score geral (job.scores.overall), ele é a métrica mestra oficial
+    const masterScore = (job.scores?.overall && job.scores.overall > 0) ? job.scores.overall : calculatedFitScore;
+    const careerFitScore = masterScore;
 
     const breakdown: CareerFitBreakdown = {
       skillsScore,
@@ -250,14 +263,14 @@ export class JobMatchExplanationService {
     let overallMatchReason = '';
     let confidenceScore = 85;
 
-    if (careerFitScore >= 85) {
-      overallMatchReason = `Essa vaga combina altamente com você (${careerFitScore}%)! Você possui experiência sólida em ${job.title}, histórico comprovado na área e atende aos principais requisitos estratégicos solicitados.`;
+    if (careerFitScore >= 80) {
+      overallMatchReason = `Essa vaga combina altamente com seu perfil (${careerFitScore}%)! Você possui histórico relevante para ${job.title} e atende aos principais requisitos desta oportunidade.`;
       confidenceScore = 95;
-    } else if (careerFitScore >= 65) {
-      overallMatchReason = `Match alto com a vaga (${careerFitScore}%)! Seu perfil atende a maior parte dos requisitos essenciais da posição de ${job.title}, necessitando apenas destacar competências complementares no currículo.`;
+    } else if (careerFitScore >= 60) {
+      overallMatchReason = `Match sólido com a vaga (${careerFitScore}%)! Seu perfil atende a maior parte dos requisitos essenciais da posição de ${job.title}, podendo destacar competências complementares no currículo.`;
       confidenceScore = 85;
     } else {
-      overallMatchReason = `Match moderado com a vaga (${careerFitScore}%). O anúncio exige competências ou senioridade específicas que necessitam de maior destaque ou evolução em seu perfil.`;
+      overallMatchReason = `Match em desenvolvimento com a vaga (${careerFitScore}%). A posição de ${job.title} possui requisitos específicos que podem ser fortalecidos no seu currículo.`;
       confidenceScore = 70;
     }
 

@@ -69,9 +69,18 @@ export function useJobTrash(userId?: string, activeJobs: Job[] = []) {
           const foundDbJob = (dbJobs || []).find(j => String(j.id) === exJobIdStr);
           const foundActiveJob = activeJobs.find(j => String(j.id) === exJobIdStr);
 
-          const title = foundDbJob?.title || foundActiveJob?.title || `Vaga (${exJobIdStr.slice(0, 8)})`;
-          const companyName = foundDbJob?.company_name || foundActiveJob?.companyName || 'Empresa';
-          const location = foundDbJob?.location || foundActiveJob?.location || 'Brasil';
+          // Tentar carregar metadados salvos localmente
+          let cachedMeta: { title?: string; companyName?: string; location?: string } | null = null;
+          if (typeof window !== 'undefined') {
+            try {
+              const raw = localStorage.getItem('vocentro_trash_meta_' + exJobIdStr);
+              if (raw) cachedMeta = JSON.parse(raw);
+            } catch (_) {}
+          }
+
+          const title = foundDbJob?.title || foundActiveJob?.title || cachedMeta?.title || 'Oportunidade Profissional';
+          const companyName = foundDbJob?.company_name || foundActiveJob?.companyName || cachedMeta?.companyName || 'Empresa Confidencial';
+          const location = foundDbJob?.location || foundActiveJob?.location || cachedMeta?.location || 'Brasil';
 
           return {
             id: exJobIdStr,
@@ -83,7 +92,7 @@ export function useJobTrash(userId?: string, activeJobs: Job[] = []) {
             originalJob: foundActiveJob || (foundDbJob ? {
               id: foundDbJob.id,
               companyId: 'manual',
-              companyName: foundDbJob.company_name || 'Empresa',
+              companyName: foundDbJob.company_name || 'Empresa Confidencial',
               title: foundDbJob.title,
               description: foundDbJob.description || '',
               requirements: foundDbJob.requirements || [],
@@ -111,6 +120,16 @@ export function useJobTrash(userId?: string, activeJobs: Job[] = []) {
     mutationFn: async (job: Job | { id: string; title?: string; companyName?: string; location?: string }) => {
       if (!userId) throw new Error('Usuário não autenticado.');
       const targetJobId = String(job.id);
+      const title = (job as any).title || 'Oportunidade Profissional';
+      const companyName = (job as any).companyName || (job as any).company_name || 'Empresa Confidencial';
+      const location = (job as any).location || 'Brasil';
+
+      // Salvar metadados legíveis em cache
+      if (typeof window !== 'undefined') {
+        try {
+          localStorage.setItem('vocentro_trash_meta_' + targetJobId, JSON.stringify({ title, companyName, location }));
+        } catch (_) {}
+      }
 
       if (isSupabaseConfigured && supabase) {
         const { error } = await supabase
@@ -119,7 +138,7 @@ export function useJobTrash(userId?: string, activeJobs: Job[] = []) {
             user_id: userId,
             job_id: targetJobId,
             action: 'REJECTED',
-            reason: null
+            reason: JSON.stringify({ title, companyName, location })
           });
 
         if (error && !error.message.includes('duplicate')) {
@@ -249,7 +268,7 @@ export function useJobTrash(userId?: string, activeJobs: Job[] = []) {
     }
   });
 
-  // 4. Esvaziar Lixeira (Excluir Definitivamente associações de todas as vagas na lixeira sem candidatura ativa)
+  // 4. Esvaziar Lixeira (Excluir Definitivamente associações de todas as vagas na lixeira)
   const clearTrashMutation = useMutation({
     mutationFn: async () => {
       if (!userId) throw new Error('Usuário não autenticado.');
@@ -264,25 +283,25 @@ export function useJobTrash(userId?: string, activeJobs: Job[] = []) {
         if (excludedList && excludedList.length > 0) {
           const ids = excludedList.map(e => String(e.job_id));
 
-          // Filtrar vagas que possuem candidatura ativa para preservar histórico
-          const { data: activeApps } = await supabase
-            .from('applications')
-            .select('job_id')
-            .eq('user_id', userId)
-            .in('job_id', ids);
-
-          const appJobIds = new Set((activeApps || []).map(a => String(a.job_id)));
-          const safeIdsToDelete = ids.filter(id => !appJobIds.has(id));
-
-          if (safeIdsToDelete.length > 0) {
-            await supabase.from('job_feedback').delete().eq('user_id', userId).in('job_id', safeIdsToDelete);
-            await supabase.from('job_matches').delete().eq('user_id', userId).in('job_id', safeIdsToDelete);
-            await supabase.from('matches').delete().eq('user_id', userId).in('job_id', safeIdsToDelete);
-          }
+          await supabase.from('job_feedback').delete().eq('user_id', userId).in('job_id', ids);
+          await supabase.from('job_matches').delete().eq('user_id', userId).in('job_id', ids);
+          await supabase.from('matches').delete().eq('user_id', userId).in('job_id', ids);
         }
+      }
+
+      if (typeof window !== 'undefined') {
+        try {
+          for (let i = localStorage.length - 1; i >= 0; i--) {
+            const key = localStorage.key(i);
+            if (key && key.startsWith('vocentro_trash_meta_')) {
+              localStorage.removeItem(key);
+            }
+          }
+        } catch (_) {}
       }
     },
     onSuccess: () => {
+      queryClient.setQueryData(['job-trash', userId], []);
       queryClient.invalidateQueries({ queryKey: ['job-trash', userId] });
       queryClient.invalidateQueries({ queryKey: ['jobs', userId] });
       queryClient.invalidateQueries({ queryKey: ['matches', userId] });

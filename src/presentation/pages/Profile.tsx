@@ -3,7 +3,7 @@ import { CardGlass } from '../components/CardGlass';
 import type { Resume, Profile as UserProfile, Application, PipelineStep } from '../../domain/models/types';
 import type { CareerProfileNew, CareerInsight } from '../../application/hooks/useMyProfileAi';
 import { calcYearsFromExperiences } from '../../application/services/matchingEngine';
-import { Upload, FileText, Calendar, Trash2, AlertCircle, Briefcase, Award, Clock, Activity, Brain, Zap, Info, Sparkles, CheckCircle, ArrowRight } from 'lucide-react';
+import { Upload, FileText, Calendar, Trash2, AlertCircle, Briefcase, Award, Clock, Activity, Brain, Zap, Info, Sparkles, CheckCircle, ArrowRight, Loader2 } from 'lucide-react';
 import { ResumeOptimizationService } from '../../application/services/ResumeOptimizationService';
 import { isSupabaseConfigured, supabase } from '../../infrastructure/api/supabaseClient';
 import { JobSearchService } from '../../application/services/JobSearchService';
@@ -206,21 +206,28 @@ export function Profile({
 
   const setActiveTab = propSetActiveTab;
 
+  const [isLoadingSuggestedJobs, setIsLoadingSuggestedJobs] = useState(false);
+
   useEffect(() => {
-    // Busca dinâmica baseada no título/domínio real do currículo ativo
-    // Usa a mesma fonte da Descoberta de Vagas — sem regex hardcoded nem query genérica de tabela
+    // Busca dinâmica baseada no cargo/domínio real do currículo ativo
+    const primaryResume = resumes.find(r => r.isPrimary) || resumes[0];
     const activeTitle =
       (careerProfileNew?.personal as any)?.preferences?.targetRoles?.[0] ||
       careerProfileNew?.personal?.headline ||
       careerProfileNew?.experience?.[0]?.role ||
+      primaryResume?.experiences?.[0]?.role ||
+      (careerProfileNew?.skills?.[0] ? (typeof careerProfileNew.skills[0] === 'string' ? careerProfileNew.skills[0] : (careerProfileNew.skills[0] as any).name) : '') ||
       '';
 
     if (!activeTitle || !user?.id) {
       setSuggestedJobs([]);
+      setIsLoadingSuggestedJobs(false);
       return;
     }
 
     let cancelled = false;
+    setIsLoadingSuggestedJobs(true);
+
     JobSearchService.searchJobs({
       keyword: activeTitle,
       location: (careerProfileNew?.personal as any)?.preferences?.preferredLocations?.[0] || careerProfileNew?.personal?.location || 'Brasil',
@@ -228,13 +235,17 @@ export function Profile({
     }).then(({ results }) => {
       if (!cancelled) {
         setSuggestedJobs((results || []).slice(0, 3));
+        setIsLoadingSuggestedJobs(false);
       }
     }).catch(() => {
-      if (!cancelled) setSuggestedJobs([]);
+      if (!cancelled) {
+        setSuggestedJobs([]);
+        setIsLoadingSuggestedJobs(false);
+      }
     });
 
     return () => { cancelled = true; };
-  }, [user?.id, activeResumeVersionId, careerProfileNew]);
+  }, [user?.id, activeResumeVersionId, careerProfileNew, resumes]);
 
   useEffect(() => {
     if (isUploading) {
@@ -938,7 +949,14 @@ export function Profile({
                 </button>
 
                 {/* Item 2b & Item 3: Catálogo de Vagas Sugeridas com Título Completo e Nome Real da Empresa */}
-                {suggestedJobs.length > 0 && (
+                {isLoadingSuggestedJobs && (
+                  <div className="pt-3 border-t border-slate-800 flex items-center justify-center gap-2 py-3 text-slate-400 text-xs">
+                    <Loader2 size={14} className="animate-spin text-brand-400" />
+                    <span>Identificando vagas ideais para o seu perfil...</span>
+                  </div>
+                )}
+
+                {!isLoadingSuggestedJobs && suggestedJobs.length > 0 && (
                   <div className="pt-3 border-t border-slate-800 space-y-2">
                     <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">
                       ⚡ Vagas Recentes Prontas para Calcular Match:

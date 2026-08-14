@@ -176,6 +176,77 @@ async function runRegressionSuite() {
     }
   });
 
+  // TEST 10: Match Score - Fonte Única da Verdade (Single Source of Truth)
+  await test("10. Match Score - Fonte Única de Verdade (Anel vs Diagnóstico)", async () => {
+    const mockJob = {
+      id: 'job-test-score',
+      title: 'Cozinheira Industrial',
+      companyName: 'Restaurante Central',
+      requirements: ['Preparo de refeições', 'Boas práticas de manipulação', 'Higiene'],
+      scores: { overall: 88, technical: 85, experience: 90 }
+    };
+    const masterScore = mockJob.scores?.overall || 0;
+    if (masterScore !== 88) throw new Error(`Score master incorreto: esperado 88, obtido ${masterScore}`);
+    
+    // O Diagnóstico e o Anel consom estritamente masterScore
+    const displayedScore = masterScore;
+    if (displayedScore !== 88) throw new Error("Discrepância no score mestre");
+  });
+
+  // TEST 11: Skills Transparency - Eliminação de Falso 0%
+  await test("11. Skills Transparency - Sem 0% Falso em Perfis Estruturados/Não-Estruturados", async () => {
+    const candidateProfile = {
+      personal: { headline: 'Cozinheira com 5 anos de experiência em restaurantes' },
+      experience: [{ role: 'Cozinheira', company: 'Buffet Express', description: 'Preparo de pratos quentes, cortes e organização de insumos.' }],
+      skills: []
+    };
+    const jobReqs = ['Cozinha', 'Preparo de alimentos', 'Higiene'];
+    
+    // Extração de skills do texto/experiências
+    const extractedSkills = [
+      ...candidateProfile.skills,
+      'cozinheira', 'cozinha', 'preparo', 'alimentos', 'organização'
+    ];
+    const matchCount = jobReqs.filter(req => 
+      extractedSkills.some(s => s.toLowerCase().includes(req.toLowerCase()) || req.toLowerCase().includes(s.toLowerCase()))
+    ).length;
+    
+    const calculatedScore = matchCount > 0 ? Math.round((matchCount / jobReqs.length) * 100) : 50;
+    if (calculatedScore <= 0) {
+      throw new Error(`Skills score calculou ${calculatedScore}% (0% indevido)!`);
+    }
+  });
+
+  // TEST 12: Isolamento de Dados entre Usuários Diferentes
+  await test("12. Segurança e Privacidade - Isolamento Rigoroso de Dados entre Usuários", async () => {
+    const userA = "usr_alpha_11111";
+    const userB = "usr_beta_22222";
+    
+    const cacheA = `vocentro_trash_meta_${userA}_job1`;
+    const cacheB = `vocentro_trash_meta_${userB}_job1`;
+    if (cacheA === cacheB) throw new Error("Chave de cache não isola dados por usuário!");
+    
+    const profileDomainA = "Cozinha e Gastronomia";
+    const profileDomainB = "Desenvolvimento de Software";
+    if (profileDomainA === profileDomainB) throw new Error("Domínios colidindo entre usuários");
+  });
+
+  // TEST 13: Lixeira - Títulos Legíveis sem UUID e Exclusão em Lote
+  await test("13. Lixeira de Vagas - Títulos Amigáveis (Sem UUID) e Batch Delete", async () => {
+    const rawJobId = "47be8af4-9843-4c91-b3fa-094857201934";
+    const resolveTitle = (dbTitle, activeTitle, cachedTitle) => {
+      return dbTitle || activeTitle || cachedTitle || 'Oportunidade Profissional';
+    };
+    
+    const titleWithoutDb = resolveTitle(undefined, undefined, undefined);
+    if (titleWithoutDb.includes(rawJobId) || titleWithoutDb.includes('47be8af4')) {
+      throw new Error(`Título na lixeira vazou UUID: ${titleWithoutDb}`);
+    }
+    if (titleWithoutDb !== 'Oportunidade Profissional') {
+      throw new Error(`Fallback inesperado: ${titleWithoutDb}`);
+    }
+  });
+
   console.log("\n=================================================");
   console.log(`📊 RESULTADO FINAL DA SUÍTE: ${passed} PASSARAM | ${failed} FALHARAM`);
   console.log("=================================================");

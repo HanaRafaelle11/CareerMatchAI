@@ -1183,13 +1183,24 @@ export function StrategyPage({
                 {selectedApp.companyName}
               </p>
             </div>
-            <button
-              onClick={() => setSelectedAppId(null)}
-              aria-label="Fechar detalhes da candidatura"
-              className="text-muted-foreground hover:text-foreground p-2 rounded-xl hover:bg-muted transition-colors min-w-[40px] min-h-[40px] flex items-center justify-center cursor-pointer"
-            >
-              <X size={20} />
-            </button>
+            <div className="flex items-center gap-1 shrink-0">
+              <button
+                type="button"
+                onClick={() => setDeletingApp(selectedApp)}
+                aria-label="Excluir candidatura"
+                className="text-muted-foreground hover:text-red-400 p-2 rounded-xl hover:bg-red-500/10 transition-colors min-w-[36px] min-h-[36px] flex items-center justify-center cursor-pointer"
+                title="Excluir candidatura"
+              >
+                <Trash2 size={18} />
+              </button>
+              <button
+                onClick={() => setSelectedAppId(null)}
+                aria-label="Fechar detalhes da candidatura"
+                className="text-muted-foreground hover:text-foreground p-2 rounded-xl hover:bg-muted transition-colors min-w-[36px] min-h-[36px] flex items-center justify-center cursor-pointer"
+              >
+                <X size={20} />
+              </button>
+            </div>
           </div>
 
           {/* ── ALTA PRIORIDADE: AÇÃO PRIMÁRIA DA CANDIDATURA ── */}
@@ -1530,15 +1541,28 @@ export function StrategyPage({
                                   <h4 className="font-bold text-foreground truncate text-xs">{app.jobTitle}</h4>
                                   <span className="text-[10px] text-muted-foreground block truncate">{app.companyName}</span>
                                 </div>
-                                {isManualApp ? (
-                                  <span className="text-[9px] px-1.5 py-0.5 rounded font-medium bg-slate-800/80 text-slate-300 border border-slate-700 shrink-0" title="Candidatura adicionada manualmente sem cálculo de Match IA">
-                                    Manual
-                                  </span>
-                                ) : (
-                                  <span className="text-[9px] px-1.5 py-0.5 rounded font-extrabold bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 shrink-0">
-                                    {matchScore}%
-                                  </span>
-                                )}
+                                <div className="flex items-center gap-1 shrink-0">
+                                  {isManualApp ? (
+                                    <span className="text-[9px] px-1.5 py-0.5 rounded font-medium bg-slate-800/80 text-slate-300 border border-slate-700 shrink-0" title="Candidatura adicionada manualmente sem cálculo de Match IA">
+                                      Manual
+                                    </span>
+                                  ) : (
+                                    <span className="text-[9px] px-1.5 py-0.5 rounded font-extrabold bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 shrink-0">
+                                      {matchScore}%
+                                    </span>
+                                  )}
+                                  <button
+                                    type="button"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      setDeletingApp(app);
+                                    }}
+                                    className="p-1 text-muted-foreground hover:text-red-400 hover:bg-red-500/10 rounded transition-colors cursor-pointer"
+                                    title="Remover candidatura"
+                                  >
+                                    <Trash2 size={12} />
+                                  </button>
+                                </div>
                               </div>
 
                               {(app as any).nextAction && (

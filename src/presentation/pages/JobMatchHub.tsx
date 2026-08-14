@@ -11,7 +11,7 @@ import { MatchingEngine } from '../../application/services/matchingEngine';
 import type { Job, Resume, Match, CareerProfile, JobFeedbackReason } from '../../domain/models/types';
 import type { CareerProfileNew } from '../../application/hooks/useMyProfileAi';
 import { useEscapeToClose } from '../../application/hooks/useEscapeToClose';
-import { Play, Clipboard, Award, CheckCircle, AlertTriangle, AlertCircle, X, ChevronRight, BookOpen, Plus, Search, MapPin, Loader2, ArrowUpRight, Flame, Sparkles, Trash2, Briefcase, Heart, DollarSign, Building, FileText, Printer, Check, Target, Zap, ThumbsUp, ThumbsDown, RotateCcw, Filter, Info } from 'lucide-react';
+import { Play, Clipboard, Award, CheckCircle, AlertTriangle, AlertCircle, X, ChevronRight, BookOpen, Plus, Search, MapPin, Loader2, ArrowUpRight, Flame, Sparkles, Trash2, Briefcase, Heart, DollarSign, Building, FileText, Printer, Check, Zap, RotateCcw, Filter, Info } from 'lucide-react';
 import { useJobTrash } from '../../application/hooks/useJobTrash';
 
 import { isSupabaseConfigured, supabase } from '../../infrastructure/api/supabaseClient';
@@ -227,7 +227,7 @@ export function JobMatchHub({
   applications = [],
   onCreateApplication,
   onUpdateApplication,
-  onDeleteApplication,
+  onDeleteApplication: _onDeleteApplication,
   setActiveTab,
   selectedJobId: propSelectedJobId,
   onSelectJob: propOnSelectJob,
@@ -250,7 +250,7 @@ export function JobMatchHub({
   } = useEntitlements(user?.id || userId);
 
   const [showCheckout, setShowCheckout] = useState(false);
-  const { trashedJobs, trashedJobIds, moveToTrash, restoreFromTrash, removeFromTrash, clearTrash } = useJobTrash(user?.id || userId, jobs);
+  const { trashedJobs, trashedJobIds, moveToTrash, restoreFromTrash, removeFromTrash: _removeFromTrash, clearTrash } = useJobTrash(user?.id || userId, jobs);
 
   const queryClient = useQueryClient();
   const [subTab, setSubTab] = useState<'my-jobs' | 'discover' | 'trash'>(initialSubTab || 'discover');
@@ -287,7 +287,7 @@ export function JobMatchHub({
   const [showAdaptationModal, setShowAdaptationModal] = useState(false);
   const [rejectReasonModal, setRejectReasonModal] = useState(false);
   const [matchRejectionModal, setMatchRejectionModal] = useState(false);
-  const [matchFeedbackGiven, setMatchFeedbackGiven] = useState<'positive' | 'negative' | null>(null);
+  const [, setMatchFeedbackGiven] = useState<'positive' | 'negative' | null>(null);
   const ahaMomentTriggered = useRef(false);
   const { showToast } = useToast();
   const setToast = showToast;
@@ -2623,20 +2623,6 @@ export function JobMatchHub({
                       </div>
                       
                       <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 shrink-0">
-                        {/* Secondary Score Badge: Career Fit (Objetivo de Carreira) */}
-                        <div 
-                          className="bg-slate-900/60 p-2.5 rounded-2xl border border-blue-500/20 text-right shrink-0 relative group cursor-help"
-                          title="Career Fit Score: Pontuação de sinergia entre os objetivos da sua carreira e a empresa contratante."
-                        >
-                          <span className="text-[9px] uppercase font-bold text-slate-300 flex items-center gap-1 justify-end">
-                            💼 Career Fit Score
-                          </span>
-                          <span className="text-xs font-extrabold text-blue-300 block">
-                            {isCalculating || (analyzingJobId && selectedJob && analyzingJobId === selectedJob.id) || isLoadingExplanation ? '--' : (currentMatch ? `${currentMatch.scoreOverall}%` : '--')}
-                          </span>
-                          <span className="text-[8px] text-slate-400 block">Alinhamento de objetivo</span>
-                        </div>
-
                         {/* Primary Score Circle: Match da Vaga (Compatibilidade Geral) */}
                         <div 
                           className="flex items-center gap-3 bg-brand-950/40 p-2.5 rounded-2xl border border-brand-500/30 relative group cursor-help shadow-md shadow-emerald-500/5"
@@ -2654,12 +2640,12 @@ export function JobMatchHub({
                             </div>
                           ) : (
                             <ProgressRing 
-                              value={currentMatch ? currentMatch.scoreOverall : 0} 
+                              value={currentMatch ? currentMatch.scoreOverall : (explanation?.careerFitScore || 0)} 
                               size={56} 
                               strokeWidth={4}
                               label={
                                 <span className="text-emerald-400 font-extrabold text-sm font-display">
-                                  {currentMatch ? `${currentMatch.scoreOverall}%` : '--'}
+                                  {currentMatch ? `${currentMatch.scoreOverall}%` : (explanation?.careerFitScore ? `${explanation.careerFitScore}%` : '--')}
                                 </span>
                               } 
                             />
@@ -2698,7 +2684,7 @@ export function JobMatchHub({
                         <div className="p-4 rounded-xl bg-blue-900/40 border border-blue-500/40 text-white text-xs leading-relaxed flex items-start gap-3">
                           <Zap size={18} className="text-blue-300 shrink-0 mt-0.5" />
                           <div>
-                            <span className="font-semibold text-blue-200 block mb-0.5">Diagnóstico do Copiloto:</span>
+                            <span className="font-semibold text-blue-200 block mb-0.5">Diagnóstico do Match:</span>
                             {explanation?.overallMatchReason || 'Sua trajetória e competências apresentam alta sinergia com os requisitos essenciais desta posição.'}
                           </div>
                         </div>
@@ -2759,83 +2745,38 @@ export function JobMatchHub({
                             <div className="space-y-2">
                               {explanation?.gaps && explanation.gaps.length > 0 ? (
                                 explanation.gaps.map((gap, i) => (
-                                  <div key={i} className="p-2.5 rounded-lg bg-slate-900/60 border border-amber-900/40 text-xs space-y-1">
-                                    <div className="flex items-center justify-between">
-                                      <span className="font-bold text-amber-300">{gap.requirement}</span>
-                                      <span className={`text-[9px] px-1.5 py-0.5 rounded font-bold uppercase ${gap.impact === 'Alto' ? 'bg-red-500/20 text-red-400 border border-red-500/30' : 'bg-amber-500/20 text-amber-400 border border-amber-500/30'}`}>
+                                  <div key={i} className="p-2.5 rounded-lg bg-amber-900/10 border border-amber-800/30 text-xs space-y-0.5">
+                                    <div className="flex justify-between items-center">
+                                      <span className="font-bold text-amber-200">{gap.requirement}</span>
+                                      <span className={`text-[9px] px-1.5 py-0.2 rounded font-bold uppercase ${
+                                        gap.impact === 'Alto' ? 'bg-red-500/20 text-red-300 border border-red-500/30' :
+                                        gap.impact === 'Médio' ? 'bg-amber-500/20 text-amber-300 border border-amber-500/30' :
+                                        'bg-slate-700 text-slate-300'
+                                      }`}>
                                         Impacto {gap.impact}
                                       </span>
                                     </div>
-                                    <span className="text-slate-400 text-[11px] block">💡 {gap.suggestion}</span>
+                                    <span className="text-slate-300 text-[11px] block">{gap.suggestion}</span>
                                   </div>
                                 ))
                               ) : (
-                                <p className="text-xs text-slate-400">Nenhum bloqueio crítico de pré-requisitos detectado.</p>
+                                <p className="text-xs text-slate-300">Nenhum gap crítico impeditivo identificado.</p>
                               )}
                             </div>
                           </div>
                         </div>
 
-                        {/* Estratégia de Candidatura */}
+                        {/* Recomendação Estratégica */}
                         {explanation?.recommendation && (
-                          <div className="p-4 rounded-xl bg-slate-900/80 border border-slate-800 space-y-1.5">
-                            <h4 className="text-xs font-bold text-blue-400 flex items-center gap-1.5 uppercase tracking-wider">
-                              <Target size={14} />
-                              Estratégia Recomendada
-                            </h4>
-                            <p className="text-xs text-slate-300 leading-relaxed">
-                              {explanation.recommendation}
-                            </p>
+                          <div className="p-3.5 rounded-xl bg-indigo-950/30 border border-indigo-500/30 text-xs space-y-1">
+                            <span className="text-[10px] font-bold text-indigo-300 uppercase tracking-wider block">Recomendação Estratégica:</span>
+                            <p className="text-slate-200 leading-relaxed">{explanation.recommendation}</p>
                           </div>
                         )}
 
-                        {/* Match IA Quality Feedback Bar (Item 1 & 2) */}
-                        <div className="p-3.5 rounded-xl bg-slate-900/90 border border-slate-800 space-y-2">
-                          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                            <span className="text-xs font-bold text-slate-200">Essa recomendação faz sentido para você?</span>
-                            <div className="flex items-center gap-2">
-                              <button
-                                onClick={async () => {
-                                  setMatchFeedbackGiven('positive');
-                                  await JobMatchFeedbackService.recordMatchFeedback({
-                                    userId,
-                                    jobId: selectedJob.id,
-                                    careerFitScore: explanation?.careerFitScore || 0,
-                                    jobScore: selectedJob.scores?.overall || 0,
-                                    feedbackType: 'positive',
-                                    jobTitle: selectedJob.title,
-                                    companyName: selectedJob.companyName
-                                  });
-                                  showToast('✓ Feedback registrado com sucesso! Obrigado.', 'success');
-                                }}
-                                className={`px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition cursor-pointer ${
-                                  matchFeedbackGiven === 'positive'
-                                    ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/40'
-                                    : 'bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700'
-                                }`}
-                              >
-                                <ThumbsUp size={13} className="text-emerald-400" />
-                                <span>Sim, combina comigo</span>
-                              </button>
-
-                              <button
-                                onClick={() => setMatchRejectionModal(true)}
-                                className={`px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition cursor-pointer ${
-                                  matchFeedbackGiven === 'negative'
-                                    ? 'bg-red-500/20 text-red-300 border border-red-500/40'
-                                    : 'bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700'
-                                }`}
-                              >
-                                <ThumbsDown size={13} className="text-red-400" />
-                                <span>Não combina comigo</span>
-                              </button>
-                            </div>
-                          </div>
-                        </div>
-
-                        {/* ── REGRA 6: BANNERS E CTAS CONTEXTUAIS DE MATCH (FREE -> PRO CONVERSION) ── */}
+                        {/* ── BANNERS E CTAS CONTEXTUAIS DE MATCH ── */}
                         {explanation && (
-                          (explanation.careerFitScore || 0) < 70 ? (
+                          ((currentMatch?.scoreOverall ?? explanation.careerFitScore ?? 0) < 60) ? (
                             <div className="p-4 rounded-xl bg-amber-950/40 border border-amber-500/40 space-y-3 animate-fade-in">
                               <div className="flex items-start gap-3">
                                 <div className="p-2 rounded-xl bg-amber-500/20 text-amber-400 border border-amber-500/30 shrink-0 mt-0.5">
@@ -2843,27 +2784,25 @@ export function JobMatchHub({
                                 </div>
                                 <div className="space-y-1">
                                   <h4 className="font-bold text-sm text-amber-300">
-                                    ⚠️ Seu currículo tem {explanation.careerFitScore || 45}% de aderência a esta vaga.
+                                    ⚠️ Seu currículo tem {currentMatch?.scoreOverall ?? explanation.careerFitScore ?? 45}% de aderência a esta vaga.
                                   </h4>
                                   <p className="text-xs text-amber-200/90 leading-relaxed">
-                                    O Copiloto IA pode ajudar a adaptar suas experiências aos requisitos desta oportunidade.
+                                    A otimização de currículo por IA ajuda a destacar suas experiências e competências mais alinhadas a esta oportunidade.
                                   </p>
                                 </div>
                               </div>
                               <div className="pt-1">
                                 <button
                                   onClick={() => {
-                                    tracker.trackMatchUpgradeCtaClicked(explanation.careerFitScore || 0, selectedJob.id, 'copilot');
-                                    if (isPro) {
-                                      onStartSimulation?.(selectedJob);
-                                    } else {
-                                      triggerPaywall('copilot', 'Adapte suas Experiências com o Copiloto IA 🤖', 'O Copiloto IA analisa os requisitos desta vaga e ajuda você a destacar as habilidades certas para aumentar sua aderência!');
-                                    }
+                                    tracker.trackMatchUpgradeCtaClicked(currentMatch?.scoreOverall ?? explanation.careerFitScore ?? 0, selectedJob.id, 'copilot');
+                                    setCoachTab('optimize-cv');
+                                    const el = document.getElementById('ai-coach-section');
+                                    if (el) el.scrollIntoView({ behavior: 'smooth' });
                                   }}
                                   className="w-full sm:w-auto px-5 py-2.5 rounded-xl bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-400 hover:to-orange-500 text-white font-bold text-xs shadow-lg flex items-center justify-center gap-2 cursor-pointer transition"
                                 >
                                   <Sparkles size={16} />
-                                  <span>Melhorar meu Match com IA</span>
+                                  <span>Melhorar meu Match com IA (Otimizar CV)</span>
                                 </button>
                               </div>
                             </div>
@@ -2875,48 +2814,29 @@ export function JobMatchHub({
                                 </div>
                                 <div className="space-y-1">
                                   <h4 className="font-bold text-sm text-emerald-300">
-                                    🎉 Excelente compatibilidade! ({explanation.careerFitScore}%)
+                                    🎉 Excelente compatibilidade! ({currentMatch?.scoreOverall ?? explanation.careerFitScore}%)
                                   </h4>
                                   <p className="text-xs text-emerald-200/90 leading-relaxed">
-                                    Seu currículo está bem alinhado a esta vaga. Gere a versão otimizada para ATS e prepare-se para a candidatura.
+                                    Seu perfil está bem alinhado a esta vaga. Gere a versão otimizada com palavras-chave estratégicas para ATS.
                                   </p>
                                 </div>
                               </div>
                               <div className="pt-1">
                                 <button
                                   onClick={() => {
-                                    tracker.trackResumeExportUpgradeCtaClicked(explanation.careerFitScore || 0, selectedJob.id, 'resume_export');
-                                    setShowAdaptationModal(true);
+                                    setCoachTab('optimize-cv');
+                                    const el = document.getElementById('ai-coach-section');
+                                    if (el) el.scrollIntoView({ behavior: 'smooth' });
                                   }}
                                   className="w-full sm:w-auto px-5 py-2.5 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-400 hover:to-teal-500 text-white font-bold text-xs shadow-lg flex items-center justify-center gap-2 cursor-pointer transition"
                                 >
                                   <FileText size={16} />
-                                  <span>Exportar currículo otimizado</span>
+                                  <span>Otimizar currículo para esta vaga</span>
                                 </button>
                               </div>
                             </div>
                           )
                         )}
-
-
-                        {/* Botão de Adaptação de Currículo */}
-                        <div className="flex flex-col sm:flex-row items-center justify-between gap-3 pt-2">
-                          <button
-                            onClick={() => {
-                              setShowAdaptationModal(true);
-                              tracker.track('resume_adaptation_opened', 'CareerIntelligence', { jobId: selectedJobId });
-                              tracker.trackQualifiedAction({
-                                user_id: userId,
-                                job_id: selectedJob.id,
-                                action: 'resume_adaptation',
-                                career_fit_score: explanation?.careerFitScore || 0
-                              });
-                            }}
-                            className="w-full sm:w-auto px-5 py-3 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs shadow-lg shadow-blue-500/20 flex items-center justify-center gap-2 cursor-pointer transition"
-                          >
-                            <Sparkles size={16} />
-                            <span>Adaptar meu currículo para essa vaga</span>
-                          </button>
 
                           {/* Quick Feedback Bar */}
                           <div className="flex items-center gap-1 bg-slate-900/80 border border-slate-800 p-1 rounded-xl">
@@ -2977,7 +2897,6 @@ export function JobMatchHub({
                               <span>Rejeitar</span>
                             </button>
                           </div>
-                        </div>
                       </>
                     )}
                   </div>
@@ -3800,15 +3719,24 @@ export function JobMatchHub({
                           <div className="space-y-2.5">
                             <strong className="text-slate-200 block">Sugestões de reestruturação para suas experiências:</strong>
                             <div className="space-y-3">
-                              {optimization.keyExperiences.map((exp: any, i: number) => (
-                                <div key={i} className="p-3 bg-slate-950/40 border border-slate-900 rounded-xl space-y-1">
-                                  <div className="flex justify-between items-center text-[10px]">
-                                    <span className="font-bold text-slate-200">{exp.role}</span>
-                                    <span className="text-slate-500">{exp.company}</span>
+                              {optimization.keyExperiences.map((exp: any, i: number) => {
+                                const isObj = typeof exp === 'object' && exp !== null;
+                                const role = isObj ? (exp.role || exp.cargo || exp.position || '') : '';
+                                const company = isObj ? (exp.company || exp.empresa || exp.companyName || '') : '';
+                                const desc = isObj ? (exp.description || exp.descricao || exp.bullet || exp.text || '') : String(exp || '');
+                                if (!desc && !role && !company) return null;
+                                return (
+                                  <div key={i} className="p-3 bg-slate-950/40 border border-slate-900 rounded-xl space-y-1">
+                                    {(role || company) && (
+                                      <div className="flex justify-between items-center text-[10px]">
+                                        {role && <span className="font-bold text-slate-200">{role}</span>}
+                                        {company && <span className="text-slate-500">{company}</span>}
+                                      </div>
+                                    )}
+                                    <p className="text-slate-400 leading-relaxed text-[11px] mt-1">{renderFormattedMarkdown(desc)}</p>
                                   </div>
-                                  <p className="text-slate-400 leading-relaxed text-[11px] mt-1">{renderFormattedMarkdown(exp.description)}</p>
-                                </div>
-                              ))}
+                                );
+                              })}
                             </div>
                           </div>
 
@@ -4772,19 +4700,15 @@ export function JobMatchHub({
               <button
                 type="button"
                 onClick={async () => {
-                  let deletedCount = 0;
-                  for (const item of trashedJobs) {
-                    const linkedApp = applications.find(a => String(a.jobId) === String(item.id) || String(a.id) === String(item.id));
-                    if (linkedApp && onDeleteApplication) {
-                      try { await onDeleteApplication(linkedApp.id); } catch (_) {}
-                    }
-                    await removeFromTrash(item.id);
-                    if (onDeleteJob) await onDeleteJob(item.id);
-                    deletedCount++;
-                  }
-                  clearTrash();
+                  const count = trashedJobs.length;
                   setShowClearTrashModal(false);
-                  showToast(`${deletedCount} vaga(s) excluída(s) permanentemente do banco de dados.`, 'success');
+                  showToast(`Excluindo ${count} vaga(s) da lixeira...`, 'info');
+                  try {
+                    await clearTrash();
+                    showToast(`${count} vaga(s) excluída(s) permanentemente da lixeira.`, 'success');
+                  } catch (err: any) {
+                    showToast('Erro ao esvaziar lixeira: ' + (err.message || 'Tente novamente.'), 'error');
+                  }
                 }}
                 className="w-full p-4 rounded-2xl bg-slate-900/80 hover:bg-red-950/40 border border-slate-800 hover:border-red-500/50 text-left transition group flex items-start gap-3.5 cursor-pointer"
               >
@@ -4796,7 +4720,7 @@ export function JobMatchHub({
                     Excluir permanentemente todas do banco de dados
                   </h4>
                   <p className="text-xs text-slate-400 mt-0.5">
-                    Remove definitivamente todas as vagas da lixeira. Esta ação não poderá ser desfeita.
+                    Remove definitivamente todas as vagas da lixeira em uma única operação. Esta ação não poderá ser desfeita.
                   </p>
                 </div>
               </button>

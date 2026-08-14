@@ -216,6 +216,25 @@ const SYNONYM_MAP: Record<string, string[]> = {
 };
 
 /**
+ * Filtro estrito de requisitos não-técnicos (escalas, benefícios, disponibilidade e termos burocráticos)
+ */
+export const isTechnicalOrDomainReq = (req: string): boolean => {
+  const clean = req.trim().toLowerCase();
+  if (clean.length < 3) return false;
+  const nonTechnicalPatterns = [
+    /\b(5x2|6x1|12x36|escala|rotativa|turno|tarde|manh[ãa]|noite|madrugada|per[íi]odo|integral|meio per[íi]odo)\b/i,
+    /\b(disponibilidade|hor[áa]rio|finais de semana|feriados|flex[íi]vel)\b/i,
+    /\b(sal[áa]rio|a combinar|benef[íi]cios|vt|vr|va|vale|refei[çc][ãa]o|alimenta[çc][ãa]o|plano|m[ée]dica|odontol[óo]gico|seguro|gympass|cesta|bonifica[çc][ãa]o|plr|comiss[ãa]o)\b/i,
+    /\b(ensino m[ée]dio|ensino fundamental|maior de 18|documentos|f[áa]cil acesso|residir|comprovante|vaga efetiva|clt|pj|tempor[áa]rio|est[áa]gio)\b/i,
+    /^(geral|outros|outra|requisitos)$/i
+  ];
+  for (const p of nonTechnicalPatterns) {
+    if (p.test(clean)) return false;
+  }
+  return true;
+};
+
+/**
  * Verifica se um requisito está coberto pelas skills do candidato,
  * usando matching direto, por sinônimo e por substring nos textos de experiência.
  */
@@ -483,12 +502,16 @@ export class MatchingEngine {
       currentRole
     );
 
-    // 1. Match Técnico
+    // 1. Match Técnico (filtrando apenas requisitos técnicos/domínio reais)
+    const rawReqs = (job.requirements || []).map(r => r.trim()).filter(Boolean);
+    const technicalReqs = rawReqs.filter(isTechnicalOrDomainReq);
+    const targetReqs = technicalReqs.length > 0 ? technicalReqs : rawReqs;
+
     let matchedCount = 0;
     const matchedSkillsList: string[] = [];
     const missingSkillsList: string[] = [];
 
-    job.requirements.forEach(req => {
+    targetReqs.forEach(req => {
       if (checkRequirement(req, flatSkills, experiences)) {
         matchedCount++;
         matchedSkillsList.push(req);
@@ -497,7 +520,7 @@ export class MatchingEngine {
       }
     });
 
-    let scoreTechnical = Math.round((matchedCount / Math.max(job.requirements.length, 1)) * 100);
+    let scoreTechnical = Math.round((matchedCount / Math.max(targetReqs.length, 1)) * 100);
 
     // 2. Match Comportamental
     const softTerms = consolidatedProfile
@@ -567,74 +590,58 @@ export class MatchingEngine {
       }
     }
 
-    // Match de Cargo e Área Semântica (Novidade para evitar falsos positivos crassos como CS Leader -> Gari)
+    // Match Contínuo de Cargo e Área Semântica
     const titleLower = job.title.toLowerCase();
     const targetRoles: string[] = (consolidatedProfile?.personal as any)?.preferences?.targetRoles || [];
+    const recentExpRole = (consolidatedProfile?.experience?.[0]?.role || resume.structured_data?.experience?.[0]?.role || '').toLowerCase();
     const normalizedTargetRoles = targetRoles.map((r: string) => r.toLowerCase());
     
-    let hasRoleMatch = false;
-    if (normalizedTargetRoles.length > 0) {
-      hasRoleMatch = normalizedTargetRoles.some((role: string) => {
-        const roleWords = role.split(/\s+/).filter((w: string) => w.length > 3);
-        return roleWords.some((w: string) => titleLower.includes(w)) || titleLower.includes(role);
-      });
+    let scoreRoleCompatibility = 60;
+    const directRoleMatch = normalizedTargetRoles.some((role: string) => {
+      const rLower = role.trim();
+      return rLower.length > 2 && (titleLower.includes(rLower) || rLower.includes(titleLower));
+    });
+    const recentRoleMatch = recentExpRole.length > 2 && (titleLower.includes(recentExpRole) || recentExpRole.includes(titleLower));
+
+    if (directRoleMatch) {
+      scoreRoleCompatibility = 95;
+    } else if (recentRoleMatch) {
+      scoreRoleCompatibility = 85;
     } else {
-      const headline = (consolidatedProfile?.personal?.headline) || '';
-      if (headline) {
-        const headlineLower = headline.toLowerCase();
-        const hlWords = headlineLower.split(/\s+/).filter((w: string) => w.length > 3);
-        hasRoleMatch = hlWords.some((w: string) => titleLower.includes(w)) || titleLower.includes(headlineLower);
+      const jobTokens = titleLower.split(/[\s,./()\-+]+/).filter(t => t.length > 3);
+      const userRoleTokens = [
+        ...normalizedTargetRoles.flatMap(r => r.split(/[\s,./()\-]+/)),
+        ...recentExpRole.split(/[\s,./()\-]+/)
+      ].filter(t => t.length > 3);
+
+      const matchedRoleTokens = jobTokens.filter(t => userRoleTokens.includes(t));
+      if (matchedRoleTokens.length > 0) {
+        scoreRoleCompatibility = Math.min(80, 50 + (matchedRoleTokens.length * 15));
       } else {
-        hasRoleMatch = true;
+        const isOperationalOrManualJob = /gari|coletor|limpeza|auxiliar de servicos gerais|serviços gerais|porteiro|copa|cozinheiro|cozinheira|garçom|garçonete|barista/i.test(titleLower);
+        const isOfficeCandidate = flatSkills.some((s: string) => 
+          /react|typescript|node|javascript|python|java|sql|customer success|cs|salesforce|gerência|gerente|diretor|lead|liderança|marketing|agile|atendimento/i.test(s)
+        ) || normalizedTargetRoles.some((r: string) => /success|cs|dev|manager|eng|soft|lider|analista|customer|marketing/i.test(r));
+
+        if (isOperationalOrManualJob && isOfficeCandidate) {
+          scoreRoleCompatibility = 20;
+        } else if (targetRoles.length > 0) {
+          scoreRoleCompatibility = 40;
+        } else {
+          scoreRoleCompatibility = 55;
+        }
       }
     }
 
-    const isITJob = /desenvolvedor|programador|frontend|backend|fullstack|software engineer|tech lead|devops|data engineer|dba|qa engineer/i.test(titleLower);
-    const hasITSkills = flatSkills.some((s: string) => 
-      /react|typescript|javascript|node|python|java|c#|golang|php|sql|docker|aws|git|html|css|devops|frontend|backend|fullstack|software|programação/i.test(s)
-    );
-
-    const isOperationalOrManualJob = /gari|coletor|limpeza|auxiliar de servicos gerais|serviços gerais|porteiro|copa|cozinheiro|cozinheira|cozinha|gastronomia|chefe de cozinha|garçom|garçonete|atendente de bar|barista/i.test(titleLower);
-    const isOfficeCandidate = flatSkills.some((s: string) => 
-      /react|typescript|node|customer success|cs|salesforce|gerência|gerente|diretor|lead|liderança|marketing|agile|atendimento ao cliente/i.test(s)
-    ) || normalizedTargetRoles.some((r: string) => /success|cs|dev|manager|eng|soft|lider|analista|customer/i.test(r));
-
-    let scoreRoleCompatibility = 100;
-    if (isITJob && !hasITSkills) {
-      scoreRoleCompatibility = 5;
-    } else if (isOperationalOrManualJob && isOfficeCandidate) {
-      scoreRoleCompatibility = 5; 
-    } else if (!hasRoleMatch && targetRoles.length > 0) {
-      scoreRoleCompatibility = 25;
-    }
-
-    // 6. Score Geral ajustado com compatibilidade de cargo
+    // 6. Score Geral oficial com ponderação contínua de 100%
     let scoreOverall = Math.round(
-      (scoreTechnical * 0.35) +
+      (scoreTechnical * 0.30) +
+      (scoreSeniority * 0.25) +
+      (scoreRoleCompatibility * 0.15) +
       (scoreBehavioral * 0.15) +
-      (scoreSeniority * 0.15) +
       (scoreLocation * 0.10) +
-      (scoreSalary * 0.05) +
-      (scoreRoleCompatibility * 0.20)
+      (scoreSalary * 0.05)
     );
-
-    const containsOnlyGenericReqs = job.requirements.length === 1 && 
-      ['tecnologia', 'saúde', 'saude', 'vendas', 'geral'].includes(job.requirements[0].toLowerCase());
-
-    if (scoreRoleCompatibility <= 10) {
-      scoreOverall = Math.min(scoreOverall, 15);
-    } else if (scoreRoleCompatibility <= 30) {
-      scoreOverall = Math.min(scoreOverall, scoreRoleCompatibility + 10);
-    } else if (scoreSeniority <= 35) {
-      // Trava de Senioridade: Evita recomendar vaga Júnior para Sênior ou vice-versa (Item 10)
-      scoreOverall = Math.min(scoreOverall, 35);
-    } else if (containsOnlyGenericReqs && !hasRoleMatch) {
-      scoreOverall = Math.min(scoreOverall, 25);
-    } else if (scoreTechnical === 0) {
-      scoreOverall = Math.round(scoreOverall * 0.15);
-    } else if (scoreTechnical < 20) {
-      scoreOverall = Math.round(scoreOverall * 0.40);
-    }
 
     if (isNaN(scoreOverall)) scoreOverall = 75;
     if (isNaN(scoreTechnical)) scoreTechnical = 75;
@@ -801,11 +808,16 @@ ${candidateName}`,
       consolidatedProfile?.experience?.[0]?.role ?? resume.structured_data?.experience?.[0]?.role
     );
 
+    // 1. Match Técnico (filtrando apenas requisitos técnicos/domínio reais)
+    const rawReqs = (job.requirements || []).map(r => r.trim()).filter(Boolean);
+    const technicalReqs = rawReqs.filter(isTechnicalOrDomainReq);
+    const targetReqs = technicalReqs.length > 0 ? technicalReqs : rawReqs;
+
     let matchedCount = 0;
     const missingSkills: string[] = [];
     const matchedSkills: string[] = [];
 
-    job.requirements.forEach(req => {
+    targetReqs.forEach(req => {
       if (checkRequirement(req, flatSkills, experiences)) {
         matchedCount++;
         matchedSkills.push(req);
@@ -814,7 +826,7 @@ ${candidateName}`,
       }
     });
 
-    let scoreTechnical = Math.round((matchedCount / Math.max(job.requirements.length, 1)) * 100);
+    let scoreTechnical = Math.round((matchedCount / Math.max(targetReqs.length, 1)) * 100);
 
     // Behavioral
     const softTerms = consolidatedProfile
@@ -883,19 +895,57 @@ ${candidateName}`,
       }
     }
 
+    // Role / Domain Compatibility
+    const titleLower = ((job as Job).title || '').toLowerCase();
+    const targetRoles: string[] = (consolidatedProfile?.personal as any)?.preferences?.targetRoles || [];
+    const recentExpRole = (consolidatedProfile?.experience?.[0]?.role || resume.structured_data?.experience?.[0]?.role || '').toLowerCase();
+    const normalizedTargetRoles = targetRoles.map((r: string) => r.toLowerCase());
+
+    let scoreRoleCompatibility = 60;
+    const directRoleMatch = normalizedTargetRoles.some((role: string) => {
+      const rLower = role.trim();
+      return rLower.length > 2 && (titleLower.includes(rLower) || rLower.includes(titleLower));
+    });
+    const recentRoleMatch = recentExpRole.length > 2 && (titleLower.includes(recentExpRole) || recentExpRole.includes(titleLower));
+
+    if (directRoleMatch) {
+      scoreRoleCompatibility = 95;
+    } else if (recentRoleMatch) {
+      scoreRoleCompatibility = 85;
+    } else {
+      const jobTokens = titleLower.split(/[\s,./()\-+]+/).filter(t => t.length > 3);
+      const userRoleTokens = [
+        ...normalizedTargetRoles.flatMap(r => r.split(/[\s,./()\-]+/)),
+        ...recentExpRole.split(/[\s,./()\-]+/)
+      ].filter(t => t.length > 3);
+
+      const matchedRoleTokens = jobTokens.filter(t => userRoleTokens.includes(t));
+      if (matchedRoleTokens.length > 0) {
+        scoreRoleCompatibility = Math.min(80, 50 + (matchedRoleTokens.length * 15));
+      } else {
+        const isOperationalOrManualJob = /gari|coletor|limpeza|auxiliar de servicos gerais|serviços gerais|porteiro|copa|cozinheiro|cozinheira|garçom|garçonete|barista/i.test(titleLower);
+        const isOfficeCandidate = flatSkills.some((s: string) => 
+          /react|typescript|node|javascript|python|java|sql|customer success|cs|salesforce|gerência|gerente|diretor|lead|liderança|marketing|agile|atendimento/i.test(s)
+        ) || normalizedTargetRoles.some((r: string) => /success|cs|dev|manager|eng|soft|lider|analista|customer|marketing/i.test(r));
+
+        if (isOperationalOrManualJob && isOfficeCandidate) {
+          scoreRoleCompatibility = 20;
+        } else if (targetRoles.length > 0) {
+          scoreRoleCompatibility = 40;
+        } else {
+          scoreRoleCompatibility = 55;
+        }
+      }
+    }
+
     let scoreOverall = Math.round(
-      (scoreTechnical * 0.45) +
-      (scoreBehavioral * 0.20) +
-      (scoreSeniority * 0.20) +
+      (scoreTechnical * 0.30) +
+      (scoreSeniority * 0.25) +
+      (scoreRoleCompatibility * 0.15) +
+      (scoreBehavioral * 0.15) +
       (scoreLocation * 0.10) +
       (scoreSalary * 0.05)
     );
-
-    if (scoreTechnical === 0) {
-      scoreOverall = Math.round(scoreOverall * 0.15);
-    } else if (scoreTechnical < 20) {
-      scoreOverall = Math.round(scoreOverall * 0.40);
-    }
 
     if (isNaN(scoreOverall)) scoreOverall = 75;
     if (isNaN(scoreTechnical)) scoreTechnical = 75;

@@ -129,7 +129,7 @@ export function useJobDiscovery(
         originalKeyword = filters.keyword.trim();
       } else if (careerProfileNew) {
         const preferences = (careerProfileNew.personal as any)?.preferences || {};
-        originalKeyword = preferences.targetRoles?.[0] || careerProfileNew.personal?.headline || careerProfileNew.experience?.[0]?.role || '';
+        originalKeyword = preferences.targetRoles?.[0] || careerProfileNew.experience?.[0]?.role || careerProfileNew.personal?.headline || '';
       } else {
         originalKeyword = 'Vagas';
       }

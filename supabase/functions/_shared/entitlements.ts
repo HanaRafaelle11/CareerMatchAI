@@ -83,17 +83,32 @@ export async function checkUserEntitlement(
       return { isPro: true, canProceed: true, unlockedCount: 0, remainingQuota: Infinity };
     }
 
-    // 3. Usuário FREE: Checar cota semanal unificada de 3 ações em activity_logs
+    // 3. Usuário FREE: Checar cota semanal unificada de 3 ações em user_unlocked_jobs
     const weekStartIso = getCalendarWeekStart();
+    const weekStartStr = weekStartIso.split('T')[0];
 
-    const { data: unlockLogs } = await dbClient
-      .from('activity_logs')
-      .select('entity_id')
+    // Consultar vagas desbloqueadas nesta semana na tabela oficial user_unlocked_jobs
+    const { data: unlockedRows } = await dbClient
+      .from('user_unlocked_jobs')
+      .select('job_id')
       .eq('user_id', userId)
-      .eq('event_type', 'job_unlocked')
-      .gte('created_at', weekStartIso);
+      .eq('week_start', weekStartStr);
 
-    const distinctUnlocked = Array.from(new Set((unlockLogs || []).map((l: any) => l.entity_id).filter(Boolean)));
+    let distinctUnlocked: string[] = (unlockedRows || []).map((r: any) => r.job_id).filter(Boolean);
+
+    // Fallback de contingência para activity_logs caso user_unlocked_jobs ainda não tenha registros
+    if (distinctUnlocked.length === 0) {
+      const { data: unlockLogs } = await dbClient
+        .from('activity_logs')
+        .select('entity_id')
+        .eq('user_id', userId)
+        .eq('event_type', 'job_unlocked')
+        .gte('created_at', weekStartIso);
+
+      distinctUnlocked = (unlockLogs || []).map((l: any) => l.entity_id).filter(Boolean);
+    }
+
+    distinctUnlocked = Array.from(new Set(distinctUnlocked));
     const unlockedCount = distinctUnlocked.length;
 
     // Se a vaga solicitada já foi desbloqueada nesta semana, permite sem gastar cota extra
@@ -106,24 +121,73 @@ export async function checkUserEntitlement(
       };
     }
 
-    // Se ainda tem cota semanal (< 3 vagas)
-    if (unlockedCount < 3) {
-      // Se um jobId foi fornecido, registra o desbloqueio automaticamente
-      if (jobId) {
-        await dbClient
-          .from('activity_logs')
-          .insert({
-            user_id: userId,
-            event_type: 'job_unlocked',
-            entity: 'job',
-            entity_id: jobId,
-            metadata: {
-              unlocked_at: new Date().toISOString(),
-              week_start: weekStartIso.split('T')[0],
-              trigger: 'edge_function_auto_unlock'
-            }
-          });
+    // Se a cota semanal de 3 ações já foi atingida
+    if (unlockedCount >= 3) {
+      return {
+        isPro: false,
+        canProceed: false,
+        unlockedCount,
+        remainingQuota: 0,
+        reason: 'Limite semanal de 3 ações gratuitas atingido. Faça upgrade para o plano Pro para análises ilimitadas.'
+      };
+    }
+
+    // Se ainda tem cota semanal (< 3 vagas) e um jobId foi fornecido
+    if (jobId) {
+      // Tenta desbloquear atomicamente via RPC
+      try {
+        const { data: rpcRes, error: rpcErr } = await dbClient.rpc('unlock_user_job_atomic', {
+          p_user_id: userId,
+          p_job_id: jobId,
+          p_week_start: weekStartStr,
+          p_max_limit: 3
+        });
+
+        if (!rpcErr && rpcRes) {
+          const res = typeof rpcRes === 'string' ? JSON.parse(rpcRes) : rpcRes;
+          if (res.success) {
+            return {
+              isPro: false,
+              canProceed: true,
+              unlockedCount: res.unlocked_count || (unlockedCount + 1),
+              remainingQuota: Math.max(0, 3 - (res.unlocked_count || (unlockedCount + 1)))
+            };
+          } else if (res.error === 'limit_reached') {
+            return {
+              isPro: false,
+              canProceed: false,
+              unlockedCount: 3,
+              remainingQuota: 0,
+              reason: 'Limite semanal de 3 ações gratuitas atingido. Faça upgrade para o plano Pro para análises ilimitadas.'
+            };
+          }
+        }
+      } catch (rpcErr) {
+        console.warn('[ENTITLEMENTS] RPC unlock_user_job_atomic falhou, inserindo diretamente:', rpcErr);
       }
+
+      // Inserção direta de contingência em user_unlocked_jobs
+      await dbClient
+        .from('user_unlocked_jobs')
+        .insert({
+          user_id: userId,
+          job_id: jobId,
+          week_start: weekStartStr
+        });
+
+      await dbClient
+        .from('activity_logs')
+        .insert({
+          user_id: userId,
+          event_type: 'job_unlocked',
+          entity: 'job',
+          entity_id: jobId,
+          metadata: {
+            unlocked_at: new Date().toISOString(),
+            week_start: weekStartStr,
+            trigger: 'edge_function_auto_unlock'
+          }
+        });
 
       return {
         isPro: false,
@@ -133,13 +197,11 @@ export async function checkUserEntitlement(
       };
     }
 
-    // Cota semanal esgotada (3/3)
     return {
       isPro: false,
-      canProceed: false,
+      canProceed: true,
       unlockedCount,
-      remainingQuota: 0,
-      reason: 'Limite semanal de 3 ações gratuitas atingido. Faça upgrade para o plano Pro para análises ilimitadas.'
+      remainingQuota: Math.max(0, 3 - unlockedCount)
     };
   } catch (err: any) {
     console.error('[ENTITLEMENT CHECK ERROR]:', err);

@@ -267,10 +267,51 @@ export class JobMatchExplanationService {
     else if (userSeniority === 'senior' && job.seniority === 'junior') seniorityScore = 80;
     else if ((userSeniority === 'liderança' || userSeniority === 'lead') && job.seniority === 'senior') seniorityScore = 90;
 
-    // Fator 4: Career Goal (15%)
-    const targetRoles = (careerProfileNew?.personal as any)?.preferences?.targetRoles || [];
-    const goalMatch = targetRoles.some((tr: string) => jobTitleLower.includes(tr.toLowerCase()));
-    const careerGoalScore = goalMatch ? 95 : 60;
+    // Fator 4: Career Goal & Domain Alignment (15%) — Avaliação Contínua de Alinhamento de Cargo e Área
+    const candidateTargetRoles: string[] = (careerProfileNew?.personal as any)?.preferences?.targetRoles || [];
+    const recentExpRole = (careerProfileNew?.experience?.[0]?.role || (resume?.structured_data?.experience?.[0]?.role) || '').toLowerCase();
+    const candidateHeadline = (careerProfileNew?.personal?.headline || '').toLowerCase();
+    
+    let careerGoalScore = 60;
+    const directTargetMatch = candidateTargetRoles.some((tr: string) => {
+      const trLower = tr.toLowerCase().trim();
+      return trLower.length > 2 && (jobTitleLower.includes(trLower) || trLower.includes(jobTitleLower));
+    });
+    const recentRoleMatch = recentExpRole.length > 2 && (jobTitleLower.includes(recentExpRole) || recentExpRole.includes(jobTitleLower));
+    const headlineMatch = candidateHeadline.length > 2 && (jobTitleLower.includes(candidateHeadline) || candidateHeadline.includes(jobTitleLower));
+
+    if (directTargetMatch) {
+      careerGoalScore = 95;
+    } else if (recentRoleMatch || headlineMatch) {
+      careerGoalScore = 85;
+    } else {
+      // Comparação por tokens de cargo
+      const jobTokens = jobTitleLower.split(/[\s,./()\-+]+/).filter(t => t.length > 3);
+      const roleTokens = [
+        ...candidateTargetRoles.flatMap((r: string) => r.toLowerCase().split(/[\s,./()\-+]+/)),
+        ...recentExpRole.split(/[\s,./()\-+]+/),
+        ...candidateHeadline.split(/[\s,./()\-+]+/)
+      ].filter(t => t.length > 3);
+
+      const commonTokens = jobTokens.filter(t => roleTokens.includes(t));
+      if (commonTokens.length > 0) {
+        careerGoalScore = Math.min(80, 50 + (commonTokens.length * 15));
+      } else {
+        // Checa se há dissonância de domínio (ex: profissional de escritório/gestão/tech vs funções operacionais manuais)
+        const isOperationalJob = /gari|coletor|limpeza|auxiliar de servicos gerais|serviços gerais|porteiro|copa|cozinheiro|cozinheira|garçom|garçonete|barista/i.test(jobTitleLower);
+        const isOfficeBackground = userSkills.some((s: string) => 
+          /react|typescript|node|javascript|python|java|sql|customer success|cs|salesforce|gerência|gerente|diretor|lead|liderança|marketing|agile|atendimento/i.test(s)
+        ) || candidateTargetRoles.some((r: string) => /success|cs|dev|manager|eng|soft|lider|analista|customer|marketing|design/i.test(r.toLowerCase()));
+
+        if (isOperationalJob && isOfficeBackground) {
+          careerGoalScore = 20;
+        } else if (candidateTargetRoles.length > 0) {
+          careerGoalScore = 40;
+        } else {
+          careerGoalScore = 55;
+        }
+      }
+    }
 
     // Fator 5: Salary (5%)
     const expectedSalary = (careerProfileNew?.personal as any)?.preferences?.salaryExpectationMin || 0;
@@ -283,20 +324,19 @@ export class JobMatchExplanationService {
     // Fator 7: Semantic Context (5%)
     const semanticScore = (job.scores?.overall ? Math.min(100, job.scores.overall) : 75);
 
-    // Score Composto Ponderado Oficial dos 7 Fatores
+    // Score Composto Ponderado Oficial dos 7 Fatores (Soma exata de 100%)
     const calculatedFitScore = Math.round(
       (skillsScore * 0.30) +
       (experienceScore * 0.25) +
-      (seniorityScore * 0.15) +
       (careerGoalScore * 0.15) +
+      (seniorityScore * 0.15) +
       (salaryScore * 0.05) +
       (locationScore * 0.05) +
       (semanticScore * 0.05)
     );
 
-    // FONTE ÚNICA DA VERDADE
-    const masterScore = (job.scores?.overall && job.scores.overall > 0) ? job.scores.overall : calculatedFitScore;
-    const careerFitScore = masterScore;
+    // FONTE ÚNICA DA VERDADE — Baseada estritamente nos 7 fatores reais
+    const careerFitScore = calculatedFitScore;
 
     const breakdown: CareerFitBreakdown = {
       skillsScore,

@@ -115,7 +115,20 @@ export function AuthenticatedApp({
       }
     } else if (pathname === '/match' || pathname === '/vagas' || tabParam === 'match' || tabParam === 'vagas' || tabParam === 'jobs') {
       setActiveTab('match');
-      setMatchHubInitialSubTab('discover');
+      const jobIdParam = params.get('jobId') || params.get('job_id') || params.get('vaga');
+      if (jobIdParam) {
+        setSelectedJobId(jobIdParam);
+        setMatchHubInitialSubTab('my-jobs');
+      } else {
+        setMatchHubInitialSubTab('discover');
+      }
+    } else {
+      const jobIdParam = params.get('jobId') || params.get('job_id') || params.get('vaga');
+      if (jobIdParam) {
+        setSelectedJobId(jobIdParam);
+        setActiveTab('match');
+        setMatchHubInitialSubTab('my-jobs');
+      }
     }
   }, [user]);
 

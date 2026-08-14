@@ -9,11 +9,14 @@ export function useCareerIntelligence(
   userId: string | undefined,
   selectedJob: Job | null,
   resume?: Resume | null,
-  careerProfileNew?: CareerProfileNew | null
+  careerProfileNew?: CareerProfileNew | null,
+  isUnlocked?: boolean
 ) {
   const queryClient = useQueryClient();
 
-  // ── 1. EXPLICAÇÃO LAZY DA VAGA (ON-DEMAND QUANDO VAGA É SELECIONADA) ──
+  const isEnabled = Boolean(userId && selectedJob && isUnlocked !== false);
+
+  // ── 1. EXPLICAÇÃO LAZY DA VAGA (ON-DEMAND QUANDO VAGA É SELECIONADA E DESBLOQUEADA) ──
   const explanationQuery = useQuery({
     queryKey: ['job-explanation', userId, selectedJob?.id],
     queryFn: async () => {
@@ -25,11 +28,11 @@ export function useCareerIntelligence(
         careerProfileNew
       );
     },
-    enabled: !!userId && !!selectedJob,
+    enabled: isEnabled,
     staleTime: 1000 * 60 * 60, // 1 hora de cache
   });
 
-  // ── 2. ADAPTAÇÃO DE CURRÍCULO SUGESTIVA (ON-DEMAND) ──
+  // ── 2. ADAPTAÇÃO DE CURRÍCULO SUGESTIVA (ON-DEMAND SE DESBLOQUEADA) ──
   const adaptationQuery = useQuery({
     queryKey: ['resume-adaptation', userId, selectedJob?.id],
     queryFn: async () => {
@@ -40,7 +43,7 @@ export function useCareerIntelligence(
         resume
       );
     },
-    enabled: !!userId && !!selectedJob,
+    enabled: isEnabled,
     staleTime: 1000 * 60 * 30,
   });
 

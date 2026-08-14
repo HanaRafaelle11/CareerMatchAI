@@ -366,6 +366,8 @@ export function JobMatchHub({
   }, [showAdaptationModal, rejectReasonModal, matchRejectionModal, showSurveyModal]);
 
 
+  const isSelectedJobUnlocked = isPro || (selectedJob ? isJobUnlocked(selectedJob.id) : false);
+
   const {
     explanation,
     isLoadingExplanation,
@@ -374,7 +376,7 @@ export function JobMatchHub({
     updateAdaptationStatus,
     recordFeedback,
     updateApplicationStatus
-  } = useCareerIntelligence(userId, selectedJob || null, primaryResume, careerProfileNew);
+  } = useCareerIntelligence(userId, selectedJob || null, primaryResume, careerProfileNew, isSelectedJobUnlocked);
 
   useEffect(() => {
     if (primaryResume && explanation && selectedJob && !ahaMomentTriggered.current) {

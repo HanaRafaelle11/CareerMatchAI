@@ -278,10 +278,13 @@ export function JobMatchHub({
   const [analyzingJobId, setAnalyzingJobId] = useState<string | null>(null);
   const [manualStrategyStatus, setManualStrategyStatus] = useState<string>('auto');
   const [localSelectedJobId, setLocalSelectedJobId] = useState<string | null>(jobs[0]?.id || null);
-  const selectedJobId = propSelectedJobId !== undefined ? propSelectedJobId : localSelectedJobId;
-  const setSelectedJobId = propOnSelectJob !== undefined ? propOnSelectJob : setLocalSelectedJobId;
+  const selectedJobId = propSelectedJobId ? propSelectedJobId : (localSelectedJobId || jobs[0]?.id || null);
+  const setSelectedJobId = (id: string | null) => {
+    setLocalSelectedJobId(id);
+    if (propOnSelectJob) propOnSelectJob(id);
+  };
 
-  const selectedJob = jobs.find(j => j.id === selectedJobId);
+  const selectedJob = jobs.find(j => j.id === selectedJobId) || jobs[0];
   const primaryResume = (activeResumeVersionId ? resumes.find(r => r.resumeVersionId === activeResumeVersionId) : null) || resumes.find(r => r.isPrimary) || resumes[0];
 
   const [showAdaptationModal, setShowAdaptationModal] = useState(false);

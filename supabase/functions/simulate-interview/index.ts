@@ -1,6 +1,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.8"
 import { callGeminiWithFallbackShared } from "../_shared/geminiModels.ts"
+import { checkUserEntitlement } from "../_shared/entitlements.ts"
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -155,6 +156,19 @@ serve(async (req) => {
 
     if (jobError || !job) {
       throw new Error(`Dados da vaga não localizados: ${jobError?.message || 'id inexistente'}`);
+    }
+
+    // ── VALIDAÇÃO SERVER-SIDE ESTRITA DE ENTITLEMENTS / COTA SEMANAL ──
+    const entitlement = await checkUserEntitlement(supabaseClient, app.user_id, app.job_id);
+    if (!entitlement.canProceed) {
+      console.warn(`[SIMULATE INTERVIEW PAYWALL BLOCKED] Usuário ${app.user_id} tentou simular entrevista sem cota.`);
+      return new Response(
+        JSON.stringify({
+          error: entitlement.reason || 'Limite semanal de 3 ações gratuitas atingido. Faça upgrade para o plano Pro para simulações ilimitadas.',
+          code: 'WEEKLY_LIMIT_REACHED'
+        }),
+        { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
     }
 
     // Busca Perfil de Carreira (Novo)

@@ -209,13 +209,15 @@ export function Profile({
   const [isLoadingSuggestedJobs, setIsLoadingSuggestedJobs] = useState(false);
 
   useEffect(() => {
-    // Busca dinâmica baseada no cargo/domínio real do currículo ativo
+    // Busca dinâmica baseada no cargo/domínio real do currículo ativo (prioriza cargo mais recente ou target role)
     const primaryResume = resumes.find(r => r.isPrimary) || resumes[0];
+    const rawHeadline = careerProfileNew?.personal?.headline?.split('|')[0]?.split('—')[0]?.split(' e ')[0]?.trim();
     const activeTitle =
       (careerProfileNew?.personal as any)?.preferences?.targetRoles?.[0] ||
-      careerProfileNew?.personal?.headline ||
       careerProfileNew?.experience?.[0]?.role ||
       primaryResume?.experiences?.[0]?.role ||
+      careerProfileNew?.education?.[0]?.fieldOfStudy ||
+      rawHeadline ||
       (careerProfileNew?.skills?.[0] ? (typeof careerProfileNew.skills[0] === 'string' ? careerProfileNew.skills[0] : (careerProfileNew.skills[0] as any).name) : '') ||
       '';
 

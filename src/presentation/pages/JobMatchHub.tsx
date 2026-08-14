@@ -1618,17 +1618,16 @@ export function JobMatchHub({
 
   const handleImportAndMatch = async (discJob: any) => {
     const initialJobId = String(discJob.id || discJob.jobId || 'temp_disc');
-    if (!isPro && !canUnlockJob(initialJobId)) {
-      triggerPaywall('weekly_limit', 'Limite Semanal Atingido', 'Usuários no plano gratuito possuem cota semanal de análises de match.');
-      return;
+    if (!isPro && !isJobUnlocked(initialJobId)) {
+      const ok = await unlockJob(initialJobId);
+      if (!ok) {
+        triggerPaywall('weekly_limit', 'Limite Semanal Atingido', 'Usuários no plano gratuito possuem cota semanal de 3 vagas.');
+        return;
+      }
     }
 
     setAnalyzingJobId(initialJobId);
     try {
-      if (!isPro) {
-        await unlockJob(initialJobId);
-      }
-
       // Importa a vaga para a lista do usuário
       const imported = await importJob(discJob);
       setSelectedJobId(imported.id);
@@ -1648,15 +1647,15 @@ export function JobMatchHub({
 
   const handleSimulateDiscovery = async (discJob: any) => {
     const initialJobId = String(discJob.id || discJob.jobId || 'temp_disc');
-    if (!isPro && !canUnlockJob(initialJobId)) {
-      triggerPaywall('weekly_limit', 'Limite Semanal Atingido', 'Simulações de entrevista exigem plano Pro ou cota disponível.');
-      return;
+    if (!isPro && !isJobUnlocked(initialJobId)) {
+      const ok = await unlockJob(initialJobId);
+      if (!ok) {
+        triggerPaywall('weekly_limit', 'Limite Semanal Atingido', 'Simulações de entrevista exigem plano Pro ou cota disponível.');
+        return;
+      }
     }
 
     try {
-      if (!isPro) {
-        await unlockJob(initialJobId);
-      }
       const imported = await importJob(discJob);
       setSelectedJobId(imported.id);
       setSubTab('my-jobs');
@@ -2545,7 +2544,49 @@ export function JobMatchHub({
           {/* Coluna Direita: Análise de Match & Gap Analysis */}
           <div className="lg:col-span-2 space-y-6">
             {selectedJob ? (
-              <div className="space-y-6">
+              !isPro && !isJobUnlocked(selectedJob.id) ? (
+                <CardGlass className="p-8 text-center space-y-5 border-amber-500/40 bg-gradient-to-br from-slate-950 via-[#0f172a] to-slate-950 shadow-2xl animate-scale-up">
+                  <div className="w-16 h-16 rounded-2xl bg-amber-500/10 border border-amber-500/30 flex items-center justify-center text-3xl mx-auto shadow-lg shadow-amber-500/5">
+                    🔒
+                  </div>
+                  <div className="space-y-2 max-w-md mx-auto">
+                    <span className="text-[10px] uppercase font-bold text-amber-400 tracking-wider px-2.5 py-0.5 rounded-full bg-amber-500/10 border border-amber-500/20 inline-block">
+                      Acesso Protegido
+                    </span>
+                    <h3 className="text-lg font-extrabold text-slate-100">
+                      {selectedJob.title}
+                    </h3>
+                    <p className="text-xs text-slate-400 leading-relaxed">
+                      Desbloqueie esta oportunidade para acessar o diagnóstico completo de Match por IA Gemini, transparência dos 7 fatores de fit, otimizador de currículo e simulação de entrevista.
+                    </p>
+                  </div>
+                  <div className="pt-2 flex flex-col sm:flex-row items-center justify-center gap-3">
+                    {canUnlockJob(selectedJob.id) ? (
+                      <button
+                        type="button"
+                        onClick={async () => {
+                          const ok = await unlockJob(selectedJob.id);
+                          if (!ok) triggerPaywall('weekly_limit');
+                        }}
+                        className="w-full sm:w-auto px-6 py-3 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 font-black text-xs shadow-lg flex items-center justify-center gap-2 cursor-pointer transition"
+                      >
+                        <Sparkles size={16} />
+                        <span>Desbloquear Vaga ({Math.max(0, 3 - weeklyActionCount)} restante(s) no Free)</span>
+                      </button>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={() => triggerPaywall('weekly_limit')}
+                        className="w-full sm:w-auto px-6 py-3 rounded-xl bg-gradient-to-r from-brand-600 to-indigo-600 hover:from-brand-500 hover:to-indigo-500 text-white font-extrabold text-xs shadow-lg flex items-center justify-center gap-2 cursor-pointer transition"
+                      >
+                        <Sparkles size={16} />
+                        <span>Fazer Upgrade para o Pro (Ilimitado)</span>
+                      </button>
+                    )}
+                  </div>
+                </CardGlass>
+              ) : (
+                <div className="space-y-6">
                 {errorMsg && (
                   <div className="p-3.5 rounded-xl bg-red-500/10 border border-red-500/30 text-red-400 text-xs flex items-center justify-between gap-3 animate-fade-in">
                     <div className="flex items-center gap-2">
@@ -3936,6 +3977,7 @@ export function JobMatchHub({
                   </div>
                 )}
               </div>
+              )
             ) : (
               <div className="h-64 rounded-2xl border border-dashed border-slate-800 dark:border-slate-800 light:border-slate-300 flex flex-col items-center justify-center text-center p-6 text-slate-500 text-xs">
                 <Clipboard size={28} className="mb-2 text-slate-600" />
@@ -4323,7 +4365,13 @@ export function JobMatchHub({
                         return (
                           <CardGlass 
                             key={idx} 
-                            className="flex flex-col justify-between space-y-4 hover:border-brand-500/30 transition-all relative overflow-hidden"
+                            onClick={(e) => {
+                              if (isBlurred) {
+                                e.stopPropagation();
+                                triggerPaywall('weekly_limit');
+                              }
+                            }}
+                            className={`flex flex-col justify-between space-y-4 transition-all relative overflow-hidden ${isBlurred ? 'hover:border-amber-500/40 cursor-pointer' : 'hover:border-brand-500/30'}`}
                           >
                             <div className="space-y-2">
 
@@ -4451,14 +4499,22 @@ export function JobMatchHub({
                                     <p className="text-[10px] text-slate-400">Desbloqueie Matching IA Gemini, ATS & Candidaturas</p>
                                   </div>
                                 </div>
-                                <button className="px-3 py-1.5 rounded-lg bg-amber-500 hover:bg-amber-400 text-slate-950 text-xs font-black shrink-0 transition-colors shadow">
+                                <button 
+                                  type="button"
+                                  onClick={async (e) => {
+                                    e.stopPropagation();
+                                    const targetId = (job as any).id || (job as any).jobId || String(idx);
+                                    const ok = await unlockJob(targetId);
+                                    if (!ok) triggerPaywall('weekly_limit');
+                                  }}
+                                  className="px-3 py-1.5 rounded-lg bg-amber-500 hover:bg-amber-400 text-slate-950 text-xs font-black shrink-0 transition-colors shadow cursor-pointer"
+                                >
                                   Desbloquear Vaga
                                 </button>
                               </div>
                             )}
 
                           </div>
-
 
                           <div className="pt-4 border-t border-slate-900 dark:border-slate-900 light:border-slate-200 flex justify-between items-center gap-4">
 
@@ -4467,6 +4523,10 @@ export function JobMatchHub({
                                 type="button"
                                 onClick={(e) => {
                                   e.stopPropagation();
+                                  if (isBlurred) {
+                                    triggerPaywall('weekly_limit');
+                                    return;
+                                  }
                                   handleApplyClick(job);
                                 }}
                                 className="text-xs text-emerald-400 hover:text-emerald-300 font-extrabold flex items-center gap-1 cursor-pointer bg-emerald-500/10 border border-emerald-500/20 px-2.5 py-1 rounded-lg transition"
@@ -4483,18 +4543,34 @@ export function JobMatchHub({
                             <div className="flex gap-2 flex-wrap">
                               {onStartSimulation && (
                                 <button
-                                  onClick={() => handleSimulateDiscovery(job)}
+                                  type="button"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    if (isBlurred) {
+                                      triggerPaywall('weekly_limit');
+                                      return;
+                                    }
+                                    handleSimulateDiscovery(job);
+                                  }}
                                   disabled={isImporting}
-                                  className="px-3 py-1.5 rounded-xl bg-brand-500/10 border border-brand-500/30 hover:bg-brand-500/20 text-brand-400 font-bold text-xs flex items-center gap-1.5 shadow disabled:opacity-50"
+                                  className="px-3 py-1.5 rounded-xl bg-brand-500/10 border border-brand-500/30 hover:bg-brand-500/20 text-brand-400 font-bold text-xs flex items-center gap-1.5 shadow disabled:opacity-50 cursor-pointer"
                                 >
                                   🎤 Simular Entrevista
                                 </button>
                               )}
 
                               <button
-                                onClick={() => handleImportAndMatch(job)}
+                                type="button"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  if (isBlurred) {
+                                    triggerPaywall('weekly_limit');
+                                    return;
+                                  }
+                                  handleImportAndMatch(job);
+                                }}
                                 disabled={isImporting}
-                                className="px-3 py-1.5 rounded-xl bg-brand-600 hover:bg-brand-500 text-white font-bold text-xs flex items-center gap-1.5 shadow shadow-brand-500/10 disabled:opacity-50"
+                                className="px-3 py-1.5 rounded-xl bg-brand-600 hover:bg-brand-500 text-white font-bold text-xs flex items-center gap-1.5 shadow shadow-brand-500/10 disabled:opacity-50 cursor-pointer"
                               >
                                 Importar e Analisar Match
                                 <ChevronRight size={14} />

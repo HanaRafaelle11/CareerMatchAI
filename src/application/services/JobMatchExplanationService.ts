@@ -132,52 +132,115 @@ export class JobMatchExplanationService {
       } catch (_) {}
     }
 
-    // ── 3. CÁLCULO HÍBRIDO DO CAREER FIT SCORE (7 FATORES DETALHADOS) ──
+    // ── 3. CÁLCULO AUTÊNTICO DO CAREER FIT SCORE (7 FATORES DETALHADOS) ──
     const { calcYearsFromExperiences, buildFlatSkillsFromProfile } = await import('./matchingEngine');
     const jobTitleLower = (job.title || '').toLowerCase();
     const jobDescLower = (job.description || '').toLowerCase();
     
-    // Extrai lista completa de competências (técnicas, soft skills, ats keywords e histórico)
+    // Extrai lista completa de competências e corpus do candidato
     const flatUserSkills = careerProfileNew ? buildFlatSkillsFromProfile(careerProfileNew) : [];
     const directResumeSkills = (resume?.skills || []).map(s => (typeof s === 'string' ? s : s.name).toLowerCase());
     const userSkills = [...new Set([...flatUserSkills, ...directResumeSkills])];
     
-    // Requisitos explícitos da vaga
-    let jobReqs = (job.requirements || [])
-      .map(r => r.toLowerCase().trim())
-      .filter(r => r && r !== 'geral' && r !== 'geral/outros' && r !== 'geral/outra' && r.length > 2);
+    // Constrói corpus abrangente do candidato (experiências, formação, resumo e competências)
+    const candidateCorpusParts: string[] = [
+      jobTitleLower,
+      careerProfileNew?.personal?.headline || '',
+      careerProfileNew?.summary || '',
+      ...userSkills,
+      ...(careerProfileNew?.soft_skills || []),
+      ...(careerProfileNew?.ats_keywords?.existing_keywords || []),
+      ...(careerProfileNew?.ats_keywords?.recommended_keywords || []),
+      ...(careerProfileNew?.experience || []).map(e => `${e.role || ''} ${e.companyName || ''} ${e.description || ''} ${(e.highlights || []).join(' ')}`),
+      ...(careerProfileNew?.education || []).map(e => `${e.fieldOfStudy || ''} ${e.institution || ''} ${e.degree || ''}`),
+      ...(resume?.experiences || []).map(e => `${e.role || ''} ${(e as any).companyName || (e as any).company || ''} ${e.description || ''}`)
+    ];
+    const candidateCorpus = candidateCorpusParts.join(' ').toLowerCase();
 
-    const hasExplicitReqs = jobReqs.length > 0;
-    if (!hasExplicitReqs) {
-      jobReqs = jobTitleLower.split(/[\s,./()\-+]+/).filter(w => w.length > 3 && !['para', 'com', 'mais', 'para', 'onde', 'como', 'vaga'].includes(w));
-    }
+    // Filtro estrito de requisitos não-técnicos (escalas, benefícios, disponibilidade e termos burocráticos)
+    const isTechnicalOrDomainReq = (req: string): boolean => {
+      const clean = req.trim().toLowerCase();
+      if (clean.length < 3) return false;
+      const nonTechnicalPatterns = [
+        /\b(5x2|6x1|12x36|escala|rotativa|turno|tarde|manh[ãa]|noite|madrugada|per[íi]odo|integral|meio per[íi]odo)\b/i,
+        /\b(disponibilidade|hor[áa]rio|finais de semana|feriados|flex[íi]vel)\b/i,
+        /\b(sal[áa]rio|a combinar|benef[íi]cios|vt|vr|va|vale|refei[çc][ãa]o|alimenta[çc][ãa]o|plano|m[ée]dica|odontol[óo]gico|seguro|gympass|cesta|bonifica[çc][ãa]o|plr|comiss[ãa]o)\b/i,
+        /\b(ensino m[ée]dio|ensino fundamental|maior de 18|documentos|f[áa]cil acesso|residir|comprovante|vaga efetiva|clt|pj|tempor[áa]rio|est[áa]gio)\b/i,
+        /^(geral|outros|outra|requisitos)$/i
+      ];
+      for (const p of nonTechnicalPatterns) {
+        if (p.test(clean)) return false;
+      }
+      return true;
+    };
+
+    // Requisitos técnicos filtrados da vaga
+    const rawJobReqs = (job.requirements || []).map(r => r.trim()).filter(Boolean);
+    const technicalJobReqs = rawJobReqs.filter(isTechnicalOrDomainReq);
+    const hasExplicitTechnicalReqs = technicalJobReqs.length > 0;
+
+    // Sinônimos semânticos e termos de domínio para validação de competências
+    const DOMAIN_SYNONYMS: Record<string, string[]> = {
+      'cozinha': ['culinária', 'gastronomia', 'preparo', 'alimentos', 'buffet', 'refeições', 'pratos', 'cardápio', 'cozinheiro', 'cozinheira', 'ajudante de cozinha', 'auxiliar de cozinha'],
+      'preparo de alimentos': ['cozinha', 'buffet', 'culinária', 'gastronomia', 'manipulação', 'alimentos', 'refeições', 'tapiocas', 'omeletes'],
+      'atendimento': ['suporte', 'customer', 'sac', 'atendimento ao cliente', 'pós-venda', 'helpdesk', 'service desk', 'cx', 'client'],
+      'estoque': ['peps', 'armazenamento', 'câmaras frias', 'conferência', 'materiais', 'inventário', 'almoxarifado'],
+      'gestão de processos': ['jira', 'zendesk', 'pops', 'procedimentos padronizados', 'rotinas', 'fluxos', 'kpi']
+    };
+
+    const checkReqMatch = (req: string): boolean => {
+      const rLower = req.toLowerCase().trim();
+      if (candidateCorpus.includes(rLower)) return true;
+      if (userSkills.some(s => s.includes(rLower) || rLower.includes(s))) return true;
+
+      const tokens = rLower.split(/[\s,./()\-+]+/).filter(t => t.length > 3);
+      if (tokens.length > 0 && tokens.every(t => candidateCorpus.includes(t))) return true;
+
+      for (const [key, synonyms] of Object.entries(DOMAIN_SYNONYMS)) {
+        const isRelated = rLower.includes(key) || key.includes(rLower) || tokens.some(t => key.includes(t));
+        if (isRelated) {
+          if (candidateCorpus.includes(key) || synonyms.some(syn => candidateCorpus.includes(syn))) {
+            return true;
+          }
+        }
+      }
+
+      if (tokens.length > 1) {
+        const matchedTokens = tokens.filter(t => candidateCorpus.includes(t));
+        if ((matchedTokens.length / tokens.length) >= 0.5) return true;
+      }
+
+      return false;
+    };
 
     /**
-     * Fator 1: Skills (30%)
-     * MITIGAÇÃO DE BUG (0% Indevido): Requisitos são tokenizados e comparados contra competências,
-     * sinônimos e textos de experiência do candidato.
+     * Fator 1: Skills (30%) — Cálculo Independente e Autêntico
      */
-    let matchedSkillsCount = 0;
-    if (jobReqs.length > 0) {
-      matchedSkillsCount = jobReqs.filter(req => {
-        const reqTokens = req.toLowerCase().split(/[\s,./()\-+]+/).filter(t => t.length > 2);
-        return userSkills.some(us => {
-          const usLower = us.toLowerCase();
-          return usLower.includes(req) || req.includes(usLower) || reqTokens.some(t => usLower.includes(t) || t.includes(usLower));
-        });
-      }).length;
-    } else {
-      matchedSkillsCount = userSkills.filter(s => jobDescLower.includes(s.toLowerCase())).length;
-    }
-
-    // Se a vaga não possui requisitos explícitos mas há aderência contextual, calcula pela descrição
     let skillsScore = 0;
-    if (hasExplicitReqs) {
-      skillsScore = matchedSkillsCount === 0 ? 0 : Math.min(100, Math.max(15, Math.round((matchedSkillsCount / Math.max(1, jobReqs.length)) * 100)));
+    let matchedSkillsCount = 0;
+
+    if (hasExplicitTechnicalReqs) {
+      matchedSkillsCount = technicalJobReqs.filter(checkReqMatch).length;
+      skillsScore = Math.round((matchedSkillsCount / Math.max(1, technicalJobReqs.length)) * 100);
+      
+      // Se possui experiência direta comprovada no cargo, assegura que o score reflita a vivência prática
+      const hasDirectRoleExperience = (careerProfileNew?.experience || []).some(e => {
+        const roleLower = (e.role || '').toLowerCase();
+        return jobTitleLower.includes(roleLower) || roleLower.includes(jobTitleLower);
+      });
+      if (hasDirectRoleExperience && skillsScore < 60) {
+        skillsScore = Math.max(skillsScore, 75);
+      }
     } else {
-      // Vaga sem requisitos em tópicos: infere pela correspondência com título/descrição
-      const titleMatches = userSkills.some(s => jobTitleLower.includes(s) || s.includes(jobTitleLower));
-      skillsScore = titleMatches ? 85 : (matchedSkillsCount > 0 ? 70 : 60);
+      // Vaga sem requisitos técnicos explícitos em tópicos: avalia termos-chave da descrição e título
+      const descTokens = (jobTitleLower + ' ' + jobDescLower)
+        .split(/[\s,./()\-+]+/)
+        .filter(w => w.length > 4 && !['sobre', 'empresa', 'estamos', 'buscando', 'profissionais', 'trabalhar', 'equipe', 'responsabilidades', 'atividades'].includes(w));
+      
+      const uniqueTokens = Array.from(new Set(descTokens)).slice(0, 15);
+      const matchedDescTokens = uniqueTokens.filter(t => candidateCorpus.includes(t)).length;
+      const tokenRatio = uniqueTokens.length > 0 ? (matchedDescTokens / uniqueTokens.length) : 0.7;
+      skillsScore = Math.min(100, Math.max(40, Math.round(tokenRatio * 100)));
     }
 
     // Fator 2: Experience (25%) — usando calcYearsFromExperiences robusto
@@ -209,7 +272,7 @@ export class JobMatchExplanationService {
     const goalMatch = targetRoles.some((tr: string) => jobTitleLower.includes(tr.toLowerCase()));
     const careerGoalScore = goalMatch ? 95 : 60;
 
-    // EDGE CASE 3: Vaga sem salário -> Score neutro de 75%
+    // Fator 5: Salary (5%)
     const expectedSalary = (careerProfileNew?.personal as any)?.preferences?.salaryExpectationMin || 0;
     const salaryScore = expectedSalary > 0 && job.salaryNumeric ? (job.salaryNumeric >= expectedSalary ? 100 : 50) : 75;
 
@@ -220,15 +283,8 @@ export class JobMatchExplanationService {
     // Fator 7: Semantic Context (5%)
     const semanticScore = (job.scores?.overall ? Math.min(100, job.scores.overall) : 75);
 
-    // Detecção de Incompatibilidade Crassa de Área
-    const isOperationalOrCulinary = /cozinheiro|cozinheira|cozinha|gastronomia|chefe de cozinha|garçom|garçonete|barista|gari|coletor|limpeza/i.test(jobTitleLower);
-    const isOfficeOrTechCandidate = userSkills.some(s => /customer success|cs|salesforce|react|typescript|node|gerência|gerente|diretor|lead|marketing/i.test(s)) ||
-      targetRoles.some((r: string) => /success|cs|dev|manager|eng|soft|lider|analista|customer/i.test(r.toLowerCase()));
-
-    const isCrossDomainMismatch = (isOperationalOrCulinary && isOfficeOrTechCandidate) || (!goalMatch && matchedSkillsCount === 0 && targetRoles.length > 0);
-
-    // Score Composto Ponderado
-    let calculatedFitScore = Math.round(
+    // Score Composto Ponderado Oficial dos 7 Fatores
+    const calculatedFitScore = Math.round(
       (skillsScore * 0.30) +
       (experienceScore * 0.25) +
       (seniorityScore * 0.15) +
@@ -238,11 +294,7 @@ export class JobMatchExplanationService {
       (semanticScore * 0.05)
     );
 
-    if (isCrossDomainMismatch) {
-      calculatedFitScore = Math.min(calculatedFitScore, 15);
-    }
-
-    // FONTE ÚNICA DA VERDADE: Se o matchingEngine já calculou o score geral (job.scores.overall), ele é a métrica mestra oficial
+    // FONTE ÚNICA DA VERDADE
     const masterScore = (job.scores?.overall && job.scores.overall > 0) ? job.scores.overall : calculatedFitScore;
     const careerFitScore = masterScore;
 
@@ -257,8 +309,14 @@ export class JobMatchExplanationService {
     };
 
     // ── 4. DIFERENCIAÇÃO CLARA DE FAIXAS DE COMPATIBILIDADE ──
-    const matchedSkillsList = userSkills.filter(s => jobDescLower.includes(s) || jobReqs.some(r => r.includes(s))).slice(0, 4);
-    const missingSkillsList = jobReqs.filter(r => r !== 'geral' && r !== 'geral/outros' && !userSkills.some(us => us.includes(r))).slice(0, 3);
+    const matchedTechnicalList = technicalJobReqs.filter(checkReqMatch);
+    const missingTechnicalList = technicalJobReqs.filter(req => !checkReqMatch(req));
+
+    const matchedSkillsList = matchedTechnicalList.length > 0 
+      ? matchedTechnicalList.slice(0, 4)
+      : userSkills.filter(s => jobDescLower.includes(s) || jobTitleLower.includes(s)).slice(0, 4);
+
+    const missingSkillsList = missingTechnicalList.slice(0, 3);
 
     let overallMatchReason = '';
     let confidenceScore = 85;

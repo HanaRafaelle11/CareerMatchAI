@@ -1,6 +1,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.8"
 import { callGeminiWithFallbackShared } from "../_shared/geminiModels.ts"
+import { checkUserEntitlement } from "../_shared/entitlements.ts"
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -646,11 +647,33 @@ serve(async (req) => {
       global: { headers: { Authorization: authHeader } }
     })
 
-    const { data: { user } } = await supabaseClient.auth.getUser(authHeader.replace('Bearer ', ''));
+    let user = null;
+    try {
+      if (authHeader && authHeader.startsWith('Bearer ')) {
+        const token = authHeader.replace('Bearer ', '').trim();
+        const userRes = await supabaseClient.auth.getUser(token);
+        user = userRes.data?.user;
+      }
+    } catch (_) {}
     resolvedUserId = requestUserId || user?.id;
 
     if (!resolvedUserId) {
       throw new Error("Usuário não pôde ser autenticado.");
+    }
+
+    // ── VALIDAÇÃO SERVER-SIDE ESTRITA DE ENTITLEMENTS / COTA SEMANAL ──
+    const entitlement = await checkUserEntitlement(supabaseClient, resolvedUserId, resolvedJobId);
+    if (!entitlement.canProceed) {
+      console.warn(`[MATCH JOB PAYWALL BLOCKED] Usuário ${resolvedUserId} tentou acessar jobId ${resolvedJobId} sem cota.`);
+      return new Response(
+        JSON.stringify({
+          error: entitlement.reason || 'Limite semanal de 3 ações gratuitas atingido. Faça upgrade para o plano Pro para desbloquear análises ilimitadas.',
+          code: 'WEEKLY_LIMIT_REACHED',
+          unlockedCount: entitlement.unlockedCount,
+          remainingQuota: entitlement.remainingQuota
+        }),
+        { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
     }
 
     let resolvedResumeId = resumeId;

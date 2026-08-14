@@ -134,6 +134,12 @@ export function useApplications(userId: string | undefined, resumeVersionId?: st
         const { data, error } = await query.order('created_at', { ascending: false });
 
         if (error) throw error;
+        if (!data || data.length === 0) {
+          const localApps = localDB.getApplications();
+          if (localApps && localApps.length > 0) {
+            return localApps;
+          }
+        }
         return (data || []).map(d => ({
           id: d.id,
           userId: d.user_id,

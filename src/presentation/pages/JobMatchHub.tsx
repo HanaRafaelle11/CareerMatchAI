@@ -2640,12 +2640,12 @@ export function JobMatchHub({
                             </div>
                           ) : (
                             <ProgressRing 
-                              value={currentMatch ? currentMatch.scoreOverall : (explanation?.careerFitScore || 0)} 
+                              value={currentMatch ? currentMatch.scoreOverall : (explanation?.careerFitScore || selectedJob?.scores?.overall || 0)} 
                               size={56} 
                               strokeWidth={4}
                               label={
                                 <span className="text-emerald-400 font-extrabold text-sm font-display">
-                                  {currentMatch ? `${currentMatch.scoreOverall}%` : (explanation?.careerFitScore ? `${explanation.careerFitScore}%` : '--')}
+                                  {currentMatch ? `${currentMatch.scoreOverall}%` : (explanation?.careerFitScore ? `${explanation.careerFitScore}%` : (selectedJob?.scores?.overall ? `${selectedJob.scores.overall}%` : '--'))}
                                 </span>
                               } 
                             />

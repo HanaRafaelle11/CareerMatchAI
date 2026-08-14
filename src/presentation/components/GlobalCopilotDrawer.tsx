@@ -1,5 +1,5 @@
 import { useState, useRef } from 'react';
-import { Sparkles, X, ArrowRight, Bot } from 'lucide-react';
+import { X, ArrowRight, Bot } from 'lucide-react';
 import { useCopilotEngine } from '../../application/hooks/useCopilotEngine';
 import { useAuth } from '../../application/hooks/useAuth';
 import { useEntitlements, PaywallModal, CheckoutModal } from '../../modules/billing';
@@ -30,12 +30,12 @@ export function GlobalCopilotDrawer({
   setActiveTab,
   onStartSimulation,
   isOpen: propIsOpen,
-  onToggleOpen,
+  onToggleOpen: _onToggleOpen,
   onClose,
-  hideFloatingButton = false
+  hideFloatingButton: _hideFloatingButton = false
 }: GlobalCopilotDrawerProps) {
   const { user } = useAuth();
-  const { isPro, canUseCopilot, paywallState, triggerPaywall, closePaywall } = useEntitlements(user?.id);
+  const { paywallState, closePaywall } = useEntitlements(user?.id);
   const [showCheckout, setShowCheckout] = useState(false);
 
   const [localIsOpen, setLocalIsOpen] = useState(false);
@@ -44,15 +44,6 @@ export function GlobalCopilotDrawer({
   const handleClose = () => {
     if (onClose) onClose();
     else setLocalIsOpen(false);
-  };
-
-  const handleToggleOpen = () => {
-    if (!isPro && !canUseCopilot) {
-      triggerPaywall('copilot');
-      return;
-    }
-    if (onToggleOpen) onToggleOpen();
-    else setLocalIsOpen(prev => !prev);
   };
 
   const drawerRef = useRef<HTMLDivElement>(null);
@@ -187,21 +178,6 @@ function renderCopilotMarkdown(text: string): React.ReactNode {
 
   return (
     <>
-      {/* Opção A: Botão Flutuante Único no Canto Inferior Direito (Item 17: z-index ajustado para z-40 e opacidade sutil) */}
-      {!isOpen && !hideFloatingButton && (
-        <button
-          onClick={handleToggleOpen}
-          aria-label="Abrir Copiloto IA"
-          className="fixed bottom-20 right-4 md:bottom-6 md:right-6 z-40 flex items-center gap-1.5 md:gap-2.5 px-3.5 py-2.5 md:px-4 md:py-3 rounded-full bg-gradient-to-r from-brand-600 via-brand-500 to-indigo-600 text-white font-bold text-[11px] md:text-xs shadow-2xl hover:scale-105 active:scale-95 transition-all border border-brand-400/30 group cursor-pointer opacity-95 hover:opacity-100"
-        >
-          <Sparkles size={14} className="animate-spin-slow text-amber-300 md:w-4 md:h-4" />
-          <span>Copiloto IA</span>
-          {recommendations.length > 0 && (
-            <span className="w-2 h-2 rounded-full bg-amber-400 animate-ping" />
-          )}
-        </button>
-      )}
-
       {/* Drawer / Slide-Over Flutuante */}
       {isOpen && (
         <div 

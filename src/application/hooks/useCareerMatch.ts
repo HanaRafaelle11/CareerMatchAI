@@ -29,6 +29,10 @@ export function useResumes(userId: string | undefined) {
           .order('created_at', { ascending: false });
 
         if (resumesError) throw resumesError;
+        if (!resumesData || resumesData.length === 0) {
+          const localRes = localDB.getResumes();
+          if (localRes && localRes.length > 0) return localRes;
+        }
 
         const { data: versionsData, error: versionsError } = await supabase
           .from('resume_versions')
@@ -697,6 +701,10 @@ export function useJobs(userId: string | undefined) {
           .order('created_at', { ascending: false });
 
         if (error) throw error;
+        if (!data || data.length === 0) {
+          const localJobs = localDB.getJobs();
+          if (localJobs && localJobs.length > 0) return localJobs;
+        }
         const rawJobs = (data || []).map(j => ({
           id: j.id,
           companyId: 'manual',

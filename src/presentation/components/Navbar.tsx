@@ -104,7 +104,7 @@ export function Navbar({
     },
     {
       id: 'coach',
-      label: 'Copiloto IA',
+      label: 'Simulador de Entrevistas',
       icon: 'psychology',
       completed: interviewCount > 0 || isPro,
       active: activeTab === 'coach',

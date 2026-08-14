@@ -9,14 +9,15 @@ WITH candidate_activity AS (
   SELECT DISTINCT user_id FROM job_feedback
   UNION
   SELECT DISTINCT user_id FROM applications
+  UNION
+  SELECT DISTINCT user_id FROM resumes
 )
 SELECT 
   p.id AS user_id,
   p.email,
   p.full_name,
-  p.primary_resume_id,
   CASE 
-    WHEN p.primary_resume_id IS NOT NULL OR ca.user_id IS NOT NULL THEN 'activated'
+    WHEN ca.user_id IS NOT NULL THEN 'activated'
     ELSE 'not_activated'
   END AS cohort,
   p.created_at

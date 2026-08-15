@@ -348,6 +348,20 @@ export function Navbar({
               );
             })}
 
+            {/* Tour da Plataforma */}
+            <button
+              type="button"
+              onClick={() => {
+                onClose();
+                window.dispatchEvent(new Event('vocentro_open_onboarding'));
+              }}
+              title="Reabrir Tour da Plataforma"
+              className={`w-full flex items-center ${isCollapsed ? 'justify-center py-2 px-0' : 'gap-2.5 px-3 py-2'} rounded-md text-xs font-medium text-amber-500/90 dark:text-amber-400/90 hover:text-amber-600 dark:hover:text-amber-300 hover:bg-amber-500/10 transition-colors cursor-pointer`}
+            >
+              <Sparkles className="w-4 h-4 shrink-0 text-amber-400" size={16} strokeWidth={1.5} />
+              {!isCollapsed && <span>Tour da Plataforma</span>}
+            </button>
+
             {/* Botao de Sair */}
             <button
               onClick={() => { onClose(); onLogout(); }}

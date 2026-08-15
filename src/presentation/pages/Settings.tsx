@@ -9,7 +9,7 @@ import type { CareerProfileNew } from '../../application/hooks/useMyProfileAi';
 import { 
   User, FileText, Settings as SettingsIcon, Bell, 
   Palette, ShieldAlert, CreditCard, Trash2, Download, Check,
-  Sun, Moon, Monitor, RotateCcw
+  Sun, Moon, Monitor, RotateCcw, Sparkles
 } from 'lucide-react';
 import { CustomerPortal } from '../../modules/billing';
 import { useJobTrash } from '../../application/hooks/useJobTrash';
@@ -702,6 +702,31 @@ export function Settings({
                   </button>
                 </div>
               </form>
+
+              {/* Guia / Tour Interativo da Plataforma */}
+              <div className="pt-6 border-t border-slate-200 dark:border-slate-800 w-full min-w-0 flex flex-col font-sans">
+                <div className="p-4 rounded-xl bg-slate-100 dark:bg-slate-900/40 border border-slate-200 dark:border-slate-800 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+                  <div className="space-y-0.5">
+                    <div className="flex items-center gap-2">
+                      <Sparkles size={16} className="text-amber-400 shrink-0" />
+                      <span className="text-xs font-bold text-slate-900 dark:text-slate-100">Tour da Plataforma</span>
+                    </div>
+                    <p className="text-[11px] text-slate-500 dark:text-slate-400">
+                      Reabra o guia de boas-vindas para relembrar o funcionamento do Match, Copiloto e Simulador.
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      window.dispatchEvent(new Event('vocentro_open_onboarding'));
+                    }}
+                    className="px-4 py-2 rounded-xl bg-amber-500/10 hover:bg-amber-500/20 text-amber-500 dark:text-amber-400 border border-amber-500/30 text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer shrink-0"
+                  >
+                    <Sparkles size={13} />
+                    <span>Reabrir Tour</span>
+                  </button>
+                </div>
+              </div>
 
               <div className="pt-6 border-t border-slate-200 dark:border-slate-800 space-y-3 w-full min-w-0 flex flex-col font-sans">
                 <span className="text-xs font-bold text-red-500 dark:text-red-400 block uppercase tracking-wider">Zona de Perigo</span>

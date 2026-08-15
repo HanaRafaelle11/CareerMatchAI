@@ -112,7 +112,41 @@ export function useJobTrash(userId?: string, activeJobs: Job[] = []) {
     enabled: !!userId,
   });
 
-  const trashedJobs = trashQuery.data || [];
+  const getLocalTrashedIds = (): string[] => {
+    if (typeof window === 'undefined' || !userId) return [];
+    try {
+      return JSON.parse(localStorage.getItem(`vocentro_local_trashed_ids_${userId}`) || '[]');
+    } catch { return []; }
+  };
+
+  const dbTrashedJobs = trashQuery.data || [];
+  const dbTrashedIds = new Set(dbTrashedJobs.map(t => String(t.jobId)));
+  const localTrashedIds = getLocalTrashedIds();
+
+  const allTrashedJobs = [...dbTrashedJobs];
+  for (const id of localTrashedIds) {
+    if (!dbTrashedIds.has(id)) {
+      let cachedMeta: { title?: string; companyName?: string; location?: string } | null = null;
+      if (typeof window !== 'undefined') {
+        try {
+          const raw = localStorage.getItem('vocentro_trash_meta_' + id);
+          if (raw) cachedMeta = JSON.parse(raw);
+        } catch (_) {}
+      }
+      const foundActiveJob = activeJobs.find(j => String(j.id) === id);
+      allTrashedJobs.push({
+        id,
+        jobId: id,
+        title: foundActiveJob?.title || cachedMeta?.title || 'Vaga Excluída',
+        companyName: foundActiveJob?.companyName || cachedMeta?.companyName || 'Empresa',
+        location: foundActiveJob?.location || cachedMeta?.location || 'Brasil',
+        deletedAt: new Date().toISOString(),
+        originalJob: foundActiveJob
+      });
+    }
+  }
+
+  const trashedJobs = allTrashedJobs;
   const trashedJobIds = new Set(trashedJobs.map(t => String(t.jobId)));
 
   // 1. Mutation para Mover para a Lixeira (Soft Delete no Banco via job_feedback) com Optimistic UI Update
@@ -128,6 +162,8 @@ export function useJobTrash(userId?: string, activeJobs: Job[] = []) {
       if (typeof window !== 'undefined') {
         try {
           localStorage.setItem('vocentro_trash_meta_' + targetJobId, JSON.stringify({ title, companyName, location }));
+          const currentLocal = getLocalTrashedIds();
+          localStorage.setItem(`vocentro_local_trashed_ids_${userId}`, JSON.stringify(Array.from(new Set([...currentLocal, targetJobId]))));
         } catch (_) {}
       }
 
@@ -170,20 +206,18 @@ export function useJobTrash(userId?: string, activeJobs: Job[] = []) {
         );
       }
 
-      if (previousTrash) {
-        queryClient.setQueryData<TrashedJob[]>(['job-trash', userId], old => [
-          {
-            id: targetId,
-            jobId: targetId,
-            title: (job as any).title || 'Vaga Excluída',
-            companyName: (job as any).companyName || 'Empresa',
-            location: (job as any).location || 'Brasil',
-            deletedAt: new Date().toISOString(),
-            originalJob: job as Job
-          },
-          ...(old || [])
-        ]);
-      }
+      queryClient.setQueryData<TrashedJob[]>(['job-trash', userId], old => [
+        {
+          id: targetId,
+          jobId: targetId,
+          title: (job as any).title || 'Vaga Excluída',
+          companyName: (job as any).companyName || 'Empresa',
+          location: (job as any).location || 'Brasil',
+          deletedAt: new Date().toISOString(),
+          originalJob: job as Job
+        },
+        ...(old || [])
+      ]);
 
       return { previousJobs, previousMatches, previousTrash };
     },

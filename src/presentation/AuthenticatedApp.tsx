@@ -16,6 +16,7 @@ import { GlobalCopilotDrawer } from './components/GlobalCopilotDrawer';
 import { SatisfactionSurveyModal } from './components/SatisfactionSurveyModal';
 import { Toast, type ToastMessage } from './components/ds';
 import { CheckoutModal, useEntitlements } from '../modules/billing';
+import { localDB } from '../infrastructure/storage/localDatabase';
 import type { Job } from '../domain/models/types';
 import { useQueryClient } from '@tanstack/react-query';
 
@@ -625,10 +626,10 @@ export function AuthenticatedApp({
           <Suspense fallback={<LazyFallback />}>
             <JobMatchHub
               userId={user?.id}
-              resumes={resumes}
-              jobs={jobs}
+              resumes={resumes && resumes.length > 0 ? resumes : localDB.getResumes()}
+              jobs={jobs && jobs.length > 0 ? jobs : localDB.getJobs()}
               onDeleteJob={deleteJob}
-              matches={matches}
+              matches={matches && matches.length > 0 ? matches : localDB.getMatches()}
               careerProfile={careerProfile}
               careerProfileNew={careerProfileNew}
               onCreateJob={createJob}

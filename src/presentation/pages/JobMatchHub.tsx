@@ -212,10 +212,10 @@ function isMetropolitanMatch(targetLocRaw: string, jobLocRaw: string, workMode?:
 
 export function JobMatchHub({
   userId,
-  resumes,
-  jobs,
+  resumes = [],
+  jobs = [],
   onDeleteJob,
-  matches,
+  matches = [],
   careerProfile,
   careerProfileNew,
   onCreateJob,
@@ -3450,40 +3450,52 @@ export function JobMatchHub({
                     </div>
 
                     {/* Explicações IA */}
-                    <CardGlass className="space-y-6">
-                      <h3 className="font-display font-bold text-base text-slate-200 dark:text-slate-200 light:text-slate-800 flex items-center gap-2">
-                        <Award size={18} className="text-brand-500" />
-                        Diagnóstico Semântico da IA
-                      </h3>
+                    {currentMatch?.explanation && typeof currentMatch.explanation === 'object' && Array.isArray((currentMatch.explanation as any).strengths) ? (
+                      <CardGlass className="space-y-6">
+                        <h3 className="font-display font-bold text-base text-slate-200 dark:text-slate-200 light:text-slate-800 flex items-center gap-2">
+                          <Award size={18} className="text-brand-500" />
+                          Diagnóstico Semântico da IA
+                        </h3>
 
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        {/* Fortalezas */}
-                        <div className="space-y-3">
-                          <span className="text-xs font-bold text-slate-400 uppercase tracking-wider block">Pontos Fortes</span>
-                          <div className="space-y-2">
-                            {currentMatch.explanation.strengths.map((str, idx) => (
-                              <div key={idx} className="flex gap-2 text-xs text-slate-300 dark:text-slate-300 light:text-slate-700">
-                                <CheckCircle size={14} className="text-brand-500 shrink-0 mt-0.5" />
-                                <span>{str}</span>
-                              </div>
-                            ))}
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                          {/* Fortalezas */}
+                          <div className="space-y-3">
+                            <span className="text-xs font-bold text-slate-400 uppercase tracking-wider block">Pontos Fortes</span>
+                            <div className="space-y-2">
+                              {((currentMatch.explanation as any).strengths || []).map((str: string, idx: number) => (
+                                <div key={idx} className="flex gap-2 text-xs text-slate-300 dark:text-slate-300 light:text-slate-700">
+                                  <CheckCircle size={14} className="text-brand-500 shrink-0 mt-0.5" />
+                                  <span>{str}</span>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+
+                          {/* Atenções */}
+                          <div className="space-y-3">
+                            <span className="text-xs font-bold text-slate-400 uppercase tracking-wider block">Pontos de Atenção</span>
+                            <div className="space-y-2">
+                              {((currentMatch.explanation as any).weaknesses || []).map((weak: string, idx: number) => (
+                                <div key={idx} className="flex gap-2 text-xs text-slate-300 dark:text-slate-300 light:text-slate-700">
+                                  <AlertTriangle size={14} className="text-amber-500 shrink-0 mt-0.5" />
+                                  <span>{weak}</span>
+                                </div>
+                              ))}
+                            </div>
                           </div>
                         </div>
-
-                        {/* Atenções */}
-                        <div className="space-y-3">
-                          <span className="text-xs font-bold text-slate-400 uppercase tracking-wider block">Pontos de Atenção</span>
-                          <div className="space-y-2">
-                            {currentMatch.explanation.weaknesses.map((weak, idx) => (
-                              <div key={idx} className="flex gap-2 text-xs text-slate-300 dark:text-slate-300 light:text-slate-700">
-                                <AlertTriangle size={14} className="text-amber-500 shrink-0 mt-0.5" />
-                                <span>{weak}</span>
-                              </div>
-                            ))}
-                          </div>
-                        </div>
-                      </div>
-                    </CardGlass>
+                      </CardGlass>
+                    ) : currentMatch?.explanation && typeof currentMatch.explanation === 'string' ? (
+                      <CardGlass className="space-y-4">
+                        <h3 className="font-display font-bold text-base text-slate-200 dark:text-slate-200 light:text-slate-800 flex items-center gap-2">
+                          <Award size={18} className="text-brand-500" />
+                          Diagnóstico Semântico da IA
+                        </h3>
+                        <p className="text-xs text-slate-300 dark:text-slate-300 light:text-slate-700 leading-relaxed">
+                          {currentMatch.explanation}
+                        </p>
+                      </CardGlass>
+                    ) : null}
 
                     {/* Gap Analysis */}
                     {matchDetails?.gapAnalysis && (

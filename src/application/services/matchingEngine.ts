@@ -810,7 +810,7 @@ ${candidateName}`,
   } {
     const flatSkills = consolidatedProfile
       ? buildFlatSkillsFromProfile(consolidatedProfile)
-      : resume.skills.map(s => s.name.toLowerCase());
+      : (resume.skills || []).map(s => (typeof s === 'string' ? s : s?.name || '').toLowerCase()).filter(Boolean);
 
     const experiences = consolidatedProfile?.experience ?? null;
 

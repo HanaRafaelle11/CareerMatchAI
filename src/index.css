@@ -89,7 +89,6 @@ html.dark, body.dark, .dark {
     color: var(--color-foreground);
     font-family: var(--font-sans);
     line-height: 1.6;
-    transition: background-color 30ms ease-out, color 30ms ease-out;
   }
 
   *, ::before, ::after {

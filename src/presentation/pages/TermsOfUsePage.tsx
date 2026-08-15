@@ -1,5 +1,5 @@
 import React from 'react';
-import { ArrowLeft, FileText, CheckCircle2, ShieldCheck, Mail, AlertTriangle, CreditCard, Scale, Sparkles } from 'lucide-react';
+import { ArrowLeft, FileText, CheckCircle2, ShieldCheck, Mail, AlertTriangle, CreditCard, Scale, Sparkles, Cpu } from 'lucide-react';
 import { VocentroLogo } from '../components/ds/MyCareerIcons';
 import { ThemeToggle } from '../components/ThemeToggle';
 
@@ -124,11 +124,33 @@ export const TermsOfUsePage: React.FC<TermsOfUsePageProps> = ({ onBack }) => {
           </p>
         </section>
 
-        {/* Section 5 */}
+        {/* Section 5 - Processamento de Dados por Inteligência Artificial & Transferência Internacional */}
+        <section className="p-6 rounded-2xl bg-card border border-border space-y-3">
+          <h2 className="text-lg font-bold text-foreground flex items-center gap-2">
+            <Cpu size={18} className="text-brand-500" />
+            5. Processamento por Inteligência Artificial e Transferência Internacional de Dados
+          </h2>
+          <p className="text-sm text-muted-foreground leading-relaxed">
+            Para fornecer funcionalidades como cálculo de compatibilidade (Match), geração de roteiros de entrevista e otimização de currículos, o Vocentro processa dados textuais do perfil e currículo do usuário por meio da API do provedor de inteligência artificial <strong className="text-foreground">Google Cloud / Google Gemini</strong>.
+          </p>
+          <ul className="space-y-2.5 text-xs text-muted-foreground pt-1">
+            <li className="p-3 rounded-xl bg-muted/40 border border-border">
+              <strong className="text-foreground font-semibold">Garantia Contratual de Não Treinamento:</strong> O Vocentro opera exclusivamente em ambiente corporativo pago (<em className="text-foreground">Paid Services / Pay-as-you-go</em>) junto ao Google. Sob os termos vigentes deste serviço contratado, o Google estabelece expressamente que não utiliza as instruções (prompts) nem as respostas enviadas para treinar, retreinar ou aperfeiçoar modelos públicos de machine learning.
+            </li>
+            <li className="p-3 rounded-xl bg-muted/40 border border-border">
+              <strong className="text-foreground font-semibold">Retenção Limitada para Segurança:</strong> Conforme os termos de serviço corporativos do provedor, os dados trafegados podem ser retidos temporariamente e por prazo restrito exclusivamente para fins de auditoria de conformidade, detecção de abuso e monitoramento de segurança contra violações de diretrizes de uso, não sendo armazenados de forma perpétua.
+            </li>
+            <li className="p-3 rounded-xl bg-muted/40 border border-border">
+              <strong className="text-foreground font-semibold">Transferência Internacional de Dados (LGPD):</strong> O usuário declara ciência de que o processamento via infraestrutura em nuvem global do Google pode envolver transferência internacional de dados, realizada em estrita conformidade com os mecanismos legais previstos no Artigo 33 da Lei Geral de Proteção de Dados (Lei nº 13.709/2018), com criptografia em repouso e em trânsito.
+            </li>
+          </ul>
+        </section>
+
+        {/* Section 6 */}
         <section className="p-6 rounded-2xl bg-card border border-border space-y-3">
           <h2 className="text-lg font-bold text-foreground flex items-center gap-2">
             <ShieldCheck size={18} className="text-emerald-500" />
-            5. Regras de Conduta do Usuário
+            6. Regras de Conduta do Usuário
           </h2>
           <p className="text-sm text-muted-foreground leading-relaxed">
             Ao utilizar o Vocentro, o usuário se compromete a:
@@ -149,33 +171,33 @@ export const TermsOfUsePage: React.FC<TermsOfUsePageProps> = ({ onBack }) => {
           </ul>
         </section>
 
-        {/* Section 6 */}
+        {/* Section 7 */}
         <section className="p-6 rounded-2xl bg-card border border-border space-y-3">
           <h2 className="text-lg font-bold text-foreground flex items-center gap-2">
             <AlertTriangle size={18} className="text-amber-500" />
-            6. Limitação de Responsabilidade
+            7. Limitação de Responsabilidade
           </h2>
           <p className="text-sm text-muted-foreground leading-relaxed">
             O <strong className="text-foreground">Vocentro</strong> atua como uma ferramenta tecnológica facilitadora da jornada profissional do candidato. Não garantimos a contratação nem possuímos vínculo empregatício com as empresas cujas vagas são exibidas na plataforma.
           </p>
         </section>
 
-        {/* Section 7 - Novo item 8: Foro e Legislação Aplicável */}
+        {/* Section 8 */}
         <section className="p-6 rounded-2xl bg-card border border-border space-y-3">
           <h2 className="text-lg font-bold text-foreground flex items-center gap-2">
             <Scale size={18} className="text-brand-500" />
-            7. Legislação Aplicável e Foro
+            8. Legislação Aplicável e Foro
           </h2>
           <p className="text-sm text-muted-foreground leading-relaxed">
             Estes Termos de Uso são regidos e interpretados estritamente de acordo com as leis da <strong className="text-foreground">República Federativa do Brasil</strong>. Fica eleito o Foro da Comarca de <strong className="text-foreground">São Paulo / SP</strong> para dirimir quaisquer dúvidas ou controvérsias oriundas da utilização da plataforma, com renúncia expressa a qualquer outro, por mais privilegiado que seja.
           </p>
         </section>
 
-        {/* Section 8 */}
+        {/* Section 9 */}
         <section className="p-6 rounded-2xl bg-card border border-border space-y-4">
           <h2 className="text-lg font-bold text-foreground flex items-center gap-2">
             <Mail size={18} className="text-brand-500 shrink-0" />
-            8. Alterações e Contato
+            9. Alterações e Contato
           </h2>
           <p className="text-sm text-muted-foreground leading-relaxed">
             Reservamo-nos o direito de atualizar estes Termos de Uso periodicamente. Em caso de dúvidas, entre em contato:

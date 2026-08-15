@@ -1776,13 +1776,6 @@ export function JobMatchHub({
             </p>
           </div>
         </div>
-        <button
-          onClick={() => { setSubTab('discover'); setSelectedJobId(null); }}
-          className="btn-secondary text-xs shrink-0 self-start md:self-center"
-        >
-          <span>Explorar Vagas</span>
-          <ChevronRight size={14} />
-        </button>
       </div>
 
       {/* Estatísticas Rápidas */}
@@ -2440,7 +2433,11 @@ export function JobMatchHub({
                   }).filter((job, idx, self) => idx === self.findIndex(j => String(j.id) === String(job.id)));
 
                   const rawList = analyzedJobs.length > 0 ? analyzedJobs : jobs;
-                  const listToRender = rawList.filter(j => !trashedJobIds.has(j.id));
+                  const listToRender = rawList.filter(j => 
+                    !trashedJobIds.has(String(j.id)) && 
+                    !trashedJobIds.has(String((j as any).jobId)) && 
+                    !trashedJobIds.has(j.id)
+                  );
 
                   if (listToRender.length === 0) {
                     return (
@@ -2461,16 +2458,9 @@ export function JobMatchHub({
                     return (
                       <div
                         key={job.id}
-                        onClick={async () => {
+                        onClick={() => {
                           setSelectedJobId(job.id);
                           tracker.trackJobDiscovered(job.id, { title: job.title, company: job.companyName });
-                          if (!isPro && !isJobUnlocked(job.id)) {
-                            if (!canUnlockJob(job.id)) {
-                              triggerPaywall('weekly_limit');
-                            } else {
-                              await unlockJob(job.id);
-                            }
-                          }
                         }}
                         className={`p-3 rounded-xl cursor-pointer border transition-all text-xs flex justify-between items-center group ${
                           isActive
@@ -2508,6 +2498,10 @@ export function JobMatchHub({
                               e.stopPropagation();
                               moveToTrash(job);
                               showToast(`Vaga "${job.title}" movida para a Lixeira.`, 'info');
+                              const remaining = listToRender.filter(rem => String(rem.id) !== String(job.id) && String((rem as any).jobId) !== String(job.id));
+                              if (String(selectedJobId) === String(job.id) || String(selectedJobId) === String((job as any).jobId)) {
+                                setSelectedJobId(remaining[0]?.id || null);
+                              }
                             }}
                             className="p-1.5 rounded-lg hover:bg-red-500/20 text-slate-500 hover:text-red-400 transition cursor-pointer"
                             title="Mover vaga para a Lixeira"
@@ -2819,11 +2813,14 @@ export function JobMatchHub({
                               </div>
                               <div className="pt-1">
                                 <button
-                                  onClick={() => {
+                                  onClick={async () => {
                                     tracker.trackMatchUpgradeCtaClicked(currentMatch?.scoreOverall ?? explanation.careerFitScore ?? 0, selectedJob.id, 'copilot');
                                     setCoachTab('optimize-cv');
-                                    const el = document.getElementById('ai-coach-section');
+                                    const el = document.getElementById('ai-career-coach-panel');
                                     if (el) el.scrollIntoView({ behavior: 'smooth' });
+                                    if (!optimization && !isLoadingOpt && !isGeneratingOptimization) {
+                                      await handleGenerateOptimization();
+                                    }
                                   }}
                                   className="w-full sm:w-auto px-5 py-2.5 rounded-xl bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-400 hover:to-orange-500 text-white font-bold text-xs shadow-lg flex items-center justify-center gap-2 cursor-pointer transition"
                                 >
@@ -2849,10 +2846,13 @@ export function JobMatchHub({
                               </div>
                               <div className="pt-1">
                                 <button
-                                  onClick={() => {
+                                  onClick={async () => {
                                     setCoachTab('optimize-cv');
-                                    const el = document.getElementById('ai-coach-section');
+                                    const el = document.getElementById('ai-career-coach-panel');
                                     if (el) el.scrollIntoView({ behavior: 'smooth' });
+                                    if (!optimization && !isLoadingOpt && !isGeneratingOptimization) {
+                                      await handleGenerateOptimization();
+                                    }
                                   }}
                                   className="w-full sm:w-auto px-5 py-2.5 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-400 hover:to-teal-500 text-white font-bold text-xs shadow-lg flex items-center justify-center gap-2 cursor-pointer transition"
                                 >
@@ -4267,7 +4267,9 @@ export function JobMatchHub({
                     <div className="flex items-center gap-2 flex-wrap">
                       <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-brand-500/10 border border-brand-500/20 text-brand-300 font-semibold text-xs">
                         <Sparkles size={12} className="text-brand-400" />
-                        {scoredDiscoveredJobs.length} vagas com match analisado
+                        {primaryResume 
+                          ? `${scoredDiscoveredJobs.length} vagas com match analisado` 
+                          : `${scoredDiscoveredJobs.length} vagas encontradas por busca`}
                       </span>
                       <span className="text-[11px] text-slate-500 hidden sm:inline" title="O Vocentro cruza vagas de múltiplas fontes oficiais, filtrando duplicatas e vagas desatualizadas para exibir apenas oportunidades compatíveis.">
                         (Curadoria inteligente de mercado)
@@ -4275,6 +4277,33 @@ export function JobMatchHub({
                     </div>
                   </div>
                 </CardGlass>
+
+                {/* Banner de Aviso de Perfil sem Currículo */}
+                {!primaryResume && (
+                  <div className="p-4 rounded-2xl bg-indigo-950/30 border border-indigo-500/30 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 text-xs text-slate-300 shadow-md animate-fade-in">
+                    <div className="flex items-start sm:items-center gap-3">
+                      <div className="p-2 rounded-xl bg-indigo-500/20 text-indigo-400 shrink-0 mt-0.5 sm:mt-0">
+                        <Info size={18} />
+                      </div>
+                      <div>
+                        <p className="font-bold text-slate-200">Você ainda não cadastrou um currículo ativo.</p>
+                        <p className="text-[11px] text-slate-400 mt-0.5">
+                          As vagas abaixo são listadas por relevância da pesquisa. Cadastre seu currículo no seu Perfil para calcular a compatibilidade real (Match Score com IA).
+                        </p>
+                      </div>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        window.location.hash = '#profile';
+                        window.dispatchEvent(new CustomEvent('vocentro_navigate', { detail: { tab: 'profile' } }));
+                      }}
+                      className="px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs shrink-0 transition shadow cursor-pointer self-start sm:self-center"
+                    >
+                      Cadastrar Currículo
+                    </button>
+                  </div>
+                )}
 
                 {/* Banner de Curadoria Inteligente */}
                 <div className="p-3 rounded-2xl bg-brand-500/5 border border-brand-500/15 flex items-center gap-2.5 text-xs text-slate-300 shadow-xs">
@@ -4388,15 +4417,23 @@ export function JobMatchHub({
 
                             {/* Selo de Prioridade CPI e Transparência */}
                             <div className="pt-1 flex gap-2 items-center flex-wrap">
-                              {getPriorityBadge(job.scoreOverall)}
-                              {(job as any).isHiddenByFilter && (
-                                <span className="inline-flex items-center gap-1 text-[9px] px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-400 font-bold border border-amber-500/20">
-                                  💡 Oculta: {(job as any).filterReason}
+                              {primaryResume ? (
+                                <>
+                                  {getPriorityBadge(job.scoreOverall)}
+                                  {(job as any).isHiddenByFilter && (
+                                    <span className="inline-flex items-center gap-1 text-[9px] px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-400 font-bold border border-amber-500/20">
+                                      💡 Oculta: {(job as any).filterReason}
+                                    </span>
+                                  )}
+                                  <span className="text-[10px] text-slate-500 font-semibold">
+                                    Match Estimado: {job.scoreOverall}%
+                                  </span>
+                                </>
+                              ) : (
+                                <span className="inline-flex items-center gap-1 text-[9px] px-2 py-0.5 rounded-full bg-slate-500/10 text-slate-400 font-semibold border border-slate-500/20">
+                                  🔍 Relevância de Pesquisa · Envie seu CV para calcular Match
                                 </span>
                               )}
-                              <span className="text-[10px] text-slate-500 font-semibold">
-                                Match Estimado: {job.scoreOverall}%
-                              </span>
                             </div>
 
                             <p className="text-xs text-slate-400 line-clamp-3 leading-relaxed pt-1">
@@ -4452,19 +4489,21 @@ export function JobMatchHub({
                             )}
 
                             {/* Exibição de lacunas de competências */}
-                            <div className="pt-2 border-t border-slate-900/60 text-[10px] text-slate-400">
-                              {job.missingSkills.length > 0 ? (
-                                <div className="flex gap-1.5 items-start">
-                                  <span className="text-red-400 font-semibold">Gaps técnicos:</span>
-                                  <span className="text-slate-500 line-clamp-1">{job.missingSkills.join(', ')}</span>
-                                </div>
-                              ) : (
-                                <span className="text-emerald-400 font-semibold flex items-center gap-1">
-                                  <CheckCircle size={10} />
-                                  Perfil 100% alinhado com a vaga!
-                                </span>
-                              )}
-                            </div>
+                            {primaryResume && (
+                              <div className="pt-2 border-t border-slate-900/60 text-[10px] text-slate-400">
+                                {job.missingSkills.length > 0 ? (
+                                  <div className="flex gap-1.5 items-start">
+                                    <span className="text-red-400 font-semibold">Gaps técnicos:</span>
+                                    <span className="text-slate-500 line-clamp-1">{job.missingSkills.join(', ')}</span>
+                                  </div>
+                                ) : (
+                                  <span className="text-emerald-400 font-semibold flex items-center gap-1">
+                                    <CheckCircle size={10} />
+                                    Perfil 100% alinhado com a vaga!
+                                  </span>
+                                )}
+                              </div>
+                            )}
 
                             {isBlurred && (
                               <div 

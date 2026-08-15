@@ -16,12 +16,43 @@ const getSystemTheme = (): 'light' | 'dark' => {
   return window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark';
 };
 
+const disableTransitions = () => {
+  if (typeof document === 'undefined') return () => {};
+  const css = document.createElement('style');
+  css.setAttribute('type', 'text/css');
+  css.appendChild(
+    document.createTextNode(
+      `*, *::before, *::after {
+        -webkit-transition: none !important;
+        -moz-transition: none !important;
+        -o-transition: none !important;
+        -ms-transition: none !important;
+        transition: none !important;
+      }`
+    )
+  );
+  document.head.appendChild(css);
+  return () => {
+    // Forçar reflow síncrono
+    (() => window.getComputedStyle(document.body))();
+    // Remover tag de estilo após a repintura instantânea
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        if (css.parentNode) {
+          css.parentNode.removeChild(css);
+        }
+      });
+    });
+  };
+};
+
 const applyThemeToDOM = (targetTheme: 'light' | 'dark') => {
   if (typeof document === 'undefined') return;
+  const enable = disableTransitions();
   const root = document.documentElement;
   const body = document.body;
 
-  // Atualização síncrona e imediata das classes e atributos no DOM
+  // Atualização síncrona e imediata das classes e atributos no DOM (0ms)
   root.setAttribute('data-theme', targetTheme);
   body.setAttribute('data-theme', targetTheme);
 
@@ -36,6 +67,8 @@ const applyThemeToDOM = (targetTheme: 'light' | 'dark') => {
     body.classList.add('dark');
     body.classList.remove('light');
   }
+
+  enable();
 };
 
 export function ThemeProvider({ children }: { children: React.ReactNode }) {

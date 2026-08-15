@@ -305,18 +305,8 @@ export function Dashboard({
           </div>
         </div>
 
-        {/* Discreet Action Buttons (+ Explorar vagas & Tour Onboarding) */}
+        {/* Action Button (+ Explorar vagas) */}
         <div className="flex items-center gap-2 shrink-0 self-start sm:self-auto">
-          <button
-            onClick={() => {
-              window.dispatchEvent(new Event('vocentro_open_onboarding'));
-            }}
-            className="btn-secondary text-xs cursor-pointer flex items-center gap-1.5 text-brand-400 hover:text-brand-300 border-brand-500/30"
-            title="Reabrir onboarding interativo da plataforma"
-          >
-            <Sparkles size={14} strokeWidth={1.5} className="text-amber-400" />
-            <span>Tour da Plataforma</span>
-          </button>
           <button
             onClick={() => {
               localStorage.setItem('vocentro_trigger_discovery', 'true');
@@ -408,7 +398,7 @@ export function Dashboard({
       </div>
 
 
-      {/* ── 3b. ACESSO RÁPIDO: MONITOR DE DEMANDA REAL & BENCHMARK SALARIAL ── */}
+      {/* ── 3b. ACESSO RÁPIDO: MONITOR DE DEMANDA REAL ── */}
       <button
         onClick={() => setActiveTab('coach')}
         className="w-full bg-gradient-to-r from-indigo-50 to-blue-50 dark:from-indigo-950/30 dark:to-blue-950/20 border border-indigo-200/80 dark:border-indigo-800/40 rounded-2xl p-4 flex items-center justify-between gap-3 hover:border-indigo-400/60 dark:hover:border-indigo-600/60 transition-all group cursor-pointer shadow-xs"
@@ -418,8 +408,8 @@ export function Dashboard({
             <BarChart3 size={18} strokeWidth={1.75} />
           </div>
           <div className="text-left">
-            <span className="text-xs font-bold text-indigo-700 dark:text-indigo-300 block">Monitor de Demanda Real & Benchmark Salarial</span>
-            <span className="text-[10px] text-slate-500 dark:text-slate-400">Veja as habilidades mais exigidas pelo mercado e calibre sua pretensão salarial na aba Coach.</span>
+            <span className="text-xs font-bold text-indigo-700 dark:text-indigo-300 block">Monitor de Demanda Real</span>
+            <span className="text-[10px] text-slate-500 dark:text-slate-400">Veja as habilidades e competências mais exigidas pelo mercado de trabalho na aba Diagnóstico.</span>
           </div>
         </div>
         <ArrowRight size={16} className="text-indigo-400 group-hover:translate-x-1 transition-transform shrink-0" />

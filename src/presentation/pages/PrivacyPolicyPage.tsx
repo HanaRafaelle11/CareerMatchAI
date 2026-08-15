@@ -151,7 +151,7 @@ export const PrivacyPolicyPage: React.FC<PrivacyPolicyPageProps> = ({ onBack }) 
           </p>
           <ul className="space-y-2.5 text-xs text-muted-foreground pt-1">
             <li className="p-3 rounded-xl bg-muted/40 border border-border">
-              <strong className="text-foreground font-semibold">Google Cloud & Google Gemini AI:</strong> Processamento inteligente de currículos, cálculo de Match de vagas e sugestões de otimização de carreira via modelos de IA.
+              <strong className="text-foreground font-semibold">Google Cloud & Google Gemini AI:</strong> Processamento inteligente de currículos, cálculo de Match de vagas e sugestões de otimização de carreira via modelos de IA em ambiente corporativo pago (Paid Services). O Google não utiliza os dados enviados para treinar modelos públicos, retendo os registros temporariamente de forma estrita para fins de segurança e detecção de abuso. A infraestrutura global envolve transferência internacional segura de dados sob o Art. 33 da LGPD.
             </li>
             <li className="p-3 rounded-xl bg-muted/40 border border-border">
               <strong className="text-foreground font-semibold">Asaas Gestão Financeira S.A.:</strong> Gateway seguro contratado para processamento de pagamentos, cobranças recorrentes de assinatura e geração de PIX e faturas.

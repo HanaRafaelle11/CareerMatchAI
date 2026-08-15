@@ -151,14 +151,22 @@ export function useJobTrash(userId?: string, activeJobs: Job[] = []) {
       const targetId = String(job.id);
       await queryClient.cancelQueries({ queryKey: ['job-trash', userId] });
       await queryClient.cancelQueries({ queryKey: ['jobs', userId] });
+      await queryClient.cancelQueries({ queryKey: ['matches', userId] });
 
       const previousJobs = queryClient.getQueryData<Job[]>(['jobs', userId]);
+      const previousMatches = queryClient.getQueryData<any[]>(['matches', userId]);
       const previousTrash = queryClient.getQueryData<TrashedJob[]>(['job-trash', userId]);
 
       // Atualização otimista imediata na interface (0ms delay)
       if (previousJobs) {
         queryClient.setQueryData<Job[]>(['jobs', userId], old => 
-          (old || []).filter(j => String(j.id) !== targetId)
+          (old || []).filter(j => String(j.id) !== targetId && String((j as any).jobId) !== targetId)
+        );
+      }
+
+      if (previousMatches) {
+        queryClient.setQueryData<any[]>(['matches', userId], old => 
+          (old || []).filter(m => String(m.jobId) !== targetId && String(m.job_id) !== targetId)
         );
       }
 
@@ -177,11 +185,14 @@ export function useJobTrash(userId?: string, activeJobs: Job[] = []) {
         ]);
       }
 
-      return { previousJobs, previousTrash };
+      return { previousJobs, previousMatches, previousTrash };
     },
     onError: (_err, _job, context) => {
       if (context?.previousJobs) {
         queryClient.setQueryData(['jobs', userId], context.previousJobs);
+      }
+      if (context?.previousMatches) {
+        queryClient.setQueryData(['matches', userId], context.previousMatches);
       }
       if (context?.previousTrash) {
         queryClient.setQueryData(['job-trash', userId], context.previousTrash);

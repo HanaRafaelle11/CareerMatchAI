@@ -1,4 +1,4 @@
-import { useState, type FormEvent, useEffect, useRef } from 'react';
+import { useState, type FormEvent, useEffect, useRef, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import { useQueryClient } from '@tanstack/react-query';
 import { CardGlass } from '../components/CardGlass';
@@ -279,10 +279,10 @@ export function JobMatchHub({
   const [manualStrategyStatus, setManualStrategyStatus] = useState<string>('auto');
   const [localSelectedJobId, setLocalSelectedJobId] = useState<string | null>(jobs[0]?.id || null);
   const selectedJobId = propSelectedJobId ? propSelectedJobId : (localSelectedJobId || jobs[0]?.id || null);
-  const setSelectedJobId = (id: string | null) => {
+  const setSelectedJobId = useCallback((id: string | null) => {
     setLocalSelectedJobId(id);
     if (propOnSelectJob) propOnSelectJob(id);
-  };
+  }, [propOnSelectJob]);
 
   const selectedJob = jobs.find(j => j.id === selectedJobId) || jobs[0];
   const primaryResume = (activeResumeVersionId ? resumes.find(r => r.resumeVersionId === activeResumeVersionId) : null) || resumes.find(r => r.isPrimary) || resumes[0];

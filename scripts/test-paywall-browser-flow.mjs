@@ -7,7 +7,8 @@ async function runBrowserPaywallTest() {
   console.log("🌐 INICIANDO TESTE E2E NO NAVEGADOR: PAYWALL, DEEP LINKING & NETWORK AUDIT");
   console.log("================================================================================");
 
-  const artifactDir = 'C:/Users/Sthephany/.gemini/antigravity-ide/brain/b3add622-b2e4-418b-8938-2b23b132b81e';
+  const currentArtifactDir = 'C:/Users/Sthephany/.gemini/antigravity-ide/brain/e09a8bb6-d60a-4ef0-b498-8a675e179afb';
+  const artifactDir = currentArtifactDir;
   
   const browser = await chromium.launch({
     headless: true,

@@ -336,6 +336,10 @@ export function Dashboard({
         resume={resumes[0]}
         careerProfileNew={careerProfileNew}
         isLoading={isLoading}
+        onGoToProfile={() => {
+          setActiveTab('profile');
+          window.scrollTo({ top: 0, behavior: 'smooth' });
+        }}
         onExploreJobs={() => {
           localStorage.setItem('vocentro_trigger_discovery', 'true');
           setActiveTab('match');

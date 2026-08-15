@@ -100,16 +100,27 @@ export function useCopilotEngine({
         priority: 'medium'
       });
     } else if (list.length < 3) {
-      // Fallback positivo
-      list.push({
-        id: 'rec-all-ready',
-        type: 'action',
-        title: 'O currículo já está pronto',
-        description: 'Agora vale investir tempo em simulações de entrevista STAR para as candidaturas ativas.',
-        actionLabel: 'Treinar com IA',
-        targetTab: 'coach',
-        priority: 'low'
-      });
+      if (activeApps.length > 0) {
+        list.push({
+          id: 'rec-all-ready',
+          type: 'action',
+          title: 'O currículo já está pronto',
+          description: 'Agora vale investir tempo em simulações de entrevista STAR para as candidaturas ativas.',
+          actionLabel: 'Treinar com IA',
+          targetTab: 'coach',
+          priority: 'low'
+        });
+      } else {
+        list.push({
+          id: 'rec-find-matches',
+          type: 'action',
+          title: 'Mapear e desbloquear vagas',
+          description: 'Descubra oportunidades alinhadas ao seu perfil e ative diagnósticos de match para avançar na sua jornada.',
+          actionLabel: 'Mapear vagas',
+          targetTab: 'match',
+          priority: 'medium'
+        });
+      }
     }
 
     return list.slice(0, 3);

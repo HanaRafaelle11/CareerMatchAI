@@ -1711,26 +1711,6 @@ export function JobMatchHub({
     averageSalary = Math.round(pool.reduce((a, b) => a + b, 0) / pool.length);
   }
 
-  // Fallback Inteligente de Segurança por Categoria/Senioridade caso os dados externos não contenham salários
-  if (searchKeyword && /estágio|estagio|estagiár|estagiario|internship|bolsa/i.test(searchKeyword)) {
-    if (averageSalary === 0 || averageSalary > 3500) {
-      averageSalary = 1500;
-    }
-  } else if (averageSalary === 0 && searchKeyword) {
-    const key = searchKeyword.toLowerCase();
-    if (key.includes('estágio') || key.includes('estagio') || key.includes('estagiár') || key.includes('intern')) {
-      averageSalary = 1500;
-    } else if (key.includes('cozinheir') || key.includes('auxiliar') || key.includes('atendente') || key.includes('operador') || key.includes('limpeza') || key.includes('portari')) {
-      averageSalary = 2450;
-    } else if (key.includes('analista') || key.includes('especialista') || key.includes('desenvolv') || key.includes('designer')) {
-      averageSalary = 6500;
-    } else if (key.includes('gerente') || key.includes('supervisor') || key.includes('coordenador') || key.includes('head') || key.includes('lead')) {
-      averageSalary = 12500;
-    } else {
-      averageSalary = 3800;
-    }
-  }
-
 
 
   const uniqueCompaniesCount = new Set(jobs.map(j => j.companyName)).size;

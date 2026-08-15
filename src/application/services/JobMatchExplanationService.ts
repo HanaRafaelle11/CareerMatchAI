@@ -166,6 +166,7 @@ export class JobMatchExplanationService {
         /\b(disponibilidade|hor[áa]rio|finais de semana|feriados|flex[íi]vel)\b/i,
         /\b(sal[áa]rio|a combinar|benef[íi]cios|vt|vr|va|vale|refei[çc][ãa]o|alimenta[çc][ãa]o|plano|m[ée]dica|odontol[óo]gico|seguro|gympass|cesta|bonifica[çc][ãa]o|plr|comiss[ãa]o)\b/i,
         /\b(ensino m[ée]dio|ensino fundamental|maior de 18|documentos|f[áa]cil acesso|residir|comprovante|vaga efetiva|clt|pj|tempor[áa]rio|est[áa]gio)\b/i,
+        /\b(pcd|pcds|defici[êe]ncia|deficiente|afirmativa pcd|exclusiv[ao] pcd|cota pcd|laudo|laudo m[ée]dico)\b/i,
         /^(geral|outros|outra|requisitos)$/i
       ];
       for (const p of nonTechnicalPatterns) {

@@ -909,10 +909,20 @@ export function CoachDashboard({
           </CardGlass>
 
           <CardGlass className="p-6 space-y-4">
-            <h3 className="font-display font-bold text-base text-slate-900 dark:text-slate-100 pb-2 border-b border-slate-200 dark:border-slate-800 flex items-center gap-1.5">
-              <Award size={18} className="text-emerald-500" />
-              Diagnóstico Consolidado
-            </h3>
+            <div className="pb-2 border-b border-slate-200 dark:border-slate-800 space-y-1">
+              <div className="flex items-center justify-between">
+                <h3 className="font-display font-bold text-base text-slate-900 dark:text-slate-100 flex items-center gap-1.5">
+                  <Award size={18} className="text-emerald-500" />
+                  Diagnóstico do Currículo
+                </h3>
+                <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 font-semibold">
+                  Perfil Base
+                </span>
+              </div>
+              <p className="text-[11px] text-slate-500 dark:text-slate-400 leading-tight">
+                Análise estrutural de competências e palavras-chave do seu currículo cadastrado, independente de vagas de mercado.
+              </p>
+            </div>
             {!careerProfileNew ? (
               <p className="text-xs text-slate-600 dark:text-slate-400 italic">
                 Nenhum currículo ativo cadastrado. Faça o upload na aba "Perfil & Currículo" para gerar o diagnóstico de IA.

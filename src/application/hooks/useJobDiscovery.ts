@@ -285,6 +285,19 @@ export function useJobDiscovery(
             }
           }
 
+          // D. Filtragem de Vagas Exclusivas PCD (a menos que o usuário busque explicitamente por PCD)
+          const isSearchingPcd = Boolean(
+            (filters.keyword && /\b(pcd|pcds|defici[êe]ncia|deficiente)\b/i.test(filters.keyword)) ||
+            (originalKeyword && /\b(pcd|pcds|defici[êe]ncia|deficiente)\b/i.test(originalKeyword))
+          );
+          if (!isSearchingPcd) {
+            const titleLower = (job.title || '').toLowerCase();
+            const isPcdExclusive = /\b(exclusiv[ao]\s+(para\s+)?pcd|vaga\s+exclusiva\s+pcd|afirmativa\s+pcd|banco\s+de\s+talentos\s+pcd|destinad[ao]\s+(a|para)\s+pcd|apenas\s+pcd)\b|(\[pcd\]|\(pcd\)|-\s*pcd|\bpcd\b)/i.test(titleLower);
+            if (isPcdExclusive) {
+              return false;
+            }
+          }
+
           return true;
         });
 

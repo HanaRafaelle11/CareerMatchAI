@@ -10,9 +10,10 @@ interface CareerScoreDashboardCardProps {
   careerProfileNew?: CareerProfileNew | null;
   isLoading?: boolean;
   onExploreJobs?: () => void;
+  onGoToProfile?: () => void;
 }
 
-export function CareerScoreDashboardCard({ resume, careerProfileNew, isLoading = false, onExploreJobs }: CareerScoreDashboardCardProps) {
+export function CareerScoreDashboardCard({ resume, careerProfileNew, isLoading = false, onExploreJobs, onGoToProfile }: CareerScoreDashboardCardProps) {
   // Determinar se os dados do perfil/currículo ainda estão sendo carregados da query
   const isDataLoading = Boolean(
     isLoading ||
@@ -106,12 +107,12 @@ export function CareerScoreDashboardCard({ resume, careerProfileNew, isLoading =
               </span>
             </div>
           </div>
-          {onExploreJobs && (
+          {(onGoToProfile || onExploreJobs) && (
             <button
-              onClick={onExploreJobs}
+              onClick={onGoToProfile || onExploreJobs}
               className="px-4 py-2 rounded-xl bg-blue-500 hover:bg-blue-400 text-slate-950 font-bold text-xs shrink-0 transition shadow-md shadow-blue-500/20 cursor-pointer flex items-center gap-1.5"
             >
-              <span>Completar meu perfil</span>
+              <span>Enviar meu currículo</span>
               <ArrowRight size={14} />
             </button>
           )}

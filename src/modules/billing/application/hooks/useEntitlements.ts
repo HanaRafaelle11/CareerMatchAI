@@ -42,7 +42,7 @@ export function useEntitlements(userId?: string) {
     }
     if (!activeUid) return false;
     try {
-      return localStorage.getItem(`vocentro_is_pro_${activeUid}`) === 'true' || localStorage.getItem('vocentro_is_pro') === 'true';
+      return localStorage.getItem(`vocentro_is_pro_${activeUid}`) === 'true';
     } catch {
       return false;
     }
@@ -59,7 +59,8 @@ export function useEntitlements(userId?: string) {
   });
 
   const weekStartIso = getCalendarWeekStart().toISOString();
-  const weekStorageKey = `vocentro_unlocked_jobs_${weekStartIso.split('T')[0]}`;
+  const weekStartStr = weekStartIso.split('T')[0];
+  const getUserWeekStorageKey = (uid: string) => `vocentro_unlocked_jobs_${uid}_${weekStartStr}`;
 
   // Carregar vagas desbloqueadas do backend (Supabase) + cache local
   const checkStatus = useCallback(async () => {
@@ -69,6 +70,12 @@ export function useEntitlements(userId?: string) {
     }
 
     try {
+      // Limpar resíduos de chaves legadas não-escopadas
+      try {
+        localStorage.removeItem('vocentro_is_pro');
+        localStorage.removeItem(`vocentro_unlocked_jobs_${weekStartStr}`);
+      } catch {}
+
       // Tentar obter usuário autenticado se userId não for fornecido
       let activeUserId = userId;
       let authUserEmail = '';
@@ -86,14 +93,9 @@ export function useEntitlements(userId?: string) {
       }
 
       if (!activeUserId) {
-        // Fallback local se não autenticado (nunca concede Pro sem ID de usuário)
-        try {
-          const stored = localStorage.getItem(weekStorageKey);
-          setUnlockedJobIds(stored ? JSON.parse(stored) : []);
-          setIsPro(false);
-        } catch {
-          setUnlockedJobIds([]);
-        }
+        // Usuário deslogado / anônimo -> Reset completo de estado (0 vagas, Free)
+        setUnlockedJobIds([]);
+        setIsPro(false);
         setLoading(false);
         return;
       }
@@ -129,24 +131,22 @@ export function useEntitlements(userId?: string) {
         }
       }
 
-      // Fallback 2: Checar perfil do usuário (role admin, plan pro ou is_pro)
+      // Fallback 2: Checar perfil do usuário (apenas colunas existentes no schema: role, email)
       if (!userIsPro) {
         const { data: profile } = await supabase
           .from('profiles')
-          .select('role, plan, is_pro, email')
+          .select('role, email')
           .eq('id', activeUserId)
           .maybeSingle();
 
         if (profile) {
           const isRoleAdmin = profile.role === 'admin' || profile.role === 'administrador';
-          const isPlanPro = profile.plan === 'pro';
-          const isFlagPro = profile.is_pro === true;
           const cleanProfEmail = (profile.email || '').trim().toLowerCase();
           const cleanAuthEmail = (authUserEmail || '').trim().toLowerCase();
           const isWhitelistedProEmail = (cleanProfEmail && ALLOWED_PRO_EMAILS.some(e => e === cleanProfEmail)) ||
                                         (cleanAuthEmail && ALLOWED_PRO_EMAILS.some(e => e === cleanAuthEmail));
 
-          if (isRoleAdmin || isPlanPro || isFlagPro || isWhitelistedProEmail) {
+          if (isRoleAdmin || isWhitelistedProEmail) {
             userIsPro = true;
           }
         }
@@ -178,7 +178,6 @@ export function useEntitlements(userId?: string) {
       } else {
         try {
           localStorage.removeItem(`vocentro_is_pro_${activeUserId}`);
-          localStorage.removeItem('vocentro_is_pro'); // Remove qualquer resíduo legado não escopado
         } catch {}
       }
 
@@ -194,7 +193,6 @@ export function useEntitlements(userId?: string) {
       setWeeklyApplicationsCount(appCount || 0);
 
       // 3. Carregar Vagas Desbloqueadas nesta Semana no Backend (user_unlocked_jobs / activity_logs)
-      const weekStartStr = weekStartIso.split('T')[0];
       const { data: unlockedRows } = await supabase
         .from('user_unlocked_jobs')
         .select('job_id')
@@ -217,16 +215,12 @@ export function useEntitlements(userId?: string) {
 
       dbUnlocked = Array.from(new Set(dbUnlocked));
       
-      // Sincronizar com localStorage (cache secundário)
+      // Sincronizar com localStorage escopado estritamente pelo ID do usuário
+      const userStorageKey = getUserWeekStorageKey(activeUserId);
+      setUnlockedJobIds(dbUnlocked);
       try {
-        const stored = localStorage.getItem(weekStorageKey);
-        const localList: string[] = stored ? JSON.parse(stored) : [];
-        const merged = Array.from(new Set([...dbUnlocked, ...localList]));
-        setUnlockedJobIds(merged);
-        localStorage.setItem(weekStorageKey, JSON.stringify(merged));
-      } catch {
-        setUnlockedJobIds(dbUnlocked);
-      }
+        localStorage.setItem(userStorageKey, JSON.stringify(dbUnlocked));
+      } catch {}
 
       // 4. Contar Versões de Currículo Salvas
       const { count: resumeCount } = await supabase
@@ -240,7 +234,7 @@ export function useEntitlements(userId?: string) {
     } finally {
       setLoading(false);
     }
-  }, [userId, weekStartIso, weekStorageKey]);
+  }, [userId, weekStartIso, weekStartStr]);
 
   useEffect(() => {
     checkStatus();
@@ -306,7 +300,8 @@ export function useEntitlements(userId?: string) {
           if (res.success) {
             const next = Array.from(new Set([...unlockedJobIds, jobId]));
             setUnlockedJobIds(next);
-            try { localStorage.setItem(weekStorageKey, JSON.stringify(next)); } catch {}
+            const userStorageKey = getUserWeekStorageKey(userId || 'anon');
+            try { localStorage.setItem(userStorageKey, JSON.stringify(next)); } catch {}
 
             supabase.from('activity_logs').insert({
               user_id: userId,
@@ -341,7 +336,7 @@ export function useEntitlements(userId?: string) {
     }
 
     setUnlockedJobIds(next);
-    try { localStorage.setItem(weekStorageKey, JSON.stringify(next)); } catch {}
+    try { localStorage.setItem(getUserWeekStorageKey(userId || 'anon'), JSON.stringify(next)); } catch {}
 
     if (userId && supabase) {
       supabase.from('activity_logs').insert({

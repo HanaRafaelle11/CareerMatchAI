@@ -226,12 +226,24 @@ export const isTechnicalOrDomainReq = (req: string): boolean => {
     /\b(disponibilidade|hor[áa]rio|finais de semana|feriados|flex[íi]vel)\b/i,
     /\b(sal[áa]rio|a combinar|benef[íi]cios|vt|vr|va|vale|refei[çc][ãa]o|alimenta[çc][ãa]o|plano|m[ée]dica|odontol[óo]gico|seguro|gympass|cesta|bonifica[çc][ãa]o|plr|comiss[ãa]o)\b/i,
     /\b(ensino m[ée]dio|ensino fundamental|maior de 18|documentos|f[áa]cil acesso|residir|comprovante|vaga efetiva|clt|pj|tempor[áa]rio|est[áa]gio)\b/i,
+    /\b(pcd|pcds|defici[êe]ncia|deficiente|afirmativa pcd|exclusiv[ao] pcd|cota pcd|laudo|laudo m[ée]dico)\b/i,
     /^(geral|outros|outra|requisitos)$/i
   ];
   for (const p of nonTechnicalPatterns) {
     if (p.test(clean)) return false;
   }
   return true;
+};
+
+/**
+ * Detecta se uma vaga é exclusiva ou afirmativa para PCD
+ */
+export const isJobPcdExclusive = (job: { title?: string; description?: string; requirements?: string[] }): boolean => {
+  const title = (job.title || '').trim().toLowerCase();
+  if (/\b(exclusiv[ao]\s+(para\s+)?pcd|vaga\s+exclusiva\s+pcd|afirmativa\s+pcd|banco\s+de\s+talentos\s+pcd|destinad[ao]\s+(a|para)\s+pcd|apenas\s+pcd)\b|(\[pcd\]|\(pcd\)|-\s*pcd|\bpcd\b)/i.test(title)) {
+    return true;
+  }
+  return false;
 };
 
 /**

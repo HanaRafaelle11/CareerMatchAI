@@ -5,9 +5,10 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "tsc -b && vite build",
+    "build": "tsc -b && vitest run tests/unit && vite build",
     "lint": "oxlint",
     "preview": "vite preview",
+    "test:unit": "vitest run tests/unit",
     "test:e2e": "playwright test",
     "test:e2e:ui": "node scripts/run-e2e-browser-suite.mjs",
     "test:regression": "node scripts/run-regression-suite.mjs && node scripts/run-e2e-browser-suite.mjs",
@@ -47,6 +48,7 @@
     "sharp": "^0.35.3",
     "tailwindcss": "^4.3.2",
     "typescript": "~6.0.2",
-    "vite": "^8.1.1"
+    "vite": "^8.1.1",
+    "vitest": "^4.1.10"
   }
 }

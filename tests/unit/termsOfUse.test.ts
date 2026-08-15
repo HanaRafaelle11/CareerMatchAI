@@ -12,15 +12,16 @@ describe('Validação da Página de Termos de Uso (TermsOfUsePage)', () => {
     expect(fileContent).toContain('Termos de Uso - Vocentro');
   });
 
-  it('Deve conter todas as 8 seções obrigatórias estruturadas', () => {
+  it('Deve conter todas as 9 seções obrigatórias estruturadas', () => {
     expect(fileContent).toContain('1. Aceitação dos Termos');
     expect(fileContent).toContain('2. Descrição do Serviço');
     expect(fileContent).toContain('3. Planos de Assinatura, Cobrança e Cancelamento');
     expect(fileContent).toContain('4. Propriedade Intelectual do Conteúdo Gerado por IA');
-    expect(fileContent).toContain('5. Regras de Conduta do Usuário');
-    expect(fileContent).toContain('6. Limitação de Responsabilidade');
-    expect(fileContent).toContain('7. Legislação Aplicável e Foro');
-    expect(fileContent).toContain('8. Alterações e Contato');
+    expect(fileContent).toContain('5. Processamento por Inteligência Artificial e Transferência Internacional de Dados');
+    expect(fileContent).toContain('6. Regras de Conduta do Usuário');
+    expect(fileContent).toContain('7. Limitação de Responsabilidade');
+    expect(fileContent).toContain('8. Legislação Aplicável e Foro');
+    expect(fileContent).toContain('9. Alterações e Contato');
   });
 
   it('Deve conter navegação de retorno e suporte por e-mail oficial', () => {

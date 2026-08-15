@@ -2,12 +2,16 @@ import { test, expect } from '@playwright/test';
 
 async function ensureAuthenticated(page: any) {
   await page.addInitScript(() => {
-    window.localStorage.setItem('vocentro_mock_user', JSON.stringify({
+    const user = {
       id: 'usr_e2e_pipeline_isolation',
       email: 'pipeline.isolation.e2e@example.com',
-      name: 'Candidato E2E Pipeline'
-    }));
+      name: 'Candidato E2E Pipeline',
+      user_metadata: { full_name: 'Candidato E2E Pipeline' }
+    };
+    window.localStorage.setItem('vocentro_mock_user', JSON.stringify(user));
+    window.localStorage.setItem('vocentro_auth_user', JSON.stringify(user));
     window.localStorage.setItem('vocentro_mock_authenticated', 'true');
+    window.localStorage.setItem('vocentro_onboarding_completed', 'true');
   });
 
   await page.goto('/');

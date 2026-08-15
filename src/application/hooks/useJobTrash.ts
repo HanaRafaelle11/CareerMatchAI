@@ -174,7 +174,7 @@ export function useJobTrash(userId?: string, activeJobs: Job[] = []) {
             user_id: userId,
             job_id: targetJobId,
             action: 'REJECTED',
-            reason: JSON.stringify({ title, companyName, location })
+            reason: 'BAD_MATCH'
           });
 
         if (error && !error.message.includes('duplicate')) {

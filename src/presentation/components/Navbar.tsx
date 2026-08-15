@@ -40,6 +40,8 @@ interface NavbarProps {
   onOpenCopilot?: () => void;
   userId?: string;
   userEmail?: string;
+  careerProfile?: any;
+  activeResume?: any;
 }
 
 interface JourneyStep {
@@ -69,11 +71,27 @@ export function Navbar({
   onToggleCollapse,
   onOpenCopilot,
   userId,
-  userEmail
+  userEmail,
+  careerProfile,
+  activeResume
 }: NavbarProps) {
+  const linkedinVal = careerProfile?.personal?.linkedin;
+  const hasLinkedin = !!linkedinVal && 
+    typeof linkedinVal === 'string' && 
+    linkedinVal.trim().length > 0 && 
+    !['n/a', 'na', 'none', 'não informado', 'não consta', 'n-a', 'null', 'undefined', 'n.a.'].includes(linkedinVal.toLowerCase().trim()) && 
+    linkedinVal.toLowerCase().includes('linkedin.com');
+  const hasSkills = ((careerProfile as any)?.skills?.length || 0) > 0;
+  const hasExperiences = ((careerProfile as any)?.experience?.length || 0) > 0;
+
   const completenessResult = calculateProfileCompleteness({
     hasResume,
-    profile
+    hasLinkedin,
+    hasSkills,
+    hasExperiences,
+    profile,
+    careerProfile,
+    resume: activeResume
   });
   const profileCompleteness = completenessResult.score;
 

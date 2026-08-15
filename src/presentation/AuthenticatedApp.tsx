@@ -482,6 +482,8 @@ export function AuthenticatedApp({
         onOpenCopilot={() => setIsCopilotOpen(true)}
         userId={user?.id}
         userEmail={user?.email}
+        careerProfile={careerProfileNew}
+        activeResume={selectedResume}
       />
 
       <main className={`flex-1 w-full min-w-0 px-4 sm:px-6 transition-all duration-300 ${

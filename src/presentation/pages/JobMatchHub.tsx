@@ -2452,7 +2452,7 @@ export function JobMatchHub({
                   }
 
                   return listToRender.map(job => {
-                    const isActive = String(job.id) === String(selectedJobId);
+                    const isActive = String(job.id) === String(selectedJobId || selectedJob?.id);
                     const match = matches.find(m => 
                       String(m.jobId) === String(job.id) || 
                       (m as any).job_id === String(job.id) || 

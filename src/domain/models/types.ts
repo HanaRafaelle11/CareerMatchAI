@@ -471,6 +471,17 @@ export interface CareerFitBreakdown {
   createdAt?: string;
 }
 
+export interface JobMatchScore {
+  total: number;
+  skills: number;
+  experience: number;
+  seniority: number;
+  location: number;
+  keywords: number;
+  explanation: string;
+  breakdown?: CareerFitBreakdown;
+}
+
 export interface MatchStrengthItem {
   skill: string;
   reason: string;

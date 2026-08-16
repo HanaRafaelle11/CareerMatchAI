@@ -8,7 +8,8 @@ import { useCoach } from '../../application/hooks/useCoach';
 import { useCareerIntelligence } from '../../application/hooks/useCareerIntelligence';
 import { CareerCoachService } from '../../application/services/CareerCoachService';
 import { MatchingEngine } from '../../application/services/matchingEngine';
-import type { Job, Resume, Match, CareerProfile, JobFeedbackReason } from '../../domain/models/types';
+import type { Job, Resume, Match, CareerProfile, JobFeedbackReason, JobMatchScore } from '../../domain/models/types';
+import { buildJobMatchScore } from '../../domain/services/UnifiedMatchService';
 import type { CareerProfileNew } from '../../application/hooks/useMyProfileAi';
 import { useEscapeToClose } from '../../application/hooks/useEscapeToClose';
 import { Play, Clipboard, Award, CheckCircle, AlertTriangle, AlertCircle, X, ChevronRight, BookOpen, Plus, Search, MapPin, Loader2, ArrowUpRight, Flame, Sparkles, Trash2, Briefcase, Heart, DollarSign, Building, FileText, Printer, Check, Zap, RotateCcw, Filter, Info } from 'lucide-react';
@@ -1677,9 +1678,12 @@ export function JobMatchHub({
 
   // ── UNIFIED MATCH SCORE (SINGLE SOURCE OF TRUTH FOR SELECTED JOB) ──
   const currentSelectedMatch = selectedJob ? matches.find(m => m.jobId === selectedJob.id) : null;
-  const unifiedJobMatchScore = selectedJob
-    ? (currentSelectedMatch?.scoreOverall ?? explanation?.careerFitScore ?? (selectedJob?.scores as any)?.overall ?? null)
-    : null;
+  const currentJobMatchScore: JobMatchScore = buildJobMatchScore(
+    currentSelectedMatch?.scoreOverall ?? explanation?.careerFitScore ?? (selectedJob?.scores as any)?.overall ?? 0,
+    explanation,
+    currentSelectedMatch
+  );
+  const unifiedJobMatchScore = selectedJob && currentJobMatchScore.total > 0 ? currentJobMatchScore.total : null;
 
   // ── Cálculo Escalável e Robusto do Salário Médio ──
   const targetJobsForSalary = (subTab === 'discover' && discoveredJobs.length > 0) ? discoveredJobs : (discoveredJobs.length > 0 ? discoveredJobs : jobs);
@@ -2338,7 +2342,7 @@ export function JobMatchHub({
                             ) : (
                               <div className="space-y-2">
                                 <ArrowUpRight className="mx-auto text-slate-500" size={32} />
-                                <p className="text-xs font-semibold text-slate-350">Arraste ou clique para selecionar o PDF da vaga</p>
+                                <p className="text-xs font-semibold text-slate-300">Arraste ou clique para selecionar o PDF da vaga</p>
                                 <p className="text-[9px] text-slate-500">Tamanho máximo: 10MB</p>
                               </div>
                             )}
@@ -2485,7 +2489,7 @@ export function JobMatchHub({
                                 ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' 
                                 : match.scoreOverall >= 70 
                                 ? 'bg-amber-500/10 text-amber-400 border-amber-500/20' 
-                                : 'bg-slate-500/10 text-slate-350 border-slate-700/30'
+                                : 'bg-slate-500/10 text-slate-300 border-slate-700/30'
                             }`}>
                               {match.scoreOverall}%
                             </span>
@@ -2660,12 +2664,12 @@ export function JobMatchHub({
                             </div>
                           ) : (
                             <ProgressRing 
-                              value={currentMatch ? currentMatch.scoreOverall : (explanation?.careerFitScore || selectedJob?.scores?.overall || 0)} 
+                              value={currentJobMatchScore.total} 
                               size={56} 
                               strokeWidth={4}
                               label={
                                 <span className="text-emerald-400 font-extrabold text-sm font-display">
-                                  {currentMatch ? `${currentMatch.scoreOverall}%` : (explanation?.careerFitScore ? `${explanation.careerFitScore}%` : (selectedJob?.scores?.overall ? `${selectedJob.scores.overall}%` : '--'))}
+                                  {currentJobMatchScore.total > 0 ? `${currentJobMatchScore.total}%` : '--'}
                                 </span>
                               } 
                             />
@@ -2705,30 +2709,42 @@ export function JobMatchHub({
                           <Zap size={18} className="text-blue-300 shrink-0 mt-0.5" />
                           <div>
                             <span className="font-semibold text-blue-200 block mb-0.5">Diagnóstico do Match:</span>
-                            {explanation?.overallMatchReason || 'Sua trajetória e competências apresentam alta sinergia com os requisitos essenciais desta posição.'}
+                            {explanation?.overallMatchReason || `Sua trajetória e competências apresentam alta sinergia com os requisitos essenciais desta posição (${currentJobMatchScore.total}%).`}
                           </div>
                         </div>
 
                         {/* 7-Factor Transparency Breakdown */}
                         {explanation?.breakdown && (
-                          <div className="p-4 rounded-xl bg-slate-800/60 border border-slate-600/60 space-y-3">
+                          <div className="p-4 rounded-xl bg-slate-800/60 border border-slate-700/80 space-y-3">
                             <span className="text-[11px] font-bold text-slate-200 uppercase tracking-wider block">Transparência dos 7 Fatores de Fit:</span>
-                            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-center text-xs">
-                              <div className="p-2 rounded-lg bg-slate-700/50 border border-slate-600">
-                                <span className="text-[9px] text-slate-300 uppercase font-semibold block">Skills (30%)</span>
-                                <span className="font-bold text-emerald-300">{explanation.breakdown.skillsScore}%</span>
+                            <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-2 text-center text-xs">
+                              <div className="p-2.5 rounded-lg bg-slate-900/60 border border-slate-700/80">
+                                <span className="text-[9px] text-slate-300 uppercase font-semibold block truncate">Skills (30%)</span>
+                                <span className="font-bold text-emerald-400">{explanation.breakdown.skillsScore}%</span>
                               </div>
-                              <div className="p-2 rounded-lg bg-slate-700/50 border border-slate-600">
-                                <span className="text-[9px] text-slate-300 uppercase font-semibold block">Experiência (25%)</span>
-                                <span className="font-bold text-blue-300">{explanation.breakdown.experienceScore}%</span>
+                              <div className="p-2.5 rounded-lg bg-slate-900/60 border border-slate-700/80">
+                                <span className="text-[9px] text-slate-300 uppercase font-semibold block truncate">Experiência (25%)</span>
+                                <span className="font-bold text-blue-400">{explanation.breakdown.experienceScore}%</span>
                               </div>
-                              <div className="p-2 rounded-lg bg-slate-700/50 border border-slate-600">
-                                <span className="text-[9px] text-slate-300 uppercase font-semibold block">Senioridade (15%)</span>
-                                <span className="font-bold text-indigo-300">{explanation.breakdown.seniorityScore}%</span>
+                              <div className="p-2.5 rounded-lg bg-slate-900/60 border border-slate-700/80">
+                                <span className="text-[9px] text-slate-300 uppercase font-semibold block truncate">Senioridade (15%)</span>
+                                <span className="font-bold text-indigo-400">{explanation.breakdown.seniorityScore}%</span>
                               </div>
-                              <div className="p-2 rounded-lg bg-slate-700/50 border border-slate-600">
-                                <span className="text-[9px] text-slate-300 uppercase font-semibold block">Objetivos (15%)</span>
-                                <span className="font-bold text-purple-300">{explanation.breakdown.careerGoalScore}%</span>
+                              <div className="p-2.5 rounded-lg bg-slate-900/60 border border-slate-700/80">
+                                <span className="text-[9px] text-slate-300 uppercase font-semibold block truncate">Objetivos (15%)</span>
+                                <span className="font-bold text-purple-400">{explanation.breakdown.careerGoalScore}%</span>
+                              </div>
+                              <div className="p-2.5 rounded-lg bg-slate-900/60 border border-slate-700/80">
+                                <span className="text-[9px] text-slate-300 uppercase font-semibold block truncate">Salário (5%)</span>
+                                <span className="font-bold text-amber-400">{explanation.breakdown.salaryScore}%</span>
+                              </div>
+                              <div className="p-2.5 rounded-lg bg-slate-900/60 border border-slate-700/80">
+                                <span className="text-[9px] text-slate-300 uppercase font-semibold block truncate">Localização (5%)</span>
+                                <span className="font-bold text-cyan-400">{explanation.breakdown.locationScore}%</span>
+                              </div>
+                              <div className="p-2.5 rounded-lg bg-slate-900/60 border border-slate-700/80">
+                                <span className="text-[9px] text-slate-300 uppercase font-semibold block truncate">Semântica (5%)</span>
+                                <span className="font-bold text-teal-400">{explanation.breakdown.semanticScore}%</span>
                               </div>
                             </div>
                           </div>
@@ -2796,7 +2812,7 @@ export function JobMatchHub({
 
                         {/* ── BANNERS E CTAS CONTEXTUAIS DE MATCH ── */}
                         {explanation && (
-                          ((currentMatch?.scoreOverall ?? explanation.careerFitScore ?? 0) < 60) ? (
+                          (currentJobMatchScore.total < 60) ? (
                             <div className="p-4 rounded-xl bg-amber-950/40 border border-amber-500/40 space-y-3 animate-fade-in">
                               <div className="flex items-start gap-3">
                                 <div className="p-2 rounded-xl bg-amber-500/20 text-amber-400 border border-amber-500/30 shrink-0 mt-0.5">
@@ -2804,7 +2820,7 @@ export function JobMatchHub({
                                 </div>
                                 <div className="space-y-1">
                                   <h4 className="font-bold text-sm text-amber-300">
-                                    ⚠️ Seu currículo tem {currentMatch?.scoreOverall ?? explanation.careerFitScore ?? 45}% de aderência a esta vaga.
+                                    ⚠️ Seu currículo tem {currentJobMatchScore.total}% de aderência a esta vaga.
                                   </h4>
                                   <p className="text-xs text-amber-200/90 leading-relaxed">
                                     A otimização de currículo por IA ajuda a destacar suas experiências e competências mais alinhadas a esta oportunidade.
@@ -2814,7 +2830,7 @@ export function JobMatchHub({
                               <div className="pt-1">
                                 <button
                                   onClick={async () => {
-                                    tracker.trackMatchUpgradeCtaClicked(currentMatch?.scoreOverall ?? explanation.careerFitScore ?? 0, selectedJob.id, 'copilot');
+                                    tracker.trackMatchUpgradeCtaClicked(currentJobMatchScore.total, selectedJob.id, 'copilot');
                                     setCoachTab('optimize-cv');
                                     const el = document.getElementById('ai-career-coach-panel');
                                     if (el) el.scrollIntoView({ behavior: 'smooth' });
@@ -2837,7 +2853,7 @@ export function JobMatchHub({
                                 </div>
                                 <div className="space-y-1">
                                   <h4 className="font-bold text-sm text-emerald-300">
-                                    🎉 Excelente compatibilidade! ({currentMatch?.scoreOverall ?? explanation.careerFitScore}%)
+                                    🎉 Excelente compatibilidade! ({currentJobMatchScore.total}%)
                                   </h4>
                                   <p className="text-xs text-emerald-200/90 leading-relaxed">
                                     Seu perfil está bem alinhado a esta vaga. Gere a versão otimizada com palavras-chave estratégicas para ATS.
@@ -3205,18 +3221,18 @@ export function JobMatchHub({
                 )}
 
                 {/* Resultados de Compatibilidade Existentes */}
-                {currentMatch ? (
+                {selectedJob && (currentJobMatchScore.total > 0 || currentMatch) ? (
 
                   <div className="space-y-6">
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                       {/* Gráfico Radar */}
                       <RadarChart
                         scores={{
-                          technical: currentMatch.scoreTechnical,
-                          behavioral: currentMatch.scoreBehavioral,
-                          seniority: currentMatch.scoreSeniority,
-                          overall: currentMatch.scoreOverall,
-                          location: currentMatch.scoreLocation
+                          technical: currentJobMatchScore.skills,
+                          behavioral: currentJobMatchScore.experience,
+                          seniority: currentJobMatchScore.seniority,
+                          overall: currentJobMatchScore.total,
+                          location: currentJobMatchScore.location
                         }}
                       />
 
@@ -3224,24 +3240,24 @@ export function JobMatchHub({
                       <div className="space-y-4">
                         <CardGlass className="flex flex-col justify-center space-y-4">
                           <div>
-                            <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Qualidade da Oportunidade (Job Score)</span>
+                            <span className="text-[10px] text-slate-300 font-bold uppercase tracking-wider">Compatibilidade Geral (Match Score)</span>
                             <div className="flex items-baseline gap-2 mt-1">
                               <h2 className="font-display font-extrabold text-5xl text-brand-500">
-                                {currentMatch.scoreOverall}%
+                                {currentJobMatchScore.total}%
                               </h2>
-                              <span className="text-[10px] px-2 py-0.5 rounded-full border border-slate-800 bg-slate-900 text-slate-400 font-semibold">
-                                {currentMatch.scoreOverall >= 90 ? 'Excelente 🔥' : currentMatch.scoreOverall >= 70 ? 'Boa ⚡' : 'Regular ⚠️'}
+                              <span className="text-[10px] px-2 py-0.5 rounded-full border border-slate-800 bg-slate-900 text-slate-300 font-semibold">
+                                {currentJobMatchScore.total >= 90 ? 'Excelente 🔥' : currentJobMatchScore.total >= 70 ? 'Boa ⚡' : 'Regular ⚠️'}
                               </span>
                             </div>
-                            {currentMatch.processingTimeMs && (
-                              <div className="text-[10px] text-slate-500 font-semibold mt-1">
+                            {currentMatch?.processingTimeMs && (
+                              <div className="text-[10px] text-slate-400 font-semibold mt-1">
                                 ⏱ Análise concluída em {(currentMatch.processingTimeMs / 1000).toFixed(1)} segundos
                               </div>
                             )}
-                            <p className="text-xs text-slate-400 mt-3 leading-relaxed">
-                              {currentMatch.scoreOverall >= 90
+                            <p className="text-xs text-slate-300 mt-3 leading-relaxed">
+                              {currentJobMatchScore.total >= 90
                                 ? 'Seu currículo possui um Match alto com os requisitos técnicos e comportamentais exigidos por esta oportunidade.'
-                                : currentMatch.scoreOverall >= 70
+                                : currentJobMatchScore.total >= 70
                                 ? 'Há um bom Match com os requisitos principais. Com pequenos ajustes, suas chances podem aumentar ainda mais.'
                                 : 'Match moderado com a vaga. Recomendamos otimizar as seções e palavras-chave de seu currículo para esta oportunidade.'}
                             </p>
@@ -3345,37 +3361,37 @@ export function JobMatchHub({
                           <div className="grid grid-cols-4 gap-2 pt-4 border-t border-slate-900 dark:border-slate-900 light:border-slate-200 text-center">
                             <div className="flex flex-col items-center">
                               <ProgressRing 
-                                value={currentMatch.scoreTechnical} 
+                                value={currentJobMatchScore.skills} 
                                 size={32} 
                                 strokeWidth={3} 
-                                color={currentMatch.scoreTechnical >= 85 ? 'stroke-emerald-500' : currentMatch.scoreTechnical >= 70 ? 'stroke-amber-500' : 'stroke-slate-500'}
+                                color={currentJobMatchScore.skills >= 85 ? 'stroke-emerald-500' : currentJobMatchScore.skills >= 70 ? 'stroke-amber-500' : 'stroke-slate-500'}
                               />
                               <span className="text-[9px] text-slate-400 font-bold mt-1 block">Técnico</span>
                             </div>
                             <div className="flex flex-col items-center">
                               <ProgressRing 
-                                value={currentMatch.scoreBehavioral} 
+                                value={currentJobMatchScore.experience} 
                                 size={32} 
                                 strokeWidth={3} 
-                                color={currentMatch.scoreBehavioral >= 85 ? 'stroke-emerald-500' : currentMatch.scoreBehavioral >= 70 ? 'stroke-amber-500' : 'stroke-slate-500'}
+                                color={currentJobMatchScore.experience >= 85 ? 'stroke-emerald-500' : currentJobMatchScore.experience >= 70 ? 'stroke-amber-500' : 'stroke-slate-500'}
                               />
                               <span className="text-[9px] text-slate-400 font-bold mt-1 block">Comport.</span>
                             </div>
                             <div className="flex flex-col items-center">
                               <ProgressRing 
-                                value={currentMatch.scoreSeniority} 
+                                value={currentJobMatchScore.seniority} 
                                 size={32} 
                                 strokeWidth={3} 
-                                color={currentMatch.scoreSeniority >= 85 ? 'stroke-emerald-500' : currentMatch.scoreSeniority >= 70 ? 'stroke-amber-500' : 'stroke-slate-500'}
+                                color={currentJobMatchScore.seniority >= 85 ? 'stroke-emerald-500' : currentJobMatchScore.seniority >= 70 ? 'stroke-amber-500' : 'stroke-slate-500'}
                               />
                               <span className="text-[9px] text-slate-400 font-bold mt-1 block">Seniorid.</span>
                             </div>
                             <div className="flex flex-col items-center">
                               <ProgressRing 
-                                value={currentMatch.scoreLocation} 
+                                value={currentJobMatchScore.location} 
                                 size={32} 
                                 strokeWidth={3} 
-                                color={currentMatch.scoreLocation >= 85 ? 'stroke-emerald-500' : currentMatch.scoreLocation >= 70 ? 'stroke-amber-500' : 'stroke-slate-500'}
+                                color={currentJobMatchScore.location >= 85 ? 'stroke-emerald-500' : currentJobMatchScore.location >= 70 ? 'stroke-amber-500' : 'stroke-slate-500'}
                               />
                               <span className="text-[9px] text-slate-400 font-bold mt-1 block">Localiz.</span>
                             </div>
@@ -3751,7 +3767,7 @@ export function JobMatchHub({
                                 </button>
                               </div>
                             </div>
-                            <p className="text-slate-350 leading-relaxed italic">"{renderFormattedMarkdown(optimization.optimizedSummary)}"</p>
+                            <p className="text-slate-300 leading-relaxed italic">"{renderFormattedMarkdown(optimization.optimizedSummary)}"</p>
                           </div>
 
                           <div className="space-y-2.5">
@@ -4223,7 +4239,7 @@ export function JobMatchHub({
                         ].map(mode => {
                           const isChecked = searchWorkModes.includes(mode.val);
                           return (
-                            <label key={mode.id} className="flex items-center gap-1.5 text-xs text-slate-350 cursor-pointer select-none">
+                            <label key={mode.id} className="flex items-center gap-1.5 text-xs text-slate-300 cursor-pointer select-none">
                               <input
                                 type="checkbox"
                                 checked={isChecked}

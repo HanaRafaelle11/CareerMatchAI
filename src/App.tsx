@@ -25,8 +25,8 @@ function LazyFallback() {
         <Loader2 className="animate-spin text-brand-500" size={24} />
       </div>
       <div className="text-center space-y-1">
-        <span className="text-xs font-semibold uppercase tracking-wider text-slate-355">Carregando Módulo</span>
-        <p className="text-[10px] text-slate-550">Preparando interface e componentes inteligentes...</p>
+        <span className="text-xs font-semibold uppercase tracking-wider text-slate-300">Carregando Módulo</span>
+        <p className="text-[10px] text-slate-400">Preparando interface e componentes inteligentes...</p>
       </div>
     </div>
   );

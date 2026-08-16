@@ -81,12 +81,12 @@ export function Notifications({
 
       {notifications.length === 0 ? (
         <CardGlass className="p-12 text-center flex flex-col items-center justify-center space-y-4">
-          <div className="p-4 rounded-full bg-slate-900 border border-slate-850 text-slate-600 animate-pulse">
+          <div className="p-4 rounded-full bg-slate-900 border border-slate-800 text-slate-500">
             <Bell size={28} />
           </div>
           <div className="space-y-1">
-            <h3 className="text-sm font-bold text-slate-350">Sem notificações no momento</h3>
-            <p className="text-xs text-slate-500 max-w-xs leading-relaxed">Você receberá atualizações quando a IA mapear novas vagas críticas ou quando houver tarefas pendentes.</p>
+            <h3 className="text-sm font-bold text-slate-200">Sem notificações no momento</h3>
+            <p className="text-xs text-slate-400 max-w-xs leading-relaxed">Você receberá atualizações quando a IA mapear novas vagas críticas ou quando houver tarefas pendentes.</p>
           </div>
         </CardGlass>
       ) : (

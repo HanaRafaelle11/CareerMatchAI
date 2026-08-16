@@ -403,14 +403,14 @@ export function CoachDashboard({
                       <div className="flex items-center justify-between p-3 rounded-[14px] bg-slate-950/30 border border-slate-900 text-xs">
                         <div className="min-w-0">
                           <span className="text-[10px] text-brand-accent font-bold uppercase tracking-wider block font-mono">Simulação Ativa</span>
-                          <span className="text-slate-350 font-semibold truncate block max-w-xs md:max-w-md">
+                          <span className="text-slate-200 font-semibold truncate block max-w-xs md:max-w-md">
                             {activeApps.find(app => app.id === selectedAppId)?.jobTitle} em {activeApps.find(app => app.id === selectedAppId)?.companyName}
                           </span>
                         </div>
                         <button
                           onClick={handleRestartSim}
                           disabled={isResettingSim}
-                          className="px-3 py-1.5 rounded-lg border border-slate-850 hover:border-slate-800 text-slate-400 font-semibold text-[10px] flex items-center gap-1 transition-all cursor-pointer disabled:opacity-50"
+                          className="px-3 py-1.5 rounded-lg border border-slate-800 hover:border-slate-700 text-slate-300 font-semibold text-[10px] flex items-center gap-1 transition-all cursor-pointer disabled:opacity-50"
                         >
                           {isResettingSim ? <Loader2 size={10} className="animate-spin" /> : <RefreshCcw size={10} />}
                           <span>{isResettingSim ? 'Reiniciando...' : 'Reiniciar'}</span>
@@ -426,7 +426,7 @@ export function CoachDashboard({
                               <div
                                 className={`p-3 rounded-2xl max-w-[85%] leading-relaxed ${
                                   isInterviewer
-                                    ? 'bg-slate-900 border border-slate-850 text-slate-350 self-start mr-auto'
+                                    ? 'bg-slate-900 border border-slate-800 text-slate-200 self-start mr-auto'
                                     : 'bg-brand-500/15 border border-brand-500/20 text-brand-400 self-end ml-auto'
                                 }`}
                               >
@@ -502,9 +502,9 @@ export function CoachDashboard({
                         })}
 
                         {isSending && (
-                          <div className="p-3 rounded-2xl max-w-[85%] bg-slate-900 border border-slate-850 text-slate-350 self-start mr-auto animate-pulse flex items-center gap-2 font-sans">
+                          <div className="p-3 rounded-2xl max-w-[85%] bg-slate-900 border border-slate-800 text-slate-200 self-start mr-auto animate-pulse flex items-center gap-2 font-sans">
                             <Loader2 size={12} className="animate-spin text-brand-accent" />
-                            <span className="text-[10px] text-slate-400">A Recrutadora Mariana está avaliando sua resposta e formulando o feedback...</span>
+                            <span className="text-[10px] text-slate-300">A Recrutadora Mariana está avaliando sua resposta e formulando o feedback...</span>
                           </div>
                         )}
                       </div>
@@ -523,19 +523,19 @@ export function CoachDashboard({
                                   <Star size={16} className="text-amber-400 fill-amber-400" />
                                   <span>Relatório Consolidado de IA</span>
                                 </div>
-                                <div className="text-slate-500 text-[10px]">
-                                  Duração: <strong className="text-slate-350">{Math.floor((evaluations.duration_seconds || simulation.duration_seconds || 0) / 60)}m {((evaluations.duration_seconds || simulation.duration_seconds || 0) % 60)}s</strong>
+                                <div className="text-slate-400 text-[10px]">
+                                  Duração: <strong className="text-slate-200">{Math.floor((evaluations.duration_seconds || simulation.duration_seconds || 0) / 60)}m {((evaluations.duration_seconds || simulation.duration_seconds || 0) % 60)}s</strong>
                                 </div>
                               </div>
 
                               {/* Progress Rings Grid */}
                               <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                                <div className="p-4 rounded-2xl bg-slate-900/40 border border-slate-850 flex flex-col items-center justify-center text-center space-y-1">
+                                <div className="p-4 rounded-2xl bg-slate-900/40 border border-slate-800 flex flex-col items-center justify-center text-center space-y-1">
                                   <ProgressRing value={evaluations.scoreOverall || 0} size={50} strokeWidth={5} />
                                   <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block pt-2">Nota Geral</span>
                                   <strong className="text-lg text-slate-200">{evaluations.scoreOverall}%</strong>
                                 </div>
-                                <div className="p-4 rounded-2xl bg-slate-900/40 border border-slate-850 flex flex-col items-center justify-center text-center space-y-1">
+                                <div className="p-4 rounded-2xl bg-slate-900/40 border border-slate-800 flex flex-col items-center justify-center text-center space-y-1">
                                   <ProgressRing value={evaluations.jobAdherence || 0} size={50} strokeWidth={5} />
                                   <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block pt-2">Match com a Vaga</span>
                                   <strong className="text-lg text-slate-200">{evaluations.jobAdherence}%</strong>
@@ -636,7 +636,7 @@ export function CoachDashboard({
                               <div className="flex gap-3 pt-4">
                                 <button
                                   onClick={handleRestartSim}
-                                  className="flex-1 py-2.5 rounded-xl border border-slate-800 hover:bg-slate-900 text-slate-350 font-bold text-xs transition-all cursor-pointer"
+                                  className="flex-1 py-2.5 rounded-xl border border-slate-800 hover:bg-slate-900 text-slate-200 font-bold text-xs transition-all cursor-pointer"
                                 >
                                   Treinar Novamente
                                 </button>
@@ -743,7 +743,7 @@ export function CoachDashboard({
                               <button
                                 type="button"
                                 onClick={handleRestartSim}
-                                className="flex-1 py-2 rounded-xl border border-slate-800 hover:bg-slate-900 text-slate-350 font-bold text-xs transition-all cursor-pointer"
+                                className="flex-1 py-2 rounded-xl border border-slate-800 hover:bg-slate-900 text-slate-200 font-bold text-xs transition-all cursor-pointer"
                               >
                                 Treinar Novamente
                               </button>

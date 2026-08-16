@@ -14,7 +14,8 @@ export class JobMatchExplanationService {
     job: Job,
     resume?: Resume | null,
     careerProfileNew?: CareerProfileNew | null,
-    resumeVersionId?: string
+    resumeVersionId?: string,
+    targetOverallScore?: number
   ): Promise<JobMatchExplanation> {
     if (!userId || !job) {
       throw new Error('Usuário e vaga são obrigatórios para explicação de match.');
@@ -49,7 +50,7 @@ export class JobMatchExplanationService {
               gaps: data.gaps || [],
               recommendation: data.recommendation,
               confidenceScore: data.confidence_score || 85,
-              careerFitScore: data.career_fit_score || 80,
+              careerFitScore: typeof targetOverallScore === 'number' ? targetOverallScore : (data.career_fit_score || 80),
               breakdown: breakdownData ? {
                 skillsScore: breakdownData.skills_score,
                 experienceScore: breakdownData.experience_score,
@@ -336,8 +337,8 @@ export class JobMatchExplanationService {
       (semanticScore * 0.05)
     );
 
-    // FONTE ÚNICA DA VERDADE — Baseada estritamente nos 7 fatores reais
-    const careerFitScore = calculatedFitScore;
+    // FONTE ÚNICA DA VERDADE — Baseada no score unificado oficial ou cálculo dos 7 fatores
+    const careerFitScore = typeof targetOverallScore === 'number' ? targetOverallScore : calculatedFitScore;
 
     const breakdown: CareerFitBreakdown = {
       skillsScore,

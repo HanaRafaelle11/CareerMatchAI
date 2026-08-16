@@ -37,8 +37,8 @@ function LazyFallback() {
         <Loader2 className="animate-spin text-brand-500" size={24} />
       </div>
       <div className="text-center space-y-1">
-        <span className="text-xs font-semibold uppercase tracking-wider text-slate-355">Carregando Módulo</span>
-        <p className="text-[10px] text-slate-550">Preparando interface e componentes inteligentes...</p>
+        <span className="text-xs font-semibold uppercase tracking-wider text-slate-300">Carregando Módulo</span>
+        <p className="text-[10px] text-slate-400">Preparando interface e componentes inteligentes...</p>
       </div>
     </div>
   );
@@ -201,14 +201,16 @@ export function AuthenticatedApp({
     if (tab === 'admin') {
       const userEmail = (user?.email || '').trim().toLowerCase();
       if (userEmail !== 'hanarafaelle11@gmail.com') {
-        window.history.pushState(null, '', '/');
+        if (window.location.pathname !== '/') {
+          window.history.replaceState(null, '', '/');
+        }
         setActiveTab('dashboard');
         return;
       }
       window.history.pushState(null, '', '/admin');
       setActiveTab('admin');
       return;
-    } else {
+    } else if (window.location.pathname === '/admin') {
       window.history.pushState(null, '', '/');
     }
 

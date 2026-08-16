@@ -1,7 +1,7 @@
 import { localDB } from '../../infrastructure/storage/localDatabase';
 import { isSupabaseConfigured, supabase } from '../../infrastructure/api/supabaseClient';
 import { JobMatchExplanationService } from '../../application/services/JobMatchExplanationService';
-import type { Job, Resume, Match, JobMatchExplanation } from '../models/types';
+import type { Job, Resume, Match, JobMatchExplanation, JobMatchScore } from '../models/types';
 import type { CareerProfileNew } from '../../application/hooks/useMyProfileAi';
 
 export interface UnifiedMatchResult {
@@ -11,6 +11,32 @@ export interface UnifiedMatchResult {
   missingSkills: string[];
   matchedSkills: string[];
   reason: string;
+  jobMatchScore: JobMatchScore;
+}
+
+export function buildJobMatchScore(
+  totalScore: number,
+  explanation?: JobMatchExplanation | null,
+  match?: Match | null
+): JobMatchScore {
+  const total = Math.max(0, Math.min(100, Math.round(totalScore)));
+  const skills = explanation?.breakdown?.skillsScore ?? match?.scoreTechnical ?? (total > 0 ? total : 0);
+  const experience = explanation?.breakdown?.experienceScore ?? match?.scoreBehavioral ?? (total > 0 ? total : 0);
+  const seniority = explanation?.breakdown?.seniorityScore ?? match?.scoreSeniority ?? (total > 0 ? total : 0);
+  const location = explanation?.breakdown?.locationScore ?? match?.scoreLocation ?? (total > 0 ? total : 0);
+  const keywords = explanation?.breakdown?.semanticScore ?? (total > 0 ? total : 0);
+  const explanationText = explanation?.overallMatchReason || (total > 0 ? `Match de ${total}% com seu perfil.` : 'Nenhum match calculado para esta vaga.');
+
+  return {
+    total,
+    skills,
+    experience,
+    seniority,
+    location,
+    keywords,
+    explanation: explanationText,
+    breakdown: explanation?.breakdown
+  };
 }
 
 export class UnifiedMatchService {
@@ -26,13 +52,16 @@ export class UnifiedMatchService {
     existingMatch?: Match | null
   ): Promise<UnifiedMatchResult> {
     if (!userId || !job) {
+      const fallbackScore = (job as any)?.scoreOverall ?? (job as any)?.scores?.overall ?? 0;
+      const jobMatchScore = buildJobMatchScore(fallbackScore, null, existingMatch);
       return {
-        scoreOverall: (job as any)?.scoreOverall ?? (job as any)?.scores?.overall ?? 50,
+        scoreOverall: jobMatchScore.total,
         confidence: 'medium',
         explanation: null,
         missingSkills: [],
         matchedSkills: [],
-        reason: 'Aguardando seleção de currículo'
+        reason: 'Aguardando seleção de currículo',
+        jobMatchScore
       };
     }
 
@@ -47,27 +76,33 @@ export class UnifiedMatchService {
         job,
         resume,
         careerProfileNew,
-        activeResumeVersionId
+        activeResumeVersionId,
+        score
       ).catch(() => null);
 
+      const jobMatchScore = buildJobMatchScore(score, explanation, existingMatch);
+
       return {
-        scoreOverall: score,
+        scoreOverall: jobMatchScore.total,
         confidence: 'high',
         explanation,
         missingSkills: (existingMatch as any).gap_analysis?.missingSkills || (existingMatch as any).missingSkills || [],
         matchedSkills: (existingMatch as any).gap_analysis?.matchedSkills || (existingMatch as any).matchedSkills || [],
-        reason: explanation?.overallMatchReason || `Match de ${score}% com o currículo ativo.`
+        reason: explanation?.overallMatchReason || `Match de ${jobMatchScore.total}% com o currículo ativo.`,
+        jobMatchScore
       };
     }
 
     // 2. Se não há match salvo no banco: retorna não calculado (0%) sem gerar números falsos preliminares
+    const emptyMatchScore = buildJobMatchScore(0, null, null);
     return {
       scoreOverall: 0,
       confidence: 'low',
       explanation: null,
       missingSkills: [],
       matchedSkills: [],
-      reason: 'Nenhum match calculado para esta vaga. Clique em "Calcular Match" para analisar.'
+      reason: 'Nenhum match calculado para esta vaga. Clique em "Calcular Match" para analisar.',
+      jobMatchScore: emptyMatchScore
     };
   }
 

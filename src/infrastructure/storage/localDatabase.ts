@@ -47,6 +47,9 @@ class LocalDatabase {
   }
 
   private init() {
+    if (typeof window === 'undefined' || typeof localStorage === 'undefined') {
+      return;
+    }
     const isDev = Boolean(typeof import.meta !== 'undefined' && import.meta.env && (import.meta.env.DEV || import.meta.env.MODE === 'development'));
     
     // Se o Supabase estiver configurado no ambiente, ou se não for ambiente de desenvolvimento, inicia o banco local vazio para não contaminar com dados mock

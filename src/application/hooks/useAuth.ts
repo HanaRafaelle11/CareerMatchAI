@@ -80,10 +80,17 @@ export function useAuth() {
       // Escutar mudanças de autenticação
       const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
         if (!isMounted) return;
-        setUser(session?.user ?? null);
+        if (_event === 'SIGNED_OUT') {
+          setUser(null);
+          setProfile(null);
+          setLoading(false);
+          return;
+        }
         if (session?.user) {
+          setUser(session.user);
           fetchSupabaseProfile(session.user.id);
-        } else {
+        } else if (_event === 'INITIAL_SESSION') {
+          setUser(null);
           setProfile(null);
           setLoading(false);
         }

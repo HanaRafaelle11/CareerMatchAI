@@ -299,7 +299,7 @@ export function AiCreditsWidget({ className = '', compact = false, userId }: AiC
           </div>
           <div className="flex items-center gap-1.5 justify-end">
             <DollarSign size={11} className="text-slate-500" />
-            <span>Consumo Mensal: <strong className="text-slate-350">R$ {credits.estimatedCostBRL.toFixed(2)}</strong></span>
+            <span>Consumo Mensal: <strong className="text-slate-300">R$ {credits.estimatedCostBRL.toFixed(2)}</strong></span>
           </div>
         </div>
       </div>

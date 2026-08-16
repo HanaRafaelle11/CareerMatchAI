@@ -1711,7 +1711,7 @@ export function AdminDashboard({ userId }: AdminDashboardProps) {
                         <span className="text-slate-400 font-medium">{item.name}</span>
                         <div className="flex items-center gap-1.5">
                           <span className={`h-1.5 w-1.5 rounded-full ${item.color}`} />
-                          <span className="text-[10px] font-bold text-slate-355">{item.status}</span>
+                          <span className="text-[10px] font-bold text-slate-200">{item.status}</span>
                         </div>
                       </div>
                     ))}
@@ -2682,10 +2682,10 @@ export function AdminDashboard({ userId }: AdminDashboardProps) {
                       return (
                         <div key={idx} className="space-y-1 text-xs">
                           <div className="flex justify-between font-semibold">
-                            <span className="text-slate-355 font-bold">{step.step_name}</span>
+                            <span className="text-slate-200 font-bold">{step.step_name}</span>
                             <div className="text-right">
-                              <span className="text-slate-200 font-bold">{step.count}</span>
-                              <span className="text-slate-555 ml-1.5">({pct}%)</span>
+                              <span className="text-slate-100 font-bold">{step.count}</span>
+                              <span className="text-slate-400 ml-1.5">({pct}%)</span>
                             </div>
                           </div>
                           <div className="h-3 w-full bg-slate-950 rounded-lg overflow-hidden border border-slate-900">
@@ -2779,8 +2779,8 @@ export function AdminDashboard({ userId }: AdminDashboardProps) {
                                   {executedSymbol}
                                 </span>
                               </td>
-                              <td className="py-2.5 text-center font-mono text-slate-600 dark:text-slate-350">{stat.avg_latency} ms</td>
-                              <td className="py-2.5 text-center font-mono text-slate-600 dark:text-slate-350">{httpCode}</td>
+                              <td className="py-2.5 text-center font-mono text-slate-600 dark:text-slate-300">{stat.avg_latency} ms</td>
+                              <td className="py-2.5 text-center font-mono text-slate-600 dark:text-slate-300">{httpCode}</td>
                               <td className="py-2.5 text-center font-mono text-slate-700 dark:text-slate-300 font-semibold">{stat.total_jobs}</td>
                               <td className="py-2.5 text-center font-mono text-emerald-600 dark:text-emerald-500 font-semibold">{validJobs}</td>
                               <td className="py-2.5 text-center font-mono text-amber-600 dark:text-amber-400">{discardedJobs}</td>

@@ -846,7 +846,7 @@ export function Settings({
                   <label className="text-xs text-slate-600 dark:text-slate-400 font-semibold block">Modelo de Trabalho</label>
                   <div className="flex gap-4">
                     {['remote', 'hybrid', 'onsite'].map((mode) => (
-                      <label key={mode} className="flex items-center gap-1.5 text-xs text-slate-350 cursor-pointer">
+                      <label key={mode} className="flex items-center gap-1.5 text-xs text-slate-700 dark:text-slate-200 cursor-pointer">
                         <input
                           type="checkbox"
                           checked={workModes.includes(mode)}
@@ -1055,17 +1055,17 @@ export function Settings({
                 Segurança, Privacidade e LGPD
               </h3>
 
-              <div className="space-y-4 max-w-2xl text-xs leading-relaxed text-slate-350">
+              <div className="space-y-4 max-w-2xl text-xs leading-relaxed text-slate-700 dark:text-slate-300">
                 <p>
-                  Sua privacidade e a segurança dos seus dados pessoais e de currículos são fundamentais para nós. Em conformidade com a <strong>Lei Geral de Proteção de Dados (LGPD - Lei nº 13.709/2018)</strong>, você tem total autonomia sobre suas informações coletadas.
+                  Sua privacidade e a segurança dos seus dados pessoais e de currículos são fundamentais para nós. Em conformidade com a <strong className="text-slate-900 dark:text-slate-100">Lei Geral de Proteção de Dados (LGPD - Lei nº 13.709/2018)</strong>, você tem total autonomia sobre suas informações coletadas.
                 </p>
 
-                <div className="p-4 rounded-xl bg-slate-900/30 border border-slate-850/60 space-y-2">
-                  <span className="text-xs font-bold text-slate-200 block">Como protegemos seus dados:</span>
-                  <ul className="list-disc pl-4 space-y-1 text-slate-400 text-[11px]">
+                <div className="p-5 rounded-2xl bg-slate-100 dark:bg-slate-900 border border-slate-300 dark:border-slate-700/80 space-y-2.5">
+                  <span className="text-xs font-bold text-slate-900 dark:text-slate-100 block">Como protegemos seus dados:</span>
+                  <ul className="list-disc pl-4 space-y-1.5 text-slate-700 dark:text-slate-300 text-xs leading-relaxed">
                     <li>Currículos são armazenados em ambiente isolado e seguro no Supabase Storage.</li>
-                    <li>As requisições à inteligência artificial do Gemini utilizam dados anonimizados sempre que possível.</li>
-                    <li>Nenhuma informação de currículo ou dados de perfil é vendida ou repassada a terceiros.</li>
+                    <li>As requisições à inteligência artificial utilizam dados anonimizados e proteção ponta a ponta.</li>
+                    <li>Nenhuma informação de currículo ou dados de perfil é comercializada ou compartilhada com terceiros.</li>
                   </ul>
                 </div>
 
@@ -1077,7 +1077,7 @@ export function Settings({
                     onChange={e => setGdprConsent(e.target.checked)}
                     className="h-4 w-4 accent-brand-500 rounded bg-slate-900 cursor-pointer mt-0.5"
                   />
-                  <label htmlFor="gdpr-consent" className="text-[11px] text-slate-400 cursor-pointer">
+                  <label htmlFor="gdpr-consent" className="text-xs text-slate-700 dark:text-slate-300 cursor-pointer leading-relaxed">
                     Consinto com o processamento dos meus currículos via inteligência artificial para fins de cálculo do Match da vaga, geração de roteiros de entrevista e otimização. (Obrigatório para o funcionamento do app)
                   </label>
                 </div>

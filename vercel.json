@@ -37,6 +37,11 @@
       ],
       "destination": "https://vocentro.com.br/:path*",
       "permanent": true
+    },
+    {
+      "source": "/vocentro-1.0.0.apk",
+      "destination": "/",
+      "permanent": false
     }
   ],
   "rewrites": [

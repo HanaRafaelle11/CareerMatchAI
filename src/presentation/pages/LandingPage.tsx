@@ -211,26 +211,6 @@ export function LandingPage({ onNavigateToAuth }: LandingPageProps) {
                   <span>Como Funciona</span>
                 </a>
               </div>
-
-              {/* Download APK Android */}
-              <div className="flex items-center gap-3 pt-1">
-                <a
-                  href="/vocentro-1.0.0.apk"
-                  download="vocentro-1.0.0.apk"
-                  className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl border border-emerald-500/30 bg-emerald-500/5 hover:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 transition-all text-xs font-bold group"
-                  aria-label="Baixar app VoCentro para Android"
-                >
-                  <svg viewBox="0 0 24 24" className="w-4 h-4 fill-current shrink-0" aria-hidden="true">
-                    <path d="M17.523 15.341 14.63 9.845a.5.5 0 0 0-.876 0l-.902 1.65a5.985 5.985 0 0 1 2.021 2.697l2.65-1.53a.501.501 0 0 0 0-.321Zm-11.046 0 2.65 1.53a5.985 5.985 0 0 1 2.02-2.697l-.9-1.65a.5.5 0 0 0-.876 0L6.477 15.02a.501.501 0 0 0 0 .321ZM12 10a6 6 0 1 0 0 12 6 6 0 0 0 0-12Zm0 10.5a4.5 4.5 0 1 1 0-9 4.5 4.5 0 0 1 0 9ZM8.842 2.38l1.093 1.892A7.975 7.975 0 0 1 12 4c.724 0 1.424.1 2.088.283L15.158 2.38a.5.5 0 0 0-.692-.18l-1.098.633A8.053 8.053 0 0 0 12 2.5a8.053 8.053 0 0 0-1.368.333L9.534 2.2a.5.5 0 0 0-.692.18Z"/>
-                  </svg>
-                  <span>Baixar para Android</span>
-                  <span className="px-1.5 py-0.5 rounded-md bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 font-mono text-[10px]">v1.0.0 · 1.9 MB</span>
-                  <svg viewBox="0 0 16 16" className="w-3.5 h-3.5 fill-current opacity-60 group-hover:translate-y-0.5 transition-transform" aria-hidden="true">
-                    <path d="M8 12L2 6h12L8 12z"/>
-                  </svg>
-                </a>
-                <span className="text-[11px] text-muted-foreground">Android 7.0+</span>
-              </div>
             </div>
 
             {/* Lado Direito: Preview da Plataforma */}

@@ -152,6 +152,10 @@ export function useApplications(userId: string | undefined, resumeVersionId?: st
           sourcePlatform: d.source_platform || undefined,
           resumeVersionId: d.resume_version_id || undefined,
           notes: d.notes || undefined,
+          nextAction: d.next_action || undefined,
+          nextActionDate: d.next_action_date || undefined,
+          recruiterName: d.recruiter_name || undefined,
+          feedback: d.feedback || undefined,
           appliedAt: d.applied_at || undefined,
           createdAt: d.created_at,
           updatedAt: d.updated_at
@@ -189,6 +193,10 @@ export function useApplications(userId: string | undefined, resumeVersionId?: st
             source_platform: appData.sourcePlatform || null,
             resume_version_id: appData.resumeVersionId || resumeVersionId || null,
             notes: appData.notes || null,
+            next_action: appData.nextAction || null,
+            next_action_date: appData.nextActionDate || null,
+            recruiter_name: appData.recruiterName || null,
+            feedback: appData.feedback || null,
             applied_at: appData.appliedAt || null
           })
           .select()
@@ -207,6 +215,10 @@ export function useApplications(userId: string | undefined, resumeVersionId?: st
           sourcePlatform: data.source_platform || undefined,
           resumeVersionId: data.resume_version_id || undefined,
           notes: data.notes || undefined,
+          nextAction: data.next_action || undefined,
+          nextActionDate: data.next_action_date || undefined,
+          recruiterName: data.recruiter_name || undefined,
+          feedback: data.feedback || undefined,
           appliedAt: data.applied_at || undefined,
           createdAt: data.created_at,
           updatedAt: data.updated_at
@@ -254,6 +266,10 @@ export function useApplications(userId: string | undefined, resumeVersionId?: st
             rejection_reason: app.rejectionReason || null,
             source_platform: app.sourcePlatform || null,
             notes: app.notes || null,
+            next_action: app.nextAction || null,
+            next_action_date: app.nextActionDate || null,
+            recruiter_name: app.recruiterName || null,
+            feedback: app.feedback || null,
             applied_at: app.appliedAt || null,
             updated_at: new Date().toISOString()
           })

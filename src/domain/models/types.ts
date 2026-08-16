@@ -236,6 +236,10 @@ export interface Application {
   sourcePlatform?: string;
   resumeVersionId?: string;
   notes?: string;
+  nextAction?: string;
+  nextActionDate?: string;
+  recruiterName?: string;
+  feedback?: string;
   appliedAt?: string;
   createdAt: string;
   updatedAt: string;

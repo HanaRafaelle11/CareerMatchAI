@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom';
 import { useQueryClient } from '@tanstack/react-query';
 import { CardGlass } from '../components/CardGlass';
 import { RadarChart } from '../components/RadarChart';
+import { HumanizedMatchCard } from '../components/HumanizedMatchCard';
 import { useJobDiscovery } from '../../application/hooks/useJobDiscovery';
 import { useCoach } from '../../application/hooks/useCoach';
 import { useCareerIntelligence } from '../../application/hooks/useCareerIntelligence';
@@ -2445,8 +2446,27 @@ export function JobMatchHub({
 
                   if (listToRender.length === 0) {
                     return (
-                      <div className="p-4 text-center text-xs text-slate-500 italic border border-dashed border-slate-800 rounded-xl">
-                        Nenhuma vaga ativa disponível.
+                      <div className="p-5 text-center space-y-3 border border-dashed border-slate-800/80 rounded-2xl bg-slate-900/30">
+                        <div className="w-10 h-10 rounded-xl bg-brand-500/10 border border-brand-500/20 flex items-center justify-center text-brand-400 mx-auto">
+                          <Briefcase size={18} />
+                        </div>
+                        <div className="space-y-1">
+                          <h5 className="font-bold text-xs text-slate-200">Nenhuma vaga ativa salva</h5>
+                          <p className="text-[11px] text-slate-400 leading-relaxed max-w-[200px] mx-auto">
+                            Suas vagas analisadas ou salvas ficam guardadas aqui.
+                          </p>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            tracker.track('match_empty_state_action_clicked', 'JobMatch', { action: 'explore_jobs' });
+                            setSubTab('discover');
+                          }}
+                          className="w-full py-2 rounded-xl bg-brand-600 hover:bg-brand-500 text-white text-xs font-bold transition flex items-center justify-center gap-1.5 shadow-md shadow-brand-500/20 cursor-pointer"
+                        >
+                          <Search size={12} />
+                          <span>Explorar Vagas</span>
+                        </button>
                       </div>
                     );
                   }
@@ -3230,6 +3250,44 @@ export function JobMatchHub({
                 {selectedJob && (currentJobMatchScore.total > 0 || currentMatch) ? (
 
                   <div className="space-y-6">
+                    <HumanizedMatchCard
+                      score={currentJobMatchScore.total}
+                      job={selectedJob}
+                      resume={primaryResume}
+                      careerProfileNew={careerProfileNew}
+                      explanation={explanation}
+                      match={currentMatch}
+                      isAnalyzing={isCalculating}
+                      onAnalyzeMatch={() => handleTriggerMatch(selectedJob)}
+                      onApply={() => handleApplyClick(selectedJob)}
+                      onOptimizeResume={() => setCoachTab('optimize-cv')}
+                      onGoToProfile={() => {
+                        window.location.hash = '#profile';
+                        window.dispatchEvent(new CustomEvent('vocentro_navigate', { detail: { tab: 'profile' } }));
+                      }}
+                      onGoToSkills={() => {
+                        window.location.hash = '#profile';
+                        window.dispatchEvent(new CustomEvent('vocentro_navigate', { detail: { tab: 'profile' } }));
+                      }}
+                      onGoToExperiences={() => {
+                        window.location.hash = '#profile';
+                        window.dispatchEvent(new CustomEvent('vocentro_navigate', { detail: { tab: 'profile' } }));
+                      }}
+                      onStartSimulation={onStartSimulation ? () => onStartSimulation(selectedJob) : undefined}
+                      onAddToStrategy={handleAddToStrategy}
+                      isAddedToStrategy={applications.some((app: any) => app.jobId === selectedJob.id)}
+                      isAddingToStrategy={isAddingToStrategy}
+                      onDeleteAnalysis={handleDeleteSelectedAnalysis}
+                      onDeleteJob={async () => {
+                        if (window.confirm(`Deseja realmente excluir a vaga "${selectedJob.title}"? Isso removerá a vaga e todo o histórico de análises permanentemente.`)) {
+                          if (onDeleteJob) {
+                            await onDeleteJob(selectedJob.id);
+                            propOnSelectJob?.(null);
+                          }
+                        }
+                      }}
+                    />
+
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                       {/* Gráfico Radar */}
                       <RadarChart
@@ -3987,18 +4045,59 @@ export function JobMatchHub({
                     steps={matchSteps}
                   />
                 ) : (
-                  <div className="h-64 rounded-2xl border border-dashed border-slate-800 dark:border-slate-800 light:border-slate-300 flex flex-col items-center justify-center text-center p-6 text-slate-500 text-xs">
-                    <Clipboard size={28} className="mb-2 text-slate-600" />
-                    <span>Nenhum match calculado para esta vaga. Clique em "Calcular Match" no painel acima.</span>
-                  </div>
+                  <CardGlass className="py-12 border border-dashed border-slate-800/80 rounded-2xl flex flex-col items-center justify-center text-center p-8 space-y-4 bg-slate-900/20">
+                    <div className="w-12 h-12 rounded-2xl bg-brand-500/10 border border-brand-500/20 flex items-center justify-center text-brand-400">
+                      <Sparkles size={22} />
+                    </div>
+                    <div className="space-y-1 max-w-sm">
+                      <h4 className="font-display font-bold text-sm text-slate-200">
+                        Descubra o quanto esta vaga combina com você
+                      </h4>
+                      <p className="text-xs text-slate-400 leading-relaxed font-sans">
+                        O Copiloto avalia seus pontos fortes, gaps e recomenda a melhor estratégia de candidatura para {selectedJob.title}.
+                      </p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        tracker.track('match_empty_state_action_clicked', 'JobMatch', { action: 'calculate_match', job_id: selectedJob.id });
+                        if (selectedJob && primaryResume) {
+                          handleTriggerMatch(selectedJob);
+                        }
+                      }}
+                      disabled={isCalculating}
+                      className="px-5 py-2.5 rounded-xl bg-brand-600 hover:bg-brand-500 text-white text-xs font-bold uppercase tracking-wider transition flex items-center justify-center gap-2 shadow-lg shadow-brand-500/25 cursor-pointer disabled:opacity-50"
+                    >
+                      <Sparkles size={14} />
+                      <span>Analisar Compatibilidade com IA</span>
+                    </button>
+                  </CardGlass>
                 )}
               </div>
               )
             ) : (
-              <div className="h-64 rounded-2xl border border-dashed border-slate-800 dark:border-slate-800 light:border-slate-300 flex flex-col items-center justify-center text-center p-6 text-slate-500 text-xs">
-                <Clipboard size={28} className="mb-2 text-slate-600" />
-                <span>Nenhuma vaga selecionada no painel esquerdo. Cole uma vaga ou busque no painel "Job Discovery".</span>
-              </div>
+              <CardGlass className="py-16 rounded-2xl border border-dashed border-slate-800/80 flex flex-col items-center justify-center text-center p-8 space-y-3 bg-slate-900/20">
+                <div className="w-12 h-12 rounded-2xl bg-slate-800/60 border border-slate-700/60 flex items-center justify-center text-slate-400">
+                  <Briefcase size={22} />
+                </div>
+                <div className="space-y-1 max-w-sm">
+                  <h4 className="font-display font-bold text-sm text-slate-200">Nenhuma vaga selecionada</h4>
+                  <p className="text-xs text-slate-400 leading-relaxed font-sans">
+                    Selecione uma vaga na lista ao lado para ver o diagnóstico humanizado de Match, ou busque novas oportunidades.
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    tracker.track('match_empty_state_action_clicked', 'JobMatch', { action: 'switch_to_discover' });
+                    setSubTab('discover');
+                  }}
+                  className="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-bold transition flex items-center justify-center gap-1.5 cursor-pointer"
+                >
+                  <Search size={13} />
+                  <span>Buscar Novas Oportunidades</span>
+                </button>
+              </CardGlass>
             )}
           </div>
         </div>
@@ -4144,20 +4243,28 @@ export function JobMatchHub({
                 </span>
               </div>
             )}
-            {/* Warning de API não configurada */}
+            {/* Aviso Amigável de Manutenção / Atualização */}
             {isErrorDiscovery && errorDiscovery?.message?.includes('API_NOT_CONFIGURED') ? (
-              <div className="py-12 border border-dashed border-slate-800 rounded-2xl flex flex-col items-center justify-center text-slate-400 max-w-lg mx-auto p-8 bg-slate-900/10">
-                <AlertTriangle size={48} className="mb-4 text-amber-500 animate-pulse" />
-                <h3 className="font-display font-bold text-lg text-slate-200">Adzuna API não configurada</h3>
-                <p className="text-slate-400 text-xs text-center mt-2 max-w-sm leading-relaxed">
-                  Para habilitar a descoberta de vagas públicas integradas com a IA, você deve configurar suas credenciais do Adzuna no cofre do Supabase:
-                </p>
-                <pre className="p-3.5 mt-4 rounded-xl bg-slate-950 border border-slate-900 text-[10px] text-brand-400 text-left font-mono select-all w-full overflow-x-auto">
-                  supabase secrets set ADZUNA_APP_ID=seu_app_id ADZUNA_APP_KEY=sua_app_key
-                </pre>
-                <p className="text-slate-500 text-[10px] text-center mt-3 leading-relaxed">
-                  Obtenha chaves de acesso gratuitas criando uma conta de desenvolvedor no portal oficial da Adzuna.
-                </p>
+              <div className="py-12 border border-dashed border-slate-800/80 rounded-2xl flex flex-col items-center justify-center text-slate-400 max-w-lg mx-auto p-8 bg-slate-900/20 text-center space-y-4">
+                <div className="w-12 h-12 rounded-2xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-center text-amber-400">
+                  <Briefcase size={24} />
+                </div>
+                <div className="space-y-1.5">
+                  <h3 className="font-display font-bold text-base text-slate-200">Base de Oportunidades em Atualização</h3>
+                  <p className="text-slate-400 text-xs max-w-sm leading-relaxed font-sans">
+                    Estamos atualizando a curadoria de vagas de mercado. Suas vagas salvas e análises anteriores continuam funcionando normalmente.
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    tracker.track('match_empty_state_action_clicked', 'JobMatch', { action: 'switch_to_my_jobs_from_error' });
+                    setSubTab('my-jobs');
+                  }}
+                  className="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-bold transition cursor-pointer"
+                >
+                  Ver Minhas Vagas Salvas
+                </button>
               </div>
             ) : (
               <>

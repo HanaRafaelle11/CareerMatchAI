@@ -4084,21 +4084,21 @@ export function JobMatchHub({
             return (
               <span className="inline-flex items-center gap-1 text-[9px] px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 font-extrabold border border-emerald-500/20">
                 <Flame size={10} className="fill-emerald-400 shrink-0" />
-                Match alto com a vaga (Aplicar Hoje)
+                Alta aderência estimada (Aplicar)
               </span>
             );
           } else if (score >= 50) {
             return (
               <span className="inline-flex items-center gap-1 text-[9px] px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-400 font-bold border border-amber-500/20">
                 <Sparkles size={10} className="shrink-0" />
-                Match moderado com a vaga (Otimizar CV)
+                Aderência moderada estimada (Otimizar CV)
               </span>
             );
           } else {
             return (
               <span className="inline-flex items-center gap-1 text-[9px] px-2 py-0.5 rounded-full bg-slate-500/10 text-slate-400 font-medium border border-slate-500/20">
                 <AlertCircle size={10} className="shrink-0" />
-                Em Análise / Capacitação Recomendada
+                Baixa aderência estimada com o CV
               </span>
             );
           }
@@ -4437,8 +4437,8 @@ export function JobMatchHub({
                                       💡 Oculta: {(job as any).filterReason}
                                     </span>
                                   )}
-                                  <span className="text-[10px] text-slate-500 font-semibold">
-                                    Match Estimado: {job.scoreOverall}%
+                                  <span className="text-[10px] text-slate-500 font-semibold" title="Estimativa preliminar baseada no currículo ativo. A análise profunda com IA é executada ao importar a vaga.">
+                                    Prévia de Match: ~{job.scoreOverall}%
                                   </span>
                                 </>
                               ) : (
@@ -4480,7 +4480,9 @@ export function JobMatchHub({
                                     </span>
                                   </span>
                                 </div>
-                                <p className="text-[9px] text-slate-500 dark:text-slate-500 light:text-slate-600 italic font-mono leading-normal">{job.scores.explanation}</p>
+                                <p className="text-[9px] text-slate-500 dark:text-slate-500 light:text-slate-600 italic font-mono leading-normal">
+                                  {job.scores.explanation.replace(/Jaccard:\s*Math\s*/gi, 'Similaridade textual: ').replace(/Jaccard:\s*/gi, 'Similaridade: ').replace(/\(Jaccard:\s*0%\)/gi, '')}
+                                </p>
                                 
                                 {((job.scores.adjustments?.boosts && job.scores.adjustments.boosts.length > 0) || 
                                   (job.scores.adjustments?.penalties && job.scores.adjustments.penalties.length > 0)) && (

@@ -299,7 +299,7 @@ function calculateSemanticMatch(
   if (!hasTitleMatch && !hasDescMatch) {
     return { 
       matchScore: 5, 
-      detail: `Sem correspondência textual ou semântica com o termo buscado (Jaccard: 0%)` 
+      detail: `Sem correspondência direta com o termo buscado` 
     };
   }
 
@@ -317,7 +317,7 @@ function calculateSemanticMatch(
   const isJuniorReq = RX_JUNIOR_REQ.test(rawQuery);
 
   let hierarchyDelta = 0;
-  let detail = `Jaccard: Math ${(effectiveJaccard * 100).toFixed(0)}%`;
+  let detail = `Similaridade textual: ${(effectiveJaccard * 100).toFixed(0)}%`;
 
   if (isSupervisorReq) {
     const isExactSupervisor = RX_EXACT_SUPERVISOR.test(titleLower);

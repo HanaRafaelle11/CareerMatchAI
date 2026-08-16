@@ -1,12 +1,10 @@
 import { useState, useRef, useEffect } from 'react';
 import type { Resume } from '../../../domain/models/types';
-import { Badge } from './Badge';
 import { FileText, HelpCircle, RefreshCw, Check, Settings, Sparkles } from 'lucide-react';
 
 interface CompactHeaderProps {
   userName: string;
   activeResume: Resume | null;
-  aiScore?: number;
   onSwitchResume?: () => void;
   onReanalyze?: () => void;
   className?: string;
@@ -16,7 +14,6 @@ interface CompactHeaderProps {
 
 export function CompactHeader({
   activeResume,
-  aiScore,
   onSwitchResume,
   onReanalyze,
   className = '',
@@ -67,11 +64,6 @@ export function CompactHeader({
                 <span className="text-xs font-semibold text-on-surface truncate max-w-[200px] hover:underline cursor-help" title="Todas as sugestões de vagas, Match e simulações do copiloto são calculadas com base neste currículo selecionado.">
                   {activeResume.fileName || 'Currículo ativo'}
                 </span>
-                {aiScore !== undefined && aiScore > 0 && (
-                  <Badge variant="premium" size="sm">
-                    IA {aiScore}%
-                  </Badge>
-                )}
                 {timeSinceUpdate && (
                   <span className="text-[10px] text-on-surface-variant hidden sm:inline">
                     ({timeSinceUpdate})

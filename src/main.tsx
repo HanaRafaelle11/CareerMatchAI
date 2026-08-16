@@ -34,3 +34,17 @@ createRoot(document.getElementById('root')!).render(
   </StrictMode>,
 )
 
+// Registro do Service Worker PWA com Atualização Imediata (skipWaiting / clients.claim)
+if ('serviceWorker' in navigator && typeof window !== 'undefined') {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('/sw.js', { scope: '/' })
+      .then((registration) => {
+        // Checagem proativa por novos deploys
+        registration.update().catch(() => {});
+      })
+      .catch((error) => {
+        console.warn('[PWA] Falha no registro do Service Worker:', error);
+      });
+  });
+}
+

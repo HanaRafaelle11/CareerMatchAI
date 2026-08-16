@@ -128,9 +128,13 @@ export function calcYearsFromExperiences(
 export function buildFlatSkillsFromProfile(profile: CareerProfileNew): string[] {
   const names: string[] = [];
 
-  // Skills explícitas
-  for (const s of profile.skills || []) {
-    if (s.name) names.push(s.name.toLowerCase());
+  // Skills explícitas (suporta strings puras ou objetos { name: string })
+  for (const s of (profile.skills as any[]) || []) {
+    if (typeof s === 'string' && s.trim()) {
+      names.push(s.trim().toLowerCase());
+    } else if (s && typeof s === 'object' && s.name) {
+      names.push(String(s.name).trim().toLowerCase());
+    }
   }
   // Soft skills
   for (const ss of profile.soft_skills || []) {
@@ -950,18 +954,31 @@ ${candidateName}`,
       }
     }
 
-    let scoreOverall = Math.round(
-      (scoreTechnical * 0.30) +
-      (scoreSeniority * 0.25) +
-      (scoreRoleCompatibility * 0.15) +
-      (scoreBehavioral * 0.15) +
+    // Calibração de Realismo: Se o match técnico/domínio for nulo ou irrelevante,
+    // atenua os fatores periféricos (localização, soft-skills genéricas) para evitar estimativas infladas.
+    let technicalMultiplier = 1.0;
+    if (scoreTechnical === 0 && scoreRoleCompatibility < 60) {
+      technicalMultiplier = 0.20; // Reduz para a faixa realista (~8-12%)
+    } else if (scoreTechnical < 25 && scoreRoleCompatibility < 60) {
+      technicalMultiplier = 0.40; // Reduz para a faixa de ~15-25%
+    } else if (scoreTechnical < 40 && scoreRoleCompatibility < 50) {
+      technicalMultiplier = 0.65;
+    }
+
+    let baseOverall = (
+      (scoreTechnical * 0.35) +
+      (scoreRoleCompatibility * 0.25) +
+      (scoreSeniority * 0.15) +
+      (scoreBehavioral * 0.10) +
       (scoreLocation * 0.10) +
       (scoreSalary * 0.05)
     );
 
-    if (isNaN(scoreOverall)) scoreOverall = 75;
-    if (isNaN(scoreTechnical)) scoreTechnical = 75;
-    if (isNaN(scoreBehavioral)) scoreBehavioral = 75;
+    let scoreOverall = Math.round(baseOverall * technicalMultiplier);
+
+    if (isNaN(scoreOverall)) scoreOverall = 15;
+    if (isNaN(scoreTechnical)) scoreTechnical = 0;
+    if (isNaN(scoreBehavioral)) scoreBehavioral = 70;
     if (isNaN(scoreSeniority)) scoreSeniority = 75;
     if (isNaN(scoreSalary)) scoreSalary = 75;
     if (isNaN(scoreLocation)) scoreLocation = 100;

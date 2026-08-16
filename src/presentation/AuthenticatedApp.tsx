@@ -496,7 +496,6 @@ export function AuthenticatedApp({
             <CompactHeader
               userName={profile?.fullName?.split(' ')[0] || 'Candidato'}
               activeResume={selectedResume || null}
-              aiScore={matches.length > 0 ? Math.round(matches.reduce((a, m) => a + m.scoreOverall, 0) / matches.length) : undefined}
               resumes={resumes}
               onSelectResume={handleSelectResumeVersion}
               onSwitchResume={() => {

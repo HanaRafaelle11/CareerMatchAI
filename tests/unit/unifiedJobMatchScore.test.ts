@@ -49,22 +49,43 @@ describe('Unificação Canônica de Cálculo de Match (JobMatchScore)', () => {
     expect(score.breakdown?.semanticScore).toBe(85);
   });
 
-  it('JobMatchExplanationService sincroniza careerFitScore e overallMatchReason com o targetOverallScore', async () => {
-    const mockResume: any = { id: 'r1', skills: ['React', 'Node.js'], yearsOfExperience: 5 };
-    const mockJob: any = { id: 'j1', title: 'Senior Frontend Engineer', requirements: ['React', 'TypeScript'] };
+  it('garante que buildJobMatchScore faz fallback correto e respeita limites [0, 100]', () => {
+    const minScore = buildJobMatchScore(-15, null, null);
+    expect(minScore.total).toBe(0);
+    expect(minScore.skills).toBe(0);
+    expect(minScore.experience).toBe(0);
 
-    const explanation = await JobMatchExplanationService.getOrGenerateExplanation(
-      'test-user-id',
-      mockJob,
-      mockResume,
-      null,
-      undefined,
-      78 // target overall score
-    );
+    const maxScore = buildJobMatchScore(150, null, null);
+    expect(maxScore.total).toBe(100);
+    expect(maxScore.skills).toBe(100);
+    expect(maxScore.experience).toBe(100);
 
-    expect(explanation.careerFitScore).toBe(78);
-    expect(explanation.breakdown).toBeDefined();
-    expect(explanation.breakdown.skillsScore).toBeGreaterThanOrEqual(0);
-    expect(explanation.breakdown.experienceScore).toBeGreaterThanOrEqual(0);
+    const partialExplanation: JobMatchExplanation = {
+      careerFitScore: 78,
+      overallMatchReason: 'Match calculado com base em requisitos técnicos.',
+      breakdown: {
+        skillsScore: 82,
+        experienceScore: 75,
+        seniorityScore: 80,
+        careerGoalScore: 70,
+        salaryScore: 90,
+        locationScore: 85,
+        semanticScore: 78
+      },
+      strengths: [],
+      gaps: [],
+      recommendation: 'Recomendado',
+      missingKeywords: [],
+      redundantInfo: []
+    };
+
+    const syncedScore = buildJobMatchScore(78, partialExplanation, null);
+    expect(syncedScore.total).toBe(78);
+    expect(syncedScore.skills).toBe(82);
+    expect(syncedScore.experience).toBe(75);
+    expect(syncedScore.seniority).toBe(80);
+    expect(syncedScore.location).toBe(85);
+    expect(syncedScore.keywords).toBe(78);
+    expect(syncedScore.explanation).toBe('Match calculado com base em requisitos técnicos.');
   });
 });

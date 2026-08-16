@@ -2459,6 +2459,12 @@ export function JobMatchHub({
                       ((job as any).sourceUrl && (m as any).sourceUrl === (job as any).sourceUrl)
                     );
                     const isItemAnalyzing = (isCalculating && isActive) || analyzingJobId === String(job.id);
+                    const itemMatchScore = (isActive && currentJobMatchScore)
+                      ? currentJobMatchScore.total
+                      : (match
+                          ? buildJobMatchScore(match.scoreOverall, null, match).total
+                          : (typeof (job as any).matchPercentage === 'number' ? (job as any).matchPercentage : 0));
+
                     return (
                       <div
                         key={job.id}
@@ -2483,15 +2489,15 @@ export function JobMatchHub({
                               <Loader2 size={11} className="animate-spin" />
                               Calculando...
                             </span>
-                          ) : match ? (
+                          ) : (match || itemMatchScore > 0) ? (
                             <span className={`font-bold font-display text-xs px-2 py-0.5 rounded-lg border ${
-                              match.scoreOverall >= 85 
+                              itemMatchScore >= 85 
                                 ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' 
-                                : match.scoreOverall >= 70 
+                                : itemMatchScore >= 70 
                                 ? 'bg-amber-500/10 text-amber-400 border-amber-500/20' 
                                 : 'bg-slate-500/10 text-slate-300 border-slate-700/30'
                             }`}>
-                              {match.scoreOverall}%
+                              {itemMatchScore}%
                             </span>
                           ) : (
                             <span className="text-[10px] text-slate-500 bg-slate-900/40 border border-slate-800 px-2 py-0.5 rounded-lg">Sem Match</span>

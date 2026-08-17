@@ -716,6 +716,9 @@ export function AuthenticatedApp({
         jobs={jobs}
         matches={matches}
         careerProfileNew={careerProfileNew}
+        profile={profile}
+        resumes={resumes}
+        selectedJob={selectedJobId ? jobs.find(j => j.id === selectedJobId) || null : null}
         setActiveTab={handleSetActiveTab}
         onStartSimulation={handleStartSimulation}
         isOpen={isCopilotOpen}

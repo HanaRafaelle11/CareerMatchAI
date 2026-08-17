@@ -208,7 +208,7 @@ class AnalyticsTracker {
     this.track('paywall_cta_clicked', 'Monetization', { feature, ...metadata });
   }
 
-  public trackCheckoutStarted(plan: string, metadata: { feature?: string; amount?: number } = {}) {
+  public trackCheckoutStarted(plan: string, metadata: { feature?: string; amount?: number; billing_type?: string; billing_cycle?: string } = {}) {
     this.track('checkout_started', 'Monetization', { plan, ...metadata });
   }
 

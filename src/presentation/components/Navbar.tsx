@@ -39,7 +39,7 @@ interface NavbarProps {
   interviewCount?: number;
   isCollapsed?: boolean;
   onToggleCollapse?: () => void;
-  onOpenCopilot?: () => void;
+  onOpenCopilot?: (source?: 'sidebar' | 'mobile_nav') => void;
   userId?: string;
   userEmail?: string;
   careerProfile?: any;
@@ -150,7 +150,7 @@ export function Navbar({
   const handleNavigate = (tabId: string, source: 'sidebar' | 'mobile_bottom_nav' | 'journey_tooltip') => {
     tracker.track(source === 'sidebar' ? 'sidebar_item_clicked' : 'mobile_nav_item_clicked', 'Navigation', {
       item: tabId,
-      source
+      source: source === 'sidebar' ? 'sidebar' : 'mobile_bottom_nav'
     });
     setActiveTab(tabId);
     onClose();
@@ -165,8 +165,7 @@ export function Navbar({
   };
 
   const handleOpenCopilotFromNav = (source: 'sidebar' | 'mobile_nav') => {
-    tracker.track('copilot_drawer_opened', 'Navigation', { source });
-    onOpenCopilot?.();
+    onOpenCopilot?.(source);
     onClose();
   };
 

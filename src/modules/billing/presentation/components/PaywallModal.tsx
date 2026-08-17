@@ -1,8 +1,10 @@
+import { useEffect, useRef } from 'react';
 import { BaseModal } from '../../../../presentation/components/ds/BaseModal';
 import { Sparkles, ArrowRight, Bot, Layers, BarChart3, FileText, Send, Calendar } from 'lucide-react';
 import type { PaywallTriggerState } from '../..';
 import { getDaysUntilNextMonday } from '../../application/hooks/useEntitlements';
 import { PLAN_PRICING } from '../../../../domain/config/pricing';
+import { tracker } from '../../../../infrastructure/analytics/tracker';
 
 interface PaywallModalProps {
   isOpen: boolean;
@@ -134,7 +136,21 @@ export function PaywallModal({
   const displayPrimaryBtn = primaryButtonText || details.defaultPrimaryBtn || `Fazer Upgrade para Pro (A partir de ${PLAN_PRICING.proWeeklyFormatted}/semana)`;
   const displaySecondaryBtn = secondaryButtonText || details.defaultSecondaryBtn || 'Continuar no Plano Gratuito';
 
+  const hasTrackedViewRef = useRef(false);
+
+  useEffect(() => {
+    if (isOpen) {
+      if (!hasTrackedViewRef.current) {
+        hasTrackedViewRef.current = true;
+        tracker.trackPaywallViewed(feature, { title: displayTitle });
+      }
+    } else {
+      hasTrackedViewRef.current = false;
+    }
+  }, [isOpen, feature, displayTitle]);
+
   const handleAction = () => {
+    tracker.trackPaywallCtaClicked(feature, { cta_text: displayPrimaryBtn });
     onClose();
     onUpgrade();
   };

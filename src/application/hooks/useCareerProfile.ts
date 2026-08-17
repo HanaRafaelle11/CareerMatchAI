@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { isSupabaseConfigured, supabase } from '../../infrastructure/api/supabaseClient';
 import { localDB } from '../../infrastructure/storage/localDatabase';
+import { tracker } from '../../infrastructure/analytics/tracker';
 import type { CareerProfile } from '../../domain/models/types';
 
 export function useCareerProfile(userId: string | undefined, resumeVersionId?: string | null) {
@@ -224,7 +225,11 @@ export function useCareerProfile(userId: string | undefined, resumeVersionId?: s
         return localDB.saveCareerProfile(updated);
       }
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
+      tracker.track('profile_updated', 'Profile', {
+        has_skills: ((data.skills as any[]) || []).length > 0,
+        has_roles: ((data.targetRoles as any[]) || []).length > 0
+      });
       queryClient.invalidateQueries({ queryKey: ['career-profile', userId] });
       queryClient.invalidateQueries({ queryKey: ['my-profile-ai', userId] });
     }

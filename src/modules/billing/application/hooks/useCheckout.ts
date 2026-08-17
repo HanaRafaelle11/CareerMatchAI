@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { supabase } from '../../../../infrastructure/api/supabaseClient';
+import { tracker } from '../../../../infrastructure/analytics/tracker';
 import type { BillingCycle, BillingType } from '../../domain/types/billingTypes';
 
 export interface CheckoutPayload {
@@ -67,6 +68,11 @@ export function useCheckout(userId?: string) {
     setPaymentConfirmed(false);
 
     try {
+      tracker.trackCheckoutStarted(payload.planSlug, {
+        billing_type: payload.billingType,
+        billing_cycle: payload.billingCycle
+      });
+
       if (!supabase) {
         throw new Error('Supabase Client não configurado no ambiente.');
       }
@@ -109,6 +115,7 @@ export function useCheckout(userId?: string) {
       // Se o pagamento via Cartão de Crédito for aprovado na hora
       if (result.status === 'active') {
         setPaymentConfirmed(true);
+        tracker.track('payment_confirmed', 'Billing', { plan: payload.planSlug, is_pro: true });
         invalidateBillingCaches();
       } else if (result.invoiceId || result.subscriptionId) {
         // Se for PIX ou Boleto pendente, iniciar polling de confirmação
@@ -185,6 +192,7 @@ export function useCheckout(userId?: string) {
 
           if (invoice && (invoice.status === 'paid' || invoice.paid_at)) {
             setPaymentConfirmed(true);
+            tracker.track('payment_confirmed', 'Billing', { is_pro: true });
             stopPolling();
             invalidateBillingCaches();
             return;
@@ -200,6 +208,7 @@ export function useCheckout(userId?: string) {
 
           if (sub && sub.status === 'active') {
             setPaymentConfirmed(true);
+            tracker.track('payment_confirmed', 'Billing', { is_pro: true });
             stopPolling();
             invalidateBillingCaches();
             return;

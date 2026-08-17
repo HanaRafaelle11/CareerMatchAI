@@ -72,6 +72,7 @@ export function AuthenticatedApp({
   const [activeSimulationAppId, setActiveSimulationAppId] = useState<string | null>(null);
   const [showOnboarding, setShowOnboarding] = useState(false);
   const [isCopilotOpen, setIsCopilotOpen] = useState(false);
+  const [copilotSource, setCopilotSource] = useState<'sidebar' | 'mobile_nav' | 'deck'>('sidebar');
 
   const activeTabRef = useRef(activeTab);
 
@@ -482,7 +483,10 @@ export function AuthenticatedApp({
         interviewCount={applications.filter(a => ['👥 Entrevista com recrutador', '🎯 Entrevista com gestor', '🧩 Case técnico', '🤝 Fit cultural'].includes(a.status)).length}
         isCollapsed={isSidebarCollapsed}
         onToggleCollapse={() => setIsSidebarCollapsed((prev: boolean) => !prev)}
-        onOpenCopilot={() => setIsCopilotOpen(true)}
+        onOpenCopilot={(src) => {
+          setCopilotSource(src || 'sidebar');
+          setIsCopilotOpen(true);
+        }}
         userId={user?.id}
         userEmail={user?.email}
         careerProfile={careerProfileNew}
@@ -725,6 +729,7 @@ export function AuthenticatedApp({
         onToggleOpen={() => setIsCopilotOpen(prev => !prev)}
         onClose={() => setIsCopilotOpen(false)}
         hideFloatingButton={true}
+        source={copilotSource}
       />
 
 

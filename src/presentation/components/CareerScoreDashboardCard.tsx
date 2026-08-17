@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Sparkles, Trophy, CheckCircle, AlertTriangle, ArrowRight, Target, HelpCircle, ChevronDown, ChevronUp, Layers, Award, Briefcase, PlusCircle } from 'lucide-react';
 import { CardGlass } from './CardGlass';
 import { tracker } from '../../infrastructure/analytics/tracker';
@@ -27,6 +27,7 @@ export function CareerScoreDashboardCard({
   onGoToPreferences
 }: CareerScoreDashboardCardProps) {
   const [showExplanation, setShowExplanation] = useState(false);
+  const hasTrackedViewRef = useRef(false);
 
   // Determinar se os dados do perfil/currículo ainda estão sendo carregados da query
   const isDataLoading = Boolean(
@@ -54,7 +55,8 @@ export function CareerScoreDashboardCard({
   const experiencePoints = experiencesCount * 5;
 
   useEffect(() => {
-    if (baseScore !== null && baseScore > 0) {
+    if (baseScore !== null && baseScore > 0 && !hasTrackedViewRef.current) {
+      hasTrackedViewRef.current = true;
       tracker.track('career_score_viewed', 'ProductLaunch', { score: baseScore });
       tracker.track('career_dashboard_opened', 'ProductLaunch', { has_resume: !!resume });
     }

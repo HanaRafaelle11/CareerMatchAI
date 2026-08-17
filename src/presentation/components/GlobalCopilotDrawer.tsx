@@ -24,6 +24,7 @@ export interface GlobalCopilotDrawerProps {
   onToggleOpen?: () => void;
   onClose?: () => void;
   hideFloatingButton?: boolean;
+  source?: 'sidebar' | 'mobile_nav' | 'deck' | string;
 }
 
 export function GlobalCopilotDrawer({
@@ -39,7 +40,8 @@ export function GlobalCopilotDrawer({
   isOpen: propIsOpen,
   onToggleOpen: _onToggleOpen,
   onClose,
-  hideFloatingButton: _hideFloatingButton = false
+  hideFloatingButton: _hideFloatingButton = false,
+  source = 'sidebar'
 }: GlobalCopilotDrawerProps) {
   const { user } = useAuth();
   const { isPro, paywallState, closePaywall, triggerPaywall } = useEntitlements(user?.id);
@@ -57,6 +59,7 @@ export function GlobalCopilotDrawer({
   };
 
   const drawerRef = useRef<HTMLDivElement>(null);
+  const hasTrackedOpenRef = useRef(false);
 
   // Listener da tecla ESC para fechar o drawer
   useEscapeToClose(isOpen, handleClose);
@@ -100,17 +103,21 @@ export function GlobalCopilotDrawer({
     }
   }, [greetingHeadline]);
 
-  // Telemetria ao abrir o drawer
+  // Telemetria ao abrir o drawer (apenas UMA vez por abertura)
   useEffect(() => {
     if (isOpen) {
-      tracker.track('copilot_drawer_opened', 'Copilot', {
-        has_resume: resumes.length > 0,
-        has_profile: !!careerProfileNew,
-        application_count: applications.length,
-        is_pro: isPro
-      });
+      if (!hasTrackedOpenRef.current) {
+        hasTrackedOpenRef.current = true;
+        tracker.track('copilot_drawer_opened', 'Copilot', {
+          source: source || 'sidebar',
+          has_resume: resumes.length > 0,
+          is_pro: isPro
+        });
+      }
+    } else {
+      hasTrackedOpenRef.current = false;
     }
-  }, [isOpen]);
+  }, [isOpen, source, resumes.length, isPro]);
 
   const handleSendMessage = (e: React.FormEvent, retryText?: string) => {
     if (e && e.preventDefault) e.preventDefault();

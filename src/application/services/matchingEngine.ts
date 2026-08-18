@@ -854,7 +854,10 @@ ${candidateName}`,
     // Behavioral
     const softTerms = consolidatedProfile
       ? [...(consolidatedProfile.soft_skills || []).map(s => s.toLowerCase()), ...flatSkills]
-      : resume.skills.filter(s => s.category === 'soft_skill').map(s => s.name.toLowerCase());
+      : (resume.skills || [])
+          .filter((s: any) => (typeof s === 'object' && s?.category === 'soft_skill') || typeof s === 'string')
+          .map((s: any) => (typeof s === 'string' ? s : s?.name || '').toLowerCase())
+          .filter(Boolean);
 
     const hasLeadership = softTerms.some(s =>
       s.includes('lider') || s.includes('mentor') || s.includes('liderança') ||

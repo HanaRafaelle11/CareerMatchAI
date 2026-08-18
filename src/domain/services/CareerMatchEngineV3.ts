@@ -149,18 +149,25 @@ export class CareerMatchEngineV3 {
     // ── 4. DIMENSÃO 1: EXPERIÊNCIA ──
     const titleLower = (job.title || '').toLowerCase();
     const currentRoleLower = currentRole.toLowerCase();
-    let experienceDimensionScore = 60;
+    let experienceDimensionScore = 50;
 
-    if (currentRoleLower && (titleLower.includes(currentRoleLower) || currentRoleLower.includes(titleLower))) {
+    const hasDirectRoleOverlap = Boolean(
+      (currentRoleLower && (titleLower.includes(currentRoleLower) || currentRoleLower.includes(titleLower))) ||
+      userExperiences.some((e: any) => {
+        const r = (e.role || '').toLowerCase();
+        return r && (r.includes(titleLower) || titleLower.includes(r));
+      })
+    );
+
+    if (hasDirectRoleOverlap) {
       experienceDimensionScore = 95;
-    } else if (userExperiences.some((e: any) => (e.role || '').toLowerCase().includes(titleLower) || titleLower.includes((e.role || '').toLowerCase()))) {
-      experienceDimensionScore = 88;
-    } else if (yearsOfExperience >= 5) {
-      experienceDimensionScore = 75;
-    } else if (yearsOfExperience >= 2) {
-      experienceDimensionScore = 65;
+    } else if (transferabilityScore >= 40) {
+      experienceDimensionScore = Math.min(85, 55 + Math.round(yearsOfExperience * 4));
+    } else if (skillsDimensionScore >= 20) {
+      experienceDimensionScore = Math.min(80, 45 + Math.round(yearsOfExperience * 5));
     } else {
-      experienceDimensionScore = 45;
+      // Sem sobreposição de cargo, sem competências diretas e sem transferência
+      experienceDimensionScore = Math.min(25, 10 + Math.min(yearsOfExperience, 5) * 2);
     }
 
     // ── 5. DIMENSÃO 3: SENIORIDADE ──
@@ -256,11 +263,17 @@ export class CareerMatchEngineV3 {
 
       // 2. Pontes de domínio e oportunidade de fechamento de skill gap
       const effectiveSkillsForGoal = Math.max(transferabilityScore, skillsDimensionScore);
-      const skillGapOpportunity = finalMissingSkills.length > 0
-        ? (roleGoalAlignment > 50 ? Math.min(90, 60 + finalMissingSkills.length * 8) : 20)
-        : (skillsDimensionScore >= 80 ? 90 : 60);
-      const seniorityTrajectory = seniorityDimensionScore >= 80 ? 95 : 70;
-      const domainBridgeScore = roleGoalAlignment > 50 ? contextDimensionScore : Math.min(contextDimensionScore, 30);
+      const hasDomainOverlap = effectiveSkillsForGoal >= 20 || experienceDimensionScore >= 50;
+
+      const domainBridgeScore = hasDomainOverlap
+        ? contextDimensionScore
+        : Math.min(contextDimensionScore, 20);
+
+      const skillGapOpportunity = hasDomainOverlap
+        ? (finalMissingSkills.length > 0 ? Math.min(90, 60 + finalMissingSkills.length * 6) : 85)
+        : (skillsDimensionScore >= 80 ? 90 : 25);
+
+      const seniorityTrajectory = (hasDomainOverlap && seniorityDimensionScore >= 80) ? 90 : 60;
 
       const wGoal = MATCHING_WEIGHTS.goal;
       const rawGoalScore = (
@@ -274,8 +287,10 @@ export class CareerMatchEngineV3 {
       goalDimensionScore = Math.round(roleGoalAlignment);
       careerGoalScore = Math.max(0, Math.min(100, Math.round(rawGoalScore)));
 
-      // Invariante: Para career_transition com forte alinhamento de cargo-alvo, não punir o goal score com o fit atual baixo!
-      if (isCareerTransition && (directTargetRoleMatch || areaMatch) && careerGoalScore < 70) {
+      // Invariante: Para career_transition com cargo-alvo alinhado E pontes de competências/domínio reais,
+      // não punir o goal score pelo histórico passado ser diferente.
+      // Se não houver qualquer competência transferível ou ponte de domínio, o score reflete a barreira real de entrada.
+      if (isCareerTransition && (directTargetRoleMatch || areaMatch) && hasDomainOverlap && careerGoalScore < 70) {
         careerGoalScore = Math.min(95, careerGoalScore + 20);
       }
     }

@@ -134,6 +134,25 @@ export const DOMAIN_TRANSFERABILITY_RULES: TransferableSkillMapping[] = [
         rationale: 'Testes de campanhas e análise de tráfego traduzem-se diretamente em testes A/B e experimentação de produto.'
       }
     ]
+  },
+  // 6. Jurídico / Compliance / Contratos → Privacidade de Dados / DPO / Governança
+  {
+    sourceDomain: 'legal_compliance',
+    targetDomain: 'data_privacy_dpo',
+    transferableCompetencies: [
+      {
+        candidateSkillPattern: /\b(direito|jurídico|advogado|contratos|compliance|legislação|auditoria|governança)\b/i,
+        targetRequirementPattern: /\b(lgpd|gdpr|privacidade|governança de dados|compliance|gestão de riscos|auditoria regulatória)\b/i,
+        bridgingName: 'Interpretação Regulatória & Adequação Legal',
+        rationale: 'Forte base jurídica e compliance normativo é o pilar central para adequação à LGPD/GDPR e governança de privacidade.'
+      },
+      {
+        candidateSkillPattern: /\b(pareceres|análise de riscos|contratos|termos de uso|políticas)\b/i,
+        targetRequirementPattern: /\b(política de privacidade|relatório de impacto|ripd|gestão de riscos|termos)\b/i,
+        bridgingName: 'Elaboração de Políticas Corporativas & Gestão de Riscos',
+        rationale: 'Capacidade de mapear riscos contratuais se aplica diretamente a Relatórios de Impacto à Proteção de Dados (RIPD).'
+      }
+    ]
   }
 ];
 

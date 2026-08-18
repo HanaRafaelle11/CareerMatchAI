@@ -1,7 +1,8 @@
 import { localDB } from '../../infrastructure/storage/localDatabase';
 import { isSupabaseConfigured, supabase } from '../../infrastructure/api/supabaseClient';
 import { JobMatchExplanationService } from '../../application/services/JobMatchExplanationService';
-import type { Job, Resume, Match, JobMatchExplanation, JobMatchScore } from '../models/types';
+import { CareerMatchEngineV3 } from './CareerMatchEngineV3';
+import type { Job, Resume, Match, JobMatchExplanation, JobMatchScore, CareerGoal } from '../models/types';
 import type { CareerProfileNew } from '../../application/hooks/useMyProfileAi';
 
 export interface UnifiedMatchResult {
@@ -61,6 +62,33 @@ export function buildJobMatchScore(
 
 export class UnifiedMatchService {
   /**
+   * Cálculo síncrono e determinístico do V3 com garantia de preservação de todos os 7 campos.
+   */
+  static calculateMatchV3(
+    job: Job,
+    resume: Resume | null | undefined,
+    careerProfileNew?: CareerProfileNew | null,
+    careerGoal?: CareerGoal | null
+  ): UnifiedMatchResult {
+    const v3 = CareerMatchEngineV3.calculate(job, resume, careerProfileNew, careerGoal);
+    const jobMatchScore = buildJobMatchScore(v3.careerFitScore, null, null);
+
+    return {
+      scoreOverall: v3.careerFitScore,
+      careerFitScore: v3.careerFitScore,
+      careerGoalScore: v3.careerGoalScore,
+      dimensions: v3.dimensions,
+      transition: v3.transition,
+      skillsAssessment: v3.skillsAssessment,
+      confidence: v3.confidenceScore >= 80 ? 'high' : v3.confidenceScore >= 60 ? 'medium' : 'low',
+      missingSkills: v3.skillsAssessment.missing,
+      matchedSkills: v3.skillsAssessment.matched,
+      reason: v3.explanation.fitHeadline,
+      jobMatchScore
+    };
+  }
+
+  /**
    * Fonte Única de Verdade para cálculo e recuperação do Match de uma vaga com o currículo ativo.
    * Garante isolamento estrito por resumeVersionId em todas as telas.
    */
@@ -69,7 +97,8 @@ export class UnifiedMatchService {
     job: Job,
     resume: Resume | null | undefined,
     careerProfileNew?: CareerProfileNew | null,
-    existingMatch?: Match | null
+    existingMatch?: Match | null,
+    careerGoal?: CareerGoal | null
   ): Promise<UnifiedMatchResult> {
     if (!userId || !job) {
       const fallbackScore = (job as any)?.scoreOverall ?? (job as any)?.scores?.overall ?? 0;
@@ -102,13 +131,24 @@ export class UnifiedMatchService {
 
       const jobMatchScore = buildJobMatchScore(score, explanation, existingMatch);
 
+      // Enriquecer com CareerMatchEngineV3 se os campos V3 estiverem disponíveis
+      let v3Data: any = null;
+      try {
+        v3Data = CareerMatchEngineV3.calculate(job, resume, careerProfileNew, careerGoal);
+      } catch (_) {}
+
       return {
         scoreOverall: jobMatchScore.total,
+        careerFitScore: (existingMatch as any).careerFitScore ?? v3Data?.careerFitScore ?? jobMatchScore.total,
+        careerGoalScore: (existingMatch as any).careerGoalScore ?? v3Data?.careerGoalScore ?? null,
+        dimensions: (existingMatch as any).dimensions ?? v3Data?.dimensions,
+        transition: (existingMatch as any).transition ?? v3Data?.transition,
+        skillsAssessment: (existingMatch as any).skillsAssessment ?? v3Data?.skillsAssessment,
         confidence: 'high',
         explanation,
-        missingSkills: (existingMatch as any).gap_analysis?.missingSkills || (existingMatch as any).missingSkills || [],
-        matchedSkills: (existingMatch as any).gap_analysis?.matchedSkills || (existingMatch as any).matchedSkills || [],
-        reason: explanation?.overallMatchReason || `Match de ${jobMatchScore.total}% com o currículo ativo.`,
+        missingSkills: (existingMatch as any).gap_analysis?.missingSkills || (existingMatch as any).missingSkills || v3Data?.skillsAssessment?.missing || [],
+        matchedSkills: (existingMatch as any).gap_analysis?.matchedSkills || (existingMatch as any).matchedSkills || v3Data?.skillsAssessment?.matched || [],
+        reason: explanation?.overallMatchReason || v3Data?.explanation?.fitHeadline || `Match de ${jobMatchScore.total}% com o currículo ativo.`,
         jobMatchScore
       };
     }

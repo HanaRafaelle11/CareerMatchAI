@@ -225,9 +225,21 @@ export function HumanizedMatchCard({
               {semanticFit.label}
             </span>
             {isTransition && (
-              <span className="inline-flex items-center gap-1 text-[10px] px-2.5 py-0.5 rounded-full font-bold bg-purple-500/10 text-purple-400 border border-purple-500/25">
-                <Compass size={11} />
-                {transitionInfo.label}
+              <span className={`inline-flex items-center gap-1 text-[10px] px-2.5 py-0.5 rounded-full font-bold border ${
+                transitionInfo.type === 'near'
+                  ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/25'
+                  : transitionInfo.type === 'moderate'
+                  ? 'bg-amber-500/10 text-amber-400 border-amber-500/25'
+                  : transitionInfo.type === 'challenging'
+                  ? 'bg-orange-500/10 text-orange-400 border-orange-500/25'
+                  : 'bg-rose-500/10 text-rose-400 border-rose-500/25'
+              }`}>
+                <span>{
+                  transitionInfo.type === 'near' ? '🟢' :
+                  transitionInfo.type === 'moderate' ? '🟡' :
+                  transitionInfo.type === 'challenging' ? '🟠' : '🔴'
+                }</span>
+                <span>{transitionInfo.label}</span>
               </span>
             )}
           </div>
@@ -238,39 +250,42 @@ export function HumanizedMatchCard({
 
         {/* Bloco de Duplo Score */}
         <div className="flex flex-wrap sm:flex-nowrap items-center gap-3 shrink-0">
-          {/* Score 1: Fit Atual */}
-          <div className="flex-1 sm:flex-initial flex items-center gap-3 dark:bg-slate-900/60 bg-slate-100/90 p-3 rounded-2xl border dark:border-slate-800/70 border-slate-200 min-w-[150px]">
+          {/* Score 1: Compatibilidade Atual */}
+          <div className="flex-1 sm:flex-initial flex items-center gap-3 dark:bg-slate-900/60 bg-slate-100/90 p-3 rounded-2xl border dark:border-slate-800/70 border-slate-200 min-w-[160px]" title="Quanto essa vaga combina com sua experiência hoje?">
             <div className="text-right flex-1">
-              <span className="text-[10px] dark:text-slate-400 text-slate-500 font-bold uppercase tracking-wider block">Fit Atual</span>
+              <span className="text-[10px] dark:text-slate-400 text-slate-500 font-bold uppercase tracking-wider block">Compatibilidade Atual</span>
               <span className={`text-2xl sm:text-3xl font-extrabold font-display leading-none ${semanticFit.scoreColor}`}>
                 {fitScore}%
               </span>
+              <span className="text-[9px] text-slate-400 block mt-0.5">Experiência hoje</span>
             </div>
             <div className="w-8 h-8 rounded-xl dark:bg-brand-500/10 bg-brand-100 border dark:border-brand-500/20 border-brand-200 flex items-center justify-center text-brand-600 dark:text-brand-400 shrink-0">
               <ShieldCheck size={16} />
             </div>
           </div>
 
-          {/* Score 2: Potencial de Objetivo */}
+          {/* Score 2: Potencial para seu Objetivo */}
           {hasGoal ? (
-            <div className="flex-1 sm:flex-initial flex items-center gap-3 dark:bg-purple-950/30 bg-purple-50/80 p-3 rounded-2xl border dark:border-purple-800/50 border-purple-200 min-w-[160px]">
+            <div className="flex-1 sm:flex-initial flex items-center gap-3 dark:bg-purple-950/30 bg-purple-50/80 p-3 rounded-2xl border dark:border-purple-800/50 border-purple-200 min-w-[170px]" title="Quanto essa vaga ajuda você a chegar onde quer?">
               <div className="text-right flex-1">
                 <span className="text-[10px] text-purple-600 dark:text-purple-300 font-bold uppercase tracking-wider block">
-                  {isTransition ? 'Potencial Transição' : 'Potencial Objetivo'}
+                  {isTransition ? 'Potencial de Transição' : 'Potencial para Objetivo'}
                 </span>
                 <span className="text-2xl sm:text-3xl font-extrabold font-display leading-none text-purple-600 dark:text-purple-400">
                   {goalScore}%
                 </span>
+                <span className="text-[9px] text-purple-400/80 block mt-0.5">Alcançar seu alvo</span>
               </div>
               <div className="w-8 h-8 rounded-xl dark:bg-purple-500/20 bg-purple-100 border dark:border-purple-500/30 border-purple-200 flex items-center justify-center text-purple-600 dark:text-purple-400 shrink-0">
                 <Compass size={16} />
               </div>
             </div>
           ) : (
-            <div className="hidden sm:flex flex-col justify-center px-3 py-2 rounded-2xl border border-dashed dark:border-slate-800 border-slate-300 text-[10px] text-slate-500">
-              <span>Objetivo não definido</span>
-              <button type="button" onClick={onGoToProfile} className="text-brand-400 font-bold hover:underline">
-                + Definir no Perfil
+            <div className="flex flex-col justify-center px-3.5 py-2.5 rounded-2xl border border-dashed dark:border-slate-800 border-slate-300 text-[10px] text-slate-500 max-w-[200px]">
+              <span className="leading-tight text-slate-400">Defina seu objetivo profissional para descobrir o potencial desta vaga para sua carreira.</span>
+              <button type="button" onClick={onGoToProfile} className="text-brand-400 font-bold hover:underline mt-1 inline-flex items-center gap-0.5 cursor-pointer">
+                <span>Definir meu objetivo</span>
+                <ArrowUpRight size={11} />
               </button>
             </div>
           )}
@@ -326,7 +341,7 @@ export function HumanizedMatchCard({
             }}
             className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg bg-brand-500/10 hover:bg-brand-500/20 text-brand-600 dark:text-brand-400 text-xs font-bold transition cursor-pointer shrink-0 self-start sm:self-center"
           >
-            <span>Diagnóstico 5 Dimensões</span>
+            <span>Por que esse match?</span>
             {showBreakdown ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
           </button>
         </div>
@@ -335,7 +350,7 @@ export function HumanizedMatchCard({
         {showBreakdown && (
           <div className="p-4 rounded-2xl bg-slate-50/80 dark:bg-slate-950/60 border border-slate-200 dark:border-slate-800 space-y-4 animate-fade-in">
             <h4 className="text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300">
-              Diagnóstico das 5 Dimensões de Matching:
+              Por que esse match? (Diagnóstico das 5 Dimensões)
             </h4>
             
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">

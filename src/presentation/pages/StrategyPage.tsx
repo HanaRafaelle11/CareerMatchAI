@@ -437,27 +437,47 @@ export function StrategyPage({
   };
 
   const executeStatusChange = async (app: Application, targetStatus: string) => {
+    const cleanTarget = ApplicationPipelineService.getCleanStatus(targetStatus);
+    const newStatus = (targetStatus === '🕐 Candidatura em andamento' || targetStatus === '📨 Me candidatei') 
+      ? targetStatus 
+      : cleanTarget;
+    const updatedApp: Application = {
+      ...app,
+      status: newStatus as any,
+      updatedAt: new Date().toISOString()
+    };
+
+    const stageTitles: Record<string, string> = {
+      found: 'Encontrada',
+      saved: 'Salva',
+      applied: 'Candidatura Enviada',
+      hr: 'Entrevista RH',
+      interview: 'Entrevista com Gestor',
+      offer: 'Oferta Recebida',
+      hired: 'Contratado',
+      rejected: 'Arquivada'
+    };
+    const targetLabel = stageTitles[cleanTarget] || cleanTarget;
+
     try {
-      const cleanTarget = ApplicationPipelineService.getCleanStatus(targetStatus);
-      const newStatus = (targetStatus === '🕐 Candidatura em andamento' || targetStatus === '📨 Me candidatei') 
-        ? targetStatus 
-        : cleanTarget;
-      const updatedApp: Application = {
-        ...app,
-        status: newStatus as any,
-        updatedAt: new Date().toISOString()
-      };
       await onUpdateApplication(updatedApp);
 
-      // Record stage transition log in database if Supabase configured
-      if (isSupabaseConfigured && supabase) {
-        await supabase.from('application_stages').insert({
-          application_id: app.id,
-          stage_name: cleanTarget,
-          from_status: app.status,
-          to_status: cleanTarget,
-          status: 'passed',
-          stage_date: new Date().toISOString()
+      // Record stage transition log in database if Supabase configured and valid UUID (non-blocking)
+      const isUuid = (val?: string | null) => !!val && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(val);
+      if (isSupabaseConfigured && supabase && isUuid(app.id)) {
+        Promise.resolve(
+          supabase.from('application_stages').insert({
+            application_id: app.id,
+            stage_name: cleanTarget,
+            from_status: app.status,
+            to_status: cleanTarget,
+            status: 'passed',
+            stage_date: new Date().toISOString()
+          })
+        ).then(({ error }: any) => {
+          if (error) console.warn('[Pipeline] Aviso ao registrar histórico de estágio:', error.message);
+        }).catch((err: any) => {
+          console.warn('[Pipeline] Exceção ao registrar histórico de estágio:', err);
         });
       }
 
@@ -470,15 +490,31 @@ export function StrategyPage({
 
       if (cleanTarget === 'hr' || cleanTarget === 'interview') {
         setToast({ 
-          message: 'Candidatura avançou para fase de Entrevista! Recomenda-se realizar o Treino STAR no Copiloto IA.', 
+          message: `Candidatura movida para ${targetLabel}! Recomenda-se realizar o Treino STAR no Copiloto IA.`, 
           type: 'success' 
         });
       } else if (cleanTarget === 'hired' || cleanTarget === 'offer' || targetStatus.toLowerCase().includes('contratad') || targetStatus.toLowerCase().includes('aceita')) {
         setHiredModalApp(updatedApp);
+        setToast({
+          message: `Candidatura movida para ${targetLabel}! 🎉 Parabéns pelo avanço!`,
+          type: 'success'
+        });
+      } else {
+        setToast({
+          message: `Candidatura movida para ${targetLabel}.`,
+          type: 'success'
+        });
       }
     } catch (err) {
       console.error('Erro ao atualizar estágio:', err);
-      setToast({ message: 'Erro ao mover estágio da candidatura. Tente novamente.', type: 'error' });
+      setToast({ 
+        message: 'Não conseguimos mover a candidatura. Sua alteração não foi salva.', 
+        type: 'error',
+        action: {
+          label: 'Tentar novamente',
+          onClick: () => executeStatusChange(app, targetStatus)
+        }
+      });
     }
   };
 

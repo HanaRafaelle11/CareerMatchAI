@@ -258,7 +258,9 @@ export function useApplications(userId: string | undefined, resumeVersionId?: st
 
   const updateApplicationMutation = useMutation({
     mutationFn: async (app: Application) => {
-      if (isSupabaseConfigured && supabase) {
+      const isUuid = (val?: string | null) => !!val && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(val);
+
+      if (isSupabaseConfigured && supabase && isUuid(app.id)) {
         const { error } = await supabase
           .from('applications')
           .update({

@@ -227,7 +227,6 @@ export function Dashboard({
         const idx = (totalDays - 1) - diffDays;
         let weight = 1;
         const type = (act.event_type || '').toLowerCase();
-        
         if (['profile_updated', 'preferences_updated'].includes(type)) weight = 1;
         else if (['resume_uploaded', 'resume_created', 'optimization_requested'].includes(type)) weight = 2;
         else if (['application_created', 'simulation_started', 'match_found'].includes(type)) weight = 3;
@@ -237,10 +236,16 @@ export function Dashboard({
     } catch (_) {}
   });
 
+  // Próximas entrevistas ou ações agendadas
+  const upcomingActions = applications.filter(a => {
+    if (['rejected', 'deleted'].includes(a.status as string)) return false;
+    return !!a.nextActionDate || ['hr', 'interview', '👥 Entrevista com recrutador', '🎯 Entrevista com gestor'].includes(a.status);
+  });
+
   return (
     <div className="space-y-6 w-full max-w-7xl mx-auto mb-16 animate-fade-in font-sans">
       
-      {/* ── 1. SAUDAÇÃO HUMANA & OBJETIVO ── */}
+      {/* ── CABEÇALHO COM SAUDAÇÃO HUMANA & OBJETIVO ── */}
       <header className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-slate-200/80 dark:border-white/8">
         <div>
           <h1 className="text-2xl sm:text-3xl font-bold text-slate-900 dark:text-[#F8FAFC] tracking-tight">Olá, {userName} 👋</h1>
@@ -257,7 +262,7 @@ export function Dashboard({
           </div>
         </div>
 
-        {/* Action Button (+ Explorar vagas) */}
+        {/* Botão de Ação Rápida */}
         <div className="flex items-center gap-2 shrink-0 self-start sm:self-auto">
           <button
             onClick={() => {
@@ -273,14 +278,243 @@ export function Dashboard({
         </div>
       </header>
 
-      {/* ── 2. SEU PRÓXIMO PASSO (HERO DOMINANTE DE AÇÃO CONTEXTUAL) ── */}
-      <NextStepCard 
-        action={primaryAction}
-        isLoading={isLoading}
-        onExecuteAction={handleExecuteNextStep}
-      />
+      {/* ── 1º BLOCO: SEU PRÓXIMO PASSO (HERO DOMINANTE DE AÇÃO CONTEXTUAL) ── */}
+      <section aria-label="1. Seu Próximo Passo">
+        <NextStepCard 
+          action={primaryAction}
+          isLoading={isLoading}
+          onExecuteAction={handleExecuteNextStep}
+        />
+      </section>
 
-      {/* ── 3. CAREER SCORE (DIAGNÓSTICO DE COMPETITIVIDADE) ── */}
+      {/* ── 2º BLOCO: SEU PROGRESSO (RESUMO NUMÉRICO DO FUNIL) ── */}
+      <section aria-label="2. Seu Progresso" className="space-y-2.5">
+        <div className="flex items-center justify-between">
+          <h2 className="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+            Seu Progresso de Carreira
+          </h2>
+          <button
+            onClick={() => setActiveTab('strategy')}
+            className="text-[11px] font-bold text-brand-600 dark:text-brand-400 hover:underline cursor-pointer"
+          >
+            Ver pipeline completo →
+          </button>
+        </div>
+
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+          <StatCard 
+            icon={<Search size={16} strokeWidth={1.5} />} 
+            label="Vagas com Match" 
+            value={matches.length} 
+            trend={{ value: `${avgMatch}% match médio`, positive: true }} 
+            action={{ label: "Ver vagas", onClick: () => setActiveTab('match') }}
+            isLoading={isLoading}
+          />
+          <StatCard 
+            icon={<Briefcase size={16} strokeWidth={1.5} />} 
+            label="Candidaturas Ativas" 
+            value={appliedCount} 
+            trend={appliedCount > 0 ? { value: `${appliedCount} em progresso`, positive: true } : null}
+            accent="secondary"
+            action={{ label: "Ver Candidaturas", onClick: () => setActiveTab('strategy') }}
+            isLoading={isLoading}
+          />
+          <StatCard 
+            icon={<Award size={16} strokeWidth={1.5} />} 
+            label="Entrevistas" 
+            value={interviewsCount} 
+            trend={interviewsCount > 0 ? { value: `${interviewsCount} ativas`, positive: true } : null} 
+            accent="success"
+            action={{ label: "Treinar STAR", onClick: () => setActiveTab('coach') }}
+            isLoading={isLoading}
+          />
+          {hiredCount > 0 ? (
+            <StatCard 
+              icon={<Trophy size={16} strokeWidth={1.5} className="text-amber-400" />} 
+              label="Contratado 🏆" 
+              value={hiredCount} 
+              trend={{ value: `${hiredCount} conquista(s)`, positive: true }} 
+              accent="success"
+              action={{ label: "Ver Histórico", onClick: () => setActiveTab('strategy') }}
+              isLoading={isLoading}
+            />
+          ) : (
+            <StatCard 
+              icon={<Zap size={16} strokeWidth={1.5} />} 
+              label="Preenchimento do Perfil" 
+              value={`${completeness}%`} 
+              trend={completeness === 100 ? { value: 'Completo', positive: true } : null} 
+              accent="warning"
+              action={{ label: "Ajustar perfil", onClick: () => setActiveTab('profile') }}
+              isLoading={isLoading}
+            />
+          )}
+        </div>
+      </section>
+
+      {/* ── 3º BLOCO: NOSSA RECOMENDAÇÃO PARA VOCÊ (DIAGNÓSTICO + PRÓXIMO PASSO + CTA ÚNICO) ── */}
+      <section aria-label="3. Nossa recomendação para você" className="rounded-2xl p-5 sm:p-6 bg-white dark:bg-[#242B36] border border-slate-200/90 dark:border-white/8 shadow-xs font-sans">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <div className="flex items-start gap-3.5">
+            <div className="w-10 h-10 rounded-xl bg-brand-500/10 border border-brand-500/20 text-brand-500 flex items-center justify-center shrink-0 mt-0.5">
+              <Zap size={20} strokeWidth={2} />
+            </div>
+            <div className="space-y-1">
+              <div className="flex items-center gap-2">
+                <span className="text-xs font-bold uppercase tracking-wider text-brand-600 dark:text-brand-400">
+                  Nossa recomendação para você
+                </span>
+                <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-blue-50 dark:bg-blue-500/10 text-blue-700 dark:text-[#4F8EF7] border border-blue-200 dark:border-blue-500/30">
+                  Direcionamento Inteligente
+                </span>
+              </div>
+              <h3 className="text-sm sm:text-base font-bold text-slate-900 dark:text-[#F8FAFC] leading-snug">
+                {applications.length > 0
+                  ? `Seu funil possui ${appliedCount} candidatura(s) ativa(s) e ${matches.length} vaga(s) com compatibilidade analisada.`
+                  : 'Você ainda não possui candidaturas ativas no seu pipeline.'}
+              </h3>
+              <p className="text-xs text-slate-600 dark:text-[#B8C2CC] leading-relaxed">
+                {applications.length > 0
+                  ? 'Candidate-se a mais 2 vagas recomendadas com alto índice de aderência para maximizar sua taxa de avanço para entrevistas esta semana.'
+                  : 'Explore as oportunidades mapeadas pelo copiloto e adicione as vagas com maior aderência ao seu pipeline para iniciar o acompanhamento.'}
+              </p>
+            </div>
+          </div>
+
+          <button
+            type="button"
+            onClick={() => {
+              localStorage.setItem('vocentro_trigger_discovery', 'true');
+              setActiveTab('match');
+              window.scrollTo({ top: 0, behavior: 'smooth' });
+            }}
+            className="px-5 py-2.5 rounded-xl bg-brand-600 hover:bg-brand-500 text-white font-bold text-xs shadow-md shadow-brand-500/20 transition-all flex items-center justify-center gap-1.5 cursor-pointer shrink-0 self-start md:self-center"
+          >
+            <span>Ver vagas recomendadas</span>
+            <ChevronRight size={14} />
+          </button>
+        </div>
+      </section>
+
+      {/* ── 4º BLOCO: PIPELINE VISUAL (MINI FUNIL DE CANDIDATURAS) ── */}
+      <section aria-label="4. Pipeline de Candidaturas" className="rounded-2xl p-5 sm:p-6 bg-white dark:bg-[#242B36] border border-slate-200/90 dark:border-white/8 shadow-xs font-sans space-y-4">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <span className="p-1 rounded-md bg-brand-500/10 text-brand-500 dark:text-brand-400">
+              <Briefcase size={16} />
+            </span>
+            <h3 className="text-sm sm:text-base font-bold text-slate-900 dark:text-[#F8FAFC]">
+              Pipeline de Candidaturas
+            </h3>
+          </div>
+          <button
+            onClick={() => setActiveTab('strategy')}
+            className="text-xs font-bold text-brand-600 dark:text-brand-400 hover:underline cursor-pointer flex items-center gap-1"
+          >
+            <span>Acessar pipeline</span>
+            <ChevronRight size={13} />
+          </button>
+        </div>
+
+        {/* Estágios do Funil */}
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-1">
+          {[
+            { label: 'Salvas', count: savedCount, color: 'border-blue-500/30 bg-blue-500/5 text-blue-600 dark:text-blue-400' },
+            { label: 'Candidaturas Enviadas', count: appliedCount, color: 'border-cyan-500/30 bg-cyan-500/5 text-cyan-600 dark:text-cyan-400' },
+            { label: 'Em Entrevista', count: interviewsCount, color: 'border-purple-500/30 bg-purple-500/5 text-purple-600 dark:text-purple-400' },
+            { label: 'Oferta / Contratado', count: hiredCount, color: 'border-emerald-500/30 bg-emerald-500/5 text-emerald-600 dark:text-emerald-400' },
+          ].map((stage, idx) => (
+            <div
+              key={idx}
+              onClick={() => setActiveTab('strategy')}
+              className={`p-3 rounded-xl border ${stage.color} flex flex-col justify-between cursor-pointer hover:opacity-90 transition-opacity`}
+            >
+              <span className="text-[11px] font-bold text-slate-500 dark:text-slate-400 block truncate">{stage.label}</span>
+              <div className="flex items-baseline justify-between mt-1">
+                <span className="text-xl font-extrabold text-slate-900 dark:text-white">{stage.count}</span>
+                <span className="text-[10px] font-semibold opacity-75">Ver →</span>
+              </div>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {/* ── 5º BLOCO: AGENDA / PRÓXIMA ENTREVISTA ── */}
+      <section aria-label="5. Agenda e Próximas Entrevistas" className="rounded-2xl p-5 sm:p-6 bg-white dark:bg-[#242B36] border border-slate-200/90 dark:border-white/8 shadow-xs font-sans space-y-3">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <span className="p-1 rounded-md bg-emerald-500/10 text-emerald-600 dark:text-emerald-400">
+              <Award size={16} />
+            </span>
+            <div>
+              <h3 className="text-sm sm:text-base font-bold text-slate-900 dark:text-[#F8FAFC]">
+                Agenda de Entrevistas & Próximas Ações
+              </h3>
+              <p className="text-xs text-slate-500 dark:text-[#B8C2CC]">
+                Acompanhamento das suas datas e etapas decisivas.
+              </p>
+            </div>
+          </div>
+        </div>
+
+        {upcomingActions.length > 0 ? (
+          <div className="space-y-2 pt-1">
+            {upcomingActions.slice(0, 3).map(app => (
+              <div
+                key={app.id}
+                className="p-3.5 rounded-xl border border-slate-200/80 dark:border-white/8 bg-slate-50/50 dark:bg-[#1C2128]/50 flex flex-col sm:flex-row sm:items-center justify-between gap-3"
+              >
+                <div className="min-w-0">
+                  <div className="flex items-center gap-2">
+                    <span className="font-bold text-xs text-slate-900 dark:text-white truncate">
+                      {app.jobTitle}
+                    </span>
+                    <span className="text-[10px] text-slate-400 truncate">
+                      · {app.companyName}
+                    </span>
+                  </div>
+                  <p className="text-[11px] text-brand-600 dark:text-brand-400 mt-0.5 font-medium">
+                    {app.nextAction ? `Próxima ação: ${app.nextAction}` : `Etapa atual: ${app.status}`}
+                    {app.nextActionDate && ` (Data: ${new Date(app.nextActionDate).toLocaleDateString('pt-BR')})`}
+                  </p>
+                </div>
+
+                <div className="flex items-center gap-2 shrink-0">
+                  <button
+                    type="button"
+                    onClick={() => setActiveTab('coach')}
+                    className="px-3 py-1.5 rounded-lg bg-indigo-50 dark:bg-indigo-500/10 text-indigo-700 dark:text-indigo-300 font-bold text-xs border border-indigo-200 dark:border-indigo-500/30 hover:bg-indigo-100 transition-colors cursor-pointer"
+                  >
+                    Simular Entrevista
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setActiveTab('strategy')}
+                    className="px-3 py-1.5 rounded-lg bg-slate-100 dark:bg-white/5 text-slate-700 dark:text-slate-300 font-bold text-xs border border-slate-200 dark:border-white/10 hover:bg-slate-200 transition-colors cursor-pointer"
+                  >
+                    Ver no Pipeline
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div className="p-4 rounded-xl border border-dashed border-slate-200 dark:border-slate-800 text-center space-y-2">
+            <p className="text-xs text-slate-500 dark:text-slate-400">
+              Nenhuma entrevista agendada para os próximos dias.
+            </p>
+            <button
+              type="button"
+              onClick={() => setActiveTab('coach')}
+              className="text-xs font-bold text-brand-600 dark:text-brand-400 hover:underline cursor-pointer"
+            >
+              Realizar treino preventivo no Simulador STAR →
+            </button>
+          </div>
+        )}
+      </section>
+
+      {/* ── SEÇÃO SECUNDÁRIA: DIAGNÓSTICO DE COMPETITIVIDADE (CAREER SCORE) ── */}
       <CareerScoreDashboardCard
         resume={resumes[0]}
         careerProfileNew={careerProfileNew}
@@ -308,156 +542,79 @@ export function Dashboard({
         }}
       />
 
-      {/* ── 4. MÉTRICAS CONSOLIDADAS DA JORNADA ── */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <StatCard 
-          icon={<Search size={16} strokeWidth={1.5} />} 
-          label="Vagas com Match" 
-          value={matches.length} 
-          trend={{ value: `${avgMatch}% match médio`, positive: true }} 
-          action={{ label: "Ver vagas", onClick: () => setActiveTab('match') }}
-          isLoading={isLoading}
-        />
-        <StatCard 
-          icon={<Briefcase size={16} strokeWidth={1.5} />} 
-          label="Candidaturas Ativas" 
-          value={appliedCount} 
-          trend={appliedCount > 0 ? { value: `${appliedCount} em progresso`, positive: true } : null}
-          accent="secondary"
-          action={{ label: "Ver Pipeline", onClick: () => setActiveTab('strategy') }}
-          isLoading={isLoading}
-        />
-        <StatCard 
-          icon={<Search size={16} strokeWidth={1.5} />} 
-          label="Vagas Salvas" 
-          value={savedCount} 
-          trend={savedCount > 0 ? { value: `${savedCount} em prospecção`, positive: false } : null}
-          action={{ label: "Ver Salvas", onClick: () => setActiveTab('strategy') }}
-          isLoading={isLoading}
-        />
-        {hiredCount > 0 ? (
-          <StatCard 
-            icon={<Trophy size={16} strokeWidth={1.5} className="text-amber-400" />} 
-            label="Contratado 🏆" 
-            value={hiredCount} 
-            trend={{ value: `${hiredCount} conquista(s)`, positive: true }} 
-            accent="success"
-            action={{ label: "Ver Pipeline", onClick: () => setActiveTab('strategy') }}
-            isLoading={isLoading}
-          />
-        ) : interviewsCount > 0 ? (
-          <StatCard 
-            icon={<Award size={16} strokeWidth={1.5} />} 
-            label="Entrevistas" 
-            value={interviewsCount} 
-            trend={{ value: `${interviewsCount} ativas`, positive: true }} 
-            accent="success"
-            action={{ label: "Treinar STAR", onClick: () => setActiveTab('coach') }}
-            isLoading={isLoading}
-          />
-        ) : (
-          <StatCard 
-            icon={<Zap size={16} strokeWidth={1.5} />} 
-            label="Preenchimento do Perfil" 
-            value={`${completeness}%`} 
-            trend={completeness === 100 ? { value: 'Completo', positive: true } : null} 
-            accent="warning"
-            action={{ label: "Ajustar perfil", onClick: () => setActiveTab('profile') }}
-            isLoading={isLoading}
-          />
-        )}
-      </div>
-
-      {/* ── 5. TAMBÉM PODE FAZER HOJE (AÇÕES SECUNDÁRIAS NÃO CONFLITANTES) ── */}
+      {/* ── SEÇÃO SECUNDÁRIA: ATIVIDADES COMPLEMENTARES E CONSTÂNCIA ── */}
       {secondaryActions && secondaryActions.length > 0 && (
-        <section className="bg-white dark:bg-[#242B36] border border-slate-200/90 dark:border-white/8 rounded-2xl p-5 sm:p-6 shadow-xs font-sans">
-          <div className="flex items-center justify-between mb-3">
+        <details className="group bg-white dark:bg-[#242B36] border border-slate-200/90 dark:border-white/8 rounded-2xl p-5 sm:p-6 shadow-xs font-sans">
+          <summary className="flex items-center justify-between cursor-pointer list-none select-none">
             <div className="flex items-center gap-2">
               <span className="p-1 rounded-md bg-slate-100 dark:bg-white/5 text-slate-600 dark:text-slate-300">
                 <ListTodo size={15} />
               </span>
               <div>
-                <h3 className="text-sm sm:text-base font-semibold text-slate-900 dark:text-[#F8FAFC]">Também pode fazer hoje</h3>
-                <p className="text-xs text-slate-500 dark:text-[#B8C2CC]">Ações complementares para impulsionar sua busca sem sobrecarga.</p>
+                <h3 className="text-sm font-semibold text-slate-900 dark:text-[#F8FAFC]">Atividades complementares e constância</h3>
+                <p className="text-xs text-slate-500 dark:text-[#B8C2CC]">Ações opcionais e histórico dos últimos 30 dias (clique para expandir)</p>
               </div>
             </div>
-          </div>
+            <ChevronRight size={16} className="text-slate-400 group-open:rotate-90 transition-transform" />
+          </summary>
 
-          <div className="space-y-2 mt-3">
-            {secondaryActions.map(sec => (
-              <div
-                key={sec.id}
-                onClick={() => {
-                  tracker.track('secondary_action_clicked', 'Dashboard', { action_id: sec.id, target_tab: sec.ctaTab });
-                  handleExecuteNextStep(sec.ctaTab, sec.actionPayload);
-                }}
-                className="p-3 rounded-xl border border-slate-200/80 dark:border-white/8 bg-slate-50/50 dark:bg-[#1C2128]/50 hover:border-brand-500/40 hover:bg-slate-50 dark:hover:bg-[#1C2128] transition-all cursor-pointer flex items-center justify-between group"
-              >
-                <div className="flex items-center gap-3">
-                  {sec.completed ? (
-                    <CheckCircle2 size={16} className="text-emerald-500 shrink-0" />
-                  ) : (
-                    <Circle size={16} className="text-slate-400 dark:text-slate-500 shrink-0 group-hover:text-brand-500 transition-colors" />
-                  )}
-                  <span className="text-xs sm:text-sm font-medium text-slate-800 dark:text-[#F8FAFC]">
-                    {sec.label}
-                  </span>
+          <div className="space-y-4 pt-4 mt-2 border-t border-slate-100 dark:border-white/6">
+            <div className="space-y-2">
+              {secondaryActions.map(sec => (
+                <div
+                  key={sec.id}
+                  onClick={() => {
+                    tracker.track('secondary_action_clicked', 'Dashboard', { action_id: sec.id, target_tab: sec.ctaTab });
+                    handleExecuteNextStep(sec.ctaTab, sec.actionPayload);
+                  }}
+                  className="p-3 rounded-xl border border-slate-200/80 dark:border-white/8 bg-slate-50/50 dark:bg-[#1C2128]/50 hover:border-brand-500/40 hover:bg-slate-50 dark:hover:bg-[#1C2128] transition-all cursor-pointer flex items-center justify-between group"
+                >
+                  <div className="flex items-center gap-3">
+                    {sec.completed ? (
+                      <CheckCircle2 size={16} className="text-emerald-500 shrink-0" />
+                    ) : (
+                      <Circle size={16} className="text-slate-400 dark:text-slate-500 shrink-0 group-hover:text-brand-500 transition-colors" />
+                    )}
+                    <span className="text-xs sm:text-sm font-medium text-slate-800 dark:text-[#F8FAFC]">
+                      {sec.label}
+                    </span>
+                  </div>
+                  <ChevronRight size={14} className="text-slate-400 group-hover:translate-x-0.5 group-hover:text-brand-500 transition-all" />
                 </div>
-                <ChevronRight size={14} className="text-slate-400 group-hover:translate-x-0.5 group-hover:text-brand-500 transition-all" />
-              </div>
-            ))}
-          </div>
-        </section>
-      )}
-
-      {/* ── 6. HISTÓRICO DE CONSTÂNCIA DE ATIVIDADES (HEATMAP) ── */}
-      <section className="bg-white dark:bg-[#242B36] border border-slate-200/90 dark:border-white/8 rounded-2xl p-5 sm:p-6 shadow-xs font-sans">
-        <div className="flex items-center justify-between mb-4">
-          <div>
-            <h3 className="text-sm sm:text-base font-semibold text-slate-900 dark:text-[#F8FAFC]">Constância de Candidaturas & Atividades</h3>
-            <p className="text-xs text-slate-500 dark:text-[#B8C2CC]">Registro de atividade dos últimos 30 dias</p>
-          </div>
-          <span className="text-[11px] font-medium text-slate-500 dark:text-slate-400 bg-slate-100 dark:bg-white/5 px-2.5 py-1 rounded-md border border-slate-200/50 dark:border-white/5">
-            Últimos 30 dias
-          </span>
-        </div>
-
-        <div className="flex flex-col gap-2 pt-1 overflow-x-auto">
-          <div className="flex gap-[4px] min-w-[340px]">
-            {Array.from({ length: heatmapWeeks }).map((_, weekIdx) => (
-              <div key={weekIdx} className="flex flex-col gap-[4px]">
-                {Array.from({ length: heatmapDaysPerWeek }).map((_, dayIdx) => {
-                  const dataIdx = weekIdx * heatmapDaysPerWeek + dayIdx;
-                  const activity = activityData[dataIdx];
-                  const colorClass = 
-                    activity === 3 ? 'bg-brand-500' : 
-                    activity === 2 ? 'bg-brand-500/60' : 
-                    activity === 1 ? 'bg-brand-500/20' : 
-                    'bg-slate-100 dark:bg-white/5';
-                  return (
-                    <div 
-                      key={dayIdx} 
-                      className={`w-3 h-3 rounded-xs transition-all hover:scale-110 cursor-pointer ${colorClass}`}
-                      title={`${activity > 0 ? `${activity} atividade(s)` : 'Sem atividade registrada'}`}
-                    />
-                  );
-                })}
-              </div>
-            ))}
-          </div>
-
-          <div className="flex justify-between items-center text-xs text-slate-400 dark:text-slate-500 mt-3">
-            <span>Menos ativo</span>
-            <div className="flex items-center gap-1">
-              <div className="w-2.5 h-2.5 rounded-xs bg-slate-100 dark:bg-white/5" />
-              <div className="w-2.5 h-2.5 rounded-xs bg-brand-500/20" />
-              <div className="w-2.5 h-2.5 rounded-xs bg-brand-500/60" />
-              <div className="w-2.5 h-2.5 rounded-xs bg-brand-500" />
+              ))}
             </div>
-            <span>Mais ativo</span>
+
+            {/* Heatmap de Atividades */}
+            <div className="pt-3 border-t border-slate-100 dark:border-white/6">
+              <h4 className="text-xs font-semibold text-slate-700 dark:text-slate-300 mb-2">Constância de atividades nos últimos 30 dias:</h4>
+              <div className="flex flex-col gap-2 overflow-x-auto">
+                <div className="flex gap-[4px] min-w-[340px]">
+                  {Array.from({ length: heatmapWeeks }).map((_, weekIdx) => (
+                    <div key={weekIdx} className="flex flex-col gap-[4px]">
+                      {Array.from({ length: heatmapDaysPerWeek }).map((_, dayIdx) => {
+                        const dataIdx = weekIdx * heatmapDaysPerWeek + dayIdx;
+                        const activity = activityData[dataIdx];
+                        const colorClass = 
+                          activity === 3 ? 'bg-brand-500' : 
+                          activity === 2 ? 'bg-brand-500/60' : 
+                          activity === 1 ? 'bg-brand-500/20' : 
+                          'bg-slate-100 dark:bg-white/5';
+                        return (
+                          <div 
+                            key={dayIdx} 
+                            className={`w-3 h-3 rounded-xs transition-all hover:scale-110 cursor-pointer ${colorClass}`}
+                            title={`${activity > 0 ? `${activity} atividade(s)` : 'Sem atividade registrada'}`}
+                          />
+                        );
+                      })}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
           </div>
-        </div>
-      </section>
+        </details>
+      )}
 
     </div>
   );

@@ -61,3 +61,7 @@ android/**/*.apk
 android/**/*.jks
 android/**/*.keystore
 android/keystore.properties
+
+# Artefatos locais e scripts de validação temporários
+artifacts/
+scripts/audit_phase5_browser_validation.mjs

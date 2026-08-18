@@ -9,7 +9,7 @@ import type { CareerProfileNew } from '../../application/hooks/useMyProfileAi';
 import { 
   User, FileText, Settings as SettingsIcon, Bell, 
   Palette, ShieldAlert, CreditCard, Trash2, Download, Check,
-  Sun, Moon, Monitor, RotateCcw, Sparkles
+  Sun, Moon, Monitor, RotateCcw, Sparkles, Loader2
 } from 'lucide-react';
 import { CustomerPortal } from '../../modules/billing';
 import { useJobTrash } from '../../application/hooks/useJobTrash';
@@ -42,9 +42,19 @@ export function Settings({
   initialTab,
   preferences,
   updatePreferences,
-  onDeleteJob
+  onDeleteJob: _onDeleteJob
 }: SettingsProps) {
-  const { trashedJobs, restoreFromTrash, removeFromTrash, clearTrash } = useJobTrash(profile?.id);
+  const { 
+    trashedJobs, 
+    restoreFromTrash, 
+    restoreAllFromTrash, 
+    removeFromTrash, 
+    clearTrash,
+    isRestoring,
+    isRestoringAll,
+    isDeletingPermanently,
+    isClearingTrash
+  } = useJobTrash(profile?.id);
 
   if (!(window as any).SETTINGS_DIAGNOSTIC_MOUNTED) {
     (window as any).SETTINGS_DIAGNOSTIC_MOUNTED = true;
@@ -1116,24 +1126,48 @@ export function Settings({
                     Gerencie suas vagas excluídas. Você pode restaurar qualquer oportunidade para a lista ativa ou realizar a exclusão permanente.
                   </p>
                 </div>
-                {trashedJobs.length > 0 && (
-                  <button
-                    type="button"
-                    onClick={async () => {
-                      if (window.confirm('Tem certeza que deseja esvaziar a lixeira e excluir permanentemente todas as vagas?')) {
-                        for (const item of trashedJobs) {
-                          if (onDeleteJob) await onDeleteJob(item.id);
-                        }
-                        clearTrash();
-                        showToast('Lixeira esvaziada com sucesso.', 'success');
-                      }
-                    }}
-                    className="px-3.5 py-2 rounded-xl bg-red-950/40 hover:bg-red-900/60 border border-red-800/50 text-red-400 text-xs font-bold flex items-center gap-1.5 transition cursor-pointer self-start sm:self-center shadow-md shadow-red-950/20"
-                  >
-                    <Trash2 size={14} />
-                    Esvaziar Lixeira
-                  </button>
-                )}
+                <div className="flex flex-wrap items-center gap-2">
+                  {trashedJobs.length > 0 && (
+                    <>
+                      <button
+                        type="button"
+                        disabled={isRestoring || isRestoringAll || isDeletingPermanently || isClearingTrash}
+                        onClick={async () => {
+                          const count = trashedJobs.length;
+                          try {
+                            await restoreAllFromTrash();
+                            showToast(`✓ ${count} vaga(s) restaurada(s) com sucesso!`, 'success');
+                          } catch (err: any) {
+                            showToast('Erro ao restaurar vagas: ' + (err.message || 'Tente novamente.'), 'error');
+                          }
+                        }}
+                        className="px-3.5 py-2 rounded-xl bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/30 text-emerald-400 text-xs font-bold flex items-center gap-1.5 transition cursor-pointer disabled:opacity-50"
+                      >
+                        {isRestoringAll ? <Loader2 size={14} className="animate-spin" /> : <RotateCcw size={14} />}
+                        Restaurar Todas
+                      </button>
+                      <button
+                        type="button"
+                        disabled={isRestoring || isRestoringAll || isDeletingPermanently || isClearingTrash}
+                        onClick={async () => {
+                          const count = trashedJobs.length;
+                          if (window.confirm(`Excluir permanentemente todas as ${count} vagas da lixeira?\n\nEssa ação removerá definitivamente os registros e não poderá ser desfeita.`)) {
+                            try {
+                              await clearTrash();
+                              showToast(`✓ ${count} vaga(s) excluída(s) permanentemente.`, 'success');
+                            } catch (err: any) {
+                              showToast('Erro ao esvaziar lixeira: ' + (err.message || 'Tente novamente.'), 'error');
+                            }
+                          }
+                        }}
+                        className="px-3.5 py-2 rounded-xl bg-red-950/40 hover:bg-red-900/60 border border-red-800/50 text-red-400 text-xs font-bold flex items-center gap-1.5 transition cursor-pointer disabled:opacity-50 shadow-md shadow-red-950/20"
+                      >
+                        {isClearingTrash ? <Loader2 size={14} className="animate-spin" /> : <Trash2 size={14} />}
+                        Esvaziar Lixeira
+                      </button>
+                    </>
+                  )}
+                </div>
               </div>
 
               {trashedJobs.length === 0 ? (
@@ -1163,17 +1197,23 @@ export function Settings({
                       <div className="flex items-center gap-2 pt-3 border-t border-slate-800/80">
                         <button
                           type="button"
-                          onClick={() => {
-                            restoreFromTrash(item.id);
-                            showToast(`Vaga "${item.title}" restaurada!`, 'success');
+                          disabled={isRestoring || isRestoringAll || isDeletingPermanently || isClearingTrash}
+                          onClick={async () => {
+                            try {
+                              await restoreFromTrash(item.id);
+                              showToast(`Vaga "${item.title}" restaurada!`, 'success');
+                            } catch (err: any) {
+                              showToast(err.message || `Erro ao restaurar a vaga "${item.title}".`, 'error');
+                            }
                           }}
-                          className="flex-1 py-2 px-3 rounded-xl bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/30 text-emerald-400 text-xs font-bold flex items-center justify-center gap-1.5 transition cursor-pointer"
+                          className="flex-1 py-2 px-3 rounded-xl bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/30 text-emerald-400 text-xs font-bold flex items-center justify-center gap-1.5 transition cursor-pointer disabled:opacity-50"
                         >
                           <RotateCcw size={13} />
                           Restaurar
                         </button>
                         <button
                           type="button"
+                          disabled={isRestoring || isRestoringAll || isDeletingPermanently || isClearingTrash}
                           onClick={async () => {
                             if (window.confirm(`Excluir permanentemente a vaga "${item.title}"? Esta ação não pode ser desfeita.`)) {
                               try {
@@ -1184,7 +1224,7 @@ export function Settings({
                               }
                             }
                           }}
-                          className="py-2 px-3 rounded-xl bg-red-500/10 hover:bg-red-500/20 border border-red-500/30 text-red-400 text-xs font-bold flex items-center justify-center gap-1.5 transition cursor-pointer"
+                          className="py-2 px-3 rounded-xl bg-red-500/10 hover:bg-red-500/20 border border-red-500/30 text-red-400 text-xs font-bold flex items-center justify-center gap-1.5 transition cursor-pointer disabled:opacity-50"
                           title="Excluir permanentemente"
                         >
                           <Trash2 size={13} />

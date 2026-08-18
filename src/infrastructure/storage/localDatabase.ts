@@ -692,48 +692,79 @@ class LocalDatabase {
 
   // Resume Optimizations API
   getResumeOptimization(resumeId: string, jobId?: string): ResumeOptimization | null {
-    const all = JSON.parse(localStorage.getItem(KEYS.OPTIMIZATIONS) || '[]') as ResumeOptimization[];
-    const found = all.find(o => o.resumeId === resumeId && (!jobId || o.jobId === jobId));
-    return found || null;
+    try {
+      const all = JSON.parse(localStorage.getItem(KEYS.OPTIMIZATIONS) || '[]') as ResumeOptimization[];
+      const found = all.find(o => (!resumeId || o.resumeId === resumeId) && (!jobId || o.jobId === jobId));
+      return found || null;
+    } catch (_) {
+      return null;
+    }
   }
 
   saveResumeOptimization(opt: ResumeOptimization): ResumeOptimization {
-    const all = JSON.parse(localStorage.getItem(KEYS.OPTIMIZATIONS) || '[]') as ResumeOptimization[];
-    const idx = all.findIndex(o => o.id === opt.id);
-    if (idx >= 0) all[idx] = opt;
-    else all.push(opt);
-    localStorage.setItem(KEYS.OPTIMIZATIONS, JSON.stringify(all));
+    try {
+      const all = JSON.parse(localStorage.getItem(KEYS.OPTIMIZATIONS) || '[]') as ResumeOptimization[];
+      const idx = all.findIndex(o => o.id === opt.id || (o.resumeId === opt.resumeId && o.jobId === opt.jobId));
+      if (idx >= 0) all[idx] = opt;
+      else all.push(opt);
+      localStorage.setItem(KEYS.OPTIMIZATIONS, JSON.stringify(all));
+    } catch (_) {}
     return opt;
   }
 
   // Cover Letters API
-  getCoverLetter(applicationId: string): CoverLetter | null {
-    const all = JSON.parse(localStorage.getItem(KEYS.LETTERS_V2) || '[]') as CoverLetter[];
-    return all.find(l => l.applicationId === applicationId) || null;
+  getCoverLetter(applicationIdOrJobId: string): CoverLetter | null {
+    try {
+      const all = JSON.parse(localStorage.getItem(KEYS.LETTERS_V2) || localStorage.getItem(KEYS.LETTERS) || '[]') as CoverLetter[];
+      return all.find(l => 
+        l.applicationId === applicationIdOrJobId || 
+        l.id === applicationIdOrJobId ||
+        (l as any).jobId === applicationIdOrJobId
+      ) || null;
+    } catch (_) {
+      return null;
+    }
   }
 
   saveCoverLetter(letter: CoverLetter): CoverLetter {
-    const all = JSON.parse(localStorage.getItem(KEYS.LETTERS_V2) || '[]') as CoverLetter[];
-    const idx = all.findIndex(l => l.id === letter.id);
-    if (idx >= 0) all[idx] = letter;
-    else all.push(letter);
-    localStorage.setItem(KEYS.LETTERS_V2, JSON.stringify(all));
+    try {
+      const all = JSON.parse(localStorage.getItem(KEYS.LETTERS_V2) || '[]') as CoverLetter[];
+      const idx = all.findIndex(l => l.id === letter.id || l.applicationId === letter.applicationId);
+      if (idx >= 0) all[idx] = letter;
+      else all.push(letter);
+      localStorage.setItem(KEYS.LETTERS_V2, JSON.stringify(all));
+      localStorage.setItem(KEYS.LETTERS, JSON.stringify(all));
+    } catch (_) {}
     return letter;
   }
 
   // Interview Preparations API
   getInterviewPreparation(jobId: string): InterviewPreparation | null {
-    const all = JSON.parse(localStorage.getItem(KEYS.PREPARATIONS) || '[]') as InterviewPreparation[];
-    return all.find(p => p.jobId === jobId) || null;
+    try {
+      const all = JSON.parse(localStorage.getItem(KEYS.PREPARATIONS) || localStorage.getItem(KEYS.PREPS) || '[]') as InterviewPreparation[];
+      return all.find(p => p.jobId === jobId || p.id === jobId) || null;
+    } catch (_) {
+      return null;
+    }
+  }
+
+  getInterviewPrep(jobId: string): InterviewPreparation | null {
+    return this.getInterviewPreparation(jobId);
   }
 
   saveInterviewPreparation(prep: InterviewPreparation): InterviewPreparation {
-    const all = JSON.parse(localStorage.getItem(KEYS.PREPARATIONS) || '[]') as InterviewPreparation[];
-    const idx = all.findIndex(p => p.id === prep.id);
-    if (idx >= 0) all[idx] = prep;
-    else all.push(prep);
-    localStorage.setItem(KEYS.PREPARATIONS, JSON.stringify(all));
+    try {
+      const all = JSON.parse(localStorage.getItem(KEYS.PREPARATIONS) || '[]') as InterviewPreparation[];
+      const idx = all.findIndex(p => p.id === prep.id || p.jobId === prep.jobId);
+      if (idx >= 0) all[idx] = prep;
+      else all.push(prep);
+      localStorage.setItem(KEYS.PREPARATIONS, JSON.stringify(all));
+    } catch (_) {}
     return prep;
+  }
+
+  saveInterviewPrep(prep: InterviewPreparation): InterviewPreparation {
+    return this.saveInterviewPreparation(prep);
   }
 
   // Interview Simulations API

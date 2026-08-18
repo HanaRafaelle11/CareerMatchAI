@@ -16,7 +16,7 @@ export interface TrashedJob {
 export function useJobTrash(userId?: string, activeJobs: Job[] = []) {
   const queryClient = useQueryClient();
 
-  // Limpa residual antigo do localStorage durante essa transição (Migração Ponto 6)
+  // Limpa residual antigo do localStorage durante essa transição
   useEffect(() => {
     if (typeof window !== 'undefined') {
       try {
@@ -149,7 +149,7 @@ export function useJobTrash(userId?: string, activeJobs: Job[] = []) {
   const trashedJobs = allTrashedJobs;
   const trashedJobIds = new Set(trashedJobs.map(t => String(t.jobId)));
 
-  // 1. Mutation para Mover para a Lixeira (Soft Delete no Banco via job_feedback) com Optimistic UI Update
+  // 1. Mutation para Mover para a Lixeira (Soft Delete no Banco via job_feedback)
   const moveToTrashMutation = useMutation({
     mutationFn: async (job: Job | { id: string; title?: string; companyName?: string; location?: string }) => {
       if (!userId) throw new Error('Usuário não autenticado.');
@@ -193,7 +193,7 @@ export function useJobTrash(userId?: string, activeJobs: Job[] = []) {
       const previousMatches = queryClient.getQueryData<any[]>(['matches', userId]);
       const previousTrash = queryClient.getQueryData<TrashedJob[]>(['job-trash', userId]);
 
-      // Atualização otimista imediata na interface (0ms delay)
+      // Atualização otimista imediata na interface
       if (previousJobs) {
         queryClient.setQueryData<Job[]>(['jobs', userId], old => 
           (old || []).filter(j => String(j.id) !== targetId && String((j as any).jobId) !== targetId)
@@ -240,27 +240,49 @@ export function useJobTrash(userId?: string, activeJobs: Job[] = []) {
     }
   });
 
-  // 2. Mutation para Restaurar Vaga (Remover exclusão do Banco)
+  const isUuid = (id?: string | null): boolean => {
+    if (!id) return false;
+    return /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id);
+  };
+
+  // 2. Mutation para Restaurar 1 Vaga Individual
   const restoreFromTrashMutation = useMutation({
     mutationFn: async (jobId: string) => {
       if (!userId) throw new Error('Usuário não autenticado.');
+      const targetId = String(jobId);
 
-      if (isSupabaseConfigured && supabase) {
-        const { error } = await supabase
-          .from('job_feedback')
-          .delete()
-          .eq('user_id', userId)
-          .eq('job_id', String(jobId))
-          .eq('action', 'REJECTED');
+      if (isSupabaseConfigured && supabase && isUuid(userId)) {
+        try {
+          const { error } = await supabase
+            .from('job_feedback')
+            .delete()
+            .eq('user_id', userId)
+            .eq('job_id', targetId)
+            .eq('action', 'REJECTED');
 
-        if (error) {
-          console.error('[RESTORE TRASH ERROR]', error);
-          throw error;
+          if (error && error.code !== '22P02') {
+            console.error('[RESTORE TRASH ERROR]', error);
+          }
+        } catch (dbErr) {
+          console.warn('[RESTORE TRASH] Supabase delete warning:', dbErr);
         }
       }
-      return jobId;
+
+      // Remover do cache local
+      if (typeof window !== 'undefined') {
+        try {
+          localStorage.removeItem('vocentro_trash_meta_' + targetId);
+          const currentLocal = getLocalTrashedIds().filter(id => id !== targetId);
+          localStorage.setItem(`vocentro_local_trashed_ids_${userId}`, JSON.stringify(currentLocal));
+        } catch (_) {}
+      }
+
+      return targetId;
     },
-    onSuccess: () => {
+    onSuccess: (targetId) => {
+      queryClient.setQueryData<TrashedJob[]>(['job-trash', userId], old => 
+        (old || []).filter(item => String(item.id) !== targetId && String(item.jobId) !== targetId)
+      );
       queryClient.invalidateQueries({ queryKey: ['job-trash', userId] });
       queryClient.invalidateQueries({ queryKey: ['jobs', userId] });
       queryClient.invalidateQueries({ queryKey: ['matches', userId] });
@@ -268,74 +290,136 @@ export function useJobTrash(userId?: string, activeJobs: Job[] = []) {
     }
   });
 
-  // 3. Mutation para Excluir Definitivamente (Restrito à associação do usuário, NUNCA apaga a vaga do catálogo nem candidaturas ativas)
+  // 3. Mutation para Restaurar TODAS as Vagas da Lixeira (Bulk Restore)
+  const restoreAllFromTrashMutation = useMutation({
+    mutationFn: async () => {
+      if (!userId) throw new Error('Usuário não autenticado.');
+
+      if (isSupabaseConfigured && supabase && isUuid(userId)) {
+        try {
+          const { error } = await supabase
+            .from('job_feedback')
+            .delete()
+            .eq('user_id', userId)
+            .eq('action', 'REJECTED');
+
+          if (error && error.code !== '22P02') {
+            console.error('[RESTORE ALL TRASH ERROR]', error);
+          }
+        } catch (dbErr) {
+          console.warn('[RESTORE ALL TRASH] Supabase bulk delete warning:', dbErr);
+        }
+      }
+
+      // Limpar todos os metadados locais de lixeira
+      if (typeof window !== 'undefined') {
+        try {
+          localStorage.removeItem(`vocentro_local_trashed_ids_${userId}`);
+          for (let i = localStorage.length - 1; i >= 0; i--) {
+            const key = localStorage.key(i);
+            if (key && key.startsWith('vocentro_trash_meta_')) {
+              localStorage.removeItem(key);
+            }
+          }
+        } catch (_) {}
+      }
+    },
+    onSuccess: () => {
+      queryClient.setQueryData(['job-trash', userId], []);
+      queryClient.invalidateQueries({ queryKey: ['job-trash', userId] });
+      queryClient.invalidateQueries({ queryKey: ['jobs', userId] });
+      queryClient.invalidateQueries({ queryKey: ['matches', userId] });
+      queryClient.invalidateQueries({ queryKey: ['job-discovery'] });
+    }
+  });
+
+  // 4. Mutation para Excluir Definitivamente 1 Vaga
   const deletePermanentlyMutation = useMutation({
     mutationFn: async (jobId: string) => {
       if (!userId) throw new Error('Usuário não autenticado.');
       const targetId = String(jobId);
-      if (isSupabaseConfigured && supabase) {
-        // A. Se houver candidatura no Pipeline/Kanban, remover a associação no Pipeline para permitir a exclusão completa confirmada
-        await supabase
-          .from('applications')
-          .delete()
-          .eq('user_id', userId)
-          .eq('job_id', targetId);
 
-        // B. Apagar registros que representam a associação deste usuário com a vaga (job_feedback, job_matches, matches)
-        await supabase
-          .from('job_feedback')
-          .delete()
-          .eq('user_id', userId)
-          .eq('job_id', targetId);
+      if (isSupabaseConfigured && supabase && isUuid(userId)) {
+        try {
+          await supabase
+            .from('applications')
+            .delete()
+            .eq('user_id', userId)
+            .eq('job_id', targetId);
 
-        await supabase
-          .from('job_matches')
-          .delete()
-          .eq('user_id', userId)
-          .eq('job_id', targetId);
+          await supabase
+            .from('job_feedback')
+            .delete()
+            .eq('user_id', userId)
+            .eq('job_id', targetId);
 
-        await supabase
-          .from('matches')
-          .delete()
-          .eq('user_id', userId)
-          .eq('job_id', targetId);
-      }
-      return targetId;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['job-trash', userId] });
-      queryClient.invalidateQueries({ queryKey: ['jobs', userId] });
-      queryClient.invalidateQueries({ queryKey: ['matches', userId] });
-      queryClient.invalidateQueries({ queryKey: ['applications', userId] });
-      queryClient.invalidateQueries({ queryKey: ['applications'] });
-      queryClient.invalidateQueries({ queryKey: ['applications', userId] });
-      queryClient.invalidateQueries({ queryKey: ['job-discovery'] });
-    }
-  });
+          await supabase
+            .from('job_matches')
+            .delete()
+            .eq('user_id', userId)
+            .eq('job_id', targetId);
 
-  // 4. Esvaziar Lixeira (Excluir Definitivamente associações de todas as vagas na lixeira)
-  const clearTrashMutation = useMutation({
-    mutationFn: async () => {
-      if (!userId) throw new Error('Usuário não autenticado.');
-
-      if (isSupabaseConfigured && supabase) {
-        const { data: excludedList } = await supabase
-          .from('job_feedback')
-          .select('job_id')
-          .eq('user_id', userId)
-          .eq('action', 'REJECTED');
-
-        if (excludedList && excludedList.length > 0) {
-          const ids = excludedList.map(e => String(e.job_id));
-
-          await supabase.from('job_feedback').delete().eq('user_id', userId).in('job_id', ids);
-          await supabase.from('job_matches').delete().eq('user_id', userId).in('job_id', ids);
-          await supabase.from('matches').delete().eq('user_id', userId).in('job_id', ids);
+          await supabase
+            .from('matches')
+            .delete()
+            .eq('user_id', userId)
+            .eq('job_id', targetId);
+        } catch (dbErr) {
+          console.warn('[DELETE PERMANENTLY] Warning:', dbErr);
         }
       }
 
       if (typeof window !== 'undefined') {
         try {
+          localStorage.removeItem('vocentro_trash_meta_' + targetId);
+          const currentLocal = getLocalTrashedIds().filter(id => id !== targetId);
+          localStorage.setItem(`vocentro_local_trashed_ids_${userId}`, JSON.stringify(currentLocal));
+        } catch (_) {}
+      }
+
+      return targetId;
+    },
+    onSuccess: (targetId) => {
+      queryClient.setQueryData<TrashedJob[]>(['job-trash', userId], old => 
+        (old || []).filter(item => String(item.id) !== targetId && String(item.jobId) !== targetId)
+      );
+      queryClient.invalidateQueries({ queryKey: ['job-trash', userId] });
+      queryClient.invalidateQueries({ queryKey: ['jobs', userId] });
+      queryClient.invalidateQueries({ queryKey: ['matches', userId] });
+      queryClient.invalidateQueries({ queryKey: ['applications', userId] });
+      queryClient.invalidateQueries({ queryKey: ['applications'] });
+      queryClient.invalidateQueries({ queryKey: ['job-discovery'] });
+    }
+  });
+
+  // 5. Mutation para Esvaziar Lixeira (Excluir Definitivamente TODAS as vagas da lixeira)
+  const clearTrashMutation = useMutation({
+    mutationFn: async () => {
+      if (!userId) throw new Error('Usuário não autenticado.');
+
+      if (isSupabaseConfigured && supabase && isUuid(userId)) {
+        try {
+          const { data: excludedList } = await supabase
+            .from('job_feedback')
+            .select('job_id')
+            .eq('user_id', userId)
+            .eq('action', 'REJECTED');
+
+          if (excludedList && excludedList.length > 0) {
+            const ids = excludedList.map(e => String(e.job_id));
+
+            await supabase.from('job_feedback').delete().eq('user_id', userId).in('job_id', ids);
+            await supabase.from('job_matches').delete().eq('user_id', userId).in('job_id', ids);
+            await supabase.from('matches').delete().eq('user_id', userId).in('job_id', ids);
+          }
+        } catch (dbErr) {
+          console.warn('[CLEAR TRASH] Warning:', dbErr);
+        }
+      }
+
+      if (typeof window !== 'undefined') {
+        try {
+          localStorage.removeItem(`vocentro_local_trashed_ids_${userId}`);
           for (let i = localStorage.length - 1; i >= 0; i--) {
             const key = localStorage.key(i);
             if (key && key.startsWith('vocentro_trash_meta_')) {
@@ -359,8 +443,14 @@ export function useJobTrash(userId?: string, activeJobs: Job[] = []) {
     trashedJobs,
     trashedJobIds,
     isLoading: trashQuery.isLoading,
+    isMovingToTrash: moveToTrashMutation.isPending,
+    isRestoring: restoreFromTrashMutation.isPending,
+    isRestoringAll: restoreAllFromTrashMutation.isPending,
+    isDeletingPermanently: deletePermanentlyMutation.isPending,
+    isClearingTrash: clearTrashMutation.isPending,
     moveToTrash: moveToTrashMutation.mutateAsync,
     restoreFromTrash: restoreFromTrashMutation.mutateAsync,
+    restoreAllFromTrash: restoreAllFromTrashMutation.mutateAsync,
     removeFromTrash: deletePermanentlyMutation.mutateAsync,
     clearTrash: clearTrashMutation.mutateAsync
   };

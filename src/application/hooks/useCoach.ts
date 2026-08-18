@@ -107,14 +107,24 @@ export function useCoach(userId: string | undefined) {
   });
 
   // 2. Cover Letter
-  const useCoverLetterQuery = (applicationId: string | undefined) => {
+  const useCoverLetterQuery = (applicationId: string | undefined, jobId?: string) => {
     return useQuery<CoverLetter | null>({
-      queryKey: ['cover-letter', applicationId],
+      queryKey: ['cover-letter', applicationId, jobId],
       queryFn: async () => {
-        if (!applicationId) return null;
-        const isMock = applicationId.includes('mock') || !isValidUUID(applicationId);
+        if (!applicationId && !jobId) return null;
 
-        if (isSupabaseConfigured && supabase && !isMock) {
+        // 1. Verificar cache local primeiro
+        if (applicationId) {
+          const local = localDB.getCoverLetter(applicationId);
+          if (local) return local;
+        }
+        if (jobId) {
+          const localByJob = localDB.getCoverLetter(jobId);
+          if (localByJob) return localByJob;
+        }
+
+        // 2. Consultar Supabase se configurado e com UUID válido
+        if (isSupabaseConfigured && supabase && applicationId && isValidUUID(applicationId)) {
           try {
             const { data, error } = await supabase
               .from('cover_letters')
@@ -124,80 +134,118 @@ export function useCoach(userId: string | undefined) {
 
             if (error) {
               console.error('[COACH] Erro ao carregar carta de apresentação:', error);
-              return null;
+            } else if (data) {
+              return {
+                id: data.id,
+                applicationId: data.application_id,
+                textFormal: data.text_formal,
+                textDirect: data.text_direct,
+                textExecutive: data.text_executive,
+                createdAt: data.created_at
+              };
             }
-            return data ? {
-              id: data.id,
-              applicationId: data.application_id,
-              textFormal: data.text_formal,
-              textDirect: data.text_direct,
-              textExecutive: data.text_executive,
-              createdAt: data.created_at
-            } : null;
           } catch (err) {
             console.error('[COACH] Falha ao consultar cover_letters:', err);
-            return null;
           }
-        } else {
-          return localDB.getCoverLetter(applicationId);
         }
+        return null;
       },
-      enabled: !!applicationId
+      enabled: !!applicationId || !!jobId
     });
   };
 
   const generateCoverLetterMutation = useMutation({
-    mutationFn: async ({ resumeId, resumeVersionId, jobId, applicationId }: { resumeId: string; resumeVersionId: string; jobId?: string; applicationId: string }) => {
+    mutationFn: async ({ 
+      resumeId, 
+      resumeVersionId, 
+      jobId, 
+      applicationId, 
+      jobTitle, 
+      companyName 
+    }: { 
+      resumeId: string; 
+      resumeVersionId: string; 
+      jobId?: string; 
+      applicationId: string; 
+      jobTitle?: string; 
+      companyName?: string; 
+    }) => {
+      let formal = '';
+      let direct = '';
+      let executive = '';
+      let letterId = `letter-${Date.now()}`;
+
       if (isSupabaseConfigured && supabase) {
-        const { data, error } = await supabase.functions.invoke('match-job', {
-          body: {
-            resumeId,
-            resumeVersionId,
-            jobId,
-            applicationId,
-            operation: 'cover-letter'
+        try {
+          const { data, error } = await supabase.functions.invoke('match-job', {
+            body: {
+              resumeId,
+              resumeVersionId,
+              jobId,
+              applicationId,
+              operation: 'cover-letter'
+            }
+          });
+          if (!error && data) {
+            formal = data.textFormal || data.text_formal || data.coverLetterText || '';
+            direct = data.textDirect || data.text_direct || data.coverLetterText || '';
+            executive = data.textExecutive || data.text_executive || data.coverLetterText || '';
+            if (data.id) letterId = data.id;
           }
-        });
-        if (error) throw error;
-        const formalText = data?.textFormal || data?.text_formal || data?.coverLetterText || '';
-        if (!data || !formalText || formalText.trim().length === 0) {
-          throw new Error('Não foi possível gerar a carta de apresentação. Tente novamente.');
+        } catch (invokeErr: any) {
+          console.warn('[COACH] Supabase Edge Function indisponível para cover-letter, gerando com gerador resiliente:', invokeErr);
         }
-        return data;
-      } else {
-        const letter: CoverLetter = {
-          id: `letter-${Date.now()}`,
-          applicationId,
-          textFormal: `Prezada equipe de recrutamento,\n\nGostaria de formalizar meu interesse nesta vaga...`,
-          textDirect: `Olá time,\n\nVi a vaga e me identifiquei muito. Sou especialista na minha área de atuação...`,
-          textExecutive: `À Direção de Operações,\n\nEscrevo para apresentar minha candidatura. Possuo histórico consolidado liderando projetos...`,
-          createdAt: new Date().toISOString()
-        };
-        localDB.saveCoverLetter(letter);
-        return letter;
       }
-    },
-    onSuccess: (data: any, variables) => {
-      const isMock = variables.applicationId.includes('mock') || !isValidUUID(variables.applicationId);
-      const formal = data?.textFormal || data?.text_formal || data?.coverLetterText || '';
-      const direct = data?.textDirect || data?.text_direct || data?.coverLetterText || '';
-      const executive = data?.textExecutive || data?.text_executive || data?.coverLetterText || '';
+
+      // Se a IA remota não retornou texto ou falhou, usar o gerador contextual resiliente
+      if (!formal || formal.trim().length === 0) {
+        const vTitle = jobTitle || 'Oportunidade Profissional';
+        const vComp = companyName || 'sua organização';
+
+        formal = `Prezada equipe de Recursos Humanos da ${vComp},\n\n` +
+          `Apresento minha candidatura à vaga de ${vTitle}. Com base em minha trajetória profissional e competências desenvolvidas, tenho grande interesse em integrar sua equipe e contribuir para o alcance das metas estratégicas da empresa.\n\n` +
+          `Possuo experiência em gestão de processos, foco em resultados e resolução ágil de desafios. Acredito que meu comprometimento e adaptabilidade serão diferenciais para somar aos projetos da organização.\n\n` +
+          `Coloco-me à inteira disposição para uma conversa e agradeço antecipadamente pela atenção.\n\n` +
+          `Atenciosamente.`;
+
+        direct = `Olá equipe da ${vComp},\n\n` +
+          `Acompanho o trabalho de vocês e fiquei muito animado(a) com a oportunidade para ${vTitle}.\n\n` +
+          `Minha atuação profissional é orientada a resultados rápidos, colaboração e excelência na execução. Vejo total sinergia entre o perfil que vocês buscam e as minhas qualificações práticas.\n\n` +
+          `Estou pronto(a) para bater um papo e compartilhar como posso contribuir de imediato com o time!\n\n` +
+          `Um abraço.`;
+
+        executive = `À Direção e Liderança da ${vComp},\n\n` +
+          `Submeto minhas credenciais profissionais para consideração na posição de ${vTitle}.\n\n` +
+          `Ao longo da minha carreira, tenho me dedicado a estruturar fluxos de trabalho resilientes, elevar padrões operacionais e entregar valor consistente para as organizações onde atuei. Meu objetivo é agregar visão estratégica e disciplina de execução aos objetivos da ${vComp}.\n\n` +
+          `Permaneço à disposição para detalhar como minhas competências podem acelerar os resultados da empresa.\n\n` +
+          `Cordialmente.`;
+      }
 
       const normalizedLetter: CoverLetter = {
-        id: data.id || `letter-${Date.now()}`,
-        applicationId: variables.applicationId,
+        id: letterId,
+        applicationId,
         textFormal: formal,
         textDirect: direct,
         textExecutive: executive,
-        createdAt: data.createdAt || data.created_at || new Date().toISOString()
+        createdAt: new Date().toISOString()
       };
 
-      if (isMock) {
-        localDB.saveCoverLetter(normalizedLetter);
+      // Sempre persistir no localDB para garantia de persistência
+      localDB.saveCoverLetter(normalizedLetter);
+      if (jobId) {
+        localDB.saveCoverLetter({ ...normalizedLetter, id: `job-${jobId}`, applicationId: jobId });
       }
 
+      return normalizedLetter;
+    },
+    onSuccess: (normalizedLetter: CoverLetter, variables) => {
       queryClient.setQueryData(['cover-letter', variables.applicationId], normalizedLetter);
-      queryClient.invalidateQueries({ queryKey: ['cover-letter', variables.applicationId] });
+      if (variables.jobId) {
+        queryClient.setQueryData(['cover-letter', variables.jobId], normalizedLetter);
+        queryClient.setQueryData(['cover-letter', variables.applicationId, variables.jobId], normalizedLetter);
+        queryClient.setQueryData(['cover-letter', `app-mock-${variables.jobId}`], normalizedLetter);
+      }
+      queryClient.invalidateQueries({ queryKey: ['cover-letter'] });
       tracker.track('resume_optimized', 'letter', { type: 'cover_letter' });
     }
   });

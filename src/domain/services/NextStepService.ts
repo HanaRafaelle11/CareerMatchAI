@@ -302,14 +302,14 @@ export class NextStepService {
       const sortedMatches = (highMatches.length > 0 ? highMatches : matches).sort((a, b) => b.scoreOverall - a.scoreOverall);
       const topMatch = sortedMatches[0];
 
-      let matchDescription = `Encontramos ${matchCount} oportunidade(s) com alto potencial, com destaque para ${topMatch.jobTitle} na ${topMatch.companyName} (${topMatch.scoreOverall}% de aderência).`;
-      let matchReason = `você tem ${topMatch.scoreOverall}% de compatibilidade e a vaga está alinhada ao seu perfil.`;
+      let matchDescription = `Encontramos ${matchCount} vaga(s) com boa aderência ao seu perfil atual, com destaque para ${topMatch.jobTitle} na ${topMatch.companyName} (${topMatch.scoreOverall}% de compatibilidade).`;
+      let matchReason = `você tem ${topMatch.scoreOverall}% de compatibilidade com seu histórico profissional atual.`;
 
       if (careerGoal?.intentType === 'career_transition') {
-        matchDescription = `Você está em transição para ${careerGoal.targetArea || 'sua nova área'}. Encontramos ${matchCount} vagas compatíveis com seu objetivo, com destaque para ${topMatch.jobTitle} na ${topMatch.companyName} (${topMatch.scoreOverall}% de aderência).`;
-        matchReason = `você tem ${topMatch.scoreOverall}% de compatibilidade e a vaga está alinhada ao seu objetivo de transição.`;
+        matchDescription = `Encontramos ${matchCount} vaga(s) com boa aderência ao seu perfil profissional atual, com destaque para ${topMatch.jobTitle} na ${topMatch.companyName} (${topMatch.scoreOverall}% de compatibilidade direta).`;
+        matchReason = `Estas vagas têm ${topMatch.scoreOverall}% de aderência com seu perfil profissional atual. O cálculo específico de potencial de transição de carreira será integrado na Fase 3.`;
       } else if (careerGoal?.intentType === 'same_area_grow' || careerGoal?.intentType === 'same_area_continue') {
-        matchReason = `você tem ${topMatch.scoreOverall}% de compatibilidade e as vagas estão alinhadas ao seu objetivo de carreira.`;
+        matchReason = `você tem ${topMatch.scoreOverall}% de compatibilidade direta com os requisitos desta oportunidade.`;
       }
 
       candidates.push({

@@ -174,7 +174,7 @@ describe('Fase 2: NextStepService — Motor Determinístico de Decisão do Próx
     expect(result.primaryAction.badgeText).toBe('2 Vagas Recomendadas');
     expect(result.primaryAction.ctaTab).toBe('match');
     expect(result.primaryAction.ctaLabel).toBe('Ver vagas recomendadas');
-    expect(result.primaryAction.reason).toContain('88% de compatibilidade e a vaga está alinhada ao seu objetivo de transição');
+    expect(result.primaryAction.reason).toContain('Estas vagas têm 88% de aderência com seu perfil profissional atual');
   });
 
   it('4. Estado 4: Com candidatura enviada e entrevista agendada, deve orientar simulação STAR', () => {

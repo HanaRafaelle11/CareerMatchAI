@@ -137,13 +137,21 @@ export class NextStepService {
 
     // ── 2. ENTREVISTA AGENDADA / SIMULAÇÃO DE ENTREVISTA (Score 96) ──
     // Se há candidatura em fase de entrevista (hr / interview)
-    const interviewApps = applications.filter(app => {
+    // ── 2. ENTREVISTA AGENDADA / SIMULAÇÃO DE ENTREVISTA (Score 96) ──
+    // Se há candidatura em fase de entrevista com agendamento ativo futuro
+    const futureInterviewApps = applications.filter(app => {
       const cleanStatus = ApplicationPipelineService.getCleanStatus(app.status);
-      return cleanStatus === 'hr' || cleanStatus === 'interview';
+      const isInterview = cleanStatus === 'hr' || cleanStatus === 'interview';
+      if (!isInterview) return false;
+      const actionDate = toMidnightDate(app.nextActionDate);
+      if (actionDate) {
+        return diffInDays(todayMidnight, actionDate) >= 0;
+      }
+      return Boolean(app.nextAction && !app.nextActionDate);
     });
 
-    if (interviewApps.length > 0) {
-      const topInterview = interviewApps[0];
+    if (futureInterviewApps.length > 0) {
+      const topInterview = futureInterviewApps[0];
       const actionDate = toMidnightDate(topInterview.nextActionDate);
       let daysText = 'em breve';
       let urgencyScore = 96;
@@ -162,7 +170,7 @@ export class NextStepService {
         title: `Simule sua entrevista para ${topInterview.jobTitle}`,
         subtitle: `${topInterview.jobTitle} · ${topInterview.companyName}`,
         description: `Você tem uma etapa de entrevista agendada ${daysText} na ${topInterview.companyName}. Treine suas respostas estruturadas no método STAR com o Copiloto IA.`,
-        reason: 'Candidatos que treinam respostas com antecedência têm 2.4x mais chances de aprovação em entrevistas.',
+        reason: 'Treinar respostas no método STAR com antecedência ajuda a estruturar exemplos reais com clareza e segurança diante do recrutador.',
         badgeText: `Entrevista ${daysText}`,
         badgeVariant: 'brand',
         ctaLabel: 'Simular entrevista STAR',
@@ -215,28 +223,28 @@ export class NextStepService {
       let targetLabel = 'seu objetivo';
       let targetSubtitle = 'Alinhamento de Competências';
       let customDescription = 'Otimize os termos e competências do seu currículo para aumentar seu destaque nas triagens.';
-      let customReason = 'Currículos com palavras-chave alinhadas à vaga têm maior aderência nos filtros ATS.';
+      let customReason = 'Currículos com palavras-chave alinhadas à vaga aumentam a aderência aos requisitos buscados.';
 
       if (intentType === 'career_transition') {
         targetLabel = careerGoal?.targetArea ? `transição para ${careerGoal.targetArea}` : 'transição de carreira';
         targetSubtitle = 'Transição de Carreira';
         customDescription = `Você está em transição para ${careerGoal?.targetArea || 'uma nova área'}. Destaque suas competências transferíveis e palavras-chave no currículo para maximizar seu potencial.`;
-        customReason = 'Currículos adaptados para transição aumentam em até 3.2x a taxa de resposta de recrutadores.';
+        customReason = 'Adaptar seu currículo destacando competências transferíveis facilita a identificação do seu potencial pela equipe de recrutamento.';
       } else if (intentType === 'same_area_grow') {
         targetLabel = careerGoal?.targetRoles?.[0] || careerGoal?.targetArea || 'crescimento profissional';
         targetSubtitle = 'Crescimento Profissional';
         customDescription = `Você busca crescer profissionalmente como ${targetLabel}. Destaque métricas de impacto, liderança e resultados estratégicos no seu currículo.`;
-        customReason = 'Posições de maior senioridade exigem foco em entregas quantificáveis e liderança no currículo.';
+        customReason = 'Posições de maior senioridade valorizam evidências claras de entregas, liderança e impacto no currículo.';
       } else if (intentType === 'same_area_continue') {
         targetLabel = careerGoal?.targetRoles?.[0] || careerGoal?.targetArea || 'sua área';
         targetSubtitle = 'Continuidade & Foco';
         customDescription = `Seu objetivo é ${targetLabel}. Otimize os termos e competências do seu currículo para aumentar seu destaque nas triagens.`;
-        customReason = 'Currículos com termos técnicos atualizados aumentam o score de compatibilidade com as vagas.';
+        customReason = 'Currículos com termos técnicos e ferramentas atualizadas têm maior taxa de avanço para entrevistas.';
       } else if (intentType === 'exploring') {
         targetLabel = 'suas competências';
         targetSubtitle = 'Exploração de Oportunidades';
         customDescription = 'Otimize e destaque suas principais habilidades universais para descobrir as melhores oportunidades no mercado.';
-        customReason = 'Evidenciar competências transferíveis facilita a identificação de novos caminhos profissionais.';
+        customReason = 'Evidenciar competências transferíveis facilita a descoberta de novos caminhos profissionais compatíveis.';
       }
 
       candidates.push({
@@ -409,7 +417,7 @@ export class NextStepService {
         type: 'incomplete_profile',
         title: 'Complete seu perfil profissional',
         description: `Seu perfil está ${completenessResult.score}% preenchido. Cadastrar suas competências e histórico aumenta a precisão do cálculo de compatibilidade.`,
-        reason: 'Perfis completos recebem recomendações com índice de assertividade 3x maior.',
+        reason: 'Perfis detalhados permitem que o Copiloto cruze mais requisitos técnicos e comportamentais com as oportunidades abertas.',
         badgeText: `${completenessResult.score}% preenchido`,
         badgeVariant: 'warning',
         ctaLabel: 'Completar meu perfil',

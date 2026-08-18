@@ -281,10 +281,11 @@ export function HumanizedMatchCard({
               </div>
             </div>
           ) : (
-            <div className="flex flex-col justify-center px-3.5 py-2.5 rounded-2xl border border-dashed dark:border-slate-800 border-slate-300 text-[10px] text-slate-500 max-w-[200px]">
-              <span className="leading-tight text-slate-400">Defina seu objetivo profissional para descobrir o potencial desta vaga para sua carreira.</span>
-              <button type="button" onClick={onGoToProfile} className="text-brand-400 font-bold hover:underline mt-1 inline-flex items-center gap-0.5 cursor-pointer">
-                <span>Definir meu objetivo</span>
+            <div className="flex flex-col justify-center px-3.5 py-2.5 rounded-2xl border border-dashed dark:border-slate-800 border-slate-300 text-[10px] text-slate-500 max-w-[210px]">
+              <span className="font-semibold text-slate-300">Você ainda não definiu seu objetivo profissional.</span>
+              <span className="leading-tight text-slate-400 mt-0.5">Defina seu objetivo para descobrir quais vagas podem aproximar você da carreira que deseja.</span>
+              <button type="button" onClick={onGoToProfile} className="text-brand-400 font-bold hover:underline mt-1.5 inline-flex items-center gap-0.5 cursor-pointer self-start">
+                <span>Definir objetivo</span>
                 <ArrowUpRight size={11} />
               </button>
             </div>

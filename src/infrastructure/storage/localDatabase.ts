@@ -909,27 +909,37 @@ class LocalDatabase {
   // Career Goals API
   private memoryCareerGoals: CareerGoal[] = [];
 
-  getCareerGoals(userId: string): CareerGoal[] {
+  getCareerGoals(userId?: string): CareerGoal[] {
     try {
       if (typeof localStorage !== 'undefined') {
+        const userSpecificRaw = userId ? localStorage.getItem(`vocentro_career_goal_${userId}`) : null;
+        if (userSpecificRaw) {
+          try {
+            const parsed = JSON.parse(userSpecificRaw);
+            if (parsed) return Array.isArray(parsed) ? parsed : [parsed];
+          } catch (_) {}
+        }
         const all = JSON.parse(localStorage.getItem(KEYS.CAREER_GOALS) || '[]') as CareerGoal[];
-        return all.filter(g => g.userId === userId);
+        return userId ? all.filter(g => g.userId === userId) : all;
       }
     } catch (_) {}
-    return this.memoryCareerGoals.filter(g => g.userId === userId);
+    return userId ? this.memoryCareerGoals.filter(g => g.userId === userId) : this.memoryCareerGoals;
   }
 
   saveCareerGoal(goal: CareerGoal): CareerGoal {
     try {
       if (typeof localStorage !== 'undefined') {
         const all = JSON.parse(localStorage.getItem(KEYS.CAREER_GOALS) || '[]') as CareerGoal[];
-        const index = all.findIndex(g => g.id === goal.id);
+        const index = all.findIndex(g => g.id === goal.id || (g.userId === goal.userId && g.userId));
         if (index >= 0) {
           all[index] = { ...goal, updatedAt: new Date().toISOString() };
         } else {
           all.push(goal);
         }
         localStorage.setItem(KEYS.CAREER_GOALS, JSON.stringify(all));
+        if (goal.userId) {
+          localStorage.setItem(`vocentro_career_goal_${goal.userId}`, JSON.stringify(goal));
+        }
         return goal;
       }
     } catch (_) {}

@@ -803,8 +803,8 @@ export function Profile({
           </div>
           <div>
             <div className="flex items-center gap-2">
-              <span className="text-xs font-semibold text-brand-500 uppercase tracking-wider">Recomendação da IA</span>
-              <Badge variant="premium" size="sm">Otimizador de Perfil</Badge>
+              <span className="text-xs font-semibold text-brand-500 uppercase tracking-wider">Nossa recomendação para você</span>
+              <Badge variant="premium" size="sm">Direcionamento de Perfil</Badge>
             </div>
             <h2 className="text-base font-semibold text-slate-900 dark:text-slate-100 mt-1">
               {hasResume
@@ -1109,7 +1109,7 @@ export function Profile({
             <CardGlass className="space-y-4 border border-slate-900">
               <h3 className="font-display font-bold text-sm text-slate-200 flex items-center gap-2">
                 <Activity size={16} className="text-brand-500" />
-                Status do Processamento
+                Estamos analisando seu currículo
               </h3>
               <div className="space-y-2.5 text-xs text-slate-300">
                 <div className="flex items-center gap-2">
@@ -1178,7 +1178,7 @@ export function Profile({
                   ) : (
                     <span className="h-2 w-2 rounded-full bg-slate-800 animate-pulse shrink-0" />
                   )}
-                  <span>Perfil IA gerado com sucesso</span>
+                  <span>Seu perfil profissional estruturado com sucesso</span>
                 </div>
               </div>
             </CardGlass>
@@ -1211,7 +1211,7 @@ export function Profile({
                     }`}
                   >
                     <Sparkles size={12} />
-                    Meu Perfil IA
+                    Seu perfil profissional
                   </button>
                   <button
                     onClick={() => setActiveProfileTab('transparency')}

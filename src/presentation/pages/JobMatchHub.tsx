@@ -1766,8 +1766,8 @@ export function JobMatchHub({
           </div>
           <div>
             <div className="flex items-center gap-2">
-              <span className="text-xs font-semibold text-[#4F8EF7] uppercase tracking-wider">Recomendação da IA</span>
-              <Badge variant="premium" size="sm">Gemini Matching</Badge>
+              <span className="text-xs font-semibold text-[#4F8EF7] uppercase tracking-wider">Nossa recomendação para você</span>
+              <Badge variant="premium" size="sm">Oportunidades em Destaque</Badge>
             </div>
             <h2 className="text-base font-semibold text-slate-900 dark:text-slate-100 mt-1">
               {discoveredJobs.length > 0 
@@ -4636,7 +4636,7 @@ export function JobMatchHub({
                               <div className="pt-2 border-t border-slate-900/60 text-[10px] text-slate-400">
                                 {job.missingSkills.length > 0 ? (
                                   <div className="flex gap-1.5 items-start">
-                                    <span className="text-red-400 font-semibold">Gaps técnicos:</span>
+                                    <span className="text-red-400 font-semibold">Competências para desenvolver:</span>
                                     <span className="text-slate-500 line-clamp-1">{job.missingSkills.join(', ')}</span>
                                   </div>
                                 ) : (
@@ -4695,7 +4695,7 @@ export function JobMatchHub({
                                 }}
                                 className="text-xs text-emerald-400 hover:text-emerald-300 font-extrabold flex items-center gap-1 cursor-pointer bg-emerald-500/10 border border-emerald-500/20 px-2.5 py-1 rounded-lg transition"
                               >
-                                <span>Me candidatar</span>
+                                <span>Candidatar-se</span>
                                 <ArrowUpRight size={12} />
                               </button>
                             ) : (
@@ -4736,7 +4736,7 @@ export function JobMatchHub({
                                 disabled={isImporting}
                                 className="px-3 py-1.5 rounded-xl bg-brand-600 hover:bg-brand-500 text-white font-bold text-xs flex items-center gap-1.5 shadow shadow-brand-500/10 disabled:opacity-50 cursor-pointer"
                               >
-                                Importar e Analisar Match
+                                Importar vaga e analisar compatibilidade
                                 <ChevronRight size={14} />
                               </button>
                             </div>

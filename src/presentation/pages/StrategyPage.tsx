@@ -838,7 +838,7 @@ export function StrategyPage({
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 w-full min-w-0">
         <div className="min-w-0">
           <h1 className="text-3xl font-bold tracking-tight text-slate-900 dark:text-slate-100">
-            Jornada de Carreira & Pipeline
+            Pipeline de candidaturas
           </h1>
           <p className="text-slate-500 dark:text-slate-400 text-sm mt-1 block break-normal whitespace-normal">
             Acompanhe o ciclo de vida de suas candidaturas em 7 etapas estratégicas sem ruído.
@@ -854,20 +854,22 @@ export function StrategyPage({
           </div>
           <div>
             <div className="flex items-center gap-2">
-              <span className="text-xs font-semibold text-brand-500 uppercase tracking-wider">Recomendação da IA</span>
-              <Badge variant="premium" size="sm">Pipeline de Vagas</Badge>
+              <span className="text-xs font-semibold text-brand-500 uppercase tracking-wider">Nossa recomendação para você</span>
+              <Badge variant="premium" size="sm">Direcionamento Estratégico</Badge>
             </div>
             <h2 className="text-base font-semibold text-slate-900 dark:text-slate-100 mt-1">
               {applications.length > 0
                 ? (() => {
                     const enviadasCount = applications.filter(a => isAppliedStatus(a.status)).length;
                     const salvasCount = applications.filter(a => isSavedStatus(a.status)).length;
-                    return `Você enviou ${enviadasCount} candidatura(s) e possui ${salvasCount} vaga(s) salva(s) em prospecção.`;
+                    return `Você possui ${enviadasCount} candidatura(s) enviada(s) e ${salvasCount} vaga(s) salva(s) no pipeline.`;
                   })()
                 : 'Adicione suas candidaturas ao Pipeline para monitorar prazos e métricas de avanço.'}
             </h2>
             <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
-              O copiloto recalcula as probabilidades de conversão em tempo real conforme você atualiza o status.
+              {applications.length > 0
+                ? 'Próximo passo recomendado: mova as vagas em prospecção para "Candidatadas" após o envio ou simule uma entrevista STAR.'
+                : 'O copiloto recalcula as probabilidades de conversão e sugere as próximas etapas a cada atualização.'}
             </p>
           </div>
         </div>
@@ -893,7 +895,7 @@ export function StrategyPage({
       {/* Sub Tabs Switcher */}
       <div className="flex flex-wrap border-b border-slate-800 dark:border-slate-800 light:border-slate-200 gap-6">
         {[
-          { id: 'pipeline', label: 'Pipeline (CRM Kanban)', icon: Layout },
+          { id: 'pipeline', label: 'Suas candidaturas', icon: Layout },
           { id: 'strategy', label: 'Prioridades (ROI)', icon: Flame },
           { id: 'planner', label: 'Planner Semanal', icon: CheckSquare },
           { id: 'journal', label: 'Diário de entrevistas', icon: BookOpen }
@@ -1257,7 +1259,7 @@ export function StrategyPage({
                 className="w-full py-2.5 px-4 rounded-xl bg-gradient-to-r from-emerald-600 via-teal-600 to-emerald-500 hover:from-emerald-500 hover:to-teal-400 text-white font-bold text-xs flex items-center justify-center gap-2 shadow-lg cursor-pointer transition-all border border-emerald-400/30"
               >
                 <RefreshCcw size={15} />
-                <span>Reativar vaga e reenviar para o Kanban</span>
+                <span>Reativar vaga e reenviar para o pipeline</span>
               </button>
             </div>
           ) : (
@@ -1482,7 +1484,7 @@ export function StrategyPage({
                   className="text-emerald-500 hover:text-emerald-400 font-semibold flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-emerald-500/20 bg-emerald-500/10 cursor-pointer transition-colors"
                 >
                   <RefreshCcw size={14} />
-                  <span>Reativar vaga no Kanban</span>
+                  <span>Reativar vaga no pipeline</span>
                 </button>
               )}
               <button

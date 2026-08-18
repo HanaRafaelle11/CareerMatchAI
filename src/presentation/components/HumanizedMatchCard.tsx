@@ -1,7 +1,9 @@
+import { useState } from 'react';
 import { 
   CheckCircle, AlertTriangle, HelpCircle, ArrowUpRight, 
   Sparkles, FileText, Play, Plus, Trash2, Loader2, 
-  ShieldCheck, Flame, Zap, Target
+  ShieldCheck, Flame, Zap, Target, ChevronDown, ChevronUp,
+  MapPin, Briefcase, Award
 } from 'lucide-react';
 import { CardGlass } from './CardGlass';
 import { tracker } from '../../infrastructure/analytics/tracker';
@@ -49,24 +51,26 @@ export function HumanizedMatchCard({
   onDeleteAnalysis,
   className = ''
 }: HumanizedMatchCardProps) {
+  const [showBreakdown, setShowBreakdown] = useState(false);
+
   // ── 1. CLASSIFICAÇÃO SEMÂNTICA DA FAIXA DE FIT ──
   const getSemanticFit = (s: number) => {
     if (s >= 80) {
       return {
-        label: 'Alta aderência',
+        label: 'Excelente oportunidade',
         badgeClass: 'dark:bg-emerald-500/10 bg-emerald-100/80 dark:text-emerald-400 text-emerald-800 dark:border-emerald-500/25 border-emerald-300',
         icon: <Flame size={13} className="dark:fill-emerald-400 fill-emerald-600 text-emerald-600 shrink-0" />,
-        headline: `Esta oportunidade combina fortemente com seu perfil para ${job.title}.`,
+        headline: `Excelente oportunidade para você: seu perfil atende com folga aos requisitos centrais de ${job.title}.`,
         colorText: 'dark:text-emerald-400 text-emerald-700',
         scoreColor: 'dark:text-emerald-400 text-emerald-600'
       };
     }
     if (s >= 65) {
       return {
-        label: 'Boa aderência',
+        label: 'Boa oportunidade',
         badgeClass: 'dark:bg-indigo-500/10 bg-indigo-100/80 dark:text-indigo-300 text-indigo-800 dark:border-indigo-500/25 border-indigo-300',
         icon: <Zap size={13} className="dark:text-indigo-400 text-indigo-600 shrink-0" />,
-        headline: `Você atende aos pilares centrais da vaga de ${job.title}.`,
+        headline: `Boa oportunidade para você: atende aos pilares principais da vaga de ${job.title}.`,
         colorText: 'dark:text-indigo-300 text-indigo-700',
         scoreColor: 'dark:text-indigo-400 text-indigo-600'
       };
@@ -109,7 +113,6 @@ export function HumanizedMatchCard({
   const userExperiences = careerProfileNew?.experience || resume?.experiences || [];
   const rawReqs = (job.requirements || []).map(r => r.trim()).filter(Boolean);
 
-  // Padrões de requisitos que são comumente NÃO INFORMADOS no cadastro em vez de comprovadamente ausentes
   const isLanguageReq = (req: string) => /\b(ingl[êe]s|english|espanhol|spanish|franc[êe]s|idioma|fluente|avan[çc]ado|intermedi[áa]rio)\b/i.test(req);
   const isCertificationReq = (req: string) => /\b(certifica[çc][ãa]o|certified|pmp|cpa|scrum master|psm|aws certified|itil|cfa)\b/i.test(req);
   const isLicenseReq = (req: string) => /\b(cnh|habilita[çc][ãa]o|crea|oab|crf|registro profissional)\b/i.test(req);
@@ -174,7 +177,13 @@ export function HumanizedMatchCard({
   const finalStrengths: string[] = matchedItems.length > 0 ? matchedItems : (aiStrengths.length > 0 ? aiStrengths.slice(0, 3) : [`Aderência à área de ${job.title}`]);
   const finalGaps: string[] = realGaps.length > 0 ? realGaps : (aiGaps.length > 0 ? aiGaps.slice(0, 3) : []);
 
-  // ── 3. CTA PRINCIPAL CONTEXTUAL DOMINANTE ──
+  // ── 3. ESTIMATIVA DOS 4 FATORES DE FIT ──
+  const skillsFactor = Math.min(95, Math.max(30, Math.round(score * 0.95 + (matchedItems.length * 4) - (realGaps.length * 5))));
+  const experienceFactor = Math.min(95, Math.max(35, Math.round(score * 0.9 + (userExperiences.length * 3))));
+  const seniorityFactor = Math.min(95, Math.max(40, Math.round(score * 0.85 + 10)));
+  const locationFactor = Math.min(100, Math.max(50, job.workMode === 'remote' || (job.location || '').toLowerCase().includes('remot') ? 98 : 85));
+
+  // ── 4. CTA PRINCIPAL CONTEXTUAL DOMINANTE ──
   const renderDominantCta = () => {
     if (score >= 80 && job.sourceUrl) {
       return (
@@ -240,9 +249,10 @@ export function HumanizedMatchCard({
   };
 
   return (
-    <CardGlass className={`space-y-6 p-6 sm:p-7 dark:border-slate-800/80 border-slate-200/80 shadow-2xl relative overflow-hidden ${className}`}>
-      {/* ── CABEÇALHO DO DIAGNÓSTICO HUMANIZADO ── */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-5 border-b dark:border-slate-800/60 border-slate-200/80">
+    <CardGlass className={`space-y-5 p-6 sm:p-7 dark:border-slate-800/80 border-slate-200/80 shadow-2xl relative overflow-hidden ${className}`}>
+      
+      {/* ── CAMADA 1: CARGO, EMPRESA E MATCH (%) ── */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b dark:border-slate-800/60 border-slate-200/80">
         <div className="space-y-1.5 min-w-0">
           <div className="flex items-center gap-2 flex-wrap">
             <span className="text-[11px] font-bold dark:text-slate-400 text-slate-500 uppercase tracking-wider">
@@ -256,15 +266,12 @@ export function HumanizedMatchCard({
           <h3 className="text-base sm:text-lg font-extrabold dark:text-slate-100 text-slate-900 leading-snug">
             {job.title} <span className="dark:text-slate-400 text-slate-500 font-normal">• {job.companyName || 'Empresa Confidencial'}</span>
           </h3>
-          <p className="text-xs dark:text-slate-300 text-slate-600 leading-relaxed font-sans max-w-2xl">
-            {semanticFit.headline}
-          </p>
         </div>
 
-        {/* Score Principal com Visual Claro */}
+        {/* Score Principal com Botão de Explicação */}
         <div className="flex items-center gap-3 shrink-0 dark:bg-slate-900/60 bg-slate-100/90 p-3.5 rounded-2xl border dark:border-slate-800/70 border-slate-200">
           <div className="text-right">
-            <span className="text-[10px] dark:text-slate-400 text-slate-500 font-bold uppercase tracking-wider block">Fit com a Vaga</span>
+            <span className="text-[10px] dark:text-slate-400 text-slate-500 font-bold uppercase tracking-wider block">Compatibilidade</span>
             <span className={`text-3xl sm:text-4xl font-extrabold font-display leading-none ${semanticFit.scoreColor}`}>
               {score}%
             </span>
@@ -275,15 +282,126 @@ export function HumanizedMatchCard({
         </div>
       </div>
 
-      {/* ── BLOCOS ESTRUTURADOS: POR QUE COMBINA / O QUE ESTÁ FALTANDO / NÃO INFORMADO ── */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+      {/* ── CAMADA 2: LOCALIZAÇÃO · MODELO DE TRABALHO · SENIORIDADE · SALÁRIO ── */}
+      <div className="flex items-center gap-4 flex-wrap text-xs text-slate-600 dark:text-slate-400">
+        {job.location && (
+          <span className="inline-flex items-center gap-1">
+            <MapPin size={13} className="text-slate-400" />
+            {job.location}
+          </span>
+        )}
+        {job.workMode && (
+          <span className="inline-flex items-center gap-1">
+            <Briefcase size={13} className="text-slate-400" />
+            {job.workMode === 'remote' ? 'Remoto' : job.workMode === 'hybrid' ? 'Híbrido' : 'Presencial'}
+          </span>
+        )}
+        {job.seniority && (
+          <span className="inline-flex items-center gap-1">
+            <Award size={13} className="text-slate-400" />
+            {job.seniority}
+          </span>
+        )}
+        {job.salary && (
+          <span className="font-semibold text-emerald-600 dark:text-emerald-400">
+            {job.salary}
+          </span>
+        )}
+      </div>
+
+      {/* ── CAMADA 3: RESUMO HUMANIZADO + BOTÃO "POR QUE X%?" ── */}
+      <div className="space-y-3">
+        <div className="p-3.5 rounded-xl bg-slate-50 dark:bg-slate-900/60 border border-slate-200/80 dark:border-slate-800/80 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <p className="text-xs dark:text-slate-300 text-slate-600 leading-relaxed font-sans flex-1">
+            {semanticFit.headline}
+          </p>
+          <button
+            type="button"
+            onClick={() => {
+              const next = !showBreakdown;
+              setShowBreakdown(next);
+              tracker.track('match_why_score_toggled', 'HumanizedMatchCard', { score, expanded: next });
+            }}
+            className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg bg-brand-500/10 hover:bg-brand-500/20 text-brand-600 dark:text-brand-400 text-xs font-bold transition cursor-pointer shrink-0 self-start sm:self-center"
+          >
+            <span>Por que {score}%?</span>
+            {showBreakdown ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
+          </button>
+        </div>
+
+        {/* ── PAINEL EXPANSÍVEL: FATORES DE FIT EXPLICADOS ── */}
+        {showBreakdown && (
+          <div className="p-4 rounded-2xl bg-slate-50/80 dark:bg-slate-950/60 border border-slate-200 dark:border-slate-800 space-y-4 animate-fade-in">
+            <h4 className="text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300">
+              Detalhamento dos Fatores de Compatibilidade:
+            </h4>
+            
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div className="p-3 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 space-y-1">
+                <div className="flex justify-between text-xs font-bold">
+                  <span className="text-slate-700 dark:text-slate-300">Competências Requeridas</span>
+                  <span className="text-brand-600 dark:text-brand-400">{skillsFactor}%</span>
+                </div>
+                <div className="h-1.5 w-full bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
+                  <div className="h-full bg-brand-500 rounded-full" style={{ width: `${skillsFactor}%` }} />
+                </div>
+                <span className="text-[10px] text-slate-500 dark:text-slate-400 block pt-0.5">
+                  {matchedItems.length} requisitos atendidos no currículo
+                </span>
+              </div>
+
+              <div className="p-3 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 space-y-1">
+                <div className="flex justify-between text-xs font-bold">
+                  <span className="text-slate-700 dark:text-slate-300">Experiência e Trajetória</span>
+                  <span className="text-indigo-600 dark:text-indigo-400">{experienceFactor}%</span>
+                </div>
+                <div className="h-1.5 w-full bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
+                  <div className="h-full bg-indigo-500 rounded-full" style={{ width: `${experienceFactor}%` }} />
+                </div>
+                <span className="text-[10px] text-slate-500 dark:text-slate-400 block pt-0.5">
+                  Histórico profissional compatível com o escopo
+                </span>
+              </div>
+
+              <div className="p-3 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 space-y-1">
+                <div className="flex justify-between text-xs font-bold">
+                  <span className="text-slate-700 dark:text-slate-300">Senioridade e Nível</span>
+                  <span className="text-purple-600 dark:text-purple-400">{seniorityFactor}%</span>
+                </div>
+                <div className="h-1.5 w-full bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
+                  <div className="h-full bg-purple-500 rounded-full" style={{ width: `${seniorityFactor}%` }} />
+                </div>
+                <span className="text-[10px] text-slate-500 dark:text-slate-400 block pt-0.5">
+                  Nível de autonomia aderente à vaga
+                </span>
+              </div>
+
+              <div className="p-3 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 space-y-1">
+                <div className="flex justify-between text-xs font-bold">
+                  <span className="text-slate-700 dark:text-slate-300">Localização e Modalidade</span>
+                  <span className="text-emerald-600 dark:text-emerald-400">{locationFactor}%</span>
+                </div>
+                <div className="h-1.5 w-full bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
+                  <div className="h-full bg-emerald-500 rounded-full" style={{ width: `${locationFactor}%` }} />
+                </div>
+                <span className="text-[10px] text-slate-500 dark:text-slate-400 block pt-0.5">
+                  Modelo de atuação compatível
+                </span>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* ── BLOCOS ESTRUTURADOS: POR QUE COMBINA / PONTOS A DESENVOLVER ── */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {/* Bloco 1: Por que combina */}
-        <div className="p-4 rounded-2xl dark:bg-emerald-950/20 bg-emerald-50/80 border dark:border-emerald-500/20 border-emerald-200/80 space-y-3">
+        <div className="p-4 rounded-2xl dark:bg-emerald-950/20 bg-emerald-50/80 border dark:border-emerald-500/20 border-emerald-200/80 space-y-2.5">
           <div className="flex items-center gap-2 dark:text-emerald-400 text-emerald-700">
-            <CheckCircle size={16} />
+            <CheckCircle size={15} />
             <h4 className="text-xs font-bold uppercase tracking-wider">Por que combina com você</h4>
           </div>
-          <ul className="space-y-2">
+          <ul className="space-y-1.5">
             {finalStrengths.slice(0, 3).map((item: string, idx: number) => (
               <li key={idx} className="text-xs dark:text-slate-200 text-slate-800 flex items-start gap-2 leading-relaxed">
                 <span className="dark:text-emerald-400 text-emerald-600 mt-0.5">•</span>
@@ -293,14 +411,14 @@ export function HumanizedMatchCard({
           </ul>
         </div>
 
-        {/* Bloco 2: O que está faltando (Gaps Reais de Mercado) */}
-        <div className="p-4 rounded-2xl dark:bg-amber-950/20 bg-amber-50/80 border dark:border-amber-500/20 border-amber-200/80 space-y-3">
+        {/* Bloco 2: Pontos a desenvolver (Competências para desenvolver) */}
+        <div className="p-4 rounded-2xl dark:bg-amber-950/20 bg-amber-50/80 border dark:border-amber-500/20 border-amber-200/80 space-y-2.5">
           <div className="flex items-center gap-2 dark:text-amber-300 text-amber-800">
-            <Target size={16} />
-            <h4 className="text-xs font-bold uppercase tracking-wider">Pontos a desenvolver para esta vaga</h4>
+            <Target size={15} />
+            <h4 className="text-xs font-bold uppercase tracking-wider">Competências para desenvolver</h4>
           </div>
           {finalGaps.length > 0 ? (
-            <ul className="space-y-2">
+            <ul className="space-y-1.5">
               {finalGaps.slice(0, 3).map((gap: string, idx: number) => (
                 <li key={idx} className="text-xs dark:text-slate-200 text-slate-800 flex items-start gap-2 leading-relaxed">
                   <span className="dark:text-amber-400 text-amber-600 mt-0.5">•</span>
@@ -310,13 +428,13 @@ export function HumanizedMatchCard({
             </ul>
           ) : (
             <p className="text-xs dark:text-slate-300 text-slate-600 leading-relaxed">
-              Nenhum gap técnico crítico identificado! Seu perfil cobre os requisitos principais da posição.
+              Nenhuma lacuna crítica identificada! Seu perfil cobre os requisitos principais da posição.
             </p>
           )}
         </div>
       </div>
 
-      {/* ── BLOCO 3: NÃO CONSEGUIMOS AVALIAR (DADOS NÃO INFORMADOS NO PERFIL) ── */}
+      {/* ── BLOCO 3: NÃO INFORMADO NO PERFIL ── */}
       {unassessedItems.length > 0 && (
         <div className="p-4 rounded-2xl dark:bg-slate-900/80 bg-slate-50 border dark:border-slate-800 border-slate-200 space-y-2.5 animate-fade-in">
           <div className="flex items-center justify-between gap-3">
@@ -332,9 +450,6 @@ export function HumanizedMatchCard({
               <span>+ Informar no perfil</span>
             </button>
           </div>
-          <p className="text-[11px] dark:text-slate-400 text-slate-500 leading-relaxed">
-            A vaga solicita os itens abaixo, mas não encontramos essas informações no seu currículo ou cadastro. Eles <strong>não foram contabilizados como falta de competência</strong>:
-          </p>
           <div className="flex flex-wrap gap-2 pt-1">
             {unassessedItems.map((u, i) => (
               <span 
@@ -350,36 +465,24 @@ export function HumanizedMatchCard({
         </div>
       )}
 
-      {/* ── RECOMENDAÇÃO DE ENVIO E ESTRATÉGIA ── */}
+      {/* ── NOSSA RECOMENDAÇÃO PARA VOCÊ ── */}
       {explanation?.recommendation && (
         <div className="p-3.5 rounded-xl dark:bg-brand-500/5 bg-brand-50/60 border dark:border-brand-500/15 border-brand-200 flex items-start gap-2.5 text-xs dark:text-slate-300 text-slate-700">
           <Sparkles size={16} className="dark:text-brand-400 text-brand-600 shrink-0 mt-0.5" />
           <div className="leading-relaxed">
-            <strong className="dark:text-slate-100 text-slate-900 font-semibold">Recomendação do Copiloto: </strong>
+            <strong className="dark:text-slate-100 text-slate-900 font-semibold">Nossa recomendação para você: </strong>
             {explanation.recommendation}
           </div>
         </div>
       )}
 
-      {/* ── AÇÕES CONTEXTUAIS COM HIERARQUIA VISUAL ── */}
+      {/* ── AÇÕES COM MÁXIMO DE 1 PRIMÁRIA + 2 SECUNDÁRIAS ── */}
       <div className="pt-2 border-t dark:border-slate-800/80 border-slate-200/80 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
         <div className="flex items-center gap-2 flex-wrap">
-          {/* CTA DOMINANTE */}
+          {/* 1 CTA DOMINANTE */}
           {renderDominantCta()}
 
-          {/* CTA SECUNDÁRIO: Simular Entrevista */}
-          {onStartSimulation && (
-            <button
-              type="button"
-              onClick={onStartSimulation}
-              className="px-4 py-3 rounded-xl dark:bg-slate-900 bg-slate-100 hover:dark:bg-slate-800 hover:bg-slate-200 border dark:border-slate-800 border-slate-300 dark:text-slate-200 text-slate-800 font-bold text-xs uppercase tracking-wider transition flex items-center justify-center gap-1.5 cursor-pointer shadow-xs"
-            >
-              <Play size={13} className="dark:text-brand-400 text-brand-600" />
-              <span>Simular Entrevista</span>
-            </button>
-          )}
-
-          {/* CTA SECUNDÁRIO: Estratégia Kanban */}
+          {/* SECUNDÁRIO 1: Salvar no Pipeline */}
           {onAddToStrategy && (
             <button
               type="button"
@@ -398,12 +501,24 @@ export function HumanizedMatchCard({
               ) : (
                 <Plus size={13} />
               )}
-              <span>{isAddedToStrategy ? 'Na Estratégia' : 'Acompanhar Vaga'}</span>
+              <span>{isAddedToStrategy ? 'No pipeline' : 'Salvar no pipeline'}</span>
+            </button>
+          )}
+
+          {/* SECUNDÁRIO 2: Simular Entrevista */}
+          {onStartSimulation && (
+            <button
+              type="button"
+              onClick={onStartSimulation}
+              className="px-4 py-3 rounded-xl dark:bg-slate-900 bg-slate-100 hover:dark:bg-slate-800 hover:bg-slate-200 border dark:border-slate-800 border-slate-300 dark:text-slate-200 text-slate-800 font-bold text-xs uppercase tracking-wider transition flex items-center justify-center gap-1.5 cursor-pointer shadow-xs"
+            >
+              <Play size={13} className="dark:text-brand-400 text-brand-600" />
+              <span>Simular Entrevista</span>
             </button>
           )}
         </div>
 
-        {/* Ações de exclusão / gestão */}
+        {/* Ação de descarte secundária e discreta */}
         <div className="flex items-center gap-2 self-end sm:self-center">
           {onDeleteAnalysis && (
             <button

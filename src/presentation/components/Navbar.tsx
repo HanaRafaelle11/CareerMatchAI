@@ -18,7 +18,8 @@ import {
   X,
   ChevronLeft,
   ChevronRight,
-  Bot
+  Bot,
+  Sliders
 } from 'lucide-react';
 
 import { FloatingActionDeck } from './FloatingActionDeck';
@@ -386,6 +387,21 @@ export function Navbar({
                 </span>
               </div>
             )}
+
+            {/* Preferências de Carreira */}
+            <button
+              onClick={() => handleNavigate('career-profile', 'sidebar')}
+              aria-current={activeTab === 'career-profile' ? 'page' : undefined}
+              title="Preferências de Carreira & Trabalho"
+              className={`w-full flex items-center ${isCollapsed ? 'justify-center py-2.5 px-0' : 'gap-2.5 px-3 py-2'} rounded-xl text-xs font-medium transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 cursor-pointer ${
+                activeTab === 'career-profile'
+                  ? 'bg-brand-50 dark:bg-brand-500/10 text-brand-700 dark:text-brand-400 font-bold border border-brand-200 dark:border-brand-500/20 shadow-xs'
+                  : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-white/5 hover:text-slate-900 dark:hover:text-white border border-transparent'
+              }`}
+            >
+              <Sliders className={`w-4 h-4 shrink-0 ${activeTab === 'career-profile' ? 'text-brand-700 dark:text-brand-400' : 'text-slate-400 dark:text-slate-400'}`} size={16} strokeWidth={1.5} />
+              {!isCollapsed && <span>Preferências</span>}
+            </button>
 
             {/* Configurações */}
             <button

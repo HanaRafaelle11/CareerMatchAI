@@ -876,27 +876,51 @@ class LocalDatabase {
   }
 
   // Career Goals API
+  private memoryCareerGoals: CareerGoal[] = [];
+
   getCareerGoals(userId: string): CareerGoal[] {
-    const all = JSON.parse(localStorage.getItem(KEYS.CAREER_GOALS) || '[]') as CareerGoal[];
-    return all.filter(g => g.userId === userId);
+    try {
+      if (typeof localStorage !== 'undefined') {
+        const all = JSON.parse(localStorage.getItem(KEYS.CAREER_GOALS) || '[]') as CareerGoal[];
+        return all.filter(g => g.userId === userId);
+      }
+    } catch (_) {}
+    return this.memoryCareerGoals.filter(g => g.userId === userId);
   }
 
   saveCareerGoal(goal: CareerGoal): CareerGoal {
-    const all = JSON.parse(localStorage.getItem(KEYS.CAREER_GOALS) || '[]') as CareerGoal[];
-    const index = all.findIndex(g => g.id === goal.id);
+    try {
+      if (typeof localStorage !== 'undefined') {
+        const all = JSON.parse(localStorage.getItem(KEYS.CAREER_GOALS) || '[]') as CareerGoal[];
+        const index = all.findIndex(g => g.id === goal.id);
+        if (index >= 0) {
+          all[index] = { ...goal, updatedAt: new Date().toISOString() };
+        } else {
+          all.push(goal);
+        }
+        localStorage.setItem(KEYS.CAREER_GOALS, JSON.stringify(all));
+        return goal;
+      }
+    } catch (_) {}
+
+    const index = this.memoryCareerGoals.findIndex(g => g.id === goal.id);
     if (index >= 0) {
-      all[index] = { ...goal, updatedAt: new Date().toISOString() };
+      this.memoryCareerGoals[index] = { ...goal, updatedAt: new Date().toISOString() };
     } else {
-      all.push(goal);
+      this.memoryCareerGoals.push(goal);
     }
-    localStorage.setItem(KEYS.CAREER_GOALS, JSON.stringify(all));
     return goal;
   }
 
   deleteCareerGoal(id: string): void {
-    const all = JSON.parse(localStorage.getItem(KEYS.CAREER_GOALS) || '[]');
-    const filtered = all.filter((g: any) => g.id !== id);
-    localStorage.setItem(KEYS.CAREER_GOALS, JSON.stringify(filtered));
+    try {
+      if (typeof localStorage !== 'undefined') {
+        const all = JSON.parse(localStorage.getItem(KEYS.CAREER_GOALS) || '[]');
+        const filtered = all.filter((g: any) => g.id !== id);
+        localStorage.setItem(KEYS.CAREER_GOALS, JSON.stringify(filtered));
+      }
+    } catch (_) {}
+    this.memoryCareerGoals = this.memoryCareerGoals.filter((g: any) => g.id !== id);
   }
 
   // Analytics Events API

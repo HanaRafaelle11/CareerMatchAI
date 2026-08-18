@@ -433,12 +433,30 @@ export interface WeeklyGoal {
   updatedAt: string;
 }
 
+export type CareerGoalIntentType = 
+  | 'same_area_continue'   // Quero continuar na minha área
+  | 'same_area_grow'       // Quero crescer na minha área
+  | 'career_transition'    // Quero mudar de carreira
+  | 'exploring';           // Ainda estou explorando possibilidades
+
 export interface CareerGoal {
   id: string;
   userId: string;
-  title: string;
-  targetDate: string;
-  isActive: boolean;
+  title?: string;
+  targetDate?: string;
+  isActive?: boolean;
+  intentType?: CareerGoalIntentType;
+  targetArea?: string;
+  targetRoles?: string[];
+  targetSeniority?: 'junior' | 'pleno' | 'senior' | 'lead' | 'specialist';
+  targetLocation?: string;
+  targetWorkModes?: Array<'remote' | 'hybrid' | 'onsite'>;
+  targetIndustries?: string[];
+  desiredSalaryMin?: number;
+  desiredSalaryMax?: number;
+  salaryCurrency?: string;
+  desiredSalary?: string; // suporte legado
+  transferableSkills?: string[];
   createdAt: string;
   updatedAt: string;
 }

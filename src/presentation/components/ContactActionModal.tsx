@@ -117,19 +117,23 @@ export function ContactActionModal({ user, onClose, onSuccess }: ContactActionMo
     setIsSubmitting(true);
 
     try {
-      // 1. Gravar registro auditável no Supabase se configurado
+      // 1. Gravar registro auditável no Supabase se configurado (não-bloqueante)
       if (isSupabaseConfigured && supabase) {
-        await supabase.from('activity_logs').insert({
-          user_id: user.userId,
-          event_type: 'admin_commercial_action',
-          metadata: {
-            action_type: actionType,
-            recipient_email: user.email,
-            recipient_name: user.name,
-            subject,
-            message: messageText,
-            sent_at: new Date().toISOString()
-          }
+        Promise.resolve(
+          supabase.from('activity_logs').insert({
+            user_id: user.userId,
+            event_type: 'admin_commercial_action',
+            metadata: {
+              action_type: actionType,
+              recipient_email: user.email,
+              recipient_name: user.name,
+              subject,
+              message: messageText,
+              sent_at: new Date().toISOString()
+            }
+          })
+        ).catch(err => {
+          console.warn('[ContactModal] Logging de ação falhou silenciosamente:', err);
         });
       }
 

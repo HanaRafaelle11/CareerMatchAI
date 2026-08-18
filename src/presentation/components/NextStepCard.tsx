@@ -61,6 +61,8 @@ export function NextStepCard({ action, isLoading = false, onExecuteAction }: Nex
         return <FileUp {...props} className="text-indigo-500" />;
       case 'user-check':
         return <UserCheck {...props} className="text-emerald-500" />;
+      case 'target':
+        return <Target {...props} className="text-purple-500" />;
       case 'sparkles':
         return <Sparkles {...props} className="text-brand-400" />;
       case 'compass':
@@ -132,19 +134,21 @@ export function NextStepCard({ action, isLoading = false, onExecuteAction }: Nex
           </div>
         </div>
 
-        {/* Rodapé: Motivo / Justificativa + Único CTA Dominante */}
-        <div className="pt-4 border-t border-slate-100 dark:border-white/6 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-          <div className="text-[11px] text-slate-500 dark:text-slate-400 leading-tight">
-            {action.reason ? (
-              <span className="flex items-center gap-1.5">
-                <span className="inline-block w-1.5 h-1.5 rounded-full bg-brand-400 shrink-0" />
-                {action.reason}
-              </span>
-            ) : (
-              <span>Orientação contextual baseada no momento da sua busca.</span>
-            )}
+        {/* Bloco Explicativo "Por que estou vendo isso?" */}
+        {action.reason && (
+          <div className="p-3 rounded-xl bg-slate-50 dark:bg-white/5 border border-slate-200/80 dark:border-white/8 space-y-1">
+            <div className="flex items-center gap-1.5 text-[11px] font-bold text-slate-700 dark:text-slate-300">
+              <span>💡</span>
+              <span>Por que estou vendo isso?</span>
+            </div>
+            <p className="text-xs text-slate-600 dark:text-slate-400 pl-4 leading-relaxed">
+              {action.reason}
+            </p>
           </div>
+        )}
 
+        {/* Rodapé: Ação do Usuário com CTA Dominante */}
+        <div className="pt-2 border-t border-slate-100 dark:border-white/6 flex justify-end">
           <button
             type="button"
             onClick={handleCtaClick}

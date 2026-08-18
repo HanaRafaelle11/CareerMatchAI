@@ -13,6 +13,7 @@ import type { Job, Resume, Match, CareerProfile, JobFeedbackReason, JobMatchScor
 import { buildJobMatchScore } from '../../domain/services/UnifiedMatchService';
 import type { CareerProfileNew } from '../../application/hooks/useMyProfileAi';
 import { useEscapeToClose } from '../../application/hooks/useEscapeToClose';
+import { useCareerGoal } from '../../application/hooks/useCareerGoal';
 import { Play, Clipboard, Award, CheckCircle, AlertTriangle, AlertCircle, X, ChevronRight, BookOpen, Plus, Search, MapPin, Loader2, ArrowUpRight, Flame, Sparkles, Trash2, Briefcase, Heart, DollarSign, Building, FileText, Printer, Check, Zap, RotateCcw, Filter, Info } from 'lucide-react';
 import { useJobTrash } from '../../application/hooks/useJobTrash';
 
@@ -250,6 +251,7 @@ export function JobMatchHub({
     triggerPaywall, 
     closePaywall 
   } = useEntitlements(user?.id || userId);
+  const { goal: careerGoal } = useCareerGoal(user?.id || userId);
 
   const [showCheckout, setShowCheckout] = useState(false);
   const { trashedJobs, trashedJobIds, moveToTrash, restoreFromTrash, removeFromTrash: _removeFromTrash, clearTrash } = useJobTrash(user?.id || userId, jobs);
@@ -3257,6 +3259,7 @@ export function JobMatchHub({
                       careerProfileNew={careerProfileNew}
                       explanation={explanation}
                       match={currentMatch}
+                      careerGoal={careerGoal}
                       isAnalyzing={isCalculating}
                       onAnalyzeMatch={() => handleTriggerMatch(selectedJob)}
                       onApply={() => handleApplyClick(selectedJob)}

@@ -15,6 +15,8 @@ import { printElementHtml } from '../../application/utils/pdfExport';
 import { useAuth } from '../../application/hooks/useAuth';
 import { useEntitlements, PaywallModal, CheckoutModal } from '../../modules/billing';
 import { calculateProfileCompleteness } from '../../domain/services/ProfileCompletenessService';
+import { useCareerGoal } from '../../application/hooks/useCareerGoal';
+import { CareerGoalCard } from '../components/CareerGoalCard';
 
 interface ProfileProps {
   profile: UserProfile | null;
@@ -191,6 +193,7 @@ export function Profile({
 }: ProfileProps) {
   const { user } = useAuth();
   const { isPro, canExportPdf, paywallState, triggerPaywall, closePaywall } = useEntitlements(user?.id);
+  const { goal: careerGoal, saveGoal: saveCareerGoal } = useCareerGoal(user?.id);
   const [showCheckout, setShowCheckout] = useState(false);
 
   const activeInsights = careerInsights || getLocalFallbackInsights(careerProfileNew);
@@ -823,6 +826,23 @@ export function Profile({
           <Upload size={14} />
           <span>{hasResume ? 'Atualizar Currículo' : 'Enviar Currículo'}</span>
         </button>
+      </div>
+
+      {/* ── BLOCO 1: PARA ONDE VOCÊ QUER IR (OBJETIVO PROFISSIONAL DECLARADO) ── */}
+      <CareerGoalCard
+        goal={careerGoal}
+        onSave={saveCareerGoal}
+        userSkills={displaySkills.map(s => typeof s === 'string' ? s : s.name)}
+      />
+
+      {/* ── BLOCO 2: QUEM VOCÊ É HOJE (PERFIL ATUAL & HISTÓRICO EXTRAÍDO) ── */}
+      <div className="pt-2">
+        <div className="flex items-center gap-2 mb-4">
+          <span className="text-[11px] font-bold uppercase tracking-wider text-brand-600 dark:text-brand-400">
+            Quem você é hoje
+          </span>
+          <Badge variant="neutral" size="sm">Histórico Extraído do Currículo</Badge>
+        </div>
       </div>
 
       {pipelineSteps && pipelineSteps.length > 0 ? (

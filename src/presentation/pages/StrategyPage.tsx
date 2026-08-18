@@ -462,24 +462,35 @@ export function StrategyPage({
     try {
       await onUpdateApplication(updatedApp);
 
-      // Record stage transition log in database if Supabase configured and valid UUID (non-blocking)
-      const isUuid = (val?: string | null) => !!val && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(val);
-      if (isSupabaseConfigured && supabase && isUuid(app.id)) {
-        Promise.resolve(
-          supabase.from('application_stages').insert({
-            application_id: app.id,
-            stage_name: cleanTarget,
-            from_status: app.status,
-            to_status: cleanTarget,
-            status: 'passed',
-            stage_date: new Date().toISOString()
-          })
-        ).then(({ error }: any) => {
-          if (error) console.warn('[Pipeline] Aviso ao registrar histórico de estágio:', error.message);
-        }).catch((err: any) => {
-          console.warn('[Pipeline] Exceção ao registrar histórico de estágio:', err);
+      // Secondary stage transition log in database (non-blocking with active observability)
+      const reportSecondaryFailure = (err: any, targetAppId: string) => {
+        console.warn('[Pipeline Observability] Falha secundária ao registrar histórico de estágio:', err?.message || err);
+        tracker.track('application_stage_log_failed', 'StrategyPage', {
+          appId: targetAppId,
+          error: err?.message || String(err),
+          user_id: userId
         });
-      }
+      };
+
+      const logStageChange = async (targetAppId: string, toStage: string) => {
+        if (!isSupabaseConfigured || !supabase) return;
+        const isUuid = (val?: string | null) => !!val && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(val);
+        if (!isUuid(targetAppId)) {
+          reportSecondaryFailure(new Error(`ID da candidatura não é UUID válido: "${targetAppId}"`), targetAppId);
+          return;
+        }
+        const { error } = await supabase.from('application_stages').insert({
+          application_id: targetAppId,
+          stage_name: toStage,
+          from_status: app.status,
+          to_status: toStage,
+          status: 'passed',
+          stage_date: new Date().toISOString()
+        });
+        if (error) throw error;
+      };
+
+      void logStageChange(app.id, cleanTarget).catch(err => reportSecondaryFailure(err, app.id));
 
       tracker.track('application_stage_updated', 'StrategyPage', {
         appId: app.id,

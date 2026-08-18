@@ -10,6 +10,7 @@ import { StatCard } from '../components/ds';
 import { CareerScoreDashboardCard } from '../components/CareerScoreDashboardCard';
 import { NextStepCard } from '../components/NextStepCard';
 import { NextStepService } from '../../domain/services/NextStepService';
+import { useCareerGoal } from '../../application/hooks/useCareerGoal';
 import { useQuery } from '@tanstack/react-query';
 import { isSupabaseConfigured, supabase } from '../../infrastructure/api/supabaseClient';
 import { isAppliedStatus, isSavedStatus, isHiredStatus } from '../../domain/models/applicationStatusConstants';
@@ -41,6 +42,7 @@ export function Dashboard({
   careerProfileNew,
   setActiveTab,
   applications = [],
+  careerGoals = [],
   setSelectedJobId,
   isLoading = false,
   error = null,
@@ -94,16 +96,19 @@ export function Dashboard({
     enabled: !!profile?.id
   });
 
+  const { goal: liveGoal } = useCareerGoal(profile?.id);
+
   // ── 1. TODOS OS HOOKS E CÁLCULOS NO TOPO (REGRAS DO REACT) ──
   const nextStepResult = useMemo(() => {
     return NextStepService.getUserNextStep({
       profile,
+      careerGoal: liveGoal || (careerGoals && careerGoals.length > 0 ? careerGoals[0] : null),
       careerProfileNew,
       resumes,
       matches,
       applications
     });
-  }, [profile, careerProfileNew, resumes, matches, applications]);
+  }, [profile, liveGoal, careerGoals, careerProfileNew, resumes, matches, applications]);
 
   const { primaryAction, secondaryActions } = nextStepResult;
   const userName = profile?.fullName?.split(' ')[0] || 'Candidato';

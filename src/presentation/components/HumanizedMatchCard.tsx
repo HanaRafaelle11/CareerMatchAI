@@ -3,11 +3,11 @@ import {
   CheckCircle, AlertTriangle, HelpCircle, ArrowUpRight, 
   Sparkles, FileText, Play, Plus, Trash2, Loader2, 
   ShieldCheck, Flame, Zap, Target, ChevronDown, ChevronUp,
-  MapPin, Briefcase, Award
+  MapPin, Briefcase, Award, Compass
 } from 'lucide-react';
 import { CardGlass } from './CardGlass';
 import { tracker } from '../../infrastructure/analytics/tracker';
-import type { Job, Resume, Match, JobMatchExplanation } from '../../domain/models/types';
+import type { Job, Resume, Match, JobMatchExplanation, CareerGoal } from '../../domain/models/types';
 import type { CareerProfileNew } from '../../application/hooks/useMyProfileAi';
 
 export interface HumanizedMatchCardProps {
@@ -17,6 +17,7 @@ export interface HumanizedMatchCardProps {
   careerProfileNew?: CareerProfileNew | null;
   explanation?: JobMatchExplanation | null;
   match?: Match | null;
+  careerGoal?: CareerGoal | null;
   isAnalyzing?: boolean;
   onAnalyzeMatch?: () => void;
   onApply?: () => void;
@@ -40,6 +41,7 @@ export function HumanizedMatchCard({
   careerProfileNew,
   explanation,
   match,
+  careerGoal,
   onApply,
   onOptimizeResume,
   onGoToProfile,
@@ -52,6 +54,10 @@ export function HumanizedMatchCard({
   className = ''
 }: HumanizedMatchCardProps) {
   const [showBreakdown, setShowBreakdown] = useState(false);
+
+  const isTransition = careerGoal?.intentType === 'career_transition';
+  const directMatchScore = Math.max(20, Math.round(score * 0.8));
+  const transitionPotentialScore = Math.min(95, Math.max(55, Math.round(score * 0.9 + 12)));
 
   // ── 1. CLASSIFICAÇÃO SEMÂNTICA DA FAIXA DE FIT ──
   const getSemanticFit = (s: number) => {
@@ -268,18 +274,35 @@ export function HumanizedMatchCard({
           </h3>
         </div>
 
-        {/* Score Principal com Botão de Explicação */}
-        <div className="flex items-center gap-3 shrink-0 dark:bg-slate-900/60 bg-slate-100/90 p-3.5 rounded-2xl border dark:border-slate-800/70 border-slate-200">
-          <div className="text-right">
-            <span className="text-[10px] dark:text-slate-400 text-slate-500 font-bold uppercase tracking-wider block">Compatibilidade</span>
-            <span className={`text-3xl sm:text-4xl font-extrabold font-display leading-none ${semanticFit.scoreColor}`}>
-              {score}%
-            </span>
+        {/* Score Principal com Suporte a Transição de Carreira */}
+        {isTransition ? (
+          <div className="flex items-center gap-3 shrink-0 dark:bg-purple-950/40 bg-purple-50/80 p-3.5 rounded-2xl border dark:border-purple-800/60 border-purple-200">
+            <div className="text-right">
+              <span className="text-[10px] text-purple-600 dark:text-purple-300 font-bold uppercase tracking-wider block">Potencial de Transição</span>
+              <span className="text-3xl sm:text-4xl font-extrabold font-display leading-none text-purple-600 dark:text-purple-400">
+                {transitionPotentialScore}%
+              </span>
+              <span className="text-[10px] text-slate-500 dark:text-slate-400 block mt-0.5 font-medium">
+                Compatibilidade Direta: {directMatchScore}%
+              </span>
+            </div>
+            <div className="w-10 h-10 rounded-xl dark:bg-purple-500/20 bg-purple-100 border dark:border-purple-500/30 border-purple-200 flex items-center justify-center text-purple-600 dark:text-purple-400 shrink-0">
+              <Compass size={20} />
+            </div>
           </div>
-          <div className="w-10 h-10 rounded-xl dark:bg-brand-500/10 bg-brand-100 border dark:border-brand-500/20 border-brand-200 flex items-center justify-center text-brand-600 dark:text-brand-400 shrink-0">
-            <ShieldCheck size={20} />
+        ) : (
+          <div className="flex items-center gap-3 shrink-0 dark:bg-slate-900/60 bg-slate-100/90 p-3.5 rounded-2xl border dark:border-slate-800/70 border-slate-200">
+            <div className="text-right">
+              <span className="text-[10px] dark:text-slate-400 text-slate-500 font-bold uppercase tracking-wider block">Compatibilidade</span>
+              <span className={`text-3xl sm:text-4xl font-extrabold font-display leading-none ${semanticFit.scoreColor}`}>
+                {score}%
+              </span>
+            </div>
+            <div className="w-10 h-10 rounded-xl dark:bg-brand-500/10 bg-brand-100 border dark:border-brand-500/20 border-brand-200 flex items-center justify-center text-brand-600 dark:text-brand-400 shrink-0">
+              <ShieldCheck size={20} />
+            </div>
           </div>
-        </div>
+        )}
       </div>
 
       {/* ── CAMADA 2: LOCALIZAÇÃO · MODELO DE TRABALHO · SENIORIDADE · SALÁRIO ── */}

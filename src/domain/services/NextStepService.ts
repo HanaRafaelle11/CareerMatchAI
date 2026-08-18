@@ -1,4 +1,4 @@
-import type { Application, Match, Profile, Resume } from '../models/types';
+import type { Application, Match, Profile, Resume, CareerGoal } from '../models/types';
 import type { CareerProfileNew } from '../../application/hooks/useMyProfileAi';
 import { ApplicationPipelineService } from '../../application/services/ApplicationPipelineService';
 import { calculateProfileCompleteness } from './ProfileCompletenessService';
@@ -8,6 +8,10 @@ export interface NextStepAction {
   type:
     | 'hired'
     | 'future_interview'
+    | 'interview_simulation'
+    | 'no_career_goal'
+    | 'optimize_resume_for_goal'
+    | 'apply_high_match_jobs'
     | 'overdue_action'
     | 'recent_interview'
     | 'stagnant_application'
@@ -29,7 +33,7 @@ export interface NextStepAction {
     applicationId?: string;
     resumeId?: string;
   };
-  icon: 'trophy' | 'calendar' | 'alert-circle' | 'message-square' | 'clock' | 'file-up' | 'user-check' | 'sparkles' | 'compass';
+  icon: 'trophy' | 'calendar' | 'alert-circle' | 'message-square' | 'clock' | 'file-up' | 'user-check' | 'sparkles' | 'compass' | 'target';
   urgencyScore: number; // 0 a 100 para desempate contextual
 }
 
@@ -48,10 +52,12 @@ export interface NextStepResult {
 
 export interface UserNextStepContext {
   profile?: Profile | null;
+  careerGoal?: CareerGoal | null;
   careerProfileNew?: CareerProfileNew | null;
   resumes?: Resume[];
   matches?: Match[];
   applications?: Application[];
+  isResumeOptimized?: boolean;
   currentDate?: Date; // Injeção de data para testes 100% determinísticos
 }
 
@@ -95,10 +101,19 @@ export class NextStepService {
     const applications = (context.applications || []).filter(
       app => app.status !== 'rejected' && (app.status as string) !== 'deleted'
     );
+    const careerGoal = context.careerGoal;
+    const hasExplicitGoal = Boolean(careerGoal && careerGoal.intentType);
+
+    // Determinar se o currículo já foi otimizado para o objetivo declarado
+    const isResumeOptimized = Boolean(
+      context.isResumeOptimized ||
+      resumes.some(r => (r as any).isOptimized || (r as any).is_optimized || r.structuredSummary?.includes('[Otimizado]') || (r.versionNumber && r.versionNumber > 1)) ||
+      Boolean((context.careerProfileNew as any)?.optimizations?.length)
+    );
 
     const candidates: NextStepAction[] = [];
 
-    // ── 1. CONTRATAÇÃO (Vitória Máxima) ──
+    // ── 1. CONTRATAÇÃO (Vitória Máxima, Score 99) ──
     const hiredApps = applications.filter(
       app => ApplicationPipelineService.getCleanStatus(app.status) === 'hired'
     );
@@ -116,55 +131,140 @@ export class NextStepService {
         ctaTab: 'strategy',
         ctaPayload: { applicationId: topHired.id },
         icon: 'trophy',
-        urgencyScore: 98
+        urgencyScore: 99
       });
     }
 
-    // ── 2. ENTREVISTAS FUTURAS & AÇÕES PLANEJADAS VENCIDAS ──
-    for (const app of applications) {
+    // ── 2. ENTREVISTA AGENDADA / SIMULAÇÃO DE ENTREVISTA (Score 96) ──
+    // Se há candidatura em fase de entrevista (hr / interview)
+    const interviewApps = applications.filter(app => {
       const cleanStatus = ApplicationPipelineService.getCleanStatus(app.status);
-      const actionDate = toMidnightDate(app.nextActionDate);
+      return cleanStatus === 'hr' || cleanStatus === 'interview';
+    });
+
+    if (interviewApps.length > 0) {
+      const topInterview = interviewApps[0];
+      const actionDate = toMidnightDate(topInterview.nextActionDate);
+      let daysText = 'em breve';
+      let urgencyScore = 96;
 
       if (actionDate) {
         const daysFromToday = diffInDays(todayMidnight, actionDate);
-
-        // A. Entrevista Futura (Hoje ou Futuro)
-        if (daysFromToday >= 0 && (cleanStatus === 'hr' || cleanStatus === 'interview')) {
-          const daysText =
-            daysFromToday === 0
-              ? 'hoje'
-              : daysFromToday === 1
-              ? 'amanhã'
-              : `em ${daysFromToday} dias`;
-
-          // Urgência máxima quanto mais próxima a entrevista
-          const urgencyScore = Math.max(90, 100 - daysFromToday * 2);
-
-          candidates.push({
-            id: `future-interview-${app.id}`,
-            type: 'future_interview',
-            title: '🎯 Sua entrevista está chegando',
-            subtitle: `${app.jobTitle} · ${app.companyName}`,
-            description: `Você tem uma entrevista agendada ${daysText} na ${app.companyName}. Prepare suas respostas e pratique perguntas com o simulador STAR.`,
-            reason: 'Candidatos que treinam respostas com antecedência têm 2.4x mais chances de aprovação.',
-            badgeText: `Entrevista ${daysText}`,
-            badgeVariant: 'brand',
-            ctaLabel: 'Preparar entrevista',
-            ctaTab: 'coach',
-            ctaPayload: { applicationId: app.id, jobId: app.jobId },
-            icon: 'calendar',
-            urgencyScore
-          });
+        if (daysFromToday >= 0) {
+          daysText = daysFromToday === 0 ? 'hoje' : daysFromToday === 1 ? 'amanhã' : `em ${daysFromToday} dias`;
+          urgencyScore = Math.max(90, 100 - daysFromToday * 2);
         }
+      }
 
-        // B. Ação Planejada Vencida (Data no passado)
+      candidates.push({
+        id: `interview-sim-${topInterview.id}`,
+        type: 'interview_simulation',
+        title: `Simule sua entrevista para ${topInterview.jobTitle}`,
+        subtitle: `${topInterview.jobTitle} · ${topInterview.companyName}`,
+        description: `Você tem uma etapa de entrevista agendada ${daysText} na ${topInterview.companyName}. Treine suas respostas estruturadas no método STAR com o Copiloto IA.`,
+        reason: 'Candidatos que treinam respostas com antecedência têm 2.4x mais chances de aprovação em entrevistas.',
+        badgeText: `Entrevista ${daysText}`,
+        badgeVariant: 'brand',
+        ctaLabel: 'Simular entrevista STAR',
+        ctaTab: 'coach',
+        ctaPayload: { applicationId: topInterview.id, jobId: topInterview.jobId },
+        icon: 'calendar',
+        urgencyScore
+      });
+    }
+
+    // ── 3. SEM OBJETIVO PROFISSIONAL DEFINIDO (Score 94) ──
+    // Invariante de Negócio: Se o usuário não tem objetivo explícito, o próximo passo prioritário é defini-lo!
+    if (!hasExplicitGoal) {
+      candidates.push({
+        id: 'no-career-goal',
+        type: 'no_career_goal',
+        title: 'Defina seu objetivo profissional',
+        subtitle: 'Calibração Essencial (30s)',
+        description: 'Você ainda não definiu seu objetivo de carreira. Escolha se quer continuar na sua área, buscar crescimento ou mudar de carreira para calibrar o Copiloto.',
+        reason: 'O objetivo profissional é o ponto de partida que calibra o cálculo de compatibilidade e orienta as recomendações da plataforma.',
+        badgeText: 'Objetivo Pendente',
+        badgeVariant: 'brand',
+        ctaLabel: 'Definir objetivo profissional',
+        ctaTab: 'profile',
+        icon: 'target',
+        urgencyScore: 94
+      });
+    }
+
+    // ── 4. PERFIL SEM CURRÍCULO (Bloqueio Fundamental de Dados, Score 92) ──
+    if (!hasResume) {
+      candidates.push({
+        id: 'no-resume-upload',
+        type: 'no_resume',
+        title: 'Envie seu currículo para começar',
+        description: 'Faça upload do seu currículo em PDF para calcular seu Career Score, desbloquear o Match de vagas e receber recomendações personalizadas.',
+        reason: 'O currículo é a base necessária para mapear suas competências profissionais.',
+        badgeText: 'Primeiro passo',
+        badgeVariant: 'brand',
+        ctaLabel: 'Enviar currículo',
+        ctaTab: 'profile',
+        icon: 'file-up',
+        urgencyScore: 92
+      });
+    }
+
+    // ── 5. COM OBJETIVO DEFINIDO, MAS CURRÍCULO AINDA NÃO OTIMIZADO PARA ELE (Score 88) ──
+    if (hasExplicitGoal && hasResume && !isResumeOptimized) {
+      const intentType = careerGoal!.intentType;
+      let targetLabel = 'seu objetivo';
+      let targetSubtitle = 'Alinhamento de Competências';
+      let customDescription = 'Otimize os termos e competências do seu currículo para aumentar seu destaque nas triagens.';
+      let customReason = 'Currículos com palavras-chave alinhadas à vaga têm maior aderência nos filtros ATS.';
+
+      if (intentType === 'career_transition') {
+        targetLabel = careerGoal?.targetArea ? `transição para ${careerGoal.targetArea}` : 'transição de carreira';
+        targetSubtitle = 'Transição de Carreira';
+        customDescription = `Você está em transição para ${careerGoal?.targetArea || 'uma nova área'}. Destaque suas competências transferíveis e palavras-chave no currículo para maximizar seu potencial.`;
+        customReason = 'Currículos adaptados para transição aumentam em até 3.2x a taxa de resposta de recrutadores.';
+      } else if (intentType === 'same_area_grow') {
+        targetLabel = careerGoal?.targetRoles?.[0] || careerGoal?.targetArea || 'crescimento profissional';
+        targetSubtitle = 'Crescimento Profissional';
+        customDescription = `Você busca crescer profissionalmente como ${targetLabel}. Destaque métricas de impacto, liderança e resultados estratégicos no seu currículo.`;
+        customReason = 'Posições de maior senioridade exigem foco em entregas quantificáveis e liderança no currículo.';
+      } else if (intentType === 'same_area_continue') {
+        targetLabel = careerGoal?.targetRoles?.[0] || careerGoal?.targetArea || 'sua área';
+        targetSubtitle = 'Continuidade & Foco';
+        customDescription = `Seu objetivo é ${targetLabel}. Otimize os termos e competências do seu currículo para aumentar seu destaque nas triagens.`;
+        customReason = 'Currículos com termos técnicos atualizados aumentam o score de compatibilidade com as vagas.';
+      } else if (intentType === 'exploring') {
+        targetLabel = 'suas competências';
+        targetSubtitle = 'Exploração de Oportunidades';
+        customDescription = 'Otimize e destaque suas principais habilidades universais para descobrir as melhores oportunidades no mercado.';
+        customReason = 'Evidenciar competências transferíveis facilita a identificação de novos caminhos profissionais.';
+      }
+
+      candidates.push({
+        id: 'optimize-resume-for-goal',
+        type: 'optimize_resume_for_goal',
+        title: `Otimize seu currículo para ${targetLabel}`,
+        subtitle: targetSubtitle,
+        description: customDescription,
+        reason: customReason,
+        badgeText: 'Otimização Recomendada',
+        badgeVariant: 'warning',
+        ctaLabel: 'Otimizar currículo',
+        ctaTab: 'profile',
+        icon: 'sparkles',
+        urgencyScore: 88
+      });
+    }
+
+    // ── 6. AÇÕES PLANEJADAS VENCIDAS (Score 80-89) ──
+    for (const app of applications) {
+      const actionDate = toMidnightDate(app.nextActionDate);
+      if (actionDate) {
+        const daysFromToday = diffInDays(todayMidnight, actionDate);
         if (daysFromToday < 0) {
           const absDays = Math.abs(daysFromToday);
           const overdueText = absDays === 1 ? '1 dia em atraso' : `${absDays} dias em atraso`;
           const actionName = app.nextAction?.trim() || 'Acompanhamento do processo';
-
-          // Urgência alta (80 a 89), balanceada para não suplantar entrevista de amanhã (96+)
-          const urgencyScore = Math.min(89, 80 + Math.min(absDays, 9));
+          const urgencyScore = Math.min(87, 80 + Math.min(absDays, 7));
 
           candidates.push({
             id: `overdue-action-${app.id}`,
@@ -185,7 +285,43 @@ export class NextStepService {
       }
     }
 
-    // ── 3. ENTREVISTAS RECENTES SEM FOLLOW-UP AGENDADO ──
+    // ── 7. COM CURRÍCULO E VAGAS DE ALTO POTENCIAL DISPONÍVEIS (Score 78) ──
+    if (hasResume && matches.length > 0) {
+      const highMatches = matches.filter(
+        m => m.scoreOverall >= 70 || ((m as any).transitionPotential && (m as any).transitionPotential >= 70)
+      );
+      const matchCount = highMatches.length > 0 ? highMatches.length : matches.length;
+      const sortedMatches = (highMatches.length > 0 ? highMatches : matches).sort((a, b) => b.scoreOverall - a.scoreOverall);
+      const topMatch = sortedMatches[0];
+
+      let matchDescription = `Encontramos ${matchCount} oportunidade(s) com alto potencial, com destaque para ${topMatch.jobTitle} na ${topMatch.companyName} (${topMatch.scoreOverall}% de aderência).`;
+      let matchReason = `você tem ${topMatch.scoreOverall}% de compatibilidade e a vaga está alinhada ao seu perfil.`;
+
+      if (careerGoal?.intentType === 'career_transition') {
+        matchDescription = `Você está em transição para ${careerGoal.targetArea || 'sua nova área'}. Encontramos ${matchCount} vagas compatíveis com seu objetivo, com destaque para ${topMatch.jobTitle} na ${topMatch.companyName} (${topMatch.scoreOverall}% de aderência).`;
+        matchReason = `você tem ${topMatch.scoreOverall}% de compatibilidade e a vaga está alinhada ao seu objetivo de transição.`;
+      } else if (careerGoal?.intentType === 'same_area_grow' || careerGoal?.intentType === 'same_area_continue') {
+        matchReason = `você tem ${topMatch.scoreOverall}% de compatibilidade e as vagas estão alinhadas ao seu objetivo de carreira.`;
+      }
+
+      candidates.push({
+        id: 'apply-high-match-jobs',
+        type: 'apply_high_match_jobs',
+        title: `Candidate-se a ${matchCount} vagas com alto potencial`,
+        subtitle: `${topMatch.jobTitle} · ${topMatch.companyName}`,
+        description: matchDescription,
+        reason: matchReason,
+        badgeText: `${matchCount} Vagas Recomendadas`,
+        badgeVariant: 'success',
+        ctaLabel: 'Ver vagas recomendadas',
+        ctaTab: 'match',
+        ctaPayload: { jobId: topMatch.jobId },
+        icon: 'sparkles',
+        urgencyScore: 78
+      });
+    }
+
+    // ── 8. ENTREVISTAS RECENTES SEM FOLLOW-UP AGENDADO (Score 75) ──
     const interviewAppsWithoutAction = applications.filter(app => {
       const cleanStatus = ApplicationPipelineService.getCleanStatus(app.status);
       const isInterview = cleanStatus === 'hr' || cleanStatus === 'interview';
@@ -218,7 +354,7 @@ export class NextStepService {
       }
     }
 
-    // ── 4. CANDIDATURAS ESTAGNADAS (> 7 DIAS SEM MOVIMENTAÇÃO) ──
+    // ── 9. CANDIDATURAS ESTAGNADAS (> 7 DIAS SEM MOVIMENTAÇÃO, Score 65) ──
     const appliedApps = applications.filter(
       app => ApplicationPipelineService.getCleanStatus(app.status) === 'applied' && !app.nextActionDate
     );
@@ -246,24 +382,7 @@ export class NextStepService {
       }
     }
 
-    // ── 5. PERFIL SEM CURRÍCULO (Bloqueio Fundamental) ──
-    if (!hasResume) {
-      candidates.push({
-        id: 'no-resume-upload',
-        type: 'no_resume',
-        title: 'Envie seu currículo para começar',
-        description: 'Faça upload do seu currículo em PDF para calcular seu Career Score, desbloquear o Match de vagas e receber recomendações personalizadas.',
-        reason: 'O currículo é a base necessária para mapear suas competências profissionais.',
-        badgeText: 'Primeiro passo',
-        badgeVariant: 'brand',
-        ctaLabel: 'Enviar currículo',
-        ctaTab: 'profile',
-        icon: 'file-up',
-        urgencyScore: 92
-      });
-    }
-
-    // ── 6. PERFIL INCOMPLETO (< 70%) ──
+    // ── 10. PERFIL INCOMPLETO (< 70%, Score 60) ──
     const linkedinVal = context.careerProfileNew?.personal?.linkedin;
     const hasLinkedin =
       !!linkedinVal &&
@@ -300,39 +419,12 @@ export class NextStepService {
       });
     }
 
-    // ── 7. BONS MATCHES SEM CANDIDATURAS ENVIADAS ──
-    const activeAppliedCount = applications.filter(a => {
-      const s = ApplicationPipelineService.getCleanStatus(a.status);
-      return s === 'applied' || s === 'hr' || s === 'interview' || s === 'offer';
-    }).length;
-
-    if (hasResume && matches.length > 0 && activeAppliedCount === 0) {
-      const sortedMatches = [...matches].sort((a, b) => b.scoreOverall - a.scoreOverall);
-      const topMatch = sortedMatches[0];
-
-      candidates.push({
-        id: 'explore-top-matches',
-        type: 'explore_matches',
-        title: 'Vagas com alta compatibilidade encontradas',
-        subtitle: `${topMatch.jobTitle} · ${topMatch.companyName}`,
-        description: `Você tem ${matches.length} vagas mapeadas, com destaque para ${topMatch.jobTitle} na ${topMatch.companyName} (${topMatch.scoreOverall}% de compatibilidade). Candidate-se agora.`,
-        reason: 'Seu perfil atende aos principais requisitos técnicos desta vaga.',
-        badgeText: `${topMatch.scoreOverall}% Compatível`,
-        badgeVariant: 'success',
-        ctaLabel: 'Ver vagas compatíveis',
-        ctaTab: 'match',
-        ctaPayload: { jobId: topMatch.jobId },
-        icon: 'sparkles',
-        urgencyScore: 55
-      });
-    }
-
-    // ── 8. NENHUM MATCH CALCULADO AINDA ──
+    // ── 11. DESCOBRIR PRIMEIRAS VAGAS (Score 50) ──
     if (hasResume && matches.length === 0) {
       candidates.push({
         id: 'discover-first-jobs',
         type: 'discover_jobs',
-        title: 'Encontre vagas compatíveis com sua experiência',
+        title: 'Encontre vagas compatíveis com seu objetivo',
         description: 'Seu currículo está pronto! Explore as oportunidades do mercado e calcule sua compatibilidade em tempo real.',
         reason: 'Calculamos a aderência de competências e senioridade para cada oportunidade.',
         badgeText: 'Oportunidades abertas',
@@ -344,7 +436,7 @@ export class NextStepService {
       });
     }
 
-    // ── 9. FALLBACK NEUTRO (Usuário em Dia) ──
+    // ── 12. FALLBACK NEUTRO (Score 10) ──
     const defaultNeutralAction: NextStepAction = {
       id: 'default-neutral',
       type: 'neutral',
@@ -359,48 +451,40 @@ export class NextStepService {
       urgencyScore: 10
     };
 
-    // Ordenação estrita por pontuação de urgência + relevância contextual
+    // Ordenação estrita por pontuação de urgência
     candidates.sort((a, b) => b.urgencyScore - a.urgencyScore);
     const primaryAction = candidates.length > 0 ? candidates[0] : defaultNeutralAction;
 
-    // ── 10. AÇÕES SECUNDÁRIAS ("Também pode fazer hoje") ──
-    // Máximo de 1 a 2 ações secundárias não redundantes com a ação primária
+    // ── AÇÕES SECUNDÁRIAS ("Também pode fazer hoje") ──
     const secondaryActions: SecondaryAction[] = [];
 
-    // Se a ação primária não for o upload de currículo, sugerir checar o perfil se incompleto
-    if (primaryAction.type !== 'no_resume' && primaryAction.type !== 'incomplete_profile') {
-      if (completenessResult.score < 100) {
-        secondaryActions.push({
-          id: 'sec-profile-completeness',
-          label: `Completar competências no perfil (${completenessResult.score}% pronto)`,
-          ctaTab: 'profile',
-          completed: false
-        });
-      }
-    }
-
-    // Se o usuário tem vagas salvas mas não aplicadas
-    const savedAppsCount = applications.filter(a => ApplicationPipelineService.getCleanStatus(a.status) === 'saved').length;
-    if (savedAppsCount > 0 && primaryAction.type !== 'explore_matches') {
+    if (!hasExplicitGoal && primaryAction.type !== 'no_career_goal') {
       secondaryActions.push({
-        id: 'sec-saved-jobs',
-        label: `Revisar ${savedAppsCount} vaga(s) salva(s) no Pipeline`,
-        ctaTab: 'strategy',
+        id: 'sec-define-goal',
+        label: 'Definir objetivo de carreira (30s)',
+        ctaTab: 'profile',
         completed: false
       });
     }
 
-    // Treino STAR no simulador se houver currículo
-    if (hasResume && primaryAction.type !== 'future_interview') {
+    if (hasResume && !isResumeOptimized && primaryAction.type !== 'optimize_resume_for_goal') {
+      secondaryActions.push({
+        id: 'sec-optimize-resume',
+        label: 'Otimizar currículo para seu objetivo',
+        ctaTab: 'profile',
+        completed: false
+      });
+    }
+
+    if (hasResume && primaryAction.type !== 'interview_simulation') {
       secondaryActions.push({
         id: 'sec-practice-interview',
-        label: 'Praticar 1 simulação de entrevista com o simulador',
+        label: 'Praticar 1 simulação de entrevista STAR',
         ctaTab: 'coach',
         completed: false
       });
     }
 
-    // Garantir limite de 2 ações secundárias no máximo
     return {
       primaryAction,
       secondaryActions: secondaryActions.slice(0, 2)

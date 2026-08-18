@@ -1,6 +1,7 @@
 import type { Resume, Job, Match, GapAnalysis, CoverLetter, InterviewPrep, CareerProfile } from '../../domain/models/types';
 import type { CareerProfileNew } from '../hooks/useMyProfileAi';
 import { isSupabaseConfigured, supabase } from '../../infrastructure/api/supabaseClient';
+import { CareerMatchEngineV3 } from '../../domain/services/CareerMatchEngineV3';
 
 // ─────────────────────────────────────────────────────────────────
 // Helpers para o perfil consolidado (career_profiles novo)
@@ -800,7 +801,8 @@ ${candidateName}`,
   static calculateMatchSync(
     resume: Resume,
     job: Omit<Job, 'id' | 'userId' | 'createdAt' | 'updatedAt'> | Job,
-    consolidatedProfile?: CareerProfileNew | null
+    consolidatedProfile?: CareerProfileNew | null,
+    careerGoal?: any | null
   ): {
     scoreOverall: number;
     scoreTechnical: number;
@@ -811,6 +813,11 @@ ${candidateName}`,
     missingSkills: string[];
     matchedSkills: string[];
     yearsOfExperience: number;
+    careerFitScore?: number;
+    careerGoalScore?: number | null;
+    dimensions?: any;
+    transition?: any;
+    skillsAssessment?: any;
   } {
     const flatSkills = consolidatedProfile
       ? buildFlatSkillsFromProfile(consolidatedProfile)
@@ -981,7 +988,10 @@ ${candidateName}`,
     if (isNaN(scoreBehavioral)) scoreBehavioral = 70;
     if (isNaN(scoreSeniority)) scoreSeniority = 75;
     if (isNaN(scoreSalary)) scoreSalary = 75;
-    if (isNaN(scoreLocation)) scoreLocation = 100;
+    let v3Result = null;
+    try {
+      v3Result = CareerMatchEngineV3.calculate(job as Job, resume, consolidatedProfile, careerGoal);
+    } catch (_) {}
 
     return {
       scoreOverall,
@@ -992,7 +1002,12 @@ ${candidateName}`,
       scoreSalary,
       missingSkills,
       matchedSkills,
-      yearsOfExperience
+      yearsOfExperience,
+      careerFitScore: v3Result?.careerFitScore ?? scoreOverall,
+      careerGoalScore: v3Result?.careerGoalScore ?? null,
+      dimensions: v3Result?.dimensions,
+      transition: v3Result?.transition,
+      skillsAssessment: v3Result?.skillsAssessment
     };
   }
 }

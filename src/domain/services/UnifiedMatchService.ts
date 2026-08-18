@@ -6,6 +6,26 @@ import type { CareerProfileNew } from '../../application/hooks/useMyProfileAi';
 
 export interface UnifiedMatchResult {
   scoreOverall: number;
+  careerFitScore?: number;
+  careerGoalScore?: number | null;
+  dimensions?: {
+    experience: number;
+    skills: number;
+    seniority: number;
+    context: number;
+    careerGoal: number;
+  };
+  transition?: {
+    type: string;
+    label: string;
+    confidence: number;
+    isCareerTransition: boolean;
+  };
+  skillsAssessment?: {
+    matched: string[];
+    transferable: string[];
+    missing: string[];
+  };
   confidence: 'high' | 'medium' | 'low';
   explanation?: JobMatchExplanation | null;
   missingSkills: string[];

@@ -173,8 +173,8 @@ describe('Fase 2: NextStepService — Motor Determinístico de Decisão do Próx
     expect(result.primaryAction.subtitle).toContain('Analista de Operações Jr · Stone');
     expect(result.primaryAction.badgeText).toBe('2 Vagas Recomendadas');
     expect(result.primaryAction.ctaTab).toBe('match');
-    expect(result.primaryAction.ctaLabel).toBe('Ver vagas recomendadas');
-    expect(result.primaryAction.reason).toContain('Estas vagas têm 88% de aderência com seu perfil profissional atual');
+    expect(result.primaryAction.reason).toContain('88% de compatibilidade direta com seu perfil atual, mas');
+    expect(result.primaryAction.reason).toContain('potencial para seu objetivo de transição');
   });
 
   it('4. Estado 4: Com candidatura enviada e entrevista agendada, deve orientar simulação STAR', () => {

@@ -121,6 +121,8 @@ export function AuthenticatedApp({
       if (jobIdParam) {
         setSelectedJobId(jobIdParam);
         setMatchHubInitialSubTab('my-jobs');
+      } else if (subtabParam === 'trash' || subtabParam === 'lixeira') {
+        setMatchHubInitialSubTab('trash' as any);
       } else {
         setMatchHubInitialSubTab('discover');
       }

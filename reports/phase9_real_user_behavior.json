@@ -1,0 +1,25 @@
+{
+  "audit_name": "VoCentro Phase 9 Real Production User Behavior & Growth Analysis",
+  "project": "CareerMatchAI (VoCentro)",
+  "timestamp": "2026-08-19T14:55:00.000Z",
+  "principle": "REAL USER BEHAVIOR > REAL PRODUCTION DATA > EVENT TELEMETRY > STATIC CODE",
+  "metrics_summary": {
+    "data_state": "LIVE_DATABASE_AUTHENTICATED",
+    "counting_unit": "COUNT(DISTINCT user_id)",
+    "internal_filter_applied": "AdminAuditService.isTestOrInternalAccount",
+    "status": "OPERATIONAL"
+  },
+  "user_funnel_stages": {
+    "1_visitors": { "type": "anonymous_traffic", "status": "UNMEASURED_WITHOUT_RUM" },
+    "2_signup": { "type": "profiles_created", "status": "MEASURED" },
+    "3_onboarding_completed": { "type": "profile_target_role_set", "status": "MEASURED" },
+    "4_cv_uploaded": { "type": "resumes_persisted", "status": "MEASURED" },
+    "5_first_match_calculated": { "type": "matches_calculated", "status": "MEASURED" },
+    "6_match_viewed": { "type": "job_match_viewed_events", "status": "MEASURED" },
+    "7_job_saved": { "type": "applications_created_stage_saved", "status": "MEASURED" },
+    "8_job_applied": { "type": "applications_stage_applied", "status": "MEASURED" },
+    "9_paywall_viewed": { "type": "paywall_viewed_events", "status": "MEASURED" },
+    "10_checkout_started": { "type": "checkout_started_events", "status": "MEASURED" },
+    "11_payment_confirmed": { "type": "billing_transactions_succeeded", "status": "MEASURED" }
+  }
+}

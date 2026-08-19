@@ -1,0 +1,58 @@
+{
+  "audit_version": "1.0.0",
+  "phase": "Fase 3 - Match, Analytics & Integrity",
+  "timestamp": "2026-08-19T01:13:00Z",
+  "match_inventory": [
+    {
+      "element": "Official Career Fit Score",
+      "file": "src/domain/services/CareerMatchEngineV3.ts",
+      "function": "CareerMatchEngineV3.calculate",
+      "source": "Deterministic algorithmic engine",
+      "formula": "sum(dimension_scores * weights) [frozen]",
+      "classification": "A - Score oficial",
+      "consumers": [
+        "UnifiedMatchService.ts",
+        "ProductJobRankingService.ts",
+        "matchingEngine.ts",
+        "HumanizedMatchCard.tsx",
+        "JobMatchHub.tsx"
+      ]
+    },
+    {
+      "element": "Official Career Goal Score",
+      "file": "src/domain/services/CareerMatchEngineV3.ts",
+      "function": "CareerMatchEngineV3.calculate",
+      "source": "Deterministic algorithmic engine (Goal alignment)",
+      "formula": "Goal requirements & trajectory multiplier (null if no goal set)",
+      "classification": "C - Score complementar explícito",
+      "consumers": [
+        "HumanizedMatchCard.tsx",
+        "ProductJobRankingService.ts",
+        "UnifiedMatchService.ts"
+      ]
+    },
+    {
+      "element": "Ranking Internal Score",
+      "file": "src/domain/services/ProductJobRankingService.ts",
+      "function": "ProductJobRankingService.rankJobs",
+      "source": "Strategic sort helper",
+      "formula": "FitScore or GoalScore weighted by transition intent (never shown as match percentage)",
+      "classification": "B - Score interno",
+      "consumers": [
+        "ProductJobRankingService.ts"
+      ]
+    },
+    {
+      "element": "Single Source of Truth Match Score Builder",
+      "file": "src/domain/services/UnifiedMatchService.ts",
+      "function": "buildJobMatchScore",
+      "source": "UnifiedMatchService",
+      "formula": "effectiveScore = match.careerFitScore ?? totalScore",
+      "classification": "A - Score oficial",
+      "consumers": [
+        "JobMatchHub.tsx",
+        "HumanizedMatchCard.tsx"
+      ]
+    }
+  ]
+}

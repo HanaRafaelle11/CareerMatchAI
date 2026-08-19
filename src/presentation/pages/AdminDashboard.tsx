@@ -414,13 +414,13 @@ export function AdminDashboard({ userId }: AdminDashboardProps) {
     queryFn: async () => {
       if (!isSupabaseConfigured || !supabase) {
         return {
-          users_count: 142,
-          resumes_count: 230,
-          jobs_count: 85,
-          matches_count: 946,
-          avg_processing_time: 2.45,
-          total_tokens: 0, // será sobrescrito por parsingStats query
-          success_rate: 0  // será sobrescrito por parsingStats query
+          users_count: 0,
+          resumes_count: 0,
+          jobs_count: 0,
+          matches_count: 0,
+          avg_processing_time: 0,
+          total_tokens: 0,
+          success_rate: 0
         };
       }
       try {
@@ -430,7 +430,7 @@ export function AdminDashboard({ userId }: AdminDashboardProps) {
         console.warn('[AdminDashboard] RPC get_admin_dashboard_overview indisponível, usando contagem direta:', e);
       }
 
-      // FALLBACK DIRETO VIA CONTAGEM DE TABELAS OU VALORES DA PLATAFORMA (APLICANDO FILTRO DE CONTAS DE TESTE)
+      // CONTAGEM DIRETA DE TABELAS (APLICANDO FILTRO DE CONTAS DE TESTE) - ZERO VALORES MOCKADOS
       const [uRes, rRes, jRes, mRes] = await Promise.all([
         supabase.from('profiles').select('id', { count: 'exact', head: true }).neq('is_test_account', true),
         supabase.from('resumes').select('id', { count: 'exact', head: true }),
@@ -444,13 +444,13 @@ export function AdminDashboard({ userId }: AdminDashboardProps) {
       const mCount = mRes.count || 0;
 
       return {
-        users_count: uCount > 0 ? uCount : 142,
-        resumes_count: rCount > 0 ? rCount : 230,
-        jobs_count: jCount > 0 ? jCount : 85,
-        matches_count: mCount > 0 ? mCount : 946,
-        avg_processing_time: 2.45,
-        total_tokens: 0, // será sobrescrito por parsingStats query
-        success_rate: 0  // será sobrescrito por parsingStats query
+        users_count: uCount,
+        resumes_count: rCount,
+        jobs_count: jCount,
+        matches_count: mCount,
+        avg_processing_time: 0,
+        total_tokens: 0,
+        success_rate: 0
       };
     },
     enabled: true

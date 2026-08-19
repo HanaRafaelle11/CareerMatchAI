@@ -996,8 +996,10 @@ ${candidateName}`,
       v3Result = CareerMatchEngineV3.calculate(job as Job, resume, consolidatedProfile, careerGoal);
     } catch (_) {}
 
+    const officialFitScore = v3Result?.careerFitScore ?? scoreOverall;
+
     return {
-      scoreOverall,
+      scoreOverall: officialFitScore,
       scoreTechnical,
       scoreBehavioral,
       scoreSeniority,
@@ -1006,7 +1008,7 @@ ${candidateName}`,
       missingSkills,
       matchedSkills,
       yearsOfExperience,
-      careerFitScore: v3Result?.careerFitScore ?? scoreOverall,
+      careerFitScore: officialFitScore,
       careerGoalScore: v3Result?.careerGoalScore ?? null,
       dimensions: v3Result?.dimensions,
       transition: v3Result?.transition,

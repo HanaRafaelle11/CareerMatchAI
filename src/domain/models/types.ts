@@ -139,6 +139,8 @@ export interface Match {
   companyName: string;
   companyLogo?: string;
   scoreOverall: number;
+  careerFitScore?: number;
+  careerGoalScore?: number | null;
   scoreTechnical: number;
   scoreBehavioral: number;
   scoreSeniority: number;

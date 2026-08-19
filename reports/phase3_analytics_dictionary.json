@@ -1,0 +1,46 @@
+{
+  "analytics_dictionary": {
+    "DAU": {
+      "name": "Daily Active Users",
+      "definition": "Usuários únicos autenticados que realizaram ao menos 1 evento no período de 24 horas.",
+      "formula": "count(distinct user_id where timestamp >= now - 24h)"
+    },
+    "WAU": {
+      "name": "Weekly Active Users",
+      "definition": "Usuários únicos autenticados que realizaram ao menos 1 evento nos últimos 7 dias.",
+      "formula": "count(distinct user_id where timestamp >= now - 7d)",
+      "invariant": "WAU >= DAU"
+    },
+    "MAU": {
+      "name": "Monthly Active Users",
+      "definition": "Usuários únicos autenticados que realizaram ao menos 1 evento nos últimos 30 dias.",
+      "formula": "count(distinct user_id where timestamp >= now - 30d)",
+      "invariant": "MAU >= WAU"
+    },
+    "Stickiness": {
+      "name": "Taxa de Retenção e Frequência",
+      "definition": "Proporção de engajamento diário em relação à base mensal.",
+      "formula": "(DAU / MAU) * 100"
+    },
+    "UploadRate": {
+      "name": "Taxa de Upload de Currículo",
+      "definition": "Proporção de cadastrados que enviaram currículo.",
+      "formula": "(uploaded_resumes / total_registered_users) * 100"
+    },
+    "MatchViewRate": {
+      "name": "Taxa de Visualização de Match",
+      "definition": "Proporção de usuários com currículo que visualizaram ao menos 1 diagnóstico de vaga.",
+      "formula": "(users_viewed_match / users_with_resume) * 100"
+    },
+    "ApplyRate": {
+      "name": "Taxa de Candidatura",
+      "definition": "Proporção de vagas analisadas que avançaram para candidatura ou foram salvas.",
+      "formula": "(applications_created / matches_viewed) * 100"
+    },
+    "ProConversionRate": {
+      "name": "Taxa de Conversão Free -> Pro",
+      "definition": "Proporção de usuários cadastrados com assinatura PRO ativa.",
+      "formula": "(pro_users / total_registered_users) * 100"
+    }
+  }
+}

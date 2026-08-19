@@ -40,7 +40,8 @@ export function buildJobMatchScore(
   explanation?: JobMatchExplanation | null,
   match?: Match | null
 ): JobMatchScore {
-  const total = Math.max(0, Math.min(100, Math.round(totalScore)));
+  const effectiveScore = match?.careerFitScore ?? (explanation as any)?.careerFitScore ?? totalScore;
+  const total = Math.max(0, Math.min(100, Math.round(effectiveScore)));
   const skills = explanation?.breakdown?.skillsScore ?? match?.scoreTechnical ?? (total > 0 ? total : 0);
   const experience = explanation?.breakdown?.experienceScore ?? match?.scoreBehavioral ?? (total > 0 ? total : 0);
   const seniority = explanation?.breakdown?.seniorityScore ?? match?.scoreSeniority ?? (total > 0 ? total : 0);

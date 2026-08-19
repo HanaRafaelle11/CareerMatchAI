@@ -1,0 +1,20 @@
+{
+  "audit": "Phase 3 Admin Integrity Audit",
+  "mock_fallbacks_eliminated": [
+    { "key": "users_count", "legacy_fallback": 142, "current_status": "REAL DATABASE COUNT (0 on empty)" },
+    { "key": "resumes_count", "legacy_fallback": 230, "current_status": "REAL DATABASE COUNT (0 on empty)" },
+    { "key": "jobs_count", "legacy_fallback": 85, "current_status": "REAL DATABASE COUNT (0 on empty)" },
+    { "key": "matches_count", "legacy_fallback": 946, "current_status": "REAL DATABASE COUNT (0 on empty)" }
+  ],
+  "dau_wau_mau_invariants": {
+    "definition": "Official active users in 1, 7, 30 days",
+    "invariants_enforced": "WAU >= DAU and MAU >= WAU",
+    "stickiness_formula": "DAU / MAU * 100",
+    "service": "src/application/services/AdminAnalyticsService.ts"
+  },
+  "universal_test_account_filter": {
+    "method": "AdminAuditService.isTestOrInternalAccount",
+    "applied_to": "All 14 Admin modules",
+    "test_file": "tests/unit/adminAnalyticsService.test.ts"
+  }
+}

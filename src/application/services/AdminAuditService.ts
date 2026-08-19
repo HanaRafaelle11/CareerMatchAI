@@ -83,4 +83,24 @@ export class AdminAuditService {
       return [];
     }
   }
+
+  /**
+   * Filtro Universal de Contas Internas / Teste (Item 9)
+   */
+  static isTestOrInternalAccount(user: { email?: string | null; is_test_account?: boolean | null } | null | undefined): boolean {
+    if (!user) return false;
+    if (user.is_test_account === true) return true;
+    const email = (user.email || '').toLowerCase().trim();
+    if (!email) return false;
+    return (
+      email.includes('teste') ||
+      email.includes('test') ||
+      email.includes('admin@') ||
+      email.endsWith('@vocentro.com.br') ||
+      email.includes('qa') ||
+      email.includes('exemplo') ||
+      email.includes('demo')
+    );
+  }
 }
+

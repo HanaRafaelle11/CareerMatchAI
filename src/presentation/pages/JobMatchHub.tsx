@@ -1700,7 +1700,7 @@ export function JobMatchHub({
   // ── UNIFIED MATCH SCORE (SINGLE SOURCE OF TRUTH FOR SELECTED JOB) ──
   const currentSelectedMatch = selectedJob ? matches.find(m => m.jobId === selectedJob.id) : null;
   const currentJobMatchScore: JobMatchScore = buildJobMatchScore(
-    currentSelectedMatch?.scoreOverall ?? explanation?.careerFitScore ?? (selectedJob?.scores as any)?.overall ?? 0,
+    currentSelectedMatch?.careerFitScore ?? currentSelectedMatch?.scoreOverall ?? explanation?.careerFitScore ?? (selectedJob?.scores as any)?.careerFitScore ?? (selectedJob?.scores as any)?.overall ?? 0,
     explanation,
     currentSelectedMatch
   );

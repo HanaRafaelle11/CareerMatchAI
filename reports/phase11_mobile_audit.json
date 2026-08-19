@@ -1,0 +1,164 @@
+{
+  "mobile_audit_version": "Phase 11 Real User Audit",
+  "generated_at": "2026-08-18T22:50:00Z",
+  "viewports_tested": [
+    { "name": "Small Mobile", "width": 360, "height": 740, "device_examples": ["Galaxy S8/S9", "Pixel 4a", "Moto G"] },
+    { "name": "Standard Mobile", "width": 390, "height": 844, "device_examples": ["iPhone 12/13/14/15"] },
+    { "name": "Large Mobile", "width": 430, "height": 932, "device_examples": ["iPhone 14/15 Pro Max", "Galaxy S23/S24 Ultra"] }
+  ],
+  "screens_audited": [
+    {
+      "screen_name": "Landing Page",
+      "viewport_360px": {
+        "status": "Warning",
+        "overflow_x": false,
+        "touch_targets_ok": true,
+        "issues": [
+          "Links do cabeçalho somem em telas < 1024px sem menu hamburger alternativo.",
+          "O card de preços pro e semanal ocupa 100% da altura da tela exigindo scroll longo."
+        ]
+      },
+      "viewport_390px": {
+        "status": "Warning",
+        "overflow_x": false,
+        "touch_targets_ok": true,
+        "issues": [
+          "Falta menu hamburger para navegação rápida a seções inferiores."
+        ]
+      },
+      "viewport_430px": {
+        "status": "Good",
+        "overflow_x": false,
+        "touch_targets_ok": true,
+        "issues": []
+      },
+      "recommendations": "Implementar gaveta/menu hamburger no topo da Landing Page para acesso a Planos, Funcionalidades e FAQ."
+    },
+    {
+      "screen_name": "Login / Cadastro",
+      "viewport_360px": {
+        "status": "Good",
+        "overflow_x": false,
+        "touch_targets_ok": true,
+        "issues": [
+          "Card centralizado com largura fluida (w-full sm:w-[440px]), touch targets dos botões > 44px."
+        ]
+      },
+      "viewport_390px": { "status": "Good", "overflow_x": false, "touch_targets_ok": true, "issues": [] },
+      "viewport_430px": { "status": "Good", "overflow_x": false, "touch_targets_ok": true, "issues": [] },
+      "recommendations": "Manter como está; excelente adaptação mobile com auto-focus e layout limpo."
+    },
+    {
+      "screen_name": "Onboarding Modal",
+      "viewport_360px": {
+        "status": "Warning",
+        "overflow_x": false,
+        "touch_targets_ok": true,
+        "issues": [
+          "Em telas menores de 360px com altura limitada (< 650px), o modal pode exigir scroll interno para alcançar o botão 'Próximo'."
+        ]
+      },
+      "viewport_390px": { "status": "Good", "overflow_x": false, "touch_targets_ok": true, "issues": [] },
+      "viewport_430px": { "status": "Good", "overflow_x": false, "touch_targets_ok": true, "issues": [] },
+      "recommendations": "Garantir max-h-[90vh] com overflow-y-auto e rodapé de botões fixo na base do modal."
+    },
+    {
+      "screen_name": "Dashboard",
+      "viewport_360px": {
+        "status": "Good",
+        "overflow_x": false,
+        "touch_targets_ok": true,
+        "issues": [
+          "NextStepCard ocupa 100% da largura com botão visível acima da dobra.",
+          "StatCards empilham em 2 colunas de forma fluida.",
+          "Heatmap de atividades tem container horizontal scrollável sem quebrar o container principal."
+        ]
+      },
+      "viewport_390px": { "status": "Good", "overflow_x": false, "touch_targets_ok": true, "issues": [] },
+      "viewport_430px": { "status": "Good", "overflow_x": false, "touch_targets_ok": true, "issues": [] },
+      "recommendations": "Excelente hierarquia mobile. Bottom navigation bar nativa facilita alternância de abas."
+    },
+    {
+      "screen_name": "Perfil & Upload",
+      "viewport_360px": {
+        "status": "Good",
+        "overflow_x": false,
+        "touch_targets_ok": true,
+        "issues": [
+          "Dropzone de upload ocupa a largura total permitindo toque fácil para selecionar arquivo do celular.",
+          "As abas de visualização ('Currículo Original', 'Perfil', 'Como IA Concluiu') têm overflow-x-auto suave."
+        ]
+      },
+      "viewport_390px": { "status": "Good", "overflow_x": false, "touch_targets_ok": true, "issues": [] },
+      "viewport_430px": { "status": "Good", "overflow_x": false, "touch_targets_ok": true, "issues": [] },
+      "recommendations": "Manter os botões de ação e tabs com padding confortável para toque."
+    },
+    {
+      "screen_name": "Objetivo Profissional (CareerGoalCard)",
+      "viewport_360px": {
+        "status": "Good",
+        "overflow_x": false,
+        "touch_targets_ok": true,
+        "issues": [
+          "Os 4 cards de modo ('Continuidade', 'Crescimento', 'Transição', 'Exploração') empilham em 1 coluna vertical perfeitamente."
+        ]
+      },
+      "viewport_390px": { "status": "Good", "overflow_x": false, "touch_targets_ok": true, "issues": [] },
+      "viewport_430px": { "status": "Good", "overflow_x": false, "touch_targets_ok": true, "issues": [] },
+      "recommendations": "Excelente usabilidade de toque com feedback de seleção em roxo/marca."
+    },
+    {
+      "screen_name": "Vagas & Match (JobMatchHub + HumanizedMatchCard)",
+      "viewport_360px": {
+        "status": "Good",
+        "overflow_x": false,
+        "touch_targets_ok": true,
+        "issues": [
+          "Duplo score empilha verticalmente no mobile sem sobreposição.",
+          "Botão 'Candidatar-se Agora' / 'Ajustar Currículo' expande para w-full facilitando o clique com polegar.",
+          "Filtros de busca ficam recolhidos em gaveta/accordion."
+        ]
+      },
+      "viewport_390px": { "status": "Good", "overflow_x": false, "touch_targets_ok": true, "issues": [] },
+      "viewport_430px": { "status": "Good", "overflow_x": false, "touch_targets_ok": true, "issues": [] },
+      "recommendations": "Adicionar indicador fixo de vagas encontradas quando o usuário rola o feed no celular."
+    },
+    {
+      "screen_name": "Minhas Candidaturas (StrategyPage / Kanban)",
+      "viewport_360px": {
+        "status": "Warning",
+        "overflow_x": true,
+        "touch_targets_ok": true,
+        "issues": [
+          "Kanban com 7 colunas requer rolagem horizontal intensa no celular.",
+          "Arrastar cards com drag-and-drop no toque é difícil em telas pequenas."
+        ]
+      },
+      "viewport_390px": {
+        "status": "Warning",
+        "overflow_x": true,
+        "touch_targets_ok": true,
+        "issues": [
+          "Visão em lista ou tabs por etapa funciona muito melhor no mobile do que colunas horizontais."
+        ]
+      },
+      "viewport_430px": { "status": "Warning", "overflow_x": true, "touch_targets_ok": true, "issues": [] },
+      "recommendations": "Criar seletor por abas ou visualização em lista/accordion para mobile no pipeline de candidaturas, permitindo mudar status por dropdown além do drag-and-drop."
+    },
+    {
+      "screen_name": "Simulador de Entrevistas (CoachDashboard)",
+      "viewport_360px": {
+        "status": "Good",
+        "overflow_x": false,
+        "touch_targets_ok": true,
+        "issues": [
+          "Interface de chat interativa com teclado mobile que não esconde a caixa de digitação.",
+          "Botão de envio e gravação com touch target espaçoso."
+        ]
+      },
+      "viewport_390px": { "status": "Good", "overflow_x": false, "touch_targets_ok": true, "issues": [] },
+      "viewport_430px": { "status": "Good", "overflow_x": false, "touch_targets_ok": true, "issues": [] },
+      "recommendations": "Manter o scroll automático para a última mensagem ao digitar no celular."
+    }
+  ]
+}

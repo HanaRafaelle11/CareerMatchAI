@@ -1,0 +1,55 @@
+{
+  "dictionary_version": "Phase 11 Real User Audit",
+  "generated_at": "2026-08-18T22:50:00Z",
+  "purpose": "Padronizar o vocabulário do VoCentro para eliminar ambiguidades, jargões técnicos e inconsistências entre telas.",
+  "terms": [
+    {
+      "current_term": "VoCentro / Copiloto IA / IA",
+      "recommended_term": "VoCentro (Marca/Plataforma) | Copiloto de Carreira (Guia/Assistente)",
+      "context_usage": "Sempre que se referir ao sistema geral, usar 'VoCentro'. Quando se referir às sugestões contextuais inteligentes de próximo passo, usar 'Copiloto de Carreira' ou 'Copiloto'. Evitar usar 'IA' isolada como sujeito.",
+      "rationale": "Cria identidade de marca sólida e humanizada sem parecer um bot genérico."
+    },
+    {
+      "current_term": "Career Score",
+      "recommended_term": "Diagnóstico de Carreira (ou Índice de Competitividade)",
+      "context_usage": "No Dashboard e Perfil, substituir 'Career Score' por 'Diagnóstico de Carreira'. Manter o número de 0 a 100 acompanhado do rótulo explicativo.",
+      "rationale": "Evita anglicismo desnecessário e comunica claramente que se trata de uma avaliação diagnóstica do currículo, não de uma nota de prova."
+    },
+    {
+      "current_term": "Match / Match Semântico",
+      "recommended_term": "Compatibilidade com a Vaga (ou Afinidade)",
+      "context_usage": "Nos cards de vaga e listagens, usar 'Compatibilidade com a Vaga' (ex: '88% de compatibilidade'). Na aba principal, manter 'Vagas & Match' pela brevidade, mas na explicação detalhada usar 'Compatibilidade'.",
+      "rationale": "'Compatibilidade' é compreendido universalmente por qualquer candidato, enquanto 'Match Semântico' soa como algoritmo de engenharia."
+    },
+    {
+      "current_term": "Duplo Score (Fit Atual vs Potencial de Objetivo)",
+      "recommended_term": "Compatibilidade Atual (Hoje) vs Potencial de Transição/Objetivo (Alvo)",
+      "context_usage": "No HumanizedMatchCard, usar os rótulos: 'Compatibilidade Atual: XX% (com seu histórico hoje)' e 'Potencial para Objetivo: YY% (valorizando competências transferíveis)'.",
+      "rationale": "Elimina a confusão de 'por que há dois números diferentes' e valoriza a inteligência de transição do produto."
+    },
+    {
+      "current_term": "Pipeline / Pipeline Kanban",
+      "recommended_term": "Minhas Candidaturas (Painel de Acompanhamento)",
+      "context_usage": "Na navegação, cabeçalhos e botões, usar 'Minhas Candidaturas' ou 'Acompanhar Candidatura'. O termo 'Pipeline' pode ser mantido apenas como subtítulo explicativo secundário.",
+      "rationale": "'Pipeline' é termo corporativo de vendas/CRM. O candidato quer acompanhar seus processos seletivos e entrevistas."
+    },
+    {
+      "current_term": "Simulador STAR / Coach IA",
+      "recommended_term": "Simulador de Entrevistas (Treino com IA)",
+      "context_usage": "Na navegação e botões, usar 'Simulador de Entrevistas'. No relatório pós-treino, explicar o método: 'Método STAR (Situação, Tarefa, Ação e Resultado)'.",
+      "rationale": "O usuário leigo não sabe o que é 'STAR' antes de usar; 'Simulador de Entrevistas' descreve o benefício imediatamente."
+    },
+    {
+      "current_term": "Versão V3 / Match IA v2.4",
+      "recommended_term": "Remover qualquer número de versão da interface de usuário",
+      "context_usage": "Nunca expor 'V3', 'v2.4', 'engine_version' ou tags de release para o usuário final.",
+      "rationale": "Versionamento técnico é ruído interno de engenharia e transmite impressão de software incompleto ou em testes."
+    },
+    {
+      "current_term": "Preenchimento do Perfil / Completude",
+      "recommended_term": "Nível de Informações do Perfil (% Completo)",
+      "context_usage": "Nos anéis de progresso, explicar que 100% significa ter adicionado Currículo, LinkedIn, Experiências e Competências para que o cálculo de compatibilidade seja mais preciso.",
+      "rationale": "Esclarece que a completude é cadastral e não interfere na competência do profissional."
+    }
+  ]
+}

@@ -1,0 +1,123 @@
+{
+  "abandonment_map_version": "Phase 11 Real User Audit",
+  "generated_at": "2026-08-18T22:50:00Z",
+  "summary": {
+    "total_friction_points": 10,
+    "p0_count": 2,
+    "p1_count": 4,
+    "p2_count": 3,
+    "p3_count": 1
+  },
+  "abandonment_points": [
+    {
+      "id": "AB-01",
+      "stage": "Landing Page (Mobile)",
+      "step_number": 2,
+      "reason": "Usuário mobile quer ver Planos ou FAQ antes de se cadastrar, mas não encontra menu hamburger para navegar diretamente.",
+      "gravity": "P1",
+      "probability": "Medium",
+      "affected_personas": ["Rafael (Mobile)", "Mariana (Transição)"],
+      "symptom": "Usuário tenta clicar no cabeçalho ou abandona sem saber o preço/condições.",
+      "proposed_solution": "Adicionar menu hamburger mobile no header da Landing Page com âncoras suaves para #planos, #funcionalidades, #transparencia, #faq."
+    },
+    {
+      "id": "AB-02",
+      "stage": "Landing Page (Social Proof)",
+      "step_number": 2,
+      "reason": "Presença de placeholder 'Depoimentos reais em breve' que transmite imaturidade do produto.",
+      "gravity": "P0",
+      "probability": "High",
+      "affected_personas": ["Mariana", "Patrícia", "Carlos", "Rafael"],
+      "symptom": "Queda imediata de confiança de novos visitantes.",
+      "proposed_solution": "Substituir por métricas concretas do produto (5 dimensões de análise, 100% controle de dados, sem cartão de crédito) ou depoimentos reais coletados."
+    },
+    {
+      "id": "AB-03",
+      "stage": "Onboarding Modal",
+      "step_number": 6,
+      "reason": "Excesso de jargões técnicos ('Match Semântico', 'Pipeline Kanban', 'vagas de tecnologia', 'STAR') assusta usuários não-técnicos ou generalistas.",
+      "gravity": "P1",
+      "probability": "High",
+      "affected_personas": ["Patrícia (Exploração)", "Mariana (Transição)"],
+      "symptom": "Sensação de que a plataforma não foi feita para sua área profissional, levando a fechar a aba.",
+      "proposed_solution": "Humanizar o texto do onboarding: trocar 'Match Semântico' por 'Afinidade com seu perfil', 'Pipeline Kanban' por 'Acompanhamento de candidaturas', remover restrição a tecnologia."
+    },
+    {
+      "id": "AB-04",
+      "stage": "Processamento do Currículo",
+      "step_number": 8,
+      "reason": "Se a análise do currículo demorar mais de 30 segundos sem barra percentual real, o usuário acha que a aplicação travou.",
+      "gravity": "P1",
+      "probability": "Medium",
+      "affected_personas": ["Carlos (Velocidade)", "Rafael (Mobile)"],
+      "symptom": "Reload da página ou abandono durante o spinner.",
+      "proposed_solution": "Implementar timer de progresso visual com micro-mensagens animadas ('Identificando experiências...', 'Extraindo competências...') e timeout com retry elegante."
+    },
+    {
+      "id": "AB-05",
+      "stage": "Definição do Objetivo",
+      "step_number": 10,
+      "reason": "O usuário que quer transição de carreira teme ser penalizado com nota zero caso declare um cargo diferente do seu currículo.",
+      "gravity": "P1",
+      "probability": "High",
+      "affected_personas": ["Mariana (Transição)", "Patrícia (Exploração)"],
+      "symptom": "Usuário não preenche o objetivo ou preenche com seu cargo atual por medo, perdendo o valor do produto.",
+      "proposed_solution": "Adicionar tooltip reconfortante: 'Não se preocupe: a IA avalia suas competências transferíveis e calcula seu potencial de transição sem desvalorizar sua bagagem anterior.'"
+    },
+    {
+      "id": "AB-06",
+      "stage": "Descoberta de Vagas (Aba Inicial)",
+      "step_number": 12,
+      "reason": "Confusão entre a aba 'Minhas Vagas' (vagas salvas/analisadas) e 'Descobrir Vagas' (feed de busca). Se 'Minhas Vagas' abrir vazia, parece que o sistema não encontrou vagas.",
+      "gravity": "P0",
+      "probability": "High",
+      "affected_personas": ["Mariana", "Carlos", "Patrícia", "Rafael"],
+      "symptom": "Usuário cai em tela vazia na primeira vez que clica em 'Vagas & Match' e não entende que precisa ir em 'Descobrir'.",
+      "proposed_solution": "Se o usuário não tiver vagas salvas, abrir por padrão na aba 'Descobrir Vagas' com busca pré-preenchida no seu objetivo ou headline."
+    },
+    {
+      "id": "AB-07",
+      "stage": "Entendimento do Match (Duplo Score)",
+      "step_number": 15,
+      "reason": "Usuário vê dois números diferentes (ex: 52% e 84%) e pode não entender a diferença entre 'Compatibilidade Atual' e 'Potencial de Transição' se a explicação não for clara em 2 segundos.",
+      "gravity": "P2",
+      "probability": "Medium",
+      "affected_personas": ["Mariana", "Patrícia"],
+      "symptom": "Dúvida sobre qual score considerar na hora de se candidatar.",
+      "proposed_solution": "Rótulos visuais com contraste de cores e micro-copy descritiva: '52% - O que você já tem no CV' vs '84% - Onde você pode chegar'."
+    },
+    {
+      "id": "AB-08",
+      "stage": "Candidatura Externa",
+      "step_number": 18,
+      "reason": "Ao clicar em 'Candidatar-se Agora', o usuário é direcionado para a Gupy/LinkedIn e não sabe se a plataforma gravou sua intenção ou se enviou o CV automaticamente.",
+      "gravity": "P2",
+      "probability": "Medium",
+      "affected_personas": ["Carlos", "Patrícia", "Rafael"],
+      "symptom": "Usuário fica na dúvida se precisa voltar ao VoCentro para marcar que se candidatou.",
+      "proposed_solution": "Modal/Toast de transição: 'Abrindo página da empresa em nova aba. Registramos esta vaga nas suas candidaturas!'"
+    },
+    {
+      "id": "AB-09",
+      "stage": "Simulador de Entrevistas (Paywall)",
+      "step_number": 21,
+      "reason": "Usuário clica em 'Simular Entrevista' e se depara com modal de assinatura sem ter experimentado ao menos 1 pergunta gratuita.",
+      "gravity": "P1",
+      "probability": "High",
+      "affected_personas": ["Mariana", "Carlos", "Patrícia"],
+      "symptom": "Rejeição imediata por paywall agressivo antes da demonstração de valor.",
+      "proposed_solution": "Oferecer 1 simulação completa gratuita para todo novo usuário testar o método STAR antes de exigir assinatura Pro."
+    },
+    {
+      "id": "AB-10",
+      "stage": "Rodapé / Footer",
+      "step_number": 2,
+      "reason": "Texto 'Sobre o Vocentro (/about)' expondo rota de desenvolvimento e claim 'WCAG AA Compliant' sem auditoria.",
+      "gravity": "P3",
+      "probability": "Low",
+      "affected_personas": ["Todos"],
+      "symptom": "Sensação de acabamento não profissional.",
+      "proposed_solution": "Remover '/about' e substituir claim não validada por texto de conformidade com boas práticas web."
+    }
+  ]
+}

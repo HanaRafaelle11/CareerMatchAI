@@ -1,0 +1,119 @@
+{
+  "copy_audit_version": "Phase 11 Real User Audit",
+  "generated_at": "2026-08-18T22:50:00Z",
+  "total_copy_issues_identified": 14,
+  "items": [
+    {
+      "id": "COPY-01",
+      "location": "HumanizedMatchCard.tsx (Linha 223)",
+      "current_text": "Diagnóstico de Compatibilidade V3",
+      "category": "Versioning / Internal Term",
+      "issue_description": "O sufixo 'V3' expõe versão de desenvolvimento de software interna, gerando sensação de versão de teste ou jargão técnico inútil para o candidato.",
+      "suggested_text": "Diagnóstico de Compatibilidade"
+    },
+    {
+      "id": "COPY-02",
+      "location": "HeroProductMockup.tsx (Linha 33)",
+      "current_text": "Match IA v2.4",
+      "category": "Versioning / Internal Term",
+      "issue_description": "Exposição de versão semântica de engenharia dentro de mockup promocional na Landing Page.",
+      "suggested_text": "Inteligência de Match"
+    },
+    {
+      "id": "COPY-03",
+      "location": "OnboardingModal.tsx (Linha 35)",
+      "current_text": "Match Semântico (0 a 100%) em segundos",
+      "category": "Technical Jargon",
+      "issue_description": "'Match Semântico' é um conceito de processamento de linguagem natural (NLP). Usuários leigos não entendem e podem achar complexo demais.",
+      "suggested_text": "Afinidade real com a vaga (0 a 100%) em segundos"
+    },
+    {
+      "id": "COPY-04",
+      "location": "OnboardingModal.tsx (Linha 35)",
+      "current_text": "exigências reais de vagas de tecnologia",
+      "category": "Limiting Target Audience",
+      "issue_description": "Restringe a percepção do usuário a vagas de TI/tecnologia, afastando profissionais de vendas, operações, marketing, saúde e RH.",
+      "suggested_text": "exigências reais de vagas do mercado"
+    },
+    {
+      "id": "COPY-05",
+      "location": "OnboardingModal.tsx (Linha 73)",
+      "current_text": "Pipeline Kanban de Carreira 📊",
+      "category": "Technical Jargon",
+      "issue_description": "'Pipeline Kanban' mistura dois termos de gestão ágil que confundem usuários generalistas.",
+      "suggested_text": "Painel de Acompanhamento de Candidaturas 📊"
+    },
+    {
+      "id": "COPY-06",
+      "location": "Dashboard.tsx (Linha 123)",
+      "current_text": "Verifique sua rede para que o Copiloto IA possa atualizar seu Career Score e recomendações de vagas.",
+      "category": "Brand Inconsistency / English",
+      "issue_description": "Mistura 'Copiloto IA' e 'Career Score' em inglês dentro de mensagem de erro de rede em português.",
+      "suggested_text": "Verifique sua conexão para atualizar seu diagnóstico de carreira e recomendações de vagas."
+    },
+    {
+      "id": "COPY-07",
+      "location": "Dashboard.tsx (Linha 305)",
+      "current_text": "Ver pipeline completo →",
+      "category": "Technical Jargon / English",
+      "issue_description": "'Pipeline' é jargão de vendas/recrutamento. O usuário busca entender suas candidaturas.",
+      "suggested_text": "Ver todas as candidaturas →"
+    },
+    {
+      "id": "COPY-08",
+      "location": "LandingPage.tsx (Linha 481)",
+      "current_text": "Depoimentos reais em breve — Estamos coletando depoimentos da nossa comunidade para compartilhar histórias reais de aceleração de carreira.",
+      "category": "Trust Destroyer / Placeholder",
+      "issue_description": "Mensagem que declara publicamente a falta de clientes ou depoimentos, destruindo a autoridade da marca.",
+      "suggested_text": "Destaque dos diferenciais da plataforma (5 dimensões de análise, 100% gratuito para começar, privacidade garantida)"
+    },
+    {
+      "id": "COPY-09",
+      "location": "LandingPage.tsx (Linha 688)",
+      "current_text": "Sobre o Vocentro (/about)",
+      "category": "Dev Leak / Routing Artifact",
+      "issue_description": "A rota técnica '/about' ficou visível no rótulo do link do rodapé.",
+      "suggested_text": "Sobre o Vocentro"
+    },
+    {
+      "id": "COPY-10",
+      "location": "LandingPage.tsx (Linhas 281, 293, 305)",
+      "current_text": "🔒 Uso de Dados do Google / ⚡ Passo a Passo na Plataforma / 🛡️ Segurança & Privacidade",
+      "category": "Visual Redundancy",
+      "issue_description": "Ícones Lucide renderizados ao lado de emojis com o mesmo significado (ex: <Lock /> + 🔒), causando poluição visual.",
+      "suggested_text": "Uso de Dados do Google / Passo a Passo na Plataforma / Segurança & Privacidade (apenas com ícone SVG)"
+    },
+    {
+      "id": "COPY-11",
+      "location": "LandingPage.tsx (Linha 715)",
+      "current_text": "Vocentro OAuth 2.0 Verified • WCAG AA Compliant",
+      "category": "Unvalidated Compliance Claim",
+      "issue_description": "Alegação de conformidade com acessibilidade WCAG AA sem auditoria formal, podendo gerar passivo ou questionamento.",
+      "suggested_text": "Vocentro • Autenticação Segura OAuth 2.0 • Compromisso com Acessibilidade"
+    },
+    {
+      "id": "COPY-12",
+      "location": "CareerScoreDashboardCard.tsx (Linha 106)",
+      "current_text": "Career Score (40 a 95 pts)",
+      "category": "Unexplained Scale / English",
+      "issue_description": "Escala não intuitiva (por que 40 a 95 em vez de 0 a 100?) e uso do termo em inglês sem tradução imediata.",
+      "suggested_text": "Diagnóstico de Competitividade de Mercado (Índice de 0 a 100)"
+    },
+    {
+      "id": "COPY-13",
+      "location": "Profile.tsx (Linha 1113)",
+      "current_text": "Aguardando candidaturas no pipeline",
+      "category": "Technical Jargon",
+      "issue_description": "Uso de 'pipeline' em estatística de versão de currículo.",
+      "suggested_text": "Nenhuma candidatura enviada com esta versão ainda"
+    },
+    {
+      "id": "COPY-14",
+      "location": "CoachDashboard.tsx (Linha 113)",
+      "current_text": "Diagnóstico de Resposta (Método STAR)",
+      "category": "Missing Explanation",
+      "issue_description": "Menciona 'Método STAR' sem explicar em 1 linha o que significa (Situação, Tarefa, Ação, Resultado) para quem nunca fez entrevista estruturada.",
+      "suggested_text": "Diagnóstico de Resposta (Método STAR: Situação, Tarefa, Ação e Resultado)"
+    }
+  ]
+}

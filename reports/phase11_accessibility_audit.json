@@ -1,0 +1,71 @@
+{
+  "accessibility_audit_version": "Phase 11 Real User Audit",
+  "generated_at": "2026-08-18T22:50:00Z",
+  "overall_accessibility_status": "Parcialmente Conforme (Gaps Críticos Identificados)",
+  "compliance_claim_assessment": {
+    "claim_found": "Vocentro OAuth 2.0 Verified • WCAG AA Compliant (LandingPage.tsx linha 715)",
+    "verdict": "CLAIM NÃO VALIDADA FORMALMENTE",
+    "rationale": "Embora o sistema possua excelente contraste no tema escuro/claro e bons atributos semânticos, existem gaps estruturais (falta de skip link, modais sem focus trap em alguns casos, landmarks incompletos) que impedem conformidade estrita WCAG 2.1 AA sem certificação ou remedição prévia."
+  },
+  "audit_categories": [
+    {
+      "category": "Contraste de Cores (WCAG 1.4.3)",
+      "status": "Aprovado",
+      "score": 9.0,
+      "observations": "Relação de contraste entre textos (slate-900 / #F8FAFC) e fundos (bg-card / #121929) excede 7:1 para corpo de texto e 4.5:1 para badges, garantindo ótima legibilidade tanto no tema claro quanto no escuro."
+    },
+    {
+      "category": "Navegação por Teclado e Foco (WCAG 2.1.1, 2.4.7)",
+      "status": "Parcial",
+      "score": 7.5,
+      "observations": "Todos os botões principais utilizam classes focus:ring-2 focus:ring-brand-500. Os modais (Onboarding, Paywall, Hired) possuem suporte a tecla Escape (useEscapeToClose). Falta garantir focus trap cíclico em todos os modais complexos."
+    },
+    {
+      "category": "Skip to Content Link (WCAG 2.4.1)",
+      "status": "Reprovado",
+      "score": 4.0,
+      "observations": "Nenhuma das páginas (Landing Page, Dashboard, Perfil) implementa link oculto 'Pular para o conteúdo principal' (<a href='#main-content' className='sr-only focus:not-sr-only'>) para usuários de leitor de tela."
+    },
+    {
+      "category": "Hierarquia de Cabeçalhos e Landmarks (WCAG 1.3.1, 2.4.6)",
+      "status": "Aprovado",
+      "score": 8.5,
+      "observations": "Uso correto de tags semânticas <header>, <nav aria-label='Navegação Principal'>, <main id='main-content'>, <aside>, <section aria-label='...'> e <footer>. Hierarquia h1 -> h2 -> h3 respeitada na maioria das telas."
+    },
+    {
+      "category": "Rótulos e Mensagens de Erro (WCAG 3.3.1, 3.3.2)",
+      "status": "Aprovado",
+      "score": 8.5,
+      "observations": "Formulários de Login e Cadastro utilizam React Hook Form + Zod com mensagens de erro associadas aos inputs. Estados de erro usam role='alert' e aria-live='polite'."
+    },
+    {
+      "category": "Tamanho de Touch Targets (WCAG 2.5.5 / 2.5.8)",
+      "status": "Aprovado",
+      "score": 9.0,
+      "observations": "Botões de ação primária, abas de navegação e controles interativos possuem dimensões mínimas superiores a 44x44px no mobile, evitando toques acidentais."
+    },
+    {
+      "category": "Texto Alternativo e Elementos Decorativos (WCAG 1.1.1)",
+      "status": "Aprovado",
+      "score": 8.0,
+      "observations": "Ícones decorativos (Lucide) funcionam como adereço visual complementar sem bloquear a leitura por leitores de tela. Botões que contêm apenas ícones possuem aria-label descritivo."
+    }
+  ],
+  "remediation_actions": [
+    {
+      "priority": "P1",
+      "action": "Adicionar skip link global 'Pular para o conteúdo' no topo do layout.",
+      "estimated_effort": "Trivial (15 min)"
+    },
+    {
+      "priority": "P1",
+      "action": "Remover ou suavizar a claim 'WCAG AA Compliant' no rodapé até que a bateria de testes automatizados com axe-core seja executada no CI.",
+      "estimated_effort": "Trivial (5 min)"
+    },
+    {
+      "priority": "P2",
+      "action": "Auditar foco inicial automático ao abrir modais de confirmação.",
+      "estimated_effort": "Baixo (1h)"
+    }
+  ]
+}

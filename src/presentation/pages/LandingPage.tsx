@@ -279,7 +279,7 @@ export function LandingPage({ onNavigateToAuth }: LandingPageProps) {
                 }`}
               >
                 <Lock size={15} />
-                <span>🔒 Uso de Dados do Google</span>
+                <span>Uso de Dados do Google</span>
               </button>
 
               <button
@@ -291,7 +291,7 @@ export function LandingPage({ onNavigateToAuth }: LandingPageProps) {
                 }`}
               >
                 <Zap size={15} />
-                <span>⚡ Passo a Passo na Plataforma</span>
+                <span>Passo a Passo na Plataforma</span>
               </button>
 
               <button
@@ -303,7 +303,7 @@ export function LandingPage({ onNavigateToAuth }: LandingPageProps) {
                 }`}
               >
                 <ShieldCheck size={15} />
-                <span>🛡️ Segurança & Privacidade</span>
+                <span>Segurança & Privacidade</span>
               </button>
             </div>
 
@@ -476,13 +476,17 @@ export function LandingPage({ onNavigateToAuth }: LandingPageProps) {
             </div>
           </div>
 
-          <div className="p-4 rounded-xl bg-card border border-border text-center max-w-2xl mx-auto">
-            <span className="px-2.5 py-0.5 rounded-full bg-brand-500/10 text-brand-500 font-mono font-bold text-[10px] uppercase">
-              Depoimentos reais em breve
-            </span>
-            <p className="text-xs text-muted-foreground mt-1">
-              Estamos coletando depoimentos da nossa comunidade para compartilhar histórias reais de aceleração de carreira.
-            </p>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 max-w-3xl mx-auto">
+            {[
+              { stat: 'Gratuito', desc: 'Para começar — sem cartão de crédito' },
+              { stat: '5 dimensões', desc: 'Análise completa de compatibilidade' },
+              { stat: '100%', desc: 'Seus dados sob seu controle' }
+            ].map((item, idx) => (
+              <div key={idx} className="p-4 rounded-2xl bg-card border border-border text-center space-y-1">
+                <span className="text-xl font-black text-foreground">{item.stat}</span>
+                <p className="text-xs text-muted-foreground">{item.desc}</p>
+              </div>
+            ))}
           </div>
         </section>
 
@@ -685,7 +689,7 @@ export function LandingPage({ onNavigateToAuth }: LandingPageProps) {
                   onClick={() => navigateToRoute('/about')}
                   className="inline-block py-1 hover:text-foreground transition-colors cursor-pointer"
                 >
-                  Sobre o Vocentro (/about)
+                  Sobre o Vocentro
                 </button>
               </li>
               <li>

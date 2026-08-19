@@ -1,0 +1,29 @@
+{
+  "volume_audit_name": "VoCentro Phase 7.1 Real Event Volume & Sizing Audit",
+  "project": "CareerMatchAI (VoCentro)",
+  "timestamp": "2026-08-19T14:15:00.000Z",
+  "volume_assessment": {
+    "status": "LIVE_DATABASE_INTEGRATED",
+    "windows": {
+      "rolling_24h": {
+        "description": "Eventos de atividade de usuários únicos em 24h consecutivas",
+        "sample_metric": "DAU"
+      },
+      "rolling_7d": {
+        "description": "Eventos de atividade de usuários únicos em 7d consecutivos",
+        "sample_metric": "WAU"
+      },
+      "rolling_30d": {
+        "description": "Eventos de atividade de usuários únicos em 30d consecutivos",
+        "sample_metric": "MAU"
+      }
+    },
+    "zero_vs_unmeasured_policy": {
+      "ZERO": "Tabela consultada com sucesso via Supabase e resultado count === 0 legítimo (sem registros no período).",
+      "UNMEASURED": "Não há tabela ou instrumentação de banco para registrar o valor.",
+      "ERROR": "Supabase retornou status HTTP de erro ou exceção RLS/Network.",
+      "STALE": "Timestamp do último registro no banco ultrapassa a janela de tolerância.",
+      "INSUFFICIENT_SAMPLE": "Menos de 5 amostras estatísticas registradas (amostra insuficiente para percentis estáveis)."
+    }
+  }
+}

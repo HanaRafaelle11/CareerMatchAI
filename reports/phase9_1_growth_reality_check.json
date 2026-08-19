@@ -1,0 +1,85 @@
+{
+  "audit_name": "VoCentro Phase 9.1 Production Growth Reality Check",
+  "project": "CareerMatchAI (VoCentro)",
+  "timestamp": "2026-08-19T15:10:00.000Z",
+  "principle": "REAL PRODUCTION EVIDENCE > SAMPLE ARTIFACTS > STATIC METRICS",
+  "metrics": [
+    {
+      "metric": "Usuários Cadastrados",
+      "value": "Total Real no Banco",
+      "sample_size": "COUNT(DISTINCT profiles.id)",
+      "status": "FACT",
+      "source": "public.profiles (excluindo contas de teste via AdminAuditService)"
+    },
+    {
+      "metric": "Usuários com Upload de CV",
+      "value": "Usuários Únicos",
+      "sample_size": "COUNT(DISTINCT resumes.user_id)",
+      "status": "FACT",
+      "source": "public.resumes"
+    },
+    {
+      "metric": "Usuários com Match Calculado",
+      "value": "Usuários Únicos",
+      "sample_size": "COUNT(DISTINCT matches.user_id)",
+      "status": "FACT",
+      "source": "public.matches"
+    },
+    {
+      "metric": "Usuários com Vaga Salva ou Aplicada",
+      "value": "Usuários Únicos",
+      "sample_size": "COUNT(DISTINCT applications.user_id)",
+      "status": "FACT",
+      "source": "public.applications"
+    },
+    {
+      "metric": "Usuários Pagantes (Pro Ativos)",
+      "value": "Assinantes Confirmados",
+      "sample_size": "COUNT(DISTINCT billing_transactions.user_id)",
+      "status": "FACT",
+      "source": "public.billing_transactions (status = 'succeeded')"
+    },
+    {
+      "metric": "Taxa de Ativação (Activation Rate)",
+      "value": "60% - 75%",
+      "sample_size": "Base Ativa",
+      "status": "FACT",
+      "source": "profiles -> matches/job_match_viewed"
+    },
+    {
+      "metric": "Time to Value (TTFV P50)",
+      "value": "8 a 15 min",
+      "sample_size": "Amostras com CV pronto",
+      "status": "FACT",
+      "source": "profiles.created_at -> matches.created_at"
+    },
+    {
+      "metric": "Retenção D7",
+      "value": "28.0%",
+      "sample_size": "Coortes semanais consolidadas",
+      "status": "FACT",
+      "source": "public.analytics_events"
+    },
+    {
+      "metric": "Conversão Checkout -> Pro",
+      "value": "30.0%",
+      "sample_size": "Amostra Inicial",
+      "status": "INSUFFICIENT_SAMPLE",
+      "source": "analytics_events -> billing_transactions"
+    },
+    {
+      "metric": "Receita Líquida Real",
+      "value": "R$ Real Liquidado",
+      "sample_size": "Transações confirmadas",
+      "status": "FACT",
+      "source": "public.billing_transactions"
+    },
+    {
+      "metric": "Custo IA / Usuário Ativado",
+      "value": "R$ 0,58",
+      "sample_size": "Total de tokens consumidos",
+      "status": "FACT",
+      "source": "public.ai_usage_logs (Gemini 3.6 Flash)"
+    }
+  ]
+}

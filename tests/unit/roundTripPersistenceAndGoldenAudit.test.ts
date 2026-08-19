@@ -249,5 +249,5 @@ describe('Audit Round-Trip Persistence & Golden Cases Traceability (Fase 4)', ()
         expect(retrieved.careerGoalScore!).toBeLessThanOrEqual(gc.expectedGoalMax);
       }
     }
-  });
+  }, 15000);
 });

@@ -334,6 +334,20 @@ class AnalyticsTracker {
   public trackApplicationCreated(jobId: string, metadata: { stage?: string; fit_score?: number } = {}) {
     this.track('application_created', 'Action', { job_id: jobId, ...metadata });
   }
+
+  // ── Telemetria de Ranking & Qualidade de Vagas (Fase 8 - Sem PII) ──
+
+  public trackJobDuplicateFiltered(duplicateCount: number) {
+    this.track('job_duplicate_filtered', 'Ranking', { duplicate_count: duplicateCount });
+  }
+
+  public trackJobQualityFiltered(filteredCount: number) {
+    this.track('job_quality_filtered', 'Ranking', { filtered_count: filteredCount });
+  }
+
+  public trackJobRanked(totalRanked: number, strategy: string) {
+    this.track('job_ranked', 'Ranking', { total_ranked: totalRanked, strategy });
+  }
 }
 
 export const tracker = new AnalyticsTracker();

@@ -78,4 +78,17 @@ describe('Auditoria de Contrato de Telemetria e Inteligência de Produto (Fase 7
     expect(metadata.has_target_area).toBe(true);
     expect(metadata.roles_count).toBe(2);
   });
+
+  it('3. Deve registrar eventos de qualidade e deduplicação de ranking sem PII', () => {
+    const trackSpy = vi.spyOn(tracker, 'track');
+
+    tracker.trackJobDuplicateFiltered(3);
+    tracker.trackJobQualityFiltered(1);
+    tracker.trackJobRanked(15, 'career_transition');
+
+    expect(trackSpy).toHaveBeenCalledTimes(3);
+    expect(trackSpy.mock.calls[0][0]).toBe('job_duplicate_filtered');
+    expect(trackSpy.mock.calls[1][0]).toBe('job_quality_filtered');
+    expect(trackSpy.mock.calls[2][0]).toBe('job_ranked');
+  });
 });

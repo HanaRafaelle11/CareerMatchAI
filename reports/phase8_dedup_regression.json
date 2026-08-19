@@ -1,0 +1,1141 @@
+{
+  "timestamp": "2026-08-19T00:51:28.573Z",
+  "totalPersonas": 10,
+  "comparison": {
+    "fase7": {
+      "duplicateRate": "20.0%",
+      "top3Relevance": "70.0%",
+      "top10ABRate": "28.0%"
+    },
+    "fase8": {
+      "duplicateRate": "0.0%",
+      "top3Relevance": "80.0%",
+      "top10ABRate": "38.3%"
+    }
+  },
+  "gradeDistribution": {
+    "A": 16,
+    "B": 20,
+    "C": 24,
+    "D": 34,
+    "F": 0
+  },
+  "personas": [
+    {
+      "personaId": "P1",
+      "personaName": "CSM Senior buscando CSM Senior",
+      "top3GradeABCount": 3,
+      "top10": [
+        {
+          "title": "Senior Customer Success Manager",
+          "company": "Totvs",
+          "providers": [
+            "LinkedIn",
+            "Catho"
+          ],
+          "fit": 90,
+          "goal": 86,
+          "grade": "A",
+          "rankScore": 89
+        },
+        {
+          "title": "Customer Success Specialist",
+          "company": "SaaS Alpha",
+          "providers": [
+            "Glassdoor"
+          ],
+          "fit": 78,
+          "goal": 78,
+          "grade": "A",
+          "rankScore": 78
+        },
+        {
+          "title": "Customer Success Team Lead",
+          "company": "Global Cloud",
+          "providers": [
+            "LinkedIn"
+          ],
+          "fit": 64,
+          "goal": 69,
+          "grade": "B",
+          "rankScore": 66
+        },
+        {
+          "title": "Customer Onboarding Analyst",
+          "company": "Cloud SaaS",
+          "providers": [
+            "LinkedIn"
+          ],
+          "fit": 61,
+          "goal": 61,
+          "grade": "B",
+          "rankScore": 61
+        },
+        {
+          "title": "Senior Product Manager",
+          "company": "Nubank",
+          "providers": [
+            "LinkedIn",
+            "Google Jobs"
+          ],
+          "fit": 14,
+          "goal": 78,
+          "grade": "D",
+          "rankScore": 33
+        },
+        {
+          "title": "Associate Product Manager",
+          "company": "Fintech X",
+          "providers": [
+            "Glassdoor"
+          ],
+          "fit": 13,
+          "goal": 65,
+          "grade": "D",
+          "rankScore": 29
+        },
+        {
+          "title": "Product Manager Pleno",
+          "company": "Stone",
+          "providers": [
+            "LinkedIn"
+          ],
+          "fit": 10,
+          "goal": 64,
+          "grade": "D",
+          "rankScore": 26
+        },
+        {
+          "title": "Tech Lead Backend (Node.js)",
+          "company": "Stone",
+          "providers": [
+            "LinkedIn"
+          ],
+          "fit": 10,
+          "goal": 48,
+          "grade": "D",
+          "rankScore": 21
+        },
+        {
+          "title": "Senior UI/UX Designer",
+          "company": "Design Lab",
+          "providers": [
+            "LinkedIn"
+          ],
+          "fit": 10,
+          "goal": 36,
+          "grade": "D",
+          "rankScore": 18
+        },
+        {
+          "title": "Project Manager (Operações)",
+          "company": "Global Services",
+          "providers": [
+            "LinkedIn"
+          ],
+          "fit": 10,
+          "goal": 36,
+          "grade": "D",
+          "rankScore": 18
+        }
+      ]
+    },
+    {
+      "personaId": "P2",
+      "personaName": "CSM buscando Product Manager",
+      "top3GradeABCount": 3,
+      "top10": [
+        {
+          "title": "Associate Product Manager",
+          "company": "Fintech X",
+          "providers": [
+            "Glassdoor"
+          ],
+          "fit": 64,
+          "goal": 82,
+          "grade": "A",
+          "rankScore": 82
+        },
+        {
+          "title": "Senior Customer Success Manager",
+          "company": "Totvs",
+          "providers": [
+            "LinkedIn",
+            "Catho"
+          ],
+          "fit": 87,
+          "goal": 75,
+          "grade": "A",
+          "rankScore": 75
+        },
+        {
+          "title": "Product Manager Pleno",
+          "company": "Stone",
+          "providers": [
+            "LinkedIn"
+          ],
+          "fit": 10,
+          "goal": 75,
+          "grade": "A",
+          "rankScore": 75
+        },
+        {
+          "title": "Senior Product Manager",
+          "company": "Nubank",
+          "providers": [
+            "LinkedIn",
+            "Google Jobs"
+          ],
+          "fit": 9,
+          "goal": 75,
+          "grade": "A",
+          "rankScore": 75
+        },
+        {
+          "title": "Product Operations Specialist",
+          "company": "iFood",
+          "providers": [
+            "LinkedIn"
+          ],
+          "fit": 61,
+          "goal": 61,
+          "grade": "B",
+          "rankScore": 61
+        },
+        {
+          "title": "Customer Success Specialist",
+          "company": "SaaS Alpha",
+          "providers": [
+            "Glassdoor"
+          ],
+          "fit": 76,
+          "goal": 54,
+          "grade": "B",
+          "rankScore": 54
+        },
+        {
+          "title": "Tech Lead Backend (Node.js)",
+          "company": "Stone",
+          "providers": [
+            "LinkedIn"
+          ],
+          "fit": 8,
+          "goal": 45,
+          "grade": "C",
+          "rankScore": 45
+        },
+        {
+          "title": "Customer Onboarding Analyst",
+          "company": "Cloud SaaS",
+          "providers": [
+            "LinkedIn"
+          ],
+          "fit": 60,
+          "goal": 43,
+          "grade": "C",
+          "rankScore": 43
+        },
+        {
+          "title": "Customer Success Team Lead",
+          "company": "Global Cloud",
+          "providers": [
+            "LinkedIn"
+          ],
+          "fit": 55,
+          "goal": 42,
+          "grade": "C",
+          "rankScore": 42
+        },
+        {
+          "title": "Product Designer Pleno",
+          "company": "Loft",
+          "providers": [
+            "Glassdoor"
+          ],
+          "fit": 10,
+          "goal": 36,
+          "grade": "C",
+          "rankScore": 36
+        }
+      ]
+    },
+    {
+      "personaId": "P3",
+      "personaName": "Operations buscando Product Operations",
+      "top3GradeABCount": 2,
+      "top10": [
+        {
+          "title": "Product Operations Specialist",
+          "company": "iFood",
+          "providers": [
+            "LinkedIn"
+          ],
+          "fit": 60,
+          "goal": 71,
+          "grade": "A",
+          "rankScore": 71
+        },
+        {
+          "title": "Business Operations Analyst",
+          "company": "Fintech Hub",
+          "providers": [
+            "Glassdoor"
+          ],
+          "fit": 69,
+          "goal": 61,
+          "grade": "B",
+          "rankScore": 61
+        },
+        {
+          "title": "Project Manager (Operações)",
+          "company": "Global Services",
+          "providers": [
+            "LinkedIn"
+          ],
+          "fit": 10,
+          "goal": 48,
+          "grade": "C",
+          "rankScore": 48
+        },
+        {
+          "title": "Tech Lead Backend (Node.js)",
+          "company": "Stone",
+          "providers": [
+            "LinkedIn"
+          ],
+          "fit": 8,
+          "goal": 45,
+          "grade": "C",
+          "rankScore": 45
+        },
+        {
+          "title": "Customer Success Specialist",
+          "company": "SaaS Alpha",
+          "providers": [
+            "Glassdoor"
+          ],
+          "fit": 11,
+          "goal": 36,
+          "grade": "C",
+          "rankScore": 36
+        },
+        {
+          "title": "Inside Sales Specialist B2B",
+          "company": "Omie",
+          "providers": [
+            "LinkedIn"
+          ],
+          "fit": 11,
+          "goal": 36,
+          "grade": "C",
+          "rankScore": 36
+        },
+        {
+          "title": "Associate Product Manager",
+          "company": "Fintech X",
+          "providers": [
+            "Glassdoor"
+          ],
+          "fit": 10,
+          "goal": 36,
+          "grade": "C",
+          "rankScore": 36
+        },
+        {
+          "title": "Product Designer Pleno",
+          "company": "Loft",
+          "providers": [
+            "Glassdoor"
+          ],
+          "fit": 10,
+          "goal": 36,
+          "grade": "C",
+          "rankScore": 36
+        },
+        {
+          "title": "Product Manager Pleno",
+          "company": "Stone",
+          "providers": [
+            "LinkedIn"
+          ],
+          "fit": 10,
+          "goal": 36,
+          "grade": "C",
+          "rankScore": 36
+        },
+        {
+          "title": "Senior Product Manager",
+          "company": "Nubank",
+          "providers": [
+            "LinkedIn",
+            "Google Jobs"
+          ],
+          "fit": 8,
+          "goal": 36,
+          "grade": "C",
+          "rankScore": 36
+        }
+      ]
+    },
+    {
+      "personaId": "P4",
+      "personaName": "Backend Developer buscando Tech Lead",
+      "top3GradeABCount": 3,
+      "top10": [
+        {
+          "title": "Backend Developer Pleno",
+          "company": "Logistics AI",
+          "providers": [
+            "InfoJobs"
+          ],
+          "fit": 86,
+          "goal": 53,
+          "grade": "A",
+          "rankScore": 76
+        },
+        {
+          "title": "Tech Lead Backend (Node.js)",
+          "company": "Stone",
+          "providers": [
+            "LinkedIn"
+          ],
+          "fit": 66,
+          "goal": 79,
+          "grade": "B",
+          "rankScore": 70
+        },
+        {
+          "title": "Senior Backend Engineer",
+          "company": "Cloud Solutions",
+          "providers": [
+            "Glassdoor"
+          ],
+          "fit": 71,
+          "goal": 48,
+          "grade": "A",
+          "rankScore": 64
+        },
+        {
+          "title": "Product Operations Specialist",
+          "company": "iFood",
+          "providers": [
+            "LinkedIn"
+          ],
+          "fit": 62,
+          "goal": 43,
+          "grade": "B",
+          "rankScore": 56
+        },
+        {
+          "title": "Senior Product Manager",
+          "company": "Nubank",
+          "providers": [
+            "LinkedIn",
+            "Google Jobs"
+          ],
+          "fit": 60,
+          "goal": 43,
+          "grade": "B",
+          "rankScore": 55
+        },
+        {
+          "title": "Customer Success Team Lead",
+          "company": "Global Cloud",
+          "providers": [
+            "LinkedIn"
+          ],
+          "fit": 9,
+          "goal": 36,
+          "grade": "D",
+          "rankScore": 17
+        },
+        {
+          "title": "Customer Onboarding Analyst",
+          "company": "Cloud SaaS",
+          "providers": [
+            "LinkedIn"
+          ],
+          "fit": 10,
+          "goal": 18,
+          "grade": "D",
+          "rankScore": 12
+        },
+        {
+          "title": "Senior UI/UX Designer",
+          "company": "Design Lab",
+          "providers": [
+            "LinkedIn"
+          ],
+          "fit": 10,
+          "goal": 18,
+          "grade": "D",
+          "rankScore": 12
+        },
+        {
+          "title": "Associate Product Manager",
+          "company": "Fintech X",
+          "providers": [
+            "Glassdoor"
+          ],
+          "fit": 10,
+          "goal": 18,
+          "grade": "D",
+          "rankScore": 12
+        },
+        {
+          "title": "Product Designer Pleno",
+          "company": "Loft",
+          "providers": [
+            "Glassdoor"
+          ],
+          "fit": 10,
+          "goal": 18,
+          "grade": "D",
+          "rankScore": 12
+        }
+      ]
+    },
+    {
+      "personaId": "P5",
+      "personaName": "Product Analyst buscando Product Manager",
+      "top3GradeABCount": 3,
+      "top10": [
+        {
+          "title": "Senior Customer Success Manager",
+          "company": "Totvs",
+          "providers": [
+            "LinkedIn",
+            "Catho"
+          ],
+          "fit": 69,
+          "goal": 70,
+          "grade": "B",
+          "rankScore": 69
+        },
+        {
+          "title": "Customer Success Specialist",
+          "company": "SaaS Alpha",
+          "providers": [
+            "Glassdoor"
+          ],
+          "fit": 71,
+          "goal": 51,
+          "grade": "A",
+          "rankScore": 65
+        },
+        {
+          "title": "Business Operations Analyst",
+          "company": "Fintech Hub",
+          "providers": [
+            "Glassdoor"
+          ],
+          "fit": 67,
+          "goal": 48,
+          "grade": "B",
+          "rankScore": 61
+        },
+        {
+          "title": "Senior Product Manager",
+          "company": "Nubank",
+          "providers": [
+            "LinkedIn",
+            "Google Jobs"
+          ],
+          "fit": 56,
+          "goal": 73,
+          "grade": "B",
+          "rankScore": 61
+        },
+        {
+          "title": "Product Operations Specialist",
+          "company": "iFood",
+          "providers": [
+            "LinkedIn"
+          ],
+          "fit": 58,
+          "goal": 60,
+          "grade": "B",
+          "rankScore": 59
+        },
+        {
+          "title": "Customer Onboarding Analyst",
+          "company": "Cloud SaaS",
+          "providers": [
+            "LinkedIn"
+          ],
+          "fit": 58,
+          "goal": 43,
+          "grade": "B",
+          "rankScore": 53
+        },
+        {
+          "title": "Backend Developer Pleno",
+          "company": "Logistics AI",
+          "providers": [
+            "InfoJobs"
+          ],
+          "fit": 58,
+          "goal": 43,
+          "grade": "B",
+          "rankScore": 53
+        },
+        {
+          "title": "Customer Success Team Lead",
+          "company": "Global Cloud",
+          "providers": [
+            "LinkedIn"
+          ],
+          "fit": 52,
+          "goal": 41,
+          "grade": "B",
+          "rankScore": 49
+        },
+        {
+          "title": "Senior Backend Engineer",
+          "company": "Cloud Solutions",
+          "providers": [
+            "Glassdoor"
+          ],
+          "fit": 49,
+          "goal": 40,
+          "grade": "C",
+          "rankScore": 46
+        },
+        {
+          "title": "Project Manager (Operações)",
+          "company": "Global Services",
+          "providers": [
+            "LinkedIn"
+          ],
+          "fit": 10,
+          "goal": 64,
+          "grade": "D",
+          "rankScore": 26
+        }
+      ]
+    },
+    {
+      "personaId": "P6",
+      "personaName": "Marketing buscando Customer Success",
+      "top3GradeABCount": 3,
+      "top10": [
+        {
+          "title": "Customer Onboarding Analyst",
+          "company": "Cloud SaaS",
+          "providers": [
+            "LinkedIn"
+          ],
+          "fit": 67,
+          "goal": 76,
+          "grade": "A",
+          "rankScore": 76
+        },
+        {
+          "title": "Customer Success Specialist",
+          "company": "SaaS Alpha",
+          "providers": [
+            "Glassdoor"
+          ],
+          "fit": 58,
+          "goal": 71,
+          "grade": "A",
+          "rankScore": 71
+        },
+        {
+          "title": "Inside Sales Specialist B2B",
+          "company": "Omie",
+          "providers": [
+            "LinkedIn"
+          ],
+          "fit": 60,
+          "goal": 61,
+          "grade": "B",
+          "rankScore": 61
+        },
+        {
+          "title": "Product Manager Pleno",
+          "company": "Stone",
+          "providers": [
+            "LinkedIn"
+          ],
+          "fit": 10,
+          "goal": 46,
+          "grade": "C",
+          "rankScore": 46
+        },
+        {
+          "title": "Tech Lead Backend (Node.js)",
+          "company": "Stone",
+          "providers": [
+            "LinkedIn"
+          ],
+          "fit": 8,
+          "goal": 44,
+          "grade": "C",
+          "rankScore": 44
+        },
+        {
+          "title": "Senior Customer Success Manager",
+          "company": "Totvs",
+          "providers": [
+            "LinkedIn",
+            "Catho"
+          ],
+          "fit": 9,
+          "goal": 43,
+          "grade": "C",
+          "rankScore": 43
+        },
+        {
+          "title": "Customer Success Team Lead",
+          "company": "Global Cloud",
+          "providers": [
+            "LinkedIn"
+          ],
+          "fit": 8,
+          "goal": 43,
+          "grade": "C",
+          "rankScore": 43
+        },
+        {
+          "title": "Product Operations Specialist",
+          "company": "iFood",
+          "providers": [
+            "LinkedIn"
+          ],
+          "fit": 10,
+          "goal": 36,
+          "grade": "C",
+          "rankScore": 36
+        },
+        {
+          "title": "Business Operations Analyst",
+          "company": "Fintech Hub",
+          "providers": [
+            "Glassdoor"
+          ],
+          "fit": 10,
+          "goal": 36,
+          "grade": "C",
+          "rankScore": 36
+        },
+        {
+          "title": "Associate Product Manager",
+          "company": "Fintech X",
+          "providers": [
+            "Glassdoor"
+          ],
+          "fit": 10,
+          "goal": 18,
+          "grade": "D",
+          "rankScore": 18
+        }
+      ]
+    },
+    {
+      "personaId": "P7",
+      "personaName": "Finance buscando Business Operations",
+      "top3GradeABCount": 2,
+      "top10": [
+        {
+          "title": "Business Operations Analyst",
+          "company": "Fintech Hub",
+          "providers": [
+            "Glassdoor"
+          ],
+          "fit": 78,
+          "goal": 81,
+          "grade": "A",
+          "rankScore": 81
+        },
+        {
+          "title": "Product Operations Specialist",
+          "company": "iFood",
+          "providers": [
+            "LinkedIn"
+          ],
+          "fit": 61,
+          "goal": 60,
+          "grade": "B",
+          "rankScore": 60
+        },
+        {
+          "title": "Project Manager (Operações)",
+          "company": "Global Services",
+          "providers": [
+            "LinkedIn"
+          ],
+          "fit": 10,
+          "goal": 47,
+          "grade": "C",
+          "rankScore": 47
+        },
+        {
+          "title": "Tech Lead Backend (Node.js)",
+          "company": "Stone",
+          "providers": [
+            "LinkedIn"
+          ],
+          "fit": 8,
+          "goal": 44,
+          "grade": "C",
+          "rankScore": 44
+        },
+        {
+          "title": "Customer Onboarding Analyst",
+          "company": "Cloud SaaS",
+          "providers": [
+            "LinkedIn"
+          ],
+          "fit": 10,
+          "goal": 36,
+          "grade": "C",
+          "rankScore": 36
+        },
+        {
+          "title": "Associate Product Manager",
+          "company": "Fintech X",
+          "providers": [
+            "Glassdoor"
+          ],
+          "fit": 10,
+          "goal": 18,
+          "grade": "D",
+          "rankScore": 18
+        },
+        {
+          "title": "Product Designer Pleno",
+          "company": "Loft",
+          "providers": [
+            "Glassdoor"
+          ],
+          "fit": 10,
+          "goal": 18,
+          "grade": "D",
+          "rankScore": 18
+        },
+        {
+          "title": "Customer Success Specialist",
+          "company": "SaaS Alpha",
+          "providers": [
+            "Glassdoor"
+          ],
+          "fit": 10,
+          "goal": 18,
+          "grade": "D",
+          "rankScore": 18
+        },
+        {
+          "title": "Product Manager Pleno",
+          "company": "Stone",
+          "providers": [
+            "LinkedIn"
+          ],
+          "fit": 10,
+          "goal": 18,
+          "grade": "D",
+          "rankScore": 18
+        },
+        {
+          "title": "Backend Developer Pleno",
+          "company": "Logistics AI",
+          "providers": [
+            "InfoJobs"
+          ],
+          "fit": 10,
+          "goal": 18,
+          "grade": "D",
+          "rankScore": 18
+        }
+      ]
+    },
+    {
+      "personaId": "P8",
+      "personaName": "Designer buscando Product Designer",
+      "top3GradeABCount": 2,
+      "top10": [
+        {
+          "title": "Senior UI/UX Designer",
+          "company": "Design Lab",
+          "providers": [
+            "LinkedIn"
+          ],
+          "fit": 75,
+          "goal": 81,
+          "grade": "A",
+          "rankScore": 77
+        },
+        {
+          "title": "Product Designer Pleno",
+          "company": "Loft",
+          "providers": [
+            "Glassdoor"
+          ],
+          "fit": 69,
+          "goal": 76,
+          "grade": "B",
+          "rankScore": 71
+        },
+        {
+          "title": "Senior Product Manager",
+          "company": "Nubank",
+          "providers": [
+            "LinkedIn",
+            "Google Jobs"
+          ],
+          "fit": 9,
+          "goal": 41,
+          "grade": "D",
+          "rankScore": 19
+        },
+        {
+          "title": "Tech Lead Backend (Node.js)",
+          "company": "Stone",
+          "providers": [
+            "LinkedIn"
+          ],
+          "fit": 8,
+          "goal": 44,
+          "grade": "D",
+          "rankScore": 19
+        },
+        {
+          "title": "Product Operations Specialist",
+          "company": "iFood",
+          "providers": [
+            "LinkedIn"
+          ],
+          "fit": 10,
+          "goal": 36,
+          "grade": "D",
+          "rankScore": 18
+        },
+        {
+          "title": "Associate Product Manager",
+          "company": "Fintech X",
+          "providers": [
+            "Glassdoor"
+          ],
+          "fit": 10,
+          "goal": 36,
+          "grade": "D",
+          "rankScore": 18
+        },
+        {
+          "title": "Product Manager Pleno",
+          "company": "Stone",
+          "providers": [
+            "LinkedIn"
+          ],
+          "fit": 10,
+          "goal": 36,
+          "grade": "D",
+          "rankScore": 18
+        },
+        {
+          "title": "Senior Customer Success Manager",
+          "company": "Totvs",
+          "providers": [
+            "LinkedIn",
+            "Catho"
+          ],
+          "fit": 9,
+          "goal": 36,
+          "grade": "D",
+          "rankScore": 17
+        },
+        {
+          "title": "Senior Backend Engineer",
+          "company": "Cloud Solutions",
+          "providers": [
+            "Glassdoor"
+          ],
+          "fit": 9,
+          "goal": 36,
+          "grade": "D",
+          "rankScore": 17
+        },
+        {
+          "title": "Customer Onboarding Analyst",
+          "company": "Cloud SaaS",
+          "providers": [
+            "LinkedIn"
+          ],
+          "fit": 10,
+          "goal": 18,
+          "grade": "D",
+          "rankScore": 12
+        }
+      ]
+    },
+    {
+      "personaId": "P9",
+      "personaName": "Profissional em Exploração (Sem Objetivo)",
+      "top3GradeABCount": 3,
+      "top10": [
+        {
+          "title": "Customer Success Specialist",
+          "company": "SaaS Alpha",
+          "providers": [
+            "Glassdoor"
+          ],
+          "fit": 83,
+          "goal": null,
+          "grade": "A",
+          "rankScore": 83
+        },
+        {
+          "title": "Senior Customer Success Manager",
+          "company": "Totvs",
+          "providers": [
+            "LinkedIn",
+            "Catho"
+          ],
+          "fit": 80,
+          "goal": null,
+          "grade": "A",
+          "rankScore": 80
+        },
+        {
+          "title": "Customer Onboarding Analyst",
+          "company": "Cloud SaaS",
+          "providers": [
+            "LinkedIn"
+          ],
+          "fit": 60,
+          "goal": null,
+          "grade": "B",
+          "rankScore": 60
+        },
+        {
+          "title": "Customer Success Team Lead",
+          "company": "Global Cloud",
+          "providers": [
+            "LinkedIn"
+          ],
+          "fit": 55,
+          "goal": null,
+          "grade": "B",
+          "rankScore": 55
+        }
+      ]
+    },
+    {
+      "personaId": "P10",
+      "personaName": "Mudança Radical (Dev para Enfermagem)",
+      "top3GradeABCount": 0,
+      "top10": [
+        {
+          "title": "Enfermeiro de UTI Adulto",
+          "company": "Hospital Central",
+          "providers": [
+            "Catho"
+          ],
+          "fit": 10,
+          "goal": 46,
+          "grade": "C",
+          "rankScore": 46
+        },
+        {
+          "title": "Tech Lead Backend (Node.js)",
+          "company": "Stone",
+          "providers": [
+            "LinkedIn"
+          ],
+          "fit": 8,
+          "goal": 45,
+          "grade": "C",
+          "rankScore": 45
+        },
+        {
+          "title": "Customer Success Specialist",
+          "company": "SaaS Alpha",
+          "providers": [
+            "Glassdoor"
+          ],
+          "fit": 11,
+          "goal": 18,
+          "grade": "D",
+          "rankScore": 18
+        },
+        {
+          "title": "Inside Sales Specialist B2B",
+          "company": "Omie",
+          "providers": [
+            "LinkedIn"
+          ],
+          "fit": 11,
+          "goal": 18,
+          "grade": "D",
+          "rankScore": 18
+        },
+        {
+          "title": "Product Operations Specialist",
+          "company": "iFood",
+          "providers": [
+            "LinkedIn"
+          ],
+          "fit": 10,
+          "goal": 18,
+          "grade": "D",
+          "rankScore": 18
+        },
+        {
+          "title": "Customer Onboarding Analyst",
+          "company": "Cloud SaaS",
+          "providers": [
+            "LinkedIn"
+          ],
+          "fit": 10,
+          "goal": 18,
+          "grade": "D",
+          "rankScore": 18
+        },
+        {
+          "title": "Associate Product Manager",
+          "company": "Fintech X",
+          "providers": [
+            "Glassdoor"
+          ],
+          "fit": 10,
+          "goal": 18,
+          "grade": "D",
+          "rankScore": 18
+        },
+        {
+          "title": "Product Designer Pleno",
+          "company": "Loft",
+          "providers": [
+            "Glassdoor"
+          ],
+          "fit": 10,
+          "goal": 18,
+          "grade": "D",
+          "rankScore": 18
+        },
+        {
+          "title": "Business Operations Analyst",
+          "company": "Fintech Hub",
+          "providers": [
+            "Glassdoor"
+          ],
+          "fit": 10,
+          "goal": 18,
+          "grade": "D",
+          "rankScore": 18
+        },
+        {
+          "title": "Product Manager Pleno",
+          "company": "Stone",
+          "providers": [
+            "LinkedIn"
+          ],
+          "fit": 10,
+          "goal": 18,
+          "grade": "D",
+          "rankScore": 18
+        }
+      ]
+    }
+  ]
+}

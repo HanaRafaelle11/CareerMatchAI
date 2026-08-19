@@ -1,0 +1,91 @@
+{
+  "inventory_title": "VoCentro Phase 8 Complete Telemetry & Metric Inventory",
+  "project": "CareerMatchAI (VoCentro)",
+  "timestamp": "2026-08-19T14:35:00.000Z",
+  "catalog": [
+    {
+      "event": "signup_completed",
+      "source": "src/application/hooks/useAuth.ts",
+      "trigger": "Cadastro bem-sucedido via Google OAuth ou Magic Link",
+      "payload": "{ method: string, is_new_user: boolean }",
+      "validator": "AnalyticsEventValidator.validate",
+      "persistence": "Database insert + AnalyticsTracker",
+      "table": "public.profiles & public.analytics_events",
+      "deduplication": "user_id / profiles.id",
+      "metric": "DAU, WAU, MAU, Funil de Ativação (Etapa 1), TTFV (Start)",
+      "dashboard": "AdminDashboard.tsx & FunnelTelemetryDashboard.tsx"
+    },
+    {
+      "event": "login_completed",
+      "source": "src/application/hooks/useAuth.ts",
+      "trigger": "Sessão autenticada e inicializada com sucesso",
+      "payload": "{ auth_provider: string }",
+      "validator": "AnalyticsEventValidator.validate",
+      "persistence": "Database insert + AnalyticsTracker",
+      "table": "public.analytics_events & public.admin_user_sessions",
+      "deduplication": "user_id + session_id",
+      "metric": "DAU, WAU, MAU, Retenção D1/D7/D30",
+      "dashboard": "AdminDashboard.tsx"
+    },
+    {
+      "event": "resume_uploaded",
+      "source": "src/application/hooks/useCareerMatch.ts",
+      "trigger": "Upload do arquivo PDF do currículo",
+      "payload": "{ file_name_masked: string, size_kb: number }",
+      "validator": "AnalyticsEventValidator.validate",
+      "persistence": "Database insert + AnalyticsTracker",
+      "table": "public.resumes & public.analytics_events",
+      "deduplication": "user_id + resume.id",
+      "metric": "Funil de Ativação (Etapa 2), Taxa de Upload",
+      "dashboard": "AdminDashboard.tsx & FunnelTelemetryDashboard.tsx"
+    },
+    {
+      "event": "match_calculated",
+      "source": "src/infrastructure/analytics/tracker.ts",
+      "trigger": "Cálculo do algoritmo CareerMatchEngineV3",
+      "payload": "{ job_id: string, career_fit_score: number, career_goal_score: number | null }",
+      "validator": "AnalyticsEventValidator.validate",
+      "persistence": "Database insert + AnalyticsTracker",
+      "table": "public.matches & public.analytics_events",
+      "deduplication": "user_id + job_id",
+      "metric": "Volume de Matches, TTFV (Value Moment)",
+      "dashboard": "AdminDashboard.tsx"
+    },
+    {
+      "event": "job_match_viewed",
+      "source": "src/presentation/components/HumanizedMatchCard.tsx",
+      "trigger": "Visualização do card de match semântico no feed",
+      "payload": "{ job_id: string, career_fit_score: number }",
+      "validator": "AnalyticsEventValidator.validate",
+      "persistence": "Database insert + AnalyticsTracker",
+      "table": "public.analytics_events",
+      "deduplication": "user_id + job_id",
+      "metric": "Funil de Ativação (Etapa 3), CTR de Vagas",
+      "dashboard": "FunnelTelemetryDashboard.tsx"
+    },
+    {
+      "event": "job_saved",
+      "source": "src/application/hooks/useApplications.ts",
+      "trigger": "Vaga salva no Pipeline de Candidaturas",
+      "payload": "{ job_id: string, stage: string }",
+      "validator": "AnalyticsEventValidator.validate",
+      "persistence": "Database insert + AnalyticsTracker",
+      "table": "public.applications & public.analytics_events",
+      "deduplication": "user_id + job_id",
+      "metric": "Funil de Ativação (Etapa 4), Pipeline Velocity",
+      "dashboard": "AdminDashboard.tsx & StrategyPage.tsx"
+    },
+    {
+      "event": "payment_confirmed",
+      "source": "src/modules/billing/application/hooks/useCheckout.ts",
+      "trigger": "Liquidação financeira confirmada via Webhook Stripe/Asaas",
+      "payload": "{ plan: string, is_pro: true }",
+      "validator": "AnalyticsEventValidator.validate",
+      "persistence": "Database insert + Webhook",
+      "table": "public.billing_transactions & public.billing_subscriptions",
+      "deduplication": "transaction_id / event_id",
+      "metric": "Funil de Ativação (Etapa 5), Receita Líquida Real, ARPPU",
+      "dashboard": "AdminDashboard.tsx (Aba Financeira)"
+    }
+  ]
+}

@@ -1,0 +1,43 @@
+{
+  "lineage_title": "VoCentro Phase 8 Complete Data Lineage",
+  "project": "CareerMatchAI (VoCentro)",
+  "timestamp": "2026-08-19T14:35:00.000Z",
+  "chains": [
+    {
+      "metric": "DAU / WAU / MAU & Stickiness",
+      "source_tables": ["public.analytics_events", "public.profiles"],
+      "query": "supabase.from('analytics_events').select('user_id, created_at')",
+      "service": "AdminAnalyticsService.calculateActiveUserMetrics()",
+      "ui_component": "src/presentation/pages/AdminDashboard.tsx",
+      "display_element": "KPI Cards de Usuários Ativos (DAU, WAU, MAU) e Stickiness Rate (%)",
+      "trust_status": "TRUSTED"
+    },
+    {
+      "metric": "Funil de Ativação do Candidato",
+      "source_tables": ["public.profiles", "public.resumes", "public.matches", "public.applications", "public.billing_transactions"],
+      "query": "Promise.all([profiles, resumes, matches, applications, billing_transactions])",
+      "service": "AdminAnalyticsService.calculateFunnel()",
+      "ui_component": "src/presentation/components/FunnelTelemetryDashboard.tsx",
+      "display_element": "Funil de 5 Etapas com Taxas de Conversão e Dropoff",
+      "trust_status": "TRUSTED"
+    },
+    {
+      "metric": "Time to Value (TTFV)",
+      "source_tables": ["public.profiles", "public.matches"],
+      "query": "profiles (created_at) e matches (created_at) ordenados por timestamp",
+      "service": "AdminAnalyticsService.calculateTtfv()",
+      "ui_component": "src/presentation/pages/AdminDashboard.tsx",
+      "display_element": "Box 'Velocidade de Valor (TTFV)' com P50, P75, P90 e Média em minutos",
+      "trust_status": "TRUSTED"
+    },
+    {
+      "metric": "Consumo e Custos de IA",
+      "source_tables": ["public.ai_usage_logs"],
+      "query": "supabase.from('ai_usage_logs').select('*')",
+      "service": "AdminAnalyticsService.calculateAiCosts()",
+      "ui_component": "src/presentation/pages/AdminDashboard.tsx",
+      "display_element": "Painel de Custos de IA em R$ BRL e Tokens por Feature",
+      "trust_status": "TRUSTED"
+    }
+  ]
+}

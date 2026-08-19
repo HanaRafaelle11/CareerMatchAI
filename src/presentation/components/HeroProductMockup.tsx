@@ -30,7 +30,7 @@ export const HeroProductMockup: React.FC<HeroProductMockupProps> = ({ onSimulate
           </div>
 
           <span className="px-2.5 py-0.5 rounded-full bg-brand-500/10 border border-brand-500/20 text-brand-600 dark:text-brand-400 font-bold flex items-center gap-1 text-[10px]">
-            <Sparkles size={11} /> Match IA v2.4
+            <Sparkles size={11} /> Inteligência de Match
           </span>
         </div>
 

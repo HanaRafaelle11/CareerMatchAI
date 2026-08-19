@@ -96,6 +96,7 @@ export function StrategyPage({
   const [_intelSubTab, _setIntelSubTab] = useState<'companies' | 'diary'>('companies');
   const [showArchived, setShowArchived] = useState(false);
   const [showChoiceStep, setShowChoiceStep] = useState(true);
+  const [mobileStageFilter, setMobileStageFilter] = useState<string>('all');
 
   // Modals for confirmation
   const [backwardConfirmApp, setBackwardConfirmApp] = useState<{ app: Application; targetStatus: string } | null>(null);
@@ -1516,9 +1517,49 @@ export function StrategyPage({
           ========================================== */}
       {subTab === 'pipeline' && (
         <div className="space-y-6 animate-slide-in">
+          {/* Seletor de Estágios Rápido para Mobile */}
+          <div className="md:hidden flex items-center gap-1.5 overflow-x-auto pb-2 -mx-2 px-2 scrollbar-none">
+            <button
+              type="button"
+              onClick={() => setMobileStageFilter('all')}
+              className={`px-3 py-1.5 rounded-xl text-xs font-bold whitespace-nowrap transition cursor-pointer ${
+                mobileStageFilter === 'all'
+                  ? 'bg-brand-500 text-white shadow-sm'
+                  : 'bg-card border border-border text-muted-foreground hover:text-foreground'
+              }`}
+            >
+              Todas ({applications.length})
+            </button>
+            {activeColumnsOrder.map(colId => {
+              const col = pipelineColumns[colId];
+              if (!col) return null;
+              const count = col.apps?.length || 0;
+              const isSelected = mobileStageFilter === colId;
+              return (
+                <button
+                  key={colId}
+                  type="button"
+                  onClick={() => setMobileStageFilter(colId)}
+                  className={`px-3 py-1.5 rounded-xl text-xs font-bold whitespace-nowrap transition cursor-pointer flex items-center gap-1.5 ${
+                    isSelected
+                      ? 'bg-brand-500 text-white shadow-sm'
+                      : 'bg-card border border-border text-muted-foreground hover:text-foreground'
+                  }`}
+                >
+                  <span>{col.title.split(' ')[0]}</span>
+                  <span className={`text-[10px] px-1.5 py-0.2 rounded-full ${isSelected ? 'bg-white/20 text-white' : 'bg-muted text-muted-foreground'}`}>
+                    {count}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+
           {/* Matriz das 7 Colunas do Pipeline */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 xl:grid-cols-7 gap-4 overflow-x-auto pb-4">
-            {activeColumnsOrder.map(colId => {
+            {activeColumnsOrder
+              .filter(colId => mobileStageFilter === 'all' || mobileStageFilter === colId)
+              .map(colId => {
               const col = pipelineColumns[colId];
               if (!col) return null;
 

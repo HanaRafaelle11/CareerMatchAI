@@ -200,15 +200,68 @@ export const CareerGoalCard: React.FC<CareerGoalCardProps> = ({
             })}
           </div>
 
-          {/* Campos condicionais para Transição de Carreira e Crescimento */}
-          {(intentType === 'career_transition' || intentType === 'same_area_grow') && (
-            <div className="p-5 rounded-2xl bg-purple-500/5 border border-purple-500/20 space-y-4 animate-fade-in">
-              <div className="flex items-center gap-2">
-                <Compass className="text-purple-500" size={16} />
-                <h3 className="text-xs font-bold uppercase tracking-wider text-purple-700 dark:text-purple-300">
-                  {intentType === 'career_transition' ? 'Detalhes da Transição Pretendida' : 'Direcionamento de Crescimento'}
-                </h3>
+          {/* Banner de Orientação Inteligente por Modo */}
+          <div className="p-4 rounded-2xl border transition-all text-xs space-y-1.5 animate-fade-in bg-purple-50/50 dark:bg-purple-950/20 border-purple-200 dark:border-purple-800/40">
+            {intentType === 'career_transition' && (
+              <div className="flex items-start gap-2.5">
+                <Compass className="text-purple-600 dark:text-purple-400 shrink-0 mt-0.5" size={16} />
+                <div className="space-y-0.5">
+                  <span className="font-bold text-purple-900 dark:text-purple-200 block">Modo Transição de Carreira Ativo</span>
+                  <p className="text-purple-700 dark:text-purple-300/90 text-[11px] leading-relaxed">
+                    A IA vai cruzar suas <strong>competências transferíveis</strong> do histórico com as exigências da nova área, calculando seu potencial de transição sem desvalorizar sua bagagem anterior.
+                  </p>
+                </div>
               </div>
+            )}
+            {intentType === 'same_area_grow' && (
+              <div className="flex items-start gap-2.5">
+                <TrendingUp className="text-brand-600 dark:text-brand-400 shrink-0 mt-0.5" size={16} />
+                <div className="space-y-0.5">
+                  <span className="font-bold text-slate-900 dark:text-slate-100 block">Modo Crescimento Profissional</span>
+                  <p className="text-slate-600 dark:text-slate-300 text-[11px] leading-relaxed">
+                    Priorizaremos posições de maior senioridade e liderança técnica na sua área de atuação.
+                  </p>
+                </div>
+              </div>
+            )}
+            {intentType === 'same_area_continue' && (
+              <div className="flex items-start gap-2.5">
+                <Target className="text-emerald-600 dark:text-emerald-400 shrink-0 mt-0.5" size={16} />
+                <div className="space-y-0.5">
+                  <span className="font-bold text-slate-900 dark:text-slate-100 block">Modo Continuidade na Área</span>
+                  <p className="text-slate-600 dark:text-slate-300 text-[11px] leading-relaxed">
+                    Foco em encontrar as melhores vagas e acelerar sua candidatura mantendo sua área de atuação atual.
+                  </p>
+                </div>
+              </div>
+            )}
+            {intentType === 'exploring' && (
+              <div className="flex items-start gap-2.5">
+                <Sparkles className="text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" size={16} />
+                <div className="space-y-0.5">
+                  <span className="font-bold text-slate-900 dark:text-slate-100 block">Modo Exploração de Possibilidades</span>
+                  <p className="text-slate-600 dark:text-slate-300 text-[11px] leading-relaxed">
+                    Você não precisa definir um cargo fixo agora. Vamos descobrir e sugerir caminhos alinhados às suas habilidades mapeadas.
+                  </p>
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Formulário de Preferências e Direcionamento */}
+          <div className="p-5 rounded-2xl bg-card border border-border space-y-4 animate-fade-in">
+            <div className="flex items-center gap-2">
+              <Compass className="text-purple-500" size={16} />
+              <h3 className="text-xs font-bold uppercase tracking-wider text-foreground">
+                {intentType === 'career_transition'
+                  ? 'Detalhes da Transição Pretendida'
+                  : intentType === 'same_area_grow'
+                  ? 'Direcionamento de Crescimento'
+                  : intentType === 'exploring'
+                  ? 'Preferências de Exploração (Opcional)'
+                  : 'Preferências da Oportunidade Desejada'}
+              </h3>
+            </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 
@@ -352,7 +405,6 @@ export const CareerGoalCard: React.FC<CareerGoalCardProps> = ({
 
               </div>
             </div>
-          )}
 
           {/* Botão de Ação Salvar */}
           <div className="flex justify-end pt-2">

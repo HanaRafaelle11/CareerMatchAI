@@ -26,23 +26,23 @@ export function OnboardingModal({ isOpen, onClose, onStartUpload, onNavigateTab 
   const steps = [
     {
       title: 'Bem-vindo ao VoCentro! 🚀',
-      subtitle: 'Sua plataforma inteligente de carreira impulsionada por IA.',
+      subtitle: 'Sua plataforma inteligente de carreira e recolocação profissional.',
       icon: Sparkles,
       iconColor: 'text-[#4F8EF7]',
       content: (
         <div className="space-y-3 text-slate-300 text-xs leading-relaxed">
           <p>
-            O VoCentro cruza as competências do seu currículo com exigências reais de vagas de tecnologia, calculando a nota de <strong>Match Semântico (0 a 100%)</strong> em segundos.
+            O VoCentro cruza as competências do seu currículo com exigências reais de vagas do mercado, calculando sua <strong>compatibilidade real (0 a 100%)</strong> em segundos.
           </p>
           <div className="p-3 rounded-xl bg-slate-950/60 border border-slate-800 space-y-1.5 font-mono text-[11px]">
             <div className="flex items-center gap-2 text-emerald-400 font-bold">
-              <CheckCircle2 size={14} /> Match Semântico de Vagas
+              <CheckCircle2 size={14} /> Afinidade com Vagas do Mercado
             </div>
             <div className="flex items-center gap-2 text-brand-400 font-bold">
-              <CheckCircle2 size={14} /> Simulações de Entrevista STAR com IA
+              <CheckCircle2 size={14} /> Treino de Entrevistas com IA (Método STAR)
             </div>
             <div className="flex items-center gap-2 text-amber-400 font-bold">
-              <CheckCircle2 size={14} /> Pipeline Kanban de Acompanhamento
+              <CheckCircle2 size={14} /> Painel de Acompanhamento de Candidaturas
             </div>
           </div>
         </div>
@@ -56,31 +56,31 @@ export function OnboardingModal({ isOpen, onClose, onStartUpload, onNavigateTab 
       content: (
         <div className="space-y-3 text-slate-300 text-xs leading-relaxed">
           <p>
-            Na sua página inicial, o Copiloto IA sugere <strong>3 ações diárias de 15 minutos</strong> para manter seu progresso constante no mercado.
+            Na sua página inicial, o Copiloto sugere <strong>3 ações diárias de 15 minutos</strong> para manter seu progresso constante no mercado.
           </p>
           <div className="p-3.5 rounded-xl bg-emerald-950/20 border border-emerald-500/20 space-y-2">
             <span className="text-[10px] font-bold uppercase tracking-wider text-emerald-400 block">Exemplo do Plano do Dia:</span>
             <ul className="space-y-1.5 text-[11px] text-slate-200">
               <li>1. Upload ou atualização do currículo-mestre</li>
-              <li>2. Cálculo de Match para 2 vagas sugeridas</li>
-              <li>3. Treinamento de 1 pergunta comportamental com a IA</li>
+              <li>2. Cálculo de compatibilidade para vagas recomendadas</li>
+              <li>3. Treinamento de 1 resposta de entrevista com IA</li>
             </ul>
           </div>
         </div>
       )
     },
     {
-      title: 'Pipeline Kanban de Carreira 📊',
-      subtitle: 'Controle visual de todas as suas candidaturas ativas.',
+      title: 'Painel de Candidaturas 📊',
+      subtitle: 'Controle visual de todos os seus processos seletivos ativos.',
       icon: Layers,
       iconColor: 'text-amber-400',
       content: (
         <div className="space-y-3 text-slate-300 text-xs leading-relaxed">
           <p>
-            Na aba <strong>Jornada & Pipeline</strong>, você arrasta seus cards entre as etapas: de <i>"Salvas"</i> a <i>"Entrevista RH"</i> e <i>"Oferta"</i>.
+            Na aba <strong>Minhas Candidaturas</strong>, você acompanha seus processos entre as etapas: de <i>"Salvas"</i> e <i>"Enviadas"</i> a <i>"Entrevista"</i> e <i>"Oferta"</i>.
           </p>
           <p className="text-slate-400 text-[11px]">
-            O copiloto recalcula suas probabilidades de avanço e indica exatamente quando fazer follow-up com os recrutadores.
+            O assistente estima suas chances de avanço e indica o momento ideal para fazer follow-up com os recrutadores.
           </p>
         </div>
       )
@@ -93,7 +93,7 @@ export function OnboardingModal({ isOpen, onClose, onStartUpload, onNavigateTab 
       content: (
         <div className="space-y-4 text-slate-300 text-xs leading-relaxed text-center py-2">
           <p>
-            Para dar o primeiro passo, faça o upload do seu currículo em PDF. Nossa IA vai extrair suas experiências e calcular seu primeiro Match automaticamente!
+            Para dar o primeiro passo, envie seu currículo em PDF. Nossa IA vai extrair suas experiências e encontrar suas primeiras vagas compatíveis automaticamente!
           </p>
           <button
             onClick={handleStart}

@@ -1,0 +1,68 @@
+{
+  "dictionary_version": "Fase 12 Copy & Terminology Standard",
+  "generated_at": "2026-08-18T23:05:00Z",
+  "principles": [
+    "Foco no benefício do candidato, não na mecânica da engenharia.",
+    "Eliminar anglicismos e jargões metodológicos desnecessários em telas principais.",
+    "Nunca expor números de versão de software ('V3', 'v2.4') ao usuário final.",
+    "Manter consistência absoluta entre telas (Landing, Dashboard, Perfil, Vagas, Pipeline)."
+  ],
+  "terms": [
+    {
+      "avoid_term": "Match Semântico",
+      "preferred_term": "Afinidade com a vaga (ou Compatibilidade com seu perfil)",
+      "context": "Onboarding, modais, tooltips e descrições de matching.",
+      "rationale": "'Semântico' é jargão de processamento de linguagem natural. O usuário quer saber o quanto a vaga combina com ele.",
+      "code_locations": ["OnboardingModal.tsx", "LandingPage.tsx"]
+    },
+    {
+      "avoid_term": "Career Score (em inglês)",
+      "preferred_term": "Diagnóstico de Carreira (ou Índice de Competitividade)",
+      "context": "Dashboard, Perfil e cards de pontuação de mercado.",
+      "rationale": "Termo em português comunica clareza imediata e evita parecer uma nota punitiva de prova.",
+      "code_locations": ["Dashboard.tsx", "CareerScoreDashboardCard.tsx", "Profile.tsx"]
+    },
+    {
+      "avoid_term": "Pipeline / Pipeline Kanban",
+      "preferred_term": "Painel de Candidaturas / Minhas Candidaturas",
+      "context": "Navegação principal, cabeçalhos de acompanhamento de vagas e botões de status.",
+      "rationale": "'Pipeline' é jargão de CRM de vendas corporativas. O candidato quer acompanhar suas vagas e entrevistas.",
+      "code_locations": ["Navbar.tsx", "Dashboard.tsx", "OnboardingModal.tsx", "StrategyPage.tsx"]
+    },
+    {
+      "avoid_term": "Diagnóstico de Compatibilidade V3 / Match IA v2.4",
+      "preferred_term": "Diagnóstico de Compatibilidade / Inteligência de Match",
+      "context": "HumanizedMatchCard, HeroProductMockup e cabeçalhos de análise de vagas.",
+      "rationale": "Versionamento de software é ruído interno e transmite sensação de produto beta ou em testes.",
+      "code_locations": ["HumanizedMatchCard.tsx", "HeroProductMockup.tsx"]
+    },
+    {
+      "avoid_term": "Vagas de tecnologia (como restrição)",
+      "preferred_term": "Vagas do mercado",
+      "context": "Onboarding e textos de proposta de valor.",
+      "rationale": "Evita afastar profissionais generalistas, de operações, vendas, RH, saúde e finanças.",
+      "code_locations": ["OnboardingModal.tsx"]
+    },
+    {
+      "avoid_term": "Copiloto IA (como marca isolada)",
+      "preferred_term": "VoCentro (Plataforma) | Copiloto de Carreira (Assistente)",
+      "context": "Toda a interface.",
+      "rationale": "Consolida a marca VoCentro e posiciona o assistente como copiloto estratégico de carreira.",
+      "code_locations": ["Dashboard.tsx", "GlobalCopilotDrawer.tsx"]
+    },
+    {
+      "avoid_term": "Simulações de Entrevista STAR com IA (sem explicação)",
+      "preferred_term": "Treino de Entrevistas com IA (Método STAR)",
+      "context": "Onboarding, CoachDashboard e navegação.",
+      "rationale": "Explica que se trata de uma simulação de entrevista antes de citar a sigla metodológica STAR.",
+      "code_locations": ["OnboardingModal.tsx", "CoachDashboard.tsx"]
+    },
+    {
+      "avoid_term": "WCAG AA Compliant (como claim não validada)",
+      "preferred_term": "Compromisso com Acessibilidade e Padrões Web",
+      "context": "Rodapé da Landing Page e termos institucionais.",
+      "rationale": "Elimina risco regulatório e de credibilidade até que haja auditoria formal completa.",
+      "code_locations": ["LandingPage.tsx"]
+    }
+  ]
+}

@@ -14,7 +14,9 @@ import {
   Target,
   Activity,
   Lock,
-  Zap
+  Zap,
+  Menu,
+  X
 } from 'lucide-react';
 import { VocentroLogo } from '../components/ds/MyCareerIcons';
 import { ThemeToggle } from '../components/ThemeToggle';
@@ -27,6 +29,7 @@ interface LandingPageProps {
 export function LandingPage({ onNavigateToAuth }: LandingPageProps) {
   const [activeFaq, setActiveFaq] = useState<number | null>(null);
   const [transparencyTab, setTransparencyTab] = useState<'data' | 'flow' | 'security'>('data');
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   const [pricingCycle, setPricingCycle] = useState<'WEEKLY' | 'MONTHLY'>('MONTHLY');
 
@@ -105,6 +108,14 @@ export function LandingPage({ onNavigateToAuth }: LandingPageProps) {
   return (
     <div className="min-h-screen bg-background text-foreground font-sans relative selection:bg-brand-500/30 selection:text-primary transition-colors duration-200">
       
+      {/* ── SKIP-TO-CONTENT LINK ACESSÍVEL (WCAG 2.4.1) ── */}
+      <a 
+        href="#main-content" 
+        className="sr-only focus:not-sr-only focus:fixed focus:top-3 focus:left-3 focus:z-[100] focus:px-4 focus:py-2.5 focus:bg-brand-600 focus:text-white focus:font-bold focus:text-xs focus:rounded-xl focus:shadow-2xl focus:outline-none focus:ring-2 focus:ring-white"
+      >
+        Pular para o conteúdo principal
+      </a>
+
       {/* Schema JSON-LD para SEO */}
       <script
         type="application/ld+json"
@@ -140,18 +151,105 @@ export function LandingPage({ onNavigateToAuth }: LandingPageProps) {
           <ThemeToggle />
           <button 
             onClick={() => onNavigateToAuth('login')}
-            className="text-xs font-bold text-muted-foreground hover:text-foreground transition-colors cursor-pointer px-3 py-2"
+            className="hidden sm:inline-flex text-xs font-bold text-muted-foreground hover:text-foreground transition-colors cursor-pointer px-3 py-2"
           >
             Entrar
           </button>
           <button 
             onClick={() => onNavigateToAuth('signup')}
-            className="px-4 py-2 text-xs font-bold text-white bg-brand-500 hover:bg-brand-600 rounded-xl transition-all shadow-md cursor-pointer"
+            className="px-3.5 sm:px-4 py-2 text-xs font-bold text-white bg-brand-500 hover:bg-brand-600 rounded-xl transition-all shadow-md cursor-pointer shrink-0"
           >
             Criar conta grátis
           </button>
+
+          {/* Botão Hamburger Mobile */}
+          <button
+            type="button"
+            aria-label={mobileMenuOpen ? 'Fechar menu de navegação' : 'Abrir menu de navegação'}
+            aria-expanded={mobileMenuOpen}
+            onClick={() => setMobileMenuOpen(prev => !prev)}
+            className="lg:hidden p-2 rounded-xl text-muted-foreground hover:text-foreground hover:bg-card border border-border transition-colors cursor-pointer"
+          >
+            {mobileMenuOpen ? <X size={18} /> : <Menu size={18} />}
+          </button>
         </div>
       </header>
+
+      {/* ── GAVETA / DROPDOWN DE NAVEGAÇÃO MOBILE ── */}
+      {mobileMenuOpen && (
+        <div className="fixed top-16 left-0 right-0 z-40 bg-card/98 backdrop-blur-xl border-b border-border p-5 space-y-4 shadow-2xl lg:hidden animate-slide-in">
+          <nav className="flex flex-col gap-3" aria-label="Navegação Mobile">
+            <a 
+              href="#funcionalidades" 
+              onClick={() => setMobileMenuOpen(false)}
+              className="text-sm font-semibold text-foreground hover:text-brand-500 py-1.5 transition-colors"
+            >
+              Funcionalidades
+            </a>
+            <a 
+              href="#transparencia" 
+              onClick={() => setMobileMenuOpen(false)}
+              className="text-sm font-semibold text-foreground hover:text-brand-500 py-1.5 transition-colors"
+            >
+              Transparência & Login Seguro
+            </a>
+            <a 
+              href="#planos" 
+              onClick={() => setMobileMenuOpen(false)}
+              className="text-sm font-semibold text-foreground hover:text-brand-500 py-1.5 transition-colors"
+            >
+              Planos & Preços
+            </a>
+            <a 
+              href="#faq" 
+              onClick={() => setMobileMenuOpen(false)}
+              className="text-sm font-semibold text-foreground hover:text-brand-500 py-1.5 transition-colors"
+            >
+              Perguntas Frequentes (FAQ)
+            </a>
+            <div className="pt-2 border-t border-border flex flex-col gap-2">
+              <button 
+                onClick={() => {
+                  setMobileMenuOpen(false);
+                  navigateToRoute('/politica-de-privacidade');
+                }}
+                className="text-left text-xs font-medium text-muted-foreground hover:text-foreground py-1"
+              >
+                Política de Privacidade
+              </button>
+              <button 
+                onClick={() => {
+                  setMobileMenuOpen(false);
+                  navigateToRoute('/termos-de-uso');
+                }}
+                className="text-left text-xs font-medium text-muted-foreground hover:text-foreground py-1"
+              >
+                Termos de Uso
+              </button>
+            </div>
+            <div className="pt-2 border-t border-border flex items-center gap-3">
+              <button
+                onClick={() => {
+                  setMobileMenuOpen(false);
+                  onNavigateToAuth('login');
+                }}
+                className="flex-1 py-2.5 rounded-xl border border-border text-center text-xs font-bold text-foreground hover:bg-card transition-colors"
+              >
+                Entrar
+              </button>
+              <button
+                onClick={() => {
+                  setMobileMenuOpen(false);
+                  onNavigateToAuth('signup');
+                }}
+                className="flex-1 py-2.5 rounded-xl bg-brand-500 hover:bg-brand-600 text-center text-xs font-bold text-white transition-colors"
+              >
+                Criar Conta
+              </button>
+            </div>
+          </nav>
+        </div>
+      )}
 
       {/* ── MAIN CONTENT ── */}
       <main id="main-content" className="w-full pt-16">
@@ -716,7 +814,7 @@ export function LandingPage({ onNavigateToAuth }: LandingPageProps) {
 
         <div className="max-w-7xl mx-auto pt-8 mt-8 border-t border-border flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-muted-foreground">
           <p>© {new Date().getFullYear()} Vocentro Tecnologia. Todos os direitos reservados.</p>
-          <p className="font-mono text-[11px]">Vocentro OAuth 2.0 Verified • WCAG AA Compliant</p>
+          <p className="font-mono text-[11px]">Vocentro • Autenticação Segura OAuth 2.0 • Compromisso com Acessibilidade e Padrões Web</p>
         </div>
       </footer>
 

@@ -1,0 +1,96 @@
+{
+  "audit_phase": "Fase 12 — Abandonment Friction Points & Mitigations",
+  "generated_at": "2026-08-18T23:06:00Z",
+  "friction_points": [
+    {
+      "id": "AB-01",
+      "stage": "Landing Page (Mobile)",
+      "friction_description": "Falta de menu de navegação mobile impossibilitava usuários de celular de acessarem seções de Planos, Funcionalidades, FAQ e Termos.",
+      "severity": "P0 (Crítico)",
+      "persona_impacted": "Rafael (100% Mobile) e novos visitantes em smartphones",
+      "mitigation_implemented": "Implementado menu hamburger responsivo com links âncora acessíveis e botões de Entrar/Criar Conta dedicados.",
+      "status": "RESOLVIDO"
+    },
+    {
+      "id": "AB-02",
+      "stage": "Onboarding Modal",
+      "friction_description": "Jargões de engenharia e NLP ('Match Semântico', 'Pipeline Kanban', 'vagas de tecnologia') causavam estranheza e afastamento de profissionais de áreas não-técnicas.",
+      "severity": "P0 (Crítico)",
+      "persona_impacted": "Mariana (CS → PM), Juliana (Operações), Patrícia (Explorando)",
+      "mitigation_implemented": "Substituição completa por linguagem amigável em português: 'Afinidade real com a vaga', 'Painel de Candidaturas', 'Vagas do mercado', 'Treino de Entrevistas'.",
+      "status": "RESOLVIDO"
+    },
+    {
+      "id": "AB-03",
+      "stage": "Definição do Objetivo Profissional",
+      "friction_description": "Falta de orientação sobre competências transferíveis em transição de carreira e campos ocultados em modos de continuidade.",
+      "severity": "P0 (Crítico)",
+      "persona_impacted": "Mariana (Transição de Carreira) e Carlos (Crescimento)",
+      "mitigation_implemented": "Criados banners explicativos e contextuais para cada um dos 4 modos (Continuidade, Crescimento, Transição, Exploração) com suporte a competências transferíveis.",
+      "status": "RESOLVIDO"
+    },
+    {
+      "id": "AB-04",
+      "stage": "Acompanhamento de Candidaturas (Mobile)",
+      "friction_description": "Rolagem horizontal forçada de 7 colunas ou altura infinita no celular dificultava o acompanhamento de processos seletivos.",
+      "severity": "P0 (Crítico)",
+      "persona_impacted": "Rafael (Mobile) e todos os usuários em celulares < 768px",
+      "mitigation_implemented": "Implementado Seletor de Estágios Rápido (Segmented Control / Abas) permitindo focar em uma coluna por vez ou ver todas confortavelmente.",
+      "status": "RESOLVIDO"
+    },
+    {
+      "id": "AB-05",
+      "stage": "Simulador de Entrevista (Treino com IA)",
+      "friction_description": "Bloqueio imediato por paywall na primeira tentativa de simular uma entrevista impedia o usuário de experienciar o valor do método STAR.",
+      "severity": "P1 (Alto)",
+      "persona_impacted": "Todos os novos usuários gratuitos",
+      "mitigation_implemented": "Liberada 1 simulação completa gratuita de degustação com relatório detalhado de IA antes de acionar a barreira Pro.",
+      "status": "RESOLVIDO"
+    },
+    {
+      "id": "AB-06",
+      "stage": "Acessibilidade & Teclado",
+      "friction_description": "Ausência de link 'Pular para o conteúdo principal' forçava usuários de navegação assistiva a percorrer todo o cabeçalho a cada página.",
+      "severity": "P0 (Crítico)",
+      "persona_impacted": "Usuários de leitor de tela e navegação estrita por teclado",
+      "mitigation_implemented": "Adicionado skip-link semântico WCAG 2.4.1 no topo da Landing Page com foco visível.",
+      "status": "RESOLVIDO"
+    },
+    {
+      "id": "AB-07",
+      "stage": "Descoberta de Vagas",
+      "friction_description": "Filtros restritivos que retornavam 0 vagas exibiam tela sem orientação clara de recuperação.",
+      "severity": "P1 (Alto)",
+      "persona_impacted": "Patrícia (Explorando) e Carlos (Filtros específicos)",
+      "mitigation_implemented": "EmptyState acionável com sugestões claras de ampliação e botão direto 'Restaurar Busca Padrão'.",
+      "status": "RESOLVIDO"
+    },
+    {
+      "id": "AB-08",
+      "stage": "Match Card & Mockups",
+      "friction_description": "Vazamento de nomes de versão de engenharia ('Diagnóstico de Compatibilidade V3', 'Match IA v2.4') causava ruído de maturidade do produto.",
+      "severity": "P1 (Médio)",
+      "persona_impacted": "Todos os usuários",
+      "mitigation_implemented": "Terminologia padronizada para 'Diagnóstico de Compatibilidade' e 'Inteligência de Match'.",
+      "status": "RESOLVIDO"
+    },
+    {
+      "id": "AB-09",
+      "stage": "Candidatura Externa",
+      "friction_description": "Dúvida do candidato se a candidatura estava sendo enviada pelo app ou se abriria o site da empresa.",
+      "severity": "P1 (Médio)",
+      "persona_impacted": "Novos candidatos",
+      "mitigation_implemented": "Microcopy contextual no CTA: indicação de redirecionamento seguro para a página oficial da empresa recrutadora.",
+      "status": "RESOLVIDO"
+    },
+    {
+      "id": "AB-10",
+      "stage": "Credibilidade & Rodapé",
+      "friction_description": "Afirmação genérica 'WCAG AA Compliant' sem certificação formal trazia risco regulatório.",
+      "severity": "P1 (Médio)",
+      "persona_impacted": "Visitantes e auditores",
+      "mitigation_implemented": "Atualizado para 'Compromisso com Acessibilidade e Padrões Web' alinhado às melhores práticas.",
+      "status": "RESOLVIDO"
+    }
+  ]
+}

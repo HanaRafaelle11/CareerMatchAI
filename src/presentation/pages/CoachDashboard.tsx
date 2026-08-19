@@ -221,6 +221,9 @@ export function CoachDashboard({
   const [isStartingSim, setIsStartingSim] = useState(false);
   const [isResettingSim, setIsResettingSim] = useState(false);
 
+  const hasFreeTrialAvailable = !isPro && (simulationsHistory?.length || 0) === 0;
+  const canSimulate = isPro || canUseAiTraining || hasFreeTrialAvailable;
+
   const handleStartSim = async (appIdToStart?: string) => {
     let targetAppId = appIdToStart || selectedAppId;
     if (!targetAppId && activeApps.length > 0) {
@@ -231,7 +234,7 @@ export function CoachDashboard({
       setToast({ message: 'Por favor, adicione uma vaga no seu painel para iniciar o treino com IA.', type: 'warning' });
       return;
     }
-    if (!isPro && !canUseAiTraining) {
+    if (!canSimulate) {
       triggerPaywall('ia_training');
       return;
     }
@@ -270,7 +273,7 @@ export function CoachDashboard({
     const textToSend = candidateResponse.trim();
     if (!simulation || !textToSend || isSending) return;
 
-    if (!isPro && !canUseAiTraining) {
+    if (!canSimulate) {
       triggerPaywall('ia_training');
       return;
     }
@@ -846,13 +849,25 @@ export function CoachDashboard({
                           ))}
                         </select>
                       </div>
+                      {hasFreeTrialAvailable ? (
+                        <div className="w-full max-w-sm p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs flex items-center justify-between gap-2">
+                          <span className="font-semibold">🎁 1 Simulação Gratuita Disponível</span>
+                          <Badge variant="success" size="sm">Degustação</Badge>
+                        </div>
+                      ) : !isPro ? (
+                        <div className="w-full max-w-sm p-3 rounded-xl bg-purple-500/10 border border-purple-500/20 text-purple-400 text-xs flex items-center justify-between gap-2">
+                          <span className="font-semibold">⭐ Treinos STAR Ilimitados no Pro</span>
+                          <Badge variant="premium" size="sm">Plano Pro</Badge>
+                        </div>
+                      ) : null}
+
                       <button
                         onClick={() => handleStartSim()}
                         disabled={loadingSim || isStartingSim}
                         className="px-8 py-3 rounded-[14px] bg-brand-500 hover:bg-brand-600 text-white font-bold text-xs flex items-center justify-center gap-2 shadow-md w-full max-w-sm transition-all transform active:scale-95 disabled:opacity-50 cursor-pointer"
                       >
                         {loadingSim || isStartingSim ? <Loader2 size={14} className="animate-spin" /> : <Play size={14} />}
-                        <span>{isStartingSim ? 'Iniciando...' : 'Iniciar Simulação'}</span>
+                        <span>{isStartingSim ? 'Iniciando...' : hasFreeTrialAvailable ? 'Iniciar Simulação Gratuita' : 'Iniciar Simulação'}</span>
                       </button>
                     </div>
                   )}

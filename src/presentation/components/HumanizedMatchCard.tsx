@@ -220,7 +220,7 @@ export function HumanizedMatchCard({
         <div className="space-y-1.5 min-w-0">
           <div className="flex items-center gap-2 flex-wrap">
             <span className="text-[11px] font-bold dark:text-slate-400 text-slate-500 uppercase tracking-wider">
-              Diagnóstico de Compatibilidade V3
+              Diagnóstico de Compatibilidade
             </span>
             <span className={`inline-flex items-center gap-1 text-[10px] px-2.5 py-0.5 rounded-full font-bold border ${semanticFit.badgeClass}`}>
               {semanticFit.icon}

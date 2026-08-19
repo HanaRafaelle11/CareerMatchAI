@@ -1,0 +1,75 @@
+{
+  "dictionary_name": "VoCentro Canonical Metrics Dictionary",
+  "version": "6.0",
+  "date": "2026-08-19T12:10:00.000Z",
+  "metrics": [
+    {
+      "key": "DAU",
+      "name": "Daily Active Users",
+      "definition": "Contagem de user_id distintos que emitiram ao menos 1 evento ou ação nas últimas 24 horas consecutivas (rolling 24h window).",
+      "formula": "COUNT(DISTINCT user_id) WHERE timestamp >= now() - 24h",
+      "invariants": "DAU <= WAU <= MAU",
+      "zero_handling": "Retorna 0 se nenhum usuário interagiu; 'Erro' se query falhou"
+    },
+    {
+      "key": "WAU",
+      "name": "Weekly Active Users",
+      "definition": "Contagem de user_id distintos que emitiram ao menos 1 evento ou ação nos últimos 7 dias (rolling 7d window).",
+      "formula": "COUNT(DISTINCT user_id) WHERE timestamp >= now() - 7d",
+      "invariants": "WAU >= DAU AND WAU <= MAU",
+      "zero_handling": "Retorna 0 se nenhum usuário interagiu; 'Erro' se query falhou"
+    },
+    {
+      "key": "MAU",
+      "name": "Monthly Active Users",
+      "definition": "Contagem de user_id distintos que emitiram ao menos 1 evento ou ação nos últimos 30 dias (rolling 30d window).",
+      "formula": "COUNT(DISTINCT user_id) WHERE timestamp >= now() - 30d",
+      "invariants": "MAU >= WAU >= DAU",
+      "zero_handling": "Retorna 0 se nenhum usuário interagiu; 'Erro' se query falhou"
+    },
+    {
+      "key": "STICKINESS",
+      "name": "Engajamento Relativo Diário / Mensal",
+      "definition": "Percentual de retenção diária em relação à base mensal ativa.",
+      "formula": "MAU > 0 ? (DAU / MAU) * 100 : 0",
+      "invariants": "0 <= STICKINESS <= 100%",
+      "zero_handling": "Retorna 0.0% se MAU = 0 sem divisão por zero"
+    },
+    {
+      "key": "ACTIVATION_FUNNEL",
+      "name": "Taxas de Conversão do Funil de Ativação",
+      "definition": "Cálculo sequencial da proporção de usuários que avançam em cada etapa da jornada de valor.",
+      "steps": [
+        "Cadastro (Total Registered)",
+        "Upload de Currículo (Resume Upload)",
+        "Visualização de Match (Match Viewed)",
+        "Candidatura / Ação (Applied / Saved)",
+        "Conversão Pro (Pro Subscription)"
+      ],
+      "rates": {
+        "uploadRate": "(uploadedResume / totalRegistered) * 100",
+        "matchViewRate": "(viewedMatch / uploadedResume) * 100",
+        "applyRate": "(appliedOrSaved / viewedMatch) * 100",
+        "proConversionRate": "(proConverted / totalRegistered) * 100"
+      },
+      "zero_handling": "Divisão por zero protegida retornando 0%"
+    },
+    {
+      "key": "TIME_TO_VALUE_TTFV",
+      "name": "Tempo até Primeiro Valor (Time to Value)",
+      "definition": "Tempo decorrido em minutos entre o cadastro do usuário e a primeira visualização de match ou otimização bem-sucedida.",
+      "aggregations": ["P50", "P75", "P90", "Average"],
+      "unit": "Minutos"
+    },
+    {
+      "key": "AI_TOKEN_COST",
+      "name": "Custo Real de Consumo de IA (Gemini 3.6 Flash)",
+      "definition": "Consumo financeiro real baseado nos tokens de input e output registrados por requisição no Supabase ai_usage_logs.",
+      "skus": {
+        "gemini_flash_input_per_million": "$0.075",
+        "gemini_flash_output_per_million": "$0.30",
+        "usd_to_brl_rate": 5.80
+      }
+    }
+  ]
+}

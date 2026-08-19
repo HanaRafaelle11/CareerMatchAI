@@ -99,7 +99,10 @@ export class AdminAuditService {
       email.endsWith('@vocentro.com.br') ||
       email.includes('qa') ||
       email.includes('exemplo') ||
-      email.includes('demo')
+      email.includes('example') ||
+      email.includes('demo') ||
+      email.includes('e2e') ||
+      email.includes('hanarafaelle11@gmail.com')
     );
   }
 }

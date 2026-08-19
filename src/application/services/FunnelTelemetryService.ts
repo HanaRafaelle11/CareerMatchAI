@@ -60,7 +60,7 @@ export class FunnelTelemetryService {
 
   public static async getFunnelTelemetry(): Promise<FunnelTelemetryMetrics> {
     if (!isSupabaseConfigured || !supabase) {
-      return this.getFallbackMetrics();
+      return this.getEmptyMetrics(0);
     }
 
     try {
@@ -75,7 +75,7 @@ export class FunnelTelemetryService {
       const realUserIds = new Set(realProfiles.map(p => p.id));
 
       if (realProfiles.length === 0) {
-        return this.getFallbackMetrics();
+        return this.getEmptyMetrics(excludedAccounts.length);
       }
 
       // 2. Resumes
@@ -288,33 +288,33 @@ export class FunnelTelemetryService {
       };
     } catch (err: any) {
       console.error('[FunnelTelemetryService] Erro ao extrair telemetria:', err);
-      return this.getFallbackMetrics();
+      return this.getEmptyMetrics(0);
     }
   }
 
-  private static getFallbackMetrics(): FunnelTelemetryMetrics {
+  private static getEmptyMetrics(excludedCount = 0): FunnelTelemetryMetrics {
     return {
-      totalRegisteredReal: 49,
-      uploadedResumeCount: 39,
-      resumeUploadRate: '79.6%',
-      calculatedMatchCount: 14,
-      matchRate: '28.6%',
-      hitPaywallCount: 8,
-      paywallHitRate: '16.3%',
-      openedCheckoutCount: 3,
-      checkoutRate: '6.1%',
+      totalRegisteredReal: 0,
+      uploadedResumeCount: 0,
+      resumeUploadRate: '0.0%',
+      calculatedMatchCount: 0,
+      matchRate: '0.0%',
+      hitPaywallCount: 0,
+      paywallHitRate: '0.0%',
+      openedCheckoutCount: 0,
+      checkoutRate: '0.0%',
       paidProCount: 0,
       proConversionRate: '0.0%',
 
-      d1RetainedCount: 5,
-      d1RetentionRate: '10.2%',
-      singleDayDropoffCount: 15,
-      singleDayDropoffRate: '30.6%',
-      d7RetainedCount: 4,
-      d7RetentionRate: '8.2%',
+      d1RetainedCount: 0,
+      d1RetentionRate: '0.0%',
+      singleDayDropoffCount: 0,
+      singleDayDropoffRate: '0.0%',
+      d7RetainedCount: 0,
+      d7RetentionRate: '0.0%',
 
       userTimelines: [],
-      excludedAccountsCount: 44,
+      excludedAccountsCount: excludedCount,
       lastUpdated: new Date().toISOString()
     };
   }

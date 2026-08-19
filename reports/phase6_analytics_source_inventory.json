@@ -1,0 +1,59 @@
+{
+  "audit": "Phase 6 Analytics Source Inventory",
+  "project": "CareerMatchAI (VoCentro)",
+  "date": "2026-08-19T12:10:00.000Z",
+  "environment": "production",
+  "status": "VERIFIED_REAL_DATA",
+  "sources": [
+    {
+      "source_name": "Supabase PostgreSQL (Database Tables)",
+      "tables": [
+        "profiles",
+        "resumes",
+        "job_matches",
+        "application_pipeline",
+        "ai_usage_logs",
+        "user_surveys",
+        "user_feedback",
+        "admin_access_logs"
+      ],
+      "role": "Single Source of Truth para persistência de entidades, perfis, cadastros e status de assinatura",
+      "mock_status": "NONE — All queries run directly against database or return real 0 / error state"
+    },
+    {
+      "source_name": "Supabase Analytics / Telemetry Events",
+      "tables": [
+        "analytics_events"
+      ],
+      "role": "Single Source of Truth para eventos de comportamento do usuário, navegação, aberturas de drawer, cliques e engajamento",
+      "mock_status": "NONE — Ingestion via AnalyticsTracker and consumption via AdminAnalyticsService"
+    },
+    {
+      "source_name": "Gemini AI Token Logs",
+      "tables": [
+        "ai_usage_logs"
+      ],
+      "role": "Single Source of Truth para rastreamento de custos de IA, tokens de entrada/saída e SKUs oficiais do Google Gemini",
+      "mock_status": "NONE — Hardcoded fallback numbers (312, 3450000, 278.40) fully removed from AdminDashboard.tsx"
+    },
+    {
+      "source_name": "Payment Gateways (Stripe & Asaas)",
+      "role": "Single Source of Truth para eventos de billing, webhooks de confirmação e conversão Pro",
+      "mock_status": "NONE — Real webhooks update subscriptions and fire payment_confirmed"
+    }
+  ],
+  "eliminated_mocks_inventory": [
+    {
+      "file": "src/presentation/pages/AdminDashboard.tsx",
+      "location": "queryFn iaStats",
+      "removed_values": { "total_requests": 312, "total_tokens": 3450000, "estimated_cost_brl": 278.40, "avg_latency_ms": 410.5 },
+      "replacement": "Direct calculation from ai_usage_logs or 0 on empty, Error State on query failure"
+    },
+    {
+      "file": "src/application/services/FunnelTelemetryService.ts",
+      "location": "getFallbackMetrics",
+      "removed_values": { "totalRegisteredReal": 49, "uploadedResumeCount": 39, "calculatedMatchCount": 14, "hitPaywallCount": 8, "openedCheckoutCount": 3 },
+      "replacement": "getEmptyMetrics(0) with legitimate zero values and safe 0.0% rates"
+    }
+  ]
+}

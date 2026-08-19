@@ -1,0 +1,109 @@
+{
+  "catalog_name": "VoCentro Canonical Event Catalog",
+  "version": "6.0",
+  "date": "2026-08-19T12:10:00.000Z",
+  "events": [
+    {
+      "name": "signup_completed",
+      "category": "Auth",
+      "trigger": "Conclusão de cadastro por Google OAuth ou Magic Link",
+      "properties": ["auth_provider", "entry_intent"]
+    },
+    {
+      "name": "login_completed",
+      "category": "Auth",
+      "trigger": "Autenticação bem-sucedida de usuário existente",
+      "properties": ["auth_provider"]
+    },
+    {
+      "name": "profile_updated",
+      "category": "Profile",
+      "trigger": "Salvamento de informações de perfil profissional",
+      "properties": ["has_skills", "has_roles", "has_goal"]
+    },
+    {
+      "name": "resume_uploaded",
+      "category": "Resume",
+      "trigger": "Upload de arquivo PDF ou DOCX",
+      "properties": ["file_type", "file_size_kb"]
+    },
+    {
+      "name": "resume_parsed",
+      "category": "Resume",
+      "trigger": "Extração estruturada de competências do currículo por IA",
+      "properties": ["skills_count", "experience_years"]
+    },
+    {
+      "name": "job_discovered",
+      "category": "Matching",
+      "trigger": "Vaga agregada e indexada no feed",
+      "properties": ["job_id", "source"]
+    },
+    {
+      "name": "career_score_viewed",
+      "category": "ProductLaunch",
+      "trigger": "Visualização do card de score pelo candidato",
+      "properties": ["score", "career_fit_score", "career_goal_score"]
+    },
+    {
+      "name": "match_calculated",
+      "category": "JobMatchHub",
+      "trigger": "Execução da CareerMatchEngineV3 para uma vaga",
+      "properties": ["job_id", "career_fit_score", "career_goal_score"]
+    },
+    {
+      "name": "match_apply_clicked",
+      "category": "JobMatch",
+      "trigger": "Clique no link oficial ou candidatura interna",
+      "properties": ["job_id", "career_fit_score"]
+    },
+    {
+      "name": "application_pipeline_opened",
+      "category": "ProductBeta",
+      "trigger": "Abertura do quadro Kanban de candidaturas",
+      "properties": ["applications_count", "jobs_count"]
+    },
+    {
+      "name": "copilot_drawer_opened",
+      "category": "Copilot",
+      "trigger": "Abertura do assistente de carreira (1 evento por sessão)",
+      "properties": ["source", "has_resume", "is_pro"]
+    },
+    {
+      "name": "interview_started",
+      "category": "Interviews",
+      "trigger": "Início de simulação de entrevista com IA",
+      "properties": ["role_title", "difficulty"]
+    },
+    {
+      "name": "paywall_viewed",
+      "category": "Paywall",
+      "trigger": "Exibição de limite de cota gratuita atingida",
+      "properties": ["trigger_feature", "quota_type"]
+    },
+    {
+      "name": "paywall_cta_clicked",
+      "category": "Paywall",
+      "trigger": "Clique em botão de upgrade para o Plano Pro",
+      "properties": ["trigger_feature", "cta_text"]
+    },
+    {
+      "name": "checkout_started",
+      "category": "Billing",
+      "trigger": "Abertura da tela de pagamento Pro",
+      "properties": ["plan", "billing_type", "billing_cycle"]
+    },
+    {
+      "name": "payment_confirmed",
+      "category": "Billing",
+      "trigger": "Confirmação de pagamento Pro via webhook",
+      "properties": ["plan", "is_pro"]
+    },
+    {
+      "name": "survey_abandoned",
+      "category": "Survey",
+      "trigger": "Desistência de questionário antes da conclusão",
+      "properties": ["last_step", "survey_id"]
+    }
+  ]
+}

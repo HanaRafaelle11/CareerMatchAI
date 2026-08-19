@@ -523,23 +523,23 @@ export function AdminDashboard({ userId }: AdminDashboardProps) {
     status_breakdown: parsingStats?.status_breakdown
   } : overviewStats;
 
-  // ── 4. BUSCAR METRICAS DE IA E ROI (SUPABASE RPC COM FALLBACK DIRETO) ──
+  // ── 4. BUSCAR METRICAS DE IA E ROI (SUPABASE RPC COM CONSULTA DIRETA) ──
   const { data: iaStats, isLoading: isLoadingIaStats, refetch: refetchIaStats } = useQuery({
     queryKey: ['admin-ia-stats'],
     queryFn: async () => {
       if (!isSupabaseConfigured || !supabase) {
         return {
-          total_calls: 312,
-          total_tokens: 3450000,
-          total_cost_brl: 278.40,
-          avg_processing_time: 2.45,
-          errors_count: 4,
-          optimizations_count: 86,
-          letters_count: 42,
-          simulations_count: 114,
-          matches_count: 946,
-          avg_match_score: 72.8,
-          hours_saved: 410.5
+          total_calls: 0,
+          total_tokens: 0,
+          total_cost_brl: 0,
+          avg_processing_time: 0,
+          errors_count: 0,
+          optimizations_count: 0,
+          letters_count: 0,
+          simulations_count: 0,
+          matches_count: 0,
+          avg_match_score: 0,
+          hours_saved: 0
         };
       }
       // Query direta à tabela ai_usage_logs para metria e auditoria de custos de IA
@@ -626,7 +626,7 @@ export function AdminDashboard({ userId }: AdminDashboardProps) {
 
       return {
         total_calls: totalEstimatedCalls,
-        total_tokens: totalTokens > 0 ? totalTokens : 3450000,
+        total_tokens: totalTokens,
         total_cost_brl: Number(totalCostBrl.toFixed(2)),
         dynamic_telemetry_brl: Number(dynamicLoggedCostBrl.toFixed(2)),
         historical_base_brl: historicalUnloggedBaseBrl,

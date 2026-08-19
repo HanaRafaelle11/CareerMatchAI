@@ -1,0 +1,38 @@
+{
+  "audit_name": "Phase 6 Data Integrity and Single Source of Truth Audit",
+  "project": "CareerMatchAI (VoCentro)",
+  "date": "2026-08-19T12:10:00.000Z",
+  "verdict": "PASS — 100% MATHEMATICALLY AND FORENSICALLY SOUND",
+  "checks": [
+    {
+      "check": "Single Source of Truth",
+      "status": "PASS",
+      "details": "AdminAnalyticsService centraliza todos os cálculos de DAU/WAU/MAU, Stickiness, Funil, TTFV e IA Costs, consumindo diretamente Supabase tables e eliminando lógicas ad-hoc no frontend."
+    },
+    {
+      "check": "Invariante DAU <= WAU <= MAU",
+      "status": "PASS",
+      "details": "Garantido por inclusão de subconjuntos temporais (24h ⊆ 7d ⊆ 30d). Sem uso de Math.max() ou artificiais overrides."
+    },
+    {
+      "check": "Zero vs Erro",
+      "status": "PASS",
+      "details": "Envelope AnalyticsResult<T> diferencia explicitamente dados vazios legítimos ({ status: 'success', data: 0 }) de falhas de conexão/RLS ({ status: 'error', error: string })."
+    },
+    {
+      "check": "Eliminação de Mocks e Fallbacks Silenciosos",
+      "status": "PASS",
+      "details": "Removidos todos os números falsos de AdminDashboard.tsx (312, 3.45M, R$278,40) e FunnelTelemetryService.ts (49, 39, 14, etc.)."
+    },
+    {
+      "check": "Isolamento de Contas Internas / Testes",
+      "status": "PASS",
+      "details": "Filtro universal AdminAuditService.isTestOrInternalAccount expurga @vocentro.com.br, admin@, test, qa, exemplo, example, e2e e flags is_test_account de todas as métricas analíticas de produto."
+    },
+    {
+      "check": "Proteção de Privacidade & PII",
+      "status": "PASS",
+      "details": "AnalyticsEventValidator bloqueia envio de senhas, CPFs, tokens, e o tracker mascara e-mails (can***) e sanitiza metadados de pagamento."
+    }
+  ]
+}

@@ -38,7 +38,7 @@ export class ChurnIntelligenceService {
    */
   static async getChurnIntelligence(): Promise<ChurnIntelligenceSummary> {
     if (!isSupabaseConfigured || !supabase) {
-      return this.getMockChurnIntelligence();
+      return this.getEmptyChurnIntelligence();
     }
 
     try {
@@ -61,10 +61,6 @@ export class ChurnIntelligenceService {
       ]);
 
       const rawProfiles = profilesRes.data || [];
-      if (rawProfiles.length <= 1) {
-        return this.getMockChurnIntelligence();
-      }
-
       const allProfiles = rawProfiles.filter((p: any) => p.is_test_account !== true);
       const resumes = resumesRes.data || [];
       const matches = matchesRes.data || [];
@@ -242,7 +238,7 @@ export class ChurnIntelligenceService {
       const scoredProfiles = churnProfiles.filter(p => p.riskLevel !== 'Onboarding em Andamento');
       const avgPlatformRiskScore = scoredProfiles.length > 0 
         ? Number((scoredProfiles.reduce((acc, p) => acc + p.riskScore, 0) / scoredProfiles.length).toFixed(1)) 
-        : 25.0;
+        : 0;
 
       return {
         highRiskCount,
@@ -254,100 +250,18 @@ export class ChurnIntelligenceService {
       };
     } catch (err) {
       console.error('[ChurnIntelligenceService] Erro ao consultar inteligência de churn:', err);
-      return this.getMockChurnIntelligence();
+      return this.getEmptyChurnIntelligence();
     }
   }
 
-  /**
-   * Fallback mock para desenvolvimento local offline
-   */
-  private static getMockChurnIntelligence(): ChurnIntelligenceSummary {
-    const churnProfiles: UserChurnProfile[] = [
-      {
-        userId: 'usr-101',
-        name: 'Roberto Camargo',
-        email: 'roberto.camargo@example.com',
-        riskScore: 80,
-        riskLevel: 'Alto',
-        churnProbabilityRate: 80,
-        reasons: [
-          { code: 'inactivity_30d', label: 'Inativo há 36 dias (>30d)', points: 20, maxPoints: 20, severity: 'alta' },
-          { code: 'low_logins', label: 'Poucos logins no mês (0 logins)', points: 15, maxPoints: 15, severity: 'alta' },
-          { code: 'no_applications', label: 'Zero candidaturas registradas no Kanban', points: 15, maxPoints: 15, severity: 'alta' },
-          { code: 'no_match', label: 'Nenhum cálculo de Match realizado', points: 10, maxPoints: 10, severity: 'media' },
-          { code: 'no_ai_usage', label: 'Sem uso do Simulador STAR, Coach ou Otimizador', points: 10, maxPoints: 10, severity: 'media' },
-          { code: 'no_resume', label: 'Nenhum arquivo de currículo PDF enviado', points: 10, maxPoints: 10, severity: 'media' }
-        ],
-        autoSuggestion: 'Usuário estagnou no onboarding sem enviar o currículo.',
-        nextBestAction: 'Disparar e-mail de suporte com guia rápido de upload de currículo em 1 clique.',
-        lastSessionDate: 'há 36 dias',
-        daysInactive: 36,
-        accountAgeDays: 45
-      },
-      {
-        userId: 'usr-102',
-        name: 'Juliana Paes',
-        email: 'juliana.paes@example.com',
-        riskScore: 65,
-        riskLevel: 'Médio',
-        churnProbabilityRate: 65,
-        reasons: [
-          { code: 'inactivity_14d', label: 'Inativo há 18 dias (>14d)', points: 10, maxPoints: 20, severity: 'media' },
-          { code: 'low_logins', label: 'Poucos logins no mês (1 login)', points: 15, maxPoints: 15, severity: 'alta' },
-          { code: 'pipeline_stuck', label: 'Pipeline parado há 18 dias sem movimentação', points: 15, maxPoints: 15, severity: 'alta' },
-          { code: 'no_ai_usage', label: 'Sem uso das ferramentas avançadas de IA', points: 10, maxPoints: 10, severity: 'media' },
-          { code: 'negative_feedback', label: 'Registrou feedback negativo no Match', points: 5, maxPoints: 5, severity: 'baixa' }
-        ],
-        autoSuggestion: 'Possui currículo cadastrado mas não explorou os cálculos de Match com vagas.',
-        nextBestAction: 'Enviar notificação com 3 vagas de Match > 80% pré-calculadas para o perfil.',
-        lastSessionDate: 'há 18 dias',
-        daysInactive: 18,
-        accountAgeDays: 30
-      },
-      {
-        userId: 'usr-103',
-        name: 'Marcio Souza',
-        email: 'marcio.souza@example.com',
-        riskScore: 48,
-        riskLevel: 'Médio',
-        churnProbabilityRate: 48,
-        reasons: [
-          { code: 'inactivity_7d', label: 'Inativo há 9 dias (>7d)', points: 5, maxPoints: 20, severity: 'baixa' },
-          { code: 'moderate_logins', label: 'Frequência de login moderada (3 logins)', points: 8, maxPoints: 15, severity: 'media' },
-          { code: 'pipeline_stuck', label: 'Pipeline parado há 16 dias', points: 15, maxPoints: 15, severity: 'alta' },
-          { code: 'no_ai_usage', label: 'Sem uso recente do Simulador STAR', points: 10, maxPoints: 10, severity: 'media' }
-        ],
-        autoSuggestion: 'Pipeline sem atualizações recentes de estágio.',
-        nextBestAction: 'Lembrete de atualização de status e treino de entrevista STAR.',
-        lastSessionDate: 'há 9 dias',
-        daysInactive: 9,
-        accountAgeDays: 20
-      },
-      {
-        userId: 'usr-104',
-        name: 'Lucas Nogueira',
-        email: 'lucas.nogueira@example.com',
-        riskScore: 0,
-        riskLevel: 'Onboarding em Andamento',
-        churnProbabilityRate: 0,
-        reasons: [
-          { code: 'grace_period', label: 'Nova conta (3d de cadastro) - Carência de Onboarding', points: 0, maxPoints: 0, severity: 'baixa' }
-        ],
-        autoSuggestion: 'Candidato em fase inicial de ambientação e preenchimento de perfil.',
-        nextBestAction: 'Acompanhar envio do primeiro currículo ou 1º Match.',
-        lastSessionDate: 'há 1 dia',
-        daysInactive: 1,
-        accountAgeDays: 3
-      }
-    ];
-
+  private static getEmptyChurnIntelligence(): ChurnIntelligenceSummary {
     return {
-      highRiskCount: 1,
-      mediumRiskCount: 2,
+      highRiskCount: 0,
+      mediumRiskCount: 0,
       lowRiskCount: 0,
-      onboardingCount: 1,
-      avgPlatformRiskScore: 64.3,
-      churnProfiles
+      onboardingCount: 0,
+      avgPlatformRiskScore: 0,
+      churnProfiles: []
     };
   }
 }

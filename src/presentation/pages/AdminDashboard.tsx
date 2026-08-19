@@ -31,56 +31,24 @@ interface AdminDashboardProps {
 
 
 
-function getMockUserDetails(user: any) {
-  const name = user.full_name || 'Usuário';
+function getEmptyUserDetails(user: any) {
   return {
-    resumes: [
-      { id: 'cv-1', file_name: `${name.replace(/ /g, '_')}_Curriculo.pdf`, file_path: '/uploads/cv1.pdf', created_at: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString() }
-    ],
-    resumeVersions: [
-      { id: 'ver-1.1', version_number: 2, version_label: 'CV Otimizado para CS', created_at: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString() },
-      { id: 'ver-1.0', version_number: 1, version_label: 'Versão Original', created_at: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString() }
-    ],
-    jobs: [
-      { id: 'jb-1', title: 'Senior Product Designer', company_name: 'Vercel', created_at: new Date().toISOString() },
-      { id: 'jb-2', title: 'Product Manager', company_name: 'Stripe', created_at: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString() }
-    ],
-    applications: [
-      { id: 'ap-1', job_title: 'Senior Product Designer', company_name: 'Vercel', status: '📨 Me candidatei', applied_at: new Date().toISOString() }
-    ],
-    simulations: [
-      { id: 'sm-1', role_name: 'Product Designer', company_name: 'Vercel', created_at: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString() }
-    ],
-    aiUsage: [
-      { id: 'us-1', action: 'Resume Analysis', token_count: 8500, created_at: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString() },
-      { id: 'us-2', action: 'Coach chat message', token_count: 1200, created_at: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString() }
-    ],
-    errors: [
-      { id: 'er-1', component: 'Upload file', error_code: 'FILE_TOO_LARGE', message: 'Tamanho máximo de arquivo excedido (5MB).', created_at: new Date(Date.now() - 4 * 24 * 60 * 60 * 1000).toISOString() }
-    ],
-    events: [
-      { id: 'ev-1', event_name: 'Sessão iniciada', details: 'Acesso via Chrome 124 / Windows 11', created_at: new Date().toISOString() },
-      { id: 'ev-2', event_name: 'Simulação de entrevista iniciada', details: 'Entrevista para Product Designer', created_at: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString() },
-      { id: 'ev-3', event_name: 'Upload de currículo realizado', details: `${name.replace(/ /g, '_')}_Curriculo.pdf`, created_at: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString() }
-    ],
-    subscription: { plan: user.role === 'user' ? 'Free' : 'Pro', status: 'active', amount: user.role === 'user' ? 0.00 : 29.90, created_at: new Date(Date.now() - 10 * 24 * 60 * 60 * 1000).toISOString() },
-    transactions: user.role === 'user' ? [] : [
-      { id: 'tr-1', amount: 29.90, status: 'succeeded', payment_method: 'credit_card', created_at: new Date(Date.now() - 10 * 24 * 60 * 60 * 1000).toISOString() }
-    ],
-    totalTokens: 9700,
-    estimatedCostBRL: 0.78,
-    sessions: [
-      { id: 'ss-1', ip_address: '191.185.12.84', device: 'Chrome / Windows', location: 'São Paulo, BR', last_active: new Date().toISOString() },
-      { id: 'ss-2', ip_address: '177.85.90.114', device: 'Safari / iPhone', location: 'São Paulo, BR', last_active: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString() }
-    ],
-    loginEvents: [
-      { id: 'le-1', ip_address: '191.185.12.84', user_agent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) Chrome/124.0.0', status: 'succeeded', created_at: new Date().toISOString() },
-      { id: 'le-2', ip_address: '177.85.90.114', user_agent: 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_4 like Mac OS X) Safari/604.1', status: 'succeeded', created_at: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString() }
-    ],
-    uploads: [
-      { id: 'up-1', file_name: `${name.replace(/ /g, '_')}_Curriculo.pdf`, size_kb: 342, status: 'completed', created_at: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString() }
-    ],
-    lastAccess: new Date(Date.now() - 30 * 60 * 1000).toISOString() // 30 mins ago
+    resumes: [],
+    resumeVersions: [],
+    jobs: [],
+    applications: [],
+    simulations: [],
+    aiUsage: [],
+    errors: [],
+    events: [],
+    subscription: { plan: user?.role === 'user' ? 'Free' : 'Pro', status: 'active', amount: 0.00, created_at: user?.created_at || new Date().toISOString() },
+    transactions: [],
+    totalTokens: 0,
+    estimatedCostBRL: 0,
+    sessions: [],
+    loginEvents: [],
+    uploads: [],
+    lastAccess: user?.last_active || user?.updated_at || user?.created_at || new Date().toISOString()
   };
 }
 
@@ -1153,7 +1121,7 @@ export function AdminDashboard({ userId }: AdminDashboardProps) {
     queryFn: async () => {
       if (!selectedUser) return null;
       if (!isSupabaseConfigured || !supabase) {
-        return getMockUserDetails(selectedUser);
+        return getEmptyUserDetails(selectedUser);
       }
       try {
         const [resumesRes, jobsRes, appsRes, simsRes, logsRes, errorsRes, eventsRes, subRes, txRes, sessionsRes] = await Promise.all([
@@ -1226,7 +1194,7 @@ export function AdminDashboard({ userId }: AdminDashboardProps) {
         };
       } catch (err) {
         console.error('Error fetching user details from Supabase:', err);
-        return getMockUserDetails(selectedUser);
+        return getEmptyUserDetails(selectedUser);
       }
     },
     enabled: !!selectedUser

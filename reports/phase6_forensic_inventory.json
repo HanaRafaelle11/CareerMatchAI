@@ -1,0 +1,63 @@
+{
+  "audit": "VoCentro Phase 6.1 Forensic Inventory",
+  "project": "CareerMatchAI (VoCentro)",
+  "timestamp": "2026-08-19T13:42:00.000Z",
+  "principle": "REAL DATA > PLAUSIBLE DATA > FALLBACK > MOCK",
+  "status": "FORENSICALLY_VERIFIED",
+  "scanned_services": [
+    {
+      "service": "AdminAnalyticsService",
+      "path": "src/application/services/AdminAnalyticsService.ts",
+      "role": "Single Source of Truth canônica para DAU/WAU/MAU, Stickiness, Funil de Ativação, TTFV, Custos de IA e Freshness",
+      "mock_status": "NONE — All calculations use direct table logs or legitimate 0 values with AnalyticsResult envelope"
+    },
+    {
+      "service": "FunnelTelemetryService",
+      "path": "src/application/services/FunnelTelemetryService.ts",
+      "role": "Extração de telemetria do funil de conversão e eventos de jornada",
+      "mock_status": "NONE — getFallbackMetrics eliminada; getEmptyMetrics(excludedCount) implementada"
+    },
+    {
+      "service": "FeatureAdoptionService",
+      "path": "src/application/services/FeatureAdoptionService.ts",
+      "role": "Métricas de adoção por funcionalidade inteligente e latência média",
+      "mock_status": "NONE — getMockFeatureAdoptionMetrics eliminada; rawProfiles <= 1 trigger removido; getEmptyFeatureAdoptionMetrics implementada"
+    },
+    {
+      "service": "ProductHealthService",
+      "path": "src/application/services/ProductHealthService.ts",
+      "role": "North Star Metric, taxas de ativação e velocidade de marcos (Milestone Velocity)",
+      "mock_status": "NONE — getMockProductHealthMetrics, multiplicadores * 0.6 e médias fictícias eliminados; getEmptyProductHealthMetrics implementada"
+    },
+    {
+      "service": "ChurnIntelligenceService",
+      "path": "src/application/services/ChurnIntelligenceService.ts",
+      "role": "Score de risco de churn por usuário com carência de 7d",
+      "mock_status": "NONE — getMockChurnIntelligence e perfis fictícios eliminados; getEmptyChurnIntelligence implementada"
+    },
+    {
+      "service": "CommercialIntelligenceService",
+      "path": "src/application/services/CommercialIntelligenceService.ts",
+      "role": "Inteligência comercial, propensão a upgrade e candidatos a embaixador",
+      "mock_status": "NONE — getMockCommercialIntelligence eliminada; getEmptyCommercialIntelligence implementada"
+    },
+    {
+      "service": "CopilotInsightsService",
+      "path": "src/application/services/CopilotInsightsService.ts",
+      "role": "Síntese de insights de telemetria em linguagem natural",
+      "mock_status": "NONE — getMockCopilotInsights eliminada; getEmptyCopilotInsights implementada"
+    },
+    {
+      "service": "ProductAtRiskService",
+      "path": "src/application/services/ProductAtRiskService.ts",
+      "role": "Alertas operacionais de produto em risco (onboarding, match, pipeline, parsing)",
+      "mock_status": "NONE — getMockRiskAlerts eliminada; getEmptyRiskAlerts implementada com 11 categorias vazias limpas"
+    },
+    {
+      "component": "AdminDashboard",
+      "path": "src/presentation/pages/AdminDashboard.tsx",
+      "role": "Painel de controle analítico administrativo",
+      "mock_status": "NONE — Removidos iaStats mocks (312, 3.45M, 278.40) e getMockUserDetails; implementado getEmptyUserDetails"
+    }
+  ]
+}

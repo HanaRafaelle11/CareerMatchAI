@@ -43,7 +43,7 @@ export class CommercialIntelligenceService {
    */
   static async getCommercialIntelligence(): Promise<CommercialIntelligenceSummary> {
     if (!isSupabaseConfigured || !supabase) {
-      return this.getMockCommercialIntelligence();
+      return this.getEmptyCommercialIntelligence();
     }
 
     try {
@@ -66,10 +66,6 @@ export class CommercialIntelligenceService {
       ]);
 
       const rawProfiles = profilesRes.data || [];
-      if (rawProfiles.length <= 1) {
-        return this.getMockCommercialIntelligence();
-      }
-
       const allProfiles = rawProfiles.filter((p: any) => p.is_test_account !== true);
       const resumes = resumesRes.data || [];
       const matches = matchesRes.data || [];
@@ -201,7 +197,7 @@ export class CommercialIntelligenceService {
       const powerUsersCount = candidates.filter(c => c.engagementScore >= 30).length;
 
       const totalNps = candidates.reduce((acc, c) => acc + c.estimatedNps, 0);
-      const avgEstimatedNps = candidates.length > 0 ? Number((totalNps / candidates.length).toFixed(1)) : 8.5;
+      const avgEstimatedNps = candidates.length > 0 ? Number((totalNps / candidates.length).toFixed(1)) : 0;
 
       return {
         totalAnalyzedUsers: candidates.length,
@@ -215,97 +211,20 @@ export class CommercialIntelligenceService {
       };
     } catch (e) {
       console.error('[CommercialIntelligenceService] Erro ao carregar inteligência comercial:', e);
-      return this.getMockCommercialIntelligence();
+      return this.getEmptyCommercialIntelligence();
     }
   }
 
-  /**
-   * Fallback mock de simulação seguro
-   */
-  private static getMockCommercialIntelligence(): CommercialIntelligenceSummary {
-    const mockCandidates: CommercialUserCandidate[] = [
-      {
-        userId: 'cm-usr-101',
-        name: 'Mariana Silva',
-        email: 'mariana.silva@tech.com',
-        role: 'user',
-        accountAgeDays: 18,
-        upgradeScore: 85,
-        upgradeLabel: 'Alta Propensão',
-        discountEligible: true,
-        discountReason: 'Usuário ativo há 18d no plano gratuito com 12 chamadas de IA. Alto risco de fricção de preço.',
-        offerEligible: true,
-        offerReason: 'Marco de engajamento recente atingido (4 candidaturas no pipeline). Momento ideal para oferta de Trial de 7 dias.',
-        ambassadorScore: 90,
-        isAmbassadorCandidate: true,
-        engagementScore: 78,
-        estimatedNps: 9.5,
-        npsCategory: 'Promotor (9-10)',
-        matchesCount: 14,
-        aiUsageCount: 12,
-        applicationsCount: 4,
-        positiveFeedbacksCount: 2,
-        lastActiveDate: new Date().toLocaleDateString('pt-BR'),
-        daysInactive: 1
-      },
-      {
-        userId: 'cm-usr-102',
-        name: 'Carlos Eduard',
-        email: 'carlos.eduardo@dev.io',
-        role: 'user',
-        accountAgeDays: 25,
-        upgradeScore: 75,
-        upgradeLabel: 'Alta Propensão',
-        discountEligible: true,
-        discountReason: 'Usuário ativo há 25d no plano gratuito com 9 chamadas de IA. Elegível para cupom de entrada 20%.',
-        offerEligible: true,
-        offerReason: '3 entrevistas agendadas. Momento de alta intenção comercial.',
-        ambassadorScore: 65,
-        isAmbassadorCandidate: true,
-        engagementScore: 62,
-        estimatedNps: 9.0,
-        npsCategory: 'Promotor (9-10)',
-        matchesCount: 10,
-        aiUsageCount: 9,
-        applicationsCount: 3,
-        positiveFeedbacksCount: 1,
-        lastActiveDate: new Date().toLocaleDateString('pt-BR'),
-        daysInactive: 2
-      },
-      {
-        userId: 'cm-usr-103',
-        name: 'Beatriz Ramos',
-        email: 'beatriz.ramos@design.com',
-        role: 'user',
-        accountAgeDays: 8,
-        upgradeScore: 50,
-        upgradeLabel: 'Média Propensão',
-        discountEligible: false,
-        offerEligible: true,
-        offerReason: 'Realizou primeira simulação STAR. Oferecer pacote de créditos extras de IA.',
-        ambassadorScore: 40,
-        isAmbassadorCandidate: false,
-        engagementScore: 35,
-        estimatedNps: 8.0,
-        npsCategory: 'Neutro (7-8)',
-        matchesCount: 6,
-        aiUsageCount: 4,
-        applicationsCount: 1,
-        positiveFeedbacksCount: 0,
-        lastActiveDate: new Date().toLocaleDateString('pt-BR'),
-        daysInactive: 3
-      }
-    ];
-
+  private static getEmptyCommercialIntelligence(): CommercialIntelligenceSummary {
     return {
-      totalAnalyzedUsers: mockCandidates.length,
-      highUpgradeProbabilityCount: 2,
-      discountEligibleCount: 2,
-      offerEligibleCount: 3,
-      ambassadorCandidatesCount: 2,
-      powerUsersCount: 2,
-      avgEstimatedNps: 8.8,
-      candidates: mockCandidates
+      totalAnalyzedUsers: 0,
+      highUpgradeProbabilityCount: 0,
+      discountEligibleCount: 0,
+      offerEligibleCount: 0,
+      ambassadorCandidatesCount: 0,
+      powerUsersCount: 0,
+      avgEstimatedNps: 0,
+      candidates: []
     };
   }
 }

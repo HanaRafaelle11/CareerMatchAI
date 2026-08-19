@@ -31,7 +31,7 @@ export class FeatureAdoptionService {
    */
   static async getFeatureAdoptionMetrics(): Promise<FeatureAdoptionSummary> {
     if (!isSupabaseConfigured || !supabase) {
-      return this.getMockFeatureAdoptionMetrics();
+      return this.getEmptyFeatureAdoptionMetrics();
     }
 
     try {
@@ -54,10 +54,6 @@ export class FeatureAdoptionService {
       ]);
 
       const rawProfiles = profilesRes.data || [];
-      if (rawProfiles.length <= 1) {
-        return this.getMockFeatureAdoptionMetrics();
-      }
-
       const allProfiles = rawProfiles.filter((p: any) => p.is_test_account !== true);
       const realUserIds = new Set(allProfiles.map(p => p.id));
 
@@ -134,7 +130,10 @@ export class FeatureAdoptionService {
         if (feat.id === 'match_calculation') {
           convertedUsages = matches.filter((m: any) => userAppJobPairs.has(`${m.user_id}_${m.job_id}`)).length;
         } else {
-          convertedUsages = Math.round(totalUsage * 0.45);
+          // Usuários que usaram a feature e possuem candidatura registrada
+          const featureUserIds = new Set(usages.map(u => u.user_id));
+          const usersWithApp = applications.filter((a: any) => featureUserIds.has(a.user_id));
+          convertedUsages = usersWithApp.length;
         }
         const conversionToApplicationRate = totalUsage > 0 ? Number(((convertedUsages / totalUsage) * 100).toFixed(1)) : 0;
 
@@ -167,15 +166,15 @@ export class FeatureAdoptionService {
 
       const sortedAll = [...processedItems].sort((a, b) => b.totalUsage - a.totalUsage);
       
-      // SEPARAÇÃO ESTRITA SOLICITADA PELO USUÁRIO:
       const neverUsedFeatures = sortedAll.filter(f => f.totalUsage === 0);
       const lowAdoptionFeatures = sortedAll.filter(f => f.totalUsage > 0 && f.totalUsage < lowThreshold);
       const mostUsedFeatures = sortedAll.filter(f => f.totalUsage >= lowThreshold);
 
       const totalAiExecutions = sortedAll.reduce((acc, f) => acc + f.totalUsage, 0);
-      const avgPlatformLatencySeconds = sortedAll.filter(f => f.totalUsage > 0).length > 0 
-        ? Number((sortedAll.filter(f => f.totalUsage > 0).reduce((acc, f) => acc + f.avgLatencySeconds, 0) / sortedAll.filter(f => f.totalUsage > 0).length).toFixed(2)) 
-        : 1.4;
+      const usedFeatures = sortedAll.filter(f => f.totalUsage > 0);
+      const avgPlatformLatencySeconds = usedFeatures.length > 0 
+        ? Number((usedFeatures.reduce((acc, f) => acc + f.avgLatencySeconds, 0) / usedFeatures.length).toFixed(2)) 
+        : 0;
 
       return {
         mostUsedFeatures,
@@ -188,123 +187,43 @@ export class FeatureAdoptionService {
       };
     } catch (err) {
       console.error('[FeatureAdoptionService] Erro ao consultar métricas de adoção:', err);
-      return this.getMockFeatureAdoptionMetrics();
+      return this.getEmptyFeatureAdoptionMetrics();
     }
   }
 
-  /**
-   * Fallback mock para desenvolvimento local offline
-   */
-  private static getMockFeatureAdoptionMetrics(): FeatureAdoptionSummary {
-    const allFeatures: FeatureAdoptionItem[] = [
-      {
-        id: 'match_calculation',
-        name: 'Cálculo de Match Semântico',
-        category: 'Inteligência',
-        totalUsage: 48,
-        activeUsersCount: 22,
-        avgLatencySeconds: 1.15,
-        frequencyPerUser: 2.2,
-        retentionRate30d: 68.2,
-        conversionToApplicationRate: 52.1,
-        revenueInfluencedStatus: 'pendente',
-        revenueStatusLabel: '[DADO PENDENTE — INSTRUMENTAÇÃO ADICIONAL NECESSÁRIA]',
-        adoptionLevel: 'Alta Adoção'
-      },
-      {
-        id: 'star_simulation',
-        name: 'Simulador de Entrevista STAR',
-        category: 'Treinamento IA',
-        totalUsage: 34,
-        activeUsersCount: 16,
-        avgLatencySeconds: 2.40,
-        frequencyPerUser: 2.1,
-        retentionRate30d: 56.3,
-        conversionToApplicationRate: 41.2,
-        revenueInfluencedStatus: 'pendente',
-        revenueStatusLabel: '[DADO PENDENTE — INSTRUMENTAÇÃO ADICIONAL NECESSÁRIA]',
-        adoptionLevel: 'Alta Adoção'
-      },
-      {
-        id: 'resume_optimization',
-        name: 'Otimizador Adaptativo de CV',
-        category: 'Currículo',
-        totalUsage: 26,
-        activeUsersCount: 14,
-        avgLatencySeconds: 1.85,
-        frequencyPerUser: 1.8,
-        retentionRate30d: 50.0,
-        conversionToApplicationRate: 46.1,
-        revenueInfluencedStatus: 'pendente',
-        revenueStatusLabel: '[DADO PENDENTE — INSTRUMENTAÇÃO ADICIONAL NECESSÁRIA]',
-        adoptionLevel: 'Alta Adoção'
-      },
-      {
-        id: 'cover_letter',
-        name: 'Gerador de Carta de Apresentação',
-        category: 'Escrita IA',
-        totalUsage: 19,
-        activeUsersCount: 11,
-        avgLatencySeconds: 1.40,
-        frequencyPerUser: 1.7,
-        retentionRate30d: 45.4,
-        conversionToApplicationRate: 38.0,
-        revenueInfluencedStatus: 'pendente',
-        revenueStatusLabel: '[DADO PENDENTE — INSTRUMENTAÇÃO ADICIONAL NECESSÁRIA]',
-        adoptionLevel: 'Adoção Moderada'
-      },
-      {
-        id: 'coach_chat',
-        name: 'Copiloto Conversacional (Coach)',
-        category: 'Assistente',
-        totalUsage: 12,
-        activeUsersCount: 8,
-        avgLatencySeconds: 0.95,
-        frequencyPerUser: 1.5,
-        retentionRate30d: 37.5,
-        conversionToApplicationRate: 25.0,
-        revenueInfluencedStatus: 'pendente',
-        revenueStatusLabel: '[DADO PENDENTE — INSTRUMENTAÇÃO ADICIONAL NECESSÁRIA]',
-        adoptionLevel: 'Adoção Moderada'
-      },
-      {
-        id: 'job_discovery',
-        name: 'Busca & Recomendação de Vagas',
-        category: 'Descoberta',
-        totalUsage: 2,
-        activeUsersCount: 2,
-        avgLatencySeconds: 0.75,
-        frequencyPerUser: 1.0,
-        retentionRate30d: 20.0,
-        conversionToApplicationRate: 15.0,
-        revenueInfluencedStatus: 'pendente',
-        revenueStatusLabel: '[DADO PENDENTE — INSTRUMENTAÇÃO ADICIONAL NECESSÁRIA]',
-        adoptionLevel: 'Baixa Adoção (< 5% do Líder)'
-      },
-      {
-        id: 'salary_benchmark',
-        name: 'Benchmark Salarial Avançado',
-        category: 'Mercado (Beta)',
-        totalUsage: 0,
-        activeUsersCount: 0,
-        avgLatencySeconds: 0.0,
-        frequencyPerUser: 0.0,
-        retentionRate30d: 0.0,
-        conversionToApplicationRate: 0.0,
-        revenueInfluencedStatus: 'pendente',
-        revenueStatusLabel: '[DADO PENDENTE — INSTRUMENTAÇÃO ADICIONAL NECESSÁRIA]',
-        adoptionLevel: 'Nunca Utilizada'
-      }
+  private static getEmptyFeatureAdoptionMetrics(): FeatureAdoptionSummary {
+    const catalog = [
+      { id: 'match_calculation', name: 'Cálculo de Match Semântico', category: 'Inteligência' },
+      { id: 'star_simulation', name: 'Simulador de Entrevista STAR', category: 'Treinamento IA' },
+      { id: 'resume_optimization', name: 'Otimizador Adaptativo de CV', category: 'Currículo' },
+      { id: 'cover_letter', name: 'Gerador de Carta de Apresentação', category: 'Escrita IA' },
+      { id: 'coach_chat', name: 'Copiloto Conversacional (Coach)', category: 'Assistente' },
+      { id: 'job_discovery', name: 'Busca & Recomendação de Vagas', category: 'Descoberta' }
     ];
 
+    const allFeatures: FeatureAdoptionItem[] = catalog.map(feat => ({
+      id: feat.id,
+      name: feat.name,
+      category: feat.category,
+      totalUsage: 0,
+      activeUsersCount: 0,
+      avgLatencySeconds: 0,
+      frequencyPerUser: 0,
+      retentionRate30d: 0,
+      conversionToApplicationRate: 0,
+      revenueInfluencedStatus: 'pendente',
+      revenueStatusLabel: '[DADO PENDENTE — INSTRUMENTAÇÃO ADICIONAL NECESSÁRIA]',
+      adoptionLevel: 'Nunca Utilizada'
+    }));
+
     return {
-      mostUsedFeatures: allFeatures.filter(f => f.totalUsage >= 3),
-      lowAdoptionFeatures: allFeatures.filter(f => f.totalUsage > 0 && f.totalUsage < 3),
-      neverUsedFeatures: allFeatures.filter(f => f.totalUsage === 0),
+      mostUsedFeatures: [],
+      lowAdoptionFeatures: [],
+      neverUsedFeatures: allFeatures,
       allFeatures,
-      totalAiExecutions: 141,
-      avgPlatformLatencySeconds: 1.42,
-      topFeatureVolume: 48
+      totalAiExecutions: 0,
+      avgPlatformLatencySeconds: 0,
+      topFeatureVolume: 0
     };
   }
 }

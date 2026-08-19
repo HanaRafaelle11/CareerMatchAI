@@ -1,0 +1,47 @@
+{
+  "matrix_name": "VoCentro Observability and Health Signal Matrix",
+  "version": "6.1",
+  "timestamp": "2026-08-19T13:42:00.000Z",
+  "systems": [
+    {
+      "system": "Frontend Client (React SPA)",
+      "health_signal": "Erros não tratados capturados por ErrorBoundary",
+      "source": "AppError / Sentry / console.error",
+      "alerting": "ErrorBoundary UI amigável + log",
+      "status": "GREEN",
+      "observable": true
+    },
+    {
+      "system": "Supabase PostgreSQL & Auth",
+      "health_signal": "Latência de round-trip e disponibilidade de conexão",
+      "source": "Supabase Client getSession() e health ping",
+      "alerting": "Dashboard Infra status badge",
+      "status": "GREEN",
+      "observable": true
+    },
+    {
+      "system": "Gemini AI API",
+      "health_signal": "Erros de cota, rate-limit ou timeout de tokens",
+      "source": "ai_usage_logs e Gemini client catch handlers",
+      "alerting": "Admin IA Stats errors_count",
+      "status": "GREEN",
+      "observable": true
+    },
+    {
+      "system": "Gateways de Pagamento (Stripe & Asaas)",
+      "health_signal": "Falhas de webhook ou assinatura inválida",
+      "source": "Edge Functions webhook logs",
+      "alerting": "Registro de falha e alerta na aba Financeira",
+      "status": "GREEN",
+      "observable": true
+    },
+    {
+      "system": "Ingestão de Telemetria (AnalyticsTracker)",
+      "health_signal": "Falha na inserção em analytics_events",
+      "source": "AnalyticsTracker try/catch -> fallback localDB",
+      "alerting": "Console warning sem interromper UX",
+      "status": "GREEN",
+      "observable": true
+    }
+  ]
+}

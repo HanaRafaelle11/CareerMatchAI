@@ -1,0 +1,62 @@
+{
+  "lineage_audit": "VoCentro Phase 6.1 Data Lineage",
+  "project": "CareerMatchAI (VoCentro)",
+  "chains": [
+    {
+      "metric": "DAU / WAU / MAU & Stickiness",
+      "source": "User Sessions & Client Actions",
+      "event": "Any analytics_events or profiles created_at",
+      "table": "analytics_events, profiles",
+      "persistence": "Supabase PostgreSQL via AnalyticsTracker.track()",
+      "query": "supabase.from('analytics_events').select('user_id, created_at')",
+      "transformation": "Set<user_id> deduplication across rolling 24h, 7d, 30d ms windows",
+      "aggregation": "AdminAnalyticsService.calculateActiveUserMetrics()",
+      "service": "AdminAnalyticsService",
+      "hook": "useQuery(['admin-active-metrics'])",
+      "component": "AdminDashboard.tsx",
+      "ui": "KPI Cards (DAU, WAU, MAU, Stickiness)"
+    },
+    {
+      "metric": "Activation Funnel (Cadastro -> CV -> Match -> App -> Pro)",
+      "source": "Candidate Journey Steps",
+      "event": "signup_completed, resume_uploaded, match_calculated, job_saved, payment_confirmed",
+      "table": "profiles, resumes, matches, applications, billing_transactions",
+      "persistence": "Supabase Tables + analytics_events",
+      "query": "Promise.all([profiles, resumes, matches, applications, subscriptions])",
+      "transformation": "AdminAuditService.isTestOrInternalAccount filter + Unique user_id Set matching",
+      "aggregation": "AdminAnalyticsService.calculateFunnel()",
+      "service": "AdminAnalyticsService",
+      "hook": "useQuery(['admin-funnel'])",
+      "component": "AdminDashboard.tsx & FunnelTelemetryDashboard.tsx",
+      "ui": "Funnel Conversion Steps & Step Dropoff %"
+    },
+    {
+      "metric": "Time to Value (TTFV)",
+      "source": "Onboarding to First Value Moment",
+      "event": "signup_completed -> first_valid_match_generated",
+      "table": "profiles (created_at), matches (created_at)",
+      "persistence": "Supabase profiles & matches",
+      "query": "profiles & matches ordered by created_at",
+      "transformation": "First match timestamp - profile created timestamp (positive minutes only)",
+      "aggregation": "AdminAnalyticsService.calculateTtfv() -> P50, P75, P90, Avg",
+      "service": "AdminAnalyticsService",
+      "hook": "useQuery(['admin-ttfv'])",
+      "component": "AdminDashboard.tsx",
+      "ui": "TTFV Milestone Metrics Box"
+    },
+    {
+      "metric": "AI Costs & Token Usage",
+      "source": "Gemini 3.6 Flash API Client",
+      "event": "ai_request_completed",
+      "table": "ai_usage_logs",
+      "persistence": "ai_usage_logs (user_id, feature, input_tokens, output_tokens, time_ms)",
+      "query": "supabase.from('ai_usage_logs').select('*')",
+      "transformation": "(input_tokens * RateIn) + (output_tokens * RateOut) [BRL 5.80/USD]",
+      "aggregation": "AdminAnalyticsService.calculateAiCosts()",
+      "service": "AdminAnalyticsService",
+      "hook": "useQuery(['admin-ia-stats'])",
+      "component": "AdminDashboard.tsx",
+      "ui": "AI Cost & Token Consumption Dashboard"
+    }
+  ]
+}

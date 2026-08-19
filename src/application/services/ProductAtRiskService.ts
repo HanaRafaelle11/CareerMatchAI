@@ -30,7 +30,7 @@ export class ProductAtRiskService {
    */
   static async getRiskAlerts(): Promise<RiskAlert[]> {
     if (!isSupabaseConfigured || !supabase) {
-      return this.getMockRiskAlerts();
+      return this.getEmptyRiskAlerts();
     }
 
     try {
@@ -53,10 +53,6 @@ export class ProductAtRiskService {
       ]);
 
       const rawProfiles = profilesRes.data || [];
-      if (rawProfiles.length <= 1) {
-        return this.getMockRiskAlerts();
-      }
-
       const allProfiles = rawProfiles.filter((p: any) => p.is_test_account !== true);
       const resumes = resumesRes.data || [];
       const matches = matchesRes.data || [];
@@ -364,150 +360,29 @@ export class ProductAtRiskService {
       ];
     } catch (err) {
       console.error('[ProductAtRiskService] Erro ao consultar alertas de risco:', err);
-      return this.getMockRiskAlerts();
+      return this.getEmptyRiskAlerts();
     }
   }
 
-  /**
-   * Fallback mock para desenvolvimento local sem Supabase
-   */
-  private static getMockRiskAlerts(): RiskAlert[] {
-    return [
-      {
-        id: 'resume_without_match',
-        title: 'Upload de Currículo sem Match',
-        count: 2,
-        impact: 'Candidato enviou o currículo mas não calculou Match. 78% de taxa de desistência se não houver cálculo em 24h.',
-        priority: 'P1 - Crítica',
-        status: 'disponivel',
-        category: 'onboarding',
-        affectedUsers: [
-          { id: 'usr-1', name: 'Carla Silveira', email: 'carla.silveira@example.com', lastActivity: 'há 2 dias', detail: 'Fez upload do CV_2026.pdf mas não selecionou nenhuma vaga para calcular o Match.' },
-          { id: 'usr-2', name: 'Lucas Mendes', email: 'lucas.mendes@example.com', lastActivity: 'há 4 dias', detail: 'Cadastrou currículo de Engenheiro de Software sem iniciar análises.' }
-        ]
-      },
-      {
-        id: 'match_without_app',
-        title: 'Match Calculado sem Candidatura',
-        count: 3,
-        impact: 'Candidato visualizou o Match mas não adicionou nenhuma vaga ao Pipeline de candidaturas.',
-        priority: 'P2 - Alta',
-        status: 'disponivel',
-        category: 'match',
-        affectedUsers: [
-          { id: 'usr-3', name: 'Mariana Costa', email: 'mariana.costa@example.com', lastActivity: 'há 1 dia', detail: 'Calculou 4 Matches de vagas mas não aplicou para nenhuma delas.' }
-        ]
-      },
-      {
-        id: 'inactive_7d',
-        title: 'Sem Login há 7 Dias',
-        count: 5,
-        impact: 'Perda de engajamento no ciclo semanal. Requer notificação do Copiloto IA.',
-        priority: 'P3 - Média',
-        status: 'disponivel',
-        category: 'engagement',
-        affectedUsers: [
-          { id: 'usr-4', name: 'Rodrigo Lima', email: 'rodrigo.lima@example.com', lastActivity: 'há 8 dias', detail: 'Sem sessões registradas desde a semana passada.' }
-        ]
-      },
-      {
-        id: 'inactive_30d',
-        title: 'Sem Login há 30 Dias (Risco de Churn)',
-        count: 4,
-        impact: 'Risco severo de abandono definitivo. O candidato está inativo há mais de 1 mês completo.',
-        priority: 'P1 - Crítica',
-        status: 'disponivel',
-        category: 'engagement',
-        affectedUsers: [
-          { id: 'usr-5', name: 'Fernanda Rocha', email: 'fernanda.rocha@example.com', lastActivity: 'há 34 dias', detail: 'Última atividade registrada há mais de 1 mês.' }
-        ]
-      },
-      {
-        id: 'parsing_error_recurrent',
-        title: 'Erro Recorrente de Parsing de PDF',
-        count: 1,
-        impact: 'Falha técnica na extração de texto do currículo. Impede a geração automática de análises.',
-        priority: 'P1 - Crítica',
-        status: 'disponivel',
-        category: 'parsing',
-        affectedUsers: [
-          { id: 'usr-6', name: 'Gabriel Alves', email: 'gabriel.alves@example.com', lastActivity: 'há 3 horas', detail: 'Erro OCR_TIMEOUT ao extrair PDF digitalizado de 8MB.' }
-        ]
-      },
-      {
-        id: 'high_match_unapplied',
-        title: 'Match Alto (>=75%) sem Aplicação',
-        count: 4,
-        impact: 'Oportunidades de alto potencial que não viraram candidatura.',
-        priority: 'P1 - Crítica',
-        status: 'disponivel',
-        category: 'match',
-        affectedUsers: [
-          { id: 'usr-7', name: 'Patrícia Souza', email: 'patricia.souza@example.com', lastActivity: 'há 1 dia', detail: 'Match de 88% na vaga Senior Tech Lead em Nubank, mas não aplicou.', score: 88 }
-        ]
-      },
-      {
-        id: 'kanban_stuck',
-        title: 'Presos no Kanban (>14 Dias)',
-        count: 2,
-        impact: 'Candidaturas estagnadas em etapas intermediárias sem avanço ou encerramento.',
-        priority: 'P2 - Alta',
-        status: 'disponivel',
-        category: 'pipeline',
-        affectedUsers: [
-          { id: 'usr-8', name: 'Thiago Martins', email: 'thiago.martins@example.com', lastActivity: '18 dias no mesmo estágio', detail: 'Candidatura estagnada no estágio Entrevista RH há 18 dias.', daysInactive: 18 }
-        ]
-      },
-      {
-        id: 'interview_stagnated',
-        title: 'Entrevistas sem Atualização (>7 Dias)',
-        count: 2,
-        impact: 'Candidatos em fase de entrevista sem treino STAR recente ou feedback de acompanhamento.',
-        priority: 'P1 - Crítica',
-        status: 'disponivel',
-        category: 'pipeline',
-        affectedUsers: [
-          { id: 'usr-9', name: 'Aline Oliveira', email: 'aline.oliveira@example.com', lastActivity: '9 dias sem treino STAR', detail: 'Possui entrevista agendada mas não realizou simulação de perguntas comportamentais.', daysInactive: 9 }
-        ]
-      },
-      {
-        id: 'forgotten_apps',
-        title: 'Candidaturas Esquecidas (>15 Dias)',
-        count: 3,
-        impact: 'Cards no Kanban sem anotações, agendamentos ou atualizações recentes de status.',
-        priority: 'P2 - Alta',
-        status: 'disponivel',
-        category: 'pipeline',
-        affectedUsers: [
-          { id: 'usr-10', name: 'Bruno Castro', email: 'bruno.castro@example.com', lastActivity: '21 dias sem toque', detail: 'Sem nenhuma nota ou movimentação no card há 21 dias.', daysInactive: 21 }
-        ]
-      },
-      {
-        id: 'onboarding_dropoff',
-        title: 'Abandono no Onboarding Inicial',
-        count: 3,
-        impact: 'Usuários cadastrados que não enviaram o primeiro currículo.',
-        priority: 'P2 - Alta',
-        status: 'parcial',
-        statusLabel: 'DADO PARCIAL — INSTRUMENTAÇÃO ADICIONAL NECESSÁRIA',
-        category: 'onboarding',
-        affectedUsers: [
-          { id: 'usr-11', name: 'Vanessa Pires', email: 'vanessa.pires@example.com', lastActivity: 'há 2 dias', detail: 'Conta criada há 48h sem upload de CV inicial.' }
-        ]
-      },
-      {
-        id: 'sequential_rejections',
-        title: 'Vagas Rejeitadas em Sequência',
-        count: 1,
-        impact: 'Candidatos acumulando múltiplas recusas no funil.',
-        priority: 'P2 - Alta',
-        status: 'parcial',
-        statusLabel: 'DADO PARCIAL — INSTRUMENTAÇÃO ADICIONAL NECESSÁRIA',
-        category: 'pipeline',
-        affectedUsers: [
-          { id: 'usr-12', name: 'Renato Faria', email: 'renato.faria@example.com', lastActivity: '3 recusas ativas', detail: 'Acumulou 3 candidaturas marcadas como Recusadas.' }
-        ]
-      }
+  private static getEmptyRiskAlerts(): RiskAlert[] {
+    const alertDefinitions = [
+      { id: 'resume_without_match', title: 'Upload de Currículo sem Match', impact: 'Candidato enviou o currículo mas não calculou Match.', priority: 'P1 - Crítica' as const, status: 'disponivel' as const, category: 'onboarding' as const },
+      { id: 'match_without_app', title: 'Match Calculado sem Candidatura', impact: 'Candidato visualizou o Match mas não adicionou ao Kanban.', priority: 'P2 - Alta' as const, status: 'disponivel' as const, category: 'match' as const },
+      { id: 'inactive_7d', title: 'Sem Login há 7 Dias', impact: 'Perda de engajamento no ciclo semanal.', priority: 'P3 - Média' as const, status: 'disponivel' as const, category: 'engagement' as const },
+      { id: 'inactive_30d', title: 'Sem Login há 30 Dias (Risco de Churn)', impact: 'Risco severo de abandono definitivo.', priority: 'P1 - Crítica' as const, status: 'disponivel' as const, category: 'engagement' as const },
+      { id: 'parsing_error_recurrent', title: 'Erro Recorrente de Parsing de PDF', impact: 'Falha técnica na extração de texto.', priority: 'P1 - Crítica' as const, status: 'disponivel' as const, category: 'parsing' as const },
+      { id: 'high_match_unapplied', title: 'Match Alto (>=75%) sem Aplicação', impact: 'Oportunidades de alto potencial que não viraram candidatura.', priority: 'P1 - Crítica' as const, status: 'disponivel' as const, category: 'match' as const },
+      { id: 'kanban_stuck', title: 'Presos no Kanban (>14 Dias)', impact: 'Candidaturas estagnadas em etapas intermediárias.', priority: 'P2 - Alta' as const, status: 'disponivel' as const, category: 'pipeline' as const },
+      { id: 'interview_stagnated', title: 'Entrevistas sem Atualização (>7 Dias)', impact: 'Candidatos em fase de entrevista sem treino recente.', priority: 'P1 - Crítica' as const, status: 'disponivel' as const, category: 'pipeline' as const },
+      { id: 'forgotten_apps', title: 'Candidaturas Esquecidas (>15 Dias)', impact: 'Cards no Kanban sem anotações ou movimentações.', priority: 'P2 - Alta' as const, status: 'disponivel' as const, category: 'pipeline' as const },
+      { id: 'onboarding_dropoff', title: 'Abandono no Onboarding Inicial', impact: 'Usuários cadastrados que não enviaram currículo.', priority: 'P2 - Alta' as const, status: 'parcial' as const, category: 'onboarding' as const },
+      { id: 'sequential_rejections', title: 'Vagas Rejeitadas em Sequência', impact: 'Candidatos acumulando múltiplas recusas no funil.', priority: 'P2 - Alta' as const, status: 'parcial' as const, category: 'pipeline' as const }
     ];
+
+    return alertDefinitions.map(def => ({
+      ...def,
+      count: 0,
+      affectedUsers: []
+    }));
   }
 }

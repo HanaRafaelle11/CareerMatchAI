@@ -40,7 +40,7 @@ export class ProductHealthService {
    */
   static async getProductHealthMetrics(): Promise<ProductHealthMetrics> {
     if (!isSupabaseConfigured || !supabase) {
-      return this.getMockProductHealthMetrics();
+      return this.getEmptyProductHealthMetrics();
     }
 
     try {
@@ -59,10 +59,6 @@ export class ProductHealthService {
       ]);
 
       const rawProfiles = profilesRes.data || [];
-      if (rawProfiles.length <= 1) {
-        return this.getMockProductHealthMetrics();
-      }
-
       const allProfiles = rawProfiles.filter((p: any) => p.is_test_account !== true);
       const resumes = resumesRes.data || [];
       const matches = matchesRes.data || [];
@@ -88,7 +84,7 @@ export class ProductHealthService {
         if (diffHours <= 24 * 30) active30dSet.add(ev.user_id);
       });
 
-      // Se analytics_events estiver parco, usar profiles ativos/atualizados
+      // Complementar com perfis ativos/atualizados no período
       allProfiles.forEach(p => {
         const createdMs = new Date(p.created_at).getTime();
         const diffDays = (nowMs - createdMs) / (1000 * 60 * 60 * 24);
@@ -97,16 +93,16 @@ export class ProductHealthService {
         if (diffDays <= 1) active24hSet.add(p.id);
       });
 
-      const wau = active7dSet.size || Math.max(1, Math.round(allProfiles.length * 0.6));
-      const mau = active30dSet.size || Math.max(1, allProfiles.length);
-      const dau = active24hSet.size || Math.max(1, Math.round(wau * 0.35));
+      const wau = active7dSet.size;
+      const mau = active30dSet.size;
+      const dau = active24hSet.size;
       const stickinessRate = mau > 0 ? Number(((dau / mau) * 100).toFixed(1)) : 0;
 
       // ── 2. ACTIVATION RATE ──
       const activatedUserIds = new Set(resumes.filter((r: any) => realUserIds.has(r.user_id)).map((r: any) => r.user_id));
       const activatedUsersCount = activatedUserIds.size;
-      const totalUsersCount = allProfiles.length || 1;
-      const activationRate = Number(((activatedUsersCount / totalUsersCount) * 100).toFixed(1));
+      const totalUsersCount = allProfiles.length;
+      const activationRate = totalUsersCount > 0 ? Number(((activatedUsersCount / totalUsersCount) * 100).toFixed(1)) : 0;
 
       // ── 3. NORTH STAR METRIC ──
       // Candidatos ativos 7d com >=1 candidatura em Match >=75% OU com candidatura em 'hr', 'interview', 'offer'
@@ -130,8 +126,8 @@ export class ProductHealthService {
       });
 
       const qualifiedSet = new Set<string>([...highMatchAppsUserIds, ...advancedStageUserIds]);
-      const totalActive7d = wau || 1;
-      const northStarScore = Number(((qualifiedSet.size / totalActive7d) * 100).toFixed(1));
+      const totalActive7d = wau;
+      const northStarScore = totalActive7d > 0 ? Number(((qualifiedSet.size / totalActive7d) * 100).toFixed(1)) : 0;
 
       // ── 4. MILESTONE VELOCITY (TTV, Time to Match, Time to App, Time to Interview, Time to Hire) ──
       let totalTtvHours = 0;
@@ -201,11 +197,11 @@ export class ProductHealthService {
         }
       });
 
-      const avgTtvHours = ttvCount > 0 ? Number((totalTtvHours / ttvCount).toFixed(1)) : 1.5;
-      const avgTimeToMatchHours = timeToMatchCount > 0 ? Number((totalTimeToMatchHours / timeToMatchCount).toFixed(1)) : 1.2;
-      const avgTimeToAppDays = timeToAppCount > 0 ? Number((totalTimeToAppDays / timeToAppCount).toFixed(1)) : 2.4;
-      const avgTimeToInterviewDays = timeToInterviewCount > 0 ? Number((totalTimeToInterviewDays / timeToInterviewCount).toFixed(1)) : 8.5;
-      const avgTimeToHireDays = timeToHireCount > 0 ? Number((totalTimeToHireDays / timeToHireCount).toFixed(1)) : 22.0;
+      const avgTtvHours = ttvCount > 0 ? Number((totalTtvHours / ttvCount).toFixed(1)) : 0;
+      const avgTimeToMatchHours = timeToMatchCount > 0 ? Number((totalTimeToMatchHours / timeToMatchCount).toFixed(1)) : 0;
+      const avgTimeToAppDays = timeToAppCount > 0 ? Number((totalTimeToAppDays / timeToAppCount).toFixed(1)) : 0;
+      const avgTimeToInterviewDays = timeToInterviewCount > 0 ? Number((totalTimeToInterviewDays / timeToInterviewCount).toFixed(1)) : 0;
+      const avgTimeToHireDays = timeToHireCount > 0 ? Number((totalTimeToHireDays / timeToHireCount).toFixed(1)) : 0;
 
       return {
         northStar: {
@@ -236,39 +232,36 @@ export class ProductHealthService {
       };
     } catch (err) {
       console.error('[ProductHealthService] Erro ao consultar métricas de saúde:', err);
-      return this.getMockProductHealthMetrics();
+      return this.getEmptyProductHealthMetrics();
     }
   }
 
-  /**
-   * Fallback mock para desenvolvimento local offline
-   */
-  private static getMockProductHealthMetrics(): ProductHealthMetrics {
+  private static getEmptyProductHealthMetrics(): ProductHealthMetrics {
     return {
       northStar: {
-        scorePercentage: 64.3,
-        qualifiedCandidatesCount: 18,
-        totalActiveCandidates7d: 28,
-        candidatesWithHighMatchApp: 14,
-        candidatesInAdvancedStages: 4,
+        scorePercentage: 0,
+        qualifiedCandidatesCount: 0,
+        totalActiveCandidates7d: 0,
+        candidatesWithHighMatchApp: 0,
+        candidatesInAdvancedStages: 0,
         nicheMarketLimitationNote: 'Limitação Conhecida: Candidatos em nichos altamente especializados ou regiões com menor oferta física de vagas podem ter menos oportunidades de Match >=75% em determinada semana. Tratar variações com contexto qualitativo.'
       },
       engagement: {
-        activationRate: 82.5,
-        totalUsersCount: 40,
-        activatedUsersCount: 33,
-        wau: 28,
-        mau: 38,
-        dau: 12,
-        stickinessRate: 31.6
+        activationRate: 0,
+        totalUsersCount: 0,
+        activatedUsersCount: 0,
+        wau: 0,
+        mau: 0,
+        dau: 0,
+        stickinessRate: 0
       },
       velocity: {
-        timeToValueHours: 1.2,
-        timeToMatchHours: 0.8,
-        timeToApplicationDays: 2.1,
-        timeToInterviewDays: 7.4,
-        timeToHireDays: 21.5,
-        hiredSampleCount: 3
+        timeToValueHours: 0,
+        timeToMatchHours: 0,
+        timeToApplicationDays: 0,
+        timeToInterviewDays: 0,
+        timeToHireDays: 0,
+        hiredSampleCount: 0
       }
     };
   }

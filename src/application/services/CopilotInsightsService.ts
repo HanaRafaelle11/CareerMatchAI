@@ -25,7 +25,7 @@ export class CopilotInsightsService {
    */
   static async getCopilotInsights(): Promise<CopilotInsightsSummary> {
     if (!isSupabaseConfigured || !supabase) {
-      return this.getMockCopilotInsights();
+      return this.getEmptyCopilotInsights();
     }
 
     try {
@@ -48,10 +48,6 @@ export class CopilotInsightsService {
       ]);
 
       const rawProfiles = profilesRes.data || [];
-      if (rawProfiles.length <= 1) {
-        return this.getMockCopilotInsights();
-      }
-
       const allProfiles = rawProfiles.filter((p: any) => p.is_test_account !== true);
       const realUserIds = new Set(allProfiles.map(p => p.id));
 
@@ -200,113 +196,16 @@ export class CopilotInsightsService {
       };
     } catch (err) {
       console.error('[CopilotInsightsService] Erro ao sintetizar insights:', err);
-      return this.getMockCopilotInsights();
+      return this.getEmptyCopilotInsights();
     }
   }
 
-  /**
-   * Fallback mock para desenvolvimento local offline
-   */
-  private static getMockCopilotInsights(): CopilotInsightsSummary {
-    const activeInsights: CopilotInsightItem[] = [
-      {
-        id: 'insight-1',
-        title: 'Taxa de Abandono Pós-Upload de Currículo',
-        category: 'Onboarding',
-        impactLevel: 'Alto Impacto',
-        naturalLanguageSummary: 'Detectamos que 28.5% dos candidatos enviaram o currículo em PDF mas estagnaram antes de realizar a primeira busca de vaga ou cálculo de Match semântico.',
-        actionableRecommendation: 'Implementar cálculo de Match automático pós-upload imediatamente após o término da extração de texto do PDF.',
-        dataSourceAudit: 'Cruza registros de public.resumes com public.matches (filtro is_test_account != true)',
-        isFuturePending: false,
-        metricValueText: '28.5% de abandono'
-      },
-      {
-        id: 'insight-2',
-        title: 'Performance & Tempo de Resposta da IA',
-        category: 'Latência IA',
-        impactLevel: 'Oportunidade Positiva',
-        naturalLanguageSummary: 'O tempo médio de latência da IA está calibrado em 1.45 segundos por requisição em 142 chamadas computadas.',
-        actionableRecommendation: 'Manter estratégias de caching pré-calculado em banco para buscas repetidas de termos de vagas.',
-        dataSourceAudit: 'Agregação da coluna processing_time_ms na tabela public.ai_usage_logs',
-        isFuturePending: false,
-        metricValueText: '1.45s de latência'
-      },
-      {
-        id: 'insight-3',
-        title: 'Estabilidade do OCR e Processamento de CVs',
-        category: 'Qualidade Parsing',
-        impactLevel: 'Oportunidade Positiva',
-        naturalLanguageSummary: 'A taxa de erro na extração de texto e estruturação de currículos está em 0% nas últimas execuções.',
-        actionableRecommendation: '⏳ Funcionalidade planejada: fallback de OCR Tesseract para PDFs digitalizados está previsto para próxima sprint. Não implementado ainda.',
-        dataSourceAudit: 'Contagem de registros e tipos na tabela public.resume_processing_errors',
-        isFuturePending: false,
-        metricValueText: '0 falhas de OCR'
-      },
-      {
-        id: 'insight-4',
-        title: 'Adoção das Ferramentas de Treinamento (STAR & Coach)',
-        category: 'Adoção STAR/Coach',
-        impactLevel: 'Oportunidade Positiva',
-        naturalLanguageSummary: 'O Simulador STAR e o Copiloto de Carreira acumulam 46 interações registradas por candidatos ativos.',
-        actionableRecommendation: 'Exibir convite de treino STAR logo após o candidato avançar a candidatura para a coluna Entrevistas no Kanban.',
-        dataSourceAudit: 'Filtro por feature_name em public.ai_usage_logs para recursos de treino',
-        isFuturePending: false,
-        metricValueText: '46 chamadas ativas'
-      },
-      {
-        id: 'insight-5',
-        title: 'Satisfação Declarada do Algoritmo de Match',
-        category: 'Satisfação Match',
-        impactLevel: 'Oportunidade Positiva',
-        naturalLanguageSummary: 'A taxa de aprovação percebida pelo algoritmo de Match semântico atinge 92.5% de avaliações positivas no feedback dos usuários.',
-        actionableRecommendation: 'Continuar utilizando pesos calibrados de hard skills (50%), senioridade (30%) e cultura (20%).',
-        dataSourceAudit: 'Agregação da coluna rating e feedback_type em public.job_match_feedback',
-        isFuturePending: false,
-        metricValueText: '92.5% de aprovação'
-      },
-      {
-        id: 'insight-6',
-        title: 'Conversão de Match Calculado para Candidatura',
-        category: 'Conversão Pipeline',
-        impactLevel: 'Impacto Moderado',
-        naturalLanguageSummary: '42.0% dos Matches calculados evoluíram para uma candidatura formal salva no Kanban de vagas.',
-        actionableRecommendation: 'Adicionar botão de candidatura em 1 clique direto no card de resumo de Match com a vaga.',
-        dataSourceAudit: 'Intersecção de IDs (user_id + job_id) entre public.matches e public.applications',
-        isFuturePending: false,
-        metricValueText: '42.0% de conversão'
-      }
-    ];
-
-    const futurePendingInsights: CopilotInsightItem[] = [
-      {
-        id: 'future-1',
-        title: 'Conversão Financeira Free → Premium',
-        category: 'Faturamento Futuro',
-        impactLevel: 'Pendente de Dados',
-        naturalLanguageSummary: 'Rastreamento de taxa de conversão de teste gratuito para assinaturas pagas no checkout.',
-        actionableRecommendation: 'Conectar webhook oficial do gateway Asaas/Stripe para receber eventos de upgrade confirmados.',
-        dataSourceAudit: '[DADO PENDENTE — INSTRUMENTAÇÃO ADICIONAL NECESSÁRIA NO WEBHOOK DE CHECKOUT]',
-        isFuturePending: true,
-        metricValueText: '[DADO PENDENTE]'
-      },
-      {
-        id: 'future-2',
-        title: 'Receita Influenciada por Funcionalidade de IA',
-        category: 'Faturamento Futuro',
-        impactLevel: 'Pendente de Dados',
-        naturalLanguageSummary: 'Cálculo de LTV e receita diretamente gerada por cada recurso inteligente (Simulador STAR vs Coach).',
-        actionableRecommendation: 'Registrar metadata do plano de assinatura na tabela profiles via webhook financeiro.',
-        dataSourceAudit: '[DADO PENDENTE — INSTRUMENTAÇÃO ADICIONAL NECESSÁRIA NO WEBHOOK DE BILLING]',
-        isFuturePending: true,
-        metricValueText: '[DADO PENDENTE]'
-      }
-    ];
-
+  private static getEmptyCopilotInsights(): CopilotInsightsSummary {
     return {
-      activeInsights,
-      futurePendingInsights,
-      generatedAt: '11:00',
-      totalTelemetryEventsAnalyzed: 188
+      activeInsights: [],
+      futurePendingInsights: [],
+      generatedAt: new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }),
+      totalTelemetryEventsAnalyzed: 0
     };
   }
 }

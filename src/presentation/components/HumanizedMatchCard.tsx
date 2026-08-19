@@ -55,6 +55,8 @@ export function HumanizedMatchCard({
   className = ''
 }: HumanizedMatchCardProps) {
   const [showBreakdown, setShowBreakdown] = useState(false);
+  const [matchFeedback, setMatchFeedback] = useState<'positive' | 'negative' | null>(null);
+  const [showNegativeModal, setShowNegativeModal] = useState(false);
 
   // ── CÁLCULO DETERMINÍSTICO V3 ──
   const v3Result = CareerMatchEngineV3.calculate(job, resume, careerProfileNew, careerGoal);
@@ -434,6 +436,65 @@ export function HumanizedMatchCard({
                 </span>
               </div>
             </div>
+
+            {/* Feedback Explícito do Usuário sobre o Match (Fase 9) */}
+            <div className="pt-3 border-t border-slate-200/80 dark:border-slate-800 flex flex-wrap items-center justify-between gap-2 text-xs">
+              <span className="text-slate-600 dark:text-slate-400 font-medium">
+                {matchFeedback === 'positive' ? 'Obrigado pelo feedback! 👍' : matchFeedback === 'negative' ? 'Feedback registrado! 👎' : 'Esse diagnóstico fez sentido para o seu momento?'}
+              </span>
+
+              {matchFeedback === null && (
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setMatchFeedback('positive');
+                      tracker.trackJobMatchFeedbackSubmitted(job.id, true);
+                    }}
+                    className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 font-bold transition text-xs cursor-pointer"
+                  >
+                    👍 Sim
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setShowNegativeModal(true);
+                    }}
+                    className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-rose-500/10 hover:bg-rose-500/20 text-rose-600 dark:text-rose-400 font-bold transition text-xs cursor-pointer"
+                  >
+                    👎 Não
+                  </button>
+                </div>
+              )}
+            </div>
+
+            {showNegativeModal && (
+              <div className="p-3 rounded-xl bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-800 space-y-2">
+                <p className="text-xs font-bold text-rose-700 dark:text-rose-300">Por que o match não fez sentido?</p>
+                <div className="flex flex-wrap gap-1.5">
+                  {[
+                    'Não tenho experiência suficiente',
+                    'Não quero esse tipo de vaga',
+                    'A vaga não parece relacionada ao meu perfil',
+                    'Localização/modalidade não funciona',
+                    'Senioridade não corresponde'
+                  ].map((reason) => (
+                    <button
+                      key={reason}
+                      type="button"
+                      onClick={() => {
+                        setMatchFeedback('negative');
+                        setShowNegativeModal(false);
+                        tracker.trackJobMatchFeedbackSubmitted(job.id, false, reason);
+                      }}
+                      className="text-[11px] px-2 py-1 rounded bg-white dark:bg-slate-900 border border-rose-300 dark:border-rose-700 text-rose-700 dark:text-rose-300 hover:bg-rose-100 dark:hover:bg-rose-900/50 transition cursor-pointer"
+                    >
+                      {reason}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
         )}
       </div>

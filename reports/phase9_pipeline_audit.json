@@ -1,0 +1,20 @@
+{
+  "timestamp": "2026-08-19T01:19:17.685Z",
+  "pipelineMetrics": {
+    "total_ingested": 113,
+    "total_normalized": 113,
+    "total_low_quality": 11,
+    "total_medium_quality": 0,
+    "total_high_quality": 102,
+    "total_duplicates": 2,
+    "total_unique_jobs": 111,
+    "total_matched": 31,
+    "total_filtered": 80,
+    "total_displayed": 10
+  },
+  "conversionRates": {
+    "ingestion_to_usable_rate": "90.3%",
+    "usable_to_matched_rate": "30.4%",
+    "matched_to_displayed_rate": "32.3%"
+  }
+}

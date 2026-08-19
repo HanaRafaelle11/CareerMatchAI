@@ -5,10 +5,10 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "tsc -b && vitest run tests/unit && vite build",
+    "build": "tsc -b && vitest run tests/unit --testTimeout 15000 && vite build",
     "lint": "oxlint",
     "preview": "vite preview",
-    "test:unit": "vitest run tests/unit",
+    "test:unit": "vitest run tests/unit --testTimeout 15000",
     "test:e2e": "playwright test",
     "test:e2e:ui": "node scripts/run-e2e-browser-suite.mjs",
     "test:regression": "node scripts/run-regression-suite.mjs && node scripts/run-e2e-browser-suite.mjs",

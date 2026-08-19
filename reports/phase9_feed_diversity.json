@@ -1,0 +1,61 @@
+{
+  "timestamp": "2026-08-19T01:17:33.636Z",
+  "auditSummary": "Feed demonstra alta diversidade de empresas e provedores sem monopólio artificial de um único agregador.",
+  "diversityByPersona": [
+    {
+      "personaId": "P1",
+      "personaName": "CSM Sênior (Continuidade)",
+      "displayedJobs": 10,
+      "uniqueCompanies": 9,
+      "companyDiversityRatio": "0.90",
+      "uniqueTitles": 3,
+      "titleDiversityRatio": "0.30",
+      "uniqueProviders": 5,
+      "providerDiversityRatio": "0.50",
+      "providersList": [
+        "Glassdoor",
+        "Catho",
+        "InfoJobs",
+        "Gupy",
+        "LinkedIn"
+      ]
+    },
+    {
+      "personaId": "P2",
+      "personaName": "CSM em Transição para Product Management",
+      "displayedJobs": 10,
+      "uniqueCompanies": 10,
+      "companyDiversityRatio": "1.00",
+      "uniqueTitles": 4,
+      "titleDiversityRatio": "0.40",
+      "uniqueProviders": 6,
+      "providerDiversityRatio": "0.60",
+      "providersList": [
+        "Catho",
+        "Glassdoor",
+        "InfoJobs",
+        "Gupy",
+        "LinkedIn",
+        "Google Jobs"
+      ]
+    },
+    {
+      "personaId": "P3",
+      "personaName": "Backend Developer buscando Tech Lead",
+      "displayedJobs": 10,
+      "uniqueCompanies": 10,
+      "companyDiversityRatio": "1.00",
+      "uniqueTitles": 3,
+      "titleDiversityRatio": "0.30",
+      "uniqueProviders": 5,
+      "providerDiversityRatio": "0.50",
+      "providersList": [
+        "Glassdoor",
+        "Google Jobs",
+        "Catho",
+        "InfoJobs",
+        "Gupy"
+      ]
+    }
+  ]
+}

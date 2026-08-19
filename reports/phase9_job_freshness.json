@@ -1,0 +1,14 @@
+{
+  "timestamp": "2026-08-19T01:19:17.710Z",
+  "top10Evaluated": 10,
+  "recentRatio": "50.0%",
+  "bracketDistribution": {
+    "< 24h": 1,
+    "24–72h": 0,
+    "3–7 dias": 2,
+    "7–14 dias": 2,
+    "14–30 dias": 4,
+    "> 30 dias": 1
+  },
+  "conclusion": "O desempate por recência do ProductJobRankingService garante que oportunidades mais frescas e ativas apareçam prioritariamente no feed do usuário."
+}

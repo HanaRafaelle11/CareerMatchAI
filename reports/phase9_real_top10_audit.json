@@ -1,0 +1,2507 @@
+{
+  "timestamp": "2026-08-19T01:18:11.382Z",
+  "totalPersonas": 20,
+  "top3RelevanceRate": "95.0%",
+  "top10RelevanceRate": "88.4%",
+  "personas": [
+    {
+      "personaId": "P01",
+      "personaName": "CSM Sênior buscando CSM Sênior",
+      "displayedTop10": [
+        {
+          "rank": 1,
+          "title": "Customer Success Manager Sênior",
+          "company": "PicPay",
+          "providers": [
+            "Glassdoor"
+          ],
+          "fit": 83,
+          "goal": 83,
+          "grade": "A",
+          "rankScore": 83
+        },
+        {
+          "rank": 2,
+          "title": "Customer Success Manager Sênior",
+          "company": "Consultoria Tech",
+          "providers": [
+            "Catho"
+          ],
+          "fit": 82,
+          "goal": 83,
+          "grade": "A",
+          "rankScore": 82
+        },
+        {
+          "rank": 3,
+          "title": "Customer Success Manager Pleno",
+          "company": "Omie",
+          "providers": [
+            "InfoJobs"
+          ],
+          "fit": 81,
+          "goal": 80,
+          "grade": "A",
+          "rankScore": 81
+        },
+        {
+          "rank": 4,
+          "title": "Customer Success Manager Pleno",
+          "company": "QuintoAndar",
+          "providers": [
+            "Gupy"
+          ],
+          "fit": 81,
+          "goal": 80,
+          "grade": "A",
+          "rankScore": 81
+        },
+        {
+          "rank": 5,
+          "title": "Customer Success Manager Pleno",
+          "company": "Mercado Livre",
+          "providers": [
+            "LinkedIn"
+          ],
+          "fit": 81,
+          "goal": 80,
+          "grade": "A",
+          "rankScore": 81
+        },
+        {
+          "rank": 6,
+          "title": "Customer Success Manager Júnior",
+          "company": "iFood",
+          "providers": [
+            "Glassdoor"
+          ],
+          "fit": 80,
+          "goal": 80,
+          "grade": "A",
+          "rankScore": 80
+        },
+        {
+          "rank": 7,
+          "title": "Customer Success Manager Júnior",
+          "company": "Loft",
+          "providers": [
+            "Catho"
+          ],
+          "fit": 79,
+          "goal": 80,
+          "grade": "A",
+          "rankScore": 79
+        },
+        {
+          "rank": 8,
+          "title": "Customer Success Manager Pleno",
+          "company": "Nubank",
+          "providers": [
+            "InfoJobs"
+          ],
+          "fit": 79,
+          "goal": 80,
+          "grade": "A",
+          "rankScore": 79
+        },
+        {
+          "rank": 9,
+          "title": "Customer Success Manager Pleno",
+          "company": "Stone",
+          "providers": [
+            "Gupy"
+          ],
+          "fit": 79,
+          "goal": 80,
+          "grade": "A",
+          "rankScore": 79
+        },
+        {
+          "rank": 10,
+          "title": "Customer Success Manager Pleno",
+          "company": "iFood",
+          "providers": [
+            "LinkedIn"
+          ],
+          "fit": 79,
+          "goal": 80,
+          "grade": "A",
+          "rankScore": 79
+        }
+      ]
+    },
+    {
+      "personaId": "P02",
+      "personaName": "Product Manager Pleno buscando PM Pleno",
+      "displayedTop10": [
+        {
+          "rank": 1,
+          "title": "Product Manager Pleno",
+          "company": "Loft",
+          "providers": [
+            "InfoJobs"
+          ],
+          "fit": 87,
+          "goal": 83,
+          "grade": "A",
+          "rankScore": 86
+        },
+        {
+          "rank": 2,
+          "title": "Product Manager Pleno",
+          "company": "Omie",
+          "providers": [
+            "Gupy"
+          ],
+          "fit": 87,
+          "goal": 83,
+          "grade": "A",
+          "rankScore": 86
+        },
+        {
+          "rank": 3,
+          "title": "Product Manager Pleno",
+          "company": "QuintoAndar",
+          "providers": [
+            "LinkedIn"
+          ],
+          "fit": 87,
+          "goal": 83,
+          "grade": "A",
+          "rankScore": 86
+        },
+        {
+          "rank": 4,
+          "title": "Senior Product Manager",
+          "company": "Nubank",
+          "providers": [
+            "Catho",
+            "Glassdoor"
+          ],
+          "fit": 83,
+          "goal": 86,
+          "grade": "A",
+          "rankScore": 84
+        },
+        {
+          "rank": 5,
+          "title": "Product Manager Júnior",
+          "company": "Stone",
+          "providers": [
+            "Glassdoor"
+          ],
+          "fit": 79,
+          "goal": 80,
+          "grade": "A",
+          "rankScore": 79
+        },
+        {
+          "rank": 6,
+          "title": "Product Manager Júnior",
+          "company": "iFood",
+          "providers": [
+            "Google Jobs"
+          ],
+          "fit": 78,
+          "goal": 80,
+          "grade": "A",
+          "rankScore": 79
+        },
+        {
+          "rank": 7,
+          "title": "Product Manager Júnior",
+          "company": "Totvs",
+          "providers": [
+            "Catho"
+          ],
+          "fit": 78,
+          "goal": 80,
+          "grade": "A",
+          "rankScore": 79
+        },
+        {
+          "rank": 8,
+          "title": "Product Manager Sênior",
+          "company": "Mercado Livre",
+          "providers": [
+            "Glassdoor"
+          ],
+          "fit": 78,
+          "goal": 80,
+          "grade": "A",
+          "rankScore": 79
+        },
+        {
+          "rank": 9,
+          "title": "Product Manager Pleno",
+          "company": "Nubank",
+          "providers": [
+            "Gupy"
+          ],
+          "fit": 78,
+          "goal": 80,
+          "grade": "A",
+          "rankScore": 79
+        },
+        {
+          "rank": 10,
+          "title": "Product Manager Pleno",
+          "company": "Stone",
+          "providers": [
+            "LinkedIn"
+          ],
+          "fit": 78,
+          "goal": 80,
+          "grade": "A",
+          "rankScore": 79
+        }
+      ]
+    },
+    {
+      "personaId": "P03",
+      "personaName": "Backend Dev Pleno buscando Backend Pleno",
+      "displayedTop10": [
+        {
+          "rank": 1,
+          "title": "Backend Developer (Node.js) Júnior",
+          "company": "Totvs",
+          "providers": [
+            "Glassdoor"
+          ],
+          "fit": 71,
+          "goal": 75,
+          "grade": "A",
+          "rankScore": 72
+        },
+        {
+          "rank": 2,
+          "title": "Backend Developer (Node.js) Pleno",
+          "company": "QuintoAndar",
+          "providers": [
+            "InfoJobs"
+          ],
+          "fit": 70,
+          "goal": 75,
+          "grade": "A",
+          "rankScore": 72
+        },
+        {
+          "rank": 3,
+          "title": "Backend Developer (Node.js) Pleno",
+          "company": "Mercado Livre",
+          "providers": [
+            "Gupy"
+          ],
+          "fit": 70,
+          "goal": 75,
+          "grade": "A",
+          "rankScore": 72
+        },
+        {
+          "rank": 4,
+          "title": "Backend Developer (Node.js) Júnior",
+          "company": "Loft",
+          "providers": [
+            "Google Jobs"
+          ],
+          "fit": 69,
+          "goal": 75,
+          "grade": "B",
+          "rankScore": 71
+        },
+        {
+          "rank": 5,
+          "title": "Backend Developer (Node.js) Júnior",
+          "company": "Omie",
+          "providers": [
+            "Catho"
+          ],
+          "fit": 69,
+          "goal": 75,
+          "grade": "B",
+          "rankScore": 71
+        },
+        {
+          "rank": 6,
+          "title": "Backend Developer (Node.js) Sênior",
+          "company": "Hospital Central",
+          "providers": [
+            "Glassdoor"
+          ],
+          "fit": 66,
+          "goal": 72,
+          "grade": "B",
+          "rankScore": 68
+        },
+        {
+          "rank": 7,
+          "title": "Backend Developer (Node.js) Sênior",
+          "company": "Consultoria Tech",
+          "providers": [
+            "Google Jobs"
+          ],
+          "fit": 64,
+          "goal": 72,
+          "grade": "B",
+          "rankScore": 66
+        },
+        {
+          "rank": 8,
+          "title": "Backend Developer (Node.js) Sênior",
+          "company": "Nubank",
+          "providers": [
+            "Catho"
+          ],
+          "fit": 64,
+          "goal": 72,
+          "grade": "B",
+          "rankScore": 66
+        },
+        {
+          "rank": 9,
+          "title": "Backend Developer (Node.js) Pleno",
+          "company": "Stone",
+          "providers": [
+            "InfoJobs"
+          ],
+          "fit": 61,
+          "goal": 72,
+          "grade": "B",
+          "rankScore": 64
+        },
+        {
+          "rank": 10,
+          "title": "Backend Developer (Node.js) Pleno",
+          "company": "iFood",
+          "providers": [
+            "Gupy"
+          ],
+          "fit": 61,
+          "goal": 72,
+          "grade": "B",
+          "rankScore": 64
+        }
+      ]
+    },
+    {
+      "personaId": "P04",
+      "personaName": "CSM Pleno buscando Liderança de CS",
+      "displayedTop10": [
+        {
+          "rank": 1,
+          "title": "Customer Success Manager Sênior",
+          "company": "PicPay",
+          "providers": [
+            "Glassdoor"
+          ],
+          "fit": 77,
+          "goal": 83,
+          "grade": "A",
+          "rankScore": 79
+        },
+        {
+          "rank": 2,
+          "title": "Customer Success Manager Pleno",
+          "company": "Omie",
+          "providers": [
+            "InfoJobs"
+          ],
+          "fit": 78,
+          "goal": 79,
+          "grade": "A",
+          "rankScore": 78
+        },
+        {
+          "rank": 3,
+          "title": "Customer Success Manager Pleno",
+          "company": "QuintoAndar",
+          "providers": [
+            "Gupy"
+          ],
+          "fit": 78,
+          "goal": 79,
+          "grade": "A",
+          "rankScore": 78
+        },
+        {
+          "rank": 4,
+          "title": "Customer Success Manager Pleno",
+          "company": "Mercado Livre",
+          "providers": [
+            "LinkedIn"
+          ],
+          "fit": 78,
+          "goal": 79,
+          "grade": "A",
+          "rankScore": 78
+        },
+        {
+          "rank": 5,
+          "title": "Customer Success Manager Júnior",
+          "company": "iFood",
+          "providers": [
+            "Glassdoor"
+          ],
+          "fit": 78,
+          "goal": 79,
+          "grade": "A",
+          "rankScore": 78
+        },
+        {
+          "rank": 6,
+          "title": "Customer Success Manager Júnior",
+          "company": "Loft",
+          "providers": [
+            "Catho"
+          ],
+          "fit": 77,
+          "goal": 79,
+          "grade": "A",
+          "rankScore": 78
+        },
+        {
+          "rank": 7,
+          "title": "Customer Success Manager Júnior",
+          "company": "Totvs",
+          "providers": [
+            "Google Jobs"
+          ],
+          "fit": 77,
+          "goal": 79,
+          "grade": "A",
+          "rankScore": 78
+        },
+        {
+          "rank": 8,
+          "title": "Customer Success Manager Sênior",
+          "company": "Consultoria Tech",
+          "providers": [
+            "Catho"
+          ],
+          "fit": 75,
+          "goal": 83,
+          "grade": "A",
+          "rankScore": 77
+        },
+        {
+          "rank": 9,
+          "title": "Customer Success Manager Pleno",
+          "company": "Nubank",
+          "providers": [
+            "InfoJobs"
+          ],
+          "fit": 69,
+          "goal": 76,
+          "grade": "B",
+          "rankScore": 71
+        },
+        {
+          "rank": 10,
+          "title": "Customer Success Manager Pleno",
+          "company": "Stone",
+          "providers": [
+            "Gupy"
+          ],
+          "fit": 69,
+          "goal": 76,
+          "grade": "B",
+          "rankScore": 71
+        }
+      ]
+    },
+    {
+      "personaId": "P05",
+      "personaName": "Backend Dev Pleno buscando Tech Lead",
+      "displayedTop10": [
+        {
+          "rank": 1,
+          "title": "Backend Developer (Node.js) Sênior",
+          "company": "Hospital Central",
+          "providers": [
+            "Glassdoor"
+          ],
+          "fit": 74,
+          "goal": 73,
+          "grade": "A",
+          "rankScore": 74
+        },
+        {
+          "rank": 2,
+          "title": "Backend Developer (Node.js) Sênior",
+          "company": "Consultoria Tech",
+          "providers": [
+            "Google Jobs"
+          ],
+          "fit": 73,
+          "goal": 73,
+          "grade": "A",
+          "rankScore": 73
+        },
+        {
+          "rank": 3,
+          "title": "Backend Developer (Node.js) Sênior",
+          "company": "Nubank",
+          "providers": [
+            "Catho"
+          ],
+          "fit": 73,
+          "goal": 73,
+          "grade": "A",
+          "rankScore": 73
+        },
+        {
+          "rank": 4,
+          "title": "Backend Developer (Node.js) Pleno",
+          "company": "QuintoAndar",
+          "providers": [
+            "InfoJobs"
+          ],
+          "fit": 73,
+          "goal": 73,
+          "grade": "A",
+          "rankScore": 73
+        },
+        {
+          "rank": 5,
+          "title": "Backend Developer (Node.js) Pleno",
+          "company": "Mercado Livre",
+          "providers": [
+            "Gupy"
+          ],
+          "fit": 73,
+          "goal": 73,
+          "grade": "A",
+          "rankScore": 73
+        },
+        {
+          "rank": 6,
+          "title": "Backend Developer (Node.js) Júnior",
+          "company": "Totvs",
+          "providers": [
+            "Glassdoor"
+          ],
+          "fit": 72,
+          "goal": 73,
+          "grade": "A",
+          "rankScore": 72
+        },
+        {
+          "rank": 7,
+          "title": "Backend Developer (Node.js) Júnior",
+          "company": "Loft",
+          "providers": [
+            "Google Jobs"
+          ],
+          "fit": 70,
+          "goal": 73,
+          "grade": "A",
+          "rankScore": 71
+        },
+        {
+          "rank": 8,
+          "title": "Backend Developer (Node.js) Júnior",
+          "company": "Omie",
+          "providers": [
+            "Catho"
+          ],
+          "fit": 70,
+          "goal": 73,
+          "grade": "A",
+          "rankScore": 71
+        },
+        {
+          "rank": 9,
+          "title": "Backend Developer (Node.js) Pleno",
+          "company": "Stone",
+          "providers": [
+            "InfoJobs"
+          ],
+          "fit": 67,
+          "goal": 70,
+          "grade": "B",
+          "rankScore": 68
+        },
+        {
+          "rank": 10,
+          "title": "Backend Developer (Node.js) Pleno",
+          "company": "iFood",
+          "providers": [
+            "Gupy"
+          ],
+          "fit": 67,
+          "goal": 70,
+          "grade": "B",
+          "rankScore": 68
+        }
+      ]
+    },
+    {
+      "personaId": "P06",
+      "personaName": "Product Analyst buscando Product Manager",
+      "displayedTop10": [
+        {
+          "rank": 1,
+          "title": "Customer Success Manager Júnior",
+          "company": "iFood",
+          "providers": [
+            "Glassdoor"
+          ],
+          "fit": 77,
+          "goal": 72,
+          "grade": "A",
+          "rankScore": 76
+        },
+        {
+          "rank": 2,
+          "title": "Customer Success Manager Pleno",
+          "company": "Omie",
+          "providers": [
+            "InfoJobs"
+          ],
+          "fit": 76,
+          "goal": 77,
+          "grade": "A",
+          "rankScore": 76
+        },
+        {
+          "rank": 3,
+          "title": "Customer Success Manager Pleno",
+          "company": "QuintoAndar",
+          "providers": [
+            "Gupy"
+          ],
+          "fit": 76,
+          "goal": 77,
+          "grade": "A",
+          "rankScore": 76
+        },
+        {
+          "rank": 4,
+          "title": "Customer Success Manager Pleno",
+          "company": "Mercado Livre",
+          "providers": [
+            "LinkedIn"
+          ],
+          "fit": 76,
+          "goal": 77,
+          "grade": "A",
+          "rankScore": 76
+        },
+        {
+          "rank": 5,
+          "title": "Customer Success Manager Júnior",
+          "company": "Loft",
+          "providers": [
+            "Catho"
+          ],
+          "fit": 76,
+          "goal": 72,
+          "grade": "A",
+          "rankScore": 75
+        },
+        {
+          "rank": 6,
+          "title": "Customer Success Manager Júnior",
+          "company": "Totvs",
+          "providers": [
+            "Google Jobs"
+          ],
+          "fit": 76,
+          "goal": 72,
+          "grade": "A",
+          "rankScore": 75
+        },
+        {
+          "rank": 7,
+          "title": "Product Manager Júnior",
+          "company": "Stone",
+          "providers": [
+            "Glassdoor"
+          ],
+          "fit": 70,
+          "goal": 75,
+          "grade": "A",
+          "rankScore": 72
+        },
+        {
+          "rank": 8,
+          "title": "Product Manager Pleno",
+          "company": "Loft",
+          "providers": [
+            "InfoJobs"
+          ],
+          "fit": 69,
+          "goal": 79,
+          "grade": "B",
+          "rankScore": 72
+        },
+        {
+          "rank": 9,
+          "title": "Product Manager Pleno",
+          "company": "Omie",
+          "providers": [
+            "Gupy"
+          ],
+          "fit": 69,
+          "goal": 79,
+          "grade": "B",
+          "rankScore": 72
+        },
+        {
+          "rank": 10,
+          "title": "Product Manager Pleno",
+          "company": "QuintoAndar",
+          "providers": [
+            "LinkedIn"
+          ],
+          "fit": 69,
+          "goal": 79,
+          "grade": "B",
+          "rankScore": 72
+        }
+      ]
+    },
+    {
+      "personaId": "P07",
+      "personaName": "CSM buscando Product Manager",
+      "displayedTop10": [
+        {
+          "rank": 1,
+          "title": "Senior Product Manager",
+          "company": "Nubank",
+          "providers": [
+            "Catho",
+            "Glassdoor"
+          ],
+          "fit": 12,
+          "goal": 77,
+          "grade": "A",
+          "rankScore": 77
+        },
+        {
+          "rank": 2,
+          "title": "Product Manager Júnior",
+          "company": "Stone",
+          "providers": [
+            "Glassdoor"
+          ],
+          "fit": 10,
+          "goal": 74,
+          "grade": "A",
+          "rankScore": 74
+        },
+        {
+          "rank": 3,
+          "title": "Product Manager Pleno",
+          "company": "Loft",
+          "providers": [
+            "InfoJobs"
+          ],
+          "fit": 10,
+          "goal": 74,
+          "grade": "A",
+          "rankScore": 74
+        },
+        {
+          "rank": 4,
+          "title": "Product Manager Pleno",
+          "company": "Omie",
+          "providers": [
+            "Gupy"
+          ],
+          "fit": 10,
+          "goal": 74,
+          "grade": "A",
+          "rankScore": 74
+        },
+        {
+          "rank": 5,
+          "title": "Product Manager Pleno",
+          "company": "QuintoAndar",
+          "providers": [
+            "LinkedIn"
+          ],
+          "fit": 10,
+          "goal": 74,
+          "grade": "A",
+          "rankScore": 74
+        },
+        {
+          "rank": 6,
+          "title": "Product Manager Júnior",
+          "company": "iFood",
+          "providers": [
+            "Google Jobs"
+          ],
+          "fit": 9,
+          "goal": 74,
+          "grade": "A",
+          "rankScore": 74
+        },
+        {
+          "rank": 7,
+          "title": "Product Manager Júnior",
+          "company": "Totvs",
+          "providers": [
+            "Catho"
+          ],
+          "fit": 9,
+          "goal": 74,
+          "grade": "A",
+          "rankScore": 74
+        },
+        {
+          "rank": 8,
+          "title": "Product Manager Sênior",
+          "company": "Mercado Livre",
+          "providers": [
+            "Glassdoor"
+          ],
+          "fit": 9,
+          "goal": 74,
+          "grade": "A",
+          "rankScore": 74
+        },
+        {
+          "rank": 9,
+          "title": "Product Manager Sênior",
+          "company": "PicPay",
+          "providers": [
+            "Google Jobs"
+          ],
+          "fit": 9,
+          "goal": 74,
+          "grade": "A",
+          "rankScore": 74
+        },
+        {
+          "rank": 10,
+          "title": "Product Manager Sênior",
+          "company": "Hospital Central",
+          "providers": [
+            "Catho"
+          ],
+          "fit": 9,
+          "goal": 74,
+          "grade": "A",
+          "rankScore": 74
+        }
+      ]
+    },
+    {
+      "personaId": "P08",
+      "personaName": "Operations buscando Product Operations",
+      "displayedTop10": [
+        {
+          "rank": 1,
+          "title": "Product Operations Analyst Pleno",
+          "company": "Omie",
+          "providers": [
+            "Glassdoor"
+          ],
+          "fit": 80,
+          "goal": 79,
+          "grade": "A",
+          "rankScore": 79
+        },
+        {
+          "rank": 2,
+          "title": "Product Operations Analyst Pleno",
+          "company": "Mercado Livre",
+          "providers": [
+            "Catho"
+          ],
+          "fit": 79,
+          "goal": 79,
+          "grade": "A",
+          "rankScore": 79
+        },
+        {
+          "rank": 3,
+          "title": "Product Operations Analyst Júnior",
+          "company": "iFood",
+          "providers": [
+            "InfoJobs"
+          ],
+          "fit": 78,
+          "goal": 79,
+          "grade": "A",
+          "rankScore": 79
+        },
+        {
+          "rank": 4,
+          "title": "Product Operations Analyst Júnior",
+          "company": "Totvs",
+          "providers": [
+            "Gupy"
+          ],
+          "fit": 78,
+          "goal": 79,
+          "grade": "A",
+          "rankScore": 79
+        },
+        {
+          "rank": 5,
+          "title": "Product Operations Analyst Júnior",
+          "company": "Loft",
+          "providers": [
+            "LinkedIn"
+          ],
+          "fit": 78,
+          "goal": 79,
+          "grade": "A",
+          "rankScore": 79
+        },
+        {
+          "rank": 6,
+          "title": "Product Operations Analyst Sênior",
+          "company": "PicPay",
+          "providers": [
+            "InfoJobs"
+          ],
+          "fit": 73,
+          "goal": 76,
+          "grade": "A",
+          "rankScore": 76
+        },
+        {
+          "rank": 7,
+          "title": "Product Operations Analyst Sênior",
+          "company": "Hospital Central",
+          "providers": [
+            "Gupy"
+          ],
+          "fit": 73,
+          "goal": 76,
+          "grade": "A",
+          "rankScore": 76
+        },
+        {
+          "rank": 8,
+          "title": "Product Operations Analyst Sênior",
+          "company": "Consultoria Tech",
+          "providers": [
+            "LinkedIn"
+          ],
+          "fit": 73,
+          "goal": 76,
+          "grade": "A",
+          "rankScore": 76
+        },
+        {
+          "rank": 9,
+          "title": "Product Manager Júnior",
+          "company": "Stone",
+          "providers": [
+            "Glassdoor"
+          ],
+          "fit": 57,
+          "goal": 60,
+          "grade": "B",
+          "rankScore": 60
+        },
+        {
+          "rank": 10,
+          "title": "Product Manager Pleno",
+          "company": "Loft",
+          "providers": [
+            "InfoJobs"
+          ],
+          "fit": 56,
+          "goal": 60,
+          "grade": "B",
+          "rankScore": 60
+        }
+      ]
+    },
+    {
+      "personaId": "P09",
+      "personaName": "Inside Sales buscando Customer Success",
+      "displayedTop10": [
+        {
+          "rank": 1,
+          "title": "Inside Sales Specialist B2B Pleno",
+          "company": "Stone",
+          "providers": [
+            "Glassdoor"
+          ],
+          "fit": 90,
+          "goal": 58,
+          "grade": "B",
+          "rankScore": 58
+        },
+        {
+          "rank": 2,
+          "title": "Inside Sales Specialist B2B Pleno",
+          "company": "iFood",
+          "providers": [
+            "Google Jobs"
+          ],
+          "fit": 89,
+          "goal": 58,
+          "grade": "B",
+          "rankScore": 58
+        },
+        {
+          "rank": 3,
+          "title": "Inside Sales Specialist B2B Pleno",
+          "company": "Totvs",
+          "providers": [
+            "Catho"
+          ],
+          "fit": 89,
+          "goal": 58,
+          "grade": "B",
+          "rankScore": 58
+        },
+        {
+          "rank": 4,
+          "title": "Inside Sales Specialist B2B Júnior",
+          "company": "Hospital Central",
+          "providers": [
+            "InfoJobs"
+          ],
+          "fit": 88,
+          "goal": 58,
+          "grade": "B",
+          "rankScore": 58
+        },
+        {
+          "rank": 5,
+          "title": "Inside Sales Specialist B2B Júnior",
+          "company": "Consultoria Tech",
+          "providers": [
+            "Gupy"
+          ],
+          "fit": 88,
+          "goal": 58,
+          "grade": "B",
+          "rankScore": 58
+        },
+        {
+          "rank": 6,
+          "title": "Inside Sales Specialist B2B Júnior",
+          "company": "Nubank",
+          "providers": [
+            "LinkedIn"
+          ],
+          "fit": 88,
+          "goal": 58,
+          "grade": "B",
+          "rankScore": 58
+        },
+        {
+          "rank": 7,
+          "title": "Inside Sales Specialist B2B Sênior",
+          "company": "Omie",
+          "providers": [
+            "Gupy"
+          ],
+          "fit": 83,
+          "goal": 55,
+          "grade": "B",
+          "rankScore": 55
+        },
+        {
+          "rank": 8,
+          "title": "Inside Sales Specialist B2B Sênior",
+          "company": "QuintoAndar",
+          "providers": [
+            "LinkedIn"
+          ],
+          "fit": 83,
+          "goal": 55,
+          "grade": "B",
+          "rankScore": 55
+        },
+        {
+          "rank": 9,
+          "title": "Customer Success Manager Júnior",
+          "company": "Loft",
+          "providers": [
+            "Catho"
+          ],
+          "fit": 10,
+          "goal": 46,
+          "grade": "C",
+          "rankScore": 46
+        },
+        {
+          "rank": 10,
+          "title": "Customer Success Manager Pleno",
+          "company": "Omie",
+          "providers": [
+            "InfoJobs"
+          ],
+          "fit": 10,
+          "goal": 46,
+          "grade": "C",
+          "rankScore": 46
+        }
+      ]
+    },
+    {
+      "personaId": "P10",
+      "personaName": "Marketing Digital buscando Customer Success",
+      "displayedTop10": [
+        {
+          "rank": 1,
+          "title": "Customer Success Manager Júnior",
+          "company": "iFood",
+          "providers": [
+            "Glassdoor"
+          ],
+          "fit": 78,
+          "goal": 83,
+          "grade": "A",
+          "rankScore": 83
+        },
+        {
+          "rank": 2,
+          "title": "Customer Success Manager Pleno",
+          "company": "Omie",
+          "providers": [
+            "InfoJobs"
+          ],
+          "fit": 77,
+          "goal": 83,
+          "grade": "A",
+          "rankScore": 83
+        },
+        {
+          "rank": 3,
+          "title": "Customer Success Manager Pleno",
+          "company": "QuintoAndar",
+          "providers": [
+            "Gupy"
+          ],
+          "fit": 77,
+          "goal": 83,
+          "grade": "A",
+          "rankScore": 83
+        },
+        {
+          "rank": 4,
+          "title": "Customer Success Manager Pleno",
+          "company": "Mercado Livre",
+          "providers": [
+            "LinkedIn"
+          ],
+          "fit": 77,
+          "goal": 83,
+          "grade": "A",
+          "rankScore": 83
+        },
+        {
+          "rank": 5,
+          "title": "Customer Success Manager Júnior",
+          "company": "Loft",
+          "providers": [
+            "Catho"
+          ],
+          "fit": 76,
+          "goal": 83,
+          "grade": "A",
+          "rankScore": 83
+        },
+        {
+          "rank": 6,
+          "title": "Customer Success Manager Júnior",
+          "company": "Totvs",
+          "providers": [
+            "Google Jobs"
+          ],
+          "fit": 76,
+          "goal": 83,
+          "grade": "A",
+          "rankScore": 83
+        },
+        {
+          "rank": 7,
+          "title": "Customer Success Manager Sênior",
+          "company": "PicPay",
+          "providers": [
+            "Glassdoor"
+          ],
+          "fit": 73,
+          "goal": 80,
+          "grade": "A",
+          "rankScore": 80
+        },
+        {
+          "rank": 8,
+          "title": "Customer Success Manager Sênior",
+          "company": "Consultoria Tech",
+          "providers": [
+            "Catho"
+          ],
+          "fit": 71,
+          "goal": 80,
+          "grade": "A",
+          "rankScore": 80
+        },
+        {
+          "rank": 9,
+          "title": "Customer Success Manager Pleno",
+          "company": "Nubank",
+          "providers": [
+            "InfoJobs"
+          ],
+          "fit": 68,
+          "goal": 80,
+          "grade": "A",
+          "rankScore": 80
+        },
+        {
+          "rank": 10,
+          "title": "Customer Success Manager Pleno",
+          "company": "Stone",
+          "providers": [
+            "Gupy"
+          ],
+          "fit": 68,
+          "goal": 80,
+          "grade": "A",
+          "rankScore": 80
+        }
+      ]
+    },
+    {
+      "personaId": "P11",
+      "personaName": "Financeiro buscando Business Operations",
+      "displayedTop10": [
+        {
+          "rank": 1,
+          "title": "Business Operations Analyst Júnior",
+          "company": "Nubank",
+          "providers": [
+            "Glassdoor"
+          ],
+          "fit": 77,
+          "goal": 81,
+          "grade": "A",
+          "rankScore": 81
+        },
+        {
+          "rank": 2,
+          "title": "Business Operations Analyst Pleno",
+          "company": "Totvs",
+          "providers": [
+            "InfoJobs"
+          ],
+          "fit": 77,
+          "goal": 81,
+          "grade": "A",
+          "rankScore": 81
+        },
+        {
+          "rank": 3,
+          "title": "Business Operations Analyst Pleno",
+          "company": "Loft",
+          "providers": [
+            "Gupy"
+          ],
+          "fit": 77,
+          "goal": 81,
+          "grade": "A",
+          "rankScore": 81
+        },
+        {
+          "rank": 4,
+          "title": "Business Operations Analyst Sênior",
+          "company": "QuintoAndar",
+          "providers": [
+            "Glassdoor"
+          ],
+          "fit": 75,
+          "goal": 81,
+          "grade": "A",
+          "rankScore": 81
+        },
+        {
+          "rank": 5,
+          "title": "Business Operations Analyst Júnior",
+          "company": "Stone",
+          "providers": [
+            "Google Jobs"
+          ],
+          "fit": 75,
+          "goal": 81,
+          "grade": "A",
+          "rankScore": 81
+        },
+        {
+          "rank": 6,
+          "title": "Business Operations Analyst Júnior",
+          "company": "iFood",
+          "providers": [
+            "Catho"
+          ],
+          "fit": 75,
+          "goal": 81,
+          "grade": "A",
+          "rankScore": 81
+        },
+        {
+          "rank": 7,
+          "title": "Business Operations Analyst Sênior",
+          "company": "Mercado Livre",
+          "providers": [
+            "Google Jobs"
+          ],
+          "fit": 74,
+          "goal": 81,
+          "grade": "A",
+          "rankScore": 81
+        },
+        {
+          "rank": 8,
+          "title": "Business Operations Analyst Sênior",
+          "company": "PicPay",
+          "providers": [
+            "Catho"
+          ],
+          "fit": 74,
+          "goal": 81,
+          "grade": "A",
+          "rankScore": 81
+        },
+        {
+          "rank": 9,
+          "title": "Product Operations Analyst Pleno",
+          "company": "Omie",
+          "providers": [
+            "Glassdoor"
+          ],
+          "fit": 66,
+          "goal": 71,
+          "grade": "A",
+          "rankScore": 71
+        },
+        {
+          "rank": 10,
+          "title": "Product Operations Analyst Pleno",
+          "company": "Mercado Livre",
+          "providers": [
+            "Catho"
+          ],
+          "fit": 64,
+          "goal": 71,
+          "grade": "A",
+          "rankScore": 71
+        }
+      ]
+    },
+    {
+      "personaId": "P12",
+      "personaName": "RH Business Partner buscando Gestão de Operações",
+      "displayedTop10": [
+        {
+          "rank": 1,
+          "title": "Analista de Recursos Humanos (BP) Júnior",
+          "company": "Hospital Central",
+          "providers": [
+            "Glassdoor"
+          ],
+          "fit": 77,
+          "goal": 53,
+          "grade": "B",
+          "rankScore": 53
+        },
+        {
+          "rank": 2,
+          "title": "Analista de Recursos Humanos (BP) Pleno",
+          "company": "iFood",
+          "providers": [
+            "Gupy"
+          ],
+          "fit": 77,
+          "goal": 53,
+          "grade": "B",
+          "rankScore": 53
+        },
+        {
+          "rank": 3,
+          "title": "Analista de Recursos Humanos (BP) Pleno",
+          "company": "Totvs",
+          "providers": [
+            "LinkedIn"
+          ],
+          "fit": 77,
+          "goal": 53,
+          "grade": "B",
+          "rankScore": 53
+        },
+        {
+          "rank": 4,
+          "title": "Analista de Recursos Humanos (BP) Júnior",
+          "company": "Consultoria Tech",
+          "providers": [
+            "Google Jobs"
+          ],
+          "fit": 75,
+          "goal": 53,
+          "grade": "B",
+          "rankScore": 53
+        },
+        {
+          "rank": 5,
+          "title": "Analista de Recursos Humanos (BP) Júnior",
+          "company": "Nubank",
+          "providers": [
+            "Catho"
+          ],
+          "fit": 75,
+          "goal": 53,
+          "grade": "B",
+          "rankScore": 53
+        },
+        {
+          "rank": 6,
+          "title": "Analista de Recursos Humanos (BP) Sênior",
+          "company": "Loft",
+          "providers": [
+            "Glassdoor"
+          ],
+          "fit": 75,
+          "goal": 53,
+          "grade": "B",
+          "rankScore": 53
+        },
+        {
+          "rank": 7,
+          "title": "Analista de Recursos Humanos (BP) Sênior",
+          "company": "QuintoAndar",
+          "providers": [
+            "Catho"
+          ],
+          "fit": 74,
+          "goal": 53,
+          "grade": "B",
+          "rankScore": 53
+        },
+        {
+          "rank": 8,
+          "title": "Analista de Recursos Humanos (BP) Sênior",
+          "company": "Omie",
+          "providers": [
+            "Google Jobs"
+          ],
+          "fit": 74,
+          "goal": 53,
+          "grade": "B",
+          "rankScore": 53
+        },
+        {
+          "rank": 9,
+          "title": "Business Operations Analyst Júnior",
+          "company": "Nubank",
+          "providers": [
+            "Glassdoor"
+          ],
+          "fit": 10,
+          "goal": 46,
+          "grade": "C",
+          "rankScore": 46
+        },
+        {
+          "rank": 10,
+          "title": "Business Operations Analyst Pleno",
+          "company": "Totvs",
+          "providers": [
+            "InfoJobs"
+          ],
+          "fit": 10,
+          "goal": 46,
+          "grade": "C",
+          "rankScore": 46
+        }
+      ]
+    },
+    {
+      "personaId": "P13",
+      "personaName": "Dev Backend buscando Enfermagem",
+      "displayedTop10": [
+        {
+          "rank": 1,
+          "title": "Backend Developer (Node.js) Júnior",
+          "company": "Totvs",
+          "providers": [
+            "Glassdoor"
+          ],
+          "fit": 73,
+          "goal": 47,
+          "grade": "C",
+          "rankScore": 47
+        },
+        {
+          "rank": 2,
+          "title": "Backend Developer (Node.js) Pleno",
+          "company": "QuintoAndar",
+          "providers": [
+            "InfoJobs"
+          ],
+          "fit": 73,
+          "goal": 47,
+          "grade": "C",
+          "rankScore": 47
+        },
+        {
+          "rank": 3,
+          "title": "Backend Developer (Node.js) Pleno",
+          "company": "Mercado Livre",
+          "providers": [
+            "Gupy"
+          ],
+          "fit": 73,
+          "goal": 47,
+          "grade": "C",
+          "rankScore": 47
+        },
+        {
+          "rank": 4,
+          "title": "Backend Developer (Node.js) Sênior",
+          "company": "Hospital Central",
+          "providers": [
+            "Glassdoor"
+          ],
+          "fit": 71,
+          "goal": 47,
+          "grade": "C",
+          "rankScore": 47
+        },
+        {
+          "rank": 5,
+          "title": "Backend Developer (Node.js) Júnior",
+          "company": "Loft",
+          "providers": [
+            "Google Jobs"
+          ],
+          "fit": 71,
+          "goal": 47,
+          "grade": "C",
+          "rankScore": 47
+        },
+        {
+          "rank": 6,
+          "title": "Backend Developer (Node.js) Júnior",
+          "company": "Omie",
+          "providers": [
+            "Catho"
+          ],
+          "fit": 71,
+          "goal": 47,
+          "grade": "C",
+          "rankScore": 47
+        },
+        {
+          "rank": 7,
+          "title": "Backend Developer (Node.js) Sênior",
+          "company": "Consultoria Tech",
+          "providers": [
+            "Google Jobs"
+          ],
+          "fit": 70,
+          "goal": 47,
+          "grade": "C",
+          "rankScore": 47
+        },
+        {
+          "rank": 8,
+          "title": "Backend Developer (Node.js) Sênior",
+          "company": "Nubank",
+          "providers": [
+            "Catho"
+          ],
+          "fit": 70,
+          "goal": 47,
+          "grade": "C",
+          "rankScore": 47
+        },
+        {
+          "rank": 9,
+          "title": "Enfermeiro de UTI Adulto Pleno",
+          "company": "Mercado Livre",
+          "providers": [
+            "InfoJobs"
+          ],
+          "fit": 10,
+          "goal": 46,
+          "grade": "C",
+          "rankScore": 46
+        },
+        {
+          "rank": 10,
+          "title": "Enfermeiro de UTI Adulto Pleno",
+          "company": "PicPay",
+          "providers": [
+            "Gupy"
+          ],
+          "fit": 10,
+          "goal": 46,
+          "grade": "C",
+          "rankScore": 46
+        }
+      ]
+    },
+    {
+      "personaId": "P14",
+      "personaName": "Frontend Engineer Pleno Sem Objetivo",
+      "displayedTop10": [
+        {
+          "rank": 1,
+          "title": "Frontend Engineer (React) Júnior",
+          "company": "Loft",
+          "providers": [
+            "Glassdoor"
+          ],
+          "fit": 87,
+          "goal": null,
+          "grade": "A",
+          "rankScore": 87
+        },
+        {
+          "rank": 2,
+          "title": "Frontend Engineer (React) Pleno",
+          "company": "PicPay",
+          "providers": [
+            "Gupy"
+          ],
+          "fit": 86,
+          "goal": null,
+          "grade": "A",
+          "rankScore": 86
+        },
+        {
+          "rank": 3,
+          "title": "Frontend Engineer (React) Pleno",
+          "company": "Hospital Central",
+          "providers": [
+            "LinkedIn"
+          ],
+          "fit": 86,
+          "goal": null,
+          "grade": "A",
+          "rankScore": 86
+        },
+        {
+          "rank": 4,
+          "title": "Frontend Engineer (React) Júnior",
+          "company": "Omie",
+          "providers": [
+            "Google Jobs"
+          ],
+          "fit": 85,
+          "goal": null,
+          "grade": "A",
+          "rankScore": 85
+        },
+        {
+          "rank": 5,
+          "title": "Frontend Engineer (React) Júnior",
+          "company": "QuintoAndar",
+          "providers": [
+            "Catho"
+          ],
+          "fit": 85,
+          "goal": null,
+          "grade": "A",
+          "rankScore": 85
+        },
+        {
+          "rank": 6,
+          "title": "Frontend Engineer (React) Sênior",
+          "company": "Consultoria Tech",
+          "providers": [
+            "Glassdoor"
+          ],
+          "fit": 81,
+          "goal": null,
+          "grade": "A",
+          "rankScore": 81
+        },
+        {
+          "rank": 7,
+          "title": "Frontend Engineer (React) Sênior",
+          "company": "Stone",
+          "providers": [
+            "Catho"
+          ],
+          "fit": 80,
+          "goal": null,
+          "grade": "A",
+          "rankScore": 80
+        },
+        {
+          "rank": 8,
+          "title": "Frontend Engineer (React) Sênior",
+          "company": "Nubank",
+          "providers": [
+            "Google Jobs"
+          ],
+          "fit": 80,
+          "goal": null,
+          "grade": "A",
+          "rankScore": 80
+        },
+        {
+          "rank": 9,
+          "title": "Backend Developer (Node.js) Júnior",
+          "company": "Totvs",
+          "providers": [
+            "Glassdoor"
+          ],
+          "fit": 57,
+          "goal": null,
+          "grade": "B",
+          "rankScore": 57
+        },
+        {
+          "rank": 10,
+          "title": "Backend Developer (Node.js) Pleno",
+          "company": "QuintoAndar",
+          "providers": [
+            "InfoJobs"
+          ],
+          "fit": 56,
+          "goal": null,
+          "grade": "B",
+          "rankScore": 56
+        }
+      ]
+    },
+    {
+      "personaId": "P15",
+      "personaName": "Product Designer Sem Objetivo",
+      "displayedTop10": [
+        {
+          "rank": 1,
+          "title": "Product Designer (UI/UX) Pleno",
+          "company": "Consultoria Tech",
+          "providers": [
+            "InfoJobs"
+          ],
+          "fit": 86,
+          "goal": null,
+          "grade": "A",
+          "rankScore": 86
+        },
+        {
+          "rank": 2,
+          "title": "Product Designer (UI/UX) Pleno",
+          "company": "Nubank",
+          "providers": [
+            "Gupy"
+          ],
+          "fit": 86,
+          "goal": null,
+          "grade": "A",
+          "rankScore": 86
+        },
+        {
+          "rank": 3,
+          "title": "Product Designer (UI/UX) Pleno",
+          "company": "Stone",
+          "providers": [
+            "LinkedIn"
+          ],
+          "fit": 86,
+          "goal": null,
+          "grade": "A",
+          "rankScore": 86
+        },
+        {
+          "rank": 4,
+          "title": "Product Designer (UI/UX) Júnior",
+          "company": "Mercado Livre",
+          "providers": [
+            "Glassdoor"
+          ],
+          "fit": 86,
+          "goal": null,
+          "grade": "A",
+          "rankScore": 86
+        },
+        {
+          "rank": 5,
+          "title": "Product Designer (UI/UX) Júnior",
+          "company": "Hospital Central",
+          "providers": [
+            "Catho"
+          ],
+          "fit": 84,
+          "goal": null,
+          "grade": "A",
+          "rankScore": 84
+        },
+        {
+          "rank": 6,
+          "title": "Product Designer (UI/UX) Sênior",
+          "company": "iFood",
+          "providers": [
+            "Glassdoor"
+          ],
+          "fit": 84,
+          "goal": null,
+          "grade": "A",
+          "rankScore": 84
+        },
+        {
+          "rank": 7,
+          "title": "Product Designer (UI/UX) Júnior",
+          "company": "PicPay",
+          "providers": [
+            "Google Jobs"
+          ],
+          "fit": 84,
+          "goal": null,
+          "grade": "A",
+          "rankScore": 84
+        },
+        {
+          "rank": 8,
+          "title": "Product Designer (UI/UX) Sênior",
+          "company": "Loft",
+          "providers": [
+            "Catho"
+          ],
+          "fit": 83,
+          "goal": null,
+          "grade": "A",
+          "rankScore": 83
+        }
+      ]
+    },
+    {
+      "personaId": "P16",
+      "personaName": "Inside Sales Júnior",
+      "displayedTop10": [
+        {
+          "rank": 1,
+          "title": "Inside Sales Specialist B2B Júnior",
+          "company": "Hospital Central",
+          "providers": [
+            "InfoJobs"
+          ],
+          "fit": 64,
+          "goal": 77,
+          "grade": "B",
+          "rankScore": 68
+        },
+        {
+          "rank": 2,
+          "title": "Inside Sales Specialist B2B Júnior",
+          "company": "Consultoria Tech",
+          "providers": [
+            "Gupy"
+          ],
+          "fit": 64,
+          "goal": 77,
+          "grade": "B",
+          "rankScore": 68
+        },
+        {
+          "rank": 3,
+          "title": "Inside Sales Specialist B2B Júnior",
+          "company": "Nubank",
+          "providers": [
+            "LinkedIn"
+          ],
+          "fit": 64,
+          "goal": 77,
+          "grade": "B",
+          "rankScore": 68
+        },
+        {
+          "rank": 4,
+          "title": "Inside Sales Specialist B2B Pleno",
+          "company": "Stone",
+          "providers": [
+            "Glassdoor"
+          ],
+          "fit": 62,
+          "goal": 74,
+          "grade": "B",
+          "rankScore": 66
+        },
+        {
+          "rank": 5,
+          "title": "Inside Sales Specialist B2B Pleno",
+          "company": "iFood",
+          "providers": [
+            "Google Jobs"
+          ],
+          "fit": 61,
+          "goal": 74,
+          "grade": "B",
+          "rankScore": 65
+        },
+        {
+          "rank": 6,
+          "title": "Inside Sales Specialist B2B Pleno",
+          "company": "Totvs",
+          "providers": [
+            "Catho"
+          ],
+          "fit": 61,
+          "goal": 74,
+          "grade": "B",
+          "rankScore": 65
+        },
+        {
+          "rank": 7,
+          "title": "Inside Sales Specialist B2B Sênior",
+          "company": "Omie",
+          "providers": [
+            "Gupy"
+          ],
+          "fit": 55,
+          "goal": 71,
+          "grade": "B",
+          "rankScore": 60
+        },
+        {
+          "rank": 8,
+          "title": "Inside Sales Specialist B2B Sênior",
+          "company": "QuintoAndar",
+          "providers": [
+            "LinkedIn"
+          ],
+          "fit": 55,
+          "goal": 71,
+          "grade": "B",
+          "rankScore": 60
+        },
+        {
+          "rank": 9,
+          "title": "Product Manager Júnior",
+          "company": "Stone",
+          "providers": [
+            "Glassdoor"
+          ],
+          "fit": 10,
+          "goal": 36,
+          "grade": "D",
+          "rankScore": 18
+        },
+        {
+          "rank": 10,
+          "title": "Frontend Engineer (React) Júnior",
+          "company": "Loft",
+          "providers": [
+            "Glassdoor"
+          ],
+          "fit": 10,
+          "goal": 36,
+          "grade": "D",
+          "rankScore": 18
+        }
+      ]
+    },
+    {
+      "personaId": "P17",
+      "personaName": "Product Designer Sênior",
+      "displayedTop10": [
+        {
+          "rank": 1,
+          "title": "Product Designer (UI/UX) Sênior",
+          "company": "iFood",
+          "providers": [
+            "Glassdoor"
+          ],
+          "fit": 84,
+          "goal": 83,
+          "grade": "A",
+          "rankScore": 84
+        },
+        {
+          "rank": 2,
+          "title": "Product Designer (UI/UX) Sênior",
+          "company": "Loft",
+          "providers": [
+            "Catho"
+          ],
+          "fit": 83,
+          "goal": 83,
+          "grade": "A",
+          "rankScore": 83
+        },
+        {
+          "rank": 3,
+          "title": "Product Designer (UI/UX) Pleno",
+          "company": "Consultoria Tech",
+          "providers": [
+            "InfoJobs"
+          ],
+          "fit": 81,
+          "goal": 80,
+          "grade": "A",
+          "rankScore": 81
+        },
+        {
+          "rank": 4,
+          "title": "Product Designer (UI/UX) Pleno",
+          "company": "Nubank",
+          "providers": [
+            "Gupy"
+          ],
+          "fit": 81,
+          "goal": 80,
+          "grade": "A",
+          "rankScore": 81
+        },
+        {
+          "rank": 5,
+          "title": "Product Designer (UI/UX) Pleno",
+          "company": "Stone",
+          "providers": [
+            "LinkedIn"
+          ],
+          "fit": 81,
+          "goal": 80,
+          "grade": "A",
+          "rankScore": 81
+        },
+        {
+          "rank": 6,
+          "title": "Product Designer (UI/UX) Júnior",
+          "company": "Mercado Livre",
+          "providers": [
+            "Glassdoor"
+          ],
+          "fit": 81,
+          "goal": 80,
+          "grade": "A",
+          "rankScore": 81
+        },
+        {
+          "rank": 7,
+          "title": "Product Designer (UI/UX) Júnior",
+          "company": "Hospital Central",
+          "providers": [
+            "Catho"
+          ],
+          "fit": 80,
+          "goal": 80,
+          "grade": "A",
+          "rankScore": 80
+        },
+        {
+          "rank": 8,
+          "title": "Product Designer (UI/UX) Júnior",
+          "company": "PicPay",
+          "providers": [
+            "Google Jobs"
+          ],
+          "fit": 80,
+          "goal": 80,
+          "grade": "A",
+          "rankScore": 80
+        },
+        {
+          "rank": 9,
+          "title": "Senior Product Manager",
+          "company": "Nubank",
+          "providers": [
+            "Catho",
+            "Glassdoor"
+          ],
+          "fit": 14,
+          "goal": 66,
+          "grade": "D",
+          "rankScore": 30
+        },
+        {
+          "rank": 10,
+          "title": "Product Manager Sênior",
+          "company": "Mercado Livre",
+          "providers": [
+            "Glassdoor"
+          ],
+          "fit": 10,
+          "goal": 68,
+          "grade": "D",
+          "rankScore": 27
+        }
+      ]
+    },
+    {
+      "personaId": "P18",
+      "personaName": "Analista de Marketing Pleno",
+      "displayedTop10": [
+        {
+          "rank": 1,
+          "title": "Analista de Marketing Digital Pleno",
+          "company": "PicPay",
+          "providers": [
+            "Glassdoor"
+          ],
+          "fit": 86,
+          "goal": 81,
+          "grade": "A",
+          "rankScore": 85
+        },
+        {
+          "rank": 2,
+          "title": "Analista de Marketing Digital Pleno",
+          "company": "Hospital Central",
+          "providers": [
+            "Google Jobs"
+          ],
+          "fit": 84,
+          "goal": 81,
+          "grade": "A",
+          "rankScore": 83
+        },
+        {
+          "rank": 3,
+          "title": "Analista de Marketing Digital Pleno",
+          "company": "Consultoria Tech",
+          "providers": [
+            "Catho"
+          ],
+          "fit": 84,
+          "goal": 81,
+          "grade": "A",
+          "rankScore": 83
+        },
+        {
+          "rank": 4,
+          "title": "Analista de Marketing Digital Júnior",
+          "company": "Omie",
+          "providers": [
+            "InfoJobs"
+          ],
+          "fit": 83,
+          "goal": 78,
+          "grade": "A",
+          "rankScore": 82
+        },
+        {
+          "rank": 5,
+          "title": "Analista de Marketing Digital Júnior",
+          "company": "QuintoAndar",
+          "providers": [
+            "Gupy"
+          ],
+          "fit": 83,
+          "goal": 78,
+          "grade": "A",
+          "rankScore": 82
+        },
+        {
+          "rank": 6,
+          "title": "Analista de Marketing Digital Júnior",
+          "company": "Mercado Livre",
+          "providers": [
+            "LinkedIn"
+          ],
+          "fit": 83,
+          "goal": 78,
+          "grade": "A",
+          "rankScore": 82
+        },
+        {
+          "rank": 7,
+          "title": "Analista de Marketing Digital Sênior",
+          "company": "Nubank",
+          "providers": [
+            "InfoJobs"
+          ],
+          "fit": 78,
+          "goal": 75,
+          "grade": "A",
+          "rankScore": 77
+        },
+        {
+          "rank": 8,
+          "title": "Analista de Marketing Digital Sênior",
+          "company": "Stone",
+          "providers": [
+            "Gupy"
+          ],
+          "fit": 78,
+          "goal": 75,
+          "grade": "A",
+          "rankScore": 77
+        },
+        {
+          "rank": 9,
+          "title": "Customer Success Manager Pleno",
+          "company": "Omie",
+          "providers": [
+            "InfoJobs"
+          ],
+          "fit": 77,
+          "goal": 72,
+          "grade": "A",
+          "rankScore": 76
+        },
+        {
+          "rank": 10,
+          "title": "Customer Success Manager Pleno",
+          "company": "QuintoAndar",
+          "providers": [
+            "Gupy"
+          ],
+          "fit": 77,
+          "goal": 72,
+          "grade": "A",
+          "rankScore": 76
+        }
+      ]
+    },
+    {
+      "personaId": "P19",
+      "personaName": "Enfermeiro Hospitalar",
+      "displayedTop10": [
+        {
+          "rank": 1,
+          "title": "Enfermeiro de UTI Adulto Sênior",
+          "company": "Consultoria Tech",
+          "providers": [
+            "Glassdoor"
+          ],
+          "fit": 79,
+          "goal": 81,
+          "grade": "A",
+          "rankScore": 80
+        },
+        {
+          "rank": 2,
+          "title": "Enfermeiro de UTI Adulto Sênior",
+          "company": "Stone",
+          "providers": [
+            "Catho"
+          ],
+          "fit": 78,
+          "goal": 81,
+          "grade": "A",
+          "rankScore": 79
+        },
+        {
+          "rank": 3,
+          "title": "Enfermeiro de UTI Adulto Pleno",
+          "company": "Mercado Livre",
+          "providers": [
+            "InfoJobs"
+          ],
+          "fit": 78,
+          "goal": 78,
+          "grade": "A",
+          "rankScore": 78
+        },
+        {
+          "rank": 4,
+          "title": "Enfermeiro de UTI Adulto Pleno",
+          "company": "PicPay",
+          "providers": [
+            "Gupy"
+          ],
+          "fit": 78,
+          "goal": 78,
+          "grade": "A",
+          "rankScore": 78
+        },
+        {
+          "rank": 5,
+          "title": "Enfermeiro de UTI Adulto Pleno",
+          "company": "Hospital Central",
+          "providers": [
+            "LinkedIn"
+          ],
+          "fit": 78,
+          "goal": 78,
+          "grade": "A",
+          "rankScore": 78
+        },
+        {
+          "rank": 6,
+          "title": "Frontend Engineer (React) Sênior",
+          "company": "Stone",
+          "providers": [
+            "Catho"
+          ],
+          "fit": 10,
+          "goal": 36,
+          "grade": "D",
+          "rankScore": 18
+        },
+        {
+          "rank": 7,
+          "title": "Analista de Recursos Humanos (BP) Sênior",
+          "company": "QuintoAndar",
+          "providers": [
+            "Catho"
+          ],
+          "fit": 10,
+          "goal": 36,
+          "grade": "D",
+          "rankScore": 18
+        },
+        {
+          "rank": 8,
+          "title": "Backend Developer (Node.js) Sênior",
+          "company": "Hospital Central",
+          "providers": [
+            "Glassdoor"
+          ],
+          "fit": 10,
+          "goal": 36,
+          "grade": "D",
+          "rankScore": 18
+        },
+        {
+          "rank": 9,
+          "title": "Business Operations Analyst Sênior",
+          "company": "QuintoAndar",
+          "providers": [
+            "Glassdoor"
+          ],
+          "fit": 10,
+          "goal": 36,
+          "grade": "D",
+          "rankScore": 18
+        },
+        {
+          "rank": 10,
+          "title": "Backend Developer (Node.js) Sênior",
+          "company": "Consultoria Tech",
+          "providers": [
+            "Google Jobs"
+          ],
+          "fit": 10,
+          "goal": 36,
+          "grade": "D",
+          "rankScore": 18
+        }
+      ]
+    },
+    {
+      "personaId": "P20",
+      "personaName": "Perfil com Currículo Resumido",
+      "displayedTop10": [
+        {
+          "rank": 1,
+          "title": "Backend Developer (Node.js) Júnior",
+          "company": "Totvs",
+          "providers": [
+            "Glassdoor"
+          ],
+          "fit": 63,
+          "goal": null,
+          "grade": "B",
+          "rankScore": 63
+        },
+        {
+          "rank": 2,
+          "title": "Backend Developer (Node.js) Júnior",
+          "company": "Loft",
+          "providers": [
+            "Google Jobs"
+          ],
+          "fit": 62,
+          "goal": null,
+          "grade": "B",
+          "rankScore": 62
+        },
+        {
+          "rank": 3,
+          "title": "Backend Developer (Node.js) Júnior",
+          "company": "Omie",
+          "providers": [
+            "Catho"
+          ],
+          "fit": 62,
+          "goal": null,
+          "grade": "B",
+          "rankScore": 62
+        },
+        {
+          "rank": 4,
+          "title": "Backend Developer (Node.js) Pleno",
+          "company": "QuintoAndar",
+          "providers": [
+            "InfoJobs"
+          ],
+          "fit": 62,
+          "goal": null,
+          "grade": "B",
+          "rankScore": 62
+        },
+        {
+          "rank": 5,
+          "title": "Backend Developer (Node.js) Pleno",
+          "company": "Mercado Livre",
+          "providers": [
+            "Gupy"
+          ],
+          "fit": 62,
+          "goal": null,
+          "grade": "B",
+          "rankScore": 62
+        },
+        {
+          "rank": 6,
+          "title": "Frontend Engineer (React) Júnior",
+          "company": "Loft",
+          "providers": [
+            "Glassdoor"
+          ],
+          "fit": 56,
+          "goal": null,
+          "grade": "B",
+          "rankScore": 56
+        },
+        {
+          "rank": 7,
+          "title": "Frontend Engineer (React) Júnior",
+          "company": "Omie",
+          "providers": [
+            "Google Jobs"
+          ],
+          "fit": 55,
+          "goal": null,
+          "grade": "B",
+          "rankScore": 55
+        },
+        {
+          "rank": 8,
+          "title": "Frontend Engineer (React) Júnior",
+          "company": "QuintoAndar",
+          "providers": [
+            "Catho"
+          ],
+          "fit": 55,
+          "goal": null,
+          "grade": "B",
+          "rankScore": 55
+        },
+        {
+          "rank": 9,
+          "title": "Frontend Engineer (React) Pleno",
+          "company": "PicPay",
+          "providers": [
+            "Gupy"
+          ],
+          "fit": 55,
+          "goal": null,
+          "grade": "B",
+          "rankScore": 55
+        },
+        {
+          "rank": 10,
+          "title": "Frontend Engineer (React) Pleno",
+          "company": "Hospital Central",
+          "providers": [
+            "LinkedIn"
+          ],
+          "fit": 55,
+          "goal": null,
+          "grade": "B",
+          "rankScore": 55
+        }
+      ]
+    }
+  ]
+}

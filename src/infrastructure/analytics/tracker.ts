@@ -348,6 +348,20 @@ class AnalyticsTracker {
   public trackJobRanked(totalRanked: number, strategy: string) {
     this.track('job_ranked', 'Ranking', { total_ranked: totalRanked, strategy });
   }
+
+  // ── Telemetria de Valor do Usuário & Feedback (Fase 9 - Sem PII) ──
+
+  public trackJobResultClicked(jobId: string, rankPosition: number) {
+    this.track('job_result_clicked', 'UserValue', { job_id: jobId, rank_position: rankPosition });
+  }
+
+  public trackJobApplicationStarted(jobId: string) {
+    this.track('job_application_started', 'UserValue', { job_id: jobId });
+  }
+
+  public trackJobMatchFeedbackSubmitted(jobId: string, isPositive: boolean, reason?: string) {
+    this.track('job_match_feedback_submitted', 'UserValue', { job_id: jobId, is_positive: isPositive, reason: reason || 'none' });
+  }
 }
 
 export const tracker = new AnalyticsTracker();

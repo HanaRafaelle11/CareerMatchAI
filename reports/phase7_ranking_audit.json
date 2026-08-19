@@ -1,0 +1,290 @@
+[
+  {
+    "scenario": "Cenário A: Candidato CSM buscando Continuidade em CS",
+    "topJob": {
+      "id": "job-cs-1",
+      "title": "Senior Customer Success Manager",
+      "score": 93
+    },
+    "bottomJob": {
+      "id": "job-civil",
+      "title": "Engenheiro Civil de Obras",
+      "score": 12
+    },
+    "passed": true,
+    "rankedList": [
+      {
+        "id": "job-cs-1",
+        "title": "Senior Customer Success Manager",
+        "rankScore": 93,
+        "fit": 94,
+        "goal": 91
+      },
+      {
+        "id": "job-cs-2",
+        "title": "Customer Success Specialist",
+        "rankScore": 76,
+        "fit": 76,
+        "goal": 76
+      },
+      {
+        "id": "job-pm-1",
+        "title": "Senior Product Manager",
+        "rankScore": 32,
+        "fit": 13,
+        "goal": 77
+      },
+      {
+        "id": "job-pm-2",
+        "title": "Associate Product Manager",
+        "rankScore": 29,
+        "fit": 13,
+        "goal": 65
+      },
+      {
+        "id": "job-dev-1",
+        "title": "Tech Lead Backend (Node.js)",
+        "rankScore": 20,
+        "fit": 9,
+        "goal": 44
+      },
+      {
+        "id": "job-dev-2",
+        "title": "Backend Developer Pleno",
+        "rankScore": 12,
+        "fit": 10,
+        "goal": 18
+      },
+      {
+        "id": "job-nurse",
+        "title": "Enfermeiro UTI Adulto",
+        "rankScore": 12,
+        "fit": 10,
+        "goal": 18
+      },
+      {
+        "id": "job-civil",
+        "title": "Engenheiro Civil de Obras",
+        "rankScore": 12,
+        "fit": 10,
+        "goal": 18
+      }
+    ]
+  },
+  {
+    "scenario": "Cenário B: Candidato CSM em Transição para Product Management",
+    "topJob": {
+      "id": "job-pm-2",
+      "title": "Associate Product Manager",
+      "score": 82
+    },
+    "bottomJob": {
+      "id": "job-civil",
+      "title": "Engenheiro Civil de Obras",
+      "score": 18
+    },
+    "passed": true,
+    "rankedList": [
+      {
+        "id": "job-pm-2",
+        "title": "Associate Product Manager",
+        "rankScore": 82,
+        "fit": 64,
+        "goal": 82
+      },
+      {
+        "id": "job-cs-1",
+        "title": "Senior Customer Success Manager",
+        "rankScore": 81,
+        "fit": 92,
+        "goal": 81
+      },
+      {
+        "id": "job-pm-1",
+        "title": "Senior Product Manager",
+        "rankScore": 75,
+        "fit": 9,
+        "goal": 75
+      },
+      {
+        "id": "job-cs-2",
+        "title": "Customer Success Specialist",
+        "rankScore": 52,
+        "fit": 76,
+        "goal": 52
+      },
+      {
+        "id": "job-dev-1",
+        "title": "Tech Lead Backend (Node.js)",
+        "rankScore": 45,
+        "fit": 8,
+        "goal": 45
+      },
+      {
+        "id": "job-dev-2",
+        "title": "Backend Developer Pleno",
+        "rankScore": 18,
+        "fit": 10,
+        "goal": 18
+      },
+      {
+        "id": "job-nurse",
+        "title": "Enfermeiro UTI Adulto",
+        "rankScore": 18,
+        "fit": 10,
+        "goal": 18
+      },
+      {
+        "id": "job-civil",
+        "title": "Engenheiro Civil de Obras",
+        "rankScore": 18,
+        "fit": 9,
+        "goal": 18
+      }
+    ]
+  },
+  {
+    "scenario": "Cenário C: Candidato Backend Developer Sem Objetivo Definido",
+    "topJob": {
+      "id": "job-dev-2",
+      "title": "Backend Developer Pleno",
+      "score": 83
+    },
+    "bottomJob": {
+      "id": "job-civil",
+      "title": "Engenheiro Civil de Obras",
+      "score": 9
+    },
+    "passed": true,
+    "rankedList": [
+      {
+        "id": "job-dev-2",
+        "title": "Backend Developer Pleno",
+        "rankScore": 83,
+        "fit": 83,
+        "goal": null
+      },
+      {
+        "id": "job-dev-1",
+        "title": "Tech Lead Backend (Node.js)",
+        "rankScore": 63,
+        "fit": 63,
+        "goal": null
+      },
+      {
+        "id": "job-pm-1",
+        "title": "Senior Product Manager",
+        "rankScore": 57,
+        "fit": 57,
+        "goal": null
+      },
+      {
+        "id": "job-pm-2",
+        "title": "Associate Product Manager",
+        "rankScore": 10,
+        "fit": 10,
+        "goal": null
+      },
+      {
+        "id": "job-cs-2",
+        "title": "Customer Success Specialist",
+        "rankScore": 10,
+        "fit": 10,
+        "goal": null
+      },
+      {
+        "id": "job-nurse",
+        "title": "Enfermeiro UTI Adulto",
+        "rankScore": 10,
+        "fit": 10,
+        "goal": null
+      },
+      {
+        "id": "job-cs-1",
+        "title": "Senior Customer Success Manager",
+        "rankScore": 9,
+        "fit": 9,
+        "goal": null
+      },
+      {
+        "id": "job-civil",
+        "title": "Engenheiro Civil de Obras",
+        "rankScore": 9,
+        "fit": 9,
+        "goal": null
+      }
+    ]
+  },
+  {
+    "scenario": "Cenário D: Isolamento de Vagas Incompatíveis para Dev",
+    "topJob": {
+      "id": "job-dev-2",
+      "title": "Backend Developer Pleno",
+      "score": 72
+    },
+    "bottomJob": {
+      "id": "job-civil",
+      "title": "Engenheiro Civil de Obras",
+      "score": 12
+    },
+    "passed": true,
+    "rankedList": [
+      {
+        "id": "job-dev-2",
+        "title": "Backend Developer Pleno",
+        "rankScore": 72,
+        "fit": 72,
+        "goal": 73
+      },
+      {
+        "id": "job-dev-1",
+        "title": "Tech Lead Backend (Node.js)",
+        "rankScore": 67,
+        "fit": 63,
+        "goal": 77
+      },
+      {
+        "id": "job-pm-1",
+        "title": "Senior Product Manager",
+        "rankScore": 12,
+        "fit": 9,
+        "goal": 18
+      },
+      {
+        "id": "job-pm-2",
+        "title": "Associate Product Manager",
+        "rankScore": 12,
+        "fit": 10,
+        "goal": 18
+      },
+      {
+        "id": "job-cs-1",
+        "title": "Senior Customer Success Manager",
+        "rankScore": 12,
+        "fit": 9,
+        "goal": 18
+      },
+      {
+        "id": "job-cs-2",
+        "title": "Customer Success Specialist",
+        "rankScore": 12,
+        "fit": 10,
+        "goal": 18
+      },
+      {
+        "id": "job-nurse",
+        "title": "Enfermeiro UTI Adulto",
+        "rankScore": 12,
+        "fit": 10,
+        "goal": 18
+      },
+      {
+        "id": "job-civil",
+        "title": "Engenheiro Civil de Obras",
+        "rankScore": 12,
+        "fit": 9,
+        "goal": 18
+      }
+    ]
+  }
+]

@@ -1,0 +1,41 @@
+{
+  "timestamp": "2026-08-19T00:27:56.887Z",
+  "totalAnalyzed": 10,
+  "duplicationRate": "20.0%",
+  "exactDuplicatesCount": 1,
+  "probableDuplicatesCount": 1,
+  "distinctCount": 8,
+  "duplicatePairs": [
+    {
+      "jobA": {
+        "id": "j1",
+        "title": "Senior Product Manager",
+        "company": "Nubank",
+        "provider": "LinkedIn"
+      },
+      "jobB": {
+        "id": "j2",
+        "title": "Senior Product Manager",
+        "company": "Nubank",
+        "provider": "Google Jobs"
+      },
+      "type": "PROBABLE_DUPLICATE"
+    },
+    {
+      "jobA": {
+        "id": "j3",
+        "title": "Customer Success Manager Enterprise",
+        "company": "Totvs",
+        "provider": "LinkedIn"
+      },
+      "jobB": {
+        "id": "j4",
+        "title": "Customer Success Manager Enterprise",
+        "company": "Totvs",
+        "provider": "Catho"
+      },
+      "type": "EXACT_DUPLICATE"
+    }
+  ],
+  "recommendation": "Implementar chave de deduplicação canônica no ingestion layer (normalizedTitle + normalizedCompany + normalizedLocation) antes de salvar no Supabase"
+}

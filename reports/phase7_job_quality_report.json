@@ -1,0 +1,42 @@
+{
+  "timestamp": "2026-08-19T00:26:40.735Z",
+  "totalAnalyzed": 13,
+  "metrics": {
+    "validDescriptionPct": "92.3%",
+    "validRequirementsPct": "84.6%",
+    "validSeniorityPct": "84.6%",
+    "validLocationPct": "92.3%",
+    "validSalaryPct": "61.5%",
+    "validCompanyPct": "84.6%",
+    "potentiallyExpiredPct": "7.7%",
+    "lowQualityJobPct": "15.4%"
+  },
+  "providerQuality": {
+    "LinkedIn": {
+      "total": 4,
+      "lowQuality": 0,
+      "withReqs": 4
+    },
+    "InfoJobs": {
+      "total": 3,
+      "lowQuality": 1,
+      "withReqs": 2
+    },
+    "Catho": {
+      "total": 3,
+      "lowQuality": 1,
+      "withReqs": 2
+    },
+    "Google Jobs": {
+      "total": 1,
+      "lowQuality": 0,
+      "withReqs": 1
+    },
+    "Glassdoor": {
+      "total": 2,
+      "lowQuality": 0,
+      "withReqs": 2
+    }
+  },
+  "classification": "JOB_DATA_QUALITY_EVALUATED"
+}

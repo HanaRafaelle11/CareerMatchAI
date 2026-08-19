@@ -1422,8 +1422,30 @@ export function AdminDashboard({ userId }: AdminDashboardProps) {
         </div>
       </div>
 
-      {/* Tabs Selector (Com suporte a scroll horizontal e touch no Mobile) */}
-      <div className="flex items-center border-b border-border gap-3 sm:gap-6 overflow-x-auto max-w-full pb-2 focus:outline-none [-webkit-overflow-scrolling:touch]">
+      {/* Mobile Dropdown Module Selector (< md) */}
+      <div className="md:hidden">
+        <label htmlFor="admin-module-select" className="block text-[11px] font-bold text-muted-foreground uppercase tracking-wider mb-1.5">
+          Módulo Ativo
+        </label>
+        <select
+          id="admin-module-select"
+          value={activeSubTab}
+          onChange={e => {
+            setActiveSubTab(e.target.value);
+            setUserPage(1);
+          }}
+          className="w-full bg-card border border-border rounded-xl px-3 py-2.5 text-xs font-semibold text-foreground outline-none focus:border-brand-500 focus-visible:ring-2 focus-visible:ring-brand-500 shadow-xs cursor-pointer"
+        >
+          {tabs.map(tab => (
+            <option key={tab.id} value={tab.id}>
+              {tab.label}
+            </option>
+          ))}
+        </select>
+      </div>
+
+      {/* Desktop Tabs Selector (>= md) */}
+      <div className="hidden md:flex items-center border-b border-border gap-3 sm:gap-6 overflow-x-auto max-w-full pb-2 focus:outline-none [-webkit-overflow-scrolling:touch]">
         {tabs.map(tab => (
           <button
             key={tab.id}
@@ -1431,7 +1453,7 @@ export function AdminDashboard({ userId }: AdminDashboardProps) {
               setActiveSubTab(tab.id);
               setUserPage(1);
             }}
-            className={`pb-3 font-semibold text-xs transition-all relative whitespace-nowrap shrink-0 ${
+            className={`pb-3 font-semibold text-xs transition-all relative whitespace-nowrap shrink-0 cursor-pointer ${
               activeSubTab === tab.id
                 ? 'text-brand-500 font-bold'
                 : 'text-muted-foreground hover:text-foreground font-medium'
@@ -1816,7 +1838,69 @@ export function AdminDashboard({ userId }: AdminDashboardProps) {
             </div>
           ) : paginatedUsers.length > 0 ? (
             <div className="space-y-4">
-              <div className="overflow-x-auto rounded-xl border border-border bg-card">
+              {/* Mobile Cards View (< md) */}
+              <div className="md:hidden space-y-3">
+                {paginatedUsers.map((user: any) => (
+                  <div
+                    key={user.id}
+                    onClick={() => {
+                      setSelectedUser(user);
+                      setUserDetailTab('profile');
+                    }}
+                    className="p-4 rounded-xl border border-border bg-card space-y-2.5 cursor-pointer hover:border-brand-500/40 transition-all shadow-xs"
+                  >
+                    <div className="flex items-start justify-between gap-2">
+                      <div>
+                        <span className="font-bold text-xs text-foreground block">
+                          {user.full_name || 'Sem Nome'}
+                        </span>
+                        <span className="text-[11px] text-muted-foreground font-mono block">
+                          {user.email || 'Não informado'}
+                        </span>
+                      </div>
+                      <span className={`px-2 py-0.5 rounded-lg text-[9px] font-bold border uppercase tracking-wider shrink-0 ${
+                        user.plan_status === 'PRO' 
+                          ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/30' 
+                          : 'bg-slate-500/10 text-slate-500 border-slate-500/20'
+                      }`}>
+                        {user.plan_status === 'PRO' ? '⚡ PRO' : 'FREE'}
+                      </span>
+                    </div>
+
+                    {user.headline && (
+                      <p className="text-[11px] text-muted-foreground line-clamp-1">
+                        {user.headline}
+                      </p>
+                    )}
+
+                    <div className="flex items-center justify-between pt-2 border-t border-border/60">
+                      <span className={`px-2 py-0.5 rounded-lg text-[9px] font-bold border uppercase tracking-wider ${
+                        user.role === 'administrador' ? 'bg-red-500/10 text-red-600 dark:text-red-400 border-red-500/20' :
+                        user.role === 'suporte' ? 'bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-500/20' :
+                        user.role === 'financeiro' ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-500 border-emerald-500/20' :
+                        user.role === 'somente_leitura' ? 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20' :
+                        'bg-card text-muted-foreground border-border'
+                      }`}>
+                        {user.role}
+                      </span>
+
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setPreviewResumeUser(user);
+                        }}
+                        className="px-2.5 py-1 rounded-lg bg-brand-500/10 hover:bg-brand-500/20 text-brand-600 dark:text-brand-400 border border-brand-500/20 text-[10px] font-bold transition-all cursor-pointer"
+                      >
+                        📄 Ver CV
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              {/* Desktop Table View (>= md) */}
+              <div className="hidden md:block overflow-x-auto rounded-xl border border-border bg-card">
                 <table className="w-full border-collapse text-left text-xs text-muted-foreground">
                   <thead>
                     <tr className="border-b border-border bg-card font-semibold text-foreground">

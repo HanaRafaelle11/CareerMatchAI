@@ -357,52 +357,9 @@ export function Dashboard({
         </div>
       </section>
 
-      {/* ── 3º BLOCO: NOSSA RECOMENDAÇÃO PARA VOCÊ (DIAGNÓSTICO + PRÓXIMO PASSO + CTA ÚNICO) ── */}
-      <section aria-label="3. Nossa recomendação para você" className="rounded-2xl p-5 sm:p-6 bg-white dark:bg-[#242B36] border border-slate-200/90 dark:border-white/8 shadow-xs font-sans">
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-          <div className="flex items-start gap-3.5">
-            <div className="w-10 h-10 rounded-xl bg-brand-500/10 border border-brand-500/20 text-brand-500 flex items-center justify-center shrink-0 mt-0.5">
-              <Zap size={20} strokeWidth={2} />
-            </div>
-            <div className="space-y-1">
-              <div className="flex items-center gap-2">
-                <span className="text-xs font-bold uppercase tracking-wider text-brand-600 dark:text-brand-400">
-                  Nossa recomendação para você
-                </span>
-                <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-blue-50 dark:bg-blue-500/10 text-blue-700 dark:text-[#4F8EF7] border border-blue-200 dark:border-blue-500/30">
-                  Direcionamento Inteligente
-                </span>
-              </div>
-              <h3 className="text-sm sm:text-base font-bold text-slate-900 dark:text-[#F8FAFC] leading-snug">
-                {applications.length > 0
-                  ? `Seu funil possui ${appliedCount} candidatura(s) ativa(s) e ${matches.length} vaga(s) com compatibilidade analisada.`
-                  : 'Você ainda não possui candidaturas ativas no seu pipeline.'}
-              </h3>
-              <p className="text-xs text-slate-600 dark:text-[#B8C2CC] leading-relaxed">
-                {applications.length > 0
-                  ? 'Candidate-se a mais 2 vagas recomendadas com alto índice de aderência para maximizar sua taxa de avanço para entrevistas esta semana.'
-                  : 'Explore as oportunidades mapeadas pelo copiloto e adicione as vagas com maior aderência ao seu pipeline para iniciar o acompanhamento.'}
-              </p>
-            </div>
-          </div>
 
-          <button
-            type="button"
-            onClick={() => {
-              localStorage.setItem('vocentro_trigger_discovery', 'true');
-              setActiveTab('match');
-              window.scrollTo({ top: 0, behavior: 'smooth' });
-            }}
-            className="px-5 py-2.5 rounded-xl bg-brand-600 hover:bg-brand-500 text-white font-bold text-xs shadow-md shadow-brand-500/20 transition-all flex items-center justify-center gap-1.5 cursor-pointer shrink-0 self-start md:self-center"
-          >
-            <span>Ver vagas recomendadas</span>
-            <ChevronRight size={14} />
-          </button>
-        </div>
-      </section>
-
-      {/* ── 4º BLOCO: PIPELINE VISUAL (MINI FUNIL DE CANDIDATURAS) ── */}
-      <section aria-label="4. Pipeline de Candidaturas" className="rounded-2xl p-5 sm:p-6 bg-white dark:bg-[#242B36] border border-slate-200/90 dark:border-white/8 shadow-xs font-sans space-y-4">
+      {/* ── 3º BLOCO: PIPELINE VISUAL (MINI FUNIL DE CANDIDATURAS) ── */}
+      <section aria-label="3. Pipeline de Candidaturas" className="rounded-2xl p-5 sm:p-6 bg-white dark:bg-[#242B36] border border-slate-200/90 dark:border-white/8 shadow-xs font-sans space-y-4">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <span className="p-1 rounded-md bg-brand-500/10 text-brand-500 dark:text-brand-400">
@@ -444,8 +401,8 @@ export function Dashboard({
         </div>
       </section>
 
-      {/* ── 5º BLOCO: AGENDA / PRÓXIMA ENTREVISTA ── */}
-      <section aria-label="5. Agenda e Próximas Entrevistas" className="rounded-2xl p-5 sm:p-6 bg-white dark:bg-[#242B36] border border-slate-200/90 dark:border-white/8 shadow-xs font-sans space-y-3">
+      {/* ── 4º BLOCO: AGENDA / PRÓXIMA ENTREVISTA ── */}
+      <section aria-label="4. Agenda e Próximas Entrevistas" className="rounded-2xl p-5 sm:p-6 bg-white dark:bg-[#242B36] border border-slate-200/90 dark:border-white/8 shadow-xs font-sans space-y-3">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <span className="p-1 rounded-md bg-emerald-500/10 text-emerald-600 dark:text-emerald-400">

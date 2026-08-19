@@ -461,8 +461,26 @@ export function GlobalCopilotDrawer({
             </div>
           )}
 
-          {/* Form do Input */}
+          {/* Form do Input & Pílulas de Ação Rápida */}
           <div className="p-3 border-t border-slate-800 dark:border-slate-800 border-slate-200 bg-slate-900/90 dark:bg-slate-900/90 bg-slate-50 shrink-0 space-y-2">
+            {/* Pílulas de Sugestão de Ação Rápida */}
+            <div className="flex gap-1.5 overflow-x-auto pb-1 no-scrollbar">
+              {[
+                { label: '🔍 Vagas compatíveis', prompt: 'Mostre as vagas mais adequadas ao meu perfil' },
+                { label: '📄 Otimizar currículo', prompt: 'Como posso melhorar meu currículo para meu objetivo profissional?' },
+                { label: '🎯 Treinar STAR', prompt: 'Quero simular uma entrevista com método STAR' }
+              ].map((sug, sIdx) => (
+                <button
+                  key={sIdx}
+                  type="button"
+                  onClick={() => handleSendMessage({} as any, sug.prompt)}
+                  className="px-2.5 py-1 rounded-lg bg-slate-800/80 dark:bg-slate-800/80 bg-white border border-slate-700/70 dark:border-slate-700/70 border-slate-300 text-[10px] font-medium text-slate-300 dark:text-slate-300 text-slate-700 hover:border-brand-500 hover:text-brand-400 dark:hover:text-brand-400 text-brand-600 transition-all shrink-0 cursor-pointer"
+                >
+                  {sug.label}
+                </button>
+              ))}
+            </div>
+
             <form onSubmit={handleSendMessage} className="flex gap-2">
               <input
                 type="text"

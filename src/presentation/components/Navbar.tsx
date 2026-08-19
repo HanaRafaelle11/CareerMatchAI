@@ -589,7 +589,7 @@ export function Navbar({
               <div className="w-5 h-5 shrink-0 flex items-center justify-center">
                 {renderMobileIcon(item.id, "w-4.5 h-4.5")}
               </div>
-              <span className="text-[9px] font-medium truncate w-full text-center tracking-tight">
+              <span className="text-[10px] font-medium truncate w-full text-center tracking-tight">
                 {item.label}
               </span>
             </button>

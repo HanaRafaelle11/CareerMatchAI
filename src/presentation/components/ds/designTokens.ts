@@ -11,7 +11,8 @@ export const VDS_SPACING = {
   md: '12px',   // 3 (0.75rem)
   lg: '16px',   // 4 (1rem)
   xl: '24px',   // 6 (1.5rem)
-  '2xl': '32px' // 8 (2rem)
+  '2xl': '32px', // 8 (2rem)
+  '3xl': '48px' // 12 (3rem)
 } as const;
 
 export const VDS_RADIUS = {

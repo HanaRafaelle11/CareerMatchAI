@@ -1057,7 +1057,7 @@ export function JobMatchHub({
         jobTitle: selectedJob.title,
         companyName: selectedJob.companyName
       });
-      setToast({ message: 'Cartas de apresentação geradas com sucesso!', type: 'success' });
+      setToast({ message: '✓ Carta de apresentação gerada com sucesso!', type: 'success' });
     } catch (err: any) {
       console.error(err);
       setToast({ message: 'Não conseguimos gerar sua carta agora. Tente novamente.', type: 'error' });
@@ -3978,14 +3978,19 @@ export function JobMatchHub({
                             </div>
                           ) : (
                             <div className="py-12 border border-dashed border-slate-800 rounded-xl flex flex-col items-center justify-center text-center p-6 space-y-4 animate-fade-in">
-                              <span className="text-slate-400 text-xs">Gere cartas de apresentação personalizadas com IA baseadas na vaga e empresa.</span>
+                              <span className="text-slate-400 text-xs">
+                                {selectedJob
+                                  ? `Gere uma carta de apresentação personalizada para a vaga de ${selectedJob.title} na ${selectedJob.companyName}.`
+                                  : 'Gere uma carta de apresentação personalizada com IA baseada na vaga e empresa.'}
+                              </span>
                               <button
                                 type="button"
                                 onClick={handleGenerateCoverLetter}
                                 disabled={isGeneratingLetter}
-                                className="px-4 py-2 bg-brand-600 hover:bg-brand-500 text-white font-bold rounded-xl transition-all shadow cursor-pointer text-xs disabled:opacity-50"
+                                className="px-4 py-2 bg-brand-600 hover:bg-brand-500 text-white font-bold rounded-xl transition-all shadow cursor-pointer text-xs disabled:opacity-50 flex items-center gap-2"
                               >
-                                {isGeneratingLetter ? 'Gerando Cartas...' : 'Gerar Cartas de Apresentação'}
+                                {isGeneratingLetter && <Loader2 size={14} className="animate-spin" />}
+                                {isGeneratingLetter ? 'Gerando sua carta...' : 'Gerar carta de apresentação'}
                               </button>
                             </div>
                           )}
@@ -4892,18 +4897,38 @@ export function JobMatchHub({
                 Lixeira de Vagas Excluídas
               </h3>
               <p className="text-xs text-slate-400 mt-0.5">
-                Vagas removidas temporariamente. Clique em "Esvaziar Lixeira" para escolher entre restaurar todas de volta ou excluí-las permanentemente.
+                Vagas removidas temporariamente. Escolha entre restaurar as vagas ou excluí-las permanentemente.
               </p>
             </div>
             {trashedJobs.length > 0 && (
-              <button
-                type="button"
-                onClick={() => setShowClearTrashModal(true)}
-                className="px-3.5 py-2 rounded-xl bg-red-950/40 hover:bg-red-900/60 border border-red-800/50 text-red-400 text-xs font-bold flex items-center gap-1.5 transition cursor-pointer self-start sm:self-center shadow-md shadow-red-950/20"
-              >
-                <Trash2 size={14} />
-                Esvaziar Lixeira
-              </button>
+              <div className="flex items-center gap-2 self-start sm:self-center">
+                <button
+                  type="button"
+                  disabled={isRestoring || isRestoringAll || isDeletingPermanently || isClearingTrash}
+                  onClick={async () => {
+                    const count = trashedJobs.length;
+                    try {
+                      await restoreAllFromTrash();
+                      showToast(`✓ ${count} vagas restauradas com sucesso.`, 'success');
+                    } catch (err: any) {
+                      showToast('Não conseguimos restaurar as vagas agora: ' + (err.message || 'Tente novamente.'), 'error');
+                    }
+                  }}
+                  className="px-3.5 py-2 rounded-xl bg-emerald-950/40 hover:bg-emerald-900/60 border border-emerald-800/50 text-emerald-400 text-xs font-bold flex items-center gap-1.5 transition cursor-pointer disabled:opacity-50 shadow-md shadow-emerald-950/20"
+                >
+                  {isRestoringAll ? <Loader2 size={14} className="animate-spin" /> : <RotateCcw size={14} />}
+                  {isRestoringAll ? 'Restaurando...' : 'Restaurar todas'}
+                </button>
+                <button
+                  type="button"
+                  disabled={isRestoring || isRestoringAll || isDeletingPermanently || isClearingTrash}
+                  onClick={() => setShowClearTrashModal(true)}
+                  className="px-3.5 py-2 rounded-xl bg-red-950/40 hover:bg-red-900/60 border border-red-800/50 text-red-400 text-xs font-bold flex items-center gap-1.5 transition cursor-pointer disabled:opacity-50 shadow-md shadow-red-950/20"
+                >
+                  <Trash2 size={14} />
+                  Apagar definitivamente
+                </button>
+              </div>
             )}
           </div>
 
@@ -4991,81 +5016,39 @@ export function JobMatchHub({
                 <Trash2 size={24} />
               </div>
               <div>
-                <h3 className="text-lg font-bold text-slate-100 font-display">Gerenciar Lixeira de Vagas</h3>
+                <h3 className="text-lg font-bold text-slate-100 font-display">Apagar todas as vagas?</h3>
                 <p className="text-xs text-slate-400">
-                  Existem <strong className="text-slate-200">{trashedJobs.length} vaga(s)</strong> na sua lixeira. Escolha a ação desejada:
+                  Essa ação removerá permanentemente <strong className="text-slate-200">{trashedJobs.length} vaga(s)</strong> da lixeira e não poderá ser desfeita.
                 </p>
               </div>
             </div>
 
-            <div className="space-y-3 pt-2">
+            <div className="flex flex-col-reverse sm:flex-row justify-end gap-3 pt-4 border-t border-slate-800">
+              <button
+                type="button"
+                disabled={isRestoringAll || isClearingTrash}
+                onClick={() => setShowClearTrashModal(false)}
+                className="px-4 py-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 border border-slate-800 text-slate-300 text-xs font-bold transition cursor-pointer disabled:opacity-50"
+              >
+                Cancelar
+              </button>
               <button
                 type="button"
                 disabled={isRestoringAll || isClearingTrash}
                 onClick={async () => {
                   const count = trashedJobs.length;
                   try {
-                    await restoreAllFromTrash();
+                    await clearTrash();
                     setShowClearTrashModal(false);
-                    showToast(`✓ ${count} vaga(s) restaurada(s) com sucesso para Vagas Disponíveis!`, 'success');
+                    showToast(`✓ ${count} vagas apagadas com sucesso.`, 'success');
                   } catch (err: any) {
-                    showToast('Erro ao restaurar vagas da lixeira: ' + (err.message || 'Tente novamente.'), 'error');
+                    showToast('Não conseguimos apagar as vagas agora: ' + (err.message || 'Tente novamente.'), 'error');
                   }
                 }}
-                className="w-full p-4 rounded-2xl bg-slate-900/80 hover:bg-emerald-950/40 border border-slate-800 hover:border-emerald-500/50 text-left transition group flex items-start gap-3.5 cursor-pointer disabled:opacity-50"
+                className="px-4 py-2.5 rounded-xl bg-red-600 hover:bg-red-500 text-white text-xs font-bold flex items-center justify-center gap-2 transition cursor-pointer disabled:opacity-50 shadow-lg shadow-red-950/30"
               >
-                <div className="p-2.5 rounded-xl bg-emerald-500/10 text-emerald-400 group-hover:scale-105 transition shrink-0 mt-0.5">
-                  {isRestoringAll ? <Loader2 size={18} className="animate-spin" /> : <RotateCcw size={18} />}
-                </div>
-                <div>
-                  <h4 className="font-bold text-sm text-emerald-400 group-hover:text-emerald-300">
-                    {isRestoringAll ? 'Restaurando todas as vagas...' : 'Mover todas de volta para Vagas Disponíveis'}
-                  </h4>
-                  <p className="text-xs text-slate-400 mt-0.5">
-                    Restaura todas as vagas da lixeira de volta para a sua lista ativa de buscas.
-                  </p>
-                </div>
-              </button>
-
-              <button
-                type="button"
-                disabled={isRestoringAll || isClearingTrash}
-                onClick={async () => {
-                  const count = trashedJobs.length;
-                  if (window.confirm(`Excluir permanentemente todas as ${count} vagas da lixeira?\n\nEssa ação removerá definitivamente os registros e não poderá ser desfeita.`)) {
-                    try {
-                      await clearTrash();
-                      setShowClearTrashModal(false);
-                      showToast(`✓ ${count} vaga(s) excluída(s) permanentemente da lixeira.`, 'success');
-                    } catch (err: any) {
-                      showToast('Erro ao esvaziar lixeira: ' + (err.message || 'Tente novamente.'), 'error');
-                    }
-                  }
-                }}
-                className="w-full p-4 rounded-2xl bg-slate-900/80 hover:bg-red-950/40 border border-slate-800 hover:border-red-500/50 text-left transition group flex items-start gap-3.5 cursor-pointer disabled:opacity-50"
-              >
-                <div className="p-2.5 rounded-xl bg-red-500/10 text-red-400 group-hover:scale-105 transition shrink-0 mt-0.5">
-                  {isClearingTrash ? <Loader2 size={18} className="animate-spin" /> : <Trash2 size={18} />}
-                </div>
-                <div>
-                  <h4 className="font-bold text-sm text-red-400 group-hover:text-red-300">
-                    {isClearingTrash ? 'Apagando definitivamente...' : 'Excluir permanentemente todas da lixeira'}
-                  </h4>
-                  <p className="text-xs text-slate-400 mt-0.5">
-                    Remove definitivamente todas as vagas da lixeira. Esta ação não poderá ser desfeita.
-                  </p>
-                </div>
-              </button>
-            </div>
-
-            <div className="flex justify-end pt-2">
-              <button
-                type="button"
-                disabled={isRestoringAll || isClearingTrash}
-                onClick={() => setShowClearTrashModal(false)}
-                className="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-bold transition cursor-pointer disabled:opacity-50"
-              >
-                Cancelar
+                {isClearingTrash && <Loader2 size={14} className="animate-spin" />}
+                {isClearingTrash ? 'Apagando...' : 'Apagar definitivamente'}
               </button>
             </div>
           </CardGlass>

@@ -341,26 +341,29 @@ export function useJobTrash(userId?: string, activeJobs: Job[] = []) {
 
       if (isSupabaseConfigured && supabase && isUuid(userId)) {
         try {
-          await supabase
-            .from('applications')
-            .delete()
-            .eq('user_id', userId)
-            .eq('job_id', targetId);
+          const isJobUuid = isUuid(targetId);
+          if (isJobUuid) {
+            await supabase
+              .from('applications')
+              .delete()
+              .eq('user_id', userId)
+              .eq('job_id', targetId);
+
+            await supabase
+              .from('job_matches')
+              .delete()
+              .eq('user_id', userId)
+              .eq('job_id', targetId);
+
+            await supabase
+              .from('matches')
+              .delete()
+              .eq('user_id', userId)
+              .eq('job_id', targetId);
+          }
 
           await supabase
             .from('job_feedback')
-            .delete()
-            .eq('user_id', userId)
-            .eq('job_id', targetId);
-
-          await supabase
-            .from('job_matches')
-            .delete()
-            .eq('user_id', userId)
-            .eq('job_id', targetId);
-
-          await supabase
-            .from('matches')
             .delete()
             .eq('user_id', userId)
             .eq('job_id', targetId);
@@ -406,11 +409,18 @@ export function useJobTrash(userId?: string, activeJobs: Job[] = []) {
             .eq('action', 'REJECTED');
 
           if (excludedList && excludedList.length > 0) {
-            const ids = excludedList.map(e => String(e.job_id));
+            const allIds = excludedList.map(e => String(e.job_id));
+            const uuidIds = allIds.filter(id => isUuid(id));
 
-            await supabase.from('job_feedback').delete().eq('user_id', userId).in('job_id', ids);
-            await supabase.from('job_matches').delete().eq('user_id', userId).in('job_id', ids);
-            await supabase.from('matches').delete().eq('user_id', userId).in('job_id', ids);
+            // Deletar da tabela job_feedback (que aceita strings e UUIDs)
+            await supabase.from('job_feedback').delete().eq('user_id', userId).in('job_id', allIds);
+
+            // Apenas deletar de tabelas tipadas com UUID se houver UUIDs válidos
+            if (uuidIds.length > 0) {
+              await supabase.from('job_matches').delete().eq('user_id', userId).in('job_id', uuidIds);
+              await supabase.from('matches').delete().eq('user_id', userId).in('job_id', uuidIds);
+              await supabase.from('applications').delete().eq('user_id', userId).in('job_id', uuidIds);
+            }
           }
         } catch (dbErr) {
           console.warn('[CLEAR TRASH] Warning:', dbErr);

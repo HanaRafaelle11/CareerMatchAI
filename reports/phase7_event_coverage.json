@@ -1,0 +1,27 @@
+{
+  "matrix_name": "VoCentro Phase 7 Event Coverage Matrix",
+  "project": "CareerMatchAI (VoCentro)",
+  "coverage_percentage": 100.0,
+  "verified_at": "2026-08-19T13:58:00.000Z",
+  "matrix": [
+    { "journey": "Cadastro", "event": "signup_started", "exists": true, "dispatches": true, "persists": true, "used_in_funnel": true, "table": "analytics_events" },
+    { "journey": "Cadastro", "event": "signup_completed", "exists": true, "dispatches": true, "persists": true, "used_in_funnel": true, "table": "profiles" },
+    { "journey": "Login", "event": "login_completed", "exists": true, "dispatches": true, "persists": true, "used_in_funnel": true, "table": "analytics_events" },
+    { "journey": "Onboarding", "event": "onboarding_started", "exists": true, "dispatches": true, "persists": true, "used_in_funnel": true, "table": "analytics_events" },
+    { "journey": "CV", "event": "resume_uploaded", "exists": true, "dispatches": true, "persists": true, "used_in_funnel": true, "table": "resumes" },
+    { "journey": "Perfil", "event": "profile_completed", "exists": true, "dispatches": true, "persists": true, "used_in_funnel": true, "table": "profiles" },
+    { "journey": "Match", "event": "match_generated", "exists": true, "dispatches": true, "persists": true, "used_in_funnel": true, "table": "matches" },
+    { "journey": "Vaga", "event": "job_viewed", "exists": true, "dispatches": true, "persists": true, "used_in_funnel": true, "table": "analytics_events" },
+    { "journey": "Vaga", "event": "job_saved", "exists": true, "dispatches": true, "persists": true, "used_in_funnel": true, "table": "applications" },
+    { "journey": "Candidatura", "event": "application_started", "exists": true, "dispatches": true, "persists": true, "used_in_funnel": true, "table": "analytics_events" },
+    { "journey": "Candidatura", "event": "application_submitted", "exists": true, "dispatches": true, "persists": true, "used_in_funnel": true, "table": "applications" },
+    { "journey": "Entrevista", "event": "interview_scheduled", "exists": true, "dispatches": true, "persists": true, "used_in_funnel": true, "table": "applications" },
+    { "journey": "Copiloto", "event": "copilot_opened", "exists": true, "dispatches": true, "persists": true, "used_in_funnel": true, "table": "analytics_events" },
+    { "journey": "IA", "event": "ai_generation_started", "exists": true, "dispatches": true, "persists": true, "used_in_funnel": true, "table": "ai_usage_logs" },
+    { "journey": "IA", "event": "ai_generation_completed", "exists": true, "dispatches": true, "persists": true, "used_in_funnel": true, "table": "ai_usage_logs" },
+    { "journey": "Checkout", "event": "checkout_started", "exists": true, "dispatches": true, "persists": true, "used_in_funnel": true, "table": "analytics_events" },
+    { "journey": "Pagamento", "event": "payment_completed", "exists": true, "dispatches": true, "persists": true, "used_in_funnel": true, "table": "billing_transactions" },
+    { "journey": "Assinatura", "event": "subscription_started", "exists": true, "dispatches": true, "persists": true, "used_in_funnel": true, "table": "billing_subscriptions" },
+    { "journey": "Assinatura", "event": "subscription_cancelled", "exists": true, "dispatches": true, "persists": true, "used_in_funnel": true, "table": "billing_subscriptions" }
+  ]
+}

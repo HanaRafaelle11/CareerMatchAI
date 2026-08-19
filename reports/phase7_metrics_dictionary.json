@@ -1,0 +1,58 @@
+{
+  "dictionary_version": "7.0",
+  "project": "CareerMatchAI (VoCentro)",
+  "canonical_definitions": [
+    {
+      "metric": "DAU",
+      "definition": "Quantidade de usuários únicos reais que emitiram ao menos 1 evento ou criaram perfil nas últimas 24 horas consecutivas.",
+      "source": "public.analytics_events / public.profiles",
+      "window": "Rolling 24 Horas (now - 24 * 60 * 60 * 1000 ms)",
+      "timezone": "UTC (comparação em milissegundos absolutos)",
+      "deduplication": "Set<user_id>",
+      "filters": ["AdminAuditService.isTestOrInternalAccount (exclui @vocentro.com.br, admin@, teste, qa, etc.)"],
+      "formula": "COUNT(DISTINCT user_id) WHERE event_timestamp >= now - 24h",
+      "owner": "Analytics / Core Engine",
+      "freshness": "fresh (< 5 min), aging (5-30 min), stale (> 30 min)",
+      "known_limitations": ["Usuários anônimos sem user_id não são contabilizados no DAU autenticado"]
+    },
+    {
+      "metric": "WAU",
+      "definition": "Quantidade de usuários únicos reais que emitiram ao menos 1 evento nos últimos 7 dias consecutivos.",
+      "source": "public.analytics_events / public.profiles",
+      "window": "Rolling 7 Dias (now - 7 * 24 * 60 * 60 * 1000 ms)",
+      "timezone": "UTC",
+      "deduplication": "Set<user_id>",
+      "filters": ["AdminAuditService.isTestOrInternalAccount"],
+      "formula": "COUNT(DISTINCT user_id) WHERE event_timestamp >= now - 7d",
+      "owner": "Analytics / Core Engine",
+      "freshness": "fresh (< 5 min), aging (5-30 min), stale (> 30 min)",
+      "known_limitations": []
+    },
+    {
+      "metric": "MAU",
+      "definition": "Quantidade de usuários únicos reais que emitiram ao menos 1 evento nos últimos 30 dias consecutivos.",
+      "source": "public.analytics_events / public.profiles",
+      "window": "Rolling 30 Dias (now - 30 * 24 * 60 * 60 * 1000 ms)",
+      "timezone": "UTC",
+      "deduplication": "Set<user_id>",
+      "filters": ["AdminAuditService.isTestOrInternalAccount"],
+      "formula": "COUNT(DISTINCT user_id) WHERE event_timestamp >= now - 30d",
+      "owner": "Analytics / Core Engine",
+      "freshness": "fresh (< 5 min), aging (5-30 min), stale (> 30 min)",
+      "known_limitations": []
+    },
+    {
+      "metric": "Stickiness",
+      "definition": "Percentual de engajamento diário relativo à base mensal ativa.",
+      "source": "DAU e MAU canônicos",
+      "window": "Comparação DAU (24h) vs MAU (30d)",
+      "timezone": "UTC",
+      "deduplication": "N/A",
+      "filters": ["N/A"],
+      "formula": "MAU > 0 ? (DAU / MAU) * 100 : 0.0",
+      "owner": "Analytics / Core Engine",
+      "freshness": "fresh (< 5 min)",
+      "known_limitations": ["Retorna 0.0% se MAU for 0"]
+    }
+  ]
+}

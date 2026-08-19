@@ -1,0 +1,77 @@
+{
+  "lineage_report": "VoCentro Phase 7 End-to-End Data Lineage",
+  "project": "CareerMatchAI (VoCentro)",
+  "verified_at": "2026-08-19T13:58:00.000Z",
+  "lineages": [
+    {
+      "metric": "DAU (Daily Active Users)",
+      "database": "public.analytics_events & public.profiles",
+      "query": "supabase.from('analytics_events').select('user_id, created_at')",
+      "service": "AdminAnalyticsService",
+      "transformation": "Set<user_id> deduplication on rolling 24h ms window (now - 24h)",
+      "metric_variable": "dau: number",
+      "component": "src/presentation/pages/AdminDashboard.tsx",
+      "display": "Card 'Usuários Ativos (DAU)' com valor numérico e indicador de frescura"
+    },
+    {
+      "metric": "WAU (Weekly Active Users)",
+      "database": "public.analytics_events & public.profiles",
+      "query": "supabase.from('analytics_events').select('user_id, created_at')",
+      "service": "AdminAnalyticsService",
+      "transformation": "Set<user_id> deduplication on rolling 7d ms window (now - 7d)",
+      "metric_variable": "wau: number",
+      "component": "src/presentation/pages/AdminDashboard.tsx",
+      "display": "Card 'Usuários Ativos (WAU)'"
+    },
+    {
+      "metric": "MAU (Monthly Active Users)",
+      "database": "public.analytics_events & public.profiles",
+      "query": "supabase.from('analytics_events').select('user_id, created_at')",
+      "service": "AdminAnalyticsService",
+      "transformation": "Set<user_id> deduplication on rolling 30d ms window (now - 30d)",
+      "metric_variable": "mau: number",
+      "component": "src/presentation/pages/AdminDashboard.tsx",
+      "display": "Card 'Usuários Ativos (MAU)'"
+    },
+    {
+      "metric": "Stickiness Rate",
+      "database": "public.analytics_events & public.profiles",
+      "query": "Calculado a partir de DAU e MAU no AdminAnalyticsService",
+      "service": "AdminAnalyticsService",
+      "transformation": "mau > 0 ? (dau / mau) * 100 : 0.0",
+      "metric_variable": "stickinessRate: number",
+      "component": "src/presentation/pages/AdminDashboard.tsx",
+      "display": "Badge 'Stickiness (DAU/MAU)' com percentual formatado em 1 casa decimal"
+    },
+    {
+      "metric": "Activation Funnel (Cadastro -> CV -> Match -> App -> Pro)",
+      "database": "public.profiles, public.resumes, public.matches, public.applications, public.billing_transactions",
+      "query": "Promise.all() consultando todas as tabelas de jornada",
+      "service": "AdminAnalyticsService.calculateFunnel()",
+      "transformation": "Filtro AdminAuditService.isTestOrInternalAccount + Unique User Sets por etapa",
+      "metric_variable": "funnel: ActivationFunnelMetrics",
+      "component": "src/presentation/components/FunnelTelemetryDashboard.tsx",
+      "display": "Gráfico de barras e taxas de conversão de 5 etapas"
+    },
+    {
+      "metric": "Time to Value (TTFV)",
+      "database": "public.profiles & public.matches",
+      "query": "profiles (created_at) e matches (created_at) ordenados por timestamp",
+      "service": "AdminAnalyticsService.calculateTtfv()",
+      "transformation": "Diferença em minutos (match - signup), excluindo valores <= 0, calculando P50, P75, P90",
+      "metric_variable": "ttfv: TtfvMetrics",
+      "component": "src/presentation/pages/AdminDashboard.tsx",
+      "display": "Box 'Velocidade de Valor (TTFV)' com P50, P75 e P90"
+    },
+    {
+      "metric": "AI Costs & Token Usage",
+      "database": "public.ai_usage_logs",
+      "query": "supabase.from('ai_usage_logs').select('*')",
+      "service": "AdminAnalyticsService.calculateAiCosts()",
+      "transformation": "Soma de input_tokens e output_tokens ponderada por tarifas oficiais do Gemini 3.6 Flash",
+      "metric_variable": "iaStats: AiCostBreakdown",
+      "component": "src/presentation/pages/AdminDashboard.tsx",
+      "display": "Painel 'Consumo e Custos de Inteligência Artificial' em R$ BRL"
+    }
+  ]
+}

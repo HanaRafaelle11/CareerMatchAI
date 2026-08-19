@@ -1,0 +1,170 @@
+{
+  "timestamp": "2026-08-19T00:14:15.769Z",
+  "totalCases": 7,
+  "passedCount": 7,
+  "failedCount": 0,
+  "accuracy": 100,
+  "cases": [
+    {
+      "caseId": "GC1_DirectMatch",
+      "name": "Match Direto (Senior Dev React -> Senior Dev React)",
+      "careerFitScore": 95,
+      "careerGoalScore": 91,
+      "transitionType": "none",
+      "transitionLabel": "Mesma Área / Continuidade",
+      "dimensions": {
+        "experience": 95,
+        "skills": 100,
+        "seniority": 100,
+        "context": 75,
+        "careerGoal": 95
+      },
+      "skillsAssessment": {
+        "matchedCount": 4,
+        "transferableCount": 0,
+        "missingCount": 0
+      },
+      "confidenceScore": 85,
+      "passed": true,
+      "failures": []
+    },
+    {
+      "caseId": "GC2_Promotion",
+      "name": "Promoção de Senioridade (Dev Pleno -> Tech Lead)",
+      "careerFitScore": 57,
+      "careerGoalScore": 80,
+      "transitionType": "none",
+      "transitionLabel": "Mesma Área / Continuidade",
+      "dimensions": {
+        "experience": 71,
+        "skills": 33,
+        "seniority": 40,
+        "context": 75,
+        "careerGoal": 95
+      },
+      "skillsAssessment": {
+        "matchedCount": 1,
+        "transferableCount": 1,
+        "missingCount": 2
+      },
+      "confidenceScore": 85,
+      "passed": true,
+      "failures": []
+    },
+    {
+      "caseId": "GC3_NearTransition",
+      "name": "Transição Próxima / Moderada (CS Manager -> Product Manager)",
+      "careerFitScore": 14,
+      "careerGoalScore": 80,
+      "transitionType": "moderate",
+      "transitionLabel": "Transição Moderada",
+      "dimensions": {
+        "experience": 71,
+        "skills": 0,
+        "seniority": 100,
+        "context": 75,
+        "careerGoal": 95
+      },
+      "skillsAssessment": {
+        "matchedCount": 0,
+        "transferableCount": 2,
+        "missingCount": 3
+      },
+      "confidenceScore": 85,
+      "passed": true,
+      "failures": []
+    },
+    {
+      "caseId": "GC4_ModerateTransition",
+      "name": "Transição Moderada (Data Analyst -> Analytics Engineer)",
+      "careerFitScore": 60,
+      "careerGoalScore": 71,
+      "transitionType": "challenging",
+      "transitionLabel": "Transição Desafiadora",
+      "dimensions": {
+        "experience": 60,
+        "skills": 25,
+        "seniority": 100,
+        "context": 75,
+        "careerGoal": 95
+      },
+      "skillsAssessment": {
+        "matchedCount": 1,
+        "transferableCount": 0,
+        "missingCount": 3
+      },
+      "confidenceScore": 85,
+      "passed": true,
+      "failures": []
+    },
+    {
+      "caseId": "GC5_DistantTransition",
+      "name": "Transição Distante (Python Dev -> Enfermeiro UTI)",
+      "careerFitScore": 10,
+      "careerGoalScore": 46,
+      "transitionType": "distant",
+      "transitionLabel": "Transição Distante",
+      "dimensions": {
+        "experience": 18,
+        "skills": 0,
+        "seniority": 100,
+        "context": 75,
+        "careerGoal": 95
+      },
+      "skillsAssessment": {
+        "matchedCount": 0,
+        "transferableCount": 0,
+        "missingCount": 3
+      },
+      "confidenceScore": 85,
+      "passed": true,
+      "failures": []
+    },
+    {
+      "caseId": "GC6_Incompatible",
+      "name": "Vaga Incompatível (Advogado Trabalhista -> Engenheiro Civil)",
+      "careerFitScore": 10,
+      "careerGoalScore": 18,
+      "transitionType": "none",
+      "transitionLabel": "Mesma Área / Continuidade",
+      "dimensions": {
+        "experience": 20,
+        "skills": 0,
+        "seniority": 100,
+        "context": 70,
+        "careerGoal": 15
+      },
+      "skillsAssessment": {
+        "matchedCount": 0,
+        "transferableCount": 0,
+        "missingCount": 3
+      },
+      "confidenceScore": 85,
+      "passed": true,
+      "failures": []
+    },
+    {
+      "caseId": "GC7_NoGoal",
+      "name": "Objetivo Não Definido (careerGoal === null)",
+      "careerFitScore": 83,
+      "careerGoalScore": null,
+      "transitionType": "none",
+      "transitionLabel": "Mesma Área / Continuidade",
+      "dimensions": {
+        "experience": 95,
+        "skills": 67,
+        "seniority": 100,
+        "context": 70,
+        "careerGoal": 50
+      },
+      "skillsAssessment": {
+        "matchedCount": 2,
+        "transferableCount": 0,
+        "missingCount": 1
+      },
+      "confidenceScore": 85,
+      "passed": true,
+      "failures": []
+    }
+  ]
+}

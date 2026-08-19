@@ -1,0 +1,42 @@
+[
+  {
+    "test": "Perturbação Relevante (+1 Skill Crítica: Docker)",
+    "deltaFit": 0,
+    "deltaGoal": 0,
+    "finalFit": 88,
+    "finalGoal": 91,
+    "passed": true
+  },
+  {
+    "test": "Perturbação Relevante (-1 Skill Crítica do Candidato: remove Node.js do CV e histórico)",
+    "deltaFit": -12,
+    "deltaGoal": -11,
+    "finalFit": 76,
+    "finalGoal": 80,
+    "passed": true
+  },
+  {
+    "test": "Perturbação de Senioridade (Vaga muda de Pleno para Lead)",
+    "deltaFit": -9,
+    "deltaGoal": -3,
+    "finalFit": 79,
+    "finalGoal": 88,
+    "passed": true
+  },
+  {
+    "test": "Perturbação Irrelevante (Espaçamento e Caixa Alta em Skills)",
+    "deltaFit": 0,
+    "deltaGoal": 0,
+    "finalFit": 88,
+    "finalGoal": 91,
+    "passed": true
+  },
+  {
+    "test": "Perturbação de Objetivo (Muda TargetRole para Enfermeiro)",
+    "deltaFit": 0,
+    "deltaGoal": -28,
+    "finalFit": 88,
+    "finalGoal": 63,
+    "passed": true
+  }
+]

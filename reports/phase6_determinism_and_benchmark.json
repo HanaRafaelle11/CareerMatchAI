@@ -1,0 +1,50 @@
+{
+  "timestamp": "2026-08-19T00:18:56.691Z",
+  "determinism": {
+    "totalRuns": 2400,
+    "failures": 0,
+    "status": "100% DETERMINISTIC"
+  },
+  "benchmarks": [
+    {
+      "batchSize": 1,
+      "avgTotalMs": 0.05,
+      "p95TotalMs": 0.07,
+      "maxTotalMs": 1.69,
+      "timePerJobMs": 0.0535,
+      "throughputVagasPorSegundo": 18699
+    },
+    {
+      "batchSize": 10,
+      "avgTotalMs": 0.36,
+      "p95TotalMs": 0.6,
+      "maxTotalMs": 2.33,
+      "timePerJobMs": 0.0359,
+      "throughputVagasPorSegundo": 27888
+    },
+    {
+      "batchSize": 50,
+      "avgTotalMs": 1.99,
+      "p95TotalMs": 4.81,
+      "maxTotalMs": 4.81,
+      "timePerJobMs": 0.0397,
+      "throughputVagasPorSegundo": 25171
+    },
+    {
+      "batchSize": 100,
+      "avgTotalMs": 3.77,
+      "p95TotalMs": 6.96,
+      "maxTotalMs": 6.96,
+      "timePerJobMs": 0.0377,
+      "throughputVagasPorSegundo": 26537
+    },
+    {
+      "batchSize": 500,
+      "avgTotalMs": 13.46,
+      "p95TotalMs": 20.26,
+      "maxTotalMs": 20.26,
+      "timePerJobMs": 0.0269,
+      "throughputVagasPorSegundo": 37153
+    }
+  ]
+}

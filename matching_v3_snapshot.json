@@ -1,0 +1,84 @@
+{
+  "metadata": {
+    "version": "CareerMatchEngineV3",
+    "phase": "FASE 6 - Baseline Snapshot",
+    "commit": "0dc4d9a (0dc4d9a917dd23c71c189ec38e9add95373467e6)",
+    "createdAt": "2026-08-19T00:11:51.307Z",
+    "architecture": "Deterministic 5-Dimensions + Decoupled Goal & Fit Scoring"
+  },
+  "engineParameters": {
+    "fitWeights": {
+      "skills": 0.35,
+      "experience": 0.25,
+      "seniority": 0.15,
+      "domainContext": 0.15,
+      "workModeLocation": 0.1
+    },
+    "goalWeights": {
+      "targetRoleAlignment": 0.35,
+      "transferableSkills": 0.25,
+      "domainBridge": 0.15,
+      "skillGapOpportunity": 0.15,
+      "seniorityTrajectory": 0.1
+    },
+    "thresholds": {
+      "nearGapMax": 30,
+      "moderateGapMax": 60,
+      "challengingGapMax": 85
+    }
+  },
+  "dimensions": {
+    "experience": {
+      "weight": 0.3,
+      "description": "Recência, anos de experiência e funções anteriores"
+    },
+    "skills": {
+      "weight": 0.35,
+      "description": "Hard skills e requisitos técnicos atendidos vs faltantes"
+    },
+    "seniority": {
+      "weight": 0.15,
+      "description": "Autonomia e nível hierárquico"
+    },
+    "context": {
+      "weight": 0.2,
+      "description": "Domínio, modelo de trabalho e segmento"
+    },
+    "careerGoal": {
+      "weight": "independente",
+      "description": "Pontencial de transição e alavancagem para o objetivo"
+    }
+  },
+  "thresholds": {
+    "highFit": 75,
+    "moderateFit": 55,
+    "lowFit": 35,
+    "highGoal": 75,
+    "moderateGoal": 50,
+    "transitionClassification": {
+      "near": {
+        "minFunctionalOverlap": 0.65,
+        "maxGapPenalty": 0.2
+      },
+      "moderate": {
+        "minFunctionalOverlap": 0.4,
+        "maxGapPenalty": 0.45
+      },
+      "challenging": {
+        "minFunctionalOverlap": 0.2,
+        "maxGapPenalty": 0.7
+      },
+      "distant": {
+        "maxFunctionalOverlap": 0.19,
+        "minGapPenalty": 0.71
+      }
+    }
+  },
+  "filesIncluded": [
+    "src/domain/services/CareerMatchEngineV3.ts",
+    "src/domain/services/MatchingWeights.ts",
+    "src/domain/services/TransferableSkillsService.ts",
+    "src/domain/services/UnifiedMatchService.ts",
+    "src/application/services/matchingEngine.ts"
+  ]
+}

@@ -11,6 +11,7 @@ import { CommercialIntelligenceDashboard } from '../components/CommercialIntelli
 import { ExecutiveCopilotDashboard } from '../components/ExecutiveCopilotDashboard';
 import { EmailEngagementDashboard } from '../components/EmailEngagementDashboard';
 import { UserResearchDashboard } from '../components/UserResearchDashboard';
+import { ExperimentTelemetryCenter } from '../components/ExperimentTelemetryCenter';
 import { ResumePreviewModal } from '../components/ResumePreviewModal';
 
 import { AdminAuditService } from '../../application/services/AdminAuditService';
@@ -1263,7 +1264,8 @@ export function AdminDashboard({ userId }: AdminDashboardProps) {
     { id: 'satisfaction_surveys', label: '11. Pesquisas de Satisfação (NPS)' },
     { id: 'email_engagement', label: '12. Engajamento de E-mails' },
     hasTelemetryAccess && { id: 'infra_logs', label: '13. Infraestrutura & Logs Auditáveis' },
-    { id: 'user_research', label: '14. Pesquisa de Usuários Fundadores' }
+    { id: 'user_research', label: '14. Pesquisa de Usuários Fundadores' },
+    hasTelemetryAccess && { id: 'experiments', label: '15. Central de Experimentos (Fase 10)' }
   ].filter(Boolean) as { id: string; label: string }[];
 
 
@@ -3002,6 +3004,11 @@ export function AdminDashboard({ userId }: AdminDashboardProps) {
       {/* ── ABA 14: PESQUISA DE USUÁRIOS FUNDADORES (v1_founders_validation) ── */}
       {activeSubTab === 'user_research' && (
         <UserResearchDashboard adminUserId={userId} />
+      )}
+
+      {/* ── ABA 15: CENTRAL DE EXPERIMENTOS & GROWTH (Fase 10) ── */}
+      {activeSubTab === 'experiments' && (
+        <ExperimentTelemetryCenter />
       )}
 
       {/* MODAL DE DETALHES DO USUÁRIO & INSPEÇÃO DE CURRÍCULO (FASE 2) */}

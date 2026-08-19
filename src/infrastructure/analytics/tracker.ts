@@ -362,6 +362,35 @@ class AnalyticsTracker {
   public trackJobMatchFeedbackSubmitted(jobId: string, isPositive: boolean, reason?: string) {
     this.track('job_match_feedback_submitted', 'UserValue', { job_id: jobId, is_positive: isPositive, reason: reason || 'none' });
   }
+
+  // ── Telemetria de Experimentação & Testes A/B (Fase 10 - Sem PII) ──
+
+  public trackExperimentExposed(experimentId: string, variant: string, metadata: any = {}) {
+    this.track('experiment_exposed', 'Experimentation', {
+      experiment_id: experimentId,
+      variant,
+      ...metadata
+    });
+  }
+
+  public trackExperimentConversion(experimentId: string, variant: string, metricName: string, value: number = 1, metadata: any = {}) {
+    this.track('experiment_conversion', 'Experimentation', {
+      experiment_id: experimentId,
+      variant,
+      metric_name: metricName,
+      value,
+      ...metadata
+    });
+  }
+
+  public trackExperimentGuardrailTriggered(experimentId: string, variant: string, guardrailName: string, metadata: any = {}) {
+    this.track('experiment_guardrail_triggered', 'Experimentation', {
+      experiment_id: experimentId,
+      variant,
+      guardrail_name: guardrailName,
+      ...metadata
+    });
+  }
 }
 
 export const tracker = new AnalyticsTracker();

@@ -1,0 +1,90 @@
+{
+  "inventory_name": "VoCentro Phase 10 Experimentation & Feature Flag Inventory",
+  "project": "CareerMatchAI (VoCentro)",
+  "timestamp": "2026-08-19T15:40:00.000Z",
+  "experiment_capability": {
+    "status": "INITIALIZING_PHASE_10_FRAMEWORK",
+    "assignment_strategy": "DETERMINISTIC_HASH_USER_ID",
+    "persistence": "localStorage_sessionStorage_with_Postgres_events",
+    "exposure_tracking": "STRICT_SEPARATION_ASSIGNED_VS_EXPOSED_VS_CONVERTED",
+    "decision_rules": ["WIN", "LOSS", "INCONCLUSIVE", "INSUFFICIENT_SAMPLE", "BROKEN", "STALE"]
+  },
+  "existing_feature_flags": {
+    "strategy": "LOCAL_AND_CONFIG_DRIVEN_FLAGS",
+    "flags": [
+      {
+        "id": "exp_assisted_onboarding_p0",
+        "name": "P0: Onboarding Assistido Híbrido (Skills Rápidas vs Upload Direto de PDF)",
+        "status": "ACTIVE_EXPERIMENT",
+        "default_variant": "CONTROL",
+        "rollout_percentage": 50
+      },
+      {
+        "id": "exp_match_explanation_p1",
+        "name": "P1: Explicabilidade Pró-Ativa no Card de Match (Destaques 70-79%)",
+        "status": "ACTIVE_EXPERIMENT",
+        "default_variant": "CONTROL",
+        "rollout_percentage": 50
+      },
+      {
+        "id": "exp_paywall_value_p2",
+        "name": "P2: Amostra Interativa de Valor no Paywall STAR",
+        "status": "ACTIVE_EXPERIMENT",
+        "default_variant": "CONTROL",
+        "rollout_percentage": 50
+      }
+    ]
+  },
+  "existing_events": [
+    "signup_completed",
+    "login_completed",
+    "resume_uploaded",
+    "match_calculated",
+    "job_match_viewed",
+    "match_explanation_opened",
+    "job_saved",
+    "job_applied",
+    "paywall_viewed",
+    "checkout_started",
+    "payment_confirmed",
+    "cover_letter_generated",
+    "experiment_exposed",
+    "experiment_conversion",
+    "experiment_guardrail_triggered"
+  ],
+  "existing_metrics": [
+    "ACTIVATION_RATE",
+    "TIME_TO_VALUE_P50",
+    "MATCH_TO_MEANINGFUL_ACTION_RATE",
+    "PAYWALL_TO_PAID_RATE",
+    "D7_RETENTION",
+    "AI_COST_PER_ACTIVATED_USER",
+    "ERROR_RATE"
+  ],
+  "existing_abstractions": [
+    "AnalyticsTracker (src/infrastructure/analytics/tracker.ts)",
+    "AdminAnalyticsService (src/application/services/AdminAnalyticsService.ts)",
+    "AdminAuditService (src/application/services/AdminAuditService.ts)",
+    "CareerMatchEngineV3 (src/domain/services/CareerMatchEngineV3.ts - CONGELADO)"
+  ],
+  "affected_surfaces": [
+    "src/presentation/components/HumanizedMatchCard.tsx (P1 Explanation)",
+    "src/presentation/components/PaywallModal.tsx (P2 Value Preview)",
+    "src/presentation/pages/CareerProfilePage.tsx (P0 Assisted Onboarding / Skills Entry)",
+    "src/presentation/pages/AdminDashboard.tsx (Admin Experiment Center)"
+  ],
+  "risks": [
+    {
+      "risk": "Cross-variant contamination if user logs in on different devices",
+      "mitigation": "Deterministic hash based strictly on authenticated user_id, fallback to stable anonymous sessionId"
+    },
+    {
+      "risk": "Premature winning declaration with insufficient sample size",
+      "mitigation": "Mandatory INSUFFICIENT_SAMPLE status threshold before statistical significance checks"
+    },
+    {
+      "risk": "Degradation of Match Core accuracy",
+      "mitigation": "CareerMatchEngineV3 and MATCHING_WEIGHTS 100% frozen; experiments only affect presentation and journey UI"
+    }
+  ]
+}

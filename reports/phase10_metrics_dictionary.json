@@ -1,0 +1,38 @@
+{
+  "dictionary_name": "VoCentro Phase 10 Experimental Metrics & Decision Dictionary",
+  "project": "CareerMatchAI (VoCentro)",
+  "timestamp": "2026-08-19T15:55:00.000Z",
+  "metrics": {
+    "ACTIVATION_RATE": {
+      "definition": "Percentual de usuários cadastrados que visualizam ao menos 1 match com fit >= 70% ou salvam vaga no Kanban",
+      "formula": "COUNT(DISTINCT activated_users) / COUNT(DISTINCT signups) * 100",
+      "unit": "percentage"
+    },
+    "MATCH_TO_MEANINGFUL_ACTION_RATE": {
+      "definition": "Percentual de vagas visualizadas que resultam em salvamento ou candidatura",
+      "formula": "COUNT(DISTINCT meaningful_actions) / COUNT(DISTINCT match_views) * 100",
+      "unit": "percentage"
+    },
+    "PAYWALL_TO_PAID_RATE": {
+      "definition": "Percentual de usuários que visualizam o paywall e concluem assinatura Pro",
+      "formula": "COUNT(DISTINCT paying_users) / COUNT(DISTINCT paywall_viewers) * 100",
+      "unit": "percentage"
+    },
+    "TIME_TO_VALUE_P50": {
+      "definition": "Mediana do tempo decorrido entre o cadastro do usuário e a primeira visualização de match",
+      "unit": "minutes"
+    },
+    "AI_COST_PER_ACTIVATED_USER": {
+      "definition": "Custo total de tokens Gemini Flash dividido pelo número de usuários ativados",
+      "unit": "BRL"
+    }
+  },
+  "decisions": {
+    "WIN": "Variante supera Controle com significância estatística (Z > 1.96) sem violação de guardrails",
+    "LOSS": "Variante performa pior que Controle (Z < -1.96) ou viola guardrails críticos",
+    "INCONCLUSIVE": "Diferença observada não atinge significância estatística para a amostra",
+    "INSUFFICIENT_SAMPLE": "Amostra total inferior ao tamanho mínimo requerido",
+    "BROKEN": "Falha técnica na instrumentação ou zero eventos",
+    "STALE": "Experimento ativo sem novos eventos há mais de 7 dias"
+  }
+}

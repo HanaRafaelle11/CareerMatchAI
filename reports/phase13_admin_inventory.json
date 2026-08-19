@@ -1,0 +1,246 @@
+{
+  "audit_phase": "Fase 13 — Prompt 2: Command Center / Admin Inventory",
+  "generated_at": "2026-08-19T03:30:00Z",
+  "admin_file": "src/presentation/pages/AdminDashboard.tsx",
+  "file_size": {
+    "total_lines": 3190,
+    "total_bytes": 178325
+  },
+  "modules_inventory": [
+    {
+      "id": "overview",
+      "label": "Visão Geral / Overview",
+      "component": "AdminDashboard (Inline)",
+      "line_range": "L1500 - L1730",
+      "data_sources": [
+        "RPC get_admin_dashboard_overview",
+        "profiles (count)",
+        "resumes (count)",
+        "jobs (count)",
+        "matches (count)",
+        "resume_processing_logs",
+        "ai_usage_logs"
+      ],
+      "primary_operator": "CEO / Head of Product",
+      "purpose": "Acompanhamento macro do volume de usuários, parsing e operações de IA.",
+      "usefulness_score": 8.5,
+      "cognitive_load_score": 6.5,
+      "audit_notes": "Exibe KPIs principais, mas possui fallbacks estáticos (142, 230, 85, 946) quando tabelas estão vazias e cálculos manuais de DAU (multiplicador 0.4)."
+    },
+    {
+      "id": "users",
+      "label": "Usuários & Perfis",
+      "component": "AdminDashboard (Inline)",
+      "line_range": "L1740 - L1935",
+      "data_sources": [
+        "RPC get_all_profiles_for_admin",
+        "profiles",
+        "subscriptions",
+        "billing_subscriptions",
+        "resumes",
+        "resume_versions",
+        "resume_processing_logs"
+      ],
+      "primary_operator": "Customer Success / Suporte / Engenharia",
+      "purpose": "Listagem de usuários reais, status de plano, visualização de currículos e diagnóstico de erros.",
+      "usefulness_score": 9.5,
+      "cognitive_load_score": 5.0,
+      "audit_notes": "Muito útil no desktop. No mobile sofre com tabela excessivamente densa com colunas que exigem scroll horizontal."
+    },
+    {
+      "id": "saude_produto",
+      "label": "Saúde do Produto",
+      "component": "ProductHealthDashboard.tsx",
+      "line_range": "L2004 - L2315",
+      "data_sources": [
+        "ProductHealthService",
+        "profiles",
+        "resumes",
+        "matches",
+        "applications",
+        "analytics_events"
+      ],
+      "primary_operator": "Product Manager / Growth Lead",
+      "purpose": "North Star Metric (WAU Qualificado), DAU/WAU/MAU, Stickiness, Velocidade de avanço no funil.",
+      "usefulness_score": 9.0,
+      "cognitive_load_score": 7.0,
+      "audit_notes": "Cálculo detalhado de North Star, porém usa heurísticas de preenchimento quando faltam eventos de tracking."
+    },
+    {
+      "id": "risco",
+      "label": "Produto em Risco",
+      "component": "ProductAtRiskDashboard.tsx",
+      "line_range": "L1447 - L1449",
+      "data_sources": [
+        "ProductAtRiskService",
+        "application_errors",
+        "resume_processing_logs",
+        "activity_logs"
+      ],
+      "primary_operator": "Engenharia / QA",
+      "purpose": "Identificação de usuários bloqueados por falhas de parsing, vagas quebradas ou candidaturas estagnadas.",
+      "usefulness_score": 9.8,
+      "cognitive_load_score": 4.5,
+      "audit_notes": "Altamente acionável: mostra lista de usuários afetados com botão direto para diagnosticar."
+    },
+    {
+      "id": "churn_intelligence",
+      "label": "Inteligência de Churn",
+      "component": "ChurnIntelligenceDashboard.tsx",
+      "line_range": "L1733 - L1738",
+      "data_sources": [
+        "ChurnIntelligenceService",
+        "profiles",
+        "activity_logs",
+        "subscriptions"
+      ],
+      "primary_operator": "Customer Success / Retenção",
+      "purpose": "Detecção preditiva de perda de engajamento e risco de cancelamento.",
+      "usefulness_score": 8.0,
+      "cognitive_load_score": 6.0,
+      "audit_notes": "Linguagem corporativa um pouco carregada ('8 usuários em nível elevado de atenção para churn' -> '8 usuários com alto risco de churn')."
+    },
+    {
+      "id": "financeiro",
+      "label": "Financeiro & Assinaturas",
+      "component": "AdminDashboard (Inline)",
+      "line_range": "L1939 - L2000",
+      "data_sources": [
+        "subscriptions",
+        "billing_subscriptions",
+        "Asaas / Stripe Webhooks"
+      ],
+      "primary_operator": "Financeiro / CEO",
+      "purpose": "Controle de conversão Free -> Pro, MRR, planos ativos e inadimplência.",
+      "usefulness_score": 9.0,
+      "cognitive_load_score": 4.0,
+      "audit_notes": "Direto e objetivo com status claro de pagamentos."
+    },
+    {
+      "id": "comercial",
+      "label": "Inteligência Comercial",
+      "component": "CommercialIntelligenceDashboard.tsx",
+      "line_range": "L2317 - L2320",
+      "data_sources": [
+        "CommercialIntelligenceService",
+        "profiles",
+        "matches",
+        "applications",
+        "job_match_feedback"
+      ],
+      "primary_operator": "Comercial / Vendas",
+      "purpose": "Identificação de candidatos com alto potencial de upgrade, desconto ou embaixadores.",
+      "usefulness_score": 8.2,
+      "cognitive_load_score": 5.5,
+      "audit_notes": "Possui modal de ação de contato direto para conversão de planos."
+    },
+    {
+      "id": "copilot_insights",
+      "label": "Copilot Insights",
+      "component": "CopilotInsightsDashboard.tsx",
+      "line_range": "L1450 - L1455",
+      "data_sources": [
+        "CopilotInsightsService",
+        "ai_usage_logs",
+        "interview_preparations"
+      ],
+      "primary_operator": "IA / Product Specialist",
+      "purpose": "Acompanhamento do volume de chamadas de IA e custo por usuário.",
+      "usefulness_score": 8.5,
+      "cognitive_load_score": 5.0,
+      "audit_notes": "Visibilidade clara do consumo de tokens Gemini e custo médio em BRL."
+    },
+    {
+      "id": "executive_copilot",
+      "label": "Copiloto Executivo",
+      "component": "ExecutiveCopilotDashboard.tsx",
+      "line_range": "L2322 - L2325",
+      "data_sources": [
+        "ExecutiveCopilotService",
+        "profiles",
+        "resumes"
+      ],
+      "primary_operator": "Liderança Executiva",
+      "purpose": "Insights automáticos sintetizados para tomada de decisão gerencial.",
+      "usefulness_score": 7.5,
+      "cognitive_load_score": 6.5,
+      "audit_notes": "Cards textuais extensos que podem ser resumidos em bullet points acionáveis."
+    },
+    {
+      "id": "infra_logs",
+      "label": "Logs & Auditoria",
+      "component": "AdminDashboard (Inline)",
+      "line_range": "L2327 - L2525",
+      "data_sources": [
+        "application_errors",
+        "activity_logs",
+        "security_audit_logs"
+      ],
+      "primary_operator": "Engenharia / DevOps",
+      "purpose": "Inspeção de stack traces, erros de cliente e eventos de segurança.",
+      "usefulness_score": 9.5,
+      "cognitive_load_score": 4.0,
+      "audit_notes": "Filtros por severidade (P1, P2, P3) e busca por componente."
+    },
+    {
+      "id": "feature_adoption",
+      "label": "Adoção de Recursos",
+      "component": "FeatureAdoptionDashboard.tsx",
+      "line_range": "L2530 - L2800",
+      "data_sources": [
+        "FeatureAdoptionService",
+        "analytics_events"
+      ],
+      "primary_operator": "Product Manager",
+      "purpose": "Uso percentual de cada funcionalidade (Radar, STAR, Carta, Exportação PDF).",
+      "usefulness_score": 8.8,
+      "cognitive_load_score": 5.0,
+      "audit_notes": "Gráficos de barras comparativos de penetração de recursos."
+    },
+    {
+      "id": "satisfaction_surveys",
+      "label": "Pesquisas NPS",
+      "component": "AdminDashboard (Inline)",
+      "line_range": "L2807 - L2940",
+      "data_sources": [
+        "satisfaction_surveys",
+        "activity_logs"
+      ],
+      "primary_operator": "Customer Experience / PM",
+      "purpose": "Feedback qualitativo de candidatos (nota de facilidade, experiência, aderência das vagas).",
+      "usefulness_score": 9.2,
+      "cognitive_load_score": 3.5,
+      "audit_notes": "Apresenta comentários reais e distribuição de notas 1-5."
+    },
+    {
+      "id": "email_engagement",
+      "label": "E-mails & Engajamento",
+      "component": "EmailEngagementDashboard.tsx",
+      "line_range": "L2946 - L2949",
+      "data_sources": [
+        "email_delivery_logs",
+        "Resend API"
+      ],
+      "primary_operator": "Marketing / Growth",
+      "purpose": "Taxa de abertura e cliques em e-mails transacionais e alertas de vagas.",
+      "usefulness_score": 8.0,
+      "cognitive_load_score": 4.5,
+      "audit_notes": "Módulo focado em entregabilidade."
+    },
+    {
+      "id": "user_research",
+      "label": "Pesquisa Usuários Fundadores",
+      "component": "UserResearchDashboard.tsx",
+      "line_range": "L2951 - L2955",
+      "data_sources": [
+        "founder_survey_responses",
+        "SurveyService"
+      ],
+      "primary_operator": "Product Discovery Lead",
+      "purpose": "Respostas da pesquisa v1_founders_validation (dores, tempo buscando emprego, disposição a pagar).",
+      "usefulness_score": 9.6,
+      "cognitive_load_score": 4.0,
+      "audit_notes": "Fundamental para direcionar o roadmap com a voz direta dos primeiros usuários."
+    }
+  ]
+}

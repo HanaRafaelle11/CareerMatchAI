@@ -1,0 +1,89 @@
+{
+  "audit_phase": "Fase 13 — Prompt 2: Command Center Priorities Backlog",
+  "generated_at": "2026-08-19T03:30:00Z",
+  "priorities": [
+    {
+      "priority_level": "P0 — Integridade de Dados & Métricas",
+      "items": [
+        {
+          "id": "P0-ADM-01",
+          "title": "Eliminar Fallbacks Numéricos Estáticos e Fórmulas Isoladas",
+          "problem": "OverviewStats utilizava números fixos (142, 230, 85, 946) e DAU aproximado por multiplicador 0.4 quando queries não retornavam dados.",
+          "solution": "Consolidar todas as métricas em uma camada central (AdminAnalyticsService / ProductHealthService) que calcula estritamente a partir de eventos reais.",
+          "impact": "Métricas 100% confiáveis e auditáveis."
+        },
+        {
+          "id": "P0-ADM-02",
+          "title": "Garantir Invariantes Matemáticos (WAU >= DAU e Stickiness = DAU / MAU)",
+          "problem": "Possibilidade de divergência entre DAU e WAU por janelas de tempo ou agregação descentralizada.",
+          "solution": "Unificar queries de atividade temporal com garantia matemática de conjuntos (24h ⊆ 7d ⊆ 30d).",
+          "impact": "Eliminação de incongruências nas apresentações executivas."
+        },
+        {
+          "id": "P0-ADM-03",
+          "title": "Exclusão Consistente de Contas de Teste em Todos os 14 Módulos",
+          "problem": "Alguns módulos checavam `is_test_account !== true` enquanto outros filtravam apenas por regex de e-mail.",
+          "solution": "Padronizar método helper `AdminAuditService.isTestOrInternalAccount(user)` aplicado universalmente.",
+          "impact": "Dados limpos e métricas puras de clientes reais."
+        }
+      ]
+    },
+    {
+      "priority_level": "P1 — UX & Arquitetura",
+      "items": [
+        {
+          "id": "P1-ADM-01",
+          "title": "Seção 'ATENÇÃO AGORA' no Topo do Command Center",
+          "problem": "Dashboard orientado a métricas passivas em vez de problemas que exigem intervenção.",
+          "solution": "Adicionar 3 blocos acionáveis no topo: 🔴 Usuários com Falha no CV [Ver usuários], 🟠 Candidaturas Estagnadas [Ver candidaturas], 🟡 Potencial de Upgrade [Ver oportunidades].",
+          "impact": "Operador entende o estado do produto em 15 segundos."
+        },
+        {
+          "id": "P1-ADM-02",
+          "title": "Navegação Mobile de Módulos (< 768px)",
+          "problem": "14 abas horizontais geram rolagem lateral excessiva no smartphone.",
+          "solution": "Implementar seletor dropdown 'Módulo X de 14 [Selecionar módulo ▾]'.",
+          "impact": "Operação mobile fluida com 1 mão."
+        },
+        {
+          "id": "P1-ADM-03",
+          "title": "Tabela de Usuários Responsiva em Cards no Mobile",
+          "problem": "Tabela densa de 7 colunas fica ilegível em telas menores.",
+          "solution": "Renderização condicional: Tabela em desktop (≥768px) e Cards verticais em mobile (<768px).",
+          "impact": "Visualização clara de dados de candidatos no celular."
+        }
+      ]
+    },
+    {
+      "priority_level": "P2 — UI & Refinamento",
+      "items": [
+        {
+          "id": "P2-ADM-01",
+          "title": "Redução de Densidade Visual e Níveis de Superfície",
+          "problem": "Excesso de 'card dentro de card' e bordas coloridas pesadas.",
+          "solution": "Definir 3 superfícies sóbrias: Background neutro, Surface discreta e Badges semânticos.",
+          "impact": "Visual limpo e profissional."
+        },
+        {
+          "id": "P2-ADM-02",
+          "title": "Botão de Atualização (Refresh) com 3 Estados e Timestamp",
+          "problem": "Falta de feedback visual ao atualizar e ausência de alerta de dados obsoletos.",
+          "solution": "Estados: ↻ Atualizar -> ⟳ Atualizando... -> ✓ Atualizado agora às HH:MM com aviso em caso de erro.",
+          "impact": "Transparência total sobre a atualidade dos dados."
+        }
+      ]
+    },
+    {
+      "priority_level": "P3 — Copy & Nomenclatura",
+      "items": [
+        {
+          "id": "P3-ADM-01",
+          "title": "Padronização em Português Operacional Claro",
+          "problem": "Termos em inglês ('Weekly Active', 'Stickiness') e jargões corporativos ('Síntese Executiva Preditiva').",
+          "solution": "Substituir por 'Usuários ativos — 7 dias', 'Frequência de retorno (DAU/MAU)', 'Resumo executivo', 'Candidaturas estagnadas'.",
+          "impact": "Leitura imediata sem ambiguidades."
+        }
+      ]
+    }
+  ]
+}

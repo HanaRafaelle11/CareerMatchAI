@@ -1,0 +1,110 @@
+{
+  "audit_phase": "Fase 13 — Prompt 2: Database Tables & Real Data Source Audit",
+  "generated_at": "2026-08-19T03:30:00Z",
+  "data_integrity_summary": {
+    "total_tables_audited": 14,
+    "tables_with_real_telemetry": 12,
+    "tables_with_complete_indexes": 10,
+    "hardcoded_fallbacks_found": 3
+  },
+  "database_tables": [
+    {
+      "table_name": "profiles",
+      "purpose": "Cadastro de usuários e permissões RBAC",
+      "key_columns": ["id", "email", "full_name", "headline", "role", "created_at", "updated_at", "is_test_account"],
+      "has_test_account_flag": true,
+      "real_calculation_support": ["Total de Usuários", "Novos Cadastros Hoje", "Cadastros 7d/30d", "Contas de Teste vs Reais"]
+    },
+    {
+      "table_name": "resumes",
+      "purpose": "Currículos brutos dos candidatos",
+      "key_columns": ["id", "user_id", "file_name", "file_url", "raw_text", "is_primary", "created_at"],
+      "has_test_account_flag": false,
+      "real_calculation_support": ["Usuários que fizeram Upload", "Taxa de Ativação Etapa 1", "Total de CVs"]
+    },
+    {
+      "table_name": "resume_versions",
+      "purpose": "Versões otimizadas e histórico de parsing",
+      "key_columns": ["id", "user_id", "version_number", "version_label", "file_url", "status", "created_at"],
+      "has_test_account_flag": false,
+      "real_calculation_support": ["Versões criadas por usuário", "Otimizações de CV concluídas"]
+    },
+    {
+      "table_name": "resume_processing_logs",
+      "purpose": "Logs de auditoria de cada micro-etapa do parsing OCR",
+      "key_columns": ["id", "resume_version_id", "user_id", "step", "status", "error_message", "metadata", "created_at"],
+      "has_test_account_flag": false,
+      "real_calculation_support": ["Taxa Real de Sucesso de Parsing (save_completed / uploaded)", "Tempo Médio de OCR", "Erros de Extração de Texto"]
+    },
+    {
+      "table_name": "matches / job_matches",
+      "purpose": "Cálculos de compatibilidade salvos",
+      "key_columns": ["id", "user_id", "job_id", "score_overall", "score_technical", "career_fit_score", "career_goal_score", "created_at"],
+      "has_test_account_flag": false,
+      "real_calculation_support": ["Usuários que visualizaram Match", "Média de Compatibilidade do Feed", "Volume de Matches por Usuário"]
+    },
+    {
+      "table_name": "jobs",
+      "purpose": "Repositório de vagas públicas e oportunidades",
+      "key_columns": ["id", "company_name", "title", "description", "location", "work_mode", "seniority", "created_at"],
+      "has_test_account_flag": false,
+      "real_calculation_support": ["Volume de Vagas Ativas", "Distribuição por Senioridade e Localidade"]
+    },
+    {
+      "table_name": "applications",
+      "purpose": "Candidaturas no pipeline",
+      "key_columns": ["id", "user_id", "job_id", "job_title", "company_name", "status", "created_at", "updated_at"],
+      "has_test_account_flag": false,
+      "real_calculation_support": ["Usuários com Candidatura Ativa", "Candidaturas Estagnadas (>14d sem avanço)", "Avanço para Etapa de Entrevista e Oferta"]
+    },
+    {
+      "table_name": "activity_logs",
+      "purpose": "Event Stream de ações de alto nível na plataforma",
+      "key_columns": ["id", "user_id", "event_type", "entity_id", "metadata", "created_at"],
+      "has_test_account_flag": false,
+      "real_calculation_support": ["Atividade Recente (Event Stream)", "DAU Real por Eventos", "WAU e MAU"]
+    },
+    {
+      "table_name": "analytics_events",
+      "purpose": "Telemetria de funil e adoção de recursos",
+      "key_columns": ["id", "user_id", "event_name", "category", "metadata", "created_at"],
+      "has_test_account_flag": false,
+      "real_calculation_support": ["Adoção de Funcionalidades (Feature Adoption)", "Time to Value (Cadastro -> Diagnóstico)", "Time to Match"]
+    },
+    {
+      "table_name": "ai_usage_logs",
+      "purpose": "Consumo de tokens e custos de IA",
+      "key_columns": ["id", "user_id", "action", "model", "input_tokens", "output_tokens", "created_at"],
+      "has_test_account_flag": false,
+      "real_calculation_support": ["Total de Tokens Gemini Consumidos", "Custo Estimado em BRL", "Chamadas por Operação (CV, STAR, Carta)"]
+    },
+    {
+      "table_name": "application_errors",
+      "purpose": "Erros não tratados e exceções no frontend",
+      "key_columns": ["id", "user_id", "message", "error_code", "component", "created_at"],
+      "has_test_account_flag": false,
+      "real_calculation_support": ["Usuários em Risco", "Taxa de Falha por Componente"]
+    },
+    {
+      "table_name": "subscriptions / billing_subscriptions",
+      "purpose": "Assinaturas e planos Pro",
+      "key_columns": ["id", "user_id", "status", "plan_id", "created_at", "updated_at"],
+      "has_test_account_flag": false,
+      "real_calculation_support": ["Taxa de Conversão Free -> Pro", "Usuários Ativos Pro", "MRR Real"]
+    },
+    {
+      "table_name": "satisfaction_surveys",
+      "purpose": "Avaliações e comentários de NPS",
+      "key_columns": ["id", "user_id", "ease_rating", "experience_rating", "matches_rating", "comment", "created_at"],
+      "has_test_account_flag": false,
+      "real_calculation_support": ["NPS Real", "Comentários Qualitativos de Candidatos"]
+    },
+    {
+      "table_name": "job_feedback",
+      "purpose": "Vagas salvas, curtidas e descartadas para a lixeira",
+      "key_columns": ["id", "user_id", "job_id", "action", "reason", "created_at"],
+      "has_test_account_flag": false,
+      "real_calculation_support": ["Taxa de Rejeição de Vagas", "Motivos de Descarte de Match"]
+    }
+  ]
+}

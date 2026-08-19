@@ -1,0 +1,48 @@
+{
+  "audit_phase": "Fase 13 — Prompt 2: Admin UX/UI & Responsiveness Audit",
+  "generated_at": "2026-08-19T03:30:00Z",
+  "ux_issues_and_solutions": [
+    {
+      "id": "UX-01",
+      "area": "Hierarquia Visual de Topo",
+      "current_problem": "O dashboard é excessivamente orientado a métricas isoladas sem destacar o que precisa de ação imediata.",
+      "proposed_solution": "Criar a seção 'ATENÇÃO AGORA' no topo com cards acionáveis: 🔴 Usuários com Erro no CV, 🟠 Candidaturas Estagnadas (>14 dias), 🟡 Oportunidades de Upgrade.",
+      "severity": "P1"
+    },
+    {
+      "id": "UX-02",
+      "area": "Navegação de Módulos no Mobile (< 768px)",
+      "current_problem": "As 14 abas geram overflow horizontal com rolagem lateral desconfortável no celular.",
+      "proposed_solution": "Substituir por seletor dropdown elegante 'Módulo 1 de 14 [Selecionar módulo ▾]' ou accordion expansível.",
+      "severity": "P1"
+    },
+    {
+      "id": "UX-03",
+      "area": "Tabela de Usuários no Mobile",
+      "current_problem": "Tabela com 7 colunas (Nome, Email, Plano, Cargo, Data, Ações) fica ilegível em telas menores que 600px.",
+      "proposed_solution": "Transformar a tabela em cards verticais compactos no mobile, priorizando Nome, Status do Plano, Última Atividade e botão [Ver detalhes].",
+      "severity": "P1"
+    },
+    {
+      "id": "UX-04",
+      "area": "Intensidade Visual de Severidades (P1/P2/P3)",
+      "current_problem": "Uso simultâneo de fundo vermelho + borda vermelha + botão vermelho gera poluição visual.",
+      "proposed_solution": "Adotar 3 níveis de superfície (Background neutro, Surface com borda discreta e Badge semântico de severidade).",
+      "severity": "P2"
+    },
+    {
+      "id": "UX-05",
+      "area": "Botão de Atualização (Refresh) & Dados Desatualizados",
+      "current_problem": "Botão de refresh simples sem indicar estado de sucesso pós-atualização nem aviso se a chamada falhar.",
+      "proposed_solution": "Implementar 3 estados: Normal (↻ Atualizar), Loading (⟳ Atualizando...) e Sucesso (✓ Atualizado agora às HH:MM), com banner '⚠️ Dados possivelmente desatualizados' em caso de erro de rede.",
+      "severity": "P2"
+    },
+    {
+      "id": "UX-06",
+      "area": "Copy & Nomenclatura",
+      "current_problem": "Jargões excessivos e siglas em inglês ('Weekly Active', 'Stickiness', 'Síntese Executiva Preditiva', 'Presos no Kanban').",
+      "proposed_solution": "Substituir por português operacional claro: 'Usuários ativos — 7 dias', 'Frequência de retorno (DAU/MAU)', 'Resumo executivo', 'Candidaturas estagnadas'.",
+      "severity": "P2"
+    }
+  ]
+}

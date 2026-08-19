@@ -1,0 +1,36 @@
+{
+  "audit_phase": "Fase 13 — Prompt 2: Admin Operator User Journey Audit",
+  "generated_at": "2026-08-19T03:30:00Z",
+  "operator_profile": "Operador Administrativo / Product Lead / Suporte Técnico",
+  "journey_evaluation": {
+    "question_1_understand_in_30s": {
+      "question": "Consigo entender o estado do produto em 30 segundos?",
+      "current_experience": "Parcialmente (Nota 6.5/10). O topo exibe muitos números isolados (DAU, Ações IA, Tokens, Latência) sem uma hierarquia direta do tipo 'O que precisa de atenção agora?'. O operador precisa rolar a tela e ler vários cards para entender se o sistema está saudável.",
+      "ideal_experience": "Uma barra de topo unificada 'ATENÇÃO AGORA' destacando em 3 badges com cores semânticas: Usuários Bloqueados, Falhas de Parsing e Candidaturas Estagnadas com links diretos de ação.",
+      "time_to_clarity_seconds": 45,
+      "friction_level": "Médio"
+    },
+    "question_2_find_the_problem": {
+      "question": "Consigo descobrir onde está o problema?",
+      "current_experience": "Sim, com alta precisão na aba 'Produto em Risco' e 'Logs & Auditoria' (Nota 8.5/10). No entanto, o operador precisa saber que deve trocar de aba para 'risco' ou 'infra_logs' para ver a lista de afetados.",
+      "ideal_experience": "Alerta acionável no topo do Command Center ('🔴 4 usuários com erro de OCR no currículo [Ver usuários]') que já filtra a lista com 1 clique.",
+      "time_to_clarity_seconds": 30,
+      "friction_level": "Baixo"
+    },
+    "question_3_take_an_action": {
+      "question": "Consigo tomar uma decisão e agir a partir desses dados?",
+      "current_experience": "Sim (Nota 8.0/10). O admin pode visualizar o PDF do currículo, inspecionar o raw_text, alterar permissão RBAC, visualizar histórico de eventos e disparar modais de contato comercial.",
+      "ideal_experience": "Adicionar botões de ação rápida como 'Reprocessar Currículo' ou 'Enviar E-mail de Ajuda' diretamente do card de usuário com erro.",
+      "time_to_action_seconds": 20,
+      "friction_level": "Baixo"
+    },
+    "question_4_mobile_usability": {
+      "question": "Consigo operar o Admin no celular?",
+      "current_experience": "Fraco (Nota 4.5/10). No mobile (< 768px), as 14 abas geram overflow horizontal que exige scroll excessivo, e a tabela de usuários possui 7 colunas que ficam truncadas ou exigem rolagem lateral desconfortável.",
+      "ideal_experience": "Dropdown/Accordion de seleção de módulos ('Módulo 1 de 14 ▾') e transformação automática da tabela em cards verticais compactos no mobile.",
+      "time_to_clarity_seconds": 60,
+      "friction_level": "Alto"
+    }
+  },
+  "overall_operator_experience_score": "7.2 / 10"
+}

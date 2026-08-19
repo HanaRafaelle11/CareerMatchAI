@@ -1,0 +1,88 @@
+{
+  "audit_phase": "Fase 13 — Prompt 2: Central Analytics Metrics Dictionary",
+  "generated_at": "2026-08-19T03:30:00Z",
+  "governance_rule": "Fonte única de verdade: todas as métricas administrativas devem ser calculadas a partir de dados reais com exclusão estrita de contas de teste (is_test_account != true), sem fallbacks inventados.",
+  "metrics": [
+    {
+      "metric_key": "DAU",
+      "display_name": "Usuários Ativos Hoje (DAU)",
+      "definition": "Quantidade de usuários reais únicos com ao menos 1 evento ou ação registrada nas últimas 24 horas.",
+      "formula": "COUNT(DISTINCT user_id) WHERE last_activity >= NOW() - INTERVAL '24 HOURS' AND is_test_account != true",
+      "data_source": "activity_logs / analytics_events",
+      "benchmark_target": "≥ 20% do WAU",
+      "math_invariant": "DAU <= WAU <= MAU"
+    },
+    {
+      "metric_key": "WAU",
+      "display_name": "Usuários Ativos na Semana (WAU)",
+      "definition": "Quantidade de usuários reais únicos com ao menos 1 evento ou ação registrada nos últimos 7 dias.",
+      "formula": "COUNT(DISTINCT user_id) WHERE last_activity >= NOW() - INTERVAL '7 DAYS' AND is_test_account != true",
+      "data_source": "activity_logs / analytics_events",
+      "benchmark_target": "≥ 40% do MAU",
+      "math_invariant": "WAU >= DAU"
+    },
+    {
+      "metric_key": "MAU",
+      "display_name": "Usuários Ativos no Mês (MAU)",
+      "definition": "Quantidade de usuários reais únicos com ao menos 1 evento ou ação registrada nos últimos 30 dias.",
+      "formula": "COUNT(DISTINCT user_id) WHERE last_activity >= NOW() - INTERVAL '30 DAYS' AND is_test_account != true",
+      "data_source": "activity_logs / analytics_events",
+      "benchmark_target": "Base total ativa mensal",
+      "math_invariant": "MAU >= WAU"
+    },
+    {
+      "metric_key": "STICKINESS",
+      "display_name": "Frequência de Retorno (Stickiness)",
+      "definition": "Proporção de usuários mensais que utilizam a plataforma em um dia típico, indicando hábito e retenção.",
+      "formula": "(DAU / MAU) * 100",
+      "data_source": "Calculado a partir de DAU e MAU consolidados",
+      "benchmark_target": "≥ 25%",
+      "math_invariant": "Sempre no intervalo [0%, 100%]"
+    },
+    {
+      "metric_key": "ACTIVATION_RATE",
+      "display_name": "Taxa de Ativação do Candidato",
+      "definition": "Percentual de usuários cadastrados que completaram o upload e estruturação do currículo.",
+      "formula": "(COUNT(DISTINCT users_with_resume) / COUNT(DISTINCT all_real_profiles)) * 100",
+      "data_source": "resumes e profiles",
+      "benchmark_target": "≥ 75%",
+      "math_invariant": "Calculado sobre base real sem contas internas"
+    },
+    {
+      "metric_key": "TIME_TO_VALUE",
+      "display_name": "Tempo até o Primeiro Valor (TTV)",
+      "definition": "Tempo médio em horas decorrido entre o cadastro do usuário e a conclusão do primeiro diagnóstico de currículo.",
+      "formula": "AVG(resumes.created_at - profiles.created_at) em horas",
+      "data_source": "profiles e resumes",
+      "benchmark_target": "< 24 horas",
+      "math_invariant": "Desconsidera outliers > 30 dias em contas inativas"
+    },
+    {
+      "metric_key": "PARSING_SUCCESS_RATE",
+      "display_name": "Taxa de Sucesso de Processamento de Currículo",
+      "definition": "Percentual de tentativas de upload que concluíram todas as etapas do OCR e estruturação sem falha.",
+      "formula": "(COUNT(step = 'save_completed') / COUNT(step = 'uploaded')) * 100",
+      "data_source": "resume_processing_logs",
+      "benchmark_target": "≥ 98%",
+      "math_invariant": "Uploads Reais = Concluídos + Falhas sem conclusão"
+    },
+    {
+      "metric_key": "FREE_TO_PRO_CONVERSION",
+      "display_name": "Taxa de Conversão Free → Pro",
+      "definition": "Percentual de candidatos ativados que contrataram uma assinatura Pro ativa.",
+      "formula": "(COUNT(DISTINCT active_pro_users) / COUNT(DISTINCT activated_users)) * 100",
+      "data_source": "subscriptions / billing_subscriptions",
+      "benchmark_target": "≥ 5%",
+      "math_invariant": "Apenas assinaturas com status 'active' ou 'trialing'"
+    },
+    {
+      "metric_key": "NORTH_STAR_METRIC",
+      "display_name": "WAU Qualificado (North Star)",
+      "definition": "Percentual de usuários ativos na semana que realizaram ao menos 1 candidatura em vaga de Match Alto (≥75%) ou possuem processo em fase de entrevista/oferta.",
+      "formula": "(COUNT(DISTINCT qualified_active_users_7d) / COUNT(DISTINCT total_active_users_7d)) * 100",
+      "data_source": "ProductHealthService (applications, matches, activity_logs)",
+      "benchmark_target": "≥ 60%",
+      "math_invariant": "Subset direto do WAU semanal"
+    }
+  ]
+}

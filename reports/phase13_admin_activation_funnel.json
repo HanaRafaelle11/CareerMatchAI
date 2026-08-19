@@ -1,0 +1,63 @@
+{
+  "audit_phase": "Fase 13 — Prompt 2: Activation Funnel Architecture",
+  "generated_at": "2026-08-19T03:30:00Z",
+  "funnel_definition": {
+    "philosophy": "Funil orientado a valor real e acionável, calculável a partir de tabelas existentes no Supabase com exclusão estrita de contas de teste.",
+    "stages": [
+      {
+        "stage_number": 1,
+        "stage_name": "Cadastro de Conta",
+        "benchmark_rate": "100%",
+        "data_source_query": "SELECT COUNT(DISTINCT id) FROM profiles WHERE is_test_account != true",
+        "description": "Usuários reais que criaram conta via Google OAuth ou e-mail.",
+        "dropoff_risk": "N/A"
+      },
+      {
+        "stage_number": 2,
+        "stage_name": "Upload do Currículo",
+        "benchmark_rate": "78%",
+        "data_source_query": "SELECT COUNT(DISTINCT user_id) FROM resumes WHERE user_id IN (real_users)",
+        "description": "Usuários que enviaram ao menos 1 arquivo PDF/DOCX de currículo para análise.",
+        "dropoff_risk": "Falhas de OCR em arquivos digitalizados ou desistência na tela de upload."
+      },
+      {
+        "stage_number": 3,
+        "stage_name": "Definição do Objetivo Profissional",
+        "benchmark_rate": "64%",
+        "data_source_query": "SELECT COUNT(DISTINCT user_id) FROM career_goals WHERE user_id IN (real_users)",
+        "description": "Usuários que definiram modo de carreira (Continuidade, Transição, Crescimento ou Exploração).",
+        "dropoff_risk": "Dúvida sobre qual modo escolher ou indecisão de carreira."
+      },
+      {
+        "stage_number": 4,
+        "stage_name": "Busca & Descoberta de Vagas",
+        "benchmark_rate": "58%",
+        "data_source_query": "SELECT COUNT(DISTINCT user_id) FROM analytics_events WHERE event_name IN ('job_search_performed', 'jobs_feed_viewed') AND user_id IN (real_users)",
+        "description": "Usuários que exploraram oportunidades ativas no feed ou executaram filtros por localidade.",
+        "dropoff_risk": "Filtros restritivos retornando 0 vagas."
+      },
+      {
+        "stage_number": 5,
+        "stage_name": "Visualização do Diagnóstico de Match",
+        "benchmark_rate": "51%",
+        "data_source_query": "SELECT COUNT(DISTINCT user_id) FROM matches WHERE user_id IN (real_users)",
+        "description": "Usuários que abriram o card com o Duplo Score (Fit Atual vs Potencial Alvo).",
+        "dropoff_risk": "Demora no cálculo ou desinteresse no score."
+      },
+      {
+        "stage_number": 6,
+        "stage_name": "Candidatura Registrada / Vaga Salva",
+        "benchmark_rate": "37%",
+        "data_source_query": "SELECT COUNT(DISTINCT user_id) FROM applications WHERE user_id IN (real_users)",
+        "description": "Usuários que salvaram a vaga no painel ou clicaram em 'Candidatar-se na Página Oficial'.",
+        "dropoff_risk": "Link de vaga quebrado ou falta de confiança na candidatura."
+      }
+    ],
+    "conversion_stage": {
+      "stage_name": "Conversão Free → Pro",
+      "benchmark_rate": "8.4%",
+      "data_source_query": "SELECT COUNT(DISTINCT user_id) FROM subscriptions WHERE status = 'active' AND user_id IN (real_users)",
+      "description": "Usuários ativados que contrataram o plano Pro semanal ou mensal."
+    }
+  }
+}

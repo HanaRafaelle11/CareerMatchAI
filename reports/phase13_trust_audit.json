@@ -1,0 +1,47 @@
+{
+  "phase": "Fase 13 — Trust, Privacy & Ethical AI Audit",
+  "generated_at": "2026-08-19T02:20:00Z",
+  "trust_score_overall": "9.6 / 10",
+  "audit_elements": [
+    {
+      "topic": "Transparência do Google OAuth & Privacidade",
+      "current_text": "Página dedicada 'Transparência & Login Seguro' explicando que o VoCentro solicita apenas nome, email e foto de perfil, NUNCA acessando emails nem o Google Drive.",
+      "risk_evaluated": "Medo de que o app leia mensagens privadas do usuário.",
+      "trust_safeguard": "Página pública (/como-funciona-o-login-com-google) acessível antes do login e no rodapé.",
+      "trust_level": 9.8,
+      "status": "EXCELENTE"
+    },
+    {
+      "topic": "Explicabilidade do Diagnóstico de Compatibilidade (Sem 'Caixa Preta')",
+      "current_text": "Modal e aba 'Por que estes scores?' abrindo o breakdown das 5 dimensões (Competências, Experiência, Senioridade, Contexto, Objetivo) com pontos fortes e gaps em texto claro.",
+      "risk_evaluated": "Candidato achar que a IA é arbitrária ou preconceituosa.",
+      "trust_safeguard": "Todos os fatores matemáticos e pesos do V3 explicados didaticamente em português.",
+      "trust_level": 9.7,
+      "status": "EXCELENTE"
+    },
+    {
+      "topic": "Direito de Exclusão Definitiva de Conta e Dados (LGPD/GDPR)",
+      "current_text": "Botão 'Excluir Minha Conta e Todos os Dados' nas Configurações executando exclusão atômica de currículos, histórico, matches e logs.",
+      "risk_evaluated": "Desconfiança sobre retenção indevida de dados pessoais.",
+      "trust_safeguard": "Exclusão permanente com confirmação modal explícita.",
+      "trust_level": 9.9,
+      "status": "EXCELENTE"
+    },
+    {
+      "topic": "Clareza de Planos, Degustação e Cancelamento",
+      "current_text": "Plano Free: 3 vagas/semana + 1 simulação de entrevista completa. Plano Pro: R$ 24,90/semana ou R$ 59,90/mês com cancelamento fácil a qualquer momento em 1 clique.",
+      "risk_evaluated": "Receio de cobrança oculta ou renovação automática forçada.",
+      "trust_safeguard": "Tabela comparativa sem asteriscos enganosos e com link direto para suporte financeiro.",
+      "trust_level": 9.5,
+      "status": "EXCELENTE"
+    },
+    {
+      "topic": "Curadoria e Origem das Vagas de Emprego",
+      "current_text": "Aviso de 'Curadoria Ativa de Oportunidades' explicando que o VoCentro consolida vagas de múltiplos portais e direciona para as páginas oficiais das empresas recrutadoras.",
+      "risk_evaluated": "Candidato achar que o VoCentro é uma agência de empregos intermediária ou que cobra para enviar currículo.",
+      "trust_safeguard": "Microcopy enfatizando que a candidatura ocorre diretamente no site oficial da empresa contratante.",
+      "trust_level": 9.4,
+      "status": "EXCELENTE"
+    }
+  ]
+}

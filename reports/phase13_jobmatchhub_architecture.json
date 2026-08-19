@@ -1,0 +1,57 @@
+{
+  "target_file": "src/presentation/pages/JobMatchHub.tsx",
+  "file_statistics": {
+    "total_lines": 5108,
+    "total_bytes": 285089,
+    "language": "TypeScript / React",
+    "status": "Monólito Funcional Alto Risco de Manutenção"
+  },
+  "hooks_inventory": [
+    { "name": "useAuth", "source": "application/hooks/useAuth", "purpose": "Identificação do usuário logado" },
+    { "name": "useEntitlements", "source": "modules/billing", "purpose": "Controle de limites semanais e status Pro" },
+    { "name": "useCareerGoal", "source": "application/hooks/useCareerGoal", "purpose": "Objetivo profissional do usuário" },
+    { "name": "useJobTrash", "source": "application/hooks/useJobTrash", "purpose": "Gestão de vagas excluídas e restauração" },
+    { "name": "useQueryClient", "source": "@tanstack/react-query", "purpose": "Cache e mutação otimista de vagas/matches" },
+    { "name": "useCareerIntelligence", "source": "application/hooks/useCareerIntelligence", "purpose": "Análise explicada de gaps e adaptação de CV" },
+    { "name": "useToast", "source": "application/context/ToastContext", "purpose": "Notificações contextuais" },
+    { "name": "useEscapeToClose", "source": "application/hooks/useEscapeToClose", "purpose": "Acessibilidade para fechar modais com tecla ESC" }
+  ],
+  "state_variables_inventory": [
+    { "state": "subTab", "type": "'my-jobs' | 'discover' | 'trash'", "purpose": "Aba ativa no Hub" },
+    { "state": "selectedJobId", "type": "string | null", "purpose": "Vaga selecionada para visualização detalhada" },
+    { "state": "searchKeyword", "type": "string", "purpose": "Termo de busca na descoberta" },
+    { "state": "searchLocation", "type": "string", "purpose": "Localidade da busca" },
+    { "state": "searchWorkModes", "type": "string[]", "purpose": "Modalidades de trabalho (remoto/híbrido/presencial)" },
+    { "state": "searchSeniority", "type": "string", "purpose": "Filtro de senioridade" },
+    { "state": "searchPage", "type": "number", "purpose": "Página atual da paginação" },
+    { "state": "activeFilters", "type": "JobSearchFilterState", "purpose": "Filtros aplicados para busca" },
+    { "state": "showAdaptationModal", "type": "boolean", "purpose": "Modal de adaptação de currículo" },
+    { "state": "rejectReasonModal", "type": "boolean", "purpose": "Modal de descarte de vaga" },
+    { "state": "showSurveyModal", "type": "boolean", "purpose": "Pesquisa de validação do produto" },
+    { "state": "showCheckout", "type": "boolean", "purpose": "Modal de checkout Pro" },
+    { "state": "letterStyle", "type": "'formal' | 'direct' | 'executive'", "purpose": "Tom da carta de apresentação" },
+    { "state": "showHiddenJobs", "type": "boolean", "purpose": "Exibir vagas filtradas por região" }
+  ],
+  "architecture_subtrees": {
+    "Search_and_Filters": {
+      "line_range": "L4316 - L4465",
+      "responsibilities": ["Barra de busca de palavra-chave", "Autocomplete de localidades brasileiras", "Seleção de modalidade e senioridade"]
+    },
+    "Discovery_Feed_Results": {
+      "line_range": "L4547 - L4852",
+      "responsibilities": ["Listagem em grid com cards de vagas", "Paginação com botões Anterior/Próxima", "Cálculo determinístico sob demanda de afinidade"]
+    },
+    "Saved_Jobs_and_SidePanel": {
+      "line_range": "L2450 - L4140",
+      "responsibilities": ["Lista de vagas salvas pelo usuário", "Painel lateral com detalhes da oportunidade", "Visualização do Duplo Score e Radar de Competências"]
+    },
+    "Trash_Management": {
+      "line_range": "L4880 - L5050",
+      "responsibilities": ["Gaveta de vagas descartadas", "Restauração individual e em lote", "Limpeza definitiva"]
+    },
+    "Modals_and_Generators": {
+      "line_range": "L3200 - L3800",
+      "responsibilities": ["Gerador de carta de apresentação e resumo para o recrutador", "Modal de feedback de descarte", "Modal de pesquisa de usuários"]
+    }
+  }
+}

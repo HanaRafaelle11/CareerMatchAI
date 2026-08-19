@@ -1,0 +1,85 @@
+{
+  "phase": "Fase 13 — Product Friction Score & Ranking Map",
+  "generated_at": "2026-08-19T02:20:00Z",
+  "scoring_formula": "Friction Score = (10 - Clareza) + Esforço + (10 - Confiança) + (10 - Valor) + Risco de Abandono (Escala 0 a 50)",
+  "friction_items": [
+    {
+      "rank": 1,
+      "stage": "JobMatchHub: Monólito de 5.108 linhas (Risco de Manutenibilidade)",
+      "evidence": "JobMatchHub.tsx acumula 7 responsabilidades, 3 modais embutidos e mais de 25 useStates em 285 KB, tornando alterações arriscadas sem decomposição cirúrgica.",
+      "clarity": 7,
+      "effort": 9,
+      "trust": 8,
+      "perceived_value": 9,
+      "abandonment_risk": 4,
+      "friction_score": 19,
+      "severity": "P0 (Arquitetura)",
+      "action_required": "Decompor em 6 subcomponentes com cobertura prévia de testes de comportamento."
+    },
+    {
+      "rank": 2,
+      "stage": "Descoberta de Vagas: Filtro sem Resultados em Cidades Menores",
+      "evidence": "Quando o usuário pesquisa por termos muito específicos em cidades do interior sem vagas na API Adzuna/Gupy, a lista pode zerar.",
+      "clarity": 8,
+      "effort": 6,
+      "trust": 7,
+      "perceived_value": 7,
+      "abandonment_risk": 5,
+      "friction_score": 19,
+      "severity": "P1 (Produto)",
+      "action_required": "EmptyState já implementado com 'Restaurar Busca Padrão' + recomendação automática de expansão para Estado/País."
+    },
+    {
+      "rank": 3,
+      "stage": "Parsing de Currículo: Tempo de Processamento de PDFs Escaneados",
+      "evidence": "PDFs escaneados ou baseados em imagem exigem OCR mais lento (15 a 25 segundos), gerando ligeira ansiedade.",
+      "clarity": 8,
+      "effort": 4,
+      "trust": 8,
+      "perceived_value": 9,
+      "abandonment_risk": 4,
+      "friction_score": 15,
+      "severity": "P1 (Performance/UX)",
+      "action_required": "Mensagens de micro-etapas transparentes ('Identificando experiências', 'Catalogando competências')."
+    },
+    {
+      "rank": 4,
+      "stage": "Simulador de Entrevista: Paywall após a 1ª Simulação Gratuita",
+      "evidence": "Usuários no plano gratuito aproveitam a primeira sessão com entusiasmo e podem se frustrar se não entenderem o limite de 1 degustação.",
+      "clarity": 8,
+      "effort": 3,
+      "trust": 8,
+      "perceived_value": 9,
+      "abandonment_risk": 4,
+      "friction_score": 14,
+      "severity": "P1 (Conversão)",
+      "action_required": "Badge explícito '🎁 1 Simulação Gratuita Disponível' e aviso transparente de limite semanal."
+    },
+    {
+      "rank": 5,
+      "stage": "Dashboard: Menção a 'Career Score' em inglês",
+      "evidence": "Algumas menções residuais a 'Career Score' convivem com 'Diagnóstico de Carreira / Competitividade'.",
+      "clarity": 8,
+      "effort": 2,
+      "trust": 8,
+      "perceived_value": 8,
+      "abandonment_risk": 2,
+      "friction_score": 12,
+      "severity": "P2 (Copy)",
+      "action_required": "Padronizar para 'Diagnóstico de Competitividade de Carreira (Career Score)'."
+    },
+    {
+      "rank": 6,
+      "stage": "Transição de Carreira: Dúvida sobre Valorização da Bagagem Prévia",
+      "evidence": "Candidatos em transição temem que seus anos de experiência em outra área sejam zerados.",
+      "clarity": 9,
+      "effort": 3,
+      "trust": 9,
+      "perceived_value": 9,
+      "abandonment_risk": 2,
+      "friction_score": 10,
+      "severity": "P2 (Confiança)",
+      "action_required": "Banner orientativo de competências transferíveis já adicionado no CareerGoalCard.tsx."
+    }
+  ]
+}

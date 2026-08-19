@@ -1,0 +1,102 @@
+{
+  "phase": "Fase 13 — Empty States Comprehensive Audit",
+  "generated_at": "2026-08-19T02:20:00Z",
+  "empty_states": [
+    {
+      "id": "ES-01",
+      "context": "Usuário sem Currículo Cadastrado",
+      "screen": "Dashboard / Perfil / JobMatchHub",
+      "current_message": "Você ainda não cadastrou um currículo ativo. Envie seu arquivo PDF para liberar todas as funcionalidades.",
+      "action_cta": "Fazer Upload do Currículo em PDF Agora",
+      "is_actionable": true,
+      "is_welcoming": true,
+      "score": 9.5,
+      "status": "APROVADO",
+      "recommendation": "Direcionamento imediato para a dropzone com suporte touch nativo."
+    },
+    {
+      "id": "ES-02",
+      "context": "Currículo Inválido ou Ilegível (PDF Corrompido/Vazio)",
+      "screen": "Perfil / Upload de Arquivo",
+      "current_message": "Não foi possível extrair texto do arquivo enviado. Certifique-se de enviar um arquivo PDF ou DOCX legível.",
+      "action_cta": "Tentar Novamente com Outro Arquivo",
+      "is_actionable": true,
+      "is_welcoming": true,
+      "score": 9.0,
+      "status": "APROVADO",
+      "recommendation": "Feedback amigável com botão de reenvio sem travamento do fluxo."
+    },
+    {
+      "id": "ES-03",
+      "context": "Usuário sem Objetivo Profissional Definido",
+      "screen": "Dashboard (NextStepCard) / Perfil",
+      "current_message": "Defina seu objetivo profissional (Continuidade, Crescimento, Transição ou Exploração) para calibrar suas recomendações de vagas.",
+      "action_cta": "Definir Meu Objetivo Agora",
+      "is_actionable": true,
+      "is_welcoming": true,
+      "score": 9.8,
+      "status": "APROVADO",
+      "recommendation": "4 modos visuais com suporte a exploração sem pressão de escolha fixa."
+    },
+    {
+      "id": "ES-04",
+      "context": "Busca de Vagas com Zero Resultados pelos Filtros",
+      "screen": "JobMatchHub (Descoberta)",
+      "current_message": "Não localizamos vagas públicas com os filtros fornecidos. Tente ajustar os termos ou alterar a cidade.",
+      "action_cta": "Restaurar Busca Padrão",
+      "is_actionable": true,
+      "is_welcoming": true,
+      "score": 9.6,
+      "status": "APROVADO",
+      "recommendation": "Lista sugestões práticas de ampliação e botão direto de reset de filtros."
+    },
+    {
+      "id": "ES-05",
+      "context": "Aba 'Minhas Vagas' Vazia (0 vagas salvas)",
+      "screen": "JobMatchHub (Minhas Vagas)",
+      "current_message": "Nenhuma vaga ativa salva. Suas vagas analisadas ou salvas ficam guardadas aqui.",
+      "action_cta": "Explorar Vagas",
+      "is_actionable": true,
+      "is_welcoming": true,
+      "score": 9.2,
+      "status": "APROVADO",
+      "recommendation": "Redireciona diretamente para a aba de Descoberta com 1 clique."
+    },
+    {
+      "id": "ES-06",
+      "context": "Aba 'Minhas Candidaturas' Vazia (0 processos ativos)",
+      "screen": "StrategyPage (Acompanhamento)",
+      "current_message": "Você ainda não possui candidaturas registradas no seu painel.",
+      "action_cta": "Buscar Vagas Recomendadas",
+      "is_actionable": true,
+      "is_welcoming": true,
+      "score": 9.4,
+      "status": "APROVADO",
+      "recommendation": "Explica o fluxo de estágios de forma visual e intuitiva."
+    },
+    {
+      "id": "ES-07",
+      "context": "Simulador de Entrevistas sem Vaga Selecionada",
+      "screen": "CoachDashboard (Treino STAR)",
+      "current_message": "Selecione uma candidatura em andamento para iniciar a simulação focada no método STAR.",
+      "action_cta": "Adicionar Vaga no Painel / Iniciar com Vaga Exemplo",
+      "is_actionable": true,
+      "is_welcoming": true,
+      "score": 9.0,
+      "status": "APROVADO",
+      "recommendation": "Exibe dropdown com vagas ativas ou direciona para o painel."
+    },
+    {
+      "id": "ES-08",
+      "context": "Lixeira de Vagas Vazia",
+      "screen": "JobMatchHub (Gaveta de Lixeira)",
+      "current_message": "Nenhuma vaga foi excluída recentemente.",
+      "action_cta": "Fechar Gaveta",
+      "is_actionable": true,
+      "is_welcoming": true,
+      "score": 9.5,
+      "status": "APROVADO",
+      "recommendation": "Estado visual limpo e sóbrio."
+    }
+  ]
+}

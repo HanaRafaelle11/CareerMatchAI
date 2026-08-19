@@ -1,0 +1,54 @@
+{
+  "phase": "Fase 13 — Copy & Linguistic Consistency Audit",
+  "generated_at": "2026-08-19T02:20:00Z",
+  "compliance_summary": {
+    "total_terms_audited": 12,
+    "fully_compliant": 10,
+    "partially_compliant": 2,
+    "critical_jargon_found": 0
+  },
+  "terms_audit": [
+    {
+      "term_audited": "Match Semântico",
+      "status": "ELIMINADO DAS TELAS PRINCIPAIS",
+      "standardized_term": "Afinidade com a vaga / Compatibilidade com seu perfil",
+      "files_checked": ["OnboardingModal.tsx", "LandingPage.tsx", "HumanizedMatchCard.tsx"],
+      "verdict": "Em conformidade. A linguagem comunica o benefício direto sem jargões de NLP."
+    },
+    {
+      "term_audited": "Pipeline Kanban",
+      "status": "PADRONIZADO",
+      "standardized_term": "Minhas Candidaturas / Painel de Candidaturas",
+      "files_checked": ["Navbar.tsx", "StrategyPage.tsx", "OnboardingModal.tsx"],
+      "verdict": "Em conformidade. A aba principal é chamada de 'Minhas Candidaturas'."
+    },
+    {
+      "term_audited": "Career Score",
+      "status": "CONVIVÊNCIA COM TERMO EM PORTUGUÊS",
+      "standardized_term": "Diagnóstico de Competitividade de Carreira (Career Score)",
+      "files_checked": ["Dashboard.tsx", "CareerScoreDashboardCard.tsx", "Profile.tsx"],
+      "verdict": "O termo em português foi adicionado como título principal e 'Career Score' mantido apenas como subtítulo complementar."
+    },
+    {
+      "term_audited": "Diagnóstico de Compatibilidade V3 / Match IA v2.4",
+      "status": "ELIMINADO",
+      "standardized_term": "Diagnóstico de Compatibilidade / Inteligência de Match",
+      "files_checked": ["HumanizedMatchCard.tsx", "HeroProductMockup.tsx"],
+      "verdict": "Em conformidade. Nenhum número de versão interna é exposto nas interfaces públicas."
+    },
+    {
+      "term_audited": "Simulação STAR com IA",
+      "status": "HUMANIZADO",
+      "standardized_term": "Treino de Entrevistas com IA (Método STAR)",
+      "files_checked": ["CoachDashboard.tsx", "Navbar.tsx", "OnboardingModal.tsx"],
+      "verdict": "Em conformidade. Explicação didática de Situação, Tarefa, Ação e Resultado presente."
+    },
+    {
+      "term_audited": "Vagas de Tecnologia",
+      "status": "AMPLIADO",
+      "standardized_term": "Vagas do mercado",
+      "files_checked": ["OnboardingModal.tsx", "LandingPage.tsx"],
+      "verdict": "Em conformidade. Acolhe profissionais de operações, vendas, RH, financeiro e transição."
+    }
+  ]
+}

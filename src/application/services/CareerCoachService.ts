@@ -1,4 +1,4 @@
-import type { Resume, Job, CareerProfile } from '../../domain/models/types';
+import type { Resume, Job, CareerProfile, CareerGoal } from '../../domain/models/types';
 import type { CareerProfileNew } from '../hooks/useMyProfileAi';
 import { MatchingEngine, buildFlatSkillsFromProfile } from './matchingEngine';
 
@@ -13,14 +13,15 @@ export class CareerCoachService {
   /**
    * Avalia se vale a pena aplicar para a vaga.
    * Usa o CareerProfileNew (career_profiles + career_insights) como fonte primária
-   * quando disponível, garantindo consistência com o Meu Perfil IA.
+   * quando disponível, integrando Fit Atual e Potencial de Carreira.
    */
   static evaluateCandidacy(
     resume: Resume | null,
     job: Job | Omit<Job, 'id' | 'userId' | 'createdAt' | 'updatedAt'>,
     profile: CareerProfile | null,
     consolidatedProfile?: CareerProfileNew | null,
-    matchOverride?: any | null
+    matchOverride?: any | null,
+    _careerGoal?: CareerGoal | null
   ): CoachEvaluation {
     if (!resume && !consolidatedProfile) {
       return {
@@ -31,16 +32,20 @@ export class CareerCoachService {
       };
     }
 
+    // Identifica Fit Score e Goal Score
+    const fitScore = matchOverride?.careerFitScore ?? matchOverride?.scoreOverall ?? 0;
+    const goalScore = matchOverride?.careerGoalScore !== undefined ? matchOverride.careerGoalScore : null;
+
     // Calcula Match da vaga usando o perfil consolidado como fonte primária ou aproveita o match override
     const analysis = matchOverride
       ? {
-          scoreOverall: matchOverride.scoreOverall ?? 0,
-          scoreTechnical: matchOverride.scoreTechnical ?? 0,
-          scoreBehavioral: matchOverride.scoreBehavioral ?? 70,
-          scoreSeniority: matchOverride.scoreSeniority ?? 100,
-          scoreLocation: matchOverride.scoreLocation ?? 100,
-          missingSkills: matchOverride.gap_analysis?.missingSkills ?? matchOverride.gapAnalysis?.missingSkills ?? [],
-          matchedSkills: matchOverride.gap_analysis?.matchedSkills ?? matchOverride.gapAnalysis?.matchedSkills ?? [],
+          scoreOverall: fitScore,
+          scoreTechnical: matchOverride.scoreTechnical ?? matchOverride.dimensions?.skills ?? 0,
+          scoreBehavioral: matchOverride.scoreBehavioral ?? matchOverride.dimensions?.experience ?? 70,
+          scoreSeniority: matchOverride.scoreSeniority ?? matchOverride.dimensions?.seniority ?? 100,
+          scoreLocation: matchOverride.scoreLocation ?? matchOverride.dimensions?.context ?? 100,
+          missingSkills: matchOverride.skillsAssessment?.missing ?? matchOverride.gap_analysis?.missingSkills ?? matchOverride.gapAnalysis?.missingSkills ?? [],
+          matchedSkills: matchOverride.skillsAssessment?.matched ?? matchOverride.gap_analysis?.matchedSkills ?? matchOverride.gapAnalysis?.matchedSkills ?? [],
           yearsOfExperience: matchOverride.gap_analysis?.yearsOfExperience ?? matchOverride.gapAnalysis?.yearsOfExperience ?? 0
         }
       : resume
@@ -59,15 +64,19 @@ export class CareerCoachService {
     const reasons: string[] = [];
     const warnings: string[] = [];
 
-    // ── Score geral ──
-    if (analysis.scoreOverall >= 85) {
-      reasons.push(`${analysis.scoreOverall}% de Match com a vaga — perfil com forte adequação.`);
-    } else if (analysis.scoreOverall >= 70) {
-      reasons.push(`${analysis.scoreOverall}% de Match com a vaga — boa sintonia de competências.`);
+    // ── Score geral e Fit de Carreira ──
+    if (fitScore >= 85) {
+      reasons.push(`${fitScore}% de Compatibilidade Atual — perfil com forte aderência direta ao histórico.`);
+    } else if (fitScore >= 70) {
+      reasons.push(`${fitScore}% de Compatibilidade Atual — boa sintonia de competências profissionais.`);
+    }
+
+    if (goalScore && goalScore >= 75) {
+      reasons.push(`${goalScore}% de Potencial para seu Objetivo — oportunidade altamente conectada ao seu alvo de carreira.`);
     }
 
     // ── Fit de senioridade ──
-    const senioritySource = consolidatedProfile ? null : profile; // usa insights se disponível
+    const senioritySource = consolidatedProfile ? null : profile;
     if (senioritySource) {
       const isSeniorityMatch = senioritySource.seniority.toLowerCase() === job.seniority.toLowerCase();
       if (isSeniorityMatch) {
@@ -105,22 +114,24 @@ export class CareerCoachService {
         }
       });
     } else {
-      // Fallback sem perfil consolidado — usa linguagem construtiva
       missing.slice(0, 2).forEach((sk: string) => {
         warnings.push(`Para elevar seu Match com a vaga, vale destacar experiências relacionadas a ${sk} no currículo.`);
       });
     }
 
-    // ── Veredicto final ──
+    // ── Veredicto final combinado (Fit + Goal + Gaps + Senioridade) ──
     let shouldApply: CoachEvaluation['shouldApply'] = '🔴 Match baixo com a vaga';
-    let recommendation = 'Recomendamos buscar outras oportunidades com maior Match da vaga.';
+    let recommendation = 'Recomendamos priorizar outras oportunidades com maior sintonia com seu perfil e objetivo.';
 
     const criticalWarnings = warnings.filter(w => w.includes('não identificamos') || w.includes('exige'));
 
-    if (analysis.scoreOverall >= 85 && criticalWarnings.length <= 1) {
+    if (fitScore >= 80 && (goalScore === null || goalScore >= 70) && criticalWarnings.length <= 1) {
       shouldApply = '🟢 Sim';
-      recommendation = 'Match alto com a vaga! Esta posição combina com seu perfil. Prossiga com o envio da candidatura, destacando os pontos fortes identificados.';
-    } else if (analysis.scoreOverall >= 65) {
+      recommendation = 'Forte recomendação! A vaga combina com seu histórico profissional e está alinhada ao seu objetivo. Prossiga com o envio da candidatura.';
+    } else if (goalScore && goalScore >= 75 && fitScore < 65) {
+      shouldApply = '🟡 Ajustar antes';
+      recommendation = 'Candidatura estratégica! Embora a aderência direta ao histórico seja inicial, a vaga representa uma ponte sólida para seu objetivo. Destaque competências transferíveis.';
+    } else if (fitScore >= 65 || (goalScore && goalScore >= 65)) {
       shouldApply = '🟡 Ajustar antes';
       const toHighlight = missing.filter((sk: string) => {
         if (!consolidatedProfile) return true;
@@ -128,8 +139,8 @@ export class CareerCoachService {
         return !flat.some(s => s.includes(sk.toLowerCase()));
       }).slice(0, 2);
       recommendation = toHighlight.length > 0
-        ? `Match relevante! Antes de enviar, ajuste o currículo para destacar ${toHighlight.join(' e ')} — isso pode elevar significativamente a taxa de resposta.`
-        : 'Match relevante! Revise o currículo para ressaltar os pontos mais relevantes para esta vaga antes de enviar.';
+        ? `Match relevante! Antes de enviar, ajuste o currículo para destacar ${toHighlight.join(' e ')} — isso elevará significativamente sua taxa de conversão.`
+        : 'Match relevante! Revise o currículo para ressaltar os pontos mais relevantes para esta oportunidade antes de submeter.';
     }
 
     return {

@@ -296,6 +296,44 @@ class AnalyticsTracker {
   public trackSurveyEmailClicked(email: string, cohort: string) {
     this.track('survey_email_clicked', 'UserResearch', { email_masked: email.slice(0, 3) + '***', cohort, survey_version: 'v1_founders_validation' });
   }
+
+  // ── Telemetria de Produto & Matching V3 (Fase 5 - Sem PII) ──
+
+  public trackJobMatchViewed(jobId: string, metadata: { career_fit_score?: number; career_goal_score?: number | null; transition_type?: string; intent_type?: string } = {}) {
+    this.track('job_match_viewed', 'Matching', { job_id: jobId, ...metadata });
+  }
+
+  public trackMatchExplanationOpened(jobId: string, metadata: { career_fit_score?: number; career_goal_score?: number | null; transition_type?: string } = {}) {
+    this.track('match_explanation_opened', 'Matching', { job_id: jobId, ...metadata });
+  }
+
+  public trackCareerGoalCtaClicked(source?: string) {
+    this.track('career_goal_cta_clicked', 'CareerGoal', { source: source || 'unknown' });
+  }
+
+  public trackCareerGoalCreated(intentType: string, metadata: { has_target_area?: boolean; roles_count?: number } = {}) {
+    this.track('career_goal_created', 'CareerGoal', { intent_type: intentType, ...metadata });
+  }
+
+  public trackApplyRecommendationViewed(jobId: string, recommendation: string, metadata: { career_fit_score?: number; career_goal_score?: number | null } = {}) {
+    this.track('apply_recommendation_viewed', 'DecisionSupport', { job_id: jobId, recommendation, ...metadata });
+  }
+
+  public trackJobSaved(jobId: string, metadata: { career_fit_score?: number; career_goal_score?: number | null } = {}) {
+    this.track('job_saved', 'Action', { job_id: jobId, ...metadata });
+  }
+
+  public trackJobRejected(jobId: string, metadata: { career_fit_score?: number; reason?: string } = {}) {
+    this.track('job_rejected', 'Action', { job_id: jobId, ...metadata });
+  }
+
+  public trackCoverLetterGenerated(jobId: string, metadata: { style?: string; fit_score?: number } = {}) {
+    this.track('cover_letter_generated', 'Action', { job_id: jobId, ...metadata });
+  }
+
+  public trackApplicationCreated(jobId: string, metadata: { stage?: string; fit_score?: number } = {}) {
+    this.track('application_created', 'Action', { job_id: jobId, ...metadata });
+  }
 }
 
 export const tracker = new AnalyticsTracker();

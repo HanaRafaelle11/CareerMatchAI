@@ -1,6 +1,7 @@
 import type { CareerGoal, CareerGoalIntentType } from '../../domain/models/types';
 import { localDB } from '../../infrastructure/storage/localDatabase';
 import { isSupabaseConfigured, supabase } from '../../infrastructure/api/supabaseClient';
+import { tracker } from '../../infrastructure/analytics/tracker';
 
 /**
  * Vocentro - CareerGoalService
@@ -71,6 +72,13 @@ export class CareerGoalService {
 
     // Sempre persistir no banco local para resiliência offline e navegação instantânea
     localDB.saveCareerGoal(updatedGoal);
+
+    try {
+      tracker.trackCareerGoalCreated(updatedGoal.intentType || 'same_area_continue', {
+        has_target_area: !!updatedGoal.targetArea,
+        roles_count: updatedGoal.targetRoles?.length || 0
+      });
+    } catch (_) {}
 
     if (isSupabaseConfigured && supabase) {
       try {

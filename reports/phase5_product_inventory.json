@@ -1,0 +1,76 @@
+{
+  "product_name": "VoCentro (CareerMatchAI)",
+  "phase": "Fase 5 - Release Candidate Final Hardening",
+  "audit_date": "2026-08-19",
+  "architecture": {
+    "framework": "React 19 + TypeScript + Vite",
+    "styling": "Tailwind CSS v4 + Vocentro Design System (3 surfaces)",
+    "state_management": "TanStack React Query + LocalStorage Resilience",
+    "backend": "Supabase PostgreSQL + Edge Functions + RLS Policies",
+    "integrations": [
+      "Supabase Auth & Database",
+      "Stripe Billing",
+      "Asaas Pix/Boleto Billing",
+      "Resend Transactional Emails",
+      "Adzuna Jobs Feed Aggregation"
+    ]
+  },
+  "routes": {
+    "public": [
+      { "path": "/", "page": "LandingPage.tsx", "purpose": "Conversão e apresentação de valor" },
+      { "path": "/about", "page": "AboutPage.tsx", "purpose": "Sobre a empresa e transparência" },
+      { "path": "/google-auth", "page": "GoogleAuthPage.tsx", "purpose": "Callback e explicação OAuth Google" },
+      { "path": "/how-google-login-works", "page": "HowGoogleLoginWorksPage.tsx", "purpose": "Segurança e permissões OAuth" },
+      { "path": "/faq", "page": "FaqHelpPage.tsx", "purpose": "Central de ajuda e dúvidas frequentes" },
+      { "path": "/politica-de-privacidade", "page": "PrivacyPolicyPage.tsx", "purpose": "Termos de privacidade e LGPD" },
+      { "path": "/termos-de-uso", "page": "TermsOfUsePage.tsx", "purpose": "Termos contratuais de uso" },
+      { "path": "/pesquisa", "page": "PublicSurveyPage.tsx", "purpose": "Pesquisa de satisfação pública" },
+      { "path": "/login", "page": "Login.tsx", "purpose": "Autenticação por Email e OAuth" }
+    ],
+    "authenticated": [
+      { "tab": "dashboard", "page": "Dashboard.tsx", "purpose": "Visão geral e próximo passo em 30s" },
+      { "tab": "match", "page": "JobMatchHub.tsx", "purpose": "Descoberta de vagas e Match Score Oficial" },
+      { "tab": "strategy", "page": "StrategyPage.tsx", "purpose": "Pipeline Kanban e gestão de candidaturas" },
+      { "tab": "coach", "page": "CoachDashboard.tsx", "purpose": "Simulações STAR e otimização de currículo" },
+      { "tab": "profile", "page": "Profile.tsx", "purpose": "Dados pessoais e profissionais" },
+      { "tab": "career-profile", "page": "CareerProfilePage.tsx", "purpose": "Objetivo profissional e competências" },
+      { "tab": "settings", "page": "Settings.tsx", "purpose": "Configurações de conta e assinatura" },
+      { "tab": "notifications", "page": "Notifications.tsx", "purpose": "Central de alertas e avisos" },
+      { "tab": "admin", "page": "AdminDashboard.tsx", "purpose": "Command Center e 14 módulos de governança" }
+    ]
+  },
+  "core_services": {
+    "engine": {
+      "name": "CareerMatchEngineV3",
+      "file": "src/domain/services/CareerMatchEngineV3.ts",
+      "status": "FROZEN (100% Deterministic V3 Engine)"
+    },
+    "unified_match": {
+      "name": "UnifiedMatchService",
+      "file": "src/domain/services/UnifiedMatchService.ts",
+      "status": "Active (Single Source of Truth)"
+    },
+    "ranking": {
+      "name": "ProductJobRankingService",
+      "file": "src/domain/services/ProductJobRankingService.ts",
+      "status": "Active (Strategic List Sorting)"
+    },
+    "admin_analytics": {
+      "name": "AdminAnalyticsService",
+      "file": "src/application/services/AdminAnalyticsService.ts",
+      "status": "Active (DAU/WAU/MAU/Stickiness/Funnel)"
+    },
+    "next_step": {
+      "name": "NextStepService",
+      "file": "src/domain/services/NextStepService.ts",
+      "status": "Active (Dominant Hero Action Generator)"
+    }
+  },
+  "interface_states": {
+    "default": "Superfície padronizada com tipografia legível e tokens VDS",
+    "loading": "Skeletons contextualizados e spinners acessíveis",
+    "empty": "EmptyState.tsx com orientação humana e CTA de recuperação",
+    "error": "Mensagens em linguagem natural com ação de tentativa",
+    "success": "Toasts informativos e feedback visual imediato"
+  }
+}
